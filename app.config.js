@@ -12,6 +12,7 @@ const config = {
     buildNumber: '1',
   },
   plugins: [
+    '@sentry/react-native/expo',
     [
       'expo-splash-screen',
       {
@@ -28,6 +29,7 @@ const config = {
   ],
   ios: {
     supportsTablet: true,
+    bundleIdentifier: 'com.mahifitness.app',
   },
   android: {
     adaptiveIcon: {
