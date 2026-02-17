@@ -1,20 +1,33 @@
+import React, { useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 
-export default function App() {
+import SplashScreenComponent from '@/screens/SplashScreen';
+import WelcomeScreen from '@/screens/WelcomeScreen';
+
+// Prevent the native OS splash from auto-hiding before our custom one is drawn.
+SplashScreen.preventAutoHideAsync();
+
+export default function App(): React.JSX.Element {
+  const [splashDone, setSplashDone] = useState(false);
+
+  const onSplashLayout = useCallback(() => {
+    SplashScreen.hideAsync().then(() => setSplashDone(true));
+  }, []);
+
+  if (!splashDone) {
+    return (
+      <>
+        <SplashScreenComponent onLayout={onSplashLayout} />
+        <StatusBar style="light" />
+      </>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
+    <>
+      <WelcomeScreen />
       <StatusBar style="auto" />
-    </View>
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

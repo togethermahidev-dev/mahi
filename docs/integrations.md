@@ -1,5 +1,20 @@
 # Integrations
 
+## expo-splash-screen
+
+**Status: Active**
+
+Controls the native OS splash screen and provides the JS-side API for hiding it.
+
+- Config plugin in `app.config.js` writes adaptive splash colors to native iOS/Android at prebuild time
+- Light background: `#F5F5F0`, dark background: `#0F0F0D`
+- `SplashScreen.preventAutoHideAsync()` — called at module scope in `App.tsx` to hold the native splash until our custom JS splash is drawn
+- `SplashScreen.hideAsync()` — called from `onLayout` in `SplashScreen.tsx` after the custom splash confirms it is rendered
+
+The splash image (`assets/splash-icon.png`) is currently the Expo default placeholder. Replace with the final MAHI logo (white text, transparent background PNG) before a native prebuild.
+
+---
+
 ## Supabase — `src/lib/supabase.ts`
 
 **Status: Active**
