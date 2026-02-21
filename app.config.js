@@ -12,7 +12,15 @@ const config = {
     buildNumber: '1',
   },
   plugins: [
-    '@sentry/react-native/expo',
+    'expo-font',
+    [
+      'expo-camera',
+      {
+        cameraPermission: 'Mahi uses the camera to power your fitness accountability features.',
+        microphonePermission: false,
+      },
+    ],
+    // '@sentry/react-native/expo', // re-enable once Sentry DSN + org are configured
     [
       'expo-splash-screen',
       {

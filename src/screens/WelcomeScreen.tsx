@@ -1,93 +1,111 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useColorScheme } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  useColorScheme, Animated, Dimensions,
+} from 'react-native';
+import LoginSheet from '@/components/LoginSheet';
+import CreateAccountSheet from '@/components/CreateAccountSheet';
 
-const LIGHT_BG = '#F5F5F0';
-const DARK_BG = '#0F0F0D';
-const TEXT_COLOR = '#FFFFFF';
+const { height } = Dimensions.get('window');
 
-export default function WelcomeScreen(): React.JSX.Element {
-  const colorScheme = useColorScheme();
-  const backgroundColor = colorScheme === 'dark' ? DARK_BG : LIGHT_BG;
+interface Props {
+  onAuthComplete: () => void;
+}
+
+export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Element {
+  const dark = useColorScheme() === 'dark';
+  const sheetBg   = dark ? '#1C1C19' : '#FFFFFF';
+  const sheetText = dark ? '#FFFFFF' : '#0F0F0D';
+
+  const topY = useRef(new Animated.Value(0)).current;
+  const botY = useRef(new Animated.Value(0)).current;
+
+  const [showLogin, setShowLogin]   = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
+
+  const handleAuthComplete = () => {
+    setShowLogin(false);
+    setShowSignup(false);
+    Animated.parallel([
+      Animated.timing(topY, { toValue: -height, duration: 400, useNativeDriver: true }),
+      Animated.timing(botY, { toValue: height,  duration: 400, useNativeDriver: true }),
+    ]).start(() => onAuthComplete());
+  };
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
-      <View style={styles.hero}>
-        <Text style={styles.title}>MAHI</Text>
-        <Text style={styles.subtitle}>The fitness accountability app</Text>
-      </View>
-
-      <View style={styles.actions}>
+    <View style={styles.root}>
+      <Animated.View style={[styles.topSheet, { backgroundColor: sheetBg, transform: [{ translateY: topY }] }]}>
+        <View style={styles.titles}>
+          <Text style={[styles.title, { color: sheetText }]}>MAHI</Text>
+          <Text style={[styles.subtitle, { color: sheetText }]}>The fitness accountability app</Text>
+        </View>
         <TouchableOpacity
-          style={styles.buttonPrimary}
-          onPress={() => console.log('navigate: sign-up')}
+          style={[styles.button, { backgroundColor: sheetText }]}
           activeOpacity={0.8}
+          onPress={() => setShowSignup(true)}
         >
-          <Text style={styles.buttonTextDark}>Create an account</Text>
+          <Text style={[styles.buttonText, { color: sheetBg }]}>Create an account</Text>
         </TouchableOpacity>
+      </Animated.View>
 
+      <View style={styles.gap} />
+
+      <Animated.View style={[styles.bottomSheet, { backgroundColor: sheetBg, transform: [{ translateY: botY }] }]}>
         <TouchableOpacity
-          style={styles.buttonSecondary}
-          onPress={() => console.log('navigate: login')}
+          style={[styles.button, styles.buttonOutline, { borderColor: sheetText }]}
           activeOpacity={0.8}
+          onPress={() => setShowLogin(true)}
         >
-          <Text style={styles.buttonTextLight}>Login</Text>
+          <Text style={[styles.buttonText, { color: sheetText }]}>Login</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
+
+      <LoginSheet
+        visible={showLogin}
+        onDismiss={() => setShowLogin(false)}
+        onAuthComplete={handleAuthComplete}
+      />
+      <CreateAccountSheet
+        visible={showSignup}
+        onDismiss={() => setShowSignup(false)}
+        onAuthComplete={handleAuthComplete}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: { flex: 1, backgroundColor: '#111111' },
+  topSheet: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 80,
     paddingHorizontal: 24,
+    paddingTop: 80,
+    paddingBottom: 40,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
+    justifyContent: 'space-between',
   },
-  hero: {
+  titles: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 56, fontFamily: 'JosefinSans_700Bold', letterSpacing: 10, marginBottom: 12 },
+  subtitle: { fontSize: 16, fontFamily: 'JosefinSans_400Regular_Italic', opacity: 0.7 },
+  gap: { height: 55 },
+  bottomSheet: {
     flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 40,
+    paddingBottom: 60,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    color: TEXT_COLOR,
-    fontSize: 56,
-    fontWeight: '700',
-    letterSpacing: 10,
-    marginBottom: 12,
-  },
-  subtitle: {
-    color: TEXT_COLOR,
-    fontSize: 16,
-    fontWeight: '400',
-    opacity: 0.7,
-  },
-  actions: {
-    width: '100%',
-    gap: 12,
-  },
-  buttonPrimary: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
-    borderRadius: 12,
+  button: {
+    width: '72%',
+    alignSelf: 'center',
+    paddingVertical: 20,
+    borderRadius: 50,
     alignItems: 'center',
   },
-  buttonSecondary: {
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  buttonTextDark: {
-    color: '#0F0F0D',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonTextLight: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  buttonOutline: { backgroundColor: 'transparent', borderWidth: 1.5 },
+  buttonText: { fontSize: 18, fontFamily: 'JosefinSans_600SemiBold' },
 });
