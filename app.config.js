@@ -20,7 +20,14 @@ const config = {
         microphonePermission: false,
       },
     ],
-    // '@sentry/react-native/expo', // re-enable once Sentry DSN + org are configured
+    [
+      '@sentry/react-native/expo',
+      {
+        organization: 'mahi-org',
+        project: 'react-native',
+        url: 'https://sentry.io/',
+      },
+    ],
     [
       'expo-splash-screen',
       {

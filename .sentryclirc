@@ -1,0 +1,4 @@
+[defaults]
+org=mahi-org
+project=react-native
+url=https://sentry.io/
