@@ -15,13 +15,14 @@ interface SignUpFormState {
   username: string;
   displayName: string;
   fitnessGoals: string[];
-  fitnessRoutine: string;
+  fitnessRoutine: string[];  // days of week, joined to text on DB insert
   // Actions
-  setField: <K extends keyof Omit<SignUpFormState, 'setField' | 'toggleGoal' | 'reset'>>(
+  setField: <K extends keyof Omit<SignUpFormState, 'setField' | 'toggleGoal' | 'toggleRoutineDay' | 'reset'>>(
     key: K,
     val: SignUpFormState[K],
   ) => void;
   toggleGoal: (goal: string) => void;
+  toggleRoutineDay: (day: string) => void;
   reset: () => void;
 }
 
@@ -37,7 +38,7 @@ const initialState = {
   username: '',
   displayName: '',
   fitnessGoals: [] as string[],
-  fitnessRoutine: '',
+  fitnessRoutine: [] as string[],
 };
 
 export const useSignUpStore = create<SignUpFormState>((set) => ({
@@ -48,6 +49,12 @@ export const useSignUpStore = create<SignUpFormState>((set) => ({
       fitnessGoals: state.fitnessGoals.includes(goal)
         ? state.fitnessGoals.filter((g) => g !== goal)
         : [...state.fitnessGoals, goal],
+    })),
+  toggleRoutineDay: (day) =>
+    set((state) => ({
+      fitnessRoutine: state.fitnessRoutine.includes(day)
+        ? state.fitnessRoutine.filter((d) => d !== day)
+        : [...state.fitnessRoutine, day],
     })),
   reset: () => set(initialState),
 }));

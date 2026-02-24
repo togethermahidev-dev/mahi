@@ -14,6 +14,15 @@ const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 
 const DOMAINS = ['gmail.com', 'hotmail.com', 'icloud.com', 'outlook.com', 'yahoo.com'];
 const GOALS = ['Lose weight', 'Build muscle', 'Improve endurance', 'Flexibility', 'General fitness', 'Sports performance'];
+const DAYS = [
+  { label: 'Mon', full: 'Monday' },
+  { label: 'Tue', full: 'Tuesday' },
+  { label: 'Wed', full: 'Wednesday' },
+  { label: 'Thu', full: 'Thursday' },
+  { label: 'Fri', full: 'Friday' },
+  { label: 'Sat', full: 'Saturday' },
+  { label: 'Sun', full: 'Sunday' },
+];
 
 // ─── Password strength ────────────────────────────────────────────────────────
 type Strength = 'low' | 'medium' | 'high';
@@ -77,7 +86,7 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
     email, password,
     firstName, lastName, dobDD, dobMM, dobYYYY, contactNumber,
     username, displayName, fitnessGoals, fitnessRoutine,
-    setField, toggleGoal, reset: resetForm,
+    setField, toggleGoal, toggleRoutineDay, reset: resetForm,
   } = useSignUpStore();
 
   // ── Step logging ──────────────────────────────────────────────────────────
@@ -235,7 +244,7 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
     }
   };
 
-  // Step 3 → 4: validate personal details
+  // Step 3 → 4: validate personal details (all fields required)
   const handleStep3Next = () => {
     if (!firstName.trim() || !lastName.trim()) {
       setError('First and last name are required.');
@@ -243,6 +252,10 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
     }
     if (!dobDD || !dobMM || !dobYYYY || dobYYYY.length < 4) {
       setError('Enter a valid date of birth.');
+      return;
+    }
+    if (!contactNumber.trim()) {
+      setError('Contact number is required.');
       return;
     }
     setError('');
@@ -254,6 +267,7 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
     if (!username.trim())               { setError('Username is required.'); return; }
     if (usernameStatus === 'taken')     { setError('That username is already taken.'); return; }
     if (usernameStatus === 'checking')  { setError('Checking username…'); return; }
+    if (fitnessGoals.length === 0)      { setError('Select at least one fitness goal.'); return; }
     setError('');
     setLoading(true);
     try {
@@ -292,7 +306,7 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
         date_of_birth:   dob,
         contact_number:  contactNumber.trim() || null,
         fitness_goals:   fitnessGoals.length > 0 ? fitnessGoals : null,
-        fitness_routine: fitnessRoutine.trim() || null,
+        fitness_routine: fitnessRoutine.length > 0 ? fitnessRoutine.join(',') : null,
       });
       if (profileError) throw new Error('Profile save failed: ' + profileError.message);
 
@@ -529,20 +543,23 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
               <Text style={[styles.title, { color: text }]}>Your profile</Text>
 
               <Text style={[styles.label, { color: muted }]}>Username</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: text }]}
-                value={username}
-                onChangeText={v => { setField('username', v); setUsernameStatus('idle'); }}
-                placeholder="janesmith"
-                placeholderTextColor={muted}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+              <View style={[styles.inputRow, { backgroundColor: inputBg }]}>
+                <Text style={[styles.atSign, { color: username ? text : muted }]}>@</Text>
+                <TextInput
+                  style={[styles.inputInner, { color: text }]}
+                  value={username}
+                  onChangeText={v => { setField('username', v.replace('@', '')); setUsernameStatus('idle'); }}
+                  placeholder="janesmith"
+                  placeholderTextColor={muted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
               {usernameStatus === 'checking'  && <Text style={[styles.fieldNote, { color: muted  }]}>Checking…</Text>}
               {usernameStatus === 'available' && <Text style={[styles.fieldNote, { color: green  }]}>✓ Available</Text>}
               {usernameStatus === 'taken'     && <Text style={[styles.fieldNote, { color: red    }]}>✗ Already taken</Text>}
 
-              <Text style={[styles.label, { color: muted }]}>Display as name</Text>
+              <Text style={[styles.label, { color: muted }]}>Display name <Text style={[styles.optionalTag, { color: muted }]}>(optional)</Text></Text>
               <TextInput
                 style={[styles.input, { backgroundColor: inputBg, color: text }]}
                 value={displayName}
@@ -574,15 +591,28 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
                 })}
               </View>
 
-              <Text style={[styles.label, { color: muted }]}>Current fitness routine</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: text, minHeight: 80, textAlignVertical: 'top' }]}
-                value={fitnessRoutine}
-                onChangeText={v => setField('fitnessRoutine', v)}
-                placeholder="Describe your current routine…"
-                placeholderTextColor={muted}
-                multiline
-              />
+              <Text style={[styles.label, { color: muted }]}>Training days</Text>
+              <Text style={[styles.subtitle, { color: muted }]}>Which days do you train?</Text>
+              <View style={styles.daysRow}>
+                {DAYS.map(({ label, full }) => {
+                  const selected = fitnessRoutine.includes(full);
+                  return (
+                    <TouchableOpacity
+                      key={full}
+                      style={[
+                        styles.dayPill,
+                        selected
+                          ? { backgroundColor: text }
+                          : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: text },
+                      ]}
+                      onPress={() => toggleRoutineDay(full)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.dayText, { color: selected ? bg : text }]}>{label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
           )}
 
@@ -712,9 +742,16 @@ const styles = StyleSheet.create({
   fieldNote:  { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', marginTop: -4 },
   errorText:  { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', marginTop: 4 },
 
+  atSign: { fontSize: 16, fontFamily: 'JosefinSans_600SemiBold', paddingRight: 2 },
+  optionalTag: { fontSize: 11, fontFamily: 'JosefinSans_400Regular_Italic' },
+
   goalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
   goalPill:  { borderRadius: 50, paddingHorizontal: 18, paddingVertical: 12 },
   goalText:  { fontSize: 14, fontFamily: 'JosefinSans_600SemiBold' },
+
+  daysRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  dayPill: { flex: 1, borderRadius: 50, paddingVertical: 12, alignItems: 'center' },
+  dayText: { fontSize: 12, fontFamily: 'JosefinSans_600SemiBold' },
 
   navRow:        { flexDirection: 'row', gap: 12, marginTop: 16 },
   navBtn:        { borderRadius: 50, paddingVertical: 20, alignItems: 'center' },
