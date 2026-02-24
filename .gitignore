@@ -34,6 +34,13 @@ yarn-error.*
 .env*.local
 .env
 
+# Claude local settings (may contain tokens)
+.claude/settings.local.json
+.mcp.json
+
+# Sentry CLI config
+.sentryclirc
+
 # typescript
 *.tsbuildinfo
 

@@ -31,6 +31,12 @@ Prefer this hook over importing `supabase` directly from `src/lib/supabase` insi
 
 ---
 
+## Root Orchestrator Pattern
+
+`App.tsx` does not use `useSupabase()`. The root component uses the `supabase` singleton directly for the one-time auth subscription in `useEffect`. `useSupabase()` is for use inside components and hooks, not the app root.
+
+---
+
 ## Conventions
 
 - Hooks are named `use<Feature>` and live in `src/hooks/`

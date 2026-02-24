@@ -32,7 +32,7 @@ mahi-fitness/
 ├── assets/             # Images, icons, splash
 ├── App.tsx             # Root component
 ├── index.ts            # Entry point (registerRootComponent)
-└── app.json            # Expo config
+└── app.config.js       # Expo config (dynamic, replaces app.json)
 ```
 
 ## Data Flow
@@ -56,4 +56,39 @@ All runtime config uses Expo's `EXPO_PUBLIC_` prefix so values are embedded at b
 
 ## New Architecture Enabled
 
-`newArchEnabled: true` is set in `app.json` — the app targets React Native's new architecture (JSI/Fabric).
+`newArchEnabled: true` is set in `app.config.js` — the app targets React Native's new architecture (JSI/Fabric).
+
+---
+
+## Screens
+
+| Screen | Path | Purpose |
+|---|---|---|
+| `SplashScreen` | `src/screens/SplashScreen.tsx` | Custom JS splash — mirrors native splash, shown until native hides |
+| `WelcomeScreen` | `src/screens/WelcomeScreen.tsx` | Unauthenticated landing — MAHI logo, tagline, sign-up and login buttons |
+
+## Boot Sequence
+
+```
+App launch
+  OS renders native splash  ← backgroundColor from expo-splash-screen plugin
+  JS bundle loads
+  SplashScreen.preventAutoHideAsync()  ← module scope in App.tsx
+  App renders → splashDone=false → <SplashScreen onLayout={...} />
+  SplashScreen root View lays out (drawn to screen)
+    → SplashScreen.hideAsync()  ← native gone, custom already visible
+    → setSplashDone(true)
+  → <WelcomeScreen />
+```
+
+The native splash and custom splash are visually identical — same colors, same centered MAHI text. The handoff is seamless. Auth initialization will be wired into this flow when navigation is built.
+
+## Config
+
+App config lives in `app.config.js` (CommonJS, replaces `app.json`). Dynamic config enables config plugin support and runtime values.
+
+| Field | Value |
+|---|---|
+| `version` | `0.1.0` |
+| `extra.buildNumber` | `'1'` — read by `SplashScreen.tsx` for version display |
+| `userInterfaceStyle` | `automatic` — system light/dark mode |
