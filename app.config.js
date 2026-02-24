@@ -17,7 +17,7 @@ const config = {
       'expo-camera',
       {
         cameraPermission: 'Mahi uses the camera to power your fitness accountability features.',
-        microphonePermission: false,
+        microphonePermission: 'Mahi uses the microphone to record your workout sessions.',
       },
     ],
     [

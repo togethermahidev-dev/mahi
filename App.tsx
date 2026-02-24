@@ -18,7 +18,7 @@ import {
 import SplashScreenComponent from '@/screens/SplashScreen';
 import WelcomeScreen from '@/screens/WelcomeScreen';
 import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
-import MainShell from '@/screens/MainShell';
+import TabBar from '@/screens/TabBar';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store';
 import { Sentry } from '@/lib/sentry';
@@ -49,8 +49,7 @@ export default function App(): React.JSX.Element {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, s) => {
-      console.log('[Screen] Auth event:', event, s ? `user=${s.user.email}` : 'signed out');
+    } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       setIsLoading(false);
 
@@ -78,7 +77,6 @@ export default function App(): React.JSX.Element {
 
   // Keep the custom splash on screen while fonts load or session is restoring
   if (!splashDone || !fontsLoaded || isLoading) {
-    console.log('[Screen] SplashScreen — splashDone:', splashDone, 'fontsLoaded:', fontsLoaded, 'isLoading:', isLoading);
     return (
       <>
         <SplashScreenComponent onLayout={onSplashLayout} />
@@ -88,7 +86,6 @@ export default function App(): React.JSX.Element {
   }
 
   if (session && !showCamera) {
-    console.log('[Screen] InAppAnimationScreen — user:', session.user.email);
     return (
       <>
         <InAppAnimationScreen onComplete={() => setShowCamera(true)} />
@@ -98,16 +95,14 @@ export default function App(): React.JSX.Element {
   }
 
   if (session && showCamera) {
-    console.log('[Screen] MainShell — user:', session.user.email);
     return (
       <>
-        <MainShell />
+        <TabBar />
         <StatusBar style="light" />
       </>
     );
   }
 
-  console.log('[Screen] WelcomeScreen — unauthenticated');
   return (
     <>
       {/* onAuthComplete is a no-op — onAuthStateChange above drives the

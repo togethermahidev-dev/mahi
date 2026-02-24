@@ -108,7 +108,7 @@ function Placeholder({ bg }: { bg: string }) {
 
 // ─── MainShell ────────────────────────────────────────────────────────────────
 
-export default function MainShell(): React.JSX.Element {
+export default function TabBar(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState(2); // camera is the default tab
   const dark = useColorScheme() === 'dark';
 

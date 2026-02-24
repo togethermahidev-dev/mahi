@@ -8,49 +8,81 @@ import {
   Platform,
   useColorScheme,
 } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 
 export default function CameraScreen(): React.JSX.Element {
-  const [permission, requestPermission] = useCameraPermissions();
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [micPermission,    requestMicPermission]    = useMicrophonePermissions();
   const cameraRef = useRef<CameraView>(null);
   const dark = useColorScheme() === 'dark';
   const sheetBg = dark ? '#1C1C19' : '#FFFFFF';
 
+  // Request camera permission whenever it becomes requestable
   useEffect(() => {
-    if (permission && !permission.granted && permission.canAskAgain) {
-      requestPermission();
+    if (cameraPermission && !cameraPermission.granted && cameraPermission.canAskAgain) {
+      requestCameraPermission();
     }
-  }, [permission?.status]);
+  }, [cameraPermission?.status]);
+
+  // Request microphone permission whenever it becomes requestable
+  useEffect(() => {
+    if (micPermission && !micPermission.granted && micPermission.canAskAgain) {
+      requestMicPermission();
+    }
+  }, [micPermission?.status]);
 
   const takePhoto = async () => {
     if (!cameraRef.current) return;
     await cameraRef.current.takePictureAsync({ quality: 0.8 });
   };
 
-  // Permission not yet determined
-  if (!permission) {
+  // Still loading — OS hasn't returned permission status yet
+  if (!cameraPermission || !micPermission) {
     return <View style={styles.root} />;
   }
 
-  // Permission denied
-  if (!permission.granted) {
+  const cameraGranted = cameraPermission.granted;
+  const micGranted    = micPermission.granted;
+
+  // One or both permissions are missing
+  if (!cameraGranted || !micGranted) {
+    // Determine message based on which permission(s) are missing
+    let message: string;
+    if (!cameraGranted && !micGranted) {
+      message = 'Mahi needs access to your camera and microphone to power your fitness experience.';
+    } else if (!cameraGranted) {
+      message = 'Mahi needs camera access to power your fitness experience.';
+    } else {
+      message = 'Mahi needs microphone access to record your workout sessions.';
+    }
+
+    // Show "Allow Access" if any denied permission can still be requested, else "Open Settings"
+    const canAskCamera = !cameraGranted && cameraPermission.canAskAgain;
+    const canAskMic    = !micGranted    && micPermission.canAskAgain;
+    const canAskAny    = canAskCamera || canAskMic;
+
+    const handleAction = () => {
+      if (canAskAny) {
+        if (canAskCamera) requestCameraPermission();
+        if (canAskMic)    requestMicPermission();
+      } else {
+        Linking.openSettings();
+      }
+    };
+
     return (
       <View style={styles.root}>
         <View style={styles.cameraRegion}>
-          <Text style={styles.deniedMessage}>
-            Camera access is needed to use Mahi
-          </Text>
+          <Text style={styles.deniedMessage}>{message}</Text>
         </View>
         <View style={[styles.bottomSheet, { backgroundColor: sheetBg }]}>
           <TouchableOpacity
             style={styles.permissionButton}
             activeOpacity={0.8}
-            onPress={() =>
-              permission.canAskAgain ? requestPermission() : Linking.openSettings()
-            }
+            onPress={handleAction}
           >
             <Text style={styles.permissionButtonText}>
-              {permission.canAskAgain ? 'Allow Camera' : 'Open Settings'}
+              {canAskAny ? 'Allow Access' : 'Open Settings'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -58,7 +90,7 @@ export default function CameraScreen(): React.JSX.Element {
     );
   }
 
-  // Camera granted — full experience
+  // Both granted — full camera experience
   return (
     <View style={styles.root}>
       {/* Camera region — top 3/4 of screen */}
@@ -96,6 +128,8 @@ const styles = StyleSheet.create({
     flex: 3,
     backgroundColor: '#111111',
     overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // MAHI header overlaid on camera feed
