@@ -55,7 +55,7 @@ export default function App(): React.JSX.Element {
       // Keep Sentry & PostHog in sync with auth state
       if (s?.user) {
         Sentry.setUser({ id: s.user.id, email: s.user.email });
-        posthog.identify(s.user.id, { email: s.user.email });
+        posthog.identify(s.user.id, { email: s.user.email ?? null });
       } else {
         Sentry.setUser(null);
         posthog.reset();

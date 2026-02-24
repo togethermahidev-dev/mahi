@@ -226,7 +226,7 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
     setLoading(false);
     if (!result.success) {
       Sentry.addBreadcrumb({ category: 'signup', message: `OTP verify failed: ${result.error}`, level: 'warning' });
-      posthog.capture('signup_otp_failed', { error: result.error });
+      posthog.capture('signup_otp_failed', { error: result.error ?? null });
       setError(result.error ?? 'Incorrect code.');
       return;
     }
