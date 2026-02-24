@@ -74,18 +74,17 @@ export default function CameraScreen(): React.JSX.Element {
       <View style={styles.root}>
         <View style={styles.cameraRegion}>
           <Text style={styles.deniedMessage}>{message}</Text>
+          {!canAskAny && (
+            <TouchableOpacity
+              style={styles.permissionButton}
+              activeOpacity={0.8}
+              onPress={() => Linking.openSettings()}
+            >
+              <Text style={styles.permissionButtonText}>Open Settings</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        <View style={[styles.bottomSheet, { backgroundColor: sheetBg }]}>
-          <TouchableOpacity
-            style={styles.permissionButton}
-            activeOpacity={0.8}
-            onPress={handleAction}
-          >
-            <Text style={styles.permissionButtonText}>
-              {canAskAny ? 'Allow Access' : 'Open Settings'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <View style={[styles.bottomSheet, { backgroundColor: sheetBg }]} />
       </View>
     );
   }

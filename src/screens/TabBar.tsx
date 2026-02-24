@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
+  PanResponder,
   Platform,
   useColorScheme,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 
 import CameraScreen from './CameraScreen';
@@ -108,9 +110,32 @@ function Placeholder({ bg }: { bg: string }) {
 
 // ─── MainShell ────────────────────────────────────────────────────────────────
 
+const SWIPE_THRESHOLD = 50;
+
 export default function TabBar(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState(2); // camera is the default tab
   const dark = useColorScheme() === 'dark';
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_evt, { dx, dy }) =>
+        Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10,
+      onPanResponderRelease: (_evt, { dx }) => {
+        const current = activeTabRef.current;
+        if (dx < -SWIPE_THRESHOLD && current < TABS.length - 1) {
+          // Swipe left → next tab
+          setActiveTab(current + 1);
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } else if (dx > SWIPE_THRESHOLD && current > 0) {
+          // Swipe right → previous tab
+          setActiveTab(current - 1);
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      },
+    })
+  ).current;
 
   const tabBg        = dark ? '#1C1C19' : '#FFFFFF';
   const activeColor  = dark ? '#FFFFFF' : '#0F0F0D';
@@ -127,7 +152,7 @@ export default function TabBar(): React.JSX.Element {
 
   return (
     <View style={styles.root}>
-      <View style={styles.content}>{renderContent()}</View>
+      <View style={styles.content} {...panResponder.panHandlers}>{renderContent()}</View>
 
       <View style={[styles.tabBar, { backgroundColor: tabBg, borderTopColor: borderColor }]}>
         {TABS.map(({ key, Icon }, i) => {
