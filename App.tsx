@@ -17,7 +17,8 @@ import {
 
 import SplashScreenComponent from '@/screens/SplashScreen';
 import WelcomeScreen from '@/screens/WelcomeScreen';
-import CameraScreen from '@/screens/CameraScreen';
+import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
+import MainShell from '@/screens/MainShell';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store';
 import { Sentry } from '@/lib/sentry';
@@ -28,6 +29,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function App(): React.JSX.Element {
   const [splashDone, setSplashDone] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const [fontsLoaded] = useFonts({
     JosefinSans_400Regular_Italic,
     JosefinSans_600SemiBold,
@@ -65,6 +67,11 @@ export default function App(): React.JSX.Element {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Reset camera gate on sign-out so returning users always see the animation
+  useEffect(() => {
+    if (!session) setShowCamera(false);
+  }, [session]);
+
   const onSplashLayout = useCallback(() => {
     SplashScreen.hideAsync().then(() => setSplashDone(true));
   }, []);
@@ -80,11 +87,21 @@ export default function App(): React.JSX.Element {
     );
   }
 
-  if (session) {
-    console.log('[Screen] CameraScreen — user:', session.user.email);
+  if (session && !showCamera) {
+    console.log('[Screen] InAppAnimationScreen — user:', session.user.email);
     return (
       <>
-        <CameraScreen />
+        <InAppAnimationScreen onComplete={() => setShowCamera(true)} />
+        <StatusBar style="light" />
+      </>
+    );
+  }
+
+  if (session && showCamera) {
+    console.log('[Screen] MainShell — user:', session.user.email);
+    return (
+      <>
+        <MainShell />
         <StatusBar style="light" />
       </>
     );
