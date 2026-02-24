@@ -20,6 +20,8 @@ import WelcomeScreen from '@/screens/WelcomeScreen';
 import CameraScreen from '@/screens/CameraScreen';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store';
+import { Sentry } from '@/lib/sentry';
+import { posthog } from '@/lib/posthog';
 
 // Prevent the native OS splash from auto-hiding before our custom one is drawn.
 SplashScreen.preventAutoHideAsync();
@@ -49,6 +51,15 @@ export default function App(): React.JSX.Element {
       console.log('[Screen] Auth event:', event, s ? `user=${s.user.email}` : 'signed out');
       setSession(s);
       setIsLoading(false);
+
+      // Keep Sentry & PostHog in sync with auth state
+      if (s?.user) {
+        Sentry.setUser({ id: s.user.id, email: s.user.email });
+        posthog.identify(s.user.id, { email: s.user.email });
+      } else {
+        Sentry.setUser(null);
+        posthog.reset();
+      }
     });
 
     return () => subscription.unsubscribe();

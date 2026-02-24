@@ -5,6 +5,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
+import { Sentry } from '@/lib/sentry';
+import { posthog } from '@/lib/posthog';
 
 const DOMAINS = ['gmail.com', 'icloud.com', 'outlook.com', 'yahoo.com'];
 
@@ -35,15 +37,22 @@ export default function LoginSheet({ visible, onDismiss, onAuthComplete }: Props
     }
     setError('');
     setLoading(true);
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password,
     });
     setLoading(false);
     if (signInError) {
+      Sentry.captureMessage(signInError.message, {
+        level: 'warning',
+        tags: { flow: 'login' },
+        extra: { email: email.trim().toLowerCase() },
+      });
+      posthog.capture('login_failed', { error: signInError.message });
       setError(signInError.message);
       return;
     }
+    posthog.capture('login_success', { user_id: data.user?.id });
     // onAuthStateChange in App.tsx fires from signInWithPassword above,
     // switching to CameraScreen. onAuthComplete triggers the exit animation.
     onAuthComplete();

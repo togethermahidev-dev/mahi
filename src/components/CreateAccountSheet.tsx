@@ -9,6 +9,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabase';
 import { sendOTP, verifyOTP, canResend as canResendOTP, clearOTP } from '@/lib/otp';
 import { useSignUpStore } from '@/store';
+import { Sentry } from '@/lib/sentry';
+import { posthog } from '@/lib/posthog';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 
@@ -202,8 +204,11 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
     setLoading(true);
     try {
       await sendOTP(email.trim());
+      Sentry.addBreadcrumb({ category: 'signup', message: 'OTP sent', level: 'info' });
+      posthog.capture('signup_otp_sent');
       setStep(2);
     } catch (e: any) {
+      Sentry.captureException(e, { tags: { flow: 'signup', step: 'send_otp' }, extra: { email: email.trim().toLowerCase() } });
       setError(e.message ?? 'Failed to send verification email.');
     } finally {
       setLoading(false);
@@ -220,9 +225,13 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
     const result = await verifyOTP(code);
     setLoading(false);
     if (!result.success) {
+      Sentry.addBreadcrumb({ category: 'signup', message: `OTP verify failed: ${result.error}`, level: 'warning' });
+      posthog.capture('signup_otp_failed', { error: result.error });
       setError(result.error ?? 'Incorrect code.');
       return;
     }
+    Sentry.addBreadcrumb({ category: 'signup', message: 'OTP verified', level: 'info' });
+    posthog.capture('signup_otp_verified');
     setStep(3);
   };
 
@@ -310,10 +319,20 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
       });
       if (profileError) throw new Error('Profile save failed: ' + profileError.message);
 
-      // 4. onAuthStateChange in App.tsx fires from signInWithPassword above,
+      // 4. Track completed sign-up — fitness_goals and training_days arrays
+      //    are used in PostHog dashboards for popularity heatmaps.
+      posthog.capture('signup_completed', {
+        username:      username.trim().toLowerCase(),
+        fitness_goals: fitnessGoals,
+        training_days: fitnessRoutine,
+      });
+      Sentry.addBreadcrumb({ category: 'signup', message: 'Account created', level: 'info' });
+
+      // 5. onAuthStateChange in App.tsx fires from signInWithPassword above,
       //    switching to CameraScreen. onAuthComplete triggers the exit animation.
       onAuthComplete();
     } catch (e: any) {
+      Sentry.captureException(e, { tags: { flow: 'signup', step: 'create_account' }, extra: { email: email.trim().toLowerCase(), username: username.trim() } });
       setError(e.message ?? 'Something went wrong.');
     } finally {
       setLoading(false);
