@@ -1,0 +1,33 @@
+# mahi-fitness — Project Rules for Claude
+
+## Supabase Edge Functions
+- All Edge Functions are deployed with `verify_jwt: false`
+- These functions handle pre-auth flows (sign-up, OTP, email checks)
+- This is the project-wide rule for all Edge Functions going forward
+
+## Email / OTP
+- OTP is generated client-side (`src/lib/otp.ts`), stored in AsyncStorage
+- `send-otp` Edge Function receives `{ email, code }` — it only sends the email via Resend
+- Verification is done entirely client-side by comparing against the stored OTPState
+- Resend sender address: `onboarding@resend.dev`
+  - TODO: change to `noreply@togethermahi.com` once SMTP is configured in Resend
+- App Store review bypass: `appreview@togethermahi.com` / `123456`
+
+## Auth
+- Supabase is the source of truth for auth
+- Sessions persist via AsyncStorage (`autoRefreshToken: true`, `persistSession: true` in `src/lib/supabase.ts`)
+- `onAuthStateChange` in `App.tsx` drives all screen transitions — no manual `authDone` flags
+- User creation uses `complete-signup` Edge Function (admin API, `email_confirm: true`)
+- Profile data is inserted into `public.profiles` after successful `signInWithPassword`
+
+## State Management
+- Zustand stores: `useAuthStore`, `useUserStore`, `useSignUpStore` — all exported from `src/store/index.ts`
+- Sign-up form state lives in `useSignUpStore` (persists across app backgrounding mid-flow)
+- OTP state (sensitive) lives in AsyncStorage only, managed via `src/lib/otp.ts`
+
+## Design System
+- Font: Josefin Sans — `JosefinSans_400Regular_Italic`, `JosefinSans_600SemiBold`, `JosefinSans_700Bold`
+- Dark/light mode via `useColorScheme()` — always support both
+- Colours: off-black `#1A1A17`, off-white `#E8E8E3`, bg dark `#1C1C19`, bg light `#FFFFFF`
+- Input `borderRadius: 14`, button `borderRadius: 50` (pill), button width `72%`
+- Padding: `32px` content, `24px` horizontal

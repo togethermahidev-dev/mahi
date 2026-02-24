@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import {
   Modal, View, Text, TextInput, TouchableOpacity,
   StyleSheet, SafeAreaView, ScrollView, useColorScheme,
+  ActivityIndicator,
 } from 'react-native';
+import { supabase } from '@/lib/supabase';
 
 const DOMAINS = ['gmail.com', 'icloud.com', 'outlook.com', 'yahoo.com'];
 
@@ -14,14 +16,43 @@ interface Props {
 
 export default function LoginSheet({ visible, onDismiss, onAuthComplete }: Props): React.JSX.Element {
   const dark = useColorScheme() === 'dark';
-  const bg       = dark ? '#1C1C19' : '#FFFFFF';
-  const text     = dark ? '#FFFFFF' : '#0F0F0D';
-  const inputBg  = dark ? '#2A2A27' : '#F5F5F0';
-  const muted    = dark ? '#888' : '#999';
+  const bg      = dark ? '#1C1C19' : '#FFFFFF';
+  const text    = dark ? '#FFFFFF' : '#0F0F0D';
+  const inputBg = dark ? '#2A2A27' : '#F5F5F0';
+  const muted   = dark ? '#888'    : '#999';
+  const red     = dark ? '#E06060' : '#C03030';
 
-  const [email, setEmail]             = useState('');
-  const [password, setPassword]       = useState('');
+  const [email, setEmail]               = useState('');
+  const [password, setPassword]         = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState('');
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError('Enter your email and password.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    setLoading(false);
+    if (signInError) {
+      setError(signInError.message);
+      return;
+    }
+    // onAuthStateChange in App.tsx fires from signInWithPassword above,
+    // switching to CameraScreen. onAuthComplete triggers the exit animation.
+    onAuthComplete();
+  };
+
+  const handleDismiss = () => {
+    setError('');
+    onDismiss();
+  };
 
   const atIndex    = email.indexOf('@');
   const showPills  = atIndex !== -1 && email.slice(atIndex + 1).length <= 1;
@@ -32,7 +63,7 @@ export default function LoginSheet({ visible, onDismiss, onAuthComplete }: Props
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onDismiss}
+      onRequestClose={handleDismiss}
     >
       <SafeAreaView style={[styles.root, { backgroundColor: bg }]}>
         <ScrollView
@@ -89,13 +120,22 @@ export default function LoginSheet({ visible, onDismiss, onAuthComplete }: Props
             </TouchableOpacity>
           </View>
 
+          {/* Inline error */}
+          {error !== '' && (
+            <Text style={[styles.errorText, { color: red }]}>{error}</Text>
+          )}
+
           {/* Login button */}
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: text }]}
+            style={[styles.button, { backgroundColor: text, opacity: loading ? 0.6 : 1 }]}
             activeOpacity={0.8}
-            onPress={onAuthComplete}
+            onPress={handleLogin}
+            disabled={loading}
           >
-            <Text style={[styles.buttonText, { color: bg }]}>Login</Text>
+            {loading
+              ? <ActivityIndicator color={bg} />
+              : <Text style={[styles.buttonText, { color: bg }]}>Login</Text>
+            }
           </TouchableOpacity>
 
           {/* Forgot password */}
@@ -149,5 +189,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   buttonText: { fontSize: 18, fontFamily: 'JosefinSans_600SemiBold' },
-  forgot: { fontSize: 14, fontFamily: 'JosefinSans_400Regular_Italic', textAlign: 'center', marginTop: 4 },
+  forgot:    { fontSize: 14, fontFamily: 'JosefinSans_400Regular_Italic', textAlign: 'center', marginTop: 4 },
+  errorText: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold' },
 });
