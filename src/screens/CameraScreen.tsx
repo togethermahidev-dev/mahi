@@ -7,8 +7,52 @@ import {
   Linking,
   Platform,
   useColorScheme,
+  Animated,
 } from 'react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import { useUserStore } from '@/store';
+
+// ─── Streak Badge ─────────────────────────────────────────────────────────────
+// Plays a large-to-small spring animation every time the camera tab mounts.
+// The number starts at 4× its final rendered size and springs into position.
+
+function StreakBadge({ count }: { count: number }) {
+  const scaleAnim   = useRef(new Animated.Value(4)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      // Fade in quickly so the large text doesn't pop
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      // Spring from 4× → 1× for the "arriving" zoom-in feel
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        damping: 16,
+        stiffness: 110,
+        mass: 0.9,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View
+      style={[
+        styles.streakBadge,
+        { transform: [{ scale: scaleAnim }], opacity: opacityAnim },
+      ]}
+    >
+      <Text style={styles.streakNumber}>{count}</Text>
+      <Text style={styles.streakLabel}>DAY{'\n'}STREAK</Text>
+    </Animated.View>
+  );
+}
+
+// ─── CameraScreen ─────────────────────────────────────────────────────────────
 
 export default function CameraScreen(): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -16,6 +60,8 @@ export default function CameraScreen(): React.JSX.Element {
   const cameraRef = useRef<CameraView>(null);
   const dark = useColorScheme() === 'dark';
   const sheetBg = dark ? '#1C1C19' : '#FFFFFF';
+
+  const streakCount = useUserStore((s) => s.profile?.streak_current ?? 0);
 
   // Request camera permission whenever it becomes requestable
   useEffect(() => {
@@ -61,15 +107,6 @@ export default function CameraScreen(): React.JSX.Element {
     const canAskMic    = !micGranted    && micPermission.canAskAgain;
     const canAskAny    = canAskCamera || canAskMic;
 
-    const handleAction = () => {
-      if (canAskAny) {
-        if (canAskCamera) requestCameraPermission();
-        if (canAskMic)    requestMicPermission();
-      } else {
-        Linking.openSettings();
-      }
-    };
-
     return (
       <View style={styles.root}>
         <View style={styles.cameraRegion}>
@@ -100,6 +137,9 @@ export default function CameraScreen(): React.JSX.Element {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>MAHI</Text>
         </View>
+
+        {/* Streak badge — large-to-small spring animation on mount */}
+        <StreakBadge count={streakCount} />
       </View>
 
       {/* Bottom sheet — bottom 1/4, rounded top corners */}
@@ -145,6 +185,30 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 8,
+  },
+
+  // Streak badge — absolute top-right, below the MAHI header
+  streakBadge: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 108 : 80,
+    right: 24,
+    alignItems: 'center',
+  },
+  streakNumber: {
+    color: '#FFFFFF',
+    fontSize: 38,
+    fontFamily: 'JosefinSans_700Bold',
+    lineHeight: 38,
+  },
+  streakLabel: {
+    color: '#E8E8E3',
+    fontSize: 8,
+    fontFamily: 'JosefinSans_600SemiBold',
+    letterSpacing: 2.5,
+    textAlign: 'center',
+    opacity: 0.65,
+    marginTop: 3,
+    lineHeight: 11,
   },
 
   // Bottom sheet — flex 1 = 25% of available space

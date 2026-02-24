@@ -20,7 +20,8 @@ import WelcomeScreen from '@/screens/WelcomeScreen';
 import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
 import TabBar from '@/screens/TabBar';
 import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useUserStore } from '@/store';
+import { getProfile } from '@/api';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 
@@ -45,6 +46,12 @@ export default function App(): React.JSX.Element {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setIsLoading(false);
+      // Load profile (including streak) into global store on cold-start restore
+      if (s?.user) {
+        getProfile(s.user.id).then(({ data }) => {
+          if (data) useUserStore.getState().setProfile(data);
+        });
+      }
     });
 
     const {
@@ -53,11 +60,15 @@ export default function App(): React.JSX.Element {
       setSession(s);
       setIsLoading(false);
 
-      // Keep Sentry & PostHog in sync with auth state
       if (s?.user) {
+        // Keep profile (+ streak) in sync with auth state
+        getProfile(s.user.id).then(({ data }) => {
+          if (data) useUserStore.getState().setProfile(data);
+        });
         Sentry.setUser({ id: s.user.id, email: s.user.email });
         posthog.identify(s.user.id, { email: s.user.email ?? null });
       } else {
+        useUserStore.getState().reset();
         Sentry.setUser(null);
         posthog.reset();
       }
