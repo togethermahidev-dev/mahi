@@ -6,36 +6,74 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
-          id:              string;
-          username:        string;
-          display_name:    string | null;
-          first_name:      string | null;
-          last_name:       string | null;
-          date_of_birth:   string | null;  // ISO date 'YYYY-MM-DD'
-          contact_number:  string | null;
-          fitness_goals:   string[] | null;
-          fitness_routine: string | null;
-          avatar_url:      string | null;
-          created_at:      string;
-          updated_at:      string;
+          id:                      string;
+          username:                string;
+          display_name:            string | null;
+          first_name:              string | null;
+          last_name:               string | null;
+          date_of_birth:           string | null;  // ISO date 'YYYY-MM-DD'
+          contact_number:          string | null;
+          fitness_goals:           string[] | null;
+          fitness_routine:         string | null;
+          avatar_url:              string | null;
+          streak_current:          number;
+          streak_highest:          number;
+          streak_lowest:           number | null;
+          streak_last_upload_date: string | null;  // ISO date 'YYYY-MM-DD'
+          created_at:              string;
+          updated_at:              string;
         };
         Insert: {
-          id:              string;
-          username:        string;
-          display_name?:   string | null;
-          first_name?:     string | null;
-          last_name?:      string | null;
-          date_of_birth?:  string | null;
-          contact_number?: string | null;
-          fitness_goals?:  string[] | null;
-          fitness_routine?: string | null;
-          avatar_url?:     string | null;
+          id:                       string;
+          username:                 string;
+          display_name?:            string | null;
+          first_name?:              string | null;
+          last_name?:               string | null;
+          date_of_birth?:           string | null;
+          contact_number?:          string | null;
+          fitness_goals?:           string[] | null;
+          fitness_routine?:         string | null;
+          avatar_url?:              string | null;
+          streak_current?:          number;
+          streak_highest?:          number;
+          streak_lowest?:           number | null;
+          streak_last_upload_date?: string | null;
         };
         Update: Partial<Omit<Database['public']['Tables']['profiles']['Insert'], 'id'>>;
       };
+      streak_logs: {
+        Row: {
+          id:           string;
+          user_id:      string;
+          streak_count: number;
+          started_at:   string;  // ISO date 'YYYY-MM-DD'
+          ended_at:     string | null;  // null = still active
+          is_active:    boolean;
+          created_at:   string;
+        };
+        Insert: {
+          id?:          string;
+          user_id:      string;
+          streak_count: number;
+          started_at:   string;
+          ended_at?:    string | null;
+          is_active?:   boolean;
+        };
+        Update: Partial<Omit<Database['public']['Tables']['streak_logs']['Insert'], 'id' | 'user_id'>>;
+      };
     };
     Views:     Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      record_upload_streak: {
+        Args: { p_user_id: string; p_upload_date?: string };
+        Returns: {
+          streak_current: number;
+          streak_highest: number;
+          streak_lowest:  number | null;
+          action: 'extended' | 'reset' | 'already_uploaded_today';
+        };
+      };
+    };
     Enums:     Record<string, never>;
   };
 };
