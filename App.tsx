@@ -21,6 +21,8 @@ import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
 import TabBar from '@/screens/TabBar';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore, useUserStore } from '@/store';
+import { rehydrateTheme } from '@/store/themeStore';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { getProfile } from '@/api';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
@@ -38,11 +40,15 @@ export default function App(): React.JSX.Element {
   });
 
   const { session, isLoading, setSession, setIsLoading } = useAuthStore();
+  const { colorScheme } = useAppTheme();
 
   // Restore persisted session on cold start + handle all auth events (sign in,
   // sign out, token refresh). autoRefreshToken + persistSession are already
   // enabled on the supabase client via AsyncStorage in src/lib/supabase.ts.
   useEffect(() => {
+    // Rehydrate theme preference before any screen renders
+    rehydrateTheme();
+
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setIsLoading(false);
@@ -109,7 +115,7 @@ export default function App(): React.JSX.Element {
     return (
       <>
         <TabBar />
-        <StatusBar style="light" />
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       </>
     );
   }

@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  useColorScheme, Animated, Dimensions,
+  Animated, Dimensions,
 } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import LoginSheet from '@/components/LoginSheet';
 import CreateAccountSheet from '@/components/CreateAccountSheet';
 
@@ -13,7 +14,7 @@ interface Props {
 }
 
 export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Element {
-  const dark = useColorScheme() === 'dark';
+  const { dark } = useAppTheme();
   const sheetBg   = dark ? '#1C1C19' : '#FFFFFF';
   const sheetText = dark ? '#FFFFFF' : '#0F0F0D';
 

@@ -5,8 +5,8 @@ import {
   TouchableOpacity,
   PanResponder,
   Platform,
-  useColorScheme,
 } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import * as Haptics from 'expo-haptics';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 
@@ -114,7 +114,7 @@ const SWIPE_THRESHOLD = 50;
 
 export default function TabBar(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState(2); // camera is the default tab
-  const dark = useColorScheme() === 'dark';
+  const { dark } = useAppTheme();
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
 
@@ -154,39 +154,40 @@ export default function TabBar(): React.JSX.Element {
     <View style={styles.root}>
       <View style={styles.content} {...panResponder.panHandlers}>{renderContent()}</View>
 
-      <View style={[styles.tabBar, { backgroundColor: tabBg, borderTopColor: borderColor }]}>
-        {TABS.map(({ key, Icon }, i) => {
-          const isActive = activeTab === i;
-          const isCenter = i === 2;
-          const iconColor = isActive ? activeColor : mutedColor;
+      {activeTab !== 2 && (
+        <View style={[styles.tabBar, { backgroundColor: tabBg, borderTopColor: borderColor }]}>
+          {TABS.map(({ key, Icon }, i) => {
+            const isActive = activeTab === i;
+            const isCenter = i === 2;
+            const iconColor = isActive ? activeColor : mutedColor;
 
-          return (
-            <TouchableOpacity
-              key={key}
-              style={styles.tabItem}
-              activeOpacity={0.7}
-              onPress={() => setActiveTab(i)}
-            >
-              {isCenter ? (
-                // Camera tab — always rendered as a pill/circle button
-                <View
-                  style={[
-                    styles.centerWrap,
-                    {
-                      backgroundColor: activeColor,
-                      opacity: isActive ? 1 : 0.55,
-                    },
-                  ]}
-                >
-                  <Icon size={22} color={tabBg} />
-                </View>
-              ) : (
-                <Icon size={24} color={iconColor} />
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+            return (
+              <TouchableOpacity
+                key={key}
+                style={styles.tabItem}
+                activeOpacity={0.7}
+                onPress={() => setActiveTab(i)}
+              >
+                {isCenter ? (
+                  <View
+                    style={[
+                      styles.centerWrap,
+                      {
+                        backgroundColor: activeColor,
+                        opacity: isActive ? 1 : 0.55,
+                      },
+                    ]}
+                  >
+                    <Icon size={22} color={tabBg} />
+                  </View>
+                ) : (
+                  <Icon size={24} color={iconColor} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 }

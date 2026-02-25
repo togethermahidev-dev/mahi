@@ -6,11 +6,14 @@ import {
   TouchableOpacity,
   Linking,
   Platform,
-  useColorScheme,
   Animated,
+  PanResponder,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { useUserStore } from '@/store';
+import { useAppTheme } from '@/hooks/useAppTheme';
+import ThemeToggle from '@/components/ThemeToggle';
 
 // ─── Streak Badge ─────────────────────────────────────────────────────────────
 // Plays a large-to-small spring animation every time the camera tab mounts.
@@ -58,10 +61,64 @@ export default function CameraScreen(): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [micPermission,    requestMicPermission]    = useMicrophonePermissions();
   const cameraRef = useRef<CameraView>(null);
-  const dark = useColorScheme() === 'dark';
+  const { dark } = useAppTheme();
   const sheetBg = dark ? '#1C1C19' : '#FFFFFF';
 
   const streakCount = useUserStore((s) => s.profile?.streak_current ?? 0);
+
+  // ─── Swipeable sheet ──────────────────────────────────────────────────────
+  // The sheet collapses downward on a vertical swipe but stays sticky — it
+  // never fully leaves the screen. PEEK_HEIGHT is the strip that remains
+  // visible at the bottom (keeping the shutter button fully on-screen).
+  const PEEK_HEIGHT    = 50;
+  const sheetHeightRef = useRef(0);
+  const isCollapsed    = useRef(false);
+  const sheetTranslateY = useRef(new Animated.Value(0)).current;
+
+  const snapSheet = (collapse: boolean) => {
+    const maxCollapse = sheetHeightRef.current - PEEK_HEIGHT;
+    isCollapsed.current = collapse;
+    Haptics.impactAsync(
+      collapse ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light,
+    );
+    Animated.spring(sheetTranslateY, {
+      toValue: collapse ? maxCollapse : 0,
+      damping: 22,
+      stiffness: 160,
+      mass: 0.9,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const sheetPanResponder = useRef(
+    PanResponder.create({
+      // Claim the gesture only for vertical swipes
+      onMoveShouldSetPanResponder: (_e, { dx, dy }) =>
+        Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8,
+
+      onPanResponderGrant: () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        sheetTranslateY.stopAnimation();
+      },
+
+      onPanResponderMove: (_e, { dy }) => {
+        const maxCollapse = sheetHeightRef.current - PEEK_HEIGHT;
+        const base = isCollapsed.current ? maxCollapse : 0;
+        const next = Math.max(0, Math.min(base + dy, maxCollapse));
+        sheetTranslateY.setValue(next);
+      },
+
+      onPanResponderRelease: (_e, { dy, vy }) => {
+        const maxCollapse = sheetHeightRef.current - PEEK_HEIGHT;
+        const base = isCollapsed.current ? maxCollapse : 0;
+        const current = base + dy;
+        // Collapse if dragged past 35% of max OR flicked downward fast
+        const shouldCollapse =
+          current > maxCollapse * 0.35 || vy > 0.5;
+        snapSheet(shouldCollapse);
+      },
+    }),
+  ).current;
 
   // Request camera permission whenever it becomes requestable
   useEffect(() => {
@@ -126,6 +183,11 @@ export default function CameraScreen(): React.JSX.Element {
     );
   }
 
+  // Shutter button colours adapt to light/dark mode so the button always
+  // contrasts against both the dark camera feed and the themed sheet.
+  const shutterRing = dark ? '#FFFFFF' : '#1A1A17';
+  const shutterFill = dark ? '#FFFFFF' : '#1A1A17';
+
   // Both granted — full camera experience
   return (
     <View style={styles.root}>
@@ -136,22 +198,43 @@ export default function CameraScreen(): React.JSX.Element {
         {/* MAHI branding overlaid on camera */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>MAHI</Text>
+          <View style={styles.headerRight}>
+            <ThemeToggle color="#FFFFFF" size={22} />
+          </View>
         </View>
 
         {/* Streak badge — large-to-small spring animation on mount */}
         <StreakBadge count={streakCount} />
       </View>
 
-      {/* Bottom sheet — bottom 1/4, rounded top corners */}
-      <View style={[styles.bottomSheet, { backgroundColor: sheetBg }]}>
-        <TouchableOpacity
-          style={styles.shutterOuter}
-          activeOpacity={0.85}
-          onPress={takePhoto}
-        >
-          <View style={styles.shutterInner} />
-        </TouchableOpacity>
-      </View>
+      {/* Bottom sheet — swipeable, sticky (never fully dismissed) */}
+      <Animated.View
+        style={[
+          styles.bottomSheet,
+          { backgroundColor: sheetBg, transform: [{ translateY: sheetTranslateY }] },
+        ]}
+        onLayout={({ nativeEvent }) => {
+          sheetHeightRef.current = nativeEvent.layout.height;
+        }}
+        {...sheetPanResponder.panHandlers}
+      >
+        {/* Shutter floats on top of the sheet boundary — positioned half above, half below */}
+        <View style={styles.shutterFloat}>
+          <TouchableOpacity
+            style={[
+              styles.shutterOuter,
+              {
+                borderColor: shutterRing,
+                shadowColor: dark ? '#000000' : '#1A1A17',
+              },
+            ]}
+            activeOpacity={0.82}
+            onPress={takePhoto}
+          >
+            <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
     </View>
   );
 }
@@ -186,6 +269,12 @@ const styles = StyleSheet.create({
     fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 8,
   },
+  // Pinned to the right edge of the header row, vertically aligned with MAHI
+  headerRight: {
+    position: 'absolute',
+    right: 24,
+    top: Platform.OS === 'ios' ? 60 : 32,
+  },
 
   // Streak badge — absolute top-right, below the MAHI header
   streakBadge: {
@@ -211,6 +300,16 @@ const styles = StyleSheet.create({
     lineHeight: 11,
   },
 
+  // Shutter float — full-width container anchored at the top of the sheet,
+  // offset upward by half the button height so it straddles the boundary.
+  shutterFloat: {
+    position: 'absolute',
+    top: -36,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+
   // Bottom sheet — flex 1 = 25% of available space
   bottomSheet: {
     flex: 1,
@@ -220,21 +319,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Shutter button — ring + inner circle
+  // Shutter button — ring + inner circle (colours injected inline, mode-aware)
   shutterOuter: {
     width: 72,
     height: 72,
     borderRadius: 36,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
   },
   shutterInner: {
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: '#FFFFFF',
   },
 
   // Permission denied state
