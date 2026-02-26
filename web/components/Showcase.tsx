@@ -113,209 +113,6 @@ function Nav() {
 }
 
 
-// ─── Phone mockup ────────────────────────────────────────────────────────────
-function PhoneMockup() {
-  const [time, setTime] = useState('00:00');
-
-  useEffect(() => {
-    let secs = 0;
-    const t = setInterval(() => {
-      secs++;
-      const m = String(Math.floor(secs / 60)).padStart(2, '0');
-      const s = String(secs % 60).padStart(2, '0');
-      setTime(`${m}:${s}`);
-    }, 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  return (
-    <div className="phone-bezel" style={{ width: 180, height: 360, position: 'relative', flexShrink: 0 }}>
-      {/* Dynamic island */}
-      <div style={{
-        position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
-        width: 80, height: 24, background: '#0a0a0a',
-        borderRadius: 20, zIndex: 10,
-      }} />
-
-      {/* Screen */}
-      <div style={{
-        position: 'absolute', inset: 0, borderRadius: 50,
-        overflow: 'hidden', background: '#111',
-        display: 'flex', flexDirection: 'column',
-      }}>
-        {/* Status bar */}
-        <div style={{
-          padding: '14px 24px 0',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
-          <span style={{ fontFamily: 'Josefin Sans', fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: 1 }}>
-            {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
-          </span>
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <div style={{ width: 14, height: 7, border: '1px solid rgba(255,255,255,0.6)', borderRadius: 2, position: 'relative' }}>
-              <div style={{ position: 'absolute', left: 1, top: 1, bottom: 1, width: '80%', background: '#fff', borderRadius: 1 }} />
-            </div>
-          </div>
-        </div>
-
-        {/* App header */}
-        <div style={{
-          padding: '24px 20px 12px',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
-          <span style={{ fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 20, color: '#fff', letterSpacing: 1 }}>
-            Discover
-          </span>
-          <div style={{ display: 'flex', gap: 12 }}>
-            {['◎', '⊕'].map((icon, i) => (
-              <span key={i} style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)' }}>{icon}</span>
-            ))}
-          </div>
-        </div>
-
-        {/* Main workout card */}
-        <div style={{
-          margin: '0 12px', borderRadius: 18, overflow: 'hidden',
-          background: 'linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%)',
-          flex: 1, position: 'relative',
-        }}>
-          {/* Fake camera grid */}
-          <div style={{ position: 'absolute', inset: 0, opacity: 0.1 }}>
-            {[...Array(9)].map((_, i) => (
-              <div key={i} style={{
-                position: 'absolute',
-                left: `${(i % 3) * 33.3}%`, top: `${Math.floor(i / 3) * 33.3}%`,
-                width: '33.3%', height: '33.3%',
-                border: '0.5px solid rgba(255,255,255,0.4)',
-              }} />
-            ))}
-          </div>
-
-          {/* Viewfinder corners */}
-          {[
-            { top: '12%', left: '8%', borderTop: '2px solid rgba(255,255,255,0.8)', borderLeft: '2px solid rgba(255,255,255,0.8)' },
-            { top: '12%', right: '8%', borderTop: '2px solid rgba(255,255,255,0.8)', borderRight: '2px solid rgba(255,255,255,0.8)' },
-            { bottom: '30%', left: '8%', borderBottom: '2px solid rgba(255,255,255,0.8)', borderLeft: '2px solid rgba(255,255,255,0.8)' },
-            { bottom: '30%', right: '8%', borderBottom: '2px solid rgba(255,255,255,0.8)', borderRight: '2px solid rgba(255,255,255,0.8)' },
-          ].map((s, i) => (
-            <div key={i} style={{ position: 'absolute', width: 16, height: 16, ...s as any }} />
-          ))}
-
-          {/* Timer */}
-          <div style={{
-            position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
-            fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 22,
-            color: '#fff', letterSpacing: 4,
-          }}>{time}</div>
-
-          {/* REC dot */}
-          <div style={{
-            position: 'absolute', top: 24, right: 16,
-            width: 7, height: 7, borderRadius: '50%', background: '#FF3B30',
-            boxShadow: '0 0 8px #FF3B30',
-            animation: 'pulse 1.2s ease-in-out infinite',
-          }} />
-
-          {/* Bottom user bar */}
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            padding: '12px 14px',
-            background: 'linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{
-                width: 26, height: 26, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #555, #222)',
-                border: '1.5px solid rgba(255,255,255,0.3)',
-              }} />
-              <div>
-                <div style={{ fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 10, color: '#fff' }}>@shaansea</div>
-                <div style={{ fontFamily: 'Josefin Sans', fontSize: 9, color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>sun day, fun day</div>
-              </div>
-            </div>
-            <div style={{
-              width: 28, height: 28, borderRadius: '50%',
-              background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 13,
-            }}>😊</div>
-          </div>
-        </div>
-
-        {/* Shutter area */}
-        <div style={{
-          padding: '14px 0 16px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: 24,
-        }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
-          <div style={{
-            width: 54, height: 54, borderRadius: '50%',
-            border: '2.5px solid rgba(255,255,255,0.8)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#fff' }} />
-          </div>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Floating image cards ─────────────────────────────────────────────────────
-function FloatingCard({ style, emoji, label }: {
-  style: React.CSSProperties;
-  emoji: string;
-  label: string;
-}) {
-  return (
-    <div className="float-card" style={{
-      width: 100, height: 130,
-      background: `linear-gradient(160deg, #e8e8e3 0%, #d0d0cc 100%)`,
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', gap: 8,
-      ...style,
-    }}>
-      <div style={{ fontSize: 36 }}>{emoji}</div>
-      <div style={{
-        fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 9,
-        letterSpacing: 2, color: C.black, textAlign: 'center',
-      }}>{label}</div>
-    </div>
-  );
-}
-
-// ─── Wavy SVG accent ─────────────────────────────────────────────────────────
-function WaveAccent({ style }: { style?: React.CSSProperties }) {
-  return (
-    <svg
-      viewBox="0 0 800 300"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ position: 'absolute', pointerEvents: 'none', ...style }}
-    >
-      <path
-        d="M-50 150 C 50 50, 150 250, 250 150 S 450 50, 550 150 S 750 250, 850 150"
-        stroke={C.black}
-        strokeWidth="4"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.55"
-      />
-      <path
-        d="M-50 180 C 80 60, 200 280, 320 160 S 500 40, 620 170 S 770 280, 870 160"
-        stroke={C.black}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.2"
-      />
-    </svg>
-  );
-}
-
 // ─── Animated waves ───────────────────────────────────────────────────────────
 function AnimatedWaves() {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -352,12 +149,10 @@ function AnimatedWaves() {
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 function HeroSection() {
-  const heroRef = useRef<HTMLDivElement>(null);
   const headRef = useRef<HTMLDivElement>(null);
   const subRef = useRef<HTMLParagraphElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
-  const phoneRef = useRef<HTMLDivElement>(null);
   const [email, setEmail] = useState('');
   const [joined, setJoined] = useState(false);
 
@@ -366,8 +161,7 @@ function HeroSection() {
     tl.from(headRef.current, { y: 60, duration: 0.9, ease: 'power4.out' })
       .from(subRef.current, { y: 24, duration: 0.6, ease: 'power3.out' }, '-=0.5')
       .from(formRef.current, { y: 20, duration: 0.6, ease: 'power3.out' }, '-=0.4')
-      .from(avatarRef.current, { y: 14, duration: 0.5, ease: 'power3.out' }, '-=0.3')
-      .from(phoneRef.current, { y: 50, opacity: 0, duration: 1.0, ease: 'power4.out' }, '-=0.8');
+      .from(avatarRef.current, { y: 14, duration: 0.5, ease: 'power3.out' }, '-=0.3');
   }, []);
 
   const handleJoin = (e: React.FormEvent) => {
@@ -376,7 +170,7 @@ function HeroSection() {
   };
 
   return (
-    <section ref={heroRef} style={{
+    <section style={{
       minHeight: 'auto', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
       padding: '100px 40px 60px', position: 'relative', overflow: 'hidden',
@@ -714,8 +508,6 @@ function HowItWorksSection() {
 
   return (
     <section id="how-it-works" style={{ padding: '120px 80px', background: C.white, position: 'relative' }}>
-      <WaveAccent style={{ right: 0, top: '10%', width: '40%', opacity: 0.7 }} />
-
       <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
         <div>
           <div ref={headRef}>
