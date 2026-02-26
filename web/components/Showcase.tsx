@@ -633,7 +633,7 @@ function CommunitySection() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
         }}>
           <span style={{ width: 20, height: 1, background: C.midgrey, display: 'inline-block' }} />
-          COMMUNITY
+          EARLY TESTERS
           <span style={{ width: 20, height: 1, background: C.midgrey, display: 'inline-block' }} />
         </div>
         <h2 style={{
@@ -643,7 +643,7 @@ function CommunitySection() {
         }}>
           Proof from<br />
           <span style={{ WebkitTextStroke: `1.5px ${C.black}`, color: 'transparent' }}>
-            the community.
+            our testers.
           </span>
         </h2>
       </div>
