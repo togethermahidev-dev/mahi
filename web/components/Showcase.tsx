@@ -200,9 +200,9 @@ function HeroSection() {
         <p ref={subRef} style={{
           fontFamily: 'Josefin Sans', fontStyle: 'italic',
           fontSize: 16, color: 'rgba(10,10,10,0.65)',
-          lineHeight: 1.8, marginTop: 24, maxWidth: 420, margin: '24px auto 0',
+          lineHeight: 1.8, marginTop: 24, maxWidth: 420, margin: '56px auto 0',
         }}>
-          Ushering the next era of fitness accountability.
+          Turn every workout into undeniable evidence. Shared live with your squad. No excuses. Only proof.
         </p>
 
         {/* Email form */}
@@ -256,7 +256,7 @@ function HeroSection() {
           <span style={{
             fontFamily: 'Josefin Sans', fontStyle: 'italic',
             fontSize: 13, color: 'rgba(10,10,10,0.5)',
-          }}>Join +600 others on the waitlist</span>
+          }}>Join the waitlist and get in early.</span>
         </div>
       </div>
 
