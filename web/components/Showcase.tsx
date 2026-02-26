@@ -1,24 +1,22 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { SplitText } from 'gsap/SplitText';
-import { TextPlugin } from 'gsap/TextPlugin';
 
-gsap.registerPlugin(ScrollTrigger, TextPlugin);
+gsap.registerPlugin(ScrollTrigger);
 
 // ─── Colours ────────────────────────────────────────────────────────────────
 const C = {
-  offblack: '#1A1A17',
-  offwhite: '#E8E8E3',
-  bgdark: '#1C1C19',
-  green: '#5DB075',
-  amber: '#D4963A',
-  dim: 'rgba(232,232,227,0.45)',
+  black: '#0a0a0a',
+  white: '#ffffff',
+  offwhite: '#f5f5f3',
+  midgrey: '#888884',
+  dimgrey: 'rgba(10,10,10,0.4)',
+  border: 'rgba(10,10,10,0.1)',
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Smooth scroll ───────────────────────────────────────────────────────────
 function useLenis() {
   useEffect(() => {
     let lenis: any;
@@ -42,31 +40,28 @@ function Cursor() {
 
   useEffect(() => {
     const pos = { x: 0, y: 0 };
-    const ring_pos = { x: 0, y: 0 };
+    const rp = { x: 0, y: 0 };
 
     const onMove = (e: MouseEvent) => {
       pos.x = e.clientX;
       pos.y = e.clientY;
       gsap.set(dot.current, { x: pos.x, y: pos.y });
     };
-
     const animate = () => {
-      ring_pos.x += (pos.x - ring_pos.x) * 0.12;
-      ring_pos.y += (pos.y - ring_pos.y) * 0.12;
-      gsap.set(ring.current, { x: ring_pos.x, y: ring_pos.y });
+      rp.x += (pos.x - rp.x) * 0.12;
+      rp.y += (pos.y - rp.y) * 0.12;
+      gsap.set(ring.current, { x: rp.x, y: rp.y });
       requestAnimationFrame(animate);
     };
-
     const onEnter = () => ring.current?.classList.add('hovering');
     const onLeave = () => ring.current?.classList.remove('hovering');
 
     document.addEventListener('mousemove', onMove);
-    document.querySelectorAll('a, button, [data-hover]').forEach(el => {
+    document.querySelectorAll('a,button,[data-hover]').forEach(el => {
       el.addEventListener('mouseenter', onEnter);
       el.addEventListener('mouseleave', onLeave);
     });
     requestAnimationFrame(animate);
-
     return () => document.removeEventListener('mousemove', onMove);
   }, []);
 
@@ -80,138 +75,48 @@ function Cursor() {
 
 // ─── Nav ─────────────────────────────────────────────────────────────────────
 function Nav() {
-  const navRef = useRef<HTMLElement>(null);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
+    const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   return (
-    <nav
-      ref={navRef}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '20px 40px',
-        transition: 'background 0.4s ease, backdrop-filter 0.4s ease',
-        background: scrolled ? 'rgba(28,28,25,0.85)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(24px)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(232,232,227,0.06)' : '1px solid transparent',
-      }}
-    >
+    <nav style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '22px 40px',
+      transition: 'background 0.4s, border-color 0.4s',
+      background: scrolled ? 'rgba(255,255,255,0.92)' : 'transparent',
+      backdropFilter: scrolled ? 'blur(20px)' : 'none',
+      borderBottom: scrolled ? `1px solid ${C.border}` : '1px solid transparent',
+    }}>
       <span style={{
-        fontFamily: 'Josefin Sans',
-        fontWeight: 700,
-        fontSize: 22,
-        letterSpacing: 8,
-        color: C.offwhite,
-      }}>MAHI</span>
+        fontFamily: 'Josefin Sans', fontWeight: 700,
+        fontSize: 18, letterSpacing: 6, color: C.black,
+      }}>mahi.</span>
 
-      <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
-        {['Features', 'How it works', 'Community'].map(item => (
-          <a key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`}
-            style={{
-              color: C.dim,
-              fontFamily: 'Josefin Sans',
-              fontSize: 13,
-              letterSpacing: 2,
-              textDecoration: 'none',
-              transition: 'color 0.2s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = C.offwhite)}
-            onMouseLeave={e => (e.currentTarget.style.color = C.dim)}
-          >
-            {item.toUpperCase()}
-          </a>
-        ))}
-        <button style={{
-          background: C.offwhite,
-          color: C.offblack,
-          border: 'none',
-          borderRadius: 50,
-          padding: '12px 28px',
-          fontFamily: 'Josefin Sans',
-          fontWeight: 600,
-          fontSize: 13,
-          letterSpacing: 1.5,
-          cursor: 'pointer',
-          transition: 'opacity 0.2s',
-        }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
-          GET EARLY ACCESS
-        </button>
-      </div>
+      <a href="#waitlist" style={{
+        fontFamily: 'Josefin Sans', fontWeight: 600,
+        fontSize: 13, letterSpacing: 1.5, color: C.dimgrey,
+        textDecoration: 'none', transition: 'color 0.2s',
+      }}
+        onMouseEnter={e => (e.currentTarget.style.color = C.black)}
+        onMouseLeave={e => (e.currentTarget.style.color = C.dimgrey)}
+      >
+        Contact
+      </a>
     </nav>
   );
 }
 
+
 // ─── Phone mockup ────────────────────────────────────────────────────────────
-function PhoneMockup({ screen }: { screen: 'welcome' | 'camera' | 'otp' }) {
-  return (
-    <div className="phone-bezel" style={{ width: 280, height: 580, position: 'relative' }}>
-      {/* Notch */}
-      <div style={{
-        position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)',
-        width: 90, height: 28, background: '#111', borderRadius: 20, zIndex: 10,
-      }} />
-
-      {/* Screen content */}
-      <div style={{
-        position: 'absolute', inset: 0, borderRadius: 50,
-        overflow: 'hidden', background: '#111',
-      }}>
-        {screen === 'welcome' && <WelcomeScreenMock />}
-        {screen === 'camera' && <CameraScreenMock />}
-        {screen === 'otp' && <OtpScreenMock />}
-      </div>
-    </div>
-  );
-}
-
-function WelcomeScreenMock() {
-  return (
-    <div style={{ height: '100%', background: '#111', display: 'flex', flexDirection: 'column' }}>
-      <div style={{
-        flex: 1, background: '#1C1C19', borderBottomLeftRadius: 32, borderBottomRightRadius: 32,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        padding: 24,
-      }}>
-        <div style={{ fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 40, letterSpacing: 10, color: C.offwhite, marginBottom: 8 }}>MAHI</div>
-        <div style={{ fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 11, color: C.dim, textAlign: 'center' }}>The fitness accountability app</div>
-        <div style={{
-          marginTop: 40, width: '72%', padding: '14px 0', borderRadius: 50,
-          background: C.offwhite, textAlign: 'center',
-          fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 12, color: '#111',
-        }}>Create an account</div>
-      </div>
-      <div style={{ height: 40 }} />
-      <div style={{
-        flex: 1, background: '#1C1C19', borderTopLeftRadius: 32, borderTopRightRadius: 32,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <div style={{
-          width: '72%', padding: '14px 0', borderRadius: 50,
-          border: `1.5px solid ${C.offwhite}`, textAlign: 'center',
-          fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 12, color: C.offwhite,
-        }}>Login</div>
-      </div>
-    </div>
-  );
-}
-
-function CameraScreenMock() {
+function PhoneMockup() {
   const [time, setTime] = useState('00:00');
+
   useEffect(() => {
     let secs = 0;
     const t = setInterval(() => {
@@ -224,147 +129,385 @@ function CameraScreenMock() {
   }, []);
 
   return (
-    <div style={{ height: '100%', position: 'relative', background: '#0a0a0a' }}>
-      {/* Fake camera grid */}
-      <div style={{ position: 'absolute', inset: 0, opacity: 0.15 }}>
-        {[...Array(9)].map((_, i) => (
-          <div key={i} style={{
-            position: 'absolute',
-            left: `${(i % 3) * 33.3}%`, top: `${Math.floor(i / 3) * 33.3}%`,
-            width: '33.3%', height: '33.3%',
-            border: '0.5px solid rgba(255,255,255,0.3)',
-          }} />
-        ))}
-      </div>
-      {/* Viewfinder corners */}
-      {[
-        { top: '20%', left: '10%', borderTop: '2px solid #fff', borderLeft: '2px solid #fff' },
-        { top: '20%', right: '10%', borderTop: '2px solid #fff', borderRight: '2px solid #fff' },
-        { bottom: '20%', left: '10%', borderBottom: '2px solid #fff', borderLeft: '2px solid #fff' },
-        { bottom: '20%', right: '10%', borderBottom: '2px solid #fff', borderRight: '2px solid #fff' },
-      ].map((s, i) => (
-        <div key={i} style={{ position: 'absolute', width: 18, height: 18, ...s as any }} />
-      ))}
-      {/* Timer */}
+    <div className="phone-bezel" style={{ width: 180, height: 360, position: 'relative', flexShrink: 0 }}>
+      {/* Dynamic island */}
       <div style={{
-        position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)',
-        fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 24, color: '#fff',
-        letterSpacing: 4,
-      }}>{time}</div>
-      {/* Recording dot */}
-      <div style={{
-        position: 'absolute', top: 65, right: 24,
-        width: 8, height: 8, borderRadius: '50%', background: '#FF3B30',
-        animation: 'pulse 1s ease-in-out infinite',
-        boxShadow: '0 0 8px #FF3B30',
+        position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+        width: 80, height: 24, background: '#0a0a0a',
+        borderRadius: 20, zIndex: 10,
       }} />
-      {/* Shutter */}
+
+      {/* Screen */}
       <div style={{
-        position: 'absolute', bottom: 50, left: '50%', transform: 'translateX(-50%)',
-        width: 56, height: 56, borderRadius: '50%',
-        border: '3px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        position: 'absolute', inset: 0, borderRadius: 50,
+        overflow: 'hidden', background: '#111',
+        display: 'flex', flexDirection: 'column',
       }}>
-        <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#fff' }} />
+        {/* Status bar */}
+        <div style={{
+          padding: '14px 24px 0',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <span style={{ fontFamily: 'Josefin Sans', fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: 1 }}>
+            {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+          </span>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <div style={{ width: 14, height: 7, border: '1px solid rgba(255,255,255,0.6)', borderRadius: 2, position: 'relative' }}>
+              <div style={{ position: 'absolute', left: 1, top: 1, bottom: 1, width: '80%', background: '#fff', borderRadius: 1 }} />
+            </div>
+          </div>
+        </div>
+
+        {/* App header */}
+        <div style={{
+          padding: '24px 20px 12px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <span style={{ fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 20, color: '#fff', letterSpacing: 1 }}>
+            Discover
+          </span>
+          <div style={{ display: 'flex', gap: 12 }}>
+            {['◎', '⊕'].map((icon, i) => (
+              <span key={i} style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)' }}>{icon}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Main workout card */}
+        <div style={{
+          margin: '0 12px', borderRadius: 18, overflow: 'hidden',
+          background: 'linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%)',
+          flex: 1, position: 'relative',
+        }}>
+          {/* Fake camera grid */}
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.1 }}>
+            {[...Array(9)].map((_, i) => (
+              <div key={i} style={{
+                position: 'absolute',
+                left: `${(i % 3) * 33.3}%`, top: `${Math.floor(i / 3) * 33.3}%`,
+                width: '33.3%', height: '33.3%',
+                border: '0.5px solid rgba(255,255,255,0.4)',
+              }} />
+            ))}
+          </div>
+
+          {/* Viewfinder corners */}
+          {[
+            { top: '12%', left: '8%', borderTop: '2px solid rgba(255,255,255,0.8)', borderLeft: '2px solid rgba(255,255,255,0.8)' },
+            { top: '12%', right: '8%', borderTop: '2px solid rgba(255,255,255,0.8)', borderRight: '2px solid rgba(255,255,255,0.8)' },
+            { bottom: '30%', left: '8%', borderBottom: '2px solid rgba(255,255,255,0.8)', borderLeft: '2px solid rgba(255,255,255,0.8)' },
+            { bottom: '30%', right: '8%', borderBottom: '2px solid rgba(255,255,255,0.8)', borderRight: '2px solid rgba(255,255,255,0.8)' },
+          ].map((s, i) => (
+            <div key={i} style={{ position: 'absolute', width: 16, height: 16, ...s as any }} />
+          ))}
+
+          {/* Timer */}
+          <div style={{
+            position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
+            fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 22,
+            color: '#fff', letterSpacing: 4,
+          }}>{time}</div>
+
+          {/* REC dot */}
+          <div style={{
+            position: 'absolute', top: 24, right: 16,
+            width: 7, height: 7, borderRadius: '50%', background: '#FF3B30',
+            boxShadow: '0 0 8px #FF3B30',
+            animation: 'pulse 1.2s ease-in-out infinite',
+          }} />
+
+          {/* Bottom user bar */}
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            padding: '12px 14px',
+            background: 'linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 26, height: 26, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #555, #222)',
+                border: '1.5px solid rgba(255,255,255,0.3)',
+              }} />
+              <div>
+                <div style={{ fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 10, color: '#fff' }}>@shaansea</div>
+                <div style={{ fontFamily: 'Josefin Sans', fontSize: 9, color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>sun day, fun day</div>
+              </div>
+            </div>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 13,
+            }}>😊</div>
+          </div>
+        </div>
+
+        {/* Shutter area */}
+        <div style={{
+          padding: '14px 0 16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: 24,
+        }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
+          <div style={{
+            width: 54, height: 54, borderRadius: '50%',
+            border: '2.5px solid rgba(255,255,255,0.8)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#fff' }} />
+          </div>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
+        </div>
       </div>
     </div>
   );
 }
 
-function OtpScreenMock() {
+// ─── Floating image cards ─────────────────────────────────────────────────────
+function FloatingCard({ style, emoji, label }: {
+  style: React.CSSProperties;
+  emoji: string;
+  label: string;
+}) {
   return (
-    <div style={{
-      height: '100%', background: '#1C1C19', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16,
+    <div className="float-card" style={{
+      width: 100, height: 130,
+      background: `linear-gradient(160deg, #e8e8e3 0%, #d0d0cc 100%)`,
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 8,
+      ...style,
     }}>
-      <div style={{ fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 18, color: C.offwhite, letterSpacing: 2 }}>VERIFY EMAIL</div>
-      <div style={{ fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 10, color: C.dim, textAlign: 'center' }}>
-        We sent a 6-digit code to your email
-      </div>
-      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-        {['3', '7', '4', '', '', ''].map((d, i) => (
-          <div key={i} style={{
-            width: 32, height: 40, borderRadius: 8,
-            background: d ? 'rgba(93,176,117,0.15)' : 'rgba(255,255,255,0.05)',
-            border: `1.5px solid ${d ? C.green : 'rgba(255,255,255,0.1)'}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 16, color: C.offwhite,
-          }}>{d}</div>
-        ))}
-      </div>
+      <div style={{ fontSize: 36 }}>{emoji}</div>
       <div style={{
-        marginTop: 16, width: '80%', padding: '12px 0', borderRadius: 50,
-        background: C.green, textAlign: 'center',
-        fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 11, color: '#fff',
-      }}>CONTINUE</div>
+        fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 9,
+        letterSpacing: 2, color: C.black, textAlign: 'center',
+      }}>{label}</div>
     </div>
+  );
+}
+
+// ─── Wavy SVG accent ─────────────────────────────────────────────────────────
+function WaveAccent({ style }: { style?: React.CSSProperties }) {
+  return (
+    <svg
+      viewBox="0 0 800 300"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ position: 'absolute', pointerEvents: 'none', ...style }}
+    >
+      <path
+        d="M-50 150 C 50 50, 150 250, 250 150 S 450 50, 550 150 S 750 250, 850 150"
+        stroke={C.black}
+        strokeWidth="4"
+        strokeLinecap="round"
+        fill="none"
+        opacity="0.55"
+      />
+      <path
+        d="M-50 180 C 80 60, 200 280, 320 160 S 500 40, 620 170 S 770 280, 870 160"
+        stroke={C.black}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        fill="none"
+        opacity="0.2"
+      />
+    </svg>
+  );
+}
+
+// ─── Animated waves ───────────────────────────────────────────────────────────
+function AnimatedWaves() {
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    const paths = svgRef.current?.querySelectorAll('path');
+    if (!paths) return;
+    paths.forEach((path, i) => {
+      const len = path.getTotalLength();
+      gsap.set(path, { strokeDasharray: len, strokeDashoffset: len });
+      gsap.to(path, {
+        strokeDashoffset: 0,
+        duration: 2.4,
+        ease: 'power2.inOut',
+        delay: 0.3 + i * 0.2,
+      });
+    });
+  }, []);
+
+  return (
+    <svg ref={svgRef} viewBox="0 0 1600 600" fill="none" xmlns="http://www.w3.org/2000/svg"
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }}>
+      <path d="M-100 200 C 100 80, 300 340, 500 200 S 900 60, 1100 200 S 1400 340, 1700 200"
+        stroke={C.black} strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.07" />
+      <path d="M-100 240 C 150 100, 350 380, 580 230 S 950 80, 1150 240 S 1450 380, 1700 230"
+        stroke={C.black} strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.04" />
+      <path d="M-100 380 C 120 500, 380 220, 620 380 S 1000 520, 1220 370 S 1480 220, 1700 380"
+        stroke={C.black} strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.07" />
+      <path d="M-100 420 C 160 540, 400 260, 640 410 S 1040 550, 1260 400 S 1500 250, 1700 420"
+        stroke={C.black} strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.04" />
+    </svg>
+  );
+}
+
+// ─── Hero ─────────────────────────────────────────────────────────────────────
+function HeroSection() {
+  const heroRef = useRef<HTMLDivElement>(null);
+  const headRef = useRef<HTMLDivElement>(null);
+  const subRef = useRef<HTMLParagraphElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<HTMLDivElement>(null);
+  const phoneRef = useRef<HTMLDivElement>(null);
+  const [email, setEmail] = useState('');
+  const [joined, setJoined] = useState(false);
+
+  useEffect(() => {
+    const tl = gsap.timeline({ delay: 0.1 });
+    tl.from(headRef.current, { y: 60, duration: 0.9, ease: 'power4.out' })
+      .from(subRef.current, { y: 24, duration: 0.6, ease: 'power3.out' }, '-=0.5')
+      .from(formRef.current, { y: 20, duration: 0.6, ease: 'power3.out' }, '-=0.4')
+      .from(avatarRef.current, { y: 14, duration: 0.5, ease: 'power3.out' }, '-=0.3')
+      .from(phoneRef.current, { y: 50, opacity: 0, duration: 1.0, ease: 'power4.out' }, '-=0.8');
+  }, []);
+
+  const handleJoin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email.trim()) setJoined(true);
+  };
+
+  return (
+    <section ref={heroRef} style={{
+      minHeight: 'auto', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      padding: '100px 40px 60px', position: 'relative', overflow: 'hidden',
+      background: C.white,
+    }}>
+      {/* Wave accents — animated draw */}
+      <AnimatedWaves />
+
+      {/* Text content */}
+      <div style={{ textAlign: 'center', maxWidth: 640, position: 'relative', zIndex: 1 }}>
+        <div ref={headRef}>
+          <h1 style={{
+            fontFamily: 'Josefin Sans', fontWeight: 700,
+            fontSize: 'clamp(52px, 9vw, 100px)',
+            lineHeight: 0.95, letterSpacing: -2,
+            color: C.black, marginBottom: 0,
+          }}>
+            Work out.<br />
+            <span style={{
+              display: 'inline-block',
+              WebkitTextStroke: `1.5px ${C.black}`,
+              color: 'transparent',
+            }}>Show up.</span>
+          </h1>
+        </div>
+
+        <p ref={subRef} style={{
+          fontFamily: 'Josefin Sans', fontStyle: 'italic',
+          fontSize: 16, color: 'rgba(10,10,10,0.65)',
+          lineHeight: 1.8, marginTop: 24, maxWidth: 420, margin: '24px auto 0',
+        }}>
+          Ushering the next era of fitness accountability.
+        </p>
+
+        {/* Email form */}
+        <div ref={formRef} id="waitlist" style={{ marginTop: 36, display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {joined ? (
+            <div style={{
+              fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 14,
+              color: C.black, letterSpacing: 1, padding: '16px 32px',
+              background: C.offwhite, borderRadius: 50, border: `1px solid rgba(10,10,10,0.2)`,
+            }}>
+              You're on the list ✓
+            </div>
+          ) : (
+            <form onSubmit={handleJoin} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="Email address"
+                required
+                style={{
+                  fontFamily: 'Josefin Sans', fontSize: 14, letterSpacing: 0.5,
+                  padding: '16px 24px', borderRadius: 50,
+                  border: `1.5px solid rgba(10,10,10,0.25)`,
+                  background: C.offwhite, color: C.black,
+                  outline: 'none', width: 240,
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={e => (e.target.style.borderColor = C.black)}
+                onBlur={e => (e.target.style.borderColor = 'rgba(10,10,10,0.25)')}
+              />
+              <button type="submit" style={{
+                fontFamily: 'Josefin Sans', fontWeight: 700,
+                fontSize: 13, letterSpacing: 1.5,
+                padding: '16px 28px', borderRadius: 50,
+                background: C.black, color: C.white, border: 'none',
+                cursor: 'pointer', transition: 'opacity 0.2s',
+                whiteSpace: 'nowrap',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              >
+                Join the waitlist
+              </button>
+            </form>
+          )}
+        </div>
+
+        {/* Join count */}
+        <div ref={avatarRef} style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
+          <span style={{
+            fontFamily: 'Josefin Sans', fontStyle: 'italic',
+            fontSize: 13, color: 'rgba(10,10,10,0.5)',
+          }}>Join +600 others on the waitlist</span>
+        </div>
+      </div>
+
+
+      {/* Copyright line */}
+      <div style={{
+        position: 'absolute', bottom: 28, right: 40,
+        fontFamily: 'Josefin Sans', fontStyle: 'italic',
+        fontSize: 11, color: C.dimgrey,
+      }}>© Mahi 2026</div>
+    </section>
   );
 }
 
 // ─── Marquee strip ────────────────────────────────────────────────────────────
-function Marquee() {
+function MarqueeStrip() {
   const items = [
     'ACCOUNTABILITY', 'STRENGTH', 'CARDIO', 'SQUAD GOALS', 'PROOF OF WORK',
     'CONSISTENCY', 'LIVE CAMERA', 'REAL RESULTS', 'TOGETHER', 'MAHI',
   ];
   const doubled = [...items, ...items];
+
   return (
     <div style={{
-      overflow: 'hidden',
-      padding: '20px 0',
-      borderTop: '1px solid rgba(232,232,227,0.06)',
-      borderBottom: '1px solid rgba(232,232,227,0.06)',
+      overflow: 'hidden', padding: '18px 0',
+      borderTop: `1px solid ${C.border}`,
+      borderBottom: `1px solid ${C.border}`,
+      background: C.offwhite,
     }}>
       <div className="marquee-track" style={{ display: 'flex', gap: 60, whiteSpace: 'nowrap' }}>
         {doubled.map((item, i) => (
           <span key={i} style={{
-            fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 12,
-            letterSpacing: 4, color: i % 2 === 0 ? C.offwhite : C.dim,
+            fontFamily: 'Josefin Sans', fontWeight: 600,
+            fontSize: 11, letterSpacing: 4,
+            color: i % 2 === 0 ? C.black : C.midgrey,
             display: 'flex', alignItems: 'center', gap: 60,
           }}>
             {item}
-            <span style={{ width: 4, height: 4, borderRadius: '50%', background: C.green, display: 'inline-block', marginLeft: -44 }} />
+            <span style={{
+              width: 4, height: 4, borderRadius: '50%',
+              background: C.black, display: 'inline-block', marginLeft: -44, opacity: 0.3,
+            }} />
           </span>
         ))}
       </div>
-    </div>
-  );
-}
-
-// ─── Stats ───────────────────────────────────────────────────────────────────
-function StatItem({ value, label, suffix = '' }: { value: number; label: string; suffix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const trigger = ScrollTrigger.create({
-      trigger: el,
-      start: 'top 85%',
-      onEnter: () => {
-        gsap.to({ val: 0 }, {
-          val: value,
-          duration: 2.2,
-          ease: 'power3.out',
-          onUpdate: function () {
-            if (el) el.textContent = Math.round(this.targets()[0].val).toLocaleString() + suffix;
-          },
-        });
-      },
-    });
-    return () => trigger.kill();
-  }, [value, suffix]);
-
-  return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{
-        fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 56, color: C.offwhite, lineHeight: 1,
-      }}>
-        <span ref={ref}>0{suffix}</span>
-      </div>
-      <div style={{
-        fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 13,
-        color: C.dim, marginTop: 8, letterSpacing: 1,
-      }}>{label}</div>
     </div>
   );
 }
@@ -378,10 +521,9 @@ function FeatureCard({ icon, title, desc, delay = 0 }: {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    gsap.set(el, { opacity: 0, y: 50 });
+    gsap.set(el, { opacity: 0, y: 40 });
     const trigger = ScrollTrigger.create({
-      trigger: el,
-      start: 'top 85%',
+      trigger: el, start: 'top 88%',
       onEnter: () => gsap.to(el, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', delay }),
     });
     return () => trigger.kill();
@@ -389,381 +531,130 @@ function FeatureCard({ icon, title, desc, delay = 0 }: {
 
   return (
     <div ref={ref} style={{
-      background: 'rgba(255,255,255,0.025)',
-      border: '1px solid rgba(232,232,227,0.07)',
-      borderRadius: 24,
-      padding: '36px 32px',
-      backdropFilter: 'blur(12px)',
-      transition: 'border-color 0.3s, background 0.3s',
+      background: C.white,
+      border: `1px solid ${C.border}`,
+      borderRadius: 20, padding: '32px 28px',
+      transition: 'border-color 0.2s, background 0.2s',
       cursor: 'default',
     }}
       onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(93,176,117,0.25)';
-        (e.currentTarget as HTMLElement).style.background = 'rgba(93,176,117,0.04)';
+        (e.currentTarget as HTMLElement).style.borderColor = C.black;
+        (e.currentTarget as HTMLElement).style.background = C.offwhite;
       }}
       onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(232,232,227,0.07)';
-        (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.025)';
+        (e.currentTarget as HTMLElement).style.borderColor = C.border;
+        (e.currentTarget as HTMLElement).style.background = C.white;
       }}
     >
-      <div style={{ fontSize: 36, marginBottom: 20 }}>{icon}</div>
+      <div style={{ fontSize: 32, marginBottom: 18 }}>{icon}</div>
       <div style={{
-        fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 18,
-        color: C.offwhite, letterSpacing: 1, marginBottom: 12,
+        fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 16,
+        color: C.black, letterSpacing: 0.5, marginBottom: 10,
       }}>{title}</div>
       <div style={{
         fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 13,
-        color: C.dim, lineHeight: 1.8,
+        color: C.midgrey, lineHeight: 1.8,
       }}>{desc}</div>
     </div>
   );
 }
 
-// ─── Step card ────────────────────────────────────────────────────────────────
-function StepCard({ number, title, desc }: { number: string; title: string; desc: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    gsap.set(el, { opacity: 0, x: -40 });
-    const trigger = ScrollTrigger.create({
-      trigger: el,
-      start: 'top 85%',
-      onEnter: () => gsap.to(el, { opacity: 1, x: 0, duration: 0.8, ease: 'power3.out' }),
-    });
-    return () => trigger.kill();
-  }, []);
-
-  return (
-    <div ref={ref} style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
-      <div style={{
-        minWidth: 56, height: 56, borderRadius: '50%',
-        border: `1.5px solid ${C.green}`, display: 'flex',
-        alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 18, color: C.green,
-      }}>{number}</div>
-      <div>
-        <div style={{
-          fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 20,
-          color: C.offwhite, letterSpacing: 0.5, marginBottom: 8,
-        }}>{title}</div>
-        <div style={{
-          fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 13,
-          color: C.dim, lineHeight: 1.8,
-        }}>{desc}</div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Horizontal scroll reel ──────────────────────────────────────────────────
-function HorizontalReel() {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const track = trackRef.current;
-    const wrap = wrapRef.current;
-    if (!track || !wrap) return;
-
-    const totalWidth = track.scrollWidth - wrap.offsetWidth;
-
-    const tween = gsap.to(track, {
-      x: -totalWidth,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: wrap,
-        start: 'top top',
-        end: () => `+=${totalWidth + window.innerHeight}`,
-        scrub: 1.4,
-        pin: true,
-        anticipatePin: 1,
-      },
-    });
-
-    return () => tween.scrollTrigger?.kill();
-  }, []);
-
-  const cards = [
-    { emoji: '📸', title: 'SNAP YOUR SET', sub: 'Camera proves you showed up' },
-    { emoji: '🔥', title: 'STREAK ALIVE', sub: 'Miss a day, lose the streak' },
-    { emoji: '👥', title: 'SQUAD WATCHES', sub: 'Live accountability feed' },
-    { emoji: '📊', title: 'TRACK GAINS', sub: 'Progress you can see' },
-    { emoji: '🏆', title: 'EARN BADGES', sub: 'Real milestones, real flex' },
-    { emoji: '⚡', title: 'INSTANT PROOF', sub: 'No excuses, only evidence' },
-  ];
-
-  return (
-    <div ref={wrapRef} style={{ overflow: 'hidden', width: '100%' }}>
-      <div ref={trackRef} style={{ display: 'flex', gap: 24, padding: '100px 80px', width: 'max-content' }}>
-        {cards.map((c, i) => (
-          <div key={i} style={{
-            width: 320, height: 400, borderRadius: 28,
-            background: i % 2 === 0
-              ? 'linear-gradient(145deg, rgba(93,176,117,0.12) 0%, rgba(28,28,25,0.8) 100%)'
-              : 'linear-gradient(145deg, rgba(212,150,58,0.1) 0%, rgba(28,28,25,0.8) 100%)',
-            border: '1px solid rgba(232,232,227,0.08)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            gap: 16, flexShrink: 0,
-            backdropFilter: 'blur(20px)',
-          }}>
-            <div style={{ fontSize: 64 }}>{c.emoji}</div>
-            <div style={{
-              fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 22,
-              letterSpacing: 3, color: C.offwhite,
-            }}>{c.title}</div>
-            <div style={{
-              fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 13,
-              color: C.dim,
-            }}>{c.sub}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Parallax hero text ───────────────────────────────────────────────────────
-function HeroSection() {
-  const heroRef = useRef<HTMLDivElement>(null);
-  const titleRef = useRef<HTMLDivElement>(null);
-  const subRef = useRef<HTMLDivElement>(null);
-  const phoneRef = useRef<HTMLDivElement>(null);
-  const glowRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    const hero = heroRef.current;
-    const title = titleRef.current;
-    const sub = subRef.current;
-    const phone = phoneRef.current;
-    const glow = glowRef.current;
-    if (!hero || !title || !sub || !phone || !glow) return;
-
-    // Entrance animation
-    const tl = gsap.timeline({ delay: 0.2 });
-    tl.from(title.querySelectorAll('.char-row'), {
-      y: 120, opacity: 0, stagger: 0.12, duration: 1.0, ease: 'power4.out',
-    })
-      .from(sub, { y: 30, opacity: 0, duration: 0.7, ease: 'power3.out' }, '-=0.4')
-      .from('.hero-cta', { y: 20, opacity: 0, duration: 0.6, ease: 'power3.out', stagger: 0.1 }, '-=0.3')
-      .from(phone, { y: 60, opacity: 0, duration: 1.0, ease: 'power4.out' }, '-=0.8')
-      .from(glow, { opacity: 0, scale: 0.6, duration: 1.5, ease: 'power3.out' }, '-=1.4');
-
-    // Parallax on scroll
-    gsap.to(title, {
-      y: -80,
-      scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: 1.5 },
-    });
-    gsap.to(phone, {
-      y: -40,
-      scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: 1 },
-    });
-    gsap.to(glow, {
-      y: 60,
-      scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: 2 },
-    });
-  }, [mounted]);
-
-  return (
-    <section ref={heroRef} style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', position: 'relative', overflow: 'hidden',
-      padding: '120px 80px 60px',
-    }}>
-      {/* Background glow orbs */}
-      <div ref={glowRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        <div className="glow-orb" style={{
-          position: 'absolute', top: '10%', left: '5%',
-          width: 600, height: 600,
-          background: 'radial-gradient(circle, rgba(93,176,117,0.12) 0%, transparent 70%)',
-        }} />
-        <div className="glow-orb" style={{
-          position: 'absolute', bottom: '0%', right: '-10%',
-          width: 500, height: 500,
-          background: 'radial-gradient(circle, rgba(212,150,58,0.08) 0%, transparent 70%)',
-        }} />
-      </div>
-
-      {/* Left text */}
-      <div style={{ flex: 1, maxWidth: 660, zIndex: 1 }}>
-        <div style={{
-          fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 12,
-          letterSpacing: 4, color: C.green, marginBottom: 28, display: 'flex',
-          alignItems: 'center', gap: 12,
-        }}>
-          <span style={{ width: 32, height: 1, background: C.green, display: 'inline-block' }} />
-          FITNESS ACCOUNTABILITY
-        </div>
-
-        <div ref={titleRef} style={{ overflow: 'hidden' }}>
-          {['YOUR', 'CAMERA.', 'YOUR PROOF.'].map((line, i) => (
-            <div key={i} className="char-row" style={{
-              fontFamily: 'Josefin Sans', fontWeight: 700,
-              fontSize: 'clamp(52px, 8vw, 96px)',
-              lineHeight: 1.0, letterSpacing: -1,
-              display: 'block',
-              ...(i === 1
-                ? { WebkitTextStroke: `1px ${C.offwhite}`, color: 'transparent' }
-                : { color: C.offwhite }),
-            }}>{line}</div>
-          ))}
-        </div>
-
-        <p ref={subRef} style={{
-          fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 16,
-          color: C.dim, lineHeight: 1.9, marginTop: 32, maxWidth: 480,
-        }}>
-          Turn every workout into undeniable evidence. Shared live with your squad.
-          No excuses. Only proof.
-        </p>
-
-        <div style={{ display: 'flex', gap: 16, marginTop: 48, flexWrap: 'wrap' }}>
-          <button className="hero-cta" style={{
-            background: C.offwhite, color: C.offblack, border: 'none',
-            borderRadius: 50, padding: '18px 40px',
-            fontFamily: 'Josefin Sans', fontWeight: 700,
-            fontSize: 14, letterSpacing: 2, cursor: 'pointer',
-            transition: 'transform 0.2s, box-shadow 0.2s',
-          }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-              (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 40px rgba(232,232,227,0.15)';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-              (e.currentTarget as HTMLElement).style.boxShadow = 'none';
-            }}
-          >
-            GET EARLY ACCESS
-          </button>
-          <button className="hero-cta" style={{
-            background: 'transparent', color: C.offwhite,
-            border: `1.5px solid rgba(232,232,227,0.2)`,
-            borderRadius: 50, padding: '18px 40px',
-            fontFamily: 'Josefin Sans', fontWeight: 600,
-            fontSize: 14, letterSpacing: 2, cursor: 'pointer',
-            transition: 'border-color 0.2s',
-          }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = C.offwhite}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(232,232,227,0.2)'}
-          >
-            WATCH DEMO
-          </button>
-        </div>
-      </div>
-
-      {/* Right — phone */}
-      <div ref={phoneRef} style={{
-        flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center',
-        zIndex: 1, paddingLeft: 40,
-      }}>
-        <div style={{ position: 'relative' }}>
-          {/* Ambient ring */}
-          <div style={{
-            position: 'absolute', top: '50%', left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 360, height: 660,
-            borderRadius: '50%',
-            background: 'radial-gradient(ellipse, rgba(93,176,117,0.15) 0%, transparent 70%)',
-            pointerEvents: 'none',
-          }} />
-          <PhoneMockup screen="camera" />
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ─── Features section ─────────────────────────────────────────────────────────
 function FeaturesSection() {
-  const ref = useRef<HTMLElement>(null);
   const headRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = headRef.current;
     if (!el) return;
     gsap.set(el, { opacity: 0, y: 40 });
-    const trigger = ScrollTrigger.create({
+    ScrollTrigger.create({
       trigger: el, start: 'top 85%',
       onEnter: () => gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }),
     });
-    return () => trigger.kill();
   }, []);
 
   return (
-    <section id="features" ref={ref} style={{ padding: '140px 80px', position: 'relative' }}>
-      <div className="glow-orb" style={{
-        position: 'absolute', top: '20%', right: '-5%', width: 400, height: 400, pointerEvents: 'none',
-        background: 'radial-gradient(circle, rgba(212,150,58,0.07) 0%, transparent 70%)',
-      }} />
-
-      <div ref={headRef} style={{ textAlign: 'center', marginBottom: 80 }}>
+    <section id="features" style={{ padding: '120px 80px', background: C.white, position: 'relative' }}>
+      <div ref={headRef} style={{ textAlign: 'center', marginBottom: 72 }}>
         <div style={{
-          fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 12,
-          letterSpacing: 4, color: C.green, marginBottom: 20,
+          fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 11,
+          letterSpacing: 4, color: C.midgrey, marginBottom: 16,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
         }}>
-          <span style={{ width: 24, height: 1, background: C.green, display: 'inline-block' }} />
+          <span style={{ width: 20, height: 1, background: C.midgrey, display: 'inline-block' }} />
           WHAT MAHI DOES
-          <span style={{ width: 24, height: 1, background: C.green, display: 'inline-block' }} />
+          <span style={{ width: 20, height: 1, background: C.midgrey, display: 'inline-block' }} />
         </div>
         <h2 style={{
           fontFamily: 'Josefin Sans', fontWeight: 700,
-          fontSize: 'clamp(36px, 5vw, 64px)', color: C.offwhite,
-          letterSpacing: -1, lineHeight: 1.1,
+          fontSize: 'clamp(32px, 5vw, 60px)', color: C.black,
+          letterSpacing: -1, lineHeight: 1.05,
         }}>
-          BUILT FOR THE<br />
-          <span style={{ WebkitTextStroke: `1px ${C.offwhite}`, color: 'transparent' }}>
-            SERIOUS ONES
+          Built for the<br />
+          <span style={{ WebkitTextStroke: `1.5px ${C.black}`, color: 'transparent' }}>
+            serious ones.
           </span>
         </h2>
       </div>
 
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: 24, maxWidth: 1200, margin: '0 auto',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+        gap: 20, maxWidth: 1100, margin: '0 auto',
       }}>
-        <FeatureCard icon="📸" delay={0}
-          title="LIVE CAMERA SESSIONS"
-          desc="Start a workout and your camera goes live. Real-time proof that you're actually there, actually doing the work." />
-        <FeatureCard icon="🔗" delay={0.1}
-          title="SQUAD ACCOUNTABILITY"
-          desc="Invite your crew. They see when you skip. Social pressure is the most powerful gym partner you'll ever have." />
-        <FeatureCard icon="⚡" delay={0.2}
-          title="INSTANT VERIFICATION"
-          desc="OTP-secured sessions mean every workout is verified to you. Your proof, cryptographically yours." />
-        <FeatureCard icon="🎯" delay={0.3}
-          title="GOAL TRACKING"
-          desc="Set your goals on signup — lose weight, build muscle, endurance — and every session maps back to them." />
-        <FeatureCard icon="📅" delay={0.4}
-          title="FLEXIBLE SCHEDULES"
-          desc="Choose your days. Monday warrior or weekend warrior — your schedule, your rules, zero judgment." />
-        <FeatureCard icon="🏅" delay={0.5}
-          title="STREAK SYSTEM"
-          desc="Consecutive sessions build streaks. Break it and start over. Simple, brutal, effective." />
+        <FeatureCard icon="📸" delay={0} title="LIVE CAMERA SESSIONS"
+          desc="Start a workout and your camera goes live. Real-time proof that you're actually doing the work." />
+        <FeatureCard icon="🔗" delay={0.08} title="SQUAD ACCOUNTABILITY"
+          desc="Invite your crew. They see when you skip. Social pressure is the best gym partner." />
+        <FeatureCard icon="⚡" delay={0.16} title="INSTANT VERIFICATION"
+          desc="OTP-secured sessions mean every workout is verified and cryptographically yours." />
+        <FeatureCard icon="🎯" delay={0.24} title="GOAL TRACKING"
+          desc="Set your goals on signup and every session maps back to them automatically." />
+        <FeatureCard icon="📅" delay={0.32} title="FLEXIBLE SCHEDULES"
+          desc="Choose your days. Your schedule, your rules, zero judgment." />
+        <FeatureCard icon="🏅" delay={0.40} title="STREAK SYSTEM"
+          desc="Consecutive sessions build streaks. Simple, brutal, effective." />
       </div>
     </section>
   );
 }
 
 // ─── Stats section ────────────────────────────────────────────────────────────
-function StatsSection() {
-  const ref = useRef<HTMLElement>(null);
+function StatItem({ value, label, suffix = '' }: { value: number; label: string; suffix?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    ScrollTrigger.create({
+      trigger: el, start: 'top 85%',
+      onEnter: () => {
+        gsap.to({ val: 0 }, {
+          val: value, duration: 2, ease: 'power3.out',
+          onUpdate: function () {
+            if (el) el.textContent = Math.round(this.targets()[0].val).toLocaleString() + suffix;
+          },
+        });
+      },
+    });
+  }, [value, suffix]);
 
   return (
-    <section ref={ref} style={{ padding: '100px 80px', position: 'relative' }}>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 52, color: C.black, lineHeight: 1 }}>
+        <span ref={ref}>0{suffix}</span>
+      </div>
+      <div style={{ fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 13, color: C.midgrey, marginTop: 8 }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function StatsSection() {
+  return (
+    <section style={{ padding: '100px 80px', background: C.offwhite }}>
       <div style={{
-        maxWidth: 1000, margin: '0 auto',
-        background: 'linear-gradient(145deg, rgba(93,176,117,0.06) 0%, rgba(28,28,25,0.4) 100%)',
-        border: '1px solid rgba(93,176,117,0.12)',
-        borderRadius: 40, padding: '80px 60px',
+        maxWidth: 900, margin: '0 auto',
         display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 60,
       }}>
         <StatItem value={10000} suffix="+" label="Users in waitlist" />
@@ -775,71 +666,120 @@ function StatsSection() {
 }
 
 // ─── How it works ─────────────────────────────────────────────────────────────
+function StepCard({ number, title, desc }: { number: string; title: string; desc: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    gsap.set(el, { opacity: 0, x: -30 });
+    ScrollTrigger.create({
+      trigger: el, start: 'top 87%',
+      onEnter: () => gsap.to(el, { opacity: 1, x: 0, duration: 0.7, ease: 'power3.out' }),
+    });
+  }, []);
+
+  return (
+    <div ref={ref} style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+      <div style={{
+        minWidth: 50, height: 50, borderRadius: '50%',
+        border: `1.5px solid ${C.black}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 16, color: C.black,
+      }}>{number}</div>
+      <div>
+        <div style={{
+          fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 18,
+          color: C.black, letterSpacing: 0.3, marginBottom: 6,
+        }}>{title}</div>
+        <div style={{
+          fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 13,
+          color: C.midgrey, lineHeight: 1.8,
+        }}>{desc}</div>
+      </div>
+    </div>
+  );
+}
+
 function HowItWorksSection() {
   const headRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const el = headRef.current;
     if (!el) return;
     gsap.set(el, { opacity: 0, y: 40 });
-    const trigger = ScrollTrigger.create({
+    ScrollTrigger.create({
       trigger: el, start: 'top 85%',
       onEnter: () => gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }),
     });
-    return () => trigger.kill();
   }, []);
 
   return (
-    <section id="how-it-works" style={{ padding: '140px 80px', position: 'relative' }}>
-      <div className="glow-orb" style={{
-        position: 'absolute', bottom: '10%', left: '-5%', width: 500, height: 500, pointerEvents: 'none',
-        background: 'radial-gradient(circle, rgba(93,176,117,0.07) 0%, transparent 70%)',
-      }} />
+    <section id="how-it-works" style={{ padding: '120px 80px', background: C.white, position: 'relative' }}>
+      <WaveAccent style={{ right: 0, top: '10%', width: '40%', opacity: 0.7 }} />
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 100, alignItems: 'center' }}>
-        {/* Left */}
+      <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
         <div>
           <div ref={headRef}>
             <div style={{
-              fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 12,
-              letterSpacing: 4, color: C.green, marginBottom: 20,
+              fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 11,
+              letterSpacing: 4, color: C.midgrey, marginBottom: 16,
               display: 'flex', alignItems: 'center', gap: 12,
             }}>
-              <span style={{ width: 24, height: 1, background: C.green, display: 'inline-block' }} />
+              <span style={{ width: 20, height: 1, background: C.midgrey, display: 'inline-block' }} />
               HOW IT WORKS
             </div>
             <h2 style={{
               fontFamily: 'Josefin Sans', fontWeight: 700,
-              fontSize: 'clamp(36px, 4vw, 56px)', color: C.offwhite,
-              letterSpacing: -0.5, lineHeight: 1.1, marginBottom: 60,
+              fontSize: 'clamp(32px, 4vw, 52px)', color: C.black,
+              letterSpacing: -0.5, lineHeight: 1.05, marginBottom: 56,
             }}>
-              FOUR STEPS<br />TO UNSTOPPABLE
+              Four steps<br />to unstoppable.
             </h2>
           </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
-            <StepCard number="01"
-              title="Create your account"
-              desc="Sign up with email. Verify with OTP. Set your fitness goals and your days." />
-            <StepCard number="02"
-              title="Invite your squad"
-              desc="Add your gym partner, your partner, your crew. They'll see when you train — or when you don't." />
-            <StepCard number="03"
-              title="Start a camera session"
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
+            <StepCard number="01" title="Create your account"
+              desc="Sign up with email. Verify with OTP. Set your fitness goals and schedule." />
+            <StepCard number="02" title="Invite your squad"
+              desc="Add your gym partner or crew. They'll see when you train — or when you don't." />
+            <StepCard number="03" title="Start a camera session"
               desc="Tap record. Mahi activates the camera. Your live session is logged as proof." />
-            <StepCard number="04"
-              title="Build your streak"
-              desc="Every consecutive day builds your streak. Your squad watches it grow. No one wants to be the one who breaks it." />
+            <StepCard number="04" title="Build your streak"
+              desc="Every consecutive day builds your streak. Your squad watches it grow." />
           </div>
         </div>
 
-        {/* Right — phone stack */}
-        <div style={{ display: 'flex', gap: -40, justifyContent: 'center', position: 'relative', height: 640 }}>
-          <div style={{ position: 'absolute', left: '5%', top: 40, transform: 'rotate(-6deg)', zIndex: 1 }}>
-            <PhoneMockup screen="welcome" />
+        {/* Right — two phones stacked */}
+        <div style={{ position: 'relative', height: 560, display: 'flex', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', left: '8%', top: 20, transform: 'rotate(-5deg)', zIndex: 1 }}>
+            <div className="phone-bezel" style={{ width: 220, height: 450, position: 'relative' }}>
+              <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 64, height: 20, background: '#0a0a0a', borderRadius: 16, zIndex: 10 }} />
+              <div style={{ position: 'absolute', inset: 0, borderRadius: 44, overflow: 'hidden', background: '#1C1C19', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 14 }}>
+                <div style={{ fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 32, letterSpacing: 8, color: '#E8E8E3' }}>MAHI</div>
+                <div style={{ fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 10, color: 'rgba(232,232,227,0.45)', textAlign: 'center' }}>The fitness accountability app</div>
+                <div style={{ marginTop: 20, width: '80%', padding: '12px 0', borderRadius: 50, background: '#E8E8E3', textAlign: 'center', fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 10, color: '#111' }}>Create an account</div>
+                <div style={{ width: '80%', padding: '12px 0', borderRadius: 50, border: '1.5px solid rgba(232,232,227,0.4)', textAlign: 'center', fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 10, color: '#E8E8E3' }}>Log in</div>
+              </div>
+            </div>
           </div>
-          <div style={{ position: 'absolute', right: '5%', top: 0, transform: 'rotate(6deg)', zIndex: 0 }}>
-            <PhoneMockup screen="otp" />
+          <div style={{ position: 'absolute', right: '6%', top: 0, transform: 'rotate(5deg)', zIndex: 0 }}>
+            <div className="phone-bezel" style={{ width: 220, height: 450, position: 'relative' }}>
+              <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 64, height: 20, background: '#0a0a0a', borderRadius: 16, zIndex: 10 }} />
+              <div style={{ position: 'absolute', inset: 0, borderRadius: 44, overflow: 'hidden', background: '#1C1C19', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 }}>
+                <div style={{ fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 14, color: '#E8E8E3', letterSpacing: 2 }}>VERIFY EMAIL</div>
+                <div style={{ fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 9, color: 'rgba(232,232,227,0.45)', textAlign: 'center' }}>We sent a 6-digit code to your email</div>
+                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                  {['3', '7', '4', '', '', ''].map((d, i) => (
+                    <div key={i} style={{
+                      width: 26, height: 32, borderRadius: 6,
+                      background: d ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${d ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 13, color: '#E8E8E3',
+                    }}>{d}</div>
+                  ))}
+                </div>
+                <div style={{ marginTop: 12, width: '80%', padding: '10px 0', borderRadius: 50, background: '#E8E8E3', textAlign: 'center', fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 10, color: '#111' }}>CONTINUE</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -847,79 +787,72 @@ function HowItWorksSection() {
   );
 }
 
-// ─── Community / social proof ─────────────────────────────────────────────────
+// ─── Community ────────────────────────────────────────────────────────────────
 function CommunitySection() {
   const quotes = [
-    { text: 'I haven\'t missed a Monday in 3 months. My squad won\'t let me.', name: 'Jamie T.', goal: 'Weight loss' },
-    { text: 'The camera thing is wild. You literally cannot lie to yourself.', name: 'Marcus R.', goal: 'Muscle building' },
-    { text: 'My PT loves it. She can see my form live without being there.', name: 'Priya K.', goal: 'Sports performance' },
+    { text: "I haven't missed a Monday in 3 months. My squad won't let me.", name: 'Jamie T.', goal: 'Weight loss' },
+    { text: "The camera thing is wild. You literally cannot lie to yourself.", name: 'Marcus R.', goal: 'Muscle building' },
+    { text: "My PT loves it. She can see my form live without being there.", name: 'Priya K.', goal: 'Sports performance' },
   ];
 
   return (
-    <section id="community" style={{ padding: '140px 80px', position: 'relative' }}>
-      <div style={{ textAlign: 'center', marginBottom: 80 }}>
+    <section id="community" style={{ padding: '120px 80px', background: C.offwhite }}>
+      <div style={{ textAlign: 'center', marginBottom: 64 }}>
         <div style={{
-          fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 12,
-          letterSpacing: 4, color: C.amber, marginBottom: 20,
+          fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 11,
+          letterSpacing: 4, color: C.midgrey, marginBottom: 16,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
         }}>
-          <span style={{ width: 24, height: 1, background: C.amber, display: 'inline-block' }} />
+          <span style={{ width: 20, height: 1, background: C.midgrey, display: 'inline-block' }} />
           COMMUNITY
-          <span style={{ width: 24, height: 1, background: C.amber, display: 'inline-block' }} />
+          <span style={{ width: 20, height: 1, background: C.midgrey, display: 'inline-block' }} />
         </div>
         <h2 style={{
           fontFamily: 'Josefin Sans', fontWeight: 700,
-          fontSize: 'clamp(36px, 5vw, 64px)', color: C.offwhite,
-          letterSpacing: -1, lineHeight: 1.1,
+          fontSize: 'clamp(32px, 5vw, 60px)', color: C.black,
+          letterSpacing: -1, lineHeight: 1.05,
         }}>
-          PROOF FROM THE<br />
-          <span style={{ WebkitTextStroke: `1px ${C.offwhite}`, color: 'transparent' }}>
-            COMMUNITY
+          Proof from<br />
+          <span style={{ WebkitTextStroke: `1.5px ${C.black}`, color: 'transparent' }}>
+            the community.
           </span>
         </h2>
       </div>
 
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: 24, maxWidth: 1100, margin: '0 auto',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: 20, maxWidth: 1000, margin: '0 auto',
       }}>
         {quotes.map((q, i) => {
           const ref = useRef<HTMLDivElement>(null);
           useEffect(() => {
             const el = ref.current;
             if (!el) return;
-            gsap.set(el, { opacity: 0, y: 40 });
-            const trigger = ScrollTrigger.create({
+            gsap.set(el, { opacity: 0, y: 36 });
+            ScrollTrigger.create({
               trigger: el, start: 'top 88%',
-              onEnter: () => gsap.to(el, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', delay: i * 0.15 }),
+              onEnter: () => gsap.to(el, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', delay: i * 0.12 }),
             });
-            return () => trigger.kill();
           }, []);
 
           return (
             <div ref={ref} key={i} style={{
-              background: 'rgba(255,255,255,0.025)',
-              border: '1px solid rgba(232,232,227,0.07)',
-              borderRadius: 24, padding: 36,
-              backdropFilter: 'blur(12px)',
+              background: C.white, border: `1px solid ${C.border}`,
+              borderRadius: 20, padding: 32,
             }}>
-              <div style={{
-                fontSize: 32, color: C.amber, marginBottom: 20,
-                fontFamily: 'Georgia, serif', lineHeight: 1,
-              }}>"</div>
+              <div style={{ fontSize: 28, color: C.black, marginBottom: 16, fontFamily: 'Georgia, serif', opacity: 0.25 }}>"</div>
               <p style={{
-                fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 15,
-                color: C.offwhite, lineHeight: 1.8, marginBottom: 28,
+                fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 14,
+                color: C.black, lineHeight: 1.8, marginBottom: 24,
               }}>{q.text}</p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 12, color: C.black, letterSpacing: 1 }}>
+                  {q.name}
+                </div>
                 <div style={{
-                  fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 13,
-                  color: C.offwhite, letterSpacing: 1,
-                }}>{q.name}</div>
-                <div style={{
-                  fontFamily: 'Josefin Sans', fontSize: 11, color: C.dim,
-                  background: 'rgba(255,255,255,0.05)', padding: '4px 12px',
-                  borderRadius: 20, letterSpacing: 1,
+                  fontFamily: 'Josefin Sans', fontSize: 10, color: C.midgrey,
+                  background: C.offwhite, padding: '4px 10px', borderRadius: 20,
+                  letterSpacing: 1, border: `1px solid ${C.border}`,
                 }}>{q.goal}</div>
               </div>
             </div>
@@ -932,85 +865,111 @@ function CommunitySection() {
 
 // ─── CTA section ──────────────────────────────────────────────────────────────
 function CTASection() {
-  const ref = useRef<HTMLElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
+  const [email, setEmail] = useState('');
+  const [joined, setJoined] = useState(false);
 
   useEffect(() => {
     const el = innerRef.current;
     if (!el) return;
-    gsap.set(el, { opacity: 0, y: 60, scale: 0.97 });
-    const trigger = ScrollTrigger.create({
+    gsap.set(el, { opacity: 0, y: 50 });
+    ScrollTrigger.create({
       trigger: el, start: 'top 85%',
-      onEnter: () => gsap.to(el, { opacity: 1, y: 0, scale: 1, duration: 1.0, ease: 'power4.out' }),
+      onEnter: () => gsap.to(el, { opacity: 1, y: 0, duration: 0.9, ease: 'power4.out' }),
     });
-    return () => trigger.kill();
   }, []);
 
+  const handleJoin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email.trim()) setJoined(true);
+  };
+
   return (
-    <section ref={ref} style={{ padding: '140px 80px' }}>
+    <section style={{ padding: '120px 80px', background: C.white }}>
       <div ref={innerRef} style={{
-        maxWidth: 900, margin: '0 auto', textAlign: 'center',
-        background: 'linear-gradient(145deg, rgba(93,176,117,0.08) 0%, rgba(28,28,25,0.6) 50%, rgba(212,150,58,0.06) 100%)',
-        border: '1px solid rgba(93,176,117,0.15)',
-        borderRadius: 48, padding: '100px 60px',
+        maxWidth: 840, margin: '0 auto', textAlign: 'center',
+        background: C.black, borderRadius: 40, padding: '90px 60px',
         position: 'relative', overflow: 'hidden',
       }}>
-        {/* Decorative glow */}
+        {/* Subtle grain on dark bg */}
         <div style={{
-          position: 'absolute', top: '-30%', left: '50%', transform: 'translateX(-50%)',
-          width: 600, height: 400, borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(93,176,117,0.12) 0%, transparent 70%)',
-          pointerEvents: 'none',
+          position: 'absolute', inset: 0,
+          backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\' opacity=\'1\'/%3E%3C/svg%3E")',
+          opacity: 0.04, pointerEvents: 'none', borderRadius: 40,
         }} />
 
         <div style={{
-          fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 12,
-          letterSpacing: 4, color: C.green, marginBottom: 28,
+          fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 11,
+          letterSpacing: 4, color: 'rgba(255,255,255,0.4)', marginBottom: 24,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
         }}>
-          <span style={{ width: 24, height: 1, background: C.green, display: 'inline-block' }} />
+          <span style={{ width: 20, height: 1, background: 'rgba(255,255,255,0.3)', display: 'inline-block' }} />
           EARLY ACCESS
-          <span style={{ width: 24, height: 1, background: C.green, display: 'inline-block' }} />
+          <span style={{ width: 20, height: 1, background: 'rgba(255,255,255,0.3)', display: 'inline-block' }} />
         </div>
 
         <h2 style={{
           fontFamily: 'Josefin Sans', fontWeight: 700,
-          fontSize: 'clamp(40px, 6vw, 80px)', color: C.offwhite,
-          letterSpacing: -2, lineHeight: 1.0, marginBottom: 28, position: 'relative',
+          fontSize: 'clamp(38px, 6vw, 72px)', color: C.white,
+          letterSpacing: -2, lineHeight: 0.95, marginBottom: 24, position: 'relative',
         }}>
-          READY TO PROVE<br />IT TO YOURSELF?
+          Ready to prove<br />it to yourself?
         </h2>
 
         <p style={{
-          fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 16,
-          color: C.dim, maxWidth: 480, margin: '0 auto 48px', lineHeight: 1.9,
+          fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 15,
+          color: 'rgba(255,255,255,0.5)', maxWidth: 420, margin: '0 auto 40px', lineHeight: 1.9,
         }}>
           Join thousands of people who are done making excuses and starting making proof.
         </p>
 
-        <button style={{
-          background: C.offwhite, color: C.offblack, border: 'none',
-          borderRadius: 50, padding: '20px 56px',
-          fontFamily: 'Josefin Sans', fontWeight: 700,
-          fontSize: 15, letterSpacing: 3, cursor: 'pointer',
-          transition: 'transform 0.2s, box-shadow 0.3s',
-          position: 'relative', zIndex: 1,
-        }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
-            (e.currentTarget as HTMLElement).style.boxShadow = `0 20px 60px rgba(93,176,117,0.25)`;
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-            (e.currentTarget as HTMLElement).style.boxShadow = 'none';
-          }}
-        >
-          JOIN THE WAITLIST
-        </button>
+        {joined ? (
+          <div style={{
+            display: 'inline-block',
+            fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 14,
+            color: C.black, letterSpacing: 1, padding: '16px 36px',
+            background: C.white, borderRadius: 50,
+          }}>
+            You're on the list ✓
+          </div>
+        ) : (
+          <form onSubmit={handleJoin} style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="Email address"
+              required
+              style={{
+                fontFamily: 'Josefin Sans', fontSize: 14,
+                padding: '16px 24px', borderRadius: 50,
+                border: '1.5px solid rgba(255,255,255,0.15)',
+                background: 'rgba(255,255,255,0.07)', color: C.white,
+                outline: 'none', width: 240,
+                transition: 'border-color 0.2s',
+              }}
+              onFocus={e => (e.target.style.borderColor = 'rgba(255,255,255,0.5)')}
+              onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.15)')}
+            />
+            <button type="submit" style={{
+              fontFamily: 'Josefin Sans', fontWeight: 700,
+              fontSize: 13, letterSpacing: 1.5,
+              padding: '16px 28px', borderRadius: 50,
+              background: C.white, color: C.black, border: 'none',
+              cursor: 'pointer', transition: 'opacity 0.2s',
+              whiteSpace: 'nowrap',
+            }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              Join the waitlist
+            </button>
+          </form>
+        )}
 
         <p style={{
           fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 12,
-          color: C.dim, marginTop: 20,
+          color: 'rgba(255,255,255,0.3)', marginTop: 18,
         }}>Free to join · No credit card required</p>
       </div>
     </section>
@@ -1021,31 +980,29 @@ function CTASection() {
 function Footer() {
   return (
     <footer style={{
-      padding: '60px 80px',
-      borderTop: '1px solid rgba(232,232,227,0.06)',
+      padding: '48px 80px',
+      borderTop: `1px solid ${C.border}`,
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      background: C.white,
     }}>
       <div style={{
-        fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 20,
-        letterSpacing: 8, color: C.offwhite,
-      }}>MAHI</div>
+        fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 18,
+        letterSpacing: 6, color: C.black,
+      }}>mahi.</div>
 
       <div style={{
         fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 12,
-        color: C.dim,
-      }}>
-        © 2026 Mahi. The fitness accountability app.
-      </div>
+        color: C.midgrey,
+      }}>© 2026 Mahi. The fitness accountability app.</div>
 
       <div style={{ display: 'flex', gap: 24 }}>
         {['Instagram', 'TikTok', 'Twitter'].map(s => (
           <a key={s} href="#" style={{
-            fontFamily: 'Josefin Sans', fontSize: 12, letterSpacing: 2,
-            color: C.dim, textDecoration: 'none',
-            transition: 'color 0.2s',
+            fontFamily: 'Josefin Sans', fontSize: 11, letterSpacing: 2,
+            color: C.midgrey, textDecoration: 'none', transition: 'color 0.2s',
           }}
-            onMouseEnter={e => (e.currentTarget.style.color = C.offwhite)}
-            onMouseLeave={e => (e.currentTarget.style.color = C.dim)}
+            onMouseEnter={e => (e.currentTarget.style.color = C.black)}
+            onMouseLeave={e => (e.currentTarget.style.color = C.midgrey)}
           >
             {s.toUpperCase()}
           </a>
@@ -1055,7 +1012,7 @@ function Footer() {
   );
 }
 
-// ─── Main Showcase ────────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Showcase() {
   useLenis();
 
@@ -1066,25 +1023,9 @@ export default function Showcase() {
 
       <main>
         <HeroSection />
-        <Marquee />
+        <MarqueeStrip />
         <FeaturesSection />
         <StatsSection />
-
-        {/* Horizontal reel section */}
-        <section style={{ position: 'relative' }}>
-          <div style={{
-            textAlign: 'center', padding: '80px 80px 0',
-            fontFamily: 'Josefin Sans', fontWeight: 700,
-            fontSize: 'clamp(28px, 4vw, 48px)', color: C.offwhite, letterSpacing: -0.5,
-          }}>
-            SCROLL TO EXPLORE
-            <span style={{ display: 'block', WebkitTextStroke: `1px ${C.offwhite}`, color: 'transparent' }}>
-              THE MAHI EXPERIENCE
-            </span>
-          </div>
-          <HorizontalReel />
-        </section>
-
         <HowItWorksSection />
         <CommunitySection />
         <CTASection />
@@ -1092,12 +1033,12 @@ export default function Showcase() {
 
       <Footer />
 
-      {/* Pulse animation for recording dot */}
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(1.3); }
+          50% { opacity: 0.3; transform: scale(1.4); }
         }
+        input::placeholder { color: rgba(10,10,10,0.35); }
       `}</style>
     </>
   );

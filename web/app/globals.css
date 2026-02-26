@@ -1,15 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --off-black: #1A1A17;
-  --off-white: #E8E8E3;
-  --bg-dark: #1C1C19;
-  --green: #5DB075;
-  --amber: #D4963A;
+  --black: #0a0a0a;
+  --white: #ffffff;
+  --off-white: #f5f5f3;
+  --mid-grey: #888884;
+  --border: rgba(10,10,10,0.1);
 }
 
 * {
@@ -19,14 +19,14 @@
 }
 
 html {
-  background: var(--bg-dark);
-  color: var(--off-white);
+  background: var(--white);
+  color: var(--black);
   font-family: 'Josefin Sans', sans-serif;
   overflow-x: hidden;
 }
 
 body {
-  background: var(--bg-dark);
+  background: var(--white);
   overflow-x: hidden;
 }
 
@@ -50,33 +50,32 @@ html.lenis, html.lenis body {
 /* Custom cursor */
 .cursor {
   position: fixed;
-  width: 12px;
-  height: 12px;
-  background: var(--off-white);
+  width: 10px;
+  height: 10px;
+  background: var(--black);
   border-radius: 50%;
   pointer-events: none;
   z-index: 9999;
   transform: translate(-50%, -50%);
   mix-blend-mode: difference;
-  transition: transform 0.1s ease;
 }
 
 .cursor-follower {
   position: fixed;
-  width: 40px;
-  height: 40px;
-  border: 1px solid rgba(232, 232, 227, 0.4);
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(10,10,10,0.3);
   border-radius: 50%;
   pointer-events: none;
   z-index: 9998;
   transform: translate(-50%, -50%);
-  transition: transform 0.12s ease, width 0.2s ease, height 0.2s ease, opacity 0.2s ease;
+  transition: width 0.2s ease, height 0.2s ease, opacity 0.2s ease;
 }
 
 .cursor-follower.hovering {
-  width: 70px;
-  height: 70px;
-  opacity: 0.6;
+  width: 64px;
+  height: 64px;
+  opacity: 0.5;
 }
 
 /* Grain overlay */
@@ -87,7 +86,7 @@ html.lenis, html.lenis body {
   width: 400%;
   height: 400%;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
-  opacity: 0.035;
+  opacity: 0.025;
   pointer-events: none;
   z-index: 100;
   animation: grain 0.4s steps(1) infinite;
@@ -108,35 +107,21 @@ html.lenis, html.lenis body {
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 3px; }
-::-webkit-scrollbar-track { background: var(--bg-dark); }
-::-webkit-scrollbar-thumb { background: rgba(232,232,227,0.2); border-radius: 2px; }
+::-webkit-scrollbar-track { background: var(--white); }
+::-webkit-scrollbar-thumb { background: rgba(10,10,10,0.15); border-radius: 2px; }
 
 /* Phone mockup */
 .phone-bezel {
-  background: #111;
+  background: #0a0a0a;
   border-radius: 52px;
-  border: 2px solid rgba(255,255,255,0.12);
+  border: 2px solid rgba(255,255,255,0.15);
   box-shadow:
-    0 0 0 1px rgba(0,0,0,0.8),
-    inset 0 0 0 1px rgba(255,255,255,0.06),
-    0 60px 120px rgba(0,0,0,0.7),
-    0 0 80px rgba(93,176,117,0.08);
+    0 0 0 1px rgba(0,0,0,0.05),
+    inset 0 0 0 1px rgba(255,255,255,0.04),
+    0 60px 120px rgba(0,0,0,0.18),
+    0 20px 40px rgba(0,0,0,0.08);
   position: relative;
   overflow: hidden;
-}
-
-.phone-bezel::before {
-  content: '';
-  position: absolute;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90px;
-  height: 28px;
-  background: #111;
-  border-radius: 20px;
-  z-index: 10;
-  box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);
 }
 
 /* Marquee */
@@ -145,25 +130,27 @@ html.lenis, html.lenis body {
   to   { transform: translateX(-50%); }
 }
 .marquee-track {
-  animation: marquee 22s linear infinite;
+  animation: marquee 28s linear infinite;
   will-change: transform;
-}
-
-/* Glow orbs */
-.glow-orb {
-  border-radius: 50%;
-  filter: blur(80px);
-  pointer-events: none;
-}
-
-/* Stat counter */
-@keyframes countUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* Section transitions */
 .section-reveal {
   opacity: 0;
   transform: translateY(60px);
+}
+
+/* Wavy SVG path accent */
+.wave-accent {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Floating card */
+.float-card {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+  position: absolute;
 }
