@@ -555,21 +555,58 @@ function HowItWorksSection() {
           <div style={{ position: 'absolute', right: '6%', top: 0, transform: 'rotate(5deg)', zIndex: 0 }}>
             <div className="phone-bezel" style={{ width: 220, height: 450, position: 'relative' }}>
               <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 64, height: 20, background: '#0a0a0a', borderRadius: 16, zIndex: 10 }} />
-              <div style={{ position: 'absolute', inset: 0, borderRadius: 44, overflow: 'hidden', background: '#1C1C19', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 }}>
-                <div style={{ fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 14, color: '#E8E8E3', letterSpacing: 2 }}>VERIFY EMAIL</div>
-                <div style={{ fontFamily: 'Josefin Sans', fontStyle: 'italic', fontSize: 9, color: 'rgba(232,232,227,0.45)', textAlign: 'center' }}>We sent a 6-digit code to your email</div>
-                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                  {['3', '7', '4', '', '', ''].map((d, i) => (
+              {/* Camera screen */}
+              <div style={{ position: 'absolute', inset: 0, borderRadius: 44, overflow: 'hidden', background: '#0a0a0a' }}>
+                {/* Grid lines */}
+                <div style={{ position: 'absolute', inset: 0, opacity: 0.12 }}>
+                  {[...Array(9)].map((_, i) => (
                     <div key={i} style={{
-                      width: 26, height: 32, borderRadius: 6,
-                      background: d ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${d ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)'}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 13, color: '#E8E8E3',
-                    }}>{d}</div>
+                      position: 'absolute',
+                      left: `${(i % 3) * 33.3}%`, top: `${Math.floor(i / 3) * 33.3}%`,
+                      width: '33.3%', height: '33.3%',
+                      border: '0.5px solid rgba(255,255,255,0.6)',
+                    }} />
                   ))}
                 </div>
-                <div style={{ marginTop: 12, width: '80%', padding: '10px 0', borderRadius: 50, background: '#E8E8E3', textAlign: 'center', fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 10, color: '#111' }}>CONTINUE</div>
+                {/* Viewfinder corners */}
+                {[
+                  { top: '18%', left: '10%', borderTop: '2px solid #fff', borderLeft: '2px solid #fff' },
+                  { top: '18%', right: '10%', borderTop: '2px solid #fff', borderRight: '2px solid #fff' },
+                  { bottom: '22%', left: '10%', borderBottom: '2px solid #fff', borderLeft: '2px solid #fff' },
+                  { bottom: '22%', right: '10%', borderBottom: '2px solid #fff', borderRight: '2px solid #fff' },
+                ].map((s, i) => (
+                  <div key={i} style={{ position: 'absolute', width: 16, height: 16, ...s as any }} />
+                ))}
+                {/* REC dot */}
+                <div style={{
+                  position: 'absolute', top: 52, right: 18,
+                  width: 7, height: 7, borderRadius: '50%',
+                  background: '#FF3B30', boxShadow: '0 0 6px #FF3B30',
+                  animation: 'pulse 1.2s ease-in-out infinite',
+                }} />
+                {/* Timer */}
+                <div style={{
+                  position: 'absolute', top: 48, left: '50%', transform: 'translateX(-50%)',
+                  fontFamily: 'Josefin Sans', fontWeight: 700, fontSize: 16,
+                  color: '#fff', letterSpacing: 3,
+                }}>00:42</div>
+                {/* Shutter */}
+                <div style={{
+                  position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)',
+                  width: 48, height: 48, borderRadius: '50%',
+                  border: '2.5px solid rgba(255,255,255,0.8)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#fff' }} />
+                </div>
+                {/* User bar */}
+                <div style={{
+                  position: 'absolute', bottom: 92, left: 14, right: 14,
+                  display: 'flex', alignItems: 'center', gap: 8,
+                }}>
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }} />
+                  <div style={{ fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 9, color: '#fff' }}>@shaansea · live</div>
+                </div>
               </div>
             </div>
           </div>
