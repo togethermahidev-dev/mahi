@@ -6,6 +6,21 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// ─── Google Sheets integration ───────────────────────────────────────────────
+// Paste your Apps Script Web App URL here after deploying (see README / plan)
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbwiKgQOphq9LYrh7EfwrAV6joJI_xcUqbiNNFd0VhmOiqy_Cqtlzzp1C6xR30-8QZ10CA/exec';
+
+async function submitToSheet(email: string): Promise<void> {
+  try {
+    await fetch(SHEET_URL, {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  } catch {
+    // silently fail — user still sees confirmation
+  }
+}
+
 // ─── Colours ────────────────────────────────────────────────────────────────
 const C = {
   black: '#0a0a0a',
@@ -155,6 +170,7 @@ function HeroSection() {
   const avatarRef = useRef<HTMLDivElement>(null);
   const [email, setEmail] = useState('');
   const [joined, setJoined] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const tl = gsap.timeline({ delay: 0.1 });
@@ -164,9 +180,13 @@ function HeroSection() {
       .from(avatarRef.current, { y: 14, duration: 0.5, ease: 'power3.out' }, '-=0.3');
   }, []);
 
-  const handleJoin = (e: React.FormEvent) => {
+  const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) setJoined(true);
+    if (!email.trim() || loading) return;
+    setLoading(true);
+    await submitToSheet(email);
+    setJoined(true);
+    setLoading(false);
   };
 
   return (
@@ -202,7 +222,7 @@ function HeroSection() {
           fontSize: 16, color: 'rgba(10,10,10,0.65)',
           lineHeight: 1.8, marginTop: 24, maxWidth: 420, margin: '56px auto 0',
         }}>
-          Turn every workout into undeniable evidence. Shared live with your squad. No excuses. Only proof.
+          Turn every workout into undeniable evidence. Captured on camera. Shared with your squad. No excuses. Only proof.
         </p>
 
         {/* Email form */}
@@ -234,18 +254,18 @@ function HeroSection() {
                 onFocus={e => (e.target.style.borderColor = C.black)}
                 onBlur={e => (e.target.style.borderColor = 'rgba(10,10,10,0.25)')}
               />
-              <button type="submit" style={{
+              <button type="submit" disabled={loading} style={{
                 fontFamily: 'Josefin Sans', fontWeight: 700,
                 fontSize: 13, letterSpacing: 1.5,
                 padding: '16px 28px', borderRadius: 50,
                 background: C.black, color: C.white, border: 'none',
-                cursor: 'pointer', transition: 'opacity 0.2s',
-                whiteSpace: 'nowrap',
+                cursor: loading ? 'default' : 'pointer', transition: 'opacity 0.2s',
+                whiteSpace: 'nowrap', opacity: loading ? 0.5 : 1,
               }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
-                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                onMouseEnter={e => { if (!loading) e.currentTarget.style.opacity = '0.8'; }}
+                onMouseLeave={e => { if (!loading) e.currentTarget.style.opacity = '1'; }}
               >
-                Join the waitlist
+                {loading ? 'Joining...' : 'Join the waitlist'}
               </button>
             </form>
           )}
@@ -275,7 +295,7 @@ function HeroSection() {
 function MarqueeStrip() {
   const items = [
     'ACCOUNTABILITY', 'STRENGTH', 'CARDIO', 'SQUAD GOALS', 'PROOF OF WORK',
-    'CONSISTENCY', 'LIVE CAMERA', 'REAL RESULTS', 'TOGETHER', 'MAHI',
+    'CONSISTENCY', 'CAMERA PROOF', 'REAL RESULTS', 'TOGETHER', 'MAHI',
   ];
   const doubled = [...items, ...items];
 
@@ -395,8 +415,8 @@ function FeaturesSection() {
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
         gap: 20, maxWidth: 1100, margin: '0 auto',
       }}>
-        <FeatureCard icon="📸" delay={0} title="LIVE CAMERA SESSIONS"
-          desc="Start a workout and your camera goes live. Real-time proof that you're actually doing the work." />
+        <FeatureCard icon="📸" delay={0} title="CAMERA PROOF SESSIONS"
+          desc="Start a workout and capture the moment. Your camera records proof that you actually showed up." />
         <FeatureCard icon="🔗" delay={0.08} title="SQUAD ACCOUNTABILITY"
           desc="Invite your crew. They see when you skip. Social pressure is the best gym partner." />
         <FeatureCard icon="⚡" delay={0.16} title="INSTANT VERIFICATION"
@@ -532,8 +552,8 @@ function HowItWorksSection() {
               desc="Sign up with email. Verify with OTP. Set your fitness goals and schedule." />
             <StepCard number="02" title="Invite your squad"
               desc="Add your gym partner or crew. They'll see when you train — or when you don't." />
-            <StepCard number="03" title="Start a camera session"
-              desc="Tap record. Mahi activates the camera. Your live session is logged as proof." />
+            <StepCard number="03" title="Capture your session"
+              desc="Tap record. Mahi activates the camera and captures your workout as timestamped proof." />
             <StepCard number="04" title="Build your streak"
               desc="Every consecutive day builds your streak. Your squad watches it grow." />
           </div>
@@ -605,7 +625,7 @@ function HowItWorksSection() {
                   display: 'flex', alignItems: 'center', gap: 8,
                 }}>
                   <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }} />
-                  <div style={{ fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 9, color: '#fff' }}>@shaansea · live</div>
+                  <div style={{ fontFamily: 'Josefin Sans', fontWeight: 600, fontSize: 9, color: '#fff' }}>@shaansea · recording</div>
                 </div>
               </div>
             </div>
@@ -621,7 +641,7 @@ function CommunitySection() {
   const quotes = [
     { text: "I haven't missed a Monday in 3 months. My squad won't let me.", name: 'Jamie T.', goal: 'Weight loss' },
     { text: "The camera thing is wild. You literally cannot lie to yourself.", name: 'Marcus R.', goal: 'Muscle building' },
-    { text: "My PT loves it. She can see my form live without being there.", name: 'Priya K.', goal: 'Sports performance' },
+    { text: "My PT loves it. She can review my form from the footage without being there.", name: 'Priya K.', goal: 'Sports performance' },
   ];
 
   return (
@@ -697,6 +717,7 @@ function CTASection() {
   const innerRef = useRef<HTMLDivElement>(null);
   const [email, setEmail] = useState('');
   const [joined, setJoined] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const el = innerRef.current;
@@ -708,9 +729,13 @@ function CTASection() {
     });
   }, []);
 
-  const handleJoin = (e: React.FormEvent) => {
+  const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) setJoined(true);
+    if (!email.trim() || loading) return;
+    setLoading(true);
+    await submitToSheet(email);
+    setJoined(true);
+    setLoading(false);
   };
 
   return (
@@ -780,18 +805,18 @@ function CTASection() {
               onFocus={e => (e.target.style.borderColor = 'rgba(255,255,255,0.5)')}
               onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.15)')}
             />
-            <button type="submit" style={{
+            <button type="submit" disabled={loading} style={{
               fontFamily: 'Josefin Sans', fontWeight: 700,
               fontSize: 13, letterSpacing: 1.5,
               padding: '16px 28px', borderRadius: 50,
               background: C.white, color: C.black, border: 'none',
-              cursor: 'pointer', transition: 'opacity 0.2s',
-              whiteSpace: 'nowrap',
+              cursor: loading ? 'default' : 'pointer', transition: 'opacity 0.2s',
+              whiteSpace: 'nowrap', opacity: loading ? 0.5 : 1,
             }}
-              onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              onMouseEnter={e => { if (!loading) e.currentTarget.style.opacity = '0.85'; }}
+              onMouseLeave={e => { if (!loading) e.currentTarget.style.opacity = '1'; }}
             >
-              Join the waitlist
+              {loading ? 'Joining...' : 'Join the waitlist'}
             </button>
           </form>
         )}
