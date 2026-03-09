@@ -9,18 +9,17 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import NavigationDots from '@/components/NavigationDots';
+import AppHeader from '@/components/AppHeader';
 import {
   CameraIcon,
   ActivityIcon,
   HomeIcon,
   SearchIcon,
-  ProfileIcon,
 } from '@/components/ScreenIcons';
 import CameraScreen from '@/screens/CameraScreen';
 import ActivityScreen from '@/screens/ActivityScreen';
 import HomeScreen from '@/screens/HomeScreen';
 import SearchScreen from '@/screens/SearchScreen';
-import ProfileScreen from '@/screens/ProfileScreen';
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
 // PEEK_HEIGHT: strip of the next screen visible at the bottom of each screen.
@@ -36,24 +35,34 @@ const SWIPE_VY = 0.4; // min release velocity to trigger navigation
 
 // ─── Screen registry ──────────────────────────────────────────────────────────
 // Ordered top → bottom. Index 0 (Camera) is the entry screen.
+// Profile is not in the vertical tape — it lives in the horizontal layer.
 const SCREENS = [
   { key: 'camera',   Component: CameraScreen,   Icon: CameraIcon },
   { key: 'activity', Component: ActivityScreen, Icon: ActivityIcon },
   { key: 'home',     Component: HomeScreen,     Icon: HomeIcon },
   { key: 'search',   Component: SearchScreen,   Icon: SearchIcon },
-  { key: 'profile',  Component: ProfileScreen,  Icon: ProfileIcon },
 ] as const;
 
 const SCREEN_ICONS = SCREENS.map((s) => s.Icon);
 
 // Background colours per screen in each theme mode. Used for off-screen
 // placeholder views so the peek strip colour is always correct.
-const SCREEN_BG_DARK  = ['#111111', '#1C1C19', '#1C1C19', '#1C1C19', '#1C1C19'] as const;
-const SCREEN_BG_LIGHT = ['#111111', '#FFFFFF',  '#FFFFFF',  '#FFFFFF',  '#FFFFFF'] as const;
+const SCREEN_BG_DARK  = ['#111111', '#1C1C19', '#1C1C19', '#1C1C19'] as const;
+const SCREEN_BG_LIGHT = ['#111111', '#FFFFFF',  '#FFFFFF',  '#FFFFFF'] as const;
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface VerticalNavigatorProps {
+  onNavigateLeft:  () => void; // tap profile pill or swipe right → Profile screen
+  onNavigateRight: () => void; // tap messages icon or swipe left → Messages screen
+}
 
 // ─── VerticalNavigator ────────────────────────────────────────────────────────
 
-export default function VerticalNavigator(): React.JSX.Element {
+export default function VerticalNavigator({
+  onNavigateLeft,
+  onNavigateRight,
+}: VerticalNavigatorProps): React.JSX.Element {
   const { dark } = useAppTheme();
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -77,7 +86,7 @@ export default function VerticalNavigator(): React.JSX.Element {
 
   const panResponder = useRef(
     PanResponder.create({
-      // Claim vertical swipes; let horizontal gestures pass to children.
+      // Claim vertical swipes; let horizontal gestures pass to HorizontalNavigator.
       onMoveShouldSetPanResponder: (_e, { dx, dy }) =>
         Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10,
 
@@ -128,7 +137,7 @@ export default function VerticalNavigator(): React.JSX.Element {
   //   • tapeAnim =  -i   *SLOT_HEIGHT  → slot i is fully active      → radius 0
   //
   // tapeAnim is used with useNativeDriver:true for translateY, and with
-  // useNativeDriver:false here for borderRadius — this is supported in RN.
+  // useNativeDriver:false here for borderRadius — both are supported in RN.
   const borderRadii = useMemo(
     () =>
       SCREENS.map((_, i) =>
@@ -187,6 +196,14 @@ export default function VerticalNavigator(): React.JSX.Element {
           );
         })}
       </Animated.View>
+
+      {/* Shared header overlay — profile pill (left) + MAHI (center) + messages (right).
+          isDark=true forces white on Camera (always dark bg); other screens follow theme. */}
+      <AppHeader
+        isDark={activeIndex === 0}
+        onProfilePress={onNavigateLeft}
+        onMessagesPress={onNavigateRight}
+      />
 
       {/* Navigation dots — vertical pill dots on the right edge.
           Camera screen always has a dark background, so always use white dots

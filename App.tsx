@@ -18,7 +18,7 @@ import {
 import SplashScreenComponent from '@/screens/SplashScreen';
 import WelcomeScreen from '@/screens/WelcomeScreen';
 import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
-import VerticalNavigator from '@/screens/VerticalNavigator';
+import HorizontalNavigator from '@/screens/HorizontalNavigator';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore, useUserStore } from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
@@ -114,7 +114,7 @@ export default function App(): React.JSX.Element {
   if (session && showCamera) {
     return (
       <>
-        <VerticalNavigator />
+        <HorizontalNavigator />
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       </>
     );

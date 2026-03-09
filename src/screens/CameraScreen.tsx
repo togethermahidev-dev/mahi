@@ -11,7 +11,6 @@ import {
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { useUserStore } from '@/store';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import ThemeToggle from '@/components/ThemeToggle';
 
 // Height of the peek strip at the bottom — shows the top of the next screen.
 // Must match PEEK_HEIGHT in VerticalNavigator.tsx.
@@ -64,7 +63,6 @@ export default function CameraScreen(): React.JSX.Element {
   const [micPermission,    requestMicPermission]    = useMicrophonePermissions();
   const cameraRef = useRef<CameraView>(null);
   const { dark } = useAppTheme();
-
 
   const streakCount = useUserStore((s) => s.profile?.streak_current ?? 0);
 
@@ -139,14 +137,6 @@ export default function CameraScreen(): React.JSX.Element {
       {/* Camera fills the entire screen behind all other layers */}
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
 
-      {/* MAHI branding overlaid on camera feed */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>MAHI</Text>
-        <View style={styles.headerRight}>
-          <ThemeToggle color="#FFFFFF" size={22} />
-        </View>
-      </View>
-
       {/* Streak badge — large-to-small spring animation on mount */}
       <StreakBadge count={streakCount} />
 
@@ -166,7 +156,6 @@ export default function CameraScreen(): React.JSX.Element {
           <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
         </TouchableOpacity>
       </View>
-
     </View>
   );
 }
@@ -177,29 +166,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111111',
   },
 
-  // MAHI header overlaid on camera feed
-  header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingTop: Platform.OS === 'ios' ? 60 : 32,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontFamily: 'JosefinSans_700Bold',
-    letterSpacing: 8,
-  },
-  // Pinned to the right edge of the header row, vertically aligned with MAHI
-  headerRight: {
-    position: 'absolute',
-    right: 24,
-    top: Platform.OS === 'ios' ? 60 : 32,
-  },
-
-  // Streak badge — absolute top-right, below the MAHI header
+  // Streak badge — absolute top-right, below the AppHeader
   streakBadge: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 108 : 80,
