@@ -1,16 +1,25 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
+import { IconProps } from '@/components/ScreenIcons';
 
 interface NavigationDotsProps {
   count: number;
   activeIndex: number;
   dark: boolean;
+  icons: React.ComponentType<IconProps>[];
 }
+
+// Active dot: rounded square with icon inside
+// Inactive dot: small pill (same as before)
+const ACTIVE_SIZE   = 28;
+const INACTIVE_SIZE = 6;
+const ACTIVE_RADIUS = 10;
 
 export default function NavigationDots({
   count,
   activeIndex,
   dark,
+  icons,
 }: NavigationDotsProps): React.JSX.Element {
   const dotAnims = useRef<Animated.Value[]>(
     Array.from({ length: count }, (_, i) => new Animated.Value(i === 0 ? 1 : 0)),
@@ -22,37 +31,57 @@ export default function NavigationDots({
         toValue: i === activeIndex ? 1 : 0,
         damping: 18,
         stiffness: 140,
-        useNativeDriver: false, // height is not a transform property
+        useNativeDriver: false, // width/height are not transform properties
       }),
     );
     Animated.parallel(animations).start();
   }, [activeIndex]);
 
-  const dotColor = dark ? '#FFFFFF' : '#1A1A17';
+  const dotColor  = dark ? '#FFFFFF' : '#1A1A17';
+  const iconColor = dark ? '#1A1A17' : '#FFFFFF'; // icon contrasts against the filled dot bg
 
   return (
     <View style={styles.container} pointerEvents="none">
       {dotAnims.map((anim, i) => {
-        const height = anim.interpolate({
+        const size = anim.interpolate({
           inputRange: [0, 1],
-          outputRange: [6, 20],
+          outputRange: [INACTIVE_SIZE, ACTIVE_SIZE],
         });
-        const opacity = anim.interpolate({
+        const radius = anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [INACTIVE_SIZE / 2, ACTIVE_RADIUS],
+        });
+        const iconOpacity = anim.interpolate({
+          inputRange: [0.5, 1],
+          outputRange: [0, 1],
+          extrapolate: 'clamp',
+        });
+        const dotOpacity = anim.interpolate({
           inputRange: [0, 1],
           outputRange: [0.35, 1.0],
         });
+
+        const Icon = icons[i];
+
         return (
           <Animated.View
             key={i}
             style={[
               styles.dot,
               {
-                height,
-                opacity,
+                width: size,
+                height: size,
+                borderRadius: radius,
                 backgroundColor: dotColor,
+                opacity: dotOpacity,
               },
             ]}
-          />
+          >
+            {/* Icon fades in when dot becomes active */}
+            <Animated.View style={{ opacity: iconOpacity }}>
+              <Icon size={14} color={iconColor} />
+            </Animated.View>
+          </Animated.View>
         );
       })}
     </View>
@@ -70,8 +99,8 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   dot: {
-    width: 6,
-    borderRadius: 3,
     marginVertical: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -9,6 +9,13 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import NavigationDots from '@/components/NavigationDots';
+import {
+  CameraIcon,
+  ActivityIcon,
+  HomeIcon,
+  SearchIcon,
+  ProfileIcon,
+} from '@/components/ScreenIcons';
 import CameraScreen from '@/screens/CameraScreen';
 import ActivityScreen from '@/screens/ActivityScreen';
 import HomeScreen from '@/screens/HomeScreen';
@@ -30,12 +37,14 @@ const SWIPE_VY = 0.4; // min release velocity to trigger navigation
 // ─── Screen registry ──────────────────────────────────────────────────────────
 // Ordered top → bottom. Index 0 (Camera) is the entry screen.
 const SCREENS = [
-  { key: 'camera',   Component: CameraScreen },
-  { key: 'activity', Component: ActivityScreen },
-  { key: 'home',     Component: HomeScreen },
-  { key: 'search',   Component: SearchScreen },
-  { key: 'profile',  Component: ProfileScreen },
+  { key: 'camera',   Component: CameraScreen,   Icon: CameraIcon },
+  { key: 'activity', Component: ActivityScreen, Icon: ActivityIcon },
+  { key: 'home',     Component: HomeScreen,     Icon: HomeIcon },
+  { key: 'search',   Component: SearchScreen,   Icon: SearchIcon },
+  { key: 'profile',  Component: ProfileScreen,  Icon: ProfileIcon },
 ] as const;
+
+const SCREEN_ICONS = SCREENS.map((s) => s.Icon);
 
 // Background colours per screen in each theme mode. Used for off-screen
 // placeholder views so the peek strip colour is always correct.
@@ -186,6 +195,7 @@ export default function VerticalNavigator(): React.JSX.Element {
         count={SCREENS.length}
         activeIndex={activeIndex}
         dark={activeIndex === 0 ? true : dark}
+        icons={SCREEN_ICONS}
       />
     </View>
   );
