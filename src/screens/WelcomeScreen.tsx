@@ -1,13 +1,14 @@
 import React, { useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Animated, Dimensions,
+  Animated, Dimensions, Image,
 } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import LoginSheet from '@/components/LoginSheet';
 import CreateAccountSheet from '@/components/CreateAccountSheet';
 
-const { height } = Dimensions.get('window');
+const { height, width } = Dimensions.get('window');
+const SHEET_HEIGHT = (height - 55) / 2;
 
 interface Props {
   onAuthComplete: () => void;
@@ -52,6 +53,11 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
       <View style={styles.gap} />
 
       <Animated.View style={[styles.bottomSheet, { backgroundColor: sheetBg, transform: [{ translateY: botY }] }]}>
+        <Image
+          source={require('../../assets/mahibw.png')}
+          style={styles.topSheetBg}
+          resizeMode="contain"
+        />
         <TouchableOpacity
           style={[styles.button, styles.buttonOutline, { borderColor: sheetText }]}
           activeOpacity={0.8}
@@ -77,6 +83,14 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#111111' },
+  topSheetBg: {
+    position: 'absolute',
+    top: -(SHEET_HEIGHT * 0.2),
+    left: -(width * 0.2),
+    width: width * 1.4,
+    height: SHEET_HEIGHT * 1.4,
+    opacity: 0.25,
+  },
   topSheet: {
     flex: 1,
     paddingHorizontal: 24,
@@ -85,6 +99,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 40,
     borderBottomRightRadius: 40,
     justifyContent: 'space-between',
+    overflow: 'hidden',
   },
   titles: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 56, fontFamily: 'JosefinSans_700Bold', letterSpacing: 10, marginBottom: 12 },
@@ -99,6 +114,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   button: {
     width: '72%',
