@@ -4,6 +4,37 @@ Custom hooks live in `src/hooks/`. They wrap library clients or encapsulate reus
 
 ## Current Hooks
 
+### `useAppTheme` — `src/hooks/useAppTheme.ts`
+
+Resolves the effective colour scheme (light/dark) from the user's stored preference and the system setting. Returns an `AppTheme` object.
+
+```ts
+import { useAppTheme } from '@/hooks/useAppTheme';
+
+const { dark, colorScheme, colors } = useAppTheme();
+```
+
+**Return shape:**
+
+| Field | Type | Description |
+|---|---|---|
+| `mode` | `'light' \| 'dark' \| 'system'` | Stored user preference |
+| `colorScheme` | `'light' \| 'dark'` | Resolved effective scheme |
+| `dark` | `boolean` | `true` when effective scheme is dark |
+| `colors.bg` | `string` | `#1C1C19` (dark) / `#FFFFFF` (light) |
+| `colors.text` | `string` | `#E8E8E3` (dark) / `#1A1A17` (light) |
+| `colors.offWhite` | `string` | `#E8E8E3` |
+| `colors.offBlack` | `string` | `#1A1A17` |
+
+**Navigation usage:**
+
+- `NavigationDots` uses `dark` to set dot colour: `dark ? '#FFFFFF' : '#1A1A17'`. Camera screen (always a dark background) passes `dark={true}` regardless of theme preference.
+- `CameraScreen` uses `dark` to set shutter ring/fill colour.
+- `VerticalNavigator` uses `dark` to select the correct background palette (`SCREEN_BG_DARK` vs `SCREEN_BG_LIGHT`) for off-screen placeholder slots.
+- Navigation components should use `dark` (boolean) rather than `colorScheme` (string) for contrast decisions.
+
+---
+
 ### `useSupabase` — `src/hooks/useSupabase.ts`
 
 Returns the shared Supabase client singleton.

@@ -7,16 +7,18 @@ import {
   Linking,
   Platform,
   Animated,
-  PanResponder,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { useUserStore } from '@/store';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import ThemeToggle from '@/components/ThemeToggle';
 
+// Height of the peek strip at the bottom — shows the top of the next screen.
+// Must match PEEK_HEIGHT in VerticalNavigator.tsx.
+const PEEK_HEIGHT = 110;
+
 // ─── Streak Badge ─────────────────────────────────────────────────────────────
-// Plays a large-to-small spring animation every time the camera tab mounts.
+// Plays a large-to-small spring animation every time the camera screen mounts.
 // The number starts at 4× its final rendered size and springs into position.
 
 function StreakBadge({ count }: { count: number }) {
@@ -62,63 +64,9 @@ export default function CameraScreen(): React.JSX.Element {
   const [micPermission,    requestMicPermission]    = useMicrophonePermissions();
   const cameraRef = useRef<CameraView>(null);
   const { dark } = useAppTheme();
-  const sheetBg = dark ? '#1C1C19' : '#FFFFFF';
+
 
   const streakCount = useUserStore((s) => s.profile?.streak_current ?? 0);
-
-  // ─── Swipeable sheet ──────────────────────────────────────────────────────
-  // The sheet collapses downward on a vertical swipe but stays sticky — it
-  // never fully leaves the screen. PEEK_HEIGHT is the strip that remains
-  // visible at the bottom (keeping the shutter button fully on-screen).
-  const PEEK_HEIGHT    = 50;
-  const sheetHeightRef = useRef(0);
-  const isCollapsed    = useRef(false);
-  const sheetTranslateY = useRef(new Animated.Value(0)).current;
-
-  const snapSheet = (collapse: boolean) => {
-    const maxCollapse = sheetHeightRef.current - PEEK_HEIGHT;
-    isCollapsed.current = collapse;
-    Haptics.impactAsync(
-      collapse ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light,
-    );
-    Animated.spring(sheetTranslateY, {
-      toValue: collapse ? maxCollapse : 0,
-      damping: 22,
-      stiffness: 160,
-      mass: 0.9,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const sheetPanResponder = useRef(
-    PanResponder.create({
-      // Claim the gesture only for vertical swipes
-      onMoveShouldSetPanResponder: (_e, { dx, dy }) =>
-        Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8,
-
-      onPanResponderGrant: () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        sheetTranslateY.stopAnimation();
-      },
-
-      onPanResponderMove: (_e, { dy }) => {
-        const maxCollapse = sheetHeightRef.current - PEEK_HEIGHT;
-        const base = isCollapsed.current ? maxCollapse : 0;
-        const next = Math.max(0, Math.min(base + dy, maxCollapse));
-        sheetTranslateY.setValue(next);
-      },
-
-      onPanResponderRelease: (_e, { dy, vy }) => {
-        const maxCollapse = sheetHeightRef.current - PEEK_HEIGHT;
-        const base = isCollapsed.current ? maxCollapse : 0;
-        const current = base + dy;
-        // Collapse if dragged past 35% of max OR flicked downward fast
-        const shouldCollapse =
-          current > maxCollapse * 0.35 || vy > 0.5;
-        snapSheet(shouldCollapse);
-      },
-    }),
-  ).current;
 
   // Request camera permission whenever it becomes requestable
   useEffect(() => {
@@ -147,9 +95,13 @@ export default function CameraScreen(): React.JSX.Element {
   const cameraGranted = cameraPermission.granted;
   const micGranted    = micPermission.granted;
 
+  // Shutter button colours adapt to light/dark mode so the button always
+  // contrasts against both the dark camera feed and the themed peek strip.
+  const shutterRing = dark ? '#FFFFFF' : '#1A1A17';
+  const shutterFill = dark ? '#FFFFFF' : '#1A1A17';
+
   // One or both permissions are missing
   if (!cameraGranted || !micGranted) {
-    // Determine message based on which permission(s) are missing
     let message: string;
     if (!cameraGranted && !micGranted) {
       message = 'Mahi needs access to your camera and microphone to power your fitness experience.';
@@ -159,14 +111,13 @@ export default function CameraScreen(): React.JSX.Element {
       message = 'Mahi needs microphone access to record your workout sessions.';
     }
 
-    // Show "Allow Access" if any denied permission can still be requested, else "Open Settings"
     const canAskCamera = !cameraGranted && cameraPermission.canAskAgain;
     const canAskMic    = !micGranted    && micPermission.canAskAgain;
     const canAskAny    = canAskCamera || canAskMic;
 
     return (
       <View style={styles.root}>
-        <View style={styles.cameraRegion}>
+        <View style={styles.permissionCenter}>
           <Text style={styles.deniedMessage}>{message}</Text>
           {!canAskAny && (
             <TouchableOpacity
@@ -178,63 +129,44 @@ export default function CameraScreen(): React.JSX.Element {
             </TouchableOpacity>
           )}
         </View>
-        <View style={[styles.bottomSheet, { backgroundColor: sheetBg }]} />
       </View>
     );
   }
 
-  // Shutter button colours adapt to light/dark mode so the button always
-  // contrasts against both the dark camera feed and the themed sheet.
-  const shutterRing = dark ? '#FFFFFF' : '#1A1A17';
-  const shutterFill = dark ? '#FFFFFF' : '#1A1A17';
-
   // Both granted — full camera experience
   return (
     <View style={styles.root}>
-      {/* Camera region — top 3/4 of screen */}
-      <View style={styles.cameraRegion}>
-        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
+      {/* Camera fills the entire screen behind all other layers */}
+      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
 
-        {/* MAHI branding overlaid on camera */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>MAHI</Text>
-          <View style={styles.headerRight}>
-            <ThemeToggle color="#FFFFFF" size={22} />
-          </View>
+      {/* MAHI branding overlaid on camera feed */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>MAHI</Text>
+        <View style={styles.headerRight}>
+          <ThemeToggle color="#FFFFFF" size={22} />
         </View>
-
-        {/* Streak badge — large-to-small spring animation on mount */}
-        <StreakBadge count={streakCount} />
       </View>
 
-      {/* Bottom sheet — swipeable, sticky (never fully dismissed) */}
-      <Animated.View
-        style={[
-          styles.bottomSheet,
-          { backgroundColor: sheetBg, transform: [{ translateY: sheetTranslateY }] },
-        ]}
-        onLayout={({ nativeEvent }) => {
-          sheetHeightRef.current = nativeEvent.layout.height;
-        }}
-        {...sheetPanResponder.panHandlers}
-      >
-        {/* Shutter floats on top of the sheet boundary — positioned half above, half below */}
-        <View style={styles.shutterFloat}>
-          <TouchableOpacity
-            style={[
-              styles.shutterOuter,
-              {
-                borderColor: shutterRing,
-                shadowColor: dark ? '#000000' : '#1A1A17',
-              },
-            ]}
-            activeOpacity={0.82}
-            onPress={takePhoto}
-          >
-            <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
+      {/* Streak badge — large-to-small spring animation on mount */}
+      <StreakBadge count={streakCount} />
+
+      {/* Shutter button — floats above the peek strip */}
+      <View style={styles.shutterFloat}>
+        <TouchableOpacity
+          style={[
+            styles.shutterOuter,
+            {
+              borderColor: shutterRing,
+              shadowColor: dark ? '#000000' : '#1A1A17',
+            },
+          ]}
+          activeOpacity={0.82}
+          onPress={takePhoto}
+        >
+          <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
+        </TouchableOpacity>
+      </View>
+
     </View>
   );
 }
@@ -243,15 +175,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#111111',
-  },
-
-  // Camera region — flex 3 = 75% of available space
-  cameraRegion: {
-    flex: 3,
-    backgroundColor: '#111111',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   // MAHI header overlaid on camera feed
@@ -300,23 +223,13 @@ const styles = StyleSheet.create({
     lineHeight: 11,
   },
 
-  // Shutter float — full-width container anchored at the top of the sheet,
-  // offset upward by half the button height so it straddles the boundary.
+  // Shutter button — absolute, floats above the peek strip
   shutterFloat: {
     position: 'absolute',
-    top: -36,
+    bottom: PEEK_HEIGHT + 32,
     left: 0,
     right: 0,
     alignItems: 'center',
-  },
-
-  // Bottom sheet — flex 1 = 25% of available space
-  bottomSheet: {
-    flex: 1,
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   // Shutter button — ring + inner circle (colours injected inline, mode-aware)
@@ -339,6 +252,12 @@ const styles = StyleSheet.create({
   },
 
   // Permission denied state
+  permissionCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 24,
+  },
   deniedMessage: {
     color: '#FFFFFF',
     fontSize: 16,
