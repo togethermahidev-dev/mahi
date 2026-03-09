@@ -65,7 +65,7 @@ function CameraIcon({ size, color }: IconProps) {
   );
 }
 
-function ActivityIcon({ size, color }: IconProps) {
+function FeedIcon({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -98,7 +98,7 @@ const TABS = [
   { key: 'home',     Icon: HomeIcon },
   { key: 'search',   Icon: SearchIcon },
   { key: 'camera',   Icon: CameraIcon },
-  { key: 'activity', Icon: ActivityIcon },
+  { key: 'feed',     Icon: FeedIcon },
   { key: 'profile',  Icon: ProfileIcon },
 ] as const;
 

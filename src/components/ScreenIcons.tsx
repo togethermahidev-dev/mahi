@@ -52,7 +52,7 @@ export function CameraIcon({ size, color }: IconProps) {
   );
 }
 
-export function ActivityIcon({ size, color }: IconProps) {
+export function FeedIcon({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path

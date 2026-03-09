@@ -31,6 +31,8 @@ const { dark, colorScheme, colors } = useAppTheme();
 - `NavigationDots` uses `dark` to set dot colour: `dark ? '#FFFFFF' : '#1A1A17'`. Camera screen (always a dark background) passes `dark={true}` regardless of theme preference.
 - `CameraScreen` uses `dark` to set shutter ring/fill colour.
 - `VerticalNavigator` uses `dark` to select the correct background palette (`SCREEN_BG_DARK` vs `SCREEN_BG_LIGHT`) for off-screen placeholder slots.
+- `AppHeader` receives `isDark` as a prop (set by `VerticalNavigator` as `activeIndex === 0`, forcing `true` on the Camera screen which always has a dark background). `isDark` controls foreground colour, profile pill fill, and icon colour — independent of the stored theme preference so the header always contrasts with the current screen's background.
+- `MessagesScreen` and `ProfileScreen` call `useAppTheme()` directly to set their own background and text colours.
 - Navigation components should use `dark` (boolean) rather than `colorScheme` (string) for contrast decisions.
 
 ---
