@@ -61,6 +61,63 @@ export type Database = {
         };
         Update: Partial<Omit<Database['public']['Tables']['streak_logs']['Insert'], 'id' | 'user_id'>>;
       };
+      posts: {
+        Row: {
+          id:         string;
+          user_id:    string;
+          image_url:  string;
+          caption:    string | null;
+          streak_day: number;
+          created_at: string;
+        };
+        Insert: {
+          id?:        string;
+          user_id:    string;
+          image_url:  string;
+          caption?:   string | null;
+          streak_day: number;
+        };
+        Update: {
+          caption?: string | null;
+        };
+      };
+      conversations: {
+        Row: {
+          id:              string;
+          participant_one: string;
+          participant_two: string;
+          status:          'requested' | 'active';
+          initiated_by:    string;
+          created_at:      string;
+          updated_at:      string;
+        };
+        Insert: {
+          id?:             string;
+          participant_one: string;
+          participant_two: string;
+          status?:         'requested' | 'active';
+          initiated_by:    string;
+        };
+        Update: {
+          status?: 'requested' | 'active';
+        };
+      };
+      messages: {
+        Row: {
+          id:              string;
+          conversation_id: string;
+          sender_id:       string;
+          content:         string;
+          created_at:      string;
+        };
+        Insert: {
+          id?:             string;
+          conversation_id: string;
+          sender_id:       string;
+          content:         string;
+        };
+        Update: Record<string, never>;
+      };
     };
     Views:     Record<string, never>;
     Functions: {

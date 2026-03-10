@@ -1,22 +1,61 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, Image, StyleSheet, Platform } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useUserStore } from '@/store';
 import ThemeToggle from '@/components/ThemeToggle';
 
 export default function ProfileScreen(): React.JSX.Element {
   const { dark } = useAppTheme();
-  const bg   = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#E8E8E3' : '#1A1A17';
+  const bg      = dark ? '#1C1C19' : '#FFFFFF';
+  const text    = dark ? '#E8E8E3' : '#1A1A17';
+  const muted   = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
   const toggleColor = dark ? '#E8E8E3' : '#1A1A17';
+
+  const profile = useUserStore((s) => s.profile);
+
+  const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
+  const initials    = displayName[0]?.toUpperCase() ?? '?';
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      {/* Theme toggle — top-right, acts as settings control */}
+      {/* Theme toggle — top-right */}
       <View style={styles.headerRight}>
         <ThemeToggle color={toggleColor} size={22} />
       </View>
 
-      <Text style={[styles.label, { color: text }]}>PROFILE</Text>
+      {/* Avatar */}
+      <View style={styles.avatarWrap}>
+        {profile?.avatar_url ? (
+          <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: muted }]}>
+            <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Name + handle */}
+      <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
+      {profile?.username ? (
+        <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
+      ) : null}
+
+      {/* Streak stats */}
+      <View style={styles.statsRow}>
+        <View style={styles.stat}>
+          <Text style={[styles.statValue, { color: text }]}>
+            {profile?.streak_current ?? 0}
+          </Text>
+          <Text style={[styles.statLabel, { color: muted }]}>STREAK</Text>
+        </View>
+        <View style={[styles.statDivider, { backgroundColor: muted }]} />
+        <View style={styles.stat}>
+          <Text style={[styles.statValue, { color: text }]}>
+            {profile?.streak_highest ?? 0}
+          </Text>
+          <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -26,15 +65,63 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 32,
   },
   headerRight: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 60 : 32,
     right: 24,
   },
-  label: {
-    fontSize: 24,
+  avatarWrap: {
+    marginBottom: 20,
+  },
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+  },
+  avatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    fontSize: 36,
     fontFamily: 'JosefinSans_700Bold',
-    letterSpacing: 8,
+  },
+  displayName: {
+    fontSize: 22,
+    fontFamily: 'JosefinSans_700Bold',
+    letterSpacing: 4,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  handle: {
+    fontSize: 14,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    marginBottom: 32,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 32,
+  },
+  stat: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  statValue: {
+    fontSize: 28,
+    fontFamily: 'JosefinSans_700Bold',
+    lineHeight: 28,
+  },
+  statLabel: {
+    fontSize: 10,
+    fontFamily: 'JosefinSans_600SemiBold',
+    letterSpacing: 3,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    opacity: 0.3,
   },
 });

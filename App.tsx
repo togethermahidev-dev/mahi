@@ -20,7 +20,7 @@ import WelcomeScreen from '@/screens/WelcomeScreen';
 import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
 import HorizontalNavigator from '@/screens/HorizontalNavigator';
 import { supabase } from '@/lib/supabase';
-import { useAuthStore, useUserStore } from '@/store';
+import { useAuthStore, useUserStore, useFeedStore, useMessagesStore } from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { getProfile } from '@/api';
@@ -57,6 +57,9 @@ export default function App(): React.JSX.Element {
         getProfile(s.user.id).then(({ data }) => {
           if (data) useUserStore.getState().setProfile(data);
         });
+        // Background-hydrate feed + messages stores (non-blocking)
+        useFeedStore.getState().sync();
+        useMessagesStore.getState().sync(s.user.id);
       }
     });
 
@@ -71,10 +74,15 @@ export default function App(): React.JSX.Element {
         getProfile(s.user.id).then(({ data }) => {
           if (data) useUserStore.getState().setProfile(data);
         });
+        // Background-hydrate feed + messages stores (non-blocking)
+        useFeedStore.getState().sync();
+        useMessagesStore.getState().sync(s.user.id);
         Sentry.setUser({ id: s.user.id, email: s.user.email });
         posthog.identify(s.user.id, { email: s.user.email ?? null });
       } else {
         useUserStore.getState().reset();
+        useFeedStore.getState().reset();
+        useMessagesStore.getState().reset();
         Sentry.setUser(null);
         posthog.reset();
       }

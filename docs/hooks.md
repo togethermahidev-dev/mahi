@@ -1,12 +1,12 @@
 # Hooks
 
-Custom hooks live in `src/hooks/`. They wrap library clients or encapsulate reusable logic.
+Custom hooks live in `src/hooks/`. They are thin wrappers over Zustand stores or library clients — they contain no local state of their own.
 
-## Current Hooks
+---
 
-### `useAppTheme` — `src/hooks/useAppTheme.ts`
+## `useAppTheme` — `src/hooks/useAppTheme.ts`
 
-Resolves the effective colour scheme (light/dark) from the user's stored preference and the system setting. Returns an `AppTheme` object.
+Resolves the effective colour scheme (light/dark) from the user's stored preference and the system setting.
 
 ```ts
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -27,51 +27,82 @@ const { dark, colorScheme, colors } = useAppTheme();
 | `colors.offBlack` | `string` | `#1A1A17` |
 
 **Navigation usage:**
-
-- `NavigationDots` uses `dark` to set dot colour: `dark ? '#FFFFFF' : '#1A1A17'`. Camera screen (always a dark background) passes `dark={true}` regardless of theme preference.
-- `CameraScreen` uses `dark` to set shutter ring/fill colour.
-- `VerticalNavigator` uses `dark` to select the correct background palette (`SCREEN_BG_DARK` vs `SCREEN_BG_LIGHT`) for off-screen placeholder slots.
-- `AppHeader` receives `isDark` as a prop (set by `VerticalNavigator` as `activeIndex === 0`, forcing `true` on the Camera screen which always has a dark background). `isDark` controls foreground colour, profile pill fill, and icon colour — independent of the stored theme preference so the header always contrasts with the current screen's background.
-- `MessagesScreen` and `ProfileScreen` call `useAppTheme()` directly to set their own background and text colours.
-- Navigation components should use `dark` (boolean) rather than `colorScheme` (string) for contrast decisions.
+- `CameraScreen` uses `dark` to set shutter ring/fill colour
+- `VerticalNavigator` uses `dark` to select background palette for off-screen placeholders
+- `AppHeader` receives `isDark` as a prop (forced `true` on Camera — always dark background)
+- `MessagesScreen` and `ProfileScreen` call `useAppTheme()` directly
+- Use `dark` (boolean) rather than `colorScheme` (string) for contrast decisions
 
 ---
 
-### `useSupabase` — `src/hooks/useSupabase.ts`
+## `useFeed` — `src/hooks/useFeed.ts`
 
-Returns the shared Supabase client singleton.
+Thin wrapper over `useFeedStore`. Merges `pending` + `posts` into a single ordered list. Triggers store sync on first mount if the store is empty.
+
+```ts
+import { useFeed } from '@/hooks/useFeed';
+
+const { posts, isLoading, hasMore, loadMore, refresh } = useFeed();
+```
+
+**Return shape:**
+
+| Field | Type | Description |
+|---|---|---|
+| `posts` | `FeedPost[]` | `[...pending, ...confirmed]` — pending posts appear first |
+| `isLoading` | `boolean` | `true` only on true first-ever load (`isSyncing && posts.length === 0`) |
+| `hasMore` | `boolean` | `false` when last page had fewer rows than `PAGE_SIZE` |
+| `loadMore` | `() => void` | Append next cursor page |
+| `refresh` | `() => void` | Force re-fetch from page 1 |
+
+**Zero-skeleton guarantee:** once the store has any data, `isLoading` is always `false` across re-mounts. `FeedScreen` never shows a skeleton after first load.
+
+---
+
+## `useMessages` — `src/hooks/useMessages.ts`
+
+Thin wrapper over `useMessagesStore`. Triggers store sync on first mount if the store is empty.
+
+```ts
+import { useMessages } from '@/hooks/useMessages';
+
+const { inbox, requests, isLoading, refresh, accept, send } = useMessages();
+```
+
+**Return shape:**
+
+| Field | Type | Description |
+|---|---|---|
+| `inbox` | `ConversationPreview[]` | Accepted conversations |
+| `requests` | `ConversationPreview[]` | Pending message requests |
+| `isLoading` | `boolean` | `true` only on true first-ever load |
+| `refresh` | `() => void` | Force re-fetch inbox + requests |
+| `accept` | `(id: string) => Promise<void>` | Optimistically accept a request (via store) |
+| `send` | `(convId, content) => Promise<MsgRow \| null>` | Send a message (direct API call) |
+
+`accept` is fully optimistic — the request moves to inbox immediately; rolls back on API failure.
+
+---
+
+## `useSupabase` — `src/hooks/useSupabase.ts`
+
+Returns the shared Supabase client singleton. Prefer this over importing `supabase` directly inside components.
 
 ```ts
 import { useSupabase } from '@/hooks/useSupabase';
 
-function MyComponent() {
-  const supabase = useSupabase();
-  // supabase.from('table').select(...)
-}
+const supabase = useSupabase();
+// supabase.from('table').select(...)
 ```
 
-Prefer this hook over importing `supabase` directly from `src/lib/supabase` inside components, so the client stays swappable and testable.
-
----
-
-## Planned Hooks (TBD)
-
-| Hook | Purpose |
-|---|---|
-| `useSession` | Subscribe to Supabase auth state changes, sync to `useAuthStore` |
-| `useProfile` | Fetch and cache user profile from DB into `useUserStore` |
-| `useWorkouts` | Fetch/mutate workout data |
-
----
-
-## Root Orchestrator Pattern
-
-`App.tsx` does not use `useSupabase()`. The root component uses the `supabase` singleton directly for the one-time auth subscription in `useEffect`. `useSupabase()` is for use inside components and hooks, not the app root.
+`App.tsx` uses the `supabase` singleton directly (not this hook) for the one-time auth subscription.
 
 ---
 
 ## Conventions
 
 - Hooks are named `use<Feature>` and live in `src/hooks/`
-- Hooks that read from a store use selectors, not the full store object
-- Async hooks should expose `{ data, isLoading, error }` shape
+- Hooks read from Zustand stores via selectors — no local `useState` for data that belongs in a store
+- `isLoading` follows the pattern: `isSyncing && storeIsEmpty` — never `isSyncing` alone
+- Trigger store actions via `useStore.getState().action()` to avoid stale closure issues
+- `send` in `useMessages` is a direct API call (conversation detail is out of scope for the store layer)

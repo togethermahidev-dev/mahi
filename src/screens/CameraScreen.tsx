@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,17 @@ import {
   Animated,
 } from 'react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
-import { useUserStore } from '@/store';
+import { decode } from 'base64-arraybuffer';
+import { useAuthStore, useUserStore, useFeedStore } from '@/store';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { supabase } from '@/lib/supabase';
+import { createPost, recordUpload } from '@/api';
 
-// Height of the peek strip at the bottom — shows the top of the next screen.
-// Must match PEEK_HEIGHT in VerticalNavigator.tsx.
+// Must match PEEK_HEIGHT in VerticalNavigator.tsx
 const PEEK_HEIGHT = 110;
 
 // ─── Streak Badge ─────────────────────────────────────────────────────────────
 // Plays a large-to-small spring animation every time the camera screen mounts.
-// The number starts at 4× its final rendered size and springs into position.
 
 function StreakBadge({ count }: { count: number }) {
   const scaleAnim   = useRef(new Animated.Value(4)).current;
@@ -26,13 +27,11 @@ function StreakBadge({ count }: { count: number }) {
 
   useEffect(() => {
     Animated.parallel([
-      // Fade in quickly so the large text doesn't pop
       Animated.timing(opacityAnim, {
         toValue: 1,
         duration: 180,
         useNativeDriver: true,
       }),
-      // Spring from 4× → 1× for the "arriving" zoom-in feel
       Animated.spring(scaleAnim, {
         toValue: 1,
         damping: 16,
@@ -64,16 +63,20 @@ export default function CameraScreen(): React.JSX.Element {
   const cameraRef = useRef<CameraView>(null);
   const { dark } = useAppTheme();
 
-  const streakCount = useUserStore((s) => s.profile?.streak_current ?? 0);
+  const [isCapturing, setIsCapturing] = useState(false);
 
-  // Request camera permission whenever it becomes requestable
+  const userId     = useAuthStore((s) => s.user?.id);
+  const profile    = useUserStore((s) => s.profile);
+  const setProfile = useUserStore((s) => s.setProfile);
+
+  const streakCount = profile?.streak_current ?? 0;
+
   useEffect(() => {
     if (cameraPermission && !cameraPermission.granted && cameraPermission.canAskAgain) {
       requestCameraPermission();
     }
   }, [cameraPermission?.status]);
 
-  // Request microphone permission whenever it becomes requestable
   useEffect(() => {
     if (micPermission && !micPermission.granted && micPermission.canAskAgain) {
       requestMicPermission();
@@ -81,8 +84,88 @@ export default function CameraScreen(): React.JSX.Element {
   }, [micPermission?.status]);
 
   const takePhoto = async () => {
-    if (!cameraRef.current) return;
-    await cameraRef.current.takePictureAsync({ quality: 0.8 });
+    if (!cameraRef.current || isCapturing || !userId || !profile) return;
+    setIsCapturing(true);
+
+    // 1. Capture — brief lock, just reads the frame
+    const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, base64: true });
+    setIsCapturing(false);  // release shutter immediately after capture
+    if (!photo?.uri || !photo.base64) return;
+
+    const tempId              = `pending_${Date.now()}`;
+    const optimisticStreakDay = profile.streak_current + 1;
+
+    // 2. Optimistic: increment streak badge immediately
+    setProfile({ ...profile, streak_current: optimisticStreakDay });
+
+    // 3. Optimistic: add post to feed with local URI (renders in FeedScreen instantly)
+    useFeedStore.getState().addPending({
+      id:         tempId,
+      isPending:  true,
+      user_id:    userId,
+      image_url:  photo.uri,
+      caption:    null,
+      streak_day: optimisticStreakDay,
+      created_at: new Date().toISOString(),
+      profiles: {
+        id:           userId,
+        username:     profile.username,
+        display_name: profile.display_name,
+        avatar_url:   profile.avatar_url,
+      },
+    });
+
+    // 4. Background upload — user can navigate away freely
+    try {
+      const buffer = decode(photo.base64);
+      const path   = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+
+      const { data: storageData, error: storageErr } = await supabase.storage
+        .from('posts')
+        .upload(path, buffer, { contentType: 'image/jpeg', upsert: false });
+      if (storageErr) throw new Error(storageErr.message);
+
+      const { data: urlData } = supabase.storage.from('posts').getPublicUrl(storageData.path);
+
+      const { data: postData, error: postErr } = await createPost(
+        userId,
+        urlData.publicUrl,
+        optimisticStreakDay,
+      );
+      if (postErr) throw postErr;
+
+      const { data: streakResult, error: streakErr } = await recordUpload(userId);
+      if (streakErr) throw streakErr;
+
+      // 5. Confirm: swap pending post → real confirmed post
+      if (postData) {
+        useFeedStore.getState().confirmPending(tempId, {
+          ...postData,
+          profiles: {
+            id:           userId,
+            username:     profile.username,
+            display_name: profile.display_name,
+            avatar_url:   profile.avatar_url,
+          },
+        } as import('@/api').FeedPost);
+      }
+
+      // 6. Sync streak with authoritative RPC values
+      if (streakResult) {
+        setProfile({
+          ...profile,
+          streak_current:          streakResult.streak_current,
+          streak_highest:          streakResult.streak_highest,
+          streak_lowest:           streakResult.streak_lowest,
+          streak_last_upload_date: new Date().toISOString().split('T')[0],
+        });
+      }
+    } catch (err) {
+      console.error('[takePhoto] background upload failed', err);
+      // Rollback: remove pending post + revert streak
+      useFeedStore.getState().removePending(tempId);
+      setProfile({ ...profile, streak_current: profile.streak_current });
+    }
   };
 
   // Still loading — OS hasn't returned permission status yet
@@ -93,12 +176,11 @@ export default function CameraScreen(): React.JSX.Element {
   const cameraGranted = cameraPermission.granted;
   const micGranted    = micPermission.granted;
 
-  // Shutter button colours adapt to light/dark mode so the button always
-  // contrasts against both the dark camera feed and the themed peek strip.
+  // Shutter button colours adapt to light/dark mode
   const shutterRing = dark ? '#FFFFFF' : '#1A1A17';
   const shutterFill = dark ? '#FFFFFF' : '#1A1A17';
 
-  // One or both permissions are missing
+  // One or both permissions missing
   if (!cameraGranted || !micGranted) {
     let message: string;
     if (!cameraGranted && !micGranted) {
@@ -131,16 +213,14 @@ export default function CameraScreen(): React.JSX.Element {
     );
   }
 
-  // Both granted — full camera experience
+  // Both permissions granted — full camera experience
   return (
     <View style={styles.root}>
-      {/* Camera fills the entire screen behind all other layers */}
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
 
-      {/* Streak badge — large-to-small spring animation on mount */}
       <StreakBadge count={streakCount} />
 
-      {/* Shutter button — floats above the peek strip */}
+      {/* Shutter button — floats above the peek strip, disabled while uploading */}
       <View style={styles.shutterFloat}>
         <TouchableOpacity
           style={[
@@ -148,9 +228,11 @@ export default function CameraScreen(): React.JSX.Element {
             {
               borderColor: shutterRing,
               shadowColor: dark ? '#000000' : '#1A1A17',
+              opacity: isCapturing ? 0.5 : 1,
             },
           ]}
           activeOpacity={0.82}
+          disabled={isCapturing}
           onPress={takePhoto}
         >
           <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
@@ -165,8 +247,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#111111',
   },
-
-  // Streak badge — absolute top-right, below the AppHeader
   streakBadge: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 108 : 80,
@@ -189,8 +269,6 @@ const styles = StyleSheet.create({
     marginTop: 3,
     lineHeight: 11,
   },
-
-  // Shutter button — absolute, floats above the peek strip
   shutterFloat: {
     position: 'absolute',
     bottom: PEEK_HEIGHT + 32,
@@ -198,8 +276,6 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
   },
-
-  // Shutter button — ring + inner circle (colours injected inline, mode-aware)
   shutterOuter: {
     width: 72,
     height: 72,
@@ -217,8 +293,6 @@ const styles = StyleSheet.create({
     height: 58,
     borderRadius: 29,
   },
-
-  // Permission denied state
   permissionCenter: {
     flex: 1,
     alignItems: 'center',

@@ -3,3 +3,6 @@ export { useUserStore } from './userStore';
 export { useSignUpStore } from './signUpStore';
 export { useThemeStore } from './themeStore';
 export type { ThemeMode } from './themeStore';
+export { useFeedStore } from './feedStore';
+export type { PendingPost } from './feedStore';
+export { useMessagesStore } from './messagesStore';
