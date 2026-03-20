@@ -125,7 +125,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
           }}
           activeOpacity={0.85}
         >
-          <Text style={[styles.pillText, { color: pillText }]}>↑  SOCIAL FEED</Text>
+          <Text style={[styles.pillText, { color: pillText }]}>SOCIAL FEED  ↑</Text>
         </TouchableOpacity>
       </View>
 
