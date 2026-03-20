@@ -9,7 +9,7 @@ export default function HomeScreen(): React.JSX.Element {
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <Text style={[styles.label, { color: text }]}>HOME</Text>
+      <Text style={[styles.label, { color: text }]}>PRO</Text>
     </View>
   );
 }

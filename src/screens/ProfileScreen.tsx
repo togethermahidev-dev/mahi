@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, Platform } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useUserStore } from '@/store';
+import { useAuthStore, useUserStore } from '@/store';
 import ThemeToggle from '@/components/ThemeToggle';
+import ProfileMediaMap from '@/components/ProfileMediaMap';
 
 export default function ProfileScreen(): React.JSX.Element {
   const { dark } = useAppTheme();
@@ -12,6 +13,7 @@ export default function ProfileScreen(): React.JSX.Element {
   const toggleColor = dark ? '#E8E8E3' : '#1A1A17';
 
   const profile = useUserStore((s) => s.profile);
+  const userId  = useAuthStore((s) => s.user?.id);
 
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
   const initials    = displayName[0]?.toUpperCase() ?? '?';
@@ -60,6 +62,12 @@ export default function ProfileScreen(): React.JSX.Element {
         </View>
       </View>
 
+      {/* Personal streak photo grid */}
+      {profile && userId ? (
+        <View style={[styles.mapShadow, { shadowColor: dark ? '#000' : '#1A1A17' }]}>
+          <ProfileMediaMap userId={profile.id} isSelf={userId === profile.id} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -68,7 +76,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingTop: Platform.OS === 'ios' ? 60 : 32,
   },
   headerRight: {
@@ -132,5 +140,10 @@ const styles = StyleSheet.create({
     width: 1,
     height: 40,
     opacity: 0.3,
+  },
+  mapShadow: {
+    flex: 1,
+    width: '100%',
+    marginTop: 96,
   },
 });

@@ -30,7 +30,7 @@ export default function FeedModal({ visible, onClose }: Props): React.JSX.Elemen
     >
       <SafeAreaView style={[styles.root, { backgroundColor: bg }]}>
         <View style={styles.header}>
-          <Text style={[styles.title, { color: text }]}>MY FEED</Text>
+          <Text style={[styles.title, { color: text }]}>SOCIAL FEED</Text>
           <TouchableOpacity
             onPress={onClose}
             style={[styles.closeCircle, { backgroundColor: btnBg }]}

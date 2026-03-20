@@ -33,3 +33,28 @@ export async function getProfile(userId: string) {
     .eq('id', userId)
     .single();
 }
+
+export type ProfileSearchResult = Pick<
+  Database['public']['Tables']['profiles']['Row'],
+  'id' | 'username' | 'display_name' | 'first_name' | 'last_name' | 'avatar_url' | 'streak_current'
+>;
+
+/** Search profiles by username, display name, or first/last name. */
+export async function searchProfiles(
+  query: string,
+  limit = 20,
+): Promise<{ data: ProfileSearchResult[] | null; error: Error | null }> {
+  const q = query.trim();
+  if (!q) return { data: [], error: null };
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, display_name, first_name, last_name, avatar_url, streak_current')
+    .or(
+      `username.ilike.%${q}%,display_name.ilike.%${q}%,first_name.ilike.%${q}%,last_name.ilike.%${q}%`,
+    )
+    .limit(limit);
+
+  if (error) return { data: null, error: new Error(error.message) };
+  return { data: data as ProfileSearchResult[], error: null };
+}

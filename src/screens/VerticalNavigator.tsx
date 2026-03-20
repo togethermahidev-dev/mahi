@@ -12,7 +12,7 @@ import NavigationDots from '@/components/NavigationDots';
 import AppHeader from '@/components/AppHeader';
 import {
   CameraIcon,
-  HomeIcon,
+  ProIcon,
   SearchIcon,
 } from '@/components/ScreenIcons';
 import CameraScreen from '@/screens/CameraScreen';
@@ -36,7 +36,7 @@ const SWIPE_VY = 0.4; // min release velocity to trigger navigation
 // Profile is not in the vertical tape — it lives in the horizontal layer.
 const SCREENS = [
   { key: 'camera',   Component: CameraScreen,   Icon: CameraIcon },
-  { key: 'home',     Component: HomeScreen,     Icon: HomeIcon },
+  { key: 'pro',      Component: HomeScreen,     Icon: ProIcon },
   { key: 'search',   Component: SearchScreen,   Icon: SearchIcon },
 ] as const;
 

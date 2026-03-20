@@ -13,7 +13,7 @@ import * as Haptics from 'expo-haptics';
 import VerticalNavigator from '@/screens/VerticalNavigator';
 import ProfileScreen from '@/screens/ProfileScreen';
 import MessagesScreen from '@/screens/MessagesScreen';
-import ProfileMediaMapModal from '@/components/ProfileMediaMapModal';
+import FeedModal from '@/components/FeedModal';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
@@ -125,12 +125,12 @@ export default function HorizontalNavigator(): React.JSX.Element {
           }}
           activeOpacity={0.85}
         >
-          <Text style={[styles.pillText, { color: pillText }]}>MY FEED</Text>
+          <Text style={[styles.pillText, { color: pillText }]}>↑  SOCIAL FEED</Text>
         </TouchableOpacity>
       </View>
 
       {/* Feed modal — slides up from bottom, isolated from PanResponder tree */}
-      <ProfileMediaMapModal visible={feedOpen} onClose={() => setFeedOpen(false)} />
+      <FeedModal visible={feedOpen} onClose={() => setFeedOpen(false)} />
     </View>
   );
 }
