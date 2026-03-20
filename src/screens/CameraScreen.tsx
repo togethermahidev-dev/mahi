@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { decode } from 'base64-arraybuffer';
-import { useAuthStore, useUserStore, useFeedStore } from '@/store';
+import { useAuthStore, useUserStore, useFeedStore, useProfilePostsStore } from '@/store';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { supabase } from '@/lib/supabase';
 import { createPost, recordUpload } from '@/api';
@@ -148,6 +148,9 @@ export default function CameraScreen(): React.JSX.Element {
             avatar_url:   profile.avatar_url,
           },
         } as import('@/api').FeedPost);
+
+        // Live update: prepend to profile media canvas without a refetch
+        useProfilePostsStore.getState().addPost(postData);
       }
 
       // 6. Sync streak with authoritative RPC values

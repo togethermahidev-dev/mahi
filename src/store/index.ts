@@ -6,3 +6,4 @@ export type { ThemeMode } from './themeStore';
 export { useFeedStore } from './feedStore';
 export type { PendingPost } from './feedStore';
 export { useMessagesStore } from './messagesStore';
+export { useProfilePostsStore } from './profilePostsStore';

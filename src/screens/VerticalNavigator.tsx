@@ -12,12 +12,10 @@ import NavigationDots from '@/components/NavigationDots';
 import AppHeader from '@/components/AppHeader';
 import {
   CameraIcon,
-  FeedIcon,
   HomeIcon,
   SearchIcon,
 } from '@/components/ScreenIcons';
 import CameraScreen from '@/screens/CameraScreen';
-import FeedScreen from '@/screens/FeedScreen';
 import HomeScreen from '@/screens/HomeScreen';
 import SearchScreen from '@/screens/SearchScreen';
 
@@ -38,7 +36,6 @@ const SWIPE_VY = 0.4; // min release velocity to trigger navigation
 // Profile is not in the vertical tape — it lives in the horizontal layer.
 const SCREENS = [
   { key: 'camera',   Component: CameraScreen,   Icon: CameraIcon },
-  { key: 'feed',     Component: FeedScreen,     Icon: FeedIcon },
   { key: 'home',     Component: HomeScreen,     Icon: HomeIcon },
   { key: 'search',   Component: SearchScreen,   Icon: SearchIcon },
 ] as const;
@@ -47,8 +44,8 @@ const SCREEN_ICONS = SCREENS.map((s) => s.Icon);
 
 // Background colours per screen in each theme mode. Used for off-screen
 // placeholder views so the peek strip colour is always correct.
-const SCREEN_BG_DARK  = ['#111111', '#1C1C19', '#1C1C19', '#1C1C19'] as const;
-const SCREEN_BG_LIGHT = ['#111111', '#FFFFFF',  '#FFFFFF',  '#FFFFFF'] as const;
+const SCREEN_BG_DARK  = ['#111111', '#1C1C19', '#1C1C19'] as const;
+const SCREEN_BG_LIGHT = ['#111111', '#FFFFFF',  '#FFFFFF'] as const;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 

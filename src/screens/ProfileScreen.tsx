@@ -23,39 +23,43 @@ export default function ProfileScreen(): React.JSX.Element {
         <ThemeToggle color={toggleColor} size={22} />
       </View>
 
-      {/* Avatar */}
-      <View style={styles.avatarWrap}>
-        {profile?.avatar_url ? (
-          <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: muted }]}>
-            <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
+      {/* Profile header — avatar, name, stats */}
+      <View style={styles.header}>
+        {/* Avatar */}
+        <View style={styles.avatarWrap}>
+          {profile?.avatar_url ? (
+            <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: muted }]}>
+              <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Name + handle */}
+        <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
+        {profile?.username ? (
+          <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
+        ) : null}
+
+        {/* Streak stats */}
+        <View style={styles.statsRow}>
+          <View style={styles.stat}>
+            <Text style={[styles.statValue, { color: text }]}>
+              {profile?.streak_current ?? 0}
+            </Text>
+            <Text style={[styles.statLabel, { color: muted }]}>STREAK</Text>
           </View>
-        )}
-      </View>
-
-      {/* Name + handle */}
-      <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
-      {profile?.username ? (
-        <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
-      ) : null}
-
-      {/* Streak stats */}
-      <View style={styles.statsRow}>
-        <View style={styles.stat}>
-          <Text style={[styles.statValue, { color: text }]}>
-            {profile?.streak_current ?? 0}
-          </Text>
-          <Text style={[styles.statLabel, { color: muted }]}>STREAK</Text>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: muted }]} />
-        <View style={styles.stat}>
-          <Text style={[styles.statValue, { color: text }]}>
-            {profile?.streak_highest ?? 0}
-          </Text>
-          <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
+          <View style={[styles.statDivider, { backgroundColor: muted }]} />
+          <View style={styles.stat}>
+            <Text style={[styles.statValue, { color: text }]}>
+              {profile?.streak_highest ?? 0}
+            </Text>
+            <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
+          </View>
         </View>
       </View>
+
     </View>
   );
 }
@@ -65,12 +69,17 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingTop: Platform.OS === 'ios' ? 60 : 32,
   },
   headerRight: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 60 : 32,
     right: 24,
+  },
+  header: {
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    width: '100%',
   },
   avatarWrap: {
     marginBottom: 20,

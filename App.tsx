@@ -20,7 +20,8 @@ import WelcomeScreen from '@/screens/WelcomeScreen';
 import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
 import HorizontalNavigator from '@/screens/HorizontalNavigator';
 import { supabase } from '@/lib/supabase';
-import { useAuthStore, useUserStore, useFeedStore, useMessagesStore } from '@/store';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useProfilePostsStore } from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { getProfile } from '@/api';
@@ -83,6 +84,7 @@ export default function App(): React.JSX.Element {
         useUserStore.getState().reset();
         useFeedStore.getState().reset();
         useMessagesStore.getState().reset();
+        useProfilePostsStore.getState().reset();
         Sentry.setUser(null);
         posthog.reset();
       }
@@ -100,40 +102,44 @@ export default function App(): React.JSX.Element {
     SplashScreen.hideAsync().then(() => setSplashDone(true));
   }, []);
 
+  let content: React.JSX.Element;
+
   // Keep the custom splash on screen while fonts load or session is restoring
   if (!splashDone || !fontsLoaded || isLoading) {
-    return (
+    content = (
       <>
         <SplashScreenComponent onLayout={onSplashLayout} />
         <StatusBar style="light" />
       </>
     );
-  }
-
-  if (session && !showCamera) {
-    return (
+  } else if (session && !showCamera) {
+    content = (
       <>
         <InAppAnimationScreen onComplete={() => setShowCamera(true)} />
         <StatusBar style="light" />
       </>
     );
-  }
-
-  if (session && showCamera) {
-    return (
+  } else if (session && showCamera) {
+    content = (
       <>
         <HorizontalNavigator />
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       </>
     );
+  } else {
+    content = (
+      <>
+        {/* onAuthComplete is a no-op — onAuthStateChange above drives the
+            screen transition. The prop exists for WelcomeScreen's exit animation. */}
+        <WelcomeScreen onAuthComplete={() => {}} />
+        <StatusBar style="auto" />
+      </>
+    );
   }
 
   return (
-    <>
-      {/* onAuthComplete is a no-op — onAuthStateChange above drives the
-          screen transition. The prop exists for WelcomeScreen's exit animation. */}
-      <WelcomeScreen onAuthComplete={() => {}} />
-      <StatusBar style="auto" />
-    </>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      {content}
+    </GestureHandlerRootView>
   );
 }

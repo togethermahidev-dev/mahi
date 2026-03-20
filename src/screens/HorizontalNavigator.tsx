@@ -3,13 +3,18 @@ import {
   Animated,
   Dimensions,
   PanResponder,
+  Platform,
   StyleSheet,
+  Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import VerticalNavigator from '@/screens/VerticalNavigator';
 import ProfileScreen from '@/screens/ProfileScreen';
 import MessagesScreen from '@/screens/MessagesScreen';
+import ProfileMediaMapModal from '@/components/ProfileMediaMapModal';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -26,7 +31,11 @@ const DEFAULT_INDEX = 1; // VerticalNavigator is the entry panel
 // ─── HorizontalNavigator ──────────────────────────────────────────────────────
 
 export default function HorizontalNavigator(): React.JSX.Element {
-  const [hIndex, setHIndex] = useState(DEFAULT_INDEX);
+  const [hIndex, setHIndex]     = useState(DEFAULT_INDEX);
+  const [feedOpen, setFeedOpen] = useState(false);
+  const { dark } = useAppTheme();
+  const pillBg   = dark ? '#1A1A17' : '#E8E8E3';
+  const pillText = dark ? '#E8E8E3' : '#1A1A17';
   const hIndexRef    = useRef(DEFAULT_INDEX);
   const hBaseRef     = useRef(0);
   const hTapeAnim    = useRef(
@@ -105,6 +114,23 @@ export default function HorizontalNavigator(): React.JSX.Element {
           <MessagesScreen />
         </View>
       </Animated.View>
+
+      {/* Floating MY FEED pill — sits above all panels, passes touches through wrapper */}
+      <View style={styles.pillWrapper} pointerEvents="box-none">
+        <TouchableOpacity
+          style={[styles.pill, { backgroundColor: pillBg }]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setFeedOpen(true);
+          }}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.pillText, { color: pillText }]}>MY FEED</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Feed modal — slides up from bottom, isolated from PanResponder tree */}
+      <ProfileMediaMapModal visible={feedOpen} onClose={() => setFeedOpen(false)} />
     </View>
   );
 }
@@ -122,5 +148,28 @@ const styles = StyleSheet.create({
   panel: {
     width: SCREEN_WIDTH,
     flex: 1,
+  },
+  pillWrapper: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 52 : 32,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 250,
+  },
+  pill: {
+    borderRadius: 50,
+    paddingVertical: 13,
+    paddingHorizontal: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  pillText: {
+    fontFamily: 'JosefinSans_600SemiBold',
+    fontSize: 13,
+    letterSpacing: 3,
   },
 });

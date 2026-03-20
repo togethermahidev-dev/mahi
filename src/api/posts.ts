@@ -55,6 +55,36 @@ export async function getFeedPosts(
   return { data: data as unknown as FeedPost[], error: null };
 }
 
+export type ProfilePostCursor = { ts: string; id: string };
+
+/**
+ * Fetch a page of posts for a specific user, newest first.
+ * Used by the profile media canvas — no profiles join needed.
+ */
+export async function getUserPosts(
+  userId: string,
+  limit = 30,
+  cursor?: ProfilePostCursor,
+): Promise<{ data: PostRow[] | null; error: Error | null }> {
+  let query = supabase
+    .from('posts')
+    .select('id, user_id, image_url, streak_day, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(limit);
+
+  if (cursor) {
+    query = query.or(
+      `created_at.lt.${cursor.ts},and(created_at.eq.${cursor.ts},id.lt.${cursor.id})`,
+    );
+  }
+
+  const { data, error } = await query;
+  if (error) return { data: null, error: new Error(error.message) };
+  return { data, error: null };
+}
+
 /**
  * Insert a new post record after a successful camera upload.
  */
