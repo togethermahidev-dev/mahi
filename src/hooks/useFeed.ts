@@ -5,6 +5,7 @@ import type { FeedPost } from '@/api';
 export interface UseFeedResult {
   posts:     FeedPost[];
   isLoading: boolean;
+  error:     Error | null;
   hasMore:   boolean;
   loadMore:  () => void;
   refresh:   () => void;
@@ -15,6 +16,7 @@ export function useFeed(): UseFeedResult {
   const pending   = useFeedStore((s) => s.pending);
   const hasMore   = useFeedStore((s) => s.hasMore);
   const isSyncing = useFeedStore((s) => s.isSyncing);
+  const error     = useFeedStore((s) => s.error);
 
   // Sync on first mount only if store is empty (App.tsx may have pre-populated it)
   useEffect(() => {
@@ -33,6 +35,7 @@ export function useFeed(): UseFeedResult {
     posts:    allPosts,
     // Only show loading state on a truly empty store — never after first hydration
     isLoading: isSyncing && allPosts.length === 0,
+    error,
     hasMore,
     loadMore: useFeedStore.getState().loadMore,
     refresh:  () => useFeedStore.getState().sync(true),

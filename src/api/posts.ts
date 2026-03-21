@@ -82,7 +82,7 @@ export async function getUserPosts(
 
   const { data, error } = await query;
   if (error) return { data: null, error: new Error(error.message) };
-  return { data, error: null };
+  return { data: data as unknown as PostRow[], error: null };
 }
 
 /**

@@ -11,6 +11,7 @@ interface FeedState {
   cursor:    FeedCursor | undefined;
   hasMore:   boolean;
   isSyncing: boolean;
+  error:     Error | null;
 
   sync:           (force?: boolean) => Promise<void>;
   loadMore:       () => Promise<void>;
@@ -26,12 +27,13 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   cursor:    undefined,
   hasMore:   true,
   isSyncing: false,
+  error:     null,
 
   sync: async (force = false) => {
     const { isSyncing, posts } = get();
     if (isSyncing) return;
     if (!force && posts.length > 0) return;  // already populated, skip
-    set({ isSyncing: true });
+    set({ isSyncing: true, error: null });
 
     const { data, error } = await getFeedPosts(PAGE_SIZE);
     if (!error && data) {
@@ -39,6 +41,8 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         ? { ts: data[data.length - 1].created_at, id: data[data.length - 1].id }
         : undefined;
       set({ posts: data, cursor, hasMore: data.length === PAGE_SIZE });
+    } else if (error) {
+      set({ error });
     }
     set({ isSyncing: false });
   },
@@ -46,7 +50,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   loadMore: async () => {
     const { isSyncing, hasMore, cursor, posts } = get();
     if (isSyncing || !hasMore) return;
-    set({ isSyncing: true });
+    set({ isSyncing: true, error: null });
 
     const { data, error } = await getFeedPosts(PAGE_SIZE, cursor);
     if (!error && data) {
@@ -58,6 +62,8 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         cursor:  newCursor,
         hasMore: data.length === PAGE_SIZE,
       });
+    } else if (error) {
+      set({ error });
     }
     set({ isSyncing: false });
   },
@@ -75,5 +81,5 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     set((state) => ({ pending: state.pending.filter((p) => p.id !== tempId) })),
 
   reset: () =>
-    set({ posts: [], pending: [], cursor: undefined, hasMore: true, isSyncing: false }),
+    set({ posts: [], pending: [], cursor: undefined, hasMore: true, isSyncing: false, error: null }),
 }));
