@@ -61,7 +61,10 @@ export default function InAppAnimationScreen({ onComplete }: Props): React.JSX.E
         ]}
       >
         <View style={styles.titles}>
-          <Text style={[styles.title, { color: sheetText }]}>MAHI</Text>
+          <View style={styles.titleWrapper}>
+            <Text style={[styles.title, styles.titleEcho]}>MAHI</Text>
+            <Text style={[styles.title, { color: sheetText }]}>MAHI</Text>
+          </View>
           <Text style={[styles.subtitle, { color: sheetText }]}>
             The fitness accountability app
           </Text>
@@ -94,11 +97,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   titles: { alignItems: 'center' },
+  titleWrapper: { position: 'relative', marginBottom: 12 },
+  titleEcho: { position: 'absolute', color: '#59c2d7', top: 4, left: 4 },
   title: {
     fontSize: 56,
     fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 10,
-    marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,

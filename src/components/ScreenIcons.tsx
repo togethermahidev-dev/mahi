@@ -1,5 +1,5 @@
 import React from 'react';
-import Svg, { Path, Circle, Line } from 'react-native-svg';
+import Svg, { Path, Circle, Line, G } from 'react-native-svg';
 
 export interface IconProps {
   size: number;
@@ -94,10 +94,16 @@ export function ProfileIcon({ size, color }: IconProps) {
 }
 
 export function MessagesIcon({ size, color }: IconProps) {
+  const bubble = "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z";
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Blue echo — offset behind, same treatment as the MAHI logo */}
+      <G transform="translate(2, 2)">
+        <Path d={bubble} fill="#59c2d7" />
+      </G>
+      {/* Main bubble — front layer, adapts to theme */}
       <Path
-        d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+        d={bubble}
         stroke={color}
         strokeWidth={1.8}
         strokeLinejoin="round"

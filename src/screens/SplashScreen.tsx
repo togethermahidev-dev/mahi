@@ -22,7 +22,10 @@ export default function SplashScreen({ onLayout }: Props): React.JSX.Element {
 
   return (
     <View style={[styles.container, { backgroundColor }]} onLayout={onLayout}>
-      <Text style={styles.title}>MAHI</Text>
+      <View style={styles.titleWrapper}>
+        <Text style={[styles.title, styles.titleEcho]}>MAHI</Text>
+        <Text style={styles.title}>MAHI</Text>
+      </View>
       <Text style={styles.version}>{VERSION_STRING}</Text>
     </View>
   );
@@ -30,6 +33,8 @@ export default function SplashScreen({ onLayout }: Props): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  titleWrapper: { position: 'relative' },
+  titleEcho: { position: 'absolute', color: '#59c2d7', top: 3, left: 3 },
   title: { color: TEXT_COLOR, fontSize: 48, fontWeight: '700', letterSpacing: 8 },
   version: { color: TEXT_COLOR, fontSize: 11, position: 'absolute', bottom: 40 },
 });

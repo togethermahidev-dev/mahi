@@ -40,8 +40,13 @@ export default function AppHeader({
           <ProfileIcon size={16} color={pillIcon} />
         </TouchableOpacity>
 
-        {/* MAHI branding — centered */}
-        <Text style={[styles.title, { color: fg }]}>MAHI</Text>
+        {/* MAHI branding — centered, with offset colour echo behind */}
+        <View style={styles.titleWrapper}>
+          {/* Back layer: accent colour, offset slightly */}
+          <Text style={[styles.title, styles.titleEcho]}>MAHI</Text>
+          {/* Front layer: main colour */}
+          <Text style={[styles.title, { color: fg }]}>MAHI</Text>
+        </View>
 
         {/* Messages icon — navigates to Messages screen (horizontal right) */}
         <TouchableOpacity
@@ -81,10 +86,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
   },
+  titleWrapper: {
+    // sized to the text so the absolute echo doesn't affect layout
+    position: 'relative',
+  },
   title: {
     fontSize: 24,
     fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 8,
+  },
+  titleEcho: {
+    // accent colour echo — adjust top/left to taste
+    position: 'absolute',
+    color: '#59c2d7',
+    top: 3,
+    left: 3,
   },
   messagesButton: {
     position: 'absolute',

@@ -38,7 +38,10 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
     <View style={styles.root}>
       <Animated.View style={[styles.topSheet, { backgroundColor: sheetBg, transform: [{ translateY: topY }] }]}>
         <View style={styles.titles}>
-          <Text style={[styles.title, { color: sheetText }]}>MAHI</Text>
+          <View style={styles.titleWrapper}>
+            <Text style={[styles.title, styles.titleEcho]}>MAHI</Text>
+            <Text style={[styles.title, { color: sheetText }]}>MAHI</Text>
+          </View>
           <Text style={[styles.subtitle, { color: sheetText }]}>The fitness accountability app</Text>
         </View>
         <TouchableOpacity
@@ -102,7 +105,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   titles: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 56, fontFamily: 'JosefinSans_700Bold', letterSpacing: 10, marginBottom: 12 },
+  titleWrapper: { position: 'relative', marginBottom: 12 },
+  title: { fontSize: 56, fontFamily: 'JosefinSans_700Bold', letterSpacing: 10 },
+  titleEcho: { position: 'absolute', color: '#59c2d7', top: 4, left: 4 },
   subtitle: { fontSize: 16, fontFamily: 'JosefinSans_400Regular_Italic', opacity: 0.7 },
   gap: { height: 55 },
   bottomSheet: {
