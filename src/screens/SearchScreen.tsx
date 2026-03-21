@@ -82,71 +82,45 @@ export default function SearchScreen(): React.JSX.Element {
     }, 350);
   }, []);
 
-  const hasContent = loading || searched;
-
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-
-      {hasContent ? (
-        /* Active state — bar at top, results below */
-        <>
-          <View style={styles.barTop}>
-            <View style={[styles.pill, { backgroundColor: inputBg }]}>
-              <Text style={[styles.magnify, { color: muted }]}>⌕</Text>
-              <TextInput
-                style={[styles.input, { color: text }]}
-                placeholder="Search users, workouts..."
-                placeholderTextColor={muted}
-                value={query}
-                onChangeText={handleChange}
-                autoCorrect={false}
-                autoCapitalize="none"
-                returnKeyType="search"
-                clearButtonMode="while-editing"
-              />
-            </View>
-          </View>
-
-          {loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator color={muted} />
-            </View>
-          ) : results.length === 0 ? (
-            <View style={styles.centered}>
-              <Text style={[styles.emptyText, { color: muted }]}>No results for "{query}"</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={results}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <UserRow item={item} dark={dark} />}
-              ItemSeparatorComponent={() => (
-                <View style={[styles.separator, { backgroundColor: border }]} />
-              )}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.list}
-            />
-          )}
-        </>
-      ) : (
-        /* Idle state — pill dead centre */
-        <View style={styles.idleCenter}>
-          <View style={[styles.pill, { backgroundColor: inputBg }]}>
-            <Text style={[styles.magnify, { color: muted }]}>⌕</Text>
-            <TextInput
-              style={[styles.input, { color: text }]}
-              placeholder="Search users, workouts..."
-              placeholderTextColor={muted}
-              value={query}
-              onChangeText={handleChange}
-              autoCorrect={false}
-              autoCapitalize="none"
-              returnKeyType="search"
-              clearButtonMode="while-editing"
-            />
-          </View>
+      <View style={styles.barTop}>
+        <View style={[styles.pill, { backgroundColor: inputBg }]}>
+          <Text style={[styles.magnify, { color: muted }]}>⌕</Text>
+          <TextInput
+            style={[styles.input, { color: text }]}
+            placeholder="Search users, workouts..."
+            placeholderTextColor={muted}
+            value={query}
+            onChangeText={handleChange}
+            autoCorrect={false}
+            autoCapitalize="none"
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
         </View>
+      </View>
+
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator color={muted} />
+        </View>
+      ) : searched && results.length === 0 ? (
+        <View style={styles.centered}>
+          <Text style={[styles.emptyText, { color: muted }]}>No results for "{query}"</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={results}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <UserRow item={item} dark={dark} />}
+          ItemSeparatorComponent={() => (
+            <View style={[styles.separator, { backgroundColor: border }]} />
+          )}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.list}
+        />
       )}
     </View>
   );
@@ -157,12 +131,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
   },
-  idleCenter: {
-    flex: 1,
-    justifyContent: 'center',
-  },
   barTop: {
-    paddingTop: Platform.OS === 'ios' ? 72 : 48,
+    paddingTop: Platform.OS === 'ios' ? 120 : 80,
     paddingBottom: 16,
   },
   pill: {
