@@ -14,7 +14,6 @@ import VerticalNavigator from '@/screens/VerticalNavigator';
 import ProfileScreen from '@/screens/ProfileScreen';
 import MessagesScreen from '@/screens/MessagesScreen';
 import FeedModal from '@/components/FeedModal';
-import { useAppTheme } from '@/hooks/useAppTheme';
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -33,9 +32,9 @@ const DEFAULT_INDEX = 1; // VerticalNavigator is the entry panel
 export default function HorizontalNavigator(): React.JSX.Element {
   const [hIndex, setHIndex]     = useState(DEFAULT_INDEX);
   const [feedOpen, setFeedOpen] = useState(false);
-  const { dark } = useAppTheme();
-  const pillBg   = dark ? '#1A1A17' : '#E8E8E3';
-  const pillText = dark ? '#E8E8E3' : '#1A1A17';
+  // Off-white pill is visible on both light and dark backgrounds
+  const pillBg   = '#E8E8E3';
+  const pillText = '#1A1A17';
   const hIndexRef    = useRef(DEFAULT_INDEX);
   const hBaseRef     = useRef(0);
   const hTapeAnim    = useRef(

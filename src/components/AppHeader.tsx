@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { ProfileIcon, MessagesIcon } from '@/components/ScreenIcons';
 
 interface AppHeaderProps {
@@ -21,9 +22,12 @@ export default function AppHeader({
   onProfilePress,
   onMessagesPress,
 }: AppHeaderProps): React.JSX.Element {
-  const fg        = isDark ? '#FFFFFF' : '#1A1A17';         // foreground: text + icons
-  const pillBg    = isDark ? '#FFFFFF' : '#1A1A17';         // filled pill background
-  const pillIcon  = isDark ? '#1A1A17' : '#FFFFFF';         // icon inside filled pill
+  const { dark: systemDark } = useAppTheme();
+  // isDark = camera screen (always dark bg); systemDark = OS-level dark mode
+  const onDark   = isDark || systemDark;
+  const mahiColor = onDark ? '#FFFFFF' : '#1A1A17';
+  const pillBg    = isDark ? '#FFFFFF' : (systemDark ? '#E8E8E3' : '#1A1A17');
+  const pillIcon  = isDark ? '#1A1A17' : (systemDark ? '#1A1A17' : '#FFFFFF');
 
   return (
     // pointerEvents="box-none" lets touches pass through the transparent header
@@ -45,7 +49,7 @@ export default function AppHeader({
           {/* Back layer: accent colour, offset slightly */}
           <Text style={[styles.title, styles.titleEcho]}>MAHI</Text>
           {/* Front layer: main colour */}
-          <Text style={[styles.title, { color: fg }]}>MAHI</Text>
+          <Text style={[styles.title, { color: mahiColor }]}>MAHI</Text>
         </View>
 
         {/* Messages pill — navigates to Messages screen (horizontal right) */}
