@@ -48,13 +48,13 @@ export default function AppHeader({
           <Text style={[styles.title, { color: fg }]}>MAHI</Text>
         </View>
 
-        {/* Messages icon — navigates to Messages screen (horizontal right) */}
+        {/* Messages pill — navigates to Messages screen (horizontal right) */}
         <TouchableOpacity
-          style={styles.messagesButton}
+          style={styles.messagesPill}
           onPress={onMessagesPress}
           activeOpacity={0.75}
         >
-          <MessagesIcon size={22} color={fg} />
+          <MessagesIcon size={16} color={pillIcon} />
         </TouchableOpacity>
       </View>
     </View>
@@ -102,9 +102,14 @@ const styles = StyleSheet.create({
     top: 3,
     left: 3,
   },
-  messagesButton: {
+  messagesPill: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#59c2d7',
+    alignItems: 'center',
+    justifyContent: 'center',
     position: 'absolute',
     right: 0,
-    padding: 4,
   },
 });
