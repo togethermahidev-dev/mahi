@@ -1,18 +1,31 @@
 // app.config.js
 /** @type {import('expo/config').ExpoConfig} */
 const config = {
-  name: 'mahi-fitness',
-  slug: 'mahi-fitness',
+  name: 'Mahi',
+  slug: 'mahi',
+  owner: 'togethermahis-organization',
   version: '0.1.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   extra: {
-    buildNumber: '1',
+    buildNumber: '2',
+    eas: {
+      projectId: 'e05bad51-f352-464e-b344-78d7d60b5ce4',
+    },
   },
   plugins: [
+    'expo-dev-client',
+    'expo-updates',
     'expo-font',
+    [
+      'expo-image-picker',
+      {
+        photosPermission: 'Mahi uses your photo library to let you share workout photos.',
+        cameraPermission: false,
+      },
+    ],
     [
       'expo-camera',
       {
@@ -44,7 +57,18 @@ const config = {
   ],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.mahifitness.app',
+    bundleIdentifier: 'com.mahi.app',
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+    },
+  },
+  updates: {
+    url: 'https://u.expo.dev/e05bad51-f352-464e-b344-78d7d60b5ce4',
+    checkAutomatically: 'ON_LOAD',
+    fallbackToCacheTimeout: 0,
+  },
+  runtimeVersion: {
+    policy: 'appVersion',
   },
   android: {
     adaptiveIcon: {
