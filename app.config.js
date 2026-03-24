@@ -10,7 +10,7 @@ const config = {
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   extra: {
-    buildNumber: '2',
+    buildNumber: '3',
     eas: {
       projectId: 'e05bad51-f352-464e-b344-78d7d60b5ce4',
     },
@@ -60,6 +60,9 @@ const config = {
     bundleIdentifier: 'com.mahi.app',
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
+      NSCameraUsageDescription: 'Mahi uses the camera to power your fitness accountability features.',
+      NSMicrophoneUsageDescription: 'Mahi uses the microphone to record your workout sessions.',
+      NSPhotoLibraryUsageDescription: 'Mahi uses your photo library to let you share workout photos.',
     },
   },
   updates: {
