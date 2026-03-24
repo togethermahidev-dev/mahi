@@ -19,6 +19,7 @@ const config = {
     'expo-dev-client',
     'expo-updates',
     'expo-font',
+    '@react-native-community/datetimepicker',
     [
       'expo-image-picker',
       {
