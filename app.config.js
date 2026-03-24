@@ -23,7 +23,6 @@ const config = {
       'expo-image-picker',
       {
         photosPermission: 'Mahi uses your photo library to let you share workout photos.',
-        cameraPermission: false,
       },
     ],
     [
@@ -69,7 +68,7 @@ const config = {
   updates: {
     url: 'https://u.expo.dev/e05bad51-f352-464e-b344-78d7d60b5ce4',
     checkAutomatically: 'ON_LOAD',
-    fallbackToCacheTimeout: 0,
+    fallbackToCacheTimeout: 30000,
   },
   runtimeVersion: {
     policy: 'appVersion',
