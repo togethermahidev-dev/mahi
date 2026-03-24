@@ -9,9 +9,6 @@ const MAX_ATTEMPTS = 3;
 const BYPASS_EMAIL = 'appreview@togethermahi.com';
 const BYPASS_CODE = '123456';
 
-// TODO: remove before production — dev bypass for local testing
-const DEV_BYPASS_EMAIL = 'togethermahidev@gmail.com';
-const DEV_BYPASS_CODE = '123456';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 
@@ -36,7 +33,6 @@ export async function sendOTP(email: string): Promise<void> {
 
   await AsyncStorage.setItem(OTP_KEY, JSON.stringify(state));
 
-  console.log('[OTP] Calling send-otp Edge Function — email:', email.toLowerCase());
   const res = await fetch(`${SUPABASE_URL}/functions/v1/send-otp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -46,10 +42,8 @@ export async function sendOTP(email: string): Promise<void> {
   if (!res.ok) {
     await AsyncStorage.removeItem(OTP_KEY);
     const err = await res.json().catch(() => ({}));
-    console.log('[OTP] send-otp failed — status:', res.status, 'error:', err.error);
     throw new Error(err.error ?? 'Failed to send verification email.');
   }
-  console.log('[OTP] send-otp success — email:', email.toLowerCase());
 }
 
 export async function verifyOTP(
@@ -64,12 +58,6 @@ export async function verifyOTP(
 
   // App Store review bypass
   if (state.email === BYPASS_EMAIL && inputCode === BYPASS_CODE) {
-    await AsyncStorage.removeItem(OTP_KEY);
-    return { success: true };
-  }
-
-  // TODO: remove before production — dev bypass for local testing
-  if (state.email === DEV_BYPASS_EMAIL && inputCode === DEV_BYPASS_CODE) {
     await AsyncStorage.removeItem(OTP_KEY);
     return { success: true };
   }
@@ -95,7 +83,6 @@ export async function verifyOTP(
     };
   }
 
-  console.log('[OTP] Verified successfully — email:', state.email);
   await AsyncStorage.removeItem(OTP_KEY);
   return { success: true };
 }

@@ -99,7 +99,6 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
       3: 'Getting Started (personal details)',
       4: 'Your Profile (fitness)',
     };
-    console.log(`[SignUp] Step ${step} — ${names[step]}`);
   }, [step]);
 
   // ── Countdown timer (resets each time we enter step 2) ────────────────────

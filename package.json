@@ -48,7 +48,8 @@
   "expo": {
     "install": {
       "exclude": [
-        "@sentry/react-native"
+        "@sentry/react-native",
+        "react-native-keyboard-controller"
       ]
     }
   }
