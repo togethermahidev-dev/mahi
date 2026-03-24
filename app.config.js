@@ -8,7 +8,6 @@ const config = {
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
-  newArchEnabled: true,
   extra: {
     buildNumber: '4',
     eas: {
@@ -70,9 +69,10 @@ const config = {
     url: 'https://u.expo.dev/e05bad51-f352-464e-b344-78d7d60b5ce4',
     checkAutomatically: 'ON_LOAD',
     fallbackToCacheTimeout: 30000,
+    enableBsdiffPatchSupport: true,
   },
   runtimeVersion: {
-    policy: 'appVersion',
+    policy: 'fingerprint',
   },
   android: {
     adaptiveIcon: {
