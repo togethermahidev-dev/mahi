@@ -7,11 +7,17 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "channel": "testflight"
+      "channel": "development",
+      "ios": {
+        "resourceClass": "m-medium"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "ios": {
+        "resourceClass": "m-medium"
+      }
     },
     "production": {
       "channel": "production",
@@ -22,6 +28,10 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleTeamId": "733RLXDJNY"
+      }
+    }
   }
 }

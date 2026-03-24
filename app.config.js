@@ -8,8 +8,8 @@ const config = {
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
+  scheme: 'mahi',
   extra: {
-    buildNumber: '4',
     eas: {
       projectId: 'e05bad51-f352-464e-b344-78d7d60b5ce4',
     },
@@ -57,6 +57,7 @@ const config = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.mahi.app',
+    buildNumber: '4',
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription: 'Mahi uses the camera to power your fitness accountability features.',
