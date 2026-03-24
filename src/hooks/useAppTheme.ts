@@ -26,7 +26,9 @@ export interface AppTheme {
  */
 export function useAppTheme(): AppTheme {
   const mode         = useThemeStore((s) => s.mode);
-  const systemScheme = useColorScheme() ?? 'light';
+  const rawScheme    = useColorScheme();
+  const systemScheme: EffectiveColorScheme =
+    rawScheme === 'dark' ? 'dark' : 'light';
 
   const colorScheme: EffectiveColorScheme =
     mode === 'system' ? systemScheme : mode;
