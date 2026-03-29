@@ -2,13 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   TouchableOpacity,
   Linking,
   Platform,
   Animated,
+  Alert,
 } from 'react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import Svg, { Path } from 'react-native-svg';
 import { decode } from 'base64-arraybuffer';
 import { useAuthStore, useUserStore, useFeedStore, useProfilePostsStore } from '@/store';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -19,7 +22,6 @@ import { createPost, recordUpload } from '@/api';
 const PEEK_HEIGHT = 110;
 
 // ─── Streak Badge ─────────────────────────────────────────────────────────────
-// Plays a large-to-small spring animation every time the camera screen mounts.
 
 function StreakBadge({ count }: { count: number }) {
   const scaleAnim   = useRef(new Animated.Value(4)).current;
@@ -55,6 +57,91 @@ function StreakBadge({ count }: { count: number }) {
   );
 }
 
+// ─── Flip Icon ────────────────────────────────────────────────────────────────
+
+function FlipIcon({ color }: { color: string }) {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M1 4v6h6"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M23 20v-6h-6"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+// ─── Photo Preview ────────────────────────────────────────────────────────────
+
+interface CapturedPhoto {
+  uri: string;
+  base64: string;
+}
+
+interface PhotoPreviewProps {
+  photo: CapturedPhoto;
+  onDiscard: () => void;
+  onPost: (photo: CapturedPhoto) => void;
+  isUploading: boolean;
+}
+
+function PhotoPreview({ photo, onDiscard, onPost, isUploading }: PhotoPreviewProps) {
+  const handleDiscard = () => {
+    Alert.alert(
+      'Discard photo?',
+      '',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: onDiscard },
+      ],
+    );
+  };
+
+  return (
+    <View style={StyleSheet.absoluteFillObject}>
+      <Image source={{ uri: photo.uri }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+
+      {/* Discard — top right */}
+      <TouchableOpacity
+        style={styles.discardButton}
+        activeOpacity={0.8}
+        onPress={handleDiscard}
+        disabled={isUploading}
+      >
+        <Text style={styles.discardX}>✕</Text>
+      </TouchableOpacity>
+
+      {/* Post — bottom center */}
+      <View style={styles.postButtonFloat}>
+        <TouchableOpacity
+          style={[styles.postButton, isUploading && { opacity: 0.5 }]}
+          activeOpacity={0.82}
+          disabled={isUploading}
+          onPress={() => onPost(photo)}
+        >
+          <Text style={styles.postButtonText}>POST</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 // ─── CameraScreen ─────────────────────────────────────────────────────────────
 
 export default function CameraScreen(): React.JSX.Element {
@@ -63,7 +150,10 @@ export default function CameraScreen(): React.JSX.Element {
   const cameraRef = useRef<CameraView>(null);
   const { dark } = useAppTheme();
 
-  const [isCapturing, setIsCapturing] = useState(false);
+  const [facing, setFacing]             = useState<'back' | 'front'>('back');
+  const [isCapturing, setIsCapturing]   = useState(false);
+  const [isUploading, setIsUploading]   = useState(false);
+  const [capturedPhoto, setCapturedPhoto] = useState<CapturedPhoto | null>(null);
 
   const userId     = useAuthStore((s) => s.user?.id);
   const profile    = useUserStore((s) => s.profile);
@@ -83,22 +173,28 @@ export default function CameraScreen(): React.JSX.Element {
     }
   }, [micPermission?.status]);
 
-  const takePhoto = async () => {
-    if (!cameraRef.current || isCapturing || !userId || !profile) return;
+  // Step 1: capture only — sets preview state, no upload yet
+  const capturePhoto = async () => {
+    if (!cameraRef.current || isCapturing) return;
     setIsCapturing(true);
-
-    // 1. Capture — brief lock, just reads the frame
     const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, base64: true });
-    setIsCapturing(false);  // release shutter immediately after capture
+    setIsCapturing(false);
     if (!photo?.uri || !photo.base64) return;
+    setCapturedPhoto({ uri: photo.uri, base64: photo.base64 });
+  };
+
+  // Step 2: user confirmed POST — run upload + streak + feed
+  const uploadPhoto = async (photo: CapturedPhoto) => {
+    if (!userId || !profile) return;
+    setIsUploading(true);
 
     const tempId              = `pending_${Date.now()}`;
     const optimisticStreakDay = profile.streak_current + 1;
 
-    // 2. Optimistic: increment streak badge immediately
+    // Optimistic: increment streak badge immediately
     setProfile({ ...profile, streak_current: optimisticStreakDay });
 
-    // 3. Optimistic: add post to feed with local URI (renders in FeedScreen instantly)
+    // Optimistic: add post to feed with local URI
     useFeedStore.getState().addPending({
       id:         tempId,
       isPending:  true,
@@ -115,29 +211,40 @@ export default function CameraScreen(): React.JSX.Element {
       },
     });
 
-    // 4. Background upload — user can navigate away freely
+    // Clear preview immediately so camera returns while upload runs in background
+    setCapturedPhoto(null);
+    setIsUploading(false);
+
+    // Local date in YYYY-MM-DD — avoids UTC timezone drift in streak RPC
+    const today = new Date().toLocaleDateString('en-CA');
+
+    let storagePath: string | null = null;
+
     try {
       const buffer = decode(photo.base64);
-      const path   = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+      storagePath  = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
 
       const { data: storageData, error: storageErr } = await supabase.storage
         .from('posts')
-        .upload(path, buffer, { contentType: 'image/jpeg', upsert: false });
+        .upload(storagePath, buffer, { contentType: 'image/jpeg', upsert: false });
       if (storageErr) throw new Error(storageErr.message);
 
       const { data: urlData } = supabase.storage.from('posts').getPublicUrl(storageData.path);
 
+      // Record streak first — so streak_day on the post is authoritative
+      const { data: streakResult, error: streakErr } = await recordUpload(userId, today);
+      if (streakErr) throw streakErr;
+
+      const confirmedStreakDay = streakResult?.streak_current ?? optimisticStreakDay;
+
       const { data: postData, error: postErr } = await createPost(
         userId,
         urlData.publicUrl,
-        optimisticStreakDay,
+        confirmedStreakDay,
       );
       if (postErr) throw postErr;
 
-      const { data: streakResult, error: streakErr } = await recordUpload(userId);
-      if (streakErr) throw streakErr;
-
-      // 5. Confirm: swap pending post → real confirmed post
+      // Confirm: swap pending post → real confirmed post
       if (postData) {
         useFeedStore.getState().confirmPending(tempId, {
           ...postData,
@@ -149,26 +256,37 @@ export default function CameraScreen(): React.JSX.Element {
           },
         } as import('@/api').FeedPost);
 
-        // Live update: prepend to profile media canvas without a refetch
         useProfilePostsStore.getState().addPost(postData);
       }
 
-      // 6. Sync streak with authoritative RPC values
+      // Sync streak using authoritative RPC values — read fresh store state to avoid stale closure
       if (streakResult) {
-        setProfile({
-          ...profile,
-          streak_current:          streakResult.streak_current,
-          streak_highest:          streakResult.streak_highest,
-          streak_lowest:           streakResult.streak_lowest,
-          streak_last_upload_date: new Date().toISOString().split('T')[0],
-        });
+        const current = useUserStore.getState().profile;
+        if (current) {
+          setProfile({
+            ...current,
+            streak_current:          streakResult.streak_current,
+            streak_highest:          streakResult.streak_highest,
+            streak_lowest:           streakResult.streak_lowest,
+            streak_last_upload_date: today,
+          });
+        }
       }
     } catch (err) {
-      console.error('[takePhoto] background upload failed', err);
-      // Rollback: remove pending post + revert streak
+      console.error('[uploadPhoto] upload failed', err);
+      // Rollback optimistic UI
       useFeedStore.getState().removePending(tempId);
-      setProfile({ ...profile, streak_current: profile.streak_current });
+      const current = useUserStore.getState().profile;
+      if (current) setProfile({ ...current, streak_current: profile.streak_current });
+      // Clean up orphaned storage object
+      if (storagePath) {
+        supabase.storage.from('posts').remove([storagePath]).catch(() => {});
+      }
     }
+  };
+
+  const handleDiscard = () => {
+    setCapturedPhoto(null);
   };
 
   // Still loading — OS hasn't returned permission status yet
@@ -179,9 +297,9 @@ export default function CameraScreen(): React.JSX.Element {
   const cameraGranted = cameraPermission.granted;
   const micGranted    = micPermission.granted;
 
-  // Shutter button colours adapt to light/dark mode
   const shutterRing = dark ? '#FFFFFF' : '#1A1A17';
   const shutterFill = dark ? '#FFFFFF' : '#1A1A17';
+  const flipColor   = '#FFFFFF';
 
   // One or both permissions missing
   if (!cameraGranted || !micGranted) {
@@ -219,12 +337,21 @@ export default function CameraScreen(): React.JSX.Element {
   // Both permissions granted — full camera experience
   return (
     <View style={styles.root}>
-      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
+      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
 
       <StreakBadge count={streakCount} />
 
-      {/* Shutter button — floats above the peek strip, disabled while uploading */}
-      <View style={styles.shutterFloat}>
+      {/* Bottom controls: [flip] [shutter] [spacer] */}
+      <View style={styles.controlsRow}>
+        <TouchableOpacity
+          style={styles.flipButton}
+          activeOpacity={0.75}
+          onPress={() => setFacing(f => f === 'back' ? 'front' : 'back')}
+          disabled={isCapturing}
+        >
+          <FlipIcon color={flipColor} />
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[
             styles.shutterOuter,
@@ -236,11 +363,24 @@ export default function CameraScreen(): React.JSX.Element {
           ]}
           activeOpacity={0.82}
           disabled={isCapturing}
-          onPress={takePhoto}
+          onPress={capturePhoto}
         >
           <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
         </TouchableOpacity>
+
+        {/* Spacer — keeps shutter centred */}
+        <View style={styles.flipButton} />
       </View>
+
+      {/* Photo preview overlay */}
+      {capturedPhoto && (
+        <PhotoPreview
+          photo={capturedPhoto}
+          onDiscard={handleDiscard}
+          onPost={uploadPhoto}
+          isUploading={isUploading}
+        />
+      )}
     </View>
   );
 }
@@ -272,12 +412,22 @@ const styles = StyleSheet.create({
     marginTop: 3,
     lineHeight: 11,
   },
-  shutterFloat: {
+  // ── Bottom controls row ───────────────────────────────────────────────────
+  controlsRow: {
     position: 'absolute',
     bottom: PEEK_HEIGHT + 32,
     left: 0,
     right: 0,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 48,
+  },
+  flipButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   shutterOuter: {
     width: 72,
@@ -296,6 +446,44 @@ const styles = StyleSheet.create({
     height: 58,
     borderRadius: 29,
   },
+  // ── Photo preview ─────────────────────────────────────────────────────────
+  discardButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 108 : 80,
+    right: 24,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  discardX: {
+    color: '#111111',
+    fontSize: 14,
+    fontFamily: 'JosefinSans_600SemiBold',
+    lineHeight: 16,
+  },
+  postButtonFloat: {
+    position: 'absolute',
+    bottom: PEEK_HEIGHT + 32,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  postButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 50,
+    paddingVertical: 20,
+    paddingHorizontal: 56,
+  },
+  postButtonText: {
+    color: '#111111',
+    fontSize: 16,
+    fontFamily: 'JosefinSans_600SemiBold',
+    letterSpacing: 2,
+  },
+  // ── Permissions ───────────────────────────────────────────────────────────
   permissionCenter: {
     flex: 1,
     alignItems: 'center',
