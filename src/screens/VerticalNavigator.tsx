@@ -4,20 +4,20 @@ import {
   Dimensions,
   PanResponder,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import NavigationDots from '@/components/NavigationDots';
 import AppHeader from '@/components/AppHeader';
+import GlobalSearchOverlay from '@/components/GlobalSearchOverlay';
 import {
   CameraIcon,
-  ProIcon,
-  SearchIcon,
+  FeedIcon,
 } from '@/components/ScreenIcons';
 import CameraScreen from '@/screens/CameraScreen';
-import HomeScreen from '@/screens/HomeScreen';
-import SearchScreen from '@/screens/SearchScreen';
+import FeedScreen from '@/screens/FeedScreen';
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
 // PEEK_HEIGHT: strip of the next screen visible at the bottom of each screen.
@@ -31,21 +31,24 @@ const SLOT_HEIGHT = SCREEN_HEIGHT - PEEK_HEIGHT;
 const SWIPE_PX = 60;  // min drag distance to trigger navigation
 const SWIPE_VY = 0.4; // min release velocity to trigger navigation
 
+// Pull-down threshold to open search (only when at top/camera screen)
+const SEARCH_PULL_PX = 80;
+const SEARCH_PULL_VY = 0.3;
+
 // ─── Screen registry ──────────────────────────────────────────────────────────
 // Ordered top → bottom. Index 0 (Camera) is the entry screen.
 // Profile is not in the vertical tape — it lives in the horizontal layer.
 const SCREENS = [
-  { key: 'camera',   Component: CameraScreen,   Icon: CameraIcon },
-  { key: 'pro',      Component: HomeScreen,     Icon: ProIcon },
-  { key: 'search',   Component: SearchScreen,   Icon: SearchIcon },
+  { key: 'camera', Component: CameraScreen, Icon: CameraIcon },
+  { key: 'feed',   Component: FeedScreen,   Icon: FeedIcon },
 ] as const;
 
 const SCREEN_ICONS = SCREENS.map((s) => s.Icon);
 
 // Background colours per screen in each theme mode. Used for off-screen
 // placeholder views so the peek strip colour is always correct.
-const SCREEN_BG_DARK  = ['#111111', '#1C1C19', '#1C1C19'] as const;
-const SCREEN_BG_LIGHT = ['#111111', '#FFFFFF',  '#FFFFFF'] as const;
+const SCREEN_BG_DARK  = ['#111111', '#1C1C19'] as const;
+const SCREEN_BG_LIGHT = ['#111111', '#FFFFFF'] as const;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -63,6 +66,7 @@ export default function VerticalNavigator({
   const { dark } = useAppTheme();
 
   const [activeIndex, setActiveIndex] = useState(0);
+  const [searchVisible, setSearchVisible] = useState(false);
   const activeIndexRef = useRef(0);
   const baseOffsetRef  = useRef(0);
   const tapeAnim       = useRef(new Animated.Value(0)).current;
@@ -119,6 +123,15 @@ export default function VerticalNavigator({
         let next = i;
         if ((dy < -SWIPE_PX || vy < -SWIPE_VY) && i < SCREENS.length - 1) next = i + 1;
         if ((dy >  SWIPE_PX || vy >  SWIPE_VY) && i > 0)                   next = i - 1;
+
+        // Pull down while on top (camera) screen → open search overlay
+        if (i === 0 && (dy > SEARCH_PULL_PX || vy > SEARCH_PULL_VY)) {
+          // Snap back to camera position first
+          navigateTo(0);
+          setSearchVisible(true);
+          return;
+        }
+
         navigateTo(next);
       },
     }),
@@ -211,6 +224,35 @@ export default function VerticalNavigator({
         dark={activeIndex === 0 ? true : dark}
         icons={SCREEN_ICONS}
       />
+
+      {/* Peek strip overlay — visible at bottom of Camera screen showing feed indicator.
+          Fades out as the user scrolls into the Feed. pointerEvents="none" so it
+          never interferes with the pan gesture or the feed scroll. */}
+      <Animated.View
+        style={[
+          styles.peekOverlay,
+          {
+            opacity: tapeAnim.interpolate({
+              inputRange: [-SLOT_HEIGHT * 0.25, 0],
+              outputRange: [0, 1],
+              extrapolate: 'clamp',
+            }),
+          },
+        ]}
+        pointerEvents="none"
+      >
+        {/* Pull pill indicator */}
+        <View style={styles.peekPill} />
+        {/* Feed label */}
+        <Text style={styles.peekLabel}>SOCIAL FEED</Text>
+      </Animated.View>
+
+      {/* Global search overlay — triggered by pull-down from Camera screen */}
+      <GlobalSearchOverlay
+        visible={searchVisible}
+        onClose={() => setSearchVisible(false)}
+        dark={dark}
+      />
     </View>
   );
 }
@@ -233,5 +275,28 @@ const styles = StyleSheet.create({
     // Each slot is SCREEN_HEIGHT tall (SLOT_HEIGHT + PEEK_HEIGHT) so its
     // content fills its visible area and the peek area below it.
     height: SCREEN_HEIGHT,
+  },
+  peekOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: PEEK_HEIGHT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    zIndex: 50,
+  },
+  peekPill: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+  peekLabel: {
+    fontFamily: 'JosefinSans_600SemiBold',
+    fontSize: 11,
+    letterSpacing: 4,
+    color: 'rgba(255,255,255,0.5)',
   },
 });

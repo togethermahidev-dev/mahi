@@ -17,6 +17,7 @@
     "base64-arraybuffer": "^1.0.2",
     "expo": "~55.0.8",
     "expo-background-fetch": "~55.0.10",
+    "expo-blur": "~55.0.10",
     "expo-camera": "~55.0.10",
     "expo-constants": "~55.0.9",
     "expo-dev-client": "~55.0.18",

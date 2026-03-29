@@ -79,6 +79,11 @@ export default function FeedScreen(): React.JSX.Element {
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
+      {/* Fixed header — sits above the scroll list, no scroll conflict */}
+      <View style={[styles.header, { borderBottomColor: dark ? 'rgba(232,232,227,0.08)' : 'rgba(26,26,23,0.06)' }]}>
+        <Text style={[styles.headerTitle, { color: text }]}>SOCIAL FEED</Text>
+      </View>
+
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
@@ -86,6 +91,7 @@ export default function FeedScreen(): React.JSX.Element {
         contentContainerStyle={styles.list}
         onEndReached={hasMore ? loadMore : undefined}
         onEndReachedThreshold={0.4}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isLoading && posts.length === 0}
@@ -116,6 +122,18 @@ export default function FeedScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  header: {
+    paddingTop: 20,
+    paddingBottom: 14,
+    paddingHorizontal: 24,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontFamily: 'JosefinSans_700Bold',
+    fontSize: 13,
+    letterSpacing: 5,
   },
   list: {
     paddingTop: 16,
