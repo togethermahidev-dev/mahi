@@ -4,6 +4,7 @@ import {
   Text,
   Image,
   FlatList,
+  Platform,
   RefreshControl,
   StyleSheet,
   Dimensions,
@@ -124,7 +125,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 20,
+    paddingTop: Platform.OS === 'ios' ? 116 : 88,
     paddingBottom: 14,
     paddingHorizontal: 24,
     borderBottomWidth: StyleSheet.hairlineWidth,
