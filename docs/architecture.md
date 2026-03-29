@@ -80,7 +80,7 @@ onAuthStateChange (session found)
 | `public.messages` | Individual messages within a conversation |
 | `public.streak_logs` | Audit log of streak events |
 
-All tables use Row Level Security (RLS). The `record_upload` Postgres function (SECURITY DEFINER, `search_path = ''`) is the authoritative source for streak updates — it uses `SELECT ... FOR UPDATE` to prevent race conditions on double-tap.
+All tables use Row Level Security (RLS). The `record_upload_streak(p_user_id, p_upload_date)` Postgres function (SECURITY DEFINER, auth-guarded) is the authoritative source for streak updates — it uses `SELECT ... FOR UPDATE` to prevent race conditions on double-tap. Always call it before `createPost` so the post row receives the RPC-confirmed `streak_day` value.
 
 ---
 
@@ -91,7 +91,7 @@ All tables use Row Level Security (RLS). The `record_upload` Postgres function (
 | `posts.ts` | `getFeedPosts`, `createPost`, `FeedPost`, `FeedCursor` |
 | `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `ConversationPreview` |
 | `profile.ts` | `getProfile` |
-| `streaks.ts` | `recordUpload` |
+| `streaks.ts` | `recordUpload`, `getStreakLogs`, `getActiveStreak` |
 | `auth.ts` | Auth helpers |
 | `email.ts` | OTP email via Edge Function |
 
@@ -148,9 +148,10 @@ Render gating: only screens within ±1 index of `activeIndex` are fully mounted.
 | Index | Screen |
 |---|---|
 | 0 | Camera |
-| 1 | Feed |
-| 2 | Home |
-| 3 | Search |
+| 1 | Home |
+| 2 | Search |
+
+The social feed is accessed via the floating `SOCIAL FEED ↑` pill in `HorizontalNavigator`, which opens `FeedModal` — it is not a vertical navigator slot.
 
 ### App Header (`src/components/AppHeader.tsx`)
 
@@ -173,7 +174,7 @@ Absolute overlay inside `VerticalNavigator` at `zIndex: 200`. `pointerEvents: 'b
 | `WelcomeScreen` | `src/screens/WelcomeScreen.tsx` | Active — sign-up / login |
 | `HorizontalNavigator` | `src/screens/HorizontalNavigator.tsx` | Active — horizontal gesture nav |
 | `VerticalNavigator` | `src/screens/VerticalNavigator.tsx` | Active — vertical gesture nav |
-| `CameraScreen` | `src/screens/CameraScreen.tsx` | Active — optimistic photo capture + streak |
+| `CameraScreen` | `src/screens/CameraScreen.tsx` | Active — camera flip (front/back), photo preview, optimistic upload + streak |
 | `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()` |
 | `HomeScreen` | `src/screens/HomeScreen.tsx` | Placeholder |
 | `SearchScreen` | `src/screens/SearchScreen.tsx` | Placeholder |

@@ -13,6 +13,14 @@
   - TODO: change to `noreply@togethermahi.com` once SMTP is configured in Resend
 - App Store review bypass: `appreview@togethermahi.com` / `123456`
 
+## Camera / Upload Flow
+- Shutter captures only — no upload until user taps POST on the preview screen
+- Optimistic updates (`addPending`, streak increment) fire at POST confirmation, not at shutter
+- Upload order: storage → `recordUpload(userId, localDate)` → `createPost(userId, url, streakResult.streak_current)`
+- Always pass local date to `recordUpload`: `new Date().toLocaleDateString('en-CA')`
+- On any upload failure: remove pending post, revert streak, and remove orphaned storage object
+- `posts` storage bucket is **public** — use `getPublicUrl()` (not signed URLs)
+
 ## Auth
 - Supabase is the source of truth for auth
 - Sessions persist via AsyncStorage (`autoRefreshToken: true`, `persistSession: true` in `src/lib/supabase.ts`)
@@ -21,9 +29,10 @@
 - Profile data is inserted into `public.profiles` after successful `signInWithPassword`
 
 ## State Management
-- Zustand stores: `useAuthStore`, `useUserStore`, `useSignUpStore` — all exported from `src/store/index.ts`
+- Zustand stores: `useAuthStore`, `useUserStore`, `useSignUpStore`, `useFeedStore`, `useMessagesStore`, `useProfilePostsStore` — all exported from `src/store/index.ts`
 - Sign-up form state lives in `useSignUpStore` (persists across app backgrounding mid-flow)
 - OTP state (sensitive) lives in AsyncStorage only, managed via `src/lib/otp.ts`
+- When writing back to profile after async work, always read from `useUserStore.getState().profile` — never spread a closure snapshot
 
 ## Design System
 - Font: Josefin Sans — `JosefinSans_400Regular_Italic`, `JosefinSans_600SemiBold`, `JosefinSans_700Bold`

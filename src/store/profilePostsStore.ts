@@ -57,7 +57,15 @@ export const useProfilePostsStore = create<ProfilePostsState>((set, get) => ({
     set({ isSyncing: false });
   },
 
-  addPost: (post) => set((s) => ({ posts: [post, ...s.posts] })),
+  addPost: (post) => set((s) => {
+    // Enforce one post per day in the local store — drop any existing entry
+    // for the same UTC calendar day before prepending the new one.
+    const postDay = new Date(post.created_at).toISOString().slice(0, 10);
+    const deduped = s.posts.filter(
+      (p) => new Date(p.created_at).toISOString().slice(0, 10) !== postDay,
+    );
+    return { posts: [post, ...deduped] };
+  }),
 
   reset: () => set({ posts: [], cursor: undefined, hasMore: true, isSyncing: false }),
 }));

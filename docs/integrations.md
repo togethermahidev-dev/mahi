@@ -44,23 +44,28 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 | `public.posts` | `id`, `user_id`, `image_url`, `caption`, `streak_day`, `created_at` | Paginated cursor sort: `created_at DESC, id DESC` |
 | `public.conversations` | `id`, `participant_one`, `participant_two`, `status`, `initiated_by`, `updated_at` | `ordered_participants` unique constraint: `participant_one < participant_two` |
 | `public.messages` | `id`, `conversation_id`, `sender_id`, `content`, `created_at` | Trigger updates `conversations.updated_at` on insert |
-| `public.streak_logs` | `id`, `user_id`, `event_type`, `streak_value`, `created_at` | Audit log written by `record_upload` RPC |
+| `public.streak_logs` | `id`, `user_id`, `streak_count`, `started_at`, `ended_at`, `is_active`, `created_at` | Audit log managed by `record_upload_streak` RPC — tracks active and closed streaks |
 
 ### Database Functions
 
-**`record_upload(p_user_id uuid)`** — `SECURITY DEFINER SET search_path = ''`
-- Authoritative streak counter. Uses `SELECT ... FOR UPDATE` row lock to prevent double-tap race conditions.
-- Detects rest-day resets (last upload > 1 calendar day ago).
-- Returns `{ streak_current, streak_highest, streak_lowest }`.
+**`record_upload_streak(p_user_id uuid, p_upload_date date)`** — `SECURITY DEFINER`
+- Authoritative streak counter. Auth-guarded: rejects calls where `p_user_id <> auth.uid()`.
+- Uses `SELECT ... FOR UPDATE` row lock to prevent double-tap race conditions.
+- Idempotent: same-day calls return current values without incrementing.
+- Extends streak if upload is consecutive or on a rest day; resets to 1 if a required day was missed.
+- Manages `streak_logs` (opens new log on reset, updates count on extend).
+- Returns `{ streak_current, streak_highest, streak_lowest, action }`.
+- Always pass `p_upload_date` as the device's **local** date (`new Date().toLocaleDateString('en-CA')`) — do not rely on server `CURRENT_DATE` (UTC) to avoid timezone drift.
 
 ### Storage
 
-**Bucket: `posts`** (private — access via RLS policies)
+**Bucket: `posts`** (public — images served via CDN)
 
 - Upload path: `{userId}/{timestamp}_{rand}.jpg`
 - Upload: `supabase.storage.from('posts').upload(path, buffer, { contentType: 'image/jpeg' })`
-- Public URL: `supabase.storage.from('posts').getPublicUrl(path)`
-- RLS: users can insert/select/delete their own files only
+- Public URL: `supabase.storage.from('posts').getPublicUrl(path)` — works correctly because bucket is public
+- Storage policies: users can insert/delete their own files; SELECT is open (public reads)
+- On upload failure after storage succeeds: call `supabase.storage.from('posts').remove([path])` to avoid orphaned objects
 
 ### Edge Functions
 

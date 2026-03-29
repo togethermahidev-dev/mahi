@@ -9,6 +9,8 @@ import {
   Platform,
   Animated,
   Alert,
+  Dimensions,
+  Modal,
 } from 'react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import Svg, { Path } from 'react-native-svg';
@@ -89,19 +91,54 @@ function FlipIcon({ color }: { color: string }) {
 
 // ─── Photo Preview ────────────────────────────────────────────────────────────
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 interface CapturedPhoto {
   uri: string;
   base64: string;
 }
 
 interface PhotoPreviewProps {
-  photo: CapturedPhoto;
+  photo: CapturedPhoto | null;
   onDiscard: () => void;
   onPost: (photo: CapturedPhoto) => void;
   isUploading: boolean;
 }
 
 function PhotoPreview({ photo, onDiscard, onPost, isUploading }: PhotoPreviewProps) {
+  const slideAnim    = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+  const [modalOpen, setModalOpen] = useState(false);
+  // Hold the last non-null photo so the image stays visible during slide-out
+  const frozenPhoto  = useRef<CapturedPhoto | null>(null);
+  if (photo !== null) frozenPhoto.current = photo;
+
+  const hasPhoto = photo !== null;
+
+  useEffect(() => {
+    if (hasPhoto) {
+      setModalOpen(true);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        damping: 22,
+        stiffness: 160,
+        mass: 0.9,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      // Slide out, then close modal and clear the frozen ref
+      Animated.spring(slideAnim, {
+        toValue: SCREEN_WIDTH,
+        damping: 22,
+        stiffness: 160,
+        mass: 0.9,
+        useNativeDriver: true,
+      }).start(() => {
+        frozenPhoto.current = null;
+        setModalOpen(false);
+      });
+    }
+  }, [hasPhoto]);
+
   const handleDiscard = () => {
     Alert.alert(
       'Discard photo?',
@@ -114,31 +151,50 @@ function PhotoPreview({ photo, onDiscard, onPost, isUploading }: PhotoPreviewPro
   };
 
   return (
-    <View style={StyleSheet.absoluteFillObject}>
-      <Image source={{ uri: photo.uri }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-
-      {/* Discard — top right */}
-      <TouchableOpacity
-        style={styles.discardButton}
-        activeOpacity={0.8}
-        onPress={handleDiscard}
-        disabled={isUploading}
+    <Modal
+      visible={modalOpen}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={handleDiscard}
+    >
+      <Animated.View
+        style={[
+          styles.previewPanel,
+          { transform: [{ translateX: slideAnim }] },
+        ]}
       >
-        <Text style={styles.discardX}>✕</Text>
-      </TouchableOpacity>
+        {frozenPhoto.current && (
+          <Image
+            source={{ uri: frozenPhoto.current.uri }}
+            style={StyleSheet.absoluteFillObject}
+            resizeMode="cover"
+          />
+        )}
 
-      {/* Post — bottom center */}
-      <View style={styles.postButtonFloat}>
+        {/* Discard — top right */}
         <TouchableOpacity
-          style={[styles.postButton, isUploading && { opacity: 0.5 }]}
-          activeOpacity={0.82}
+          style={styles.discardButton}
+          activeOpacity={0.8}
+          onPress={handleDiscard}
           disabled={isUploading}
-          onPress={() => onPost(photo)}
         >
-          <Text style={styles.postButtonText}>POST</Text>
+          <Text style={styles.discardX}>✕</Text>
         </TouchableOpacity>
-      </View>
-    </View>
+
+        {/* Post — bottom center */}
+        <View style={styles.postButtonFloat}>
+          <TouchableOpacity
+            style={[styles.postButton, isUploading && { opacity: 0.5 }]}
+            activeOpacity={0.82}
+            disabled={isUploading}
+            onPress={() => frozenPhoto.current && onPost(frozenPhoto.current)}
+          >
+            <Text style={styles.postButtonText}>POST</Text>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+    </Modal>
   );
 }
 
@@ -160,6 +216,10 @@ export default function CameraScreen(): React.JSX.Element {
   const setProfile = useUserStore((s) => s.setProfile);
 
   const streakCount = profile?.streak_current ?? 0;
+
+  // Has the user already posted today (local date)?
+  const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+  const hasPostedToday = profile?.streak_last_upload_date === today;
 
   useEffect(() => {
     if (cameraPermission && !cameraPermission.granted && cameraPermission.canAskAgain) {
@@ -215,8 +275,7 @@ export default function CameraScreen(): React.JSX.Element {
     setCapturedPhoto(null);
     setIsUploading(false);
 
-    // Local date in YYYY-MM-DD — avoids UTC timezone drift in streak RPC
-    const today = new Date().toLocaleDateString('en-CA');
+    // `today` is already derived at component scope (YYYY-MM-DD local)
 
     let storagePath: string | null = null;
 
@@ -341,13 +400,21 @@ export default function CameraScreen(): React.JSX.Element {
 
       <StreakBadge count={streakCount} />
 
+      {/* Already posted today — dim overlay with message */}
+      {hasPostedToday && (
+        <View style={styles.postedOverlay}>
+          <Text style={styles.postedTitle}>STREAK SECURED</Text>
+          <Text style={styles.postedSub}>Come back tomorrow{'\n'}for your next post</Text>
+        </View>
+      )}
+
       {/* Bottom controls: [flip] [shutter] [spacer] */}
       <View style={styles.controlsRow}>
         <TouchableOpacity
-          style={styles.flipButton}
+          style={[styles.flipButton, hasPostedToday && { opacity: 0.3 }]}
           activeOpacity={0.75}
           onPress={() => setFacing(f => f === 'back' ? 'front' : 'back')}
-          disabled={isCapturing}
+          disabled={isCapturing || hasPostedToday}
         >
           <FlipIcon color={flipColor} />
         </TouchableOpacity>
@@ -358,11 +425,11 @@ export default function CameraScreen(): React.JSX.Element {
             {
               borderColor: shutterRing,
               shadowColor: dark ? '#000000' : '#1A1A17',
-              opacity: isCapturing ? 0.5 : 1,
+              opacity: isCapturing || hasPostedToday ? 0.3 : 1,
             },
           ]}
           activeOpacity={0.82}
-          disabled={isCapturing}
+          disabled={isCapturing || hasPostedToday}
           onPress={capturePhoto}
         >
           <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
@@ -372,15 +439,13 @@ export default function CameraScreen(): React.JSX.Element {
         <View style={styles.flipButton} />
       </View>
 
-      {/* Photo preview overlay */}
-      {capturedPhoto && (
-        <PhotoPreview
-          photo={capturedPhoto}
-          onDiscard={handleDiscard}
-          onPost={uploadPhoto}
-          isUploading={isUploading}
-        />
-      )}
+      {/* Photo preview — slides in from the right as its own Modal layer */}
+      <PhotoPreview
+        photo={capturedPhoto}
+        onDiscard={handleDiscard}
+        onPost={uploadPhoto}
+        isUploading={isUploading}
+      />
     </View>
   );
 }
@@ -411,6 +476,28 @@ const styles = StyleSheet.create({
     opacity: 0.65,
     marginTop: 3,
     lineHeight: 11,
+  },
+  // ── Already posted today ──────────────────────────────────────────────────
+  postedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  postedTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontFamily: 'JosefinSans_700Bold',
+    letterSpacing: 4,
+    textAlign: 'center',
+  },
+  postedSub: {
+    color: '#E8E8E3',
+    fontSize: 13,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    textAlign: 'center',
+    opacity: 0.65,
+    lineHeight: 20,
   },
   // ── Bottom controls row ───────────────────────────────────────────────────
   controlsRow: {
@@ -447,6 +534,14 @@ const styles = StyleSheet.create({
     borderRadius: 29,
   },
   // ── Photo preview ─────────────────────────────────────────────────────────
+  previewPanel: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+    backgroundColor: '#111111',
+  },
   discardButton: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 108 : 80,

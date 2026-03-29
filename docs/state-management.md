@@ -59,14 +59,26 @@ Manages the authenticated user's profile including streak counters.
 ```ts
 {
   id: string;
-  username: string | null;
+  username: string;
   display_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  date_of_birth: string | null;
+  contact_number: string | null;
+  fitness_goals: string[] | null;
+  fitness_routine: string | null;   // comma-separated 3-letter day abbrevs e.g. 'Mon,Wed,Fri'
   avatar_url: string | null;
   streak_current: number;
   streak_highest: number;
   streak_lowest: number | null;
-  streak_last_upload_date: string | null;
+  streak_last_upload_date: string | null;  // YYYY-MM-DD local date
 }
+```
+
+**Important — stale closure guard:** When writing back to the profile after an async upload, always read the current value from the store rather than a closure snapshot:
+```ts
+const current = useUserStore.getState().profile;
+setProfile({ ...current, streak_current: streakResult.streak_current, ... });
 ```
 
 **Usage:**
@@ -114,6 +126,31 @@ const isSyncing = useFeedStore((s) => s.isSyncing);
 // Trigger actions via getState() outside React (e.g. App.tsx, CameraScreen)
 useFeedStore.getState().sync();
 useFeedStore.getState().addPending(post);
+```
+
+---
+
+### `useProfilePostsStore` — `src/store/profilePostsStore.ts`
+
+Manages the post grid shown on `ProfileScreen`. Separate from `useFeedStore` — scoped to the currently viewed profile.
+
+| Field | Type | Description |
+|---|---|---|
+| `posts` | `PostRow[]` | Posts for the viewed profile, newest first |
+| `hasMore` | `boolean` | Pagination state |
+| `isSyncing` | `boolean` | `true` during fetch |
+
+| Action | Description |
+|---|---|
+| `sync(userId)` | Fetch first page (30 posts) for the given profile |
+| `loadMore(userId)` | Append next page |
+| `addPost(post)` | Prepend a newly uploaded post (called from `CameraScreen` on upload confirm) |
+| `reset()` | Clear on sign-out |
+
+**Usage:**
+```ts
+// In CameraScreen after confirmed upload — no refetch needed
+useProfilePostsStore.getState().addPost(postData);
 ```
 
 ---
@@ -169,6 +206,7 @@ import {
   useThemeStore,
   useFeedStore,
   useMessagesStore,
+  useProfilePostsStore,
 } from '@/store';
 
 import type { PendingPost } from '@/store';
