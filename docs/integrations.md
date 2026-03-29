@@ -41,10 +41,16 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 | Table | Key Columns | Notes |
 |---|---|---|
 | `public.profiles` | `id`, `username`, `display_name`, `avatar_url`, `streak_current`, `streak_highest`, `streak_lowest`, `streak_last_upload_date` | SELECT open to all authenticated users (feed joins require it) |
-| `public.posts` | `id`, `user_id`, `image_url`, `caption`, `streak_day`, `created_at` | Paginated cursor sort: `created_at DESC, id DESC` |
+| `public.posts` | `id`, `user_id`, `image_url`, `caption`, `streak_day`, `created_at` | Paginated cursor sort: `created_at DESC, id DESC`. Unique index `posts_user_day_unique` enforces one post per user per UTC day. RLS INSERT policy additionally blocks same-day inserts. |
 | `public.conversations` | `id`, `participant_one`, `participant_two`, `status`, `initiated_by`, `updated_at` | `ordered_participants` unique constraint: `participant_one < participant_two` |
 | `public.messages` | `id`, `conversation_id`, `sender_id`, `content`, `created_at` | Trigger updates `conversations.updated_at` on insert |
 | `public.streak_logs` | `id`, `user_id`, `streak_count`, `started_at`, `ended_at`, `is_active`, `created_at` | Audit log managed by `record_upload_streak` RPC — tracks active and closed streaks |
+
+### Database Indexes
+
+| Index | Table | Definition | Purpose |
+|---|---|---|---|
+| `posts_user_day_unique` | `public.posts` | `UNIQUE (user_id, ((created_at AT TIME ZONE 'UTC')::date))` | Enforces one post per user per UTC calendar day at the DB layer |
 
 ### Database Functions
 

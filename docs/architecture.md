@@ -8,7 +8,7 @@ Mahi Fitness is a React Native fitness application built with Expo. Users take a
 
 | Layer | Tool | Version |
 |---|---|---|
-| Framework | Expo (React Native) | ~54.0.33 |
+| Framework | Expo (React Native) | ~55.0.8 |
 | Language | TypeScript (strict) | ~5.9.2 |
 | Backend / Auth | Supabase | ^2.96.0 |
 | State Management | Zustand | ^5.0.11 |
@@ -30,8 +30,6 @@ mahi-fitness/
 │   ├── types/          # TypeScript types — database.ts is the source of truth for DB shapes
 │   ├── components/     # Shared UI components (AppHeader, NavigationDots, ThemeToggle)
 │   └── screens/        # Screen-level components
-├── supabase/
-│   └── migrations/     # SQL migrations applied to the project
 ├── docs/               # Project documentation
 ├── assets/             # Images, icons, splash
 ├── App.tsx             # Root component — auth subscription + store hydration
@@ -75,7 +73,7 @@ onAuthStateChange (session found)
 | Table | Purpose |
 |---|---|
 | `public.profiles` | User profile — display name, avatar, streak counters |
-| `public.posts` | Daily streak photos — one per user per day |
+| `public.posts` | Daily streak photos — one per user per day. Enforced by unique index `posts_user_day_unique (user_id, (created_at AT TIME ZONE 'UTC')::date)` and RLS INSERT policy |
 | `public.conversations` | Messaging thread — one row per pair, ordered participants constraint |
 | `public.messages` | Individual messages within a conversation |
 | `public.streak_logs` | Audit log of streak events |
@@ -88,7 +86,7 @@ All tables use Row Level Security (RLS). The `record_upload_streak(p_user_id, p_
 
 | File | Exports |
 |---|---|
-| `posts.ts` | `getFeedPosts`, `createPost`, `FeedPost`, `FeedCursor` |
+| `posts.ts` | `getFeedPosts`, `getUserPosts`, `createPost`, `FeedPost`, `FeedCursor`, `ProfilePostCursor` |
 | `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `ConversationPreview` |
 | `profile.ts` | `getProfile` |
 | `streaks.ts` | `recordUpload`, `getStreakLogs`, `getActiveStreak` |
@@ -112,9 +110,11 @@ The app uses **state-driven navigation** — no React Navigation. Transitions ar
 │  (horizontal left)  │  (center, default)   │ (horizontal right)   │
 │                     │  ↕ swipe up/down ↕   │                      │
 │                     │  Camera              │                      │
-│                     │  Feed                │                      │
-│                     │  Home                │                      │
+│                     │  Home (PRO)          │                      │
 │                     │  Search              │                      │
+│                     │                      │                      │
+│                     │  + SOCIAL FEED pill  │                      │
+│                     │  (Modal overlay)     │                      │
 └─────────────────────┴──────────────────────┴──────────────────────┘
 ```
 
@@ -174,7 +174,7 @@ Absolute overlay inside `VerticalNavigator` at `zIndex: 200`. `pointerEvents: 'b
 | `WelcomeScreen` | `src/screens/WelcomeScreen.tsx` | Active — sign-up / login |
 | `HorizontalNavigator` | `src/screens/HorizontalNavigator.tsx` | Active — horizontal gesture nav |
 | `VerticalNavigator` | `src/screens/VerticalNavigator.tsx` | Active — vertical gesture nav |
-| `CameraScreen` | `src/screens/CameraScreen.tsx` | Active — camera flip (front/back), photo preview, optimistic upload + streak |
+| `CameraScreen` | `src/screens/CameraScreen.tsx` | Active — camera flip (front/back), photo preview (Modal, slides from right), already-posted guard, optimistic upload + streak |
 | `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()` |
 | `HomeScreen` | `src/screens/HomeScreen.tsx` | Placeholder |
 | `SearchScreen` | `src/screens/SearchScreen.tsx` | Placeholder |

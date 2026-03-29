@@ -144,7 +144,7 @@ Manages the post grid shown on `ProfileScreen`. Separate from `useFeedStore` —
 |---|---|
 | `sync(userId)` | Fetch first page (30 posts) for the given profile |
 | `loadMore(userId)` | Append next page |
-| `addPost(post)` | Prepend a newly uploaded post (called from `CameraScreen` on upload confirm) |
+| `addPost(post)` | Prepend a newly uploaded post; deduplicates by UTC calendar day — any existing post for the same day is replaced |
 | `reset()` | Clear on sign-out |
 
 **Usage:**
@@ -231,6 +231,7 @@ On sign-out, all stores are reset:
 useUserStore.getState().reset();
 useFeedStore.getState().reset();
 useMessagesStore.getState().reset();
+useProfilePostsStore.getState().reset();
 ```
 
 ---

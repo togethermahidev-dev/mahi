@@ -15,11 +15,14 @@
 
 ## Camera / Upload Flow
 - Shutter captures only — no upload until user taps POST on the preview screen
+- Photo preview renders in a `Modal` that slides in from the right — never use `absoluteFillObject` inside the camera slot (conflicts with VerticalNavigator `overflow: hidden` and AppHeader overlay)
 - Optimistic updates (`addPending`, streak increment) fire at POST confirmation, not at shutter
 - Upload order: storage → `recordUpload(userId, localDate)` → `createPost(userId, url, streakResult.streak_current)`
 - Always pass local date to `recordUpload`: `new Date().toLocaleDateString('en-CA')`
 - On any upload failure: remove pending post, revert streak, and remove orphaned storage object
 - `posts` storage bucket is **public** — use `getPublicUrl()` (not signed URLs)
+- One post per day is enforced at three layers: DB unique index, RLS INSERT policy, and client-side `hasPostedToday` guard (compares `profile.streak_last_upload_date` to today's local date)
+- `hasPostedToday` disables shutter + flip at 0.3 opacity and shows STREAK SECURED state
 
 ## Auth
 - Supabase is the source of truth for auth

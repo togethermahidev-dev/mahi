@@ -23,6 +23,49 @@ import { createPost, recordUpload } from '@/api';
 // Must match PEEK_HEIGHT in VerticalNavigator.tsx
 const PEEK_HEIGHT = 110;
 
+// ─── Midnight Countdown ───────────────────────────────────────────────────────
+// Shows HH:MM:SS remaining until local midnight, ticking every second.
+// Calls onUnlock() when it reaches zero so the camera re-enables without a reload.
+
+function getMsUntilMidnight(): number {
+  const now  = new Date();
+  const next = new Date(now);
+  next.setHours(24, 0, 0, 0); // next local midnight
+  return next.getTime() - now.getTime();
+}
+
+function formatCountdown(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return [h, m, s].map((v) => String(v).padStart(2, '0')).join(':');
+}
+
+function MidnightCountdown({ onUnlock }: { onUnlock: () => void }) {
+  const [remaining, setRemaining] = useState(getMsUntilMidnight);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const ms = getMsUntilMidnight();
+      setRemaining(ms);
+      if (ms <= 0) {
+        clearInterval(id);
+        onUnlock();
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <View style={styles.postedOverlay}>
+      <Text style={styles.postedTitle}>STREAK SECURED</Text>
+      <Text style={styles.countdownTimer}>{formatCountdown(remaining)}</Text>
+      <Text style={styles.postedSub}>until your next post unlocks</Text>
+    </View>
+  );
+}
+
 // ─── Streak Badge ─────────────────────────────────────────────────────────────
 
 function StreakBadge({ count }: { count: number }) {
@@ -400,12 +443,13 @@ export default function CameraScreen(): React.JSX.Element {
 
       <StreakBadge count={streakCount} />
 
-      {/* Already posted today — dim overlay with message */}
+      {/* Already posted today — countdown to local midnight unlock */}
       {hasPostedToday && (
-        <View style={styles.postedOverlay}>
-          <Text style={styles.postedTitle}>STREAK SECURED</Text>
-          <Text style={styles.postedSub}>Come back tomorrow{'\n'}for your next post</Text>
-        </View>
+        <MidnightCountdown onUnlock={() => {
+          // Recalculate today — it's now a new day, profile date no longer matches
+          // The hasPostedToday derived value will re-evaluate on next render
+          setProfile({ ...useUserStore.getState().profile! });
+        }} />
       )}
 
       {/* Bottom controls: [flip] [shutter] [spacer] */}
@@ -482,7 +526,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 12,
   },
   postedTitle: {
     color: '#FFFFFF',
@@ -491,13 +535,20 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
     textAlign: 'center',
   },
+  countdownTimer: {
+    color: '#FFFFFF',
+    fontSize: 48,
+    fontFamily: 'JosefinSans_700Bold',
+    letterSpacing: 6,
+    textAlign: 'center',
+  },
   postedSub: {
     color: '#E8E8E3',
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: 'JosefinSans_400Regular_Italic',
     textAlign: 'center',
-    opacity: 0.65,
-    lineHeight: 20,
+    opacity: 0.55,
+    letterSpacing: 1,
   },
   // ── Bottom controls row ───────────────────────────────────────────────────
   controlsRow: {

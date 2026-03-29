@@ -27,11 +27,35 @@ const { dark, colorScheme, colors } = useAppTheme();
 | `colors.offBlack` | `string` | `#1A1A17` |
 
 **Navigation usage:**
-- `CameraScreen` uses `dark` to set shutter ring/fill colour
+- `CameraScreen` uses `dark` to set shutter ring/fill colour and overlay text contrast
 - `VerticalNavigator` uses `dark` to select background palette for off-screen placeholders
 - `AppHeader` receives `isDark` as a prop (forced `true` on Camera — always dark background)
 - `MessagesScreen` and `ProfileScreen` call `useAppTheme()` directly
 - Use `dark` (boolean) rather than `colorScheme` (string) for contrast decisions
+
+---
+
+## `useProfilePosts` — `src/hooks/useProfilePosts.ts`
+
+Thin wrapper over `useProfilePostsStore`. Triggers store sync on first mount for the given `userId`.
+
+```ts
+import { useProfilePosts } from '@/hooks/useProfilePosts';
+
+const { posts, isLoading, hasMore, loadMore, refresh } = useProfilePosts(userId);
+```
+
+**Return shape:**
+
+| Field | Type | Description |
+|---|---|---|
+| `posts` | `PostRow[]` | Posts for the viewed profile, newest first |
+| `isLoading` | `boolean` | `true` only on true first-ever load |
+| `hasMore` | `boolean` | Pagination state |
+| `loadMore` | `() => void` | Append next page |
+| `refresh` | `() => void` | Force re-fetch from page 1 |
+
+`addPost` (called from `CameraScreen` after confirmed upload) deduplicates by UTC calendar day — the grid never shows two entries for the same day.
 
 ---
 
