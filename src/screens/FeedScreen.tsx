@@ -139,11 +139,10 @@ const styles = StyleSheet.create({
   list: {
     paddingTop: 16,
     paddingBottom: 32,
-    gap: 16,
+    gap: 1,
   },
   card: {
-    marginHorizontal: 16,
-    borderRadius: 14,
+    borderRadius: 0,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
   },
@@ -194,8 +193,8 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   postImage: {
-    width: SCREEN_WIDTH - 32,
-    height: SCREEN_WIDTH - 32,
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH * 1.25,
   },
   caption: {
     padding: 12,
