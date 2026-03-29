@@ -78,10 +78,21 @@ export default function FeedScreen(): React.JSX.Element {
 
   const { posts, isLoading, error, hasMore, loadMore, refresh } = useFeed();
 
+  // Pull pill only scrolls with the list — visible in the peek strip
+  const listHeader = (
+    <View>
+      <View style={styles.peekPillRow}>
+        <View style={[styles.pullPill, { backgroundColor: dark ? 'rgba(232,232,227,0.3)' : 'rgba(26,26,23,0.2)' }]} />
+      </View>
+      {/* Spacer to push posts below the fixed header */}
+      <View style={styles.headerSpacer} />
+    </View>
+  );
+
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      {/* Fixed header — sits above the scroll list, no scroll conflict */}
-      <View style={[styles.header, { borderBottomColor: dark ? 'rgba(232,232,227,0.08)' : 'rgba(26,26,23,0.06)' }]}>
+      {/* Fixed title — always sits below AppHeader, never scrolls */}
+      <View style={[styles.fixedHeader, { backgroundColor: bg, borderBottomColor: dark ? 'rgba(232,232,227,0.08)' : 'rgba(26,26,23,0.06)' }]}>
         <Text style={[styles.headerTitle, { color: text }]}>SOCIAL FEED</Text>
       </View>
 
@@ -90,6 +101,7 @@ export default function FeedScreen(): React.JSX.Element {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <PostItem item={item} dark={dark} />}
         contentContainerStyle={styles.list}
+        ListHeaderComponent={listHeader}
         onEndReached={hasMore ? loadMore : undefined}
         onEndReachedThreshold={0.4}
         showsVerticalScrollIndicator={false}
@@ -124,20 +136,36 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 116 : 88,
-    paddingBottom: 14,
-    paddingHorizontal: 24,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  fixedHeader: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 108 : 80,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingVertical: 14,
     alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerTitle: {
     fontFamily: 'JosefinSans_700Bold',
     fontSize: 13,
     letterSpacing: 5,
   },
-  list: {
+  peekPillRow: {
     paddingTop: 16,
+    paddingBottom: 8,
+    alignItems: 'center',
+  },
+  pullPill: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+  },
+  headerSpacer: {
+    // AppHeader (~108px) + fixedHeader (~46px) = space before first post
+    height: Platform.OS === 'ios' ? 154 : 126,
+  },
+  list: {
     paddingBottom: 32,
     gap: 1,
   },

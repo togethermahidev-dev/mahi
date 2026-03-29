@@ -4,7 +4,6 @@ import {
   Dimensions,
   PanResponder,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
@@ -225,28 +224,6 @@ export default function VerticalNavigator({
         icons={SCREEN_ICONS}
       />
 
-      {/* Peek strip overlay — visible at bottom of Camera screen showing feed indicator.
-          Fades out as the user scrolls into the Feed. pointerEvents="none" so it
-          never interferes with the pan gesture or the feed scroll. */}
-      <Animated.View
-        style={[
-          styles.peekOverlay,
-          {
-            opacity: tapeAnim.interpolate({
-              inputRange: [-SLOT_HEIGHT * 0.25, 0],
-              outputRange: [0, 1],
-              extrapolate: 'clamp',
-            }),
-          },
-        ]}
-        pointerEvents="none"
-      >
-        {/* Pull pill indicator */}
-        <View style={styles.peekPill} />
-        {/* Feed label */}
-        <Text style={styles.peekLabel}>SOCIAL FEED</Text>
-      </Animated.View>
-
       {/* Global search overlay — triggered by pull-down from Camera screen */}
       <GlobalSearchOverlay
         visible={searchVisible}
@@ -275,28 +252,5 @@ const styles = StyleSheet.create({
     // Each slot is SCREEN_HEIGHT tall (SLOT_HEIGHT + PEEK_HEIGHT) so its
     // content fills its visible area and the peek area below it.
     height: SCREEN_HEIGHT,
-  },
-  peekOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: PEEK_HEIGHT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    zIndex: 50,
-  },
-  peekPill: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.35)',
-  },
-  peekLabel: {
-    fontFamily: 'JosefinSans_600SemiBold',
-    fontSize: 11,
-    letterSpacing: 4,
-    color: 'rgba(255,255,255,0.5)',
   },
 });
