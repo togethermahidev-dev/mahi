@@ -114,10 +114,14 @@ export default function GlobalSearchOverlay({
   if (!visible) return null;
 
   return (
-    <Animated.View style={[styles.root, { opacity: fadeAnim }]}>
+    <Animated.View
+      style={[styles.root, { opacity: fadeAnim }]}
+      onStartShouldSetResponder={() => true}
+      onMoveShouldSetResponder={() => true}
+    >
       {/* Full-screen frosted glass background */}
       <BlurView
-        intensity={80}
+        intensity={35}
         tint={tint}
         style={StyleSheet.absoluteFill}
       />
@@ -128,8 +132,8 @@ export default function GlobalSearchOverlay({
           StyleSheet.absoluteFill,
           {
             backgroundColor: dark
-              ? 'rgba(18,18,16,0.45)'
-              : 'rgba(250,250,248,0.45)',
+              ? 'rgba(18,18,16,0.25)'
+              : 'rgba(250,250,248,0.25)',
           },
         ]}
         pointerEvents="none"
@@ -168,7 +172,7 @@ export default function GlobalSearchOverlay({
               />
             </View>
             <TouchableOpacity onPress={onClose} style={styles.cancelBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={[styles.cancelText, { color: muted }]}>CANCEL</Text>
+              <Text style={[styles.cancelText, { color: text }]}>CANCEL</Text>
             </TouchableOpacity>
           </View>
 
