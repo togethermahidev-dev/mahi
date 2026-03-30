@@ -72,9 +72,7 @@ const config = {
     fallbackToCacheTimeout: 30000,
     enableBsdiffPatchSupport: true,
   },
-  runtimeVersion: {
-    policy: 'fingerprint',
-  },
+  runtimeVersion: '0.1.0',
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
