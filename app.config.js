@@ -57,7 +57,7 @@ const config = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.mahi.app',
-    buildNumber: '6',
+    buildNumber: '7',
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription: 'Mahi uses the camera to power your fitness accountability features.',
