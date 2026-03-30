@@ -69,11 +69,16 @@ export function CameraIcon({ size, color }: IconProps) {
 export function FeedIcon({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Top card — avatar dot + two text lines */}
+      <Circle cx="5" cy="6" r="1.5" stroke={color} strokeWidth={1.6} />
+      <Path d="M9 5.5h7" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
+      <Path d="M9 8h5" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
+      {/* Image block */}
       <Path
-        d="M18 20V10M12 20V4M6 20v-6"
+        d="M3 11h18v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-7z"
         stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
+        strokeWidth={1.6}
+        strokeLinejoin="round"
       />
     </Svg>
   );

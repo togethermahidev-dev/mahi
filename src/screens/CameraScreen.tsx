@@ -13,6 +13,7 @@ import {
   Modal,
 } from 'react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import { BlurView } from 'expo-blur';
 import * as FileSystem from 'expo-file-system';
 import Svg, { Path } from 'react-native-svg';
 import { decode } from 'base64-arraybuffer';
@@ -59,11 +60,11 @@ function MidnightCountdown({ onUnlock }: { onUnlock: () => void }) {
   }, []);
 
   return (
-    <View style={styles.postedOverlay}>
+    <BlurView intensity={60} tint="dark" style={styles.postedOverlay}>
       <Text style={styles.postedTitle}>STREAK SECURED</Text>
       <Text style={styles.countdownTimer}>{formatCountdown(remaining)}</Text>
       <Text style={styles.postedSub}>until your next post unlocks</Text>
-    </View>
+    </BlurView>
   );
 }
 

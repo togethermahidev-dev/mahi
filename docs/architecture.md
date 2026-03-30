@@ -175,7 +175,7 @@ Absolute overlay inside `VerticalNavigator` at `zIndex: 200`. `pointerEvents: 'b
 | `HorizontalNavigator` | `src/screens/HorizontalNavigator.tsx` | Active — horizontal gesture nav |
 | `VerticalNavigator` | `src/screens/VerticalNavigator.tsx` | Active — vertical gesture nav |
 | `CameraScreen` | `src/screens/CameraScreen.tsx` | Active — camera flip (front/back), photo preview (Modal, slides from right), already-posted guard, optimistic upload + streak |
-| `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()` |
+| `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()`; post images render at 16:9 aspect ratio (`SCREEN_WIDTH × 9/16`); "SOCIAL FEED" title fades out on scroll (threshold 10px) and fades back in at the top |
 | `HomeScreen` | `src/screens/HomeScreen.tsx` | Placeholder |
 | `SearchScreen` | `src/screens/SearchScreen.tsx` | Placeholder |
 | `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Active — profile + streak stats |

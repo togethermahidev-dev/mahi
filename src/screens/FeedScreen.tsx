@@ -8,6 +8,7 @@ import {
   RefreshControl,
   StyleSheet,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeed } from '@/hooks/useFeed';
@@ -78,6 +79,18 @@ export default function FeedScreen(): React.JSX.Element {
 
   const { posts, isLoading, error, hasMore, loadMore, refresh } = useFeed();
 
+  const headerOpacity = React.useRef(new Animated.Value(1)).current;
+
+  const handleScroll = (e: any) => {
+    const y = e.nativeEvent.contentOffset.y;
+    const target = y > 10 ? 0 : 1;
+    Animated.timing(headerOpacity, {
+      toValue: target,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+  };
+
   // Pull pill only scrolls with the list — visible in the peek strip
   const listHeader = (
     <View>
@@ -91,10 +104,10 @@ export default function FeedScreen(): React.JSX.Element {
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      {/* Fixed title — always sits below AppHeader, never scrolls */}
-      <View style={[styles.fixedHeader, { backgroundColor: bg, borderBottomColor: dark ? 'rgba(232,232,227,0.08)' : 'rgba(26,26,23,0.06)' }]}>
+      {/* Fixed title — fades out on scroll, reappears at top */}
+      <Animated.View style={[styles.fixedHeader, { backgroundColor: bg, borderBottomColor: dark ? 'rgba(232,232,227,0.08)' : 'rgba(26,26,23,0.06)', opacity: headerOpacity }]}>
         <Text style={[styles.headerTitle, { color: text }]}>SOCIAL FEED</Text>
-      </View>
+      </Animated.View>
 
       <FlatList
         data={posts}
@@ -105,6 +118,8 @@ export default function FeedScreen(): React.JSX.Element {
         onEndReached={hasMore ? loadMore : undefined}
         onEndReachedThreshold={0.4}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={isLoading && posts.length === 0}
@@ -222,7 +237,7 @@ const styles = StyleSheet.create({
   },
   postImage: {
     width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * 1.25,
+    height: SCREEN_WIDTH * (9 / 16),
   },
   caption: {
     padding: 12,
