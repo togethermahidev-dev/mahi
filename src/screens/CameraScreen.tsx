@@ -13,6 +13,7 @@ import {
   Modal,
 } from 'react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import * as FileSystem from 'expo-file-system';
 import Svg, { Path } from 'react-native-svg';
 import { decode } from 'base64-arraybuffer';
 import { useAuthStore, useUserStore, useFeedStore, useProfilePostsStore } from '@/store';
@@ -280,10 +281,15 @@ export default function CameraScreen(): React.JSX.Element {
   const capturePhoto = async () => {
     if (!cameraRef.current || isCapturing) return;
     setIsCapturing(true);
-    const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, base64: true });
+    // Capture without base64:true — that flag bypasses orientation processing on some devices,
+    // causing the Image component to display the photo rotated. We read base64 separately instead.
+    const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
     setIsCapturing(false);
-    if (!photo?.uri || !photo.base64) return;
-    setCapturedPhoto({ uri: photo.uri, base64: photo.base64 });
+    if (!photo?.uri) return;
+    const base64 = await FileSystem.readAsStringAsync(photo.uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    setCapturedPhoto({ uri: photo.uri, base64 });
   };
 
   // Step 2: user confirmed POST — run upload + streak + feed
