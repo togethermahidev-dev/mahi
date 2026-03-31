@@ -120,6 +120,36 @@ export type Database = {
         };
         Update: Record<string, never>;
       };
+      post_likes: {
+        Row: {
+          id:         string;
+          post_id:    string;
+          user_id:    string;
+          created_at: string;
+        };
+        Insert: {
+          id?:      string;
+          post_id:  string;
+          user_id:  string;
+        };
+        Update: Record<string, never>;
+      };
+      post_comments: {
+        Row: {
+          id:         string;
+          post_id:    string;
+          user_id:    string;
+          content:    string;
+          created_at: string;
+        };
+        Insert: {
+          id?:      string;
+          post_id:  string;
+          user_id:  string;
+          content:  string;
+        };
+        Update: Record<string, never>;
+      };
     };
     Views:     Record<string, never>;
     Functions: {
@@ -131,6 +161,29 @@ export type Database = {
           streak_lowest:  number | null;
           action: 'extended' | 'reset' | 'already_uploaded_today';
         };
+      };
+      toggle_like: {
+        Args: { p_post_id: string; p_user_id: string };
+        Returns: { liked: boolean; like_count: number }[];
+      };
+      get_feed_posts: {
+        Args: { p_limit: number; p_cursor_ts?: string; p_cursor_id?: string };
+        Returns: {
+          id:            string;
+          user_id:       string;
+          image_url:     string;
+          pov_image_url: string | null;
+          caption:       string | null;
+          streak_day:    number;
+          created_at:    string;
+          profile_id:    string;
+          username:      string;
+          display_name:  string | null;
+          avatar_url:    string | null;
+          like_count:    number;
+          comment_count: number;
+          liked_by_me:   boolean;
+        }[];
       };
     };
     Enums:     Record<string, never>;

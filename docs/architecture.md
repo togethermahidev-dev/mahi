@@ -74,11 +74,13 @@ onAuthStateChange (session found)
 |---|---|
 | `public.profiles` | User profile — display name, avatar, streak counters |
 | `public.posts` | Daily streak photos — one per user per day. `image_url` = rear/POV photo; `pov_image_url` = front selfie (nullable — null on legacy single-photo posts). Enforced by unique index `posts_user_day_unique (user_id, (created_at AT TIME ZONE 'UTC')::date)` and RLS INSERT policy |
+| `public.post_likes` | One row per user-post like. Unique constraint `(post_id, user_id)`. RLS: authenticated read-all, insert/delete own only. |
+| `public.post_comments` | Comments on posts. Ordered oldest-first. RLS: authenticated read-all, insert/delete own only. |
 | `public.conversations` | Messaging thread — one row per pair, ordered participants constraint |
 | `public.messages` | Individual messages within a conversation |
 | `public.streak_logs` | Audit log of streak events |
 
-All tables use Row Level Security (RLS). The `record_upload_streak(p_user_id, p_upload_date)` Postgres function (SECURITY DEFINER, auth-guarded) is the authoritative source for streak updates — it uses `SELECT ... FOR UPDATE` to prevent race conditions on double-tap. Always call it before `createPost` so the post row receives the RPC-confirmed `streak_day` value.
+All tables use Row Level Security (RLS). Two Postgres RPCs handle social interactions (see Database Functions below). The `record_upload_streak(p_user_id, p_upload_date)` Postgres function (SECURITY DEFINER, auth-guarded) is the authoritative source for streak updates — it uses `SELECT ... FOR UPDATE` to prevent race conditions on double-tap. Always call it before `createPost` so the post row receives the RPC-confirmed `streak_day` value.
 
 ---
 
@@ -86,7 +88,8 @@ All tables use Row Level Security (RLS). The `record_upload_streak(p_user_id, p_
 
 | File | Exports |
 |---|---|
-| `posts.ts` | `getFeedPosts`, `getUserPosts`, `createPost` (options object), `FeedPost`, `FeedCursor`, `ProfilePostCursor` |
+| `posts.ts` | `getFeedPosts` (via `get_feed_posts` RPC — returns `like_count`, `comment_count`, `liked_by_me`), `getUserPosts`, `createPost`, `FeedPost`, `FeedCursor`, `ProfilePostCursor` |
+| `social.ts` | `toggleLike` (single-RPC atomic toggle), `getComments`, `addComment`, `CommentWithProfile` |
 | `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `ConversationPreview` |
 | `profile.ts` | `getProfile` |
 | `streaks.ts` | `recordUpload`, `getStreakLogs`, `getActiveStreak` |

@@ -42,6 +42,8 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 |---|---|---|
 | `public.profiles` | `id`, `username`, `display_name`, `avatar_url`, `streak_current`, `streak_highest`, `streak_lowest`, `streak_last_upload_date` | SELECT open to all authenticated users (feed joins require it) |
 | `public.posts` | `id`, `user_id`, `image_url`, `pov_image_url`, `caption`, `streak_day`, `created_at` | `image_url` = rear/POV photo (default full-screen). `pov_image_url` = front selfie pip (nullable — null for legacy single-photo posts). Paginated cursor sort: `created_at DESC, id DESC`. Unique index `posts_user_day_unique` enforces one post per user per UTC day. RLS INSERT policy additionally blocks same-day inserts. |
+| `public.post_likes` | `id`, `post_id`, `user_id`, `created_at` | Unique constraint `(post_id, user_id)`. RLS: authenticated read-all; insert/delete own only (`auth.uid() = user_id`). |
+| `public.post_comments` | `id`, `post_id`, `user_id`, `content`, `created_at` | Ordered oldest-first. RLS: authenticated read-all; insert/delete own only. |
 | `public.conversations` | `id`, `participant_one`, `participant_two`, `status`, `initiated_by`, `updated_at` | `ordered_participants` unique constraint: `participant_one < participant_two` |
 | `public.messages` | `id`, `conversation_id`, `sender_id`, `content`, `created_at` | Trigger updates `conversations.updated_at` on insert |
 | `public.streak_logs` | `id`, `user_id`, `streak_count`, `started_at`, `ended_at`, `is_active`, `created_at` | Audit log managed by `record_upload_streak` RPC — tracks active and closed streaks |
@@ -53,6 +55,18 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 | `posts_user_day_unique` | `public.posts` | `UNIQUE (user_id, ((created_at AT TIME ZONE 'UTC')::date))` | Enforces one post per user per UTC calendar day at the DB layer |
 
 ### Database Functions
+
+**`toggle_like(p_post_id uuid, p_user_id uuid)`** — `SECURITY DEFINER`
+- Atomic like toggle. Inserts a like row; if a conflict occurs (already liked), deletes instead.
+- Returns `{ liked: boolean, like_count: bigint }` — the final state after the operation.
+- Called via `supabase.rpc('toggle_like', ...)` from `src/api/social.ts:toggleLike`.
+- One round trip, no race condition, no need to check existing state first.
+
+**`get_feed_posts(p_limit int, p_cursor_ts timestamptz, p_cursor_id uuid)`** — `SECURITY DEFINER STABLE`
+- Replaces the old `posts` table select + `FEED_SELECT` constant.
+- Returns enriched feed rows including `like_count`, `comment_count`, and `liked_by_me` (lateral join against `auth.uid()`).
+- Cursor pagination: `p_cursor_ts` + `p_cursor_id` mirror the old `created_at DESC, id DESC` cursor. Both default to `null` for the first page.
+- Called via `supabase.rpc('get_feed_posts', ...)` from `src/api/posts.ts:getFeedPosts`.
 
 **`record_upload_streak(p_user_id uuid, p_upload_date date)`** — `SECURITY DEFINER`
 - Authoritative streak counter. Auth-guarded: rejects calls where `p_user_id <> auth.uid()`.
@@ -82,6 +96,23 @@ All Edge Functions are deployed with `verify_jwt: false` (pre-auth flows).
 |---|---|
 | `send-otp` | Receives `{ email, code }`, sends OTP email via Resend |
 | `complete-signup` | Creates Supabase auth user via admin API (`email_confirm: true`) |
+
+### Realtime
+
+Supabase Realtime (`postgres_changes`) is used for live social updates on the feed.
+
+**Subscription scope:** `socialStore` opens one channel per visible post (`social:{postId}`). Channels are managed from `FeedScreen` via `onViewableItemsChanged` — only posts currently in the viewport maintain an open channel (~3–5 at a time). The store uses ref-counting so a channel is created once and destroyed only when truly no longer needed.
+
+**Events subscribed:**
+- `post_likes` — any change (`*`) on a post → re-fetch authoritative count → `feedStore.patchPost`
+- `post_comments` — `INSERT` on a post → append to `socialStore.comments[postId]` if loaded + `patchPost comment_count +1`
+
+**Channel lifecycle:**
+```ts
+useSocialStore.getState().subscribeToPost(postId);   // call from FeedScreen onViewableItemsChanged
+useSocialStore.getState().unsubscribeFromPost(postId);
+useSocialStore.getState().reset();  // on sign-out — closes all channels
+```
 
 ---
 

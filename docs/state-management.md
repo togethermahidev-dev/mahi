@@ -108,6 +108,7 @@ Manages the social feed with optimistic post creation.
 | `addPending(post)` | Prepend an optimistic post with a local `file://` URI |
 | `confirmPending(tempId, real)` | Replace pending post with confirmed backend row |
 | `removePending(tempId)` | Remove pending post on upload failure (rollback) |
+| `patchPost(id, partial)` | Shallow-merge `partial` into the matching post. Used by `socialStore` to write back `like_count` / `comment_count` after RPC confirms. |
 | `reset()` | Clear all state on sign-out |
 
 **`PendingPost` type:**
@@ -126,6 +127,41 @@ const isSyncing = useFeedStore((s) => s.isSyncing);
 // Trigger actions via getState() outside React (e.g. App.tsx, CameraScreen)
 useFeedStore.getState().sync();
 useFeedStore.getState().addPending(post);
+```
+
+---
+
+### `useSocialStore` — `src/store/socialStore.ts`
+
+Manages per-post likes and comments. Owns `likedByMe` booleans and comment arrays only — **never duplicates counts**. All `like_count` / `comment_count` mutations go through `feedStore.patchPost` so there is a single authoritative count per post.
+
+| Field | Type | Description |
+|---|---|---|
+| `likedByMe` | `Record<string, boolean>` | Whether the current user has liked each post |
+| `comments` | `Record<string, CommentWithProfile[]>` | Loaded comments per post (loaded lazily on tap) |
+
+| Action | Description |
+|---|---|
+| `initPost(postId, likedByMe)` | Seed liked state from the initial feed RPC result. Idempotent — skips if already set. |
+| `toggleLike(postId, userId)` | Optimistic flip of `likedByMe` + `patchPost ±1 count`. Single RPC confirm. Rolls back on error. |
+| `loadComments(postId)` | Fetch comments (oldest first) and cache. Idempotent — skips if already loaded. |
+| `addComment(postId, userId, content, profile)` | Optimistic push with temp id, replace with confirmed row, `patchPost comment_count +1`. Rolls back on error. |
+| `subscribeToPost(postId)` | Open a Supabase Realtime channel for the post. Ref-counted — safe to call multiple times per post. |
+| `unsubscribeFromPost(postId)` | Decrement ref count. Channel destroyed only when count reaches 0. |
+| `reset()` | Remove all channels and clear state on sign-out. |
+
+**Cross-store pattern:** `socialStore` calls `useFeedStore.getState().patchPost(id, partial)` to write confirmed counts back to `feedStore`. Counts live on `FeedPost` objects; `socialStore` never stores them.
+
+**Realtime subscriptions** are managed at the `FeedScreen` level via `onViewableItemsChanged` — only posts currently visible in the viewport maintain open channels (~3–5 max). `PostItem` itself has no subscription logic.
+
+**Usage:**
+```ts
+const likedByMe = useSocialStore((s) => s.likedByMe[postId] ?? false);
+const comments  = useSocialStore((s) => s.comments[postId]);
+
+// Actions via getState() in event handlers to avoid stale closures
+useSocialStore.getState().toggleLike(postId, userId);
+useSocialStore.getState().addComment(postId, userId, text, profile);
 ```
 
 ---
@@ -207,6 +243,7 @@ import {
   useFeedStore,
   useMessagesStore,
   useProfilePostsStore,
+  useSocialStore,
 } from '@/store';
 
 import type { PendingPost } from '@/store';
@@ -232,6 +269,7 @@ useUserStore.getState().reset();
 useFeedStore.getState().reset();
 useMessagesStore.getState().reset();
 useProfilePostsStore.getState().reset();
+useSocialStore.getState().reset();  // also closes all Realtime channels
 ```
 
 ---

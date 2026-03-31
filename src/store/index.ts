@@ -7,3 +7,5 @@ export { useFeedStore } from './feedStore';
 export type { PendingPost } from './feedStore';
 export { useMessagesStore } from './messagesStore';
 export { useProfilePostsStore } from './profilePostsStore';
+export { useSocialStore } from './socialStore';
+export type { } from './socialStore';

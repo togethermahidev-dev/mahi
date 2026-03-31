@@ -79,6 +79,8 @@ const { posts, isLoading, hasMore, loadMore, refresh } = useFeed();
 | `loadMore` | `() => void` | Append next cursor page |
 | `refresh` | `() => void` | Force re-fetch from page 1 |
 
+Each `FeedPost` now includes `like_count: number`, `comment_count: number`, and `liked_by_me: boolean` — populated by the `get_feed_posts` RPC on initial load. These counts are kept live by `socialStore` writing back via `feedStore.patchPost` after each interaction or Realtime event.
+
 **Zero-skeleton guarantee:** once the store has any data, `isLoading` is always `false` across re-mounts. `FeedScreen` never shows a skeleton after first load.
 
 ---

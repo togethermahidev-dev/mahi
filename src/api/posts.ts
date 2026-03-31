@@ -12,48 +12,54 @@ type PostRow    = Database['public']['Tables']['posts']['Row'];
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 export type FeedPost = PostRow & {
-  profiles: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
+  profiles:      Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
+  like_count:    number;
+  comment_count: number;
+  liked_by_me:   boolean;
 };
 
 export type FeedCursor = { ts: string; id: string };
 
-const FEED_SELECT = `
-  id,
-  user_id,
-  image_url,
-  pov_image_url,
-  caption,
-  streak_day,
-  created_at,
-  profiles ( id, username, display_name, avatar_url )
-` as const;
-
 /**
  * Fetch a page of feed posts, newest first.
+ * Uses the get_feed_posts RPC which returns like_count, comment_count, and
+ * liked_by_me (whether auth.uid() has liked each post) in a single query.
  * Pass `cursor` (from previous page's last item) for pagination.
  */
 export async function getFeedPosts(
   limit: number,
   cursor?: FeedCursor,
 ): Promise<{ data: FeedPost[] | null; error: Error | null }> {
-  let query = supabase
-    .from('posts')
-    .select(FEED_SELECT)
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: false })
-    .limit(limit);
+  const { data, error } = await supabase.rpc('get_feed_posts', {
+    p_limit:     limit,
+    p_cursor_ts: cursor?.ts     ?? null,
+    p_cursor_id: cursor?.id     ?? null,
+  });
 
-  if (cursor) {
-    query = query.or(
-      `created_at.lt.${cursor.ts},and(created_at.eq.${cursor.ts},id.lt.${cursor.id})`,
-    );
-  }
-
-  const { data, error } = await query;
   if (error) return { data: null, error: new Error(error.message) };
-  // PostgREST returns `profiles` as an array for FK joins; our FeedPost type
-  // expects a single object. Cast through unknown — shape is correct at runtime.
-  return { data: data as unknown as FeedPost[], error: null };
+  if (!data)  return { data: [], error: null };
+
+  // RPC returns flat rows; reshape into FeedPost (nested profiles object)
+  const mapped: FeedPost[] = (data as NonNullable<typeof data>).map((row) => ({
+    id:            row.id,
+    user_id:       row.user_id,
+    image_url:     row.image_url,
+    pov_image_url: row.pov_image_url,
+    caption:       row.caption,
+    streak_day:    row.streak_day,
+    created_at:    row.created_at,
+    like_count:    row.like_count    ?? 0,
+    comment_count: row.comment_count ?? 0,
+    liked_by_me:   row.liked_by_me   ?? false,
+    profiles: {
+      id:           row.profile_id,
+      username:     row.username,
+      display_name: row.display_name,
+      avatar_url:   row.avatar_url,
+    },
+  }));
+
+  return { data: mapped, error: null };
 }
 
 export type ProfilePostCursor = { ts: string; id: string };

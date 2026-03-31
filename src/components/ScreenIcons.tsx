@@ -1,5 +1,5 @@
 import React from 'react';
-import Svg, { Path, Circle, Line, G } from 'react-native-svg';
+import Svg, { Path, Circle, Line, G, Text as SvgText, Rect } from 'react-native-svg';
 
 export interface IconProps {
   size: number;
@@ -87,6 +87,104 @@ export function ProfileIcon({ size, color }: IconProps) {
         strokeLinecap="round"
       />
       <Circle cx="12" cy="7" r="4" stroke={color} strokeWidth={1.8} />
+    </Svg>
+  );
+}
+
+/**
+ * LikeIcon — medal with count inside the disc.
+ * Mahi colorway: ribbon tails in #E05A5A (left) + #59c2d7 (right),
+ * disc echo offset in #59c2d7, disc filled #59c2d7 when liked / outline when not.
+ * Count number always visible inside the disc.
+ */
+export function LikeIcon({
+  size,
+  color,
+  filled = false,
+  count = 0,
+}: IconProps & { filled?: boolean; count?: number }) {
+  const discCx    = 12;
+  const discCy    = 10;
+  const discR     = 8;
+  const countStr  = count > 999 ? '999+' : String(count);
+  const fontSize  = countStr.length > 2 ? 5 : countStr.length > 1 ? 6 : 7;
+  const textColor = filled ? '#FFFFFF' : color;
+
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Ribbon tails — always visible */}
+      {/* Left ribbon — red */}
+      <Path
+        d="M9 17 L7 24 L12 21 Z"
+        fill="#E05A5A"
+      />
+      {/* Right ribbon — Mahi blue */}
+      <Path
+        d="M15 17 L17 24 L12 21 Z"
+        fill="#59c2d7"
+      />
+      {/* Centre ribbon strip */}
+      <Path
+        d="M10.5 17 L11 24 L13 24 L13.5 17 Z"
+        fill={color}
+        opacity={0.5}
+      />
+
+      {/* Echo disc — always #59c2d7, offset (+1.5, +1.5) */}
+      <Circle
+        cx={discCx + 1.5}
+        cy={discCy + 1.5}
+        r={discR}
+        fill="#59c2d7"
+        opacity={0.35}
+      />
+
+      {/* Main disc */}
+      <Circle
+        cx={discCx}
+        cy={discCy}
+        r={discR}
+        fill={filled ? '#59c2d7' : 'transparent'}
+        stroke={filled ? '#59c2d7' : color}
+        strokeWidth={1.5}
+      />
+
+      {/* Count text inside disc */}
+      <SvgText
+        x={discCx}
+        y={discCy + fontSize * 0.38}
+        textAnchor="middle"
+        fontSize={fontSize}
+        fontWeight="bold"
+        fill={textColor}
+        fontFamily="JosefinSans_700Bold"
+      >
+        {countStr}
+      </SvgText>
+    </Svg>
+  );
+}
+
+/**
+ * CommentIcon — speech bubble with Mahi dual-layer echo.
+ * Same double-layer treatment as MessagesIcon.
+ */
+export function CommentIcon({ size, color }: IconProps) {
+  const bubble = "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z";
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Echo layer — #59c2d7, offset */}
+      <G transform="translate(1.5, 1.5)">
+        <Path d={bubble} fill="#59c2d7" opacity={0.35} />
+      </G>
+      {/* Main bubble */}
+      <Path
+        d={bubble}
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
     </Svg>
   );
 }
