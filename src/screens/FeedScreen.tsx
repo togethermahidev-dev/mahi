@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Dimensions,
   Animated,
+  TouchableOpacity,
 } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeed } from '@/hooks/useFeed';
@@ -26,6 +27,10 @@ function relativeTime(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+// Pip dimensions for the feed card
+const FEED_PIP_W = 90;
+const FEED_PIP_H = 120;
+
 function PostItem({ item, dark }: { item: FeedPost; dark: boolean }) {
   const text   = dark ? '#E8E8E3' : '#1A1A17';
   const muted  = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
@@ -34,6 +39,15 @@ function PostItem({ item, dark }: { item: FeedPost; dark: boolean }) {
 
   const name     = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
+
+  // For dual-photo posts: which image is shown full-size
+  // true  = image_url (rear POV) is primary — the default
+  // false = pov_image_url (front selfie) is primary
+  const [rearIsPrimary, setRearIsPrimary] = useState(true);
+
+  const hasDual = !!item.pov_image_url;
+  const primaryUrl = hasDual && !rearIsPrimary ? item.pov_image_url! : item.image_url;
+  const pipUrl     = hasDual && !rearIsPrimary ? item.image_url : item.pov_image_url;
 
   return (
     <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
@@ -57,12 +71,27 @@ function PostItem({ item, dark }: { item: FeedPost; dark: boolean }) {
         </View>
       </View>
 
-      {/* Post image */}
-      <Image
-        source={{ uri: item.image_url }}
-        style={styles.postImage}
-        resizeMode="cover"
-      />
+      {/* Post image — with optional pip overlay for dual-photo posts */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: primaryUrl }}
+          style={styles.postImage}
+          resizeMode="cover"
+        />
+        {hasDual && pipUrl && (
+          <TouchableOpacity
+            style={styles.feedPip}
+            activeOpacity={0.85}
+            onPress={() => setRearIsPrimary(p => !p)}
+          >
+            <Image
+              source={{ uri: pipUrl }}
+              style={[StyleSheet.absoluteFillObject, { borderRadius: 10 }]}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
+        )}
+      </View>
 
       {item.caption ? (
         <Text style={[styles.caption, { color: text }]}>{item.caption}</Text>
@@ -235,9 +264,28 @@ const styles = StyleSheet.create({
     fontFamily: 'JosefinSans_600SemiBold',
     letterSpacing: 2,
   },
+  imageContainer: {
+    position: 'relative',
+  },
   postImage: {
     width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * (9 / 16),
+    height: SCREEN_WIDTH * (16 / 9),
+  },
+  feedPip: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    width: FEED_PIP_W,
+    height: FEED_PIP_H,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.6)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 6,
   },
   caption: {
     padding: 12,

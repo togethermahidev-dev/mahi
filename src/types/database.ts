@@ -63,19 +63,21 @@ export type Database = {
       };
       posts: {
         Row: {
-          id:         string;
-          user_id:    string;
-          image_url:  string;
-          caption:    string | null;
-          streak_day: number;
-          created_at: string;
+          id:            string;
+          user_id:       string;
+          image_url:     string;       // rear / POV photo (default full-screen)
+          pov_image_url: string | null; // front selfie pip (null for legacy single-photo posts)
+          caption:       string | null;
+          streak_day:    number;
+          created_at:    string;
         };
         Insert: {
-          id?:        string;
-          user_id:    string;
-          image_url:  string;
-          caption?:   string | null;
-          streak_day: number;
+          id?:            string;
+          user_id:        string;
+          image_url:      string;
+          pov_image_url?: string | null;
+          caption?:       string | null;
+          streak_day:     number;
         };
         Update: {
           caption?: string | null;

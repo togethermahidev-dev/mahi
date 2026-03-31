@@ -21,6 +21,7 @@ const FEED_SELECT = `
   id,
   user_id,
   image_url,
+  pov_image_url,
   caption,
   streak_day,
   created_at,
@@ -88,15 +89,23 @@ export async function getUserPosts(
 /**
  * Insert a new post record after a successful camera upload.
  */
-export async function createPost(
-  userId:    string,
-  imageUrl:  string,
-  streakDay: number,
-  caption?:  string,
-): Promise<{ data: PostRow | null; error: Error | null }> {
+export async function createPost(opts: {
+  userId:       string;
+  imageUrl:     string;
+  streakDay:    number;
+  caption?:     string;
+  povImageUrl?: string;
+}): Promise<{ data: PostRow | null; error: Error | null }> {
+  const { userId, imageUrl, streakDay, caption, povImageUrl } = opts;
   const { data, error } = await supabase
     .from('posts')
-    .insert({ user_id: userId, image_url: imageUrl, streak_day: streakDay, caption })
+    .insert({
+      user_id:       userId,
+      image_url:     imageUrl,
+      streak_day:    streakDay,
+      caption,
+      pov_image_url: povImageUrl ?? null,
+    })
     .select()
     .single();
 

@@ -113,7 +113,7 @@ Manages the social feed with optimistic post creation.
 **`PendingPost` type:**
 ```ts
 export type PendingPost = FeedPost & { isPending: true };
-// image_url is a local file:// URI until upload confirms
+// image_url and pov_image_url are local file:// URIs until upload confirms
 ```
 
 `[...pending, ...posts]` — pending posts always appear first in the feed.

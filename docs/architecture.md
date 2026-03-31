@@ -73,7 +73,7 @@ onAuthStateChange (session found)
 | Table | Purpose |
 |---|---|
 | `public.profiles` | User profile — display name, avatar, streak counters |
-| `public.posts` | Daily streak photos — one per user per day. Enforced by unique index `posts_user_day_unique (user_id, (created_at AT TIME ZONE 'UTC')::date)` and RLS INSERT policy |
+| `public.posts` | Daily streak photos — one per user per day. `image_url` = rear/POV photo; `pov_image_url` = front selfie (nullable — null on legacy single-photo posts). Enforced by unique index `posts_user_day_unique (user_id, (created_at AT TIME ZONE 'UTC')::date)` and RLS INSERT policy |
 | `public.conversations` | Messaging thread — one row per pair, ordered participants constraint |
 | `public.messages` | Individual messages within a conversation |
 | `public.streak_logs` | Audit log of streak events |
@@ -86,7 +86,7 @@ All tables use Row Level Security (RLS). The `record_upload_streak(p_user_id, p_
 
 | File | Exports |
 |---|---|
-| `posts.ts` | `getFeedPosts`, `getUserPosts`, `createPost`, `FeedPost`, `FeedCursor`, `ProfilePostCursor` |
+| `posts.ts` | `getFeedPosts`, `getUserPosts`, `createPost` (options object), `FeedPost`, `FeedCursor`, `ProfilePostCursor` |
 | `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `ConversationPreview` |
 | `profile.ts` | `getProfile` |
 | `streaks.ts` | `recordUpload`, `getStreakLogs`, `getActiveStreak` |
@@ -174,8 +174,8 @@ Absolute overlay inside `VerticalNavigator` at `zIndex: 200`. `pointerEvents: 'b
 | `WelcomeScreen` | `src/screens/WelcomeScreen.tsx` | Active — sign-up / login |
 | `HorizontalNavigator` | `src/screens/HorizontalNavigator.tsx` | Active — horizontal gesture nav |
 | `VerticalNavigator` | `src/screens/VerticalNavigator.tsx` | Active — vertical gesture nav |
-| `CameraScreen` | `src/screens/CameraScreen.tsx` | Active — camera flip (front/back), photo preview (Modal, slides from right), already-posted guard, optimistic upload + streak |
-| `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()`; post images render at 16:9 aspect ratio (`SCREEN_WIDTH × 9/16`); "SOCIAL FEED" title fades out on scroll (threshold 10px) and fades back in at the top |
+| `CameraScreen` | `src/screens/CameraScreen.tsx` | Active — sequential dual-camera capture (front selfie → auto-flip → rear POV ~800 ms later), dual-photo preview (`DualPhotoPreview` Modal: rear full-screen + draggable front pip, tap pip to swap), already-posted guard, optimistic upload + streak |
+| `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()`; dual-photo posts show a pip overlay (tap to swap primary/pip); single-photo legacy posts render unchanged; post images render at 16:9 aspect ratio (`SCREEN_WIDTH × 9/16`); "SOCIAL FEED" title fades out on scroll (threshold 10px) and fades back in at the top |
 | `HomeScreen` | `src/screens/HomeScreen.tsx` | Placeholder |
 | `SearchScreen` | `src/screens/SearchScreen.tsx` | Placeholder |
 | `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Active — profile + streak stats |

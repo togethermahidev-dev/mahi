@@ -41,7 +41,7 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 | Table | Key Columns | Notes |
 |---|---|---|
 | `public.profiles` | `id`, `username`, `display_name`, `avatar_url`, `streak_current`, `streak_highest`, `streak_lowest`, `streak_last_upload_date` | SELECT open to all authenticated users (feed joins require it) |
-| `public.posts` | `id`, `user_id`, `image_url`, `caption`, `streak_day`, `created_at` | Paginated cursor sort: `created_at DESC, id DESC`. Unique index `posts_user_day_unique` enforces one post per user per UTC day. RLS INSERT policy additionally blocks same-day inserts. |
+| `public.posts` | `id`, `user_id`, `image_url`, `pov_image_url`, `caption`, `streak_day`, `created_at` | `image_url` = rear/POV photo (default full-screen). `pov_image_url` = front selfie pip (nullable — null for legacy single-photo posts). Paginated cursor sort: `created_at DESC, id DESC`. Unique index `posts_user_day_unique` enforces one post per user per UTC day. RLS INSERT policy additionally blocks same-day inserts. |
 | `public.conversations` | `id`, `participant_one`, `participant_two`, `status`, `initiated_by`, `updated_at` | `ordered_participants` unique constraint: `participant_one < participant_two` |
 | `public.messages` | `id`, `conversation_id`, `sender_id`, `content`, `created_at` | Trigger updates `conversations.updated_at` on insert |
 | `public.streak_logs` | `id`, `user_id`, `streak_count`, `started_at`, `ended_at`, `is_active`, `created_at` | Audit log managed by `record_upload_streak` RPC — tracks active and closed streaks |
@@ -67,11 +67,12 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 
 **Bucket: `posts`** (public — images served via CDN)
 
-- Upload path: `{userId}/{timestamp}_{rand}.jpg`
+- Upload paths: `{userId}/{timestamp}_{rand}.jpg` (rear/POV), `{userId}/{timestamp}_{rand}_pov.jpg` (front selfie)
+- Both images are uploaded in parallel via `Promise.all` in `CameraScreen`
 - Upload: `supabase.storage.from('posts').upload(path, buffer, { contentType: 'image/jpeg' })`
 - Public URL: `supabase.storage.from('posts').getPublicUrl(path)` — works correctly because bucket is public
 - Storage policies: users can insert/delete their own files; SELECT is open (public reads)
-- On upload failure after storage succeeds: call `supabase.storage.from('posts').remove([path])` to avoid orphaned objects
+- On upload failure after storage succeeds: call `supabase.storage.from('posts').remove([paths])` to avoid orphaned objects (both paths are cleaned up if either upload fails)
 
 ### Edge Functions
 

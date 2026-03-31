@@ -11,10 +11,11 @@ import {
   Alert,
   Dimensions,
   Modal,
+  PanResponder,
 } from 'react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { BlurView } from 'expo-blur';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import Svg, { Path } from 'react-native-svg';
 import { decode } from 'base64-arraybuffer';
 import { useAuthStore, useUserStore, useFeedStore, useProfilePostsStore } from '@/store';
@@ -26,13 +27,11 @@ import { createPost, recordUpload } from '@/api';
 const PEEK_HEIGHT = 110;
 
 // ─── Midnight Countdown ───────────────────────────────────────────────────────
-// Shows HH:MM:SS remaining until local midnight, ticking every second.
-// Calls onUnlock() when it reaches zero so the camera re-enables without a reload.
 
 function getMsUntilMidnight(): number {
   const now  = new Date();
   const next = new Date(now);
-  next.setHours(24, 0, 0, 0); // next local midnight
+  next.setHours(24, 0, 0, 0);
   return next.getTime() - now.getTime();
 }
 
@@ -134,7 +133,7 @@ function FlipIcon({ color }: { color: string }) {
   );
 }
 
-// ─── Photo Preview ────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -143,24 +142,51 @@ interface CapturedPhoto {
   base64: string;
 }
 
-interface PhotoPreviewProps {
-  photo: CapturedPhoto | null;
-  onDiscard: () => void;
-  onPost: (photo: CapturedPhoto) => void;
+// ─── Dual Photo Preview ───────────────────────────────────────────────────────
+// Full-screen primary + small draggable pip.
+// Rear (POV) is primary by default; front selfie is the pip.
+// Tap pip → swap. Hold + drag pip → reposition.
+
+const PIP_W = 130;
+const PIP_H = 170;
+const PIP_MARGIN = 16;
+
+interface DualPhotoPreviewProps {
+  frontPhoto: CapturedPhoto | null;
+  rearPhoto:  CapturedPhoto | null;
+  onDiscard:  () => void;
+  onPost:     (front: CapturedPhoto, rear: CapturedPhoto) => void;
   isUploading: boolean;
 }
 
-function PhotoPreview({ photo, onDiscard, onPost, isUploading }: PhotoPreviewProps) {
-  const slideAnim    = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+function DualPhotoPreview({
+  frontPhoto,
+  rearPhoto,
+  onDiscard,
+  onPost,
+  isUploading,
+}: DualPhotoPreviewProps) {
+  const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const [modalOpen, setModalOpen] = useState(false);
-  // Hold the last non-null photo so the image stays visible during slide-out
-  const frozenPhoto  = useRef<CapturedPhoto | null>(null);
-  if (photo !== null) frozenPhoto.current = photo;
 
-  const hasPhoto = photo !== null;
+  // Which photo is the full-screen background: 'rear' or 'front'
+  const [primaryFacing, setPrimaryFacing] = useState<'rear' | 'front'>('rear');
+
+  // Pip position — bottom-left by default
+  const pipX = useRef(PIP_MARGIN);
+  const pipY = useRef(SCREEN_HEIGHT - PIP_H - PIP_MARGIN - PEEK_HEIGHT - 80);
+  const pipAnim = useRef(new Animated.ValueXY({ x: pipX.current, y: pipY.current })).current;
+
+  // Frozen refs so image stays visible during slide-out animation
+  const frozenFront = useRef<CapturedPhoto | null>(null);
+  const frozenRear  = useRef<CapturedPhoto | null>(null);
+  if (frontPhoto !== null) frozenFront.current = frontPhoto;
+  if (rearPhoto  !== null) frozenRear.current  = rearPhoto;
+
+  const hasPhotos = frontPhoto !== null && rearPhoto !== null;
 
   useEffect(() => {
-    if (hasPhoto) {
+    if (hasPhotos) {
       setModalOpen(true);
       Animated.spring(slideAnim, {
         toValue: 0,
@@ -170,7 +196,6 @@ function PhotoPreview({ photo, onDiscard, onPost, isUploading }: PhotoPreviewPro
         useNativeDriver: true,
       }).start();
     } else {
-      // Slide out, then close modal and clear the frozen ref
       Animated.spring(slideAnim, {
         toValue: SCREEN_WIDTH,
         damping: 22,
@@ -178,22 +203,61 @@ function PhotoPreview({ photo, onDiscard, onPost, isUploading }: PhotoPreviewPro
         mass: 0.9,
         useNativeDriver: true,
       }).start(() => {
-        frozenPhoto.current = null;
+        frozenFront.current = null;
+        frozenRear.current  = null;
         setModalOpen(false);
+        // Reset pip position for next time
+        pipX.current = PIP_MARGIN;
+        pipY.current = SCREEN_HEIGHT - PIP_H - PIP_MARGIN - PEEK_HEIGHT - 80;
+        pipAnim.setValue({ x: pipX.current, y: pipY.current });
+        setPrimaryFacing('rear');
       });
     }
-  }, [hasPhoto]);
+  }, [hasPhotos]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dx) > 4 || Math.abs(gestureState.dy) > 4,
+      onPanResponderGrant: () => {
+        pipAnim.setOffset({ x: pipX.current, y: pipY.current });
+        pipAnim.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: Animated.event(
+        [null, { dx: pipAnim.x, dy: pipAnim.y }],
+        { useNativeDriver: false },
+      ),
+      onPanResponderRelease: (_, gestureState) => {
+        pipAnim.flattenOffset();
+        // Clamp within screen bounds
+        const rawX = pipX.current + gestureState.dx;
+        const rawY = pipY.current + gestureState.dy;
+        pipX.current = Math.max(PIP_MARGIN, Math.min(rawX, SCREEN_WIDTH  - PIP_W - PIP_MARGIN));
+        pipY.current = Math.max(PIP_MARGIN, Math.min(rawY, SCREEN_HEIGHT - PIP_H - PIP_MARGIN));
+        pipAnim.setValue({ x: pipX.current, y: pipY.current });
+      },
+    }),
+  ).current;
+
+  const handlePipTap = () => {
+    setPrimaryFacing(f => (f === 'rear' ? 'front' : 'rear'));
+  };
 
   const handleDiscard = () => {
-    Alert.alert(
-      'Discard photo?',
-      '',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Discard', style: 'destructive', onPress: onDiscard },
-      ],
-    );
+    Alert.alert('Discard photos?', '', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: onDiscard },
+    ]);
   };
+
+  const primaryUri = primaryFacing === 'rear'
+    ? frozenRear.current?.uri
+    : frozenFront.current?.uri;
+
+  const pipUri = primaryFacing === 'rear'
+    ? frozenFront.current?.uri
+    : frozenRear.current?.uri;
 
   return (
     <Modal
@@ -204,17 +268,35 @@ function PhotoPreview({ photo, onDiscard, onPost, isUploading }: PhotoPreviewPro
       onRequestClose={handleDiscard}
     >
       <Animated.View
-        style={[
-          styles.previewPanel,
-          { transform: [{ translateX: slideAnim }] },
-        ]}
+        style={[styles.previewPanel, { transform: [{ translateX: slideAnim }] }]}
       >
-        {frozenPhoto.current && (
+        {/* Primary full-screen photo */}
+        {primaryUri && (
           <Image
-            source={{ uri: frozenPhoto.current.uri }}
+            source={{ uri: primaryUri }}
             style={StyleSheet.absoluteFillObject}
             resizeMode="cover"
           />
+        )}
+
+        {/* Pip — draggable, tap to swap */}
+        {pipUri && (
+          <Animated.View
+            style={[styles.pip, { transform: pipAnim.getTranslateTransform() }]}
+            {...panResponder.panHandlers}
+          >
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handlePipTap}
+              style={StyleSheet.absoluteFillObject}
+            >
+              <Image
+                source={{ uri: pipUri }}
+                style={[StyleSheet.absoluteFillObject, { borderRadius: 12 }]}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+          </Animated.View>
         )}
 
         {/* Discard — top right */}
@@ -233,7 +315,11 @@ function PhotoPreview({ photo, onDiscard, onPost, isUploading }: PhotoPreviewPro
             style={[styles.postButton, isUploading && { opacity: 0.5 }]}
             activeOpacity={0.82}
             disabled={isUploading}
-            onPress={() => frozenPhoto.current && onPost(frozenPhoto.current)}
+            onPress={() => {
+              if (frozenFront.current && frozenRear.current) {
+                onPost(frozenFront.current, frozenRear.current);
+              }
+            }}
           >
             <Text style={styles.postButtonText}>POST</Text>
           </TouchableOpacity>
@@ -245,16 +331,19 @@ function PhotoPreview({ photo, onDiscard, onPost, isUploading }: PhotoPreviewPro
 
 // ─── CameraScreen ─────────────────────────────────────────────────────────────
 
+type CaptureState = 'idle' | 'front' | 'switching' | 'rear';
+
 export default function CameraScreen(): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [micPermission,    requestMicPermission]    = useMicrophonePermissions();
   const cameraRef = useRef<CameraView>(null);
   const { dark } = useAppTheme();
 
-  const [facing, setFacing]             = useState<'back' | 'front'>('back');
-  const [isCapturing, setIsCapturing]   = useState(false);
-  const [isUploading, setIsUploading]   = useState(false);
-  const [capturedPhoto, setCapturedPhoto] = useState<CapturedPhoto | null>(null);
+  const [facing,       setFacing]       = useState<'back' | 'front'>('front');
+  const [captureState, setCaptureState] = useState<CaptureState>('idle');
+  const [isUploading,  setIsUploading]  = useState(false);
+  const [frontPhoto,   setFrontPhoto]   = useState<CapturedPhoto | null>(null);
+  const [rearPhoto,    setRearPhoto]    = useState<CapturedPhoto | null>(null);
 
   const userId     = useAuthStore((s) => s.user?.id);
   const profile    = useUserStore((s) => s.profile);
@@ -262,8 +351,7 @@ export default function CameraScreen(): React.JSX.Element {
 
   const streakCount = profile?.streak_current ?? 0;
 
-  // Has the user already posted today (local date)?
-  const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+  const today = new Date().toLocaleDateString('en-CA');
   const hasPostedToday = profile?.streak_last_upload_date === today;
 
   useEffect(() => {
@@ -278,41 +366,67 @@ export default function CameraScreen(): React.JSX.Element {
     }
   }, [micPermission?.status]);
 
-  // Step 1: capture only — sets preview state, no upload yet
-  const capturePhoto = async () => {
-    if (!cameraRef.current || isCapturing) return;
-    setIsCapturing(true);
-    // Capture without base64:true — that flag bypasses orientation processing on some devices,
-    // causing the Image component to display the photo rotated. We read base64 separately instead.
+  // Helper: take a photo from whatever camera is currently active
+  const takePhoto = async (): Promise<CapturedPhoto | null> => {
+    if (!cameraRef.current) return null;
     const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
-    setIsCapturing(false);
-    if (!photo?.uri) return;
+    if (!photo?.uri) return null;
     const base64 = await FileSystem.readAsStringAsync(photo.uri, {
       encoding: FileSystem.EncodingType.Base64,
     });
-    setCapturedPhoto({ uri: photo.uri, base64 });
+    return { uri: photo.uri, base64 };
   };
 
-  // Step 2: user confirmed POST — run upload + streak + feed
-  const uploadPhoto = async (photo: CapturedPhoto) => {
+  // Sequential capture: front first, flip, then rear ~800ms later
+  const captureSequence = async () => {
+    if (captureState !== 'idle') return;
+
+    // Step 1: ensure we're on front camera and take the selfie
+    setCaptureState('front');
+    setFacing('front');
+    // Brief pause for camera to settle after potential facing change
+    await new Promise(r => setTimeout(r, 300));
+    const front = await takePhoto();
+    if (!front) {
+      setCaptureState('idle');
+      return;
+    }
+
+    // Step 2: flip to rear and wait for it to initialise
+    setCaptureState('switching');
+    setFacing('back');
+    await new Promise(r => setTimeout(r, 800));
+
+    // Step 3: take the rear POV shot
+    setCaptureState('rear');
+    const rear = await takePhoto();
+    setCaptureState('idle');
+    if (!rear) return;
+
+    setFrontPhoto(front);
+    setRearPhoto(rear);
+  };
+
+  // Upload both photos, create post
+  const uploadPhotos = async (front: CapturedPhoto, rear: CapturedPhoto) => {
     if (!userId || !profile) return;
     setIsUploading(true);
 
     const tempId              = `pending_${Date.now()}`;
     const optimisticStreakDay = profile.streak_current + 1;
 
-    // Optimistic: increment streak badge immediately
     setProfile({ ...profile, streak_current: optimisticStreakDay });
 
-    // Optimistic: add post to feed with local URI
+    // Optimistic feed entry — use rear as primary display image
     useFeedStore.getState().addPending({
-      id:         tempId,
-      isPending:  true,
-      user_id:    userId,
-      image_url:  photo.uri,
-      caption:    null,
-      streak_day: optimisticStreakDay,
-      created_at: new Date().toISOString(),
+      id:            tempId,
+      isPending:     true,
+      user_id:       userId,
+      image_url:     rear.uri,
+      pov_image_url: front.uri,
+      caption:       null,
+      streak_day:    optimisticStreakDay,
+      created_at:    new Date().toISOString(),
       profiles: {
         id:           userId,
         username:     profile.username,
@@ -321,39 +435,45 @@ export default function CameraScreen(): React.JSX.Element {
       },
     });
 
-    // Clear preview immediately so camera returns while upload runs in background
-    setCapturedPhoto(null);
+    // Dismiss preview immediately so camera returns while upload runs
+    setFrontPhoto(null);
+    setRearPhoto(null);
     setIsUploading(false);
 
-    // `today` is already derived at component scope (YYYY-MM-DD local)
-
-    let storagePath: string | null = null;
+    let rearStoragePath:  string | null = null;
+    let frontStoragePath: string | null = null;
 
     try {
-      const buffer = decode(photo.base64);
-      storagePath  = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+      const rearBuffer  = decode(rear.base64);
+      const frontBuffer = decode(front.base64);
+      const timestamp   = Date.now();
+      rearStoragePath   = `${userId}/${timestamp}_${Math.random().toString(36).slice(2)}.jpg`;
+      frontStoragePath  = `${userId}/${timestamp}_${Math.random().toString(36).slice(2)}_pov.jpg`;
 
-      const { data: storageData, error: storageErr } = await supabase.storage
-        .from('posts')
-        .upload(storagePath, buffer, { contentType: 'image/jpeg', upsert: false });
-      if (storageErr) throw new Error(storageErr.message);
+      // Upload both in parallel
+      const [rearUpload, frontUpload] = await Promise.all([
+        supabase.storage.from('posts').upload(rearStoragePath,  rearBuffer,  { contentType: 'image/jpeg', upsert: false }),
+        supabase.storage.from('posts').upload(frontStoragePath, frontBuffer, { contentType: 'image/jpeg', upsert: false }),
+      ]);
+      if (rearUpload.error)  throw new Error(rearUpload.error.message);
+      if (frontUpload.error) throw new Error(frontUpload.error.message);
 
-      const { data: urlData } = supabase.storage.from('posts').getPublicUrl(storageData.path);
+      const rearUrl  = supabase.storage.from('posts').getPublicUrl(rearUpload.data.path).data.publicUrl;
+      const frontUrl = supabase.storage.from('posts').getPublicUrl(frontUpload.data.path).data.publicUrl;
 
-      // Record streak first — so streak_day on the post is authoritative
       const { data: streakResult, error: streakErr } = await recordUpload(userId, today);
       if (streakErr) throw streakErr;
 
       const confirmedStreakDay = streakResult?.streak_current ?? optimisticStreakDay;
 
-      const { data: postData, error: postErr } = await createPost(
+      const { data: postData, error: postErr } = await createPost({
         userId,
-        urlData.publicUrl,
-        confirmedStreakDay,
-      );
+        imageUrl:    rearUrl,
+        povImageUrl: frontUrl,
+        streakDay:   confirmedStreakDay,
+      });
       if (postErr) throw postErr;
 
-      // Confirm: swap pending post → real confirmed post
       if (postData) {
         useFeedStore.getState().confirmPending(tempId, {
           ...postData,
@@ -368,7 +488,6 @@ export default function CameraScreen(): React.JSX.Element {
         useProfilePostsStore.getState().addPost(postData);
       }
 
-      // Sync streak using authoritative RPC values — read fresh store state to avoid stale closure
       if (streakResult) {
         const current = useUserStore.getState().profile;
         if (current) {
@@ -382,35 +501,33 @@ export default function CameraScreen(): React.JSX.Element {
         }
       }
     } catch (err) {
-      console.error('[uploadPhoto] upload failed', err);
-      // Rollback optimistic UI
+      console.error('[uploadPhotos] upload failed', err);
       useFeedStore.getState().removePending(tempId);
       const current = useUserStore.getState().profile;
       if (current) setProfile({ ...current, streak_current: profile.streak_current });
-      // Clean up orphaned storage object
-      if (storagePath) {
-        supabase.storage.from('posts').remove([storagePath]).catch(() => {});
-      }
+      // Clean up any orphaned storage objects
+      const toRemove = [rearStoragePath, frontStoragePath].filter(Boolean) as string[];
+      if (toRemove.length) supabase.storage.from('posts').remove(toRemove).catch(() => {});
     }
   };
 
   const handleDiscard = () => {
-    setCapturedPhoto(null);
+    setFrontPhoto(null);
+    setRearPhoto(null);
   };
 
-  // Still loading — OS hasn't returned permission status yet
   if (!cameraPermission || !micPermission) {
     return <View style={styles.root} />;
   }
 
   const cameraGranted = cameraPermission.granted;
   const micGranted    = micPermission.granted;
+  const shutterRing   = dark ? '#FFFFFF' : '#1A1A17';
+  const shutterFill   = dark ? '#FFFFFF' : '#1A1A17';
+  const flipColor     = '#FFFFFF';
 
-  const shutterRing = dark ? '#FFFFFF' : '#1A1A17';
-  const shutterFill = dark ? '#FFFFFF' : '#1A1A17';
-  const flipColor   = '#FFFFFF';
+  const isCapturing = captureState !== 'idle';
 
-  // One or both permissions missing
   if (!cameraGranted || !micGranted) {
     let message: string;
     if (!cameraGranted && !micGranted) {
@@ -443,32 +560,33 @@ export default function CameraScreen(): React.JSX.Element {
     );
   }
 
-  // Both permissions granted — full camera experience
+  // Capture state label shown while sequencing
+  const captureLabel =
+    captureState === 'front'     ? 'SELFIE...' :
+    captureState === 'switching' ? 'SWITCHING...' :
+    captureState === 'rear'      ? 'POV...' : null;
+
   return (
     <View style={styles.root}>
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
 
       <StreakBadge count={streakCount} />
 
-      {/* Already posted today — countdown to local midnight unlock */}
+      {/* Capture progress overlay */}
+      {captureLabel && (
+        <View style={styles.captureLabelWrap}>
+          <Text style={styles.captureLabel}>{captureLabel}</Text>
+        </View>
+      )}
+
       {hasPostedToday && (
         <MidnightCountdown onUnlock={() => {
-          // Recalculate today — it's now a new day, profile date no longer matches
-          // The hasPostedToday derived value will re-evaluate on next render
           setProfile({ ...useUserStore.getState().profile! });
         }} />
       )}
 
-      {/* Bottom controls: [flip] [shutter] [spacer] */}
       <View style={styles.controlsRow}>
-        <TouchableOpacity
-          style={[styles.flipButton, hasPostedToday && { opacity: 0.3 }]}
-          activeOpacity={0.75}
-          onPress={() => setFacing(f => f === 'back' ? 'front' : 'back')}
-          disabled={isCapturing || hasPostedToday}
-        >
-          <FlipIcon color={flipColor} />
-        </TouchableOpacity>
+        <View style={styles.flipButton} />
 
         <TouchableOpacity
           style={[
@@ -481,20 +599,20 @@ export default function CameraScreen(): React.JSX.Element {
           ]}
           activeOpacity={0.82}
           disabled={isCapturing || hasPostedToday}
-          onPress={capturePhoto}
+          onPress={captureSequence}
         >
           <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
         </TouchableOpacity>
 
-        {/* Spacer — keeps shutter centred */}
+        {/* Spacer */}
         <View style={styles.flipButton} />
       </View>
 
-      {/* Photo preview — slides in from the right as its own Modal layer */}
-      <PhotoPreview
-        photo={capturedPhoto}
+      <DualPhotoPreview
+        frontPhoto={frontPhoto}
+        rearPhoto={rearPhoto}
         onDiscard={handleDiscard}
-        onPost={uploadPhoto}
+        onPost={uploadPhotos}
         isUploading={isUploading}
       />
     </View>
@@ -528,7 +646,23 @@ const styles = StyleSheet.create({
     marginTop: 3,
     lineHeight: 11,
   },
-  // ── Already posted today ──────────────────────────────────────────────────
+  captureLabelWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'none',
+  },
+  captureLabel: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontFamily: 'JosefinSans_700Bold',
+    letterSpacing: 4,
+    opacity: 0.9,
+  },
   postedOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
@@ -557,7 +691,6 @@ const styles = StyleSheet.create({
     opacity: 0.55,
     letterSpacing: 1,
   },
-  // ── Bottom controls row ───────────────────────────────────────────────────
   controlsRow: {
     position: 'absolute',
     bottom: PEEK_HEIGHT + 32,
@@ -591,7 +724,7 @@ const styles = StyleSheet.create({
     height: 58,
     borderRadius: 29,
   },
-  // ── Photo preview ─────────────────────────────────────────────────────────
+  // ── Preview panel ─────────────────────────────────────────────────────────
   previewPanel: {
     position: 'absolute',
     top: 0,
@@ -599,6 +732,20 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
     backgroundColor: '#111111',
+  },
+  pip: {
+    position: 'absolute',
+    width: PIP_W,
+    height: PIP_H,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.6)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
   },
   discardButton: {
     position: 'absolute',

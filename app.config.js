@@ -57,7 +57,7 @@ const config = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.mahi.app',
-    buildNumber: '7',
+    buildNumber: '8',
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription: 'Mahi uses the camera to power your fitness accountability features.',
@@ -76,7 +76,7 @@ const config = {
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#F5F5F0',
+      backgroundColor: '#59c2d7',
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
