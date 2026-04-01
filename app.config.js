@@ -43,13 +43,13 @@ const config = {
     [
       'expo-splash-screen',
       {
-        image: './assets/splash-icon.png',
+        image: './assets/icon.png',
         resizeMode: 'contain',
-        backgroundColor: '#F5F5F0',
+        backgroundColor: '#59c2d7',
         dark: {
-          image: './assets/splash-icon.png',
+          image: './assets/icon.png',
           resizeMode: 'contain',
-          backgroundColor: '#0F0F0D',
+          backgroundColor: '#59c2d7',
         },
       },
     ],

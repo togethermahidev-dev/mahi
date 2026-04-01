@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Constants from 'expo-constants';
 
-const LIGHT_BG = '#F5F5F0';
-const DARK_BG = '#0F0F0D';
+const BG = '#59c2d7';
 const TEXT_COLOR = '#FFFFFF';
+const ECHO_COLOR = 'rgba(255,255,255,0.3)';
 
 // Read once at module level — these never change at runtime
 const version = Constants.expoConfig?.version ?? '';
@@ -17,11 +17,8 @@ interface Props {
 }
 
 export default function SplashScreen({ onLayout }: Props): React.JSX.Element {
-  const colorScheme = useColorScheme();
-  const backgroundColor = colorScheme === 'dark' ? DARK_BG : LIGHT_BG;
-
   return (
-    <View style={[styles.container, { backgroundColor }]} onLayout={onLayout}>
+    <View style={styles.container} onLayout={onLayout}>
       <View style={styles.titleWrapper}>
         <Text style={[styles.title, styles.titleEcho]}>MAHI</Text>
         <Text style={styles.title}>MAHI</Text>
@@ -32,9 +29,9 @@ export default function SplashScreen({ onLayout }: Props): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: BG },
   titleWrapper: { position: 'relative' },
-  titleEcho: { position: 'absolute', color: '#59c2d7', top: 3, left: 3 },
+  titleEcho: { position: 'absolute', color: ECHO_COLOR, top: 3, left: 3 },
   title: { color: TEXT_COLOR, fontSize: 48, fontWeight: '700', letterSpacing: 8 },
   version: { color: TEXT_COLOR, fontSize: 11, position: 'absolute', bottom: 40 },
 });
