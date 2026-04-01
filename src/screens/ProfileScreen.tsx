@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAuthStore, useUserStore } from '@/store';
 import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import SettingsPanel from '@/components/SettingsPanel';
 import { SettingsIcon } from '@/components/ScreenIcons';
+import AvatarPicker from '@/components/AvatarPicker';
 
 export default function ProfileScreen(): React.JSX.Element {
   const { dark } = useAppTheme();
@@ -15,8 +16,9 @@ export default function ProfileScreen(): React.JSX.Element {
   const muted   = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
   const toggleColor = dark ? '#E8E8E3' : '#1A1A17';
 
-  const profile = useUserStore((s) => s.profile);
-  const userId  = useAuthStore((s) => s.user?.id);
+  const profile    = useUserStore((s) => s.profile);
+  const setProfile = useUserStore((s) => s.setProfile);
+  const userId     = useAuthStore((s) => s.user?.id);
 
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
   const initials    = displayName[0]?.toUpperCase() ?? '?';
@@ -41,15 +43,16 @@ export default function ProfileScreen(): React.JSX.Element {
       {/* Profile header — avatar, name, stats */}
       <View style={styles.header}>
         {/* Avatar */}
-        <View style={styles.avatarWrap}>
-          {profile?.avatar_url ? (
-            <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: muted }]}>
-              <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
-            </View>
-          )}
-        </View>
+        {profile && userId && (
+          <AvatarPicker
+            avatarUrl={profile.avatar_url}
+            initials={initials}
+            isSelf={userId === profile.id}
+            userId={userId}
+            colors={{ bg, text, muted }}
+            onUpdate={(newUrl) => setProfile({ ...profile, avatar_url: newUrl })}
+          />
+        )}
 
         {/* Name + handle */}
         <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
@@ -113,22 +116,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 32,
     width: '100%',
-  },
-  avatarWrap: {
-    marginBottom: 20,
-  },
-  avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-  },
-  avatarFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitial: {
-    fontSize: 36,
-    fontFamily: 'JosefinSans_700Bold',
   },
   displayName: {
     fontSize: 22,

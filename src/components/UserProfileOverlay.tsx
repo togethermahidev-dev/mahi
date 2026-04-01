@@ -1,0 +1,208 @@
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  TouchableWithoutFeedback,
+} from 'react-native';
+import { getProfile, createOrGetConversation } from '@/api';
+import { useAuthStore } from '@/store';
+import type { ConversationPreview } from '@/api';
+import type { Database } from '@/types';
+
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+
+interface UserProfileOverlayProps {
+  userId:      string;
+  onClose:     () => void;
+  onOpenConvo: (conversation: ConversationPreview) => void;
+  dark:        boolean;
+}
+
+export default function UserProfileOverlay({
+  userId,
+  onClose,
+  onOpenConvo,
+  dark,
+}: UserProfileOverlayProps): React.JSX.Element {
+  const currentUserId = useAuthStore((s) => s.user?.id);
+
+  const text   = dark ? '#E8E8E3' : '#1A1A17';
+  const muted  = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const cardBg = dark ? '#2A2A27' : '#F5F5F2';
+
+  const [profile,   setProfile]   = useState<ProfileRow | null>(null);
+  const [loading,   setLoading]   = useState(true);
+  const [messaging, setMessaging] = useState(false);
+
+  useEffect(() => {
+    getProfile(userId).then(({ data }) => {
+      setProfile(data ?? null);
+      setLoading(false);
+    });
+  }, [userId]);
+
+  const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
+  const initials    = displayName[0]?.toUpperCase() ?? '?';
+
+  const handleMessage = async () => {
+    if (!currentUserId || !profile || messaging) return;
+    setMessaging(true);
+    const { data, error } = await createOrGetConversation(currentUserId, userId);
+    setMessaging(false);
+    if (!error && data) {
+      onOpenConvo(data);
+      onClose();
+    }
+  };
+
+  const isSelf = currentUserId === userId;
+
+  return (
+    <View style={styles.backdrop}>
+      {/* Tapping the backdrop closes */}
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={StyleSheet.absoluteFill} />
+      </TouchableWithoutFeedback>
+
+      {/* Card */}
+      <View style={[styles.card, { backgroundColor: cardBg }]}>
+        {loading ? (
+          <ActivityIndicator color={muted} style={styles.loader} />
+        ) : (
+          <>
+            <View style={styles.avatarWrap}>
+              {profile?.avatar_url ? (
+                <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: muted }]}>
+                  <Text style={[styles.avatarInitial, { color: cardBg }]}>{initials}</Text>
+                </View>
+              )}
+            </View>
+
+            <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
+            {profile?.username ? (
+              <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
+            ) : null}
+
+            <View style={styles.statsRow}>
+              <View style={styles.stat}>
+                <Text style={[styles.statValue, { color: text }]}>{profile?.streak_current ?? 0}</Text>
+                <Text style={[styles.statLabel, { color: muted }]}>STREAK</Text>
+              </View>
+              <View style={[styles.statDivider, { backgroundColor: muted }]} />
+              <View style={styles.stat}>
+                <Text style={[styles.statValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
+                <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
+              </View>
+            </View>
+
+            {!isSelf ? (
+              <TouchableOpacity
+                style={[styles.messageBtn, { borderColor: text, opacity: messaging ? 0.5 : 1 }]}
+                onPress={handleMessage}
+                activeOpacity={0.75}
+                disabled={messaging}
+              >
+                <Text style={[styles.messageBtnText, { color: text }]}>
+                  {messaging ? '…' : 'MESSAGE'}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex:          20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+  card: {
+    width:             '80%',
+    borderRadius:      20,
+    paddingTop:        32,
+    paddingBottom:     28,
+    paddingHorizontal: 24,
+    alignItems:        'center',
+    gap:               6,
+  },
+  loader: {
+    marginVertical: 40,
+  },
+  avatarWrap: {
+    marginBottom: 12,
+  },
+  avatar: {
+    width:        80,
+    height:       80,
+    borderRadius: 40,
+  },
+  avatarFallback: {
+    alignItems:     'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    fontSize:   28,
+    fontFamily: 'JosefinSans_700Bold',
+  },
+  displayName: {
+    fontSize:      18,
+    fontFamily:    'JosefinSans_700Bold',
+    letterSpacing: 3,
+    textAlign:     'center',
+    marginBottom:  2,
+  },
+  handle: {
+    fontSize:      13,
+    fontFamily:    'JosefinSans_400Regular_Italic',
+    marginBottom:  16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems:    'center',
+    gap:           24,
+    marginBottom:  20,
+  },
+  stat: {
+    alignItems: 'center',
+    gap:        3,
+  },
+  statValue: {
+    fontSize:   22,
+    fontFamily: 'JosefinSans_700Bold',
+    lineHeight: 22,
+  },
+  statLabel: {
+    fontSize:      9,
+    fontFamily:    'JosefinSans_600SemiBold',
+    letterSpacing: 3,
+  },
+  statDivider: {
+    width:   1,
+    height:  32,
+    opacity: 0.3,
+  },
+  messageBtn: {
+    borderWidth:       1,
+    borderRadius:      50,
+    paddingHorizontal: 28,
+    paddingVertical:   9,
+    marginTop:         4,
+  },
+  messageBtnText: {
+    fontSize:      11,
+    fontFamily:    'JosefinSans_700Bold',
+    letterSpacing: 3,
+  },
+});

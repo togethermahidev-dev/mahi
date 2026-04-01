@@ -7,7 +7,7 @@ const MAX_ATTEMPTS = 3;
 
 // App Store review bypass — allows review team to sign up without a real email
 const BYPASS_EMAIL = 'appreview@togethermahi.com';
-const BYPASS_CODE = '123456';
+const BYPASS_CODE = '1234';
 
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -21,7 +21,7 @@ export interface OTPState {
 }
 
 export async function sendOTP(email: string): Promise<void> {
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const code = Math.floor(1000 + Math.random() * 9000).toString();
 
   const state: OTPState = {
     email: email.toLowerCase(),

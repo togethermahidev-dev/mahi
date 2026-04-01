@@ -58,3 +58,11 @@ export async function searchProfiles(
   if (error) return { data: null, error: new Error(error.message) };
   return { data: data as ProfileSearchResult[], error: null };
 }
+
+/** Update a user's avatar URL in the profiles table. */
+export async function updateAvatarUrl(userId: string, avatarUrl: string) {
+  return supabase
+    .from('profiles')
+    .update({ avatar_url: avatarUrl })
+    .eq('id', userId);
+}

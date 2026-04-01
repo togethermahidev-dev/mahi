@@ -64,9 +64,9 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
   const [error, setError]             = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Step 2 — OTP boxes (6 digits, single entry)
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const otpRefs       = useRef<(RNTextInput | null)[]>(Array(6).fill(null));
+  // Step 2 — OTP boxes (4 digits, single entry)
+  const [otp, setOtp] = useState(['', '', '', '']);
+  const otpRefs       = useRef<(RNTextInput | null)[]>(Array(4).fill(null));
 
   // Step 2 — countdown timer & resend cooldown
   const [secondsLeft, setSecondsLeft]   = useState(600);
@@ -158,9 +158,9 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
     const next = [...arr];
     next[i] = val.slice(-1);
     setArr(next);
-    if (val && i < 5) refs.current[i + 1]?.focus();
+    if (val && i < 3) refs.current[i + 1]?.focus();
     // Auto-advance when last digit is entered (pass code directly to avoid stale state)
-    if (val && i === 5) handleStep2Next(next.join(''));
+    if (val && i === 3) handleStep2Next(next.join(''));
   };
 
   const handleOtpKeyPress = (
@@ -180,7 +180,7 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
     setError('');
     setLoading(false);
     setShowPassword(false);
-    setOtp(Array(6).fill(''));
+    setOtp(Array(4).fill(''));
     setUsernameStatus('idle');
     setEmailExists(false);
     clearOTP();
@@ -218,7 +218,7 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
   // codeOverride used by auto-advance (avoids stale otp state after setOtp)
   const handleStep2Next = async (codeOverride?: string) => {
     const code = codeOverride ?? otp.join('');
-    if (code.length < 6) { setError('Enter the 6-digit code.'); return; }
+    if (code.length < 4) { setError('Enter the 4-digit code.'); return; }
     setError('');
     setLoading(true);
     const result = await verifyOTP(code);
@@ -241,7 +241,7 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
     setLoading(true);
     try {
       await sendOTP(email.trim());
-      setOtp(Array(6).fill(''));
+      setOtp(Array(4).fill(''));
       setResendReady(false);
       setSecondsLeft(600);
       setTimeout(() => setResendReady(true), 60_000);
@@ -491,7 +491,7 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
                     maxLength={1}
                     textAlign="center"
                     // iOS autofill — place on last input so it triggers after all 6 digits fill
-                    textContentType={i === 5 ? 'oneTimeCode' : 'none'}
+                    textContentType={i === 3 ? 'oneTimeCode' : 'none'}
                   />
                 ))}
               </View>

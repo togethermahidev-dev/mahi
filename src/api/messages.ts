@@ -127,3 +127,89 @@ export async function sendMessage(
   if (error) return { data: null, error: new Error(error.message) };
   return { data, error: null };
 }
+
+/**
+ * Create a new conversation or return the existing one between two users.
+ * Uses LEAST/GREATEST ordering so the unique constraint on (participant_one, participant_two)
+ * is always satisfied regardless of argument order.
+ */
+export async function createOrGetConversation(
+  senderId:   string,
+  receiverId: string,
+): Promise<{ data: ConversationPreview | null; error: Error | null }> {
+  const p1 = senderId < receiverId ? senderId : receiverId;
+  const p2 = senderId < receiverId ? receiverId : senderId;
+
+  // Upsert — ignore duplicate (existing conversation stays as-is)
+  const { error: upsertErr } = await supabase
+    .from('conversations')
+    .upsert(
+      { participant_one: p1, participant_two: p2, status: 'requested', initiated_by: senderId },
+      { onConflict: 'participant_one,participant_two', ignoreDuplicates: true },
+    );
+
+  if (upsertErr) return { data: null, error: new Error(upsertErr.message) };
+
+  // Fetch the conversation (existing or newly created) with full preview shape
+  const { data: convos, error: fetchErr } = await supabase
+    .from('conversations')
+    .select(CONVO_SELECT)
+    .eq('participant_one', p1)
+    .eq('participant_two', p2)
+    .single();
+
+  if (fetchErr || !convos) return { data: null, error: new Error(fetchErr?.message ?? 'Not found') };
+
+  const otherId = convos.participant_one === senderId ? convos.participant_two : convos.participant_one;
+  const { data: profile, error: profErr } = await supabase
+    .from('profiles')
+    .select('id, username, display_name, avatar_url')
+    .eq('id', otherId)
+    .single();
+
+  if (profErr || !profile) return { data: null, error: new Error(profErr?.message ?? 'Profile not found') };
+
+  const rawMsgs = ((convos as typeof convos & { messages?: MsgRow[] }).messages ?? []);
+  const sorted  = rawMsgs.slice().sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
+  const { messages: _msgs, ...convoFields } = convos as typeof convos & { messages: MsgRow[] };
+
+  const preview: ConversationPreview = {
+    ...convoFields,
+    other_profile: profile,
+    last_message:  sorted[0] ?? null,
+    is_requester:  convos.initiated_by === senderId,
+  };
+
+  return { data: preview, error: null };
+}
+
+/** Delete a conversation (used for DENY). Cascades to messages via FK. */
+export async function deleteConversation(
+  conversationId: string,
+): Promise<{ error: Error | null }> {
+  const { error } = await supabase
+    .from('conversations')
+    .delete()
+    .eq('id', conversationId);
+
+  if (error) return { error: new Error(error.message) };
+  return { error: null };
+}
+
+/** Fetch all messages for a conversation, oldest first. */
+export async function getMessages(
+  conversationId: string,
+): Promise<{ data: MsgRow[] | null; error: Error | null }> {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('id, conversation_id, sender_id, content, created_at')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: true });
+
+  if (error) return { data: null, error: new Error(error.message) };
+  return { data: data ?? [], error: null };
+}
+
+export type { MsgRow };
