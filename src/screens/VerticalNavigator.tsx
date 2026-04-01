@@ -66,9 +66,10 @@ export default function VerticalNavigator({
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchVisible, setSearchVisible] = useState(false);
-  const activeIndexRef = useRef(0);
-  const baseOffsetRef  = useRef(0);
-  const tapeAnim       = useRef(new Animated.Value(0)).current;
+  const activeIndexRef    = useRef(0);
+  const baseOffsetRef     = useRef(0);
+  const feedScrollAtTop   = useRef(true);
+  const tapeAnim          = useRef(new Animated.Value(0)).current;
 
   // Snap the tape to a target screen with a spring animation and haptic.
   const navigateTo = (index: number) => {
@@ -87,8 +88,13 @@ export default function VerticalNavigator({
   const panResponder = useRef(
     PanResponder.create({
       // Claim vertical swipes; let horizontal gestures pass to HorizontalNavigator.
-      onMoveShouldSetPanResponder: (_e, { dx, dy }) =>
-        Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10,
+      // On the feed screen (index 1), only claim a downward swipe (back to camera)
+      // when the feed scroll is at the top — otherwise let the FlashList scroll.
+      onMoveShouldSetPanResponder: (_e, { dx, dy }) => {
+        if (Math.abs(dy) <= Math.abs(dx) || Math.abs(dy) <= 10) return false;
+        if (activeIndexRef.current === 1 && dy > 0 && !feedScrollAtTop.current) return false;
+        return true;
+      },
 
       onPanResponderGrant: (evt) => {
         tapeAnim.stopAnimation();
@@ -192,7 +198,11 @@ export default function VerticalNavigator({
               ]}
             >
               {isNearby ? (
-                <Component />
+                key === 'feed' ? (
+                  <FeedScreen onScrollTopChange={(atTop) => { feedScrollAtTop.current = atTop; }} />
+                ) : (
+                  <Component />
+                )
               ) : (
                 <View
                   style={[
@@ -222,6 +232,7 @@ export default function VerticalNavigator({
         activeIndex={activeIndex}
         dark={activeIndex === 0 ? true : dark}
         icons={SCREEN_ICONS}
+        onDotPress={navigateTo}
       />
 
       {/* Global search overlay — triggered by pull-down from Camera screen */}

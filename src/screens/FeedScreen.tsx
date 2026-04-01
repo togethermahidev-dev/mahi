@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeed } from '@/hooks/useFeed';
@@ -180,26 +181,6 @@ function PostItem({ item, dark, width }: { item: FeedPost; dark: boolean; width:
 
   return (
     <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-      {/* Header: avatar + username + streak day badge */}
-      <View style={styles.cardHeader}>
-        <View style={styles.avatarRow}>
-          {item.profiles.avatar_url ? (
-            <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: muted }]}>
-              <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
-            </View>
-          )}
-          <View style={styles.userInfo}>
-            <Text style={[styles.username, { color: text }]}>{name}</Text>
-            <Text style={[styles.time, { color: muted }]}>{relativeTime(item.created_at)}</Text>
-          </View>
-        </View>
-        <View style={[styles.streakBadge, { backgroundColor: muted }]}>
-          <Text style={[styles.streakText, { color: text }]}>DAY {item.streak_day}</Text>
-        </View>
-      </View>
-
       {/* Post image — double-tap to like */}
       <GestureDetector gesture={doubleTap}>
         <View style={[styles.imageContainer, { width }]}>
@@ -208,6 +189,28 @@ function PostItem({ item, dark, width }: { item: FeedPost; dark: boolean; width:
             style={{ width, height: width * (16 / 9) }}
             resizeMode="cover"
           />
+          {/* Overlay gradient + post metadata */}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.6)', 'transparent']}
+            style={styles.postOverlay}
+          >
+            <View style={styles.avatarRow}>
+              {item.profiles.avatar_url ? (
+                <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: 'rgba(255,255,255,0.3)' }]}>
+                  <Text style={styles.avatarInitial}>{initials}</Text>
+                </View>
+              )}
+              <View style={styles.userInfo}>
+                <Text style={styles.usernameOverlay}>{name}</Text>
+                <Text style={styles.timeOverlay}>{relativeTime(item.created_at)}</Text>
+              </View>
+            </View>
+            <View style={styles.streakBadge}>
+              <Text style={styles.streakText}>DAY {item.streak_day}</Text>
+            </View>
+          </LinearGradient>
           {hasDual && pipUrl && (
             <TouchableOpacity
               style={styles.feedPip}
@@ -235,7 +238,7 @@ function PostItem({ item, dark, width }: { item: FeedPost; dark: boolean; width:
                 },
               ]}
             >
-              <LikeIcon size={80} color={text} filled count={likeCount} />
+              <LikeIcon size={80} color="#FFFFFF" filled count={likeCount} />
             </Animated.View>
           )}
         </View>
@@ -302,7 +305,11 @@ function PostItem({ item, dark, width }: { item: FeedPost; dark: boolean; width:
 
 // ─── FeedScreen ──────────────────────────────────────────────────────────────
 
-export default function FeedScreen(): React.JSX.Element {
+interface FeedScreenProps {
+  onScrollTopChange?: (atTop: boolean) => void;
+}
+
+export default function FeedScreen({ onScrollTopChange }: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
   const { width: screenWidth } = useWindowDimensions();
   const bg    = dark ? '#1C1C19' : '#FFFFFF';
@@ -337,12 +344,20 @@ export default function FeedScreen(): React.JSX.Element {
   const lastScrollY  = useRef(0);
   const headerOffset = useRef(new Animated.Value(0)).current;
 
+  const atTopRef = useRef(true);
+
   const handleScroll = (e: any) => {
     const y     = e.nativeEvent.contentOffset.y;
     const delta = y - lastScrollY.current;
     lastScrollY.current = y;
 
-    if (y <= 2) {
+    const isAtTop = y <= 2;
+    if (isAtTop !== atTopRef.current) {
+      atTopRef.current = isAtTop;
+      onScrollTopChange?.(isAtTop);
+    }
+
+    if (isAtTop) {
       Animated.timing(headerOffset, { toValue: 0, duration: 150, useNativeDriver: true }).start();
       return;
     }
@@ -459,11 +474,17 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
   },
-  cardHeader: {
+  postOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingTop: 14,
+    paddingBottom: 32,
   },
   avatarRow: {
     flexDirection: 'row',
@@ -482,28 +503,33 @@ const styles = StyleSheet.create({
   avatarInitial: {
     fontSize: 14,
     fontFamily: 'JosefinSans_700Bold',
+    color: '#FFFFFF',
   },
   userInfo: {
     gap: 2,
   },
-  username: {
+  usernameOverlay: {
     fontSize: 13,
     fontFamily: 'JosefinSans_600SemiBold',
     letterSpacing: 1.5,
+    color: '#FFFFFF',
   },
-  time: {
+  timeOverlay: {
     fontSize: 11,
     fontFamily: 'JosefinSans_400Regular_Italic',
+    color: 'rgba(255,255,255,0.75)',
   },
   streakBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   streakText: {
     fontSize: 10,
     fontFamily: 'JosefinSans_600SemiBold',
     letterSpacing: 2,
+    color: '#FFFFFF',
   },
   imageContainer: {
     position: 'relative',

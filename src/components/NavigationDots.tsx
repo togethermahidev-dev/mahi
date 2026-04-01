@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { IconProps } from '@/components/ScreenIcons';
 
 interface NavigationDotsProps {
@@ -7,6 +7,7 @@ interface NavigationDotsProps {
   activeIndex: number;
   dark: boolean;
   icons: React.ComponentType<IconProps>[];
+  onDotPress?: (index: number) => void;
 }
 
 // Active dot: rounded square with icon inside
@@ -20,6 +21,7 @@ export default function NavigationDots({
   activeIndex,
   dark,
   icons,
+  onDotPress,
 }: NavigationDotsProps): React.JSX.Element {
   const dotAnims = useRef<Animated.Value[]>(
     Array.from({ length: count }, (_, i) => new Animated.Value(i === 0 ? 1 : 0)),
@@ -41,7 +43,7 @@ export default function NavigationDots({
   const iconColor = dark ? '#1A1A17' : '#FFFFFF'; // icon contrasts against the filled dot bg
 
   return (
-    <View style={styles.container} pointerEvents="none">
+    <View style={styles.container}>
       {dotAnims.map((anim, i) => {
         const size = anim.interpolate({
           inputRange: [0, 1],
@@ -64,24 +66,29 @@ export default function NavigationDots({
         const Icon = icons[i];
 
         return (
-          <Animated.View
+          <TouchableOpacity
             key={i}
-            style={[
-              styles.dot,
-              {
-                width: size,
-                height: size,
-                borderRadius: radius,
-                backgroundColor: dotColor,
-                opacity: dotOpacity,
-              },
-            ]}
+            activeOpacity={0.7}
+            onPress={() => onDotPress?.(i)}
           >
-            {/* Icon fades in when dot becomes active */}
-            <Animated.View style={{ opacity: iconOpacity }}>
-              <Icon size={14} color={iconColor} />
+            <Animated.View
+              style={[
+                styles.dot,
+                {
+                  width: size,
+                  height: size,
+                  borderRadius: radius,
+                  backgroundColor: dotColor,
+                  opacity: dotOpacity,
+                },
+              ]}
+            >
+              {/* Icon fades in when dot becomes active */}
+              <Animated.View style={{ opacity: iconOpacity }}>
+                <Icon size={14} color={iconColor} />
+              </Animated.View>
             </Animated.View>
-          </Animated.View>
+          </TouchableOpacity>
         );
       })}
     </View>
