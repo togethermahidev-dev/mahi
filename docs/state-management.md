@@ -193,7 +193,7 @@ useProfilePostsStore.getState().addPost(postData);
 
 ### `useMessagesStore` — `src/store/messagesStore.ts`
 
-Manages conversation inbox and message requests with optimistic accept.
+Manages conversation inbox, message requests, and real-time inbox subscriptions.
 
 | Field | Type | Description |
 |---|---|---|
@@ -203,9 +203,15 @@ Manages conversation inbox and message requests with optimistic accept.
 
 | Action | Description |
 |---|---|
-| `sync(userId)` | Parallel fetch of inbox + requests. Guard against concurrent calls. |
-| `accept(conversationId)` | Optimistically move request → inbox; rolls back on API failure |
-| `reset()` | Clear all state on sign-out |
+| `sync(userId)` | Parallel fetch of inbox + requests. Guards against concurrent calls. |
+| `accept(conversationId)` | Optimistically move request → inbox; rolls back on API failure. |
+| `deny(conversationId)` | Optimistically remove from requests and delete the conversation; rolls back on failure. |
+| `patchConversationLastMessage(conversationId, msg)` | Update the `last_message` preview and `updated_at` for a conversation in both `inbox` and `requests`. Called by `useConversation` after every send/receive. |
+| `subscribeToInbox(userId)` | Open two Supabase Realtime channels (one filtered by `participant_one`, one by `participant_two`) to receive new conversations and status updates in real-time. Idempotent — no-op if already subscribed. |
+| `unsubscribeFromInbox(userId)` | Tear down both inbox channels. |
+| `reset()` | Close all channels and clear all state on sign-out. |
+
+**Two-channel inbox subscription pattern:** `postgres_changes` bypasses RLS at the WAL level, so a single unfiltered channel would transmit all conversation rows to every client. The store instead opens two filtered channels per user — `inbox_p1:{userId}` (filter: `participant_one=eq.{userId}`) and `inbox_p2:{userId}` (filter: `participant_two=eq.{userId}`) — so only rows where the user is a participant cross the wire.
 
 **Usage:**
 ```ts
@@ -214,7 +220,11 @@ const requests = useMessagesStore((s) => s.requests);
 
 useMessagesStore.getState().sync(userId);
 useMessagesStore.getState().accept(conversationId);
+useMessagesStore.getState().deny(conversationId);
+useMessagesStore.getState().patchConversationLastMessage(conversationId, msg);
 ```
+
+Prefer using `useMessages()` in components — it wraps the store and manages the subscription lifecycle automatically.
 
 ---
 

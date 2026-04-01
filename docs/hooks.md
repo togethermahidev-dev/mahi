@@ -93,12 +93,12 @@ Each `FeedPost` now includes `like_count: number`, `comment_count: number`, and 
 
 ## `useMessages` — `src/hooks/useMessages.ts`
 
-Thin wrapper over `useMessagesStore`. Triggers store sync on first mount if the store is empty.
+Thin wrapper over `useMessagesStore`. Triggers store sync and inbox real-time subscription on first mount.
 
 ```ts
 import { useMessages } from '@/hooks/useMessages';
 
-const { inbox, requests, isLoading, refresh, accept, send } = useMessages();
+const { inbox, requests, isLoading, refresh, accept, deny, send, startConversation } = useMessages();
 ```
 
 **Return shape:**
@@ -109,10 +109,36 @@ const { inbox, requests, isLoading, refresh, accept, send } = useMessages();
 | `requests` | `ConversationPreview[]` | Pending message requests |
 | `isLoading` | `boolean` | `true` only on true first-ever load |
 | `refresh` | `() => void` | Force re-fetch inbox + requests |
-| `accept` | `(id: string) => Promise<void>` | Optimistically accept a request (via store) |
-| `send` | `(convId, content) => Promise<MsgRow \| null>` | Send a message (direct API call) |
+| `accept` | `(id: string) => Promise<void>` | Optimistically accept a request — moves to inbox immediately, rolls back on API failure |
+| `deny` | `(id: string) => Promise<void>` | Optimistically remove a request — deletes the conversation, rolls back on failure |
+| `send` | `(convId, content) => Promise<MsgRow \| null>` | Send a message (direct API call, used by `useConversation`) |
+| `startConversation` | `(otherUserId: string) => Promise<ConversationPreview \| null>` | Create or retrieve an existing conversation — upserts via `createOrGetConversation`, injects result into the store |
 
-`accept` is fully optimistic — the request moves to inbox immediately; rolls back on API failure.
+The `useEffect` inside `useMessages` also calls `subscribeToInbox(userId)` and unsubscribes on cleanup — so any component mounting this hook gets live inbox updates for free.
+
+---
+
+## `useConversation` — `src/hooks/useConversation.ts`
+
+Manages the full state for a single open conversation thread. Used exclusively by `ConversationScreen`.
+
+```ts
+import { useConversation } from '@/hooks/useConversation';
+
+const { messages, isLoading, send } = useConversation(conversationId);
+```
+
+**Return shape:**
+
+| Field | Type | Description |
+|---|---|---|
+| `messages` | `MsgRow[]` | All messages in the conversation, oldest first |
+| `isLoading` | `boolean` | `true` while history is being fetched on mount |
+| `send` | `(content: string) => Promise<void>` | Optimistic send — appends a temp bubble instantly, replaces with confirmed row on success, removes on failure |
+
+**Real-time:** subscribes to `messages` INSERT events filtered by `conversation_id` on mount. Incoming rows are deduped — if a temp message from the same sender exists it is replaced by the confirmed row; otherwise the incoming message is appended. On unmount the channel is removed via `supabase.removeChannel`.
+
+**Preview sync:** every confirmed message (both sent and received via real-time) calls `useMessagesStore.getState().patchConversationLastMessage(conversationId, msg)` so the `ConvoRow` preview in `MessagesScreen` stays current without a full re-sync.
 
 ---
 
@@ -137,4 +163,5 @@ const supabase = useSupabase();
 - Hooks read from Zustand stores via selectors — no local `useState` for data that belongs in a store
 - `isLoading` follows the pattern: `isSyncing && storeIsEmpty` — never `isSyncing` alone
 - Trigger store actions via `useStore.getState().action()` to avoid stale closure issues
-- `send` in `useMessages` is a direct API call (conversation detail is out of scope for the store layer)
+- `send` in `useMessages` is a direct API call; `useConversation` owns the local message state for a thread
+- Real-time subscriptions that span multiple components (inbox) live in a hook `useEffect`; subscriptions scoped to a single screen (conversation thread) live in the hook for that screen (`useConversation`)

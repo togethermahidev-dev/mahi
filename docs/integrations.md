@@ -44,8 +44,8 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 | `public.posts` | `id`, `user_id`, `image_url`, `pov_image_url`, `caption`, `streak_day`, `created_at` | `image_url` = rear/POV photo (default full-screen). `pov_image_url` = front selfie pip (nullable — null for legacy single-photo posts). Paginated cursor sort: `created_at DESC, id DESC`. Unique index `posts_user_day_unique` enforces one post per user per UTC day. RLS INSERT policy additionally blocks same-day inserts. |
 | `public.post_likes` | `id`, `post_id`, `user_id`, `created_at` | Unique constraint `(post_id, user_id)`. RLS: authenticated read-all; insert/delete own only (`auth.uid() = user_id`). |
 | `public.post_comments` | `id`, `post_id`, `user_id`, `content`, `created_at` | Ordered oldest-first. RLS: authenticated read-all; insert/delete own only. |
-| `public.conversations` | `id`, `participant_one`, `participant_two`, `status`, `initiated_by`, `updated_at` | `ordered_participants` unique constraint: `participant_one < participant_two` |
-| `public.messages` | `id`, `conversation_id`, `sender_id`, `content`, `created_at` | Trigger updates `conversations.updated_at` on insert |
+| `public.conversations` | `id`, `participant_one`, `participant_two`, `status`, `initiated_by`, `updated_at` | `participant_one < participant_two` enforced by `ordered_participants` CHECK constraint. `conversations_participants_unique` UNIQUE INDEX on `(participant_one, participant_two)` required for upsert `ON CONFLICT`. `REPLICA IDENTITY FULL` set for Realtime UPDATE/DELETE events. |
+| `public.messages` | `id`, `conversation_id`, `sender_id`, `content`, `created_at` | Trigger updates `conversations.updated_at` on insert. `REPLICA IDENTITY FULL` set for Realtime. Immutable — no UPDATE or DELETE. |
 | `public.streak_logs` | `id`, `user_id`, `streak_count`, `started_at`, `ended_at`, `is_active`, `created_at` | Audit log managed by `record_upload_streak` RPC — tracks active and closed streaks |
 
 ### Database Indexes
@@ -53,6 +53,9 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 | Index | Table | Definition | Purpose |
 |---|---|---|---|
 | `posts_user_day_unique` | `public.posts` | `UNIQUE (user_id, ((created_at AT TIME ZONE 'UTC')::date))` | Enforces one post per user per UTC calendar day at the DB layer |
+| `conversations_participants_unique` | `public.conversations` | `UNIQUE (participant_one, participant_two)` | Enables `ON CONFLICT (participant_one, participant_two)` upsert for `createOrGetConversation` |
+| `convos_p1_idx` | `public.conversations` | `(participant_one, updated_at DESC)` | Fast fetch of conversations where user is participant_one, sorted by recency |
+| `convos_p2_idx` | `public.conversations` | `(participant_two, updated_at DESC)` | Fast fetch of conversations where user is participant_two, sorted by recency |
 
 ### Database Functions
 
@@ -99,20 +102,48 @@ All Edge Functions are deployed with `verify_jwt: false` (pre-auth flows).
 
 ### Realtime
 
-Supabase Realtime (`postgres_changes`) is used for live social updates on the feed.
+Supabase Realtime (`postgres_changes`) is used for live social updates on the feed and for live messaging.
 
-**Subscription scope:** `socialStore` opens one channel per visible post (`social:{postId}`). Channels are managed from `FeedScreen` via `onViewableItemsChanged` — only posts currently in the viewport maintain an open channel (~3–5 at a time). The store uses ref-counting so a channel is created once and destroyed only when truly no longer needed.
+Both `conversations` and `messages` tables are added to the `supabase_realtime` publication with `REPLICA IDENTITY FULL`, ensuring all columns are present in WAL events for UPDATE and DELETE.
 
-**Events subscribed:**
+**Important:** `postgres_changes` bypasses RLS at the WAL level — row data is transmitted to all subscribers before any RLS check. Use server-side `filter:` on channels wherever possible to limit data transmitted over the wire.
+
+#### Social feed subscriptions (per-post)
+
+`socialStore` opens one channel per visible post (`social:{postId}`). Channels are managed from `FeedScreen` via `onViewableItemsChanged` — only posts currently in the viewport maintain an open channel (~3–5 at a time). The store uses ref-counting so a channel is created once and destroyed only when truly no longer needed.
+
+**Events:**
 - `post_likes` — any change (`*`) on a post → re-fetch authoritative count → `feedStore.patchPost`
 - `post_comments` — `INSERT` on a post → append to `socialStore.comments[postId]` if loaded + `patchPost comment_count +1`
 
-**Channel lifecycle:**
 ```ts
-useSocialStore.getState().subscribeToPost(postId);   // call from FeedScreen onViewableItemsChanged
+useSocialStore.getState().subscribeToPost(postId);    // FeedScreen onViewableItemsChanged
 useSocialStore.getState().unsubscribeFromPost(postId);
 useSocialStore.getState().reset();  // on sign-out — closes all channels
 ```
+
+#### Inbox subscriptions (per-user)
+
+`messagesStore` opens two channels per authenticated user to receive new conversations and status changes. Two channels are required because a user can be either `participant_one` or `participant_two`, and `postgres_changes` supports only a single equality `filter` per subscription.
+
+| Channel key | Filter | Events | Handler |
+|---|---|---|---|
+| `inbox_p1:{userId}` | `participant_one=eq.{userId}` | INSERT, UPDATE | INSERT → `sync(userId)`; UPDATE `status=active` → optimistic move request → inbox |
+| `inbox_p2:{userId}` | `participant_two=eq.{userId}` | INSERT, UPDATE | Same as above |
+
+```ts
+useMessagesStore.getState().subscribeToInbox(userId);   // called by useMessages() useEffect
+useMessagesStore.getState().unsubscribeFromInbox(userId);
+useMessagesStore.getState().reset();  // on sign-out — closes all channels
+```
+
+#### Conversation subscriptions (per-thread)
+
+`useConversation` hook opens one channel per open conversation thread. Managed entirely within the hook's `useEffect` — created on mount, removed on unmount via `supabase.removeChannel(channel)`.
+
+| Channel key | Filter | Event | Handler |
+|---|---|---|---|
+| `convo:{conversationId}` | `conversation_id=eq.{conversationId}` | INSERT | Dedup and append message; call `patchConversationLastMessage` to update inbox preview |
 
 ---
 

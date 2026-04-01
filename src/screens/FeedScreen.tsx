@@ -19,9 +19,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeed } from '@/hooks/useFeed';
-import { useFeedStore, useSocialStore, useUserStore } from '@/store';
+import { useFeedStore, useSocialStore, useUserStore, useAuthStore } from '@/store';
 import { LikeIcon, CommentIcon } from '@/components/ScreenIcons';
-import type { FeedPost } from '@/api';
+import UserProfileOverlay from '@/components/UserProfileOverlay';
+import ConversationScreen from '@/screens/ConversationScreen';
+import type { FeedPost, ConversationPreview } from '@/api';
 import type { CommentWithProfile } from '@/api/social';
 
 // AppHeader: paddingTop (60 ios / 32 android) + inner row (~36px) + paddingBottom (12)
@@ -70,7 +72,17 @@ function CommentRow({ comment, dark }: { comment: CommentWithProfile; dark: bool
 
 // ─── PostItem ────────────────────────────────────────────────────────────────
 
-function PostItem({ item, dark, width }: { item: FeedPost; dark: boolean; width: number }) {
+function PostItem({
+  item,
+  dark,
+  width,
+  onAvatarPress,
+}: {
+  item: FeedPost;
+  dark: boolean;
+  width: number;
+  onAvatarPress: (userId: string) => void;
+}) {
   const text   = dark ? '#E8E8E3' : '#1A1A17';
   const muted  = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
   const border = dark ? 'rgba(232,232,227,0.1)'  : 'rgba(26,26,23,0.1)';
@@ -206,7 +218,11 @@ function PostItem({ item, dark, width }: { item: FeedPost; dark: boolean; width:
             colors={['rgba(0,0,0,0.6)', 'transparent']}
             style={styles.postOverlay}
           >
-            <View style={styles.avatarRow}>
+            <TouchableOpacity
+              style={styles.avatarRow}
+              onPress={() => onAvatarPress(item.profiles.id)}
+              activeOpacity={0.75}
+            >
               {item.profiles.avatar_url ? (
                 <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
               ) : (
@@ -218,7 +234,7 @@ function PostItem({ item, dark, width }: { item: FeedPost; dark: boolean; width:
                 <Text style={styles.usernameOverlay}>{name}</Text>
                 <Text style={styles.timeOverlay}>{relativeTime(item.created_at)}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
             <View style={styles.streakBadge}>
               <Text style={styles.streakText}>DAY {item.streak_day}</Text>
             </View>
@@ -331,6 +347,18 @@ export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreen
 
   const { posts, isLoading, error, hasMore, loadMore, refresh } = useFeed();
 
+  // Profile overlay + conversation overlay — lifted to FeedScreen so overlays
+  // cover the full screen (not just the PostItem card)
+  const [profileUserId, setProfileUserId]   = useState<string | null>(null);
+  const [activeConvo,   setActiveConvo]     = useState<ConversationPreview | null>(null);
+  const currentUserId = useAuthStore((s) => s.user?.id);
+
+  const handleAvatarPress = useCallback((userId: string) => {
+    // Don't open overlay for own profile
+    if (userId === currentUserId) return;
+    setProfileUserId(userId);
+  }, [currentUserId]);
+
   // ── Realtime subscriptions — managed at screen level via viewable items ──
   const visiblePostIds = useRef(new Set<string>());
 
@@ -389,7 +417,9 @@ export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreen
       <FlashList
         data={posts}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <PostItem item={item} dark={dark} width={screenWidth} />}
+        renderItem={({ item }) => (
+          <PostItem item={item} dark={dark} width={screenWidth} onAvatarPress={handleAvatarPress} />
+        )}
         estimatedItemSize={screenWidth * (16 / 9) + 72}
         contentContainerStyle={styles.list}
         ListHeaderComponent={listHeader}
@@ -424,6 +454,27 @@ export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreen
         }
       />
 
+      {/* Profile overlay — shown when another user's avatar is tapped */}
+      {profileUserId ? (
+        <UserProfileOverlay
+          userId={profileUserId}
+          onClose={() => setProfileUserId(null)}
+          onOpenConvo={(convo) => {
+            setProfileUserId(null);
+            setActiveConvo(convo);
+          }}
+          dark={dark}
+        />
+      ) : null}
+
+      {/* Conversation screen overlay — opened from profile overlay */}
+      {activeConvo && currentUserId ? (
+        <ConversationScreen
+          conversation={activeConvo}
+          currentUserId={currentUserId}
+          onBack={() => setActiveConvo(null)}
+        />
+      ) : null}
     </View>
   );
 }

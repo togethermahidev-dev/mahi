@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMessages } from '@/hooks/useMessages';
+import { useAuthStore } from '@/store';
+import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview } from '@/api';
 
 const TABS = ['INBOX', 'REQUESTS'] as const;
@@ -29,17 +31,21 @@ function relativeTime(iso: string): string {
 function ConvoRow({
   item,
   showAccept,
+  onPress,
   onAccept,
+  onDeny,
   text,
   muted,
   border,
 }: {
-  item:        ConversationPreview;
-  showAccept:  boolean;
-  onAccept?:   () => void;
-  text:        string;
-  muted:       string;
-  border:      string;
+  item:       ConversationPreview;
+  showAccept: boolean;
+  onPress:    () => void;
+  onAccept?:  () => void;
+  onDeny?:    () => void;
+  text:       string;
+  muted:      string;
+  border:     string;
 }) {
   const name     = item.other_profile.display_name ?? item.other_profile.username;
   const initials = (item.other_profile.username ?? '?')[0].toUpperCase();
@@ -50,7 +56,11 @@ function ConvoRow({
     : '';
 
   return (
-    <View style={[styles.convoRow, { borderBottomColor: border }]}>
+    <TouchableOpacity
+      style={[styles.convoRow, { borderBottomColor: border }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       {/* Avatar */}
       {item.other_profile.avatar_url ? (
         <Image source={{ uri: item.other_profile.avatar_url }} style={styles.convoAvatar} />
@@ -68,22 +78,35 @@ function ConvoRow({
         ) : null}
       </View>
 
-      {/* Right side: timestamp or accept button */}
+      {/* Right side: timestamp + action buttons */}
       <View style={styles.convoRight}>
         <Text style={[styles.convoTime, { color: muted }]}>
           {relativeTime(item.updated_at)}
         </Text>
-        {showAccept && onAccept ? (
-          <TouchableOpacity
-            style={[styles.acceptBtn, { borderColor: text }]}
-            onPress={onAccept}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.acceptText, { color: text }]}>ACCEPT</Text>
-          </TouchableOpacity>
+        {showAccept ? (
+          <View style={styles.actionBtns}>
+            {onAccept ? (
+              <TouchableOpacity
+                style={[styles.actionBtn, { borderColor: text }]}
+                onPress={(e) => { e.stopPropagation?.(); onAccept(); }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.actionBtnText, { color: text }]}>ACCEPT</Text>
+              </TouchableOpacity>
+            ) : null}
+            {onDeny ? (
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.denyBtn]}
+                onPress={(e) => { e.stopPropagation?.(); onDeny(); }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.actionBtnText, styles.denyText]}>DENY</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
         ) : null}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -97,7 +120,10 @@ export default function MessagesScreen(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<TabIndex>(0);
   const indicatorAnim = useRef(new Animated.Value(0)).current;
 
-  const { inbox, requests, isLoading, refresh, accept } = useMessages();
+  const [openConvo, setOpenConvo] = useState<ConversationPreview | null>(null);
+
+  const { inbox, requests, isLoading, refresh, accept, deny } = useMessages();
+  const userId = useAuthStore((s) => s.user?.id);
 
   const switchTab = (index: TabIndex) => {
     setActiveTab(index);
@@ -147,7 +173,7 @@ export default function MessagesScreen(): React.JSX.Element {
               transform: [
                 {
                   translateX: indicatorAnim.interpolate({
-                    inputRange: [0, 1],
+                    inputRange:  [0, 1],
                     outputRange: ['0%', '100%'],
                   }),
                 },
@@ -167,6 +193,7 @@ export default function MessagesScreen(): React.JSX.Element {
               <ConvoRow
                 item={item}
                 showAccept={false}
+                onPress={() => setOpenConvo(item)}
                 text={text}
                 muted={muted}
                 border={border}
@@ -191,7 +218,9 @@ export default function MessagesScreen(): React.JSX.Element {
               <ConvoRow
                 item={item}
                 showAccept={true}
+                onPress={() => setOpenConvo(item)}
                 onAccept={() => accept(item.id)}
+                onDeny={() => deny(item.id)}
                 text={text}
                 muted={muted}
                 border={border}
@@ -210,6 +239,15 @@ export default function MessagesScreen(): React.JSX.Element {
           />
         )}
       </View>
+
+      {/* ConversationScreen overlay */}
+      {openConvo && userId ? (
+        <ConversationScreen
+          conversation={openConvo}
+          currentUserId={userId}
+          onBack={() => setOpenConvo(null)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -219,111 +257,120 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 32,
+    paddingTop:        Platform.OS === 'ios' ? 60 : 32,
     paddingHorizontal: 24,
-    paddingBottom: 16,
+    paddingBottom:     16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
+    alignItems:        'center',
   },
   headerTitle: {
-    fontSize: 24,
-    fontFamily: 'JosefinSans_700Bold',
+    fontSize:      24,
+    fontFamily:    'JosefinSans_700Bold',
     letterSpacing: 8,
   },
   tabBar: {
-    flexDirection: 'row',
-    height: 48,
+    flexDirection:     'row',
+    height:            48,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    position: 'relative',
+    position:          'relative',
   },
   tab: {
-    flex: 1,
-    alignItems: 'center',
+    flex:           1,
+    alignItems:     'center',
     justifyContent: 'center',
   },
   tabLabel: {
-    fontSize: 12,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontSize:      12,
+    fontFamily:    'JosefinSans_600SemiBold',
     letterSpacing: 3,
   },
   indicator: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    width: '50%',
-    height: 2,
+    position:     'absolute',
+    bottom:       0,
+    left:         0,
+    width:        '50%',
+    height:       2,
     borderRadius: 1,
   },
   content: {
     flex: 1,
   },
   convoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection:     'row',
+    alignItems:        'center',
     paddingHorizontal: 24,
-    paddingVertical: 14,
+    paddingVertical:   14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 12,
+    gap:               12,
   },
   convoAvatar: {
-    width: 44,
-    height: 44,
+    width:        44,
+    height:       44,
     borderRadius: 22,
   },
   convoAvatarFallback: {
-    alignItems: 'center',
+    alignItems:     'center',
     justifyContent: 'center',
   },
   convoInitial: {
-    fontSize: 16,
+    fontSize:   16,
     fontFamily: 'JosefinSans_700Bold',
   },
   convoInfo: {
     flex: 1,
-    gap: 3,
+    gap:  3,
   },
   convoName: {
-    fontSize: 13,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontSize:      13,
+    fontFamily:    'JosefinSans_600SemiBold',
     letterSpacing: 1.5,
   },
   convoPreview: {
-    fontSize: 12,
+    fontSize:   12,
     fontFamily: 'JosefinSans_400Regular_Italic',
   },
   convoRight: {
     alignItems: 'flex-end',
-    gap: 6,
+    gap:        6,
   },
   convoTime: {
-    fontSize: 11,
+    fontSize:   11,
     fontFamily: 'JosefinSans_400Regular_Italic',
   },
-  acceptBtn: {
-    borderWidth: 1,
-    borderRadius: 50,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+  actionBtns: {
+    gap: 5,
   },
-  acceptText: {
-    fontSize: 10,
-    fontFamily: 'JosefinSans_600SemiBold',
+  actionBtn: {
+    borderWidth:       1,
+    borderRadius:      50,
+    paddingHorizontal: 12,
+    paddingVertical:   4,
+  },
+  denyBtn: {
+    borderColor: '#FF6B6B',
+  },
+  actionBtnText: {
+    fontSize:      10,
+    fontFamily:    'JosefinSans_600SemiBold',
     letterSpacing: 2,
   },
+  denyText: {
+    color: '#FF6B6B',
+  },
   placeholder: {
-    flex: 1,
-    alignItems: 'center',
+    flex:           1,
+    alignItems:     'center',
     justifyContent: 'center',
-    paddingTop: 60,
-    gap: 8,
+    paddingTop:     60,
+    gap:            8,
   },
   placeholderTitle: {
-    fontSize: 20,
-    fontFamily: 'JosefinSans_700Bold',
+    fontSize:      20,
+    fontFamily:    'JosefinSans_700Bold',
     letterSpacing: 6,
   },
   placeholderSub: {
-    fontSize: 13,
+    fontSize:   13,
     fontFamily: 'JosefinSans_400Regular_Italic',
   },
 });

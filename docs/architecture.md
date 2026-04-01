@@ -30,10 +30,10 @@ mahi-fitness/
 │   ├── api/            # Supabase query functions (posts, messages, profile, streaks, auth)
 │   ├── lib/            # Singleton clients (Supabase, PostHog, Sentry)
 │   ├── store/          # Zustand global state (feedStore, messagesStore, authStore, userStore, …)
-│   ├── hooks/          # Thin store wrappers + utility hooks
+│   ├── hooks/          # Thin store wrappers + utility hooks (useMessages, useConversation, …)
 │   ├── types/          # TypeScript types — database.ts is the source of truth for DB shapes
-│   ├── components/     # Shared UI components (AppHeader, NavigationDots, ThemeToggle)
-│   └── screens/        # Screen-level components
+│   ├── components/     # Shared UI components (AppHeader, NavigationDots, ThemeToggle, UserProfileOverlay, AvatarPicker)
+│   └── screens/        # Screen-level components (including ConversationScreen)
 ├── docs/               # Project documentation
 ├── assets/             # Images, icons, splash
 ├── App.tsx             # Root component — auth subscription + store hydration
@@ -65,9 +65,19 @@ Store confirm / rollback
 ```
 onAuthStateChange (session found)
     │
-    ├── getProfile(userId)         → useUserStore.setProfile()
-    ├── useFeedStore.sync()        → background, non-blocking
-    └── useMessagesStore.sync()    → background, non-blocking
+    ├── getProfile(userId)              → useUserStore.setProfile()
+    ├── useFeedStore.sync()             → background, non-blocking
+    └── useMessagesStore.sync(userId)   → background, non-blocking
+
+useMessages() mount (MessagesScreen)
+    │
+    └── useMessagesStore.subscribeToInbox(userId)
+            ├── channel inbox_p1:{userId}  → participant_one=eq.{userId}
+            └── channel inbox_p2:{userId}  → participant_two=eq.{userId}
+
+useConversation(conversationId) mount (ConversationScreen)
+    │
+    └── channel convo:{conversationId}  → conversation_id=eq.{conversationId}
 ```
 
 ---
@@ -94,7 +104,7 @@ All tables use Row Level Security (RLS). Two Postgres RPCs handle social interac
 |---|---|
 | `posts.ts` | `getFeedPosts` (via `get_feed_posts` RPC — returns `like_count`, `comment_count`, `liked_by_me`), `getUserPosts`, `createPost`, `FeedPost`, `FeedCursor`, `ProfilePostCursor` |
 | `social.ts` | `toggleLike` (single-RPC atomic toggle), `getComments`, `addComment`, `CommentWithProfile` |
-| `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `ConversationPreview` |
+| `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `createOrGetConversation`, `deleteConversation`, `getMessages`, `ConversationPreview`, `MsgRow` |
 | `profile.ts` | `getProfile` |
 | `streaks.ts` | `recordUpload`, `getStreakLogs`, `getActiveStreak` |
 | `auth.ts` | Auth helpers |
@@ -196,8 +206,9 @@ Props:
 | `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()`; post metadata (avatar, username, timestamp, streak pill) overlaid on the image via `LinearGradient` (dark-to-transparent from top); dual-photo posts show a pip overlay (tap to swap); single-photo legacy posts render unchanged; 16:9 aspect ratio; header hide/show driven by scroll via `headerAnim` prop; scroll-top state reported via `onScrollTopChange` prop; all interactions console-logged with `[FeedScreen]` prefix |
 | `HomeScreen` | `src/screens/HomeScreen.tsx` | Placeholder |
 | `SearchScreen` | `src/screens/SearchScreen.tsx` | Placeholder |
-| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Active — profile + streak stats |
-| `MessagesScreen` | `src/screens/MessagesScreen.tsx` | Active — inbox + requests from `useMessages()` |
+| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Active — own profile, streak stats, avatar picker (`AvatarPicker` component) |
+| `MessagesScreen` | `src/screens/MessagesScreen.tsx` | Active — inbox + requests from `useMessages()`; tapping a row opens `ConversationScreen` as an absolute overlay; REQUESTS tab has ACCEPT and DENY pill buttons |
+| `ConversationScreen` | `src/screens/ConversationScreen.tsx` | Active — individual message thread; inverted `FlatList` bubbles; real-time via `useConversation`; request banner (ACCEPT/DENY) shown to receiver on unaccepted conversations |
 | `InAppAnimationScreen` | `src/screens/InAppAnimationScreen.tsx` | Active — post-login entry animation |
 
 ---
