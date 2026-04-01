@@ -83,6 +83,12 @@ Each `FeedPost` now includes `like_count: number`, `comment_count: number`, and 
 
 **Zero-skeleton guarantee:** once the store has any data, `isLoading` is always `false` across re-mounts. `FeedScreen` never shows a skeleton after first load.
 
+**`FeedScreen` props** (set by `VerticalNavigator`):
+- `headerAnim?: Animated.Value` — scroll-driven value (0–`APP_HEADER_H`) that `VerticalNavigator` uses to translate the `AppHeader` off-screen on scroll-down
+- `onScrollTopChange?: (atTop: boolean) => void` — fired when the list crosses `y <= 2`; used by `VerticalNavigator` to gate the swipe-back-to-camera gesture
+
+**Double-tap gesture:** uses `Gesture.Tap().numberOfTaps(2).runOnJS(true)` — `.runOnJS(true)` is required so the callback runs on the JS thread where Zustand store references are accessible.
+
 ---
 
 ## `useMessages` — `src/hooks/useMessages.ts`

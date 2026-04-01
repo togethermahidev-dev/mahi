@@ -116,6 +116,28 @@ useSocialStore.getState().reset();  // on sign-out — closes all channels
 
 ---
 
+## expo-linear-gradient
+
+**Status: Active**
+
+Used for two gradient overlays:
+
+1. **`AppHeader` background** — `LinearGradient` fills the header absolutely, fading from opaque at the top to transparent at the bottom. Dark mode / Camera: `rgba(17,17,17,0.88) → rgba(17,17,17,0)`. Light mode: `rgba(255,255,255,0.92) → rgba(255,255,255,0)`.
+
+2. **Post image overlay** (`FeedScreen` `PostItem`) — `LinearGradient` positioned absolutely over the top of each post image (`colors={['rgba(0,0,0,0.6)', 'transparent']}`), providing contrast for the overlaid username, timestamp, and streak pill.
+
+Installed via `npx expo install expo-linear-gradient` (SDK 55 compatible version `~55.0.9`).
+
+---
+
+## expo-blur
+
+**Status: Active (available, not currently used in UI)**
+
+Installed as `~55.0.10`. Available for future frosted-glass effects if needed.
+
+---
+
 ## PostHog — `src/lib/posthog.ts`
 
 **Status: Placeholder (not active)**

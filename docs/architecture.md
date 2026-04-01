@@ -13,6 +13,10 @@ Mahi Fitness is a React Native fitness application built with Expo. Users take a
 | Backend / Auth | Supabase | ^2.96.0 |
 | State Management | Zustand | ^5.0.11 |
 | Session Storage | AsyncStorage | ^2.2.0 |
+| List Rendering | @shopify/flash-list | — |
+| Gestures | react-native-gesture-handler | — |
+| Gradients | expo-linear-gradient | ~55.0.9 |
+| Blur | expo-blur | ~55.0.10 |
 | Analytics | PostHog *(placeholder)* | ^4.35.0 |
 | Error Tracking | Sentry *(placeholder)* | ^8.0.0 |
 
@@ -112,18 +116,15 @@ The app uses **state-driven navigation** — no React Navigation. Transitions ar
 │   ProfileScreen     │  VerticalNavigator   │   MessagesScreen     │
 │  (horizontal left)  │  (center, default)   │ (horizontal right)   │
 │                     │  ↕ swipe up/down ↕   │                      │
-│                     │  Camera              │                      │
-│                     │  Home (PRO)          │                      │
-│                     │  Search              │                      │
-│                     │                      │                      │
-│                     │  + SOCIAL FEED pill  │                      │
-│                     │  (Modal overlay)     │                      │
+│                     │  Camera (index 0)    │                      │
+│                     │  FeedScreen (index 1)│                      │
 └─────────────────────┴──────────────────────┴──────────────────────┘
 ```
 
 Gesture ownership is axis-exclusive:
 - `HorizontalNavigator`: claims `Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10`
 - `VerticalNavigator`: claims `Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10`
+- **Scroll guard:** on `FeedScreen` (index 1), downward swipes (back to Camera) are only claimed when the feed's `FlashList` is scrolled to the top (`y <= 2`). This prevents the navigator from stealing scroll gestures mid-feed.
 
 ### Horizontal Navigator (`src/screens/HorizontalNavigator.tsx`)
 
@@ -141,6 +142,7 @@ Spring params: `damping: 22, stiffness: 160, mass: 0.9`. Rubber-band at both end
 |---|---|---|
 | `PEEK_HEIGHT` | `110` | Strip of the next screen visible at the bottom |
 | `SLOT_HEIGHT` | `SCREEN_HEIGHT - PEEK_HEIGHT` | Visible height per active screen |
+| `APP_HEADER_H` | `108` (iOS) / `80` (Android) | Height used for header animation range |
 
 Each slot is `SCREEN_HEIGHT` tall, positioned at `top: i * SLOT_HEIGHT`. Active screen translated to fill viewport. Top `PEEK_HEIGHT` px of the next slot bleeds through naturally.
 
@@ -150,22 +152,35 @@ Render gating: only screens within ±1 index of `activeIndex` are fully mounted.
 
 | Index | Screen |
 |---|---|
-| 0 | Camera |
-| 1 | Home |
-| 2 | Search |
+| 0 | `CameraScreen` |
+| 1 | `FeedScreen` |
 
-The social feed is accessed via the floating `SOCIAL FEED ↑` pill in `HorizontalNavigator`, which opens `FeedModal` — it is not a vertical navigator slot.
+`FeedScreen` receives two props from `VerticalNavigator`:
+- `onScrollTopChange(atTop: boolean)` — fired when scroll crosses the `y <= 2` threshold; used to gate the swipe-back-to-camera gesture
+- `headerAnim` — an `Animated.Value` (range 0–`APP_HEADER_H`) that `FeedScreen` drives via its scroll handler; `VerticalNavigator` applies this as a `translateY` on the `AppHeader` wrapper so the header slides off-screen on scroll-down and returns on scroll-up
 
 ### App Header (`src/components/AppHeader.tsx`)
 
-Absolute overlay inside `VerticalNavigator` at `zIndex: 200`. `pointerEvents: 'box-none'` so touches pass through to screen content.
+Wrapped in an `Animated.View` inside `VerticalNavigator` at `zIndex: 200`, with `pointerEvents: 'box-none'` so touches pass through to screen content. The wrapper applies `translateY` from `headerAnim` to slide the header off-screen when the feed is scrolled down.
+
+The header has a `LinearGradient` background (`expo-linear-gradient`) that fades vertically from opaque to transparent:
+- Dark mode / Camera: `rgba(17,17,17,0.88) → rgba(17,17,17,0)`
+- Light mode: `rgba(255,255,255,0.92) → rgba(255,255,255,0)`
 
 ```
 [ ● ProfilePill ]      MAHI      [ ✉ MessagesIcon ]
 ```
 
 - `isDark: true` (Camera, always dark bg) → white foreground
-- `isDark: false` (Feed / Home / Search) → follows theme
+- `isDark: false` (Feed) → follows system theme
+
+### Navigation Dots (`src/components/NavigationDots.tsx`)
+
+Vertical pill dots on the right edge of `VerticalNavigator`. Each dot is tappable — tapping navigates directly to that screen via `onDotPress(index)` (passed from `VerticalNavigator` as `navigateTo`). The active dot expands to a `28×28` rounded square showing the screen icon; inactive dots are `6×6` pills.
+
+Props:
+- `count` / `activeIndex` / `dark` / `icons` — display config
+- `onDotPress?: (index: number) => void` — tap-to-navigate callback
 
 ---
 
@@ -178,7 +193,7 @@ Absolute overlay inside `VerticalNavigator` at `zIndex: 200`. `pointerEvents: 'b
 | `HorizontalNavigator` | `src/screens/HorizontalNavigator.tsx` | Active — horizontal gesture nav |
 | `VerticalNavigator` | `src/screens/VerticalNavigator.tsx` | Active — vertical gesture nav |
 | `CameraScreen` | `src/screens/CameraScreen.tsx` | Active — sequential dual-camera capture (front selfie → auto-flip → rear POV ~800 ms later), dual-photo preview (`DualPhotoPreview` Modal: rear full-screen + draggable front pip, tap pip to swap), already-posted guard, optimistic upload + streak |
-| `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()`; dual-photo posts show a pip overlay (tap to swap primary/pip); single-photo legacy posts render unchanged; post images render at 16:9 aspect ratio (`SCREEN_WIDTH × 9/16`); "SOCIAL FEED" title fades out on scroll (threshold 10px) and fades back in at the top |
+| `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()`; post metadata (avatar, username, timestamp, streak pill) overlaid on the image via `LinearGradient` (dark-to-transparent from top); dual-photo posts show a pip overlay (tap to swap); single-photo legacy posts render unchanged; 16:9 aspect ratio; header hide/show driven by scroll via `headerAnim` prop; scroll-top state reported via `onScrollTopChange` prop; all interactions console-logged with `[FeedScreen]` prefix |
 | `HomeScreen` | `src/screens/HomeScreen.tsx` | Placeholder |
 | `SearchScreen` | `src/screens/SearchScreen.tsx` | Placeholder |
 | `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Active — profile + streak stats |

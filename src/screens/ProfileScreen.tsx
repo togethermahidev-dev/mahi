@@ -1,12 +1,15 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAuthStore, useUserStore } from '@/store';
 import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
+import SettingsPanel from '@/components/SettingsPanel';
+import { SettingsIcon } from '@/components/ScreenIcons';
 
 export default function ProfileScreen(): React.JSX.Element {
   const { dark } = useAppTheme();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const bg      = dark ? '#1C1C19' : '#FFFFFF';
   const text    = dark ? '#E8E8E3' : '#1A1A17';
   const muted   = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
@@ -20,6 +23,16 @@ export default function ProfileScreen(): React.JSX.Element {
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
+      {/* Settings icon — top-left */}
+      <View style={styles.headerLeft}>
+        <TouchableOpacity
+          onPress={() => setSettingsOpen(true)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <SettingsIcon size={22} color={toggleColor} />
+        </TouchableOpacity>
+      </View>
+
       {/* Theme toggle — top-right */}
       <View style={styles.headerRight}>
         <ThemeToggle color={toggleColor} size={22} />
@@ -68,6 +81,13 @@ export default function ProfileScreen(): React.JSX.Element {
           <ProfileMediaMap userId={profile.id} isSelf={userId === profile.id} />
         </View>
       ) : null}
+
+      {/* Settings panel — slides in from left */}
+      <SettingsPanel
+        visible={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        dark={dark}
+      />
     </View>
   );
 }
@@ -78,6 +98,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingTop: Platform.OS === 'ios' ? 60 : 32,
+  },
+  headerLeft: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 32,
+    left: 24,
   },
   headerRight: {
     position: 'absolute',

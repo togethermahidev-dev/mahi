@@ -139,36 +139,48 @@ function PostItem({ item, dark, width }: { item: FeedPost; dark: boolean; width:
     ]).start(() => setShowMedal(false));
   }, [medalScale, medalOpacity]);
 
+  const handleDoubleTap = useCallback((x: number, y: number) => {
+    console.log('[FeedScreen] double-tap post', item.id, '| likedByMe:', likedByMe, '| user:', currentUser?.id);
+    if (!currentUser) { console.warn('[FeedScreen] double-tap: no currentUser'); return; }
+    if (!likedByMe) {
+      console.log('[FeedScreen] double-tap → toggleLike (like)');
+      useSocialStore.getState().toggleLike(item.id, currentUser.id);
+    } else {
+      console.log('[FeedScreen] double-tap → already liked, skipping');
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    triggerMedalBurst(x, y);
+  }, [currentUser, likedByMe, item.id, triggerMedalBurst]);
+
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
+    .runOnJS(true)
     .onEnd((e) => {
-      if (!currentUser) return;
-      // Double-tap only likes, never unlikes
-      if (!likedByMe) {
-        useSocialStore.getState().toggleLike(item.id, currentUser.id);
-      }
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      triggerMedalBurst(e.x, e.y);
+      handleDoubleTap(e.x, e.y);
     });
 
   // ── Like handler (action bar tap) ───────────────────────────────────────
   const handleLike = useCallback(() => {
-    if (!currentUser) return;
+    console.log('[FeedScreen] like button tap post', item.id, '| likedByMe:', likedByMe, '| user:', currentUser?.id);
+    if (!currentUser) { console.warn('[FeedScreen] like: no currentUser'); return; }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     useSocialStore.getState().toggleLike(item.id, currentUser.id);
-  }, [item.id, currentUser]);
+  }, [item.id, currentUser, likedByMe]);
 
   // ── Comment handlers ─────────────────────────────────────────────────────
   const handleCommentToggle = useCallback(() => {
     setCommentsOpen((v) => {
-      if (!v) useSocialStore.getState().loadComments(item.id);
-      return !v;
+      const next = !v;
+      console.log('[FeedScreen] comment toggle post', item.id, '| open:', next);
+      if (next) useSocialStore.getState().loadComments(item.id);
+      return next;
     });
   }, [item.id]);
 
   const handleSubmitComment = useCallback(() => {
     const trimmed = commentText.trim();
-    if (!trimmed || !currentUser) return;
+    console.log('[FeedScreen] submit comment post', item.id, '| text:', trimmed, '| user:', currentUser?.id);
+    if (!trimmed || !currentUser) { console.warn('[FeedScreen] submit comment: missing text or user'); return; }
     useSocialStore.getState().addComment(item.id, currentUser.id, trimmed, {
       id:           currentUser.id,
       username:     currentUser.username,
@@ -215,7 +227,7 @@ function PostItem({ item, dark, width }: { item: FeedPost; dark: boolean; width:
             <TouchableOpacity
               style={styles.feedPip}
               activeOpacity={0.85}
-              onPress={() => setRearIsPrimary(p => !p)}
+              onPress={() => { console.log('[FeedScreen] PIP swap post', item.id); setRearIsPrimary(p => !p); }}
             >
               <Image
                 source={{ uri: pipUrl }}
@@ -356,6 +368,7 @@ export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreen
     const isAtTop = y <= 2;
     if (isAtTop !== atTopRef.current) {
       atTopRef.current = isAtTop;
+      console.log('[FeedScreen] scroll top change → atTop:', isAtTop, '| y:', y);
       onScrollTopChange?.(isAtTop);
     }
 
