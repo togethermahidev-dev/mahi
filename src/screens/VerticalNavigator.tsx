@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
+  Platform,
   PanResponder,
   StyleSheet,
   View,
@@ -25,6 +26,7 @@ import FeedScreen from '@/screens/FeedScreen';
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 export const PEEK_HEIGHT = 110;
 const SLOT_HEIGHT = SCREEN_HEIGHT - PEEK_HEIGHT;
+const APP_HEADER_H = Platform.OS === 'ios' ? 108 : 80;
 
 // ─── Gesture thresholds ────────────────────────────────────────────────────────
 const SWIPE_PX = 60;  // min drag distance to trigger navigation
@@ -70,6 +72,7 @@ export default function VerticalNavigator({
   const baseOffsetRef     = useRef(0);
   const feedScrollAtTop   = useRef(true);
   const tapeAnim          = useRef(new Animated.Value(0)).current;
+  const headerAnim        = useRef(new Animated.Value(0)).current;
 
   // Snap the tape to a target screen with a spring animation and haptic.
   const navigateTo = (index: number) => {
@@ -83,6 +86,10 @@ export default function VerticalNavigator({
       mass: 0.9,
       useNativeDriver: true,
     }).start();
+    // Always restore header when switching screens
+    if (index !== 1) {
+      headerAnim.setValue(0);
+    }
   };
 
   const panResponder = useRef(
@@ -199,7 +206,10 @@ export default function VerticalNavigator({
             >
               {isNearby ? (
                 key === 'feed' ? (
-                  <FeedScreen onScrollTopChange={(atTop) => { feedScrollAtTop.current = atTop; }} />
+                  <FeedScreen
+                    onScrollTopChange={(atTop) => { feedScrollAtTop.current = atTop; }}
+                    headerAnim={headerAnim}
+                  />
                 ) : (
                   <Component />
                 )
@@ -217,12 +227,31 @@ export default function VerticalNavigator({
       </Animated.View>
 
       {/* Shared header overlay — profile pill (left) + MAHI (center) + messages (right).
-          isDark=true forces white on Camera (always dark bg); other screens follow theme. */}
-      <AppHeader
-        isDark={activeIndex === 0}
-        onProfilePress={onNavigateLeft}
-        onMessagesPress={onNavigateRight}
-      />
+          isDark=true forces white on Camera (always dark bg); other screens follow theme.
+          headerAnim drives translateY so it slides off-screen when the feed scrolls down. */}
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 200,
+          transform: [{
+            translateY: headerAnim.interpolate({
+              inputRange:  [0, APP_HEADER_H],
+              outputRange: [0, -APP_HEADER_H],
+              extrapolate: 'clamp',
+            }),
+          }],
+        }}
+        pointerEvents="box-none"
+      >
+        <AppHeader
+          isDark={activeIndex === 0}
+          onProfilePress={onNavigateLeft}
+          onMessagesPress={onNavigateRight}
+        />
+      </Animated.View>
 
       {/* Navigation dots — vertical pill dots on the right edge.
           Camera screen always has a dark background, so always use white dots

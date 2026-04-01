@@ -307,9 +307,10 @@ function PostItem({ item, dark, width }: { item: FeedPost; dark: boolean; width:
 
 interface FeedScreenProps {
   onScrollTopChange?: (atTop: boolean) => void;
+  headerAnim?: Animated.Value;
 }
 
-export default function FeedScreen({ onScrollTopChange }: FeedScreenProps = {}): React.JSX.Element {
+export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
   const { width: screenWidth } = useWindowDimensions();
   const bg    = dark ? '#1C1C19' : '#FFFFFF';
@@ -341,8 +342,9 @@ export default function FeedScreen({ onScrollTopChange }: FeedScreenProps = {}):
   );
 
   // ── Scroll-driven header hide/show ───────────────────────────────────────
-  const lastScrollY  = useRef(0);
-  const headerOffset = useRef(new Animated.Value(0)).current;
+  const lastScrollY        = useRef(0);
+  const localHeaderAnim    = useRef(new Animated.Value(0)).current;
+  const headerOffset       = headerAnim ?? localHeaderAnim;
 
   const atTopRef = useRef(true);
 
@@ -367,23 +369,7 @@ export default function FeedScreen({ onScrollTopChange }: FeedScreenProps = {}):
     );
   };
 
-  const headerTranslate = headerOffset.interpolate({
-    inputRange:  [0, APP_HEADER_H],
-    outputRange: [0, -APP_HEADER_H],
-    extrapolate: 'clamp',
-  });
-
-  const listHeader = (
-    <View>
-      <View style={styles.peekPillRow}>
-        <View style={[styles.pullPill, { backgroundColor: dark ? 'rgba(232,232,227,0.3)' : 'rgba(26,26,23,0.2)' }]} />
-      </View>
-      <View style={{ height: APP_HEADER_H }} />
-      <View style={[styles.feedTitleBar, { backgroundColor: bg, borderBottomColor: dark ? 'rgba(232,232,227,0.08)' : 'rgba(26,26,23,0.06)' }]}>
-        <Text style={[styles.feedTitleText, { color: text }]}>SOCIAL FEED</Text>
-      </View>
-    </View>
-  );
+  const listHeader = <View style={{ height: APP_HEADER_H }} />;
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
@@ -425,11 +411,6 @@ export default function FeedScreen({ onScrollTopChange }: FeedScreenProps = {}):
         }
       />
 
-      {/* Animated mask that slides the AppHeader off-screen on scroll-down */}
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.headerMask, { backgroundColor: bg, transform: [{ translateY: headerTranslate }] }]}
-      />
     </View>
   );
 }
@@ -437,34 +418,6 @@ export default function FeedScreen({ onScrollTopChange }: FeedScreenProps = {}):
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-  },
-  headerMask: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: APP_HEADER_H,
-    zIndex: 10,
-  },
-  peekPillRow: {
-    paddingTop: 16,
-    paddingBottom: 8,
-    alignItems: 'center',
-  },
-  pullPill: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-  },
-  feedTitleBar: {
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  feedTitleText: {
-    fontFamily: 'JosefinSans_700Bold',
-    fontSize: 13,
-    letterSpacing: 5,
   },
   list: {
     paddingBottom: 32,

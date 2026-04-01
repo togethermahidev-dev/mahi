@@ -74,11 +74,6 @@ export default function AppHeader({
 
 const styles = StyleSheet.create({
   root: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 200,
     paddingTop: Platform.OS === 'ios' ? 60 : 32,
     paddingHorizontal: 24,
     paddingBottom: 12,
