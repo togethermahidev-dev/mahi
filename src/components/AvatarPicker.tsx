@@ -46,6 +46,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
@@ -57,8 +58,6 @@ import { updateAvatarUrl } from '@/api/profile';
 interface AvatarPickerProps {
   /** Current avatar URL from `profiles.avatar_url`, or null if not set. */
   avatarUrl: string | null;
-  /** Pre-computed first-character initials shown when there is no avatar. */
-  initials: string;
   /** When true renders the "+" edit button. Pass `userId === profile.id`. */
   isSelf: boolean;
   /** Authenticated user's UUID — used as the storage folder prefix. */
@@ -139,7 +138,15 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
       if (dbError) throw dbError;
 
       onUpdate(`${publicUrl}?t=${Date.now()}`);
+      setLocalUri(null); // clear optimistic preview; parent now holds the persisted URL
     } catch {
+      // Attempt best-effort cleanup of the orphaned storage file
+      // in case the upload succeeded but the DB write failed.
+      try {
+        await supabase.storage.from('avatars').remove([`${userId}/avatar.jpg`]);
+      } catch {
+        // Non-blocking — ignore cleanup failure
+      }
       setLocalUri(null);
       Alert.alert('Upload Failed', 'Could not update your profile photo. Please try again.');
     } finally {
@@ -225,7 +232,6 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
 
 export default function AvatarPicker({
   avatarUrl,
-  initials,
   isSelf,
   userId,
   colors,
@@ -238,12 +244,23 @@ export default function AvatarPicker({
 
   return (
     <View style={styles.container}>
-      {/* Avatar — image or initials fallback */}
+      {/* Avatar — image or person silhouette placeholder */}
       {displayUri ? (
         <Image source={{ uri: displayUri }} style={styles.avatar} />
       ) : (
         <View style={[styles.avatar, styles.fallback, { backgroundColor: colors.muted }]}>
-          <Text style={[styles.initial, { color: colors.text }]}>{initials}</Text>
+          <Svg width={48} height={48} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12Z"
+              fill={colors.bg}
+              opacity={0.9}
+            />
+            <Path
+              d="M12 14C8.13 14 5 17.13 5 21H19C19 17.13 15.87 14 12 14Z"
+              fill={colors.bg}
+              opacity={0.9}
+            />
+          </Svg>
         </View>
       )}
 
@@ -285,10 +302,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  initial: {
-    fontSize: 36,
-    fontFamily: 'JosefinSans_700Bold',
-  },
+
   uploadOverlay: {
     position: 'absolute',
     top: 0,

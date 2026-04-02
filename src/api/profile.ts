@@ -64,5 +64,7 @@ export async function updateAvatarUrl(userId: string, avatarUrl: string) {
   return supabase
     .from('profiles')
     .update({ avatar_url: avatarUrl })
-    .eq('id', userId);
+    .eq('id', userId)
+    .select('avatar_url')
+    .single();
 }

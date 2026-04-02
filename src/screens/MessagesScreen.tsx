@@ -88,7 +88,7 @@ function ConvoRow({
             {onAccept ? (
               <TouchableOpacity
                 style={[styles.actionBtn, { borderColor: text }]}
-                onPress={(e) => { e.stopPropagation?.(); onAccept(); }}
+                onPress={onAccept}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.actionBtnText, { color: text }]}>ACCEPT</Text>
@@ -97,7 +97,7 @@ function ConvoRow({
             {onDeny ? (
               <TouchableOpacity
                 style={[styles.actionBtn, styles.denyBtn]}
-                onPress={(e) => { e.stopPropagation?.(); onDeny(); }}
+                onPress={onDeny}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.actionBtnText, styles.denyText]}>DENY</Text>

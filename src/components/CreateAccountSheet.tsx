@@ -67,6 +67,14 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
   // Step 2 — OTP boxes (4 digits, single entry)
   const [otp, setOtp] = useState(['', '', '', '']);
   const otpRefs       = useRef<(RNTextInput | null)[]>(Array(4).fill(null));
+  const [focusedOtp, setFocusedOtp] = useState<number | null>(null);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  const focusBorder = (field: string) => ({
+    borderWidth: focusedField === field ? 2 : 0,
+    borderColor: focusedField === field ? '#59c2d7' : 'transparent',
+    backgroundColor: focusedField === field ? (dark ? '#3A3A37' : '#FFFFFF') : inputBg,
+  });
 
   // Step 2 — countdown timer & resend cooldown
   const [secondsLeft, setSecondsLeft]   = useState(600);
@@ -387,9 +395,11 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
               {/* Email */}
               <Text style={[styles.label, { color: muted }]}>Email</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: text }]}
+                style={[styles.input, { backgroundColor: inputBg, color: text }, focusBorder('email')]}
                 value={email}
                 onChangeText={v => { setField('email', v); setError(''); }}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="your@email.com"
                 placeholderTextColor={muted}
                 keyboardType="email-address"
@@ -422,11 +432,13 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
 
               {/* Password */}
               <Text style={[styles.label, { color: muted }]}>Password</Text>
-              <View style={[styles.inputRow, { backgroundColor: inputBg }]}>
+              <View style={[styles.inputRow, { backgroundColor: inputBg }, focusBorder('password')]}>
                 <TextInput
                   style={[styles.inputInner, { color: text }]}
                   value={password}
                   onChangeText={v => { setField('password', v); setError(''); }}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
                   placeholder="Min. 8 characters"
                   placeholderTextColor={muted}
                   secureTextEntry={!showPassword}
@@ -483,14 +495,20 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
                   <TextInput
                     key={i}
                     ref={r => { otpRefs.current[i] = r; }}
-                    style={[styles.otpBox, { backgroundColor: inputBg, color: text, borderColor: val ? text : 'transparent' }]}
+                    style={[styles.otpBox, {
+                      backgroundColor: inputBg,
+                      color: text,
+                      borderColor: focusedOtp === i ? '#59c2d7' : val ? text : 'transparent',
+                      borderWidth: focusedOtp === i ? 2 : 1.5,
+                    }]}
                     value={val}
                     onChangeText={v => handleOtpChange(v, i, otp, setOtp, otpRefs)}
                     onKeyPress={e => handleOtpKeyPress(e, i, otp, otpRefs)}
+                    onFocus={() => setFocusedOtp(i)}
+                    onBlur={() => setFocusedOtp(null)}
                     keyboardType="number-pad"
                     maxLength={1}
                     textAlign="center"
-                    // iOS autofill — place on last input so it triggers after all 6 digits fill
                     textContentType={i === 3 ? 'oneTimeCode' : 'none'}
                   />
                 ))}
@@ -516,18 +534,22 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
 
               <Text style={[styles.label, { color: muted }]}>First name</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: text }]}
+                style={[styles.input, { backgroundColor: inputBg, color: text }, focusBorder('firstName')]}
                 value={firstName}
                 onChangeText={v => setField('firstName', v)}
+                onFocus={() => setFocusedField('firstName')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Jane"
                 placeholderTextColor={muted}
               />
 
               <Text style={[styles.label, { color: muted }]}>Last name</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: text }]}
+                style={[styles.input, { backgroundColor: inputBg, color: text }, focusBorder('lastName')]}
                 value={lastName}
                 onChangeText={v => setField('lastName', v)}
+                onFocus={() => setFocusedField('lastName')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Smith"
                 placeholderTextColor={muted}
               />
@@ -545,9 +567,11 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
 
               <Text style={[styles.label, { color: muted }]}>Contact number</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: text }]}
+                style={[styles.input, { backgroundColor: inputBg, color: text }, focusBorder('contactNumber')]}
                 value={contactNumber}
                 onChangeText={v => setField('contactNumber', v)}
+                onFocus={() => setFocusedField('contactNumber')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="+44 7700 000000"
                 placeholderTextColor={muted}
                 keyboardType="phone-pad"
@@ -561,12 +585,14 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
               <Text style={[styles.title, { color: text }]}>Your profile</Text>
 
               <Text style={[styles.label, { color: muted }]}>Username</Text>
-              <View style={[styles.inputRow, { backgroundColor: inputBg }]}>
+              <View style={[styles.inputRow, { backgroundColor: inputBg }, focusBorder('username')]}>
                 <Text style={[styles.atSign, { color: username ? text : muted }]}>@</Text>
                 <TextInput
                   style={[styles.inputInner, { color: text }]}
                   value={username}
                   onChangeText={v => { setField('username', v.replace('@', '')); setUsernameStatus('idle'); }}
+                  onFocus={() => setFocusedField('username')}
+                  onBlur={() => setFocusedField(null)}
                   placeholder="janesmith"
                   placeholderTextColor={muted}
                   autoCapitalize="none"
@@ -579,9 +605,11 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
 
               <Text style={[styles.label, { color: muted }]}>Display name <Text style={[styles.optionalTag, { color: muted }]}>(optional)</Text></Text>
               <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: text }]}
+                style={[styles.input, { backgroundColor: inputBg, color: text }, focusBorder('displayName')]}
                 value={displayName}
                 onChangeText={v => setField('displayName', v)}
+                onFocus={() => setFocusedField('displayName')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Jane Smith"
                 placeholderTextColor={muted}
               />
@@ -747,12 +775,12 @@ const styles = StyleSheet.create({
   countdown:   { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', textAlign: 'center', marginBottom: 4 },
   resendText:  { fontSize: 14, fontFamily: 'JosefinSans_400Regular_Italic', textAlign: 'center', marginTop: 4 },
 
-  otpRow: { flexDirection: 'row', gap: 8 },
+  otpRow: { flexDirection: 'row', gap: 14, justifyContent: 'center' },
   otpBox: {
-    flex: 1,
-    height: 54,
+    width: 64,
+    height: 72,
     borderRadius: 14,
-    fontSize: 22,
+    fontSize: 28,
     fontFamily: 'JosefinSans_700Bold',
     borderWidth: 1.5,
   },

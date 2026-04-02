@@ -21,7 +21,6 @@ export default function ProfileScreen(): React.JSX.Element {
   const userId     = useAuthStore((s) => s.user?.id);
 
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
-  const initials    = displayName[0]?.toUpperCase() ?? '?';
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
@@ -42,17 +41,15 @@ export default function ProfileScreen(): React.JSX.Element {
 
       {/* Profile header — avatar, name, stats */}
       <View style={styles.header}>
-        {/* Avatar */}
-        {profile && userId && (
-          <AvatarPicker
-            avatarUrl={profile.avatar_url}
-            initials={initials}
-            isSelf={userId === profile.id}
-            userId={userId}
-            colors={{ bg, text, muted }}
-            onUpdate={(newUrl) => setProfile({ ...profile, avatar_url: newUrl })}
-          />
-        )}
+        {/* Avatar — always rendered; edit button shown as soon as userId is known
+            (ProfileScreen is always the signed-in user's own profile) */}
+        <AvatarPicker
+          avatarUrl={profile?.avatar_url ?? null}
+          isSelf={!!userId}
+          userId={userId ?? ''}
+          colors={{ bg, text, muted }}
+          onUpdate={(newUrl) => profile && setProfile({ ...profile, avatar_url: newUrl })}
+        />
 
         {/* Name + handle */}
         <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>

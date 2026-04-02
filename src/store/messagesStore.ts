@@ -117,14 +117,15 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     if (msgChannels.has(keyP1)) return; // already subscribed
 
     type ConvRow = { id: string; status: string; participant_one: string; participant_two: string };
+    type ConvPayload = { new: ConvRow };
 
-    const handleInsert = (_payload: { new: unknown }) => {
+    const handleInsert = (_payload: ConvPayload) => {
       // New conversation where this user is a participant — re-sync for full preview
       get().sync(userId);
     };
 
-    const handleUpdate = (payload: { new: unknown }) => {
-      const updated = payload.new as ConvRow;
+    const handleUpdate = (payload: ConvPayload) => {
+      const updated = payload.new;
       if (updated.status === 'active') {
         const conv = get().requests.find((c) => c.id === updated.id);
         if (conv) {

@@ -196,7 +196,6 @@ const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 10,
-    flex:   1,
   },
   header: {
     flexDirection:    'row',
