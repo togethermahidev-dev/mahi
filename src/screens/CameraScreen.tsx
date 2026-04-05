@@ -16,6 +16,7 @@ import {
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { BlurView } from 'expo-blur';
 import * as FileSystem from 'expo-file-system/legacy';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import Svg, { Path } from 'react-native-svg';
 import { decode } from 'base64-arraybuffer';
 import { useAuthStore, useUserStore, useFeedStore, useProfilePostsStore } from '@/store';
@@ -371,10 +372,15 @@ export default function CameraScreen(): React.JSX.Element {
     if (!cameraRef.current) return null;
     const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
     if (!photo?.uri) return null;
-    const base64 = await FileSystem.readAsStringAsync(photo.uri, {
+    // Re-encode to bake EXIF orientation into pixel data
+    const { uri: normalizedUri } = await manipulateAsync(photo.uri, [], {
+      compress: 0.8,
+      format: SaveFormat.JPEG,
+    });
+    const base64 = await FileSystem.readAsStringAsync(normalizedUri, {
       encoding: FileSystem.EncodingType.Base64,
     });
-    return { uri: photo.uri, base64 };
+    return { uri: normalizedUri, base64 };
   };
 
   // Sequential capture: front first, flip, then rear ~800ms later
