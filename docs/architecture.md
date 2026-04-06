@@ -102,7 +102,7 @@ All tables use Row Level Security (RLS). Two Postgres RPCs handle social interac
 
 | File | Exports |
 |---|---|
-| `posts.ts` | `getFeedPosts` (via `get_feed_posts` RPC — returns `like_count`, `comment_count`, `liked_by_me`), `getUserPosts`, `createPost`, `FeedPost`, `FeedCursor`, `ProfilePostCursor` |
+| `posts.ts` | `getFeedPosts` (via `get_feed_posts` RPC — returns `like_count`, `comment_count`, `liked_by_me`), `getUserPosts`, `getPostDates` (distinct post dates for streak grid), `createPost`, `FeedPost`, `FeedCursor`, `ProfilePostCursor` |
 | `social.ts` | `toggleLike` (single-RPC atomic toggle), `getComments`, `addComment`, `CommentWithProfile` |
 | `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `createOrGetConversation`, `deleteConversation`, `getMessages`, `ConversationPreview`, `MsgRow` |
 | `profile.ts` | `getProfile`, `searchProfiles`, `updateAvatarUrl`, `updateFitnessRoutine`, `ProfileSearchResult` |
