@@ -189,6 +189,30 @@ export function CommentIcon({ size, color }: IconProps) {
   );
 }
 
+/**
+ * StreakIcon — flame with Mahi dual-layer echo.
+ * Same double-layer treatment as CommentIcon.
+ */
+export function StreakIcon({ size, color }: IconProps) {
+  const flame = "M12 2C8 7 4 11 4 15a8 8 0 0016 0c0-4-4-8-8-13z";
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Echo layer — #59c2d7, offset */}
+      <G transform="translate(1.5, 1.5)">
+        <Path d={flame} fill="#59c2d7" opacity={0.35} />
+      </G>
+      {/* Main flame */}
+      <Path
+        d={flame}
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 export function CalendarIcon({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

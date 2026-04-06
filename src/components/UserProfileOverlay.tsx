@@ -11,6 +11,8 @@ import {
 import { getProfile, createOrGetConversation } from '@/api';
 import { useAuthStore } from '@/store';
 import { Sentry } from '@/lib/sentry';
+import { StreakIcon } from '@/components/ScreenIcons';
+import StreakGridPanel from '@/components/StreakGridPanel';
 import type { ConversationPreview } from '@/api';
 import type { Database } from '@/types';
 
@@ -39,6 +41,7 @@ export default function UserProfileOverlay({
   const [profile,   setProfile]   = useState<ProfileRow | null>(null);
   const [loading,   setLoading]   = useState(true);
   const [messaging, setMessaging] = useState(false);
+  const [streakGridOpen, setStreakGridOpen] = useState(false);
 
   useEffect(() => {
     console.log('[UserProfile] open |', userId);
@@ -141,6 +144,15 @@ export default function UserProfileOverlay({
               </View>
             </View>
 
+            {/* Streak grid pill */}
+            <TouchableOpacity
+              onPress={() => setStreakGridOpen(true)}
+              activeOpacity={0.75}
+              style={styles.streakPill}
+            >
+              <StreakIcon size={16} color="#59c2d7" />
+            </TouchableOpacity>
+
             {!isSelf ? (
               <TouchableOpacity
                 style={[styles.messageBtn, { borderColor: text, opacity: messaging ? 0.5 : 1 }]}
@@ -156,6 +168,20 @@ export default function UserProfileOverlay({
           </>
         )}
       </View>
+
+      {/* Streak accountability grid — slides in from left */}
+      {profile ? (
+        <StreakGridPanel
+          visible={streakGridOpen}
+          onClose={() => setStreakGridOpen(false)}
+          userId={userId}
+          streakCurrent={profile.streak_current ?? 0}
+          streakHighest={profile.streak_highest ?? 0}
+          streakLastUploadDate={profile.streak_last_upload_date ?? null}
+          fitnessRoutine={profile.fitness_routine ?? null}
+          dark={dark}
+        />
+      ) : null}
     </View>
   );
 }
@@ -244,6 +270,14 @@ const styles = StyleSheet.create({
     width:   1,
     height:  32,
     opacity: 0.3,
+  },
+  streakPill: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   messageBtn: {
     borderWidth:       1,

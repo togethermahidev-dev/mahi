@@ -40,7 +40,7 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 
 | Table | Key Columns | Notes |
 |---|---|---|
-| `public.profiles` | `id`, `username`, `display_name`, `avatar_url`, `streak_current`, `streak_highest`, `streak_lowest`, `streak_last_upload_date` | SELECT open to all authenticated users (feed joins and `searchProfiles` ILIKE queries require it). INSERT/UPDATE own only (`auth.uid() = id`). |
+| `public.profiles` | `id`, `username`, `display_name`, `avatar_url`, `fitness_routine`, `streak_current`, `streak_highest`, `streak_lowest`, `streak_last_upload_date` | `fitness_routine`: comma-separated full day names (e.g. `'Monday,Wednesday,Friday'`) — training days; days absent are rest days. SELECT open to all authenticated users (feed joins and `searchProfiles` ILIKE queries require it). INSERT/UPDATE own only (`auth.uid() = id`). |
 | `public.posts` | `id`, `user_id`, `image_url`, `pov_image_url`, `caption`, `streak_day`, `created_at` | `image_url` = rear/POV photo (default full-screen). `pov_image_url` = front selfie pip (nullable — null for legacy single-photo posts). Paginated cursor sort: `created_at DESC, id DESC`. Unique index `posts_user_day_unique` enforces one post per user per UTC day. RLS INSERT policy additionally blocks same-day inserts. |
 | `public.post_likes` | `id`, `post_id`, `user_id`, `created_at` | Unique constraint `(post_id, user_id)`. RLS: authenticated read-all; insert/delete own only (`auth.uid() = user_id`). |
 | `public.post_comments` | `id`, `post_id`, `user_id`, `content`, `created_at` | Ordered oldest-first. RLS: authenticated read-all; insert/delete own only. |
@@ -75,7 +75,7 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 - Authoritative streak counter. Auth-guarded: rejects calls where `p_user_id <> auth.uid()`.
 - Uses `SELECT ... FOR UPDATE` row lock to prevent double-tap race conditions.
 - Idempotent: same-day calls return current values without incrementing.
-- Extends streak if upload is consecutive or on a rest day; resets to 1 if a required day was missed.
+- **Rest-day logic:** reads `profiles.fitness_routine` (comma-separated full day names). Uses `to_char(p_upload_date, 'Dy')` to get a 3-letter abbreviation and `position()` to check membership (works because 3-letter abbreviations are always a prefix/substring of the full name). If today is absent from the routine, it's a rest day — the streak extends without requiring a post. If today is a training day and the user missed it (no upload yesterday and not a rest day), the streak resets to 1.
 - Manages `streak_logs` (opens new log on reset, updates count on extend).
 - Returns `{ streak_current, streak_highest, streak_lowest, action }`.
 - Always pass `p_upload_date` as the device's **local** date (`new Date().toLocaleDateString('en-CA')`) — do not rely on server `CURRENT_DATE` (UTC) to avoid timezone drift.
@@ -173,14 +173,18 @@ Installed as `~55.0.10`.
 
 ## PostHog — `src/lib/posthog.ts`
 
-**Status: Placeholder (not active)**
+**Status: Active**
 
-Product analytics. Currently `null`.
+Product analytics via `posthog-react-native`. Singleton client created with `EXPO_PUBLIC_POSTHOG_API_KEY`.
 
-**To activate:**
-1. Add `EXPO_PUBLIC_POSTHOG_API_KEY` to `.env`
-2. Uncomment implementation in `src/lib/posthog.ts`
-3. Wrap root component with `PostHogProvider` in `App.tsx`
+**Tracked events:**
+
+| Event | File | When |
+|---|---|---|
+| `login_success` | `LoginSheet.tsx` | Successful sign-in |
+| `login_failed` | `LoginSheet.tsx` | Sign-in error |
+| `signup_otp_sent` | `CreateAccountSheet.tsx` | OTP email dispatched |
+| `signup_completed` | `CreateAccountSheet.tsx` | Account created (includes `training_days`, `fitness_goals`) |
 
 **Required env vars:**
 ```
@@ -192,15 +196,26 @@ EXPO_PUBLIC_POSTHOG_HOST   # default: https://us.i.posthog.com
 
 ## Sentry — `src/lib/sentry.ts`
 
-**Status: Placeholder (not active, no DSN yet)**
+**Status: Active**
 
-Error and crash reporting. `initSentry()` is currently a no-op. `Sentry.setUser()` calls in `App.tsx` are no-ops until activated.
+Error and crash reporting via `@sentry/react-native` v8.
 
-**To activate:**
-1. Create a project at sentry.io, copy the DSN
-2. Add `EXPO_PUBLIC_SENTRY_DSN` to `.env`
-3. Uncomment implementation in `src/lib/sentry.ts`
-4. Call `initSentry()` at the top of `App.tsx`
+- `initSentry()` called at app startup in `index.ts`
+- Config plugin in `app.config.js` (org: `mahi-org`, project: `react-native`)
+- Only enabled when `EXPO_PUBLIC_APP_ENV === 'production'`
+- `Sentry.setUser({ id, email })` set on login, cleared on logout (`App.tsx`)
+
+**Instrumented flows:**
+
+| Flow | File | Logging |
+|---|---|---|
+| Login | `LoginSheet.tsx` | `captureMessage` on sign-in error |
+| Signup | `CreateAccountSheet.tsx` | `captureException` on OTP send / account creation failure; breadcrumbs for OTP sent, verified, account created |
+| Search | `GlobalSearchOverlay.tsx` | `captureException` on search error; breadcrumbs for overlay open, profile tap |
+| Camera upload | `CameraScreen.tsx` | `captureException` on upload failure |
+| Training days | `TrainingDaysScreen.tsx` | `captureException` on save failure; breadcrumbs for screen open, successful save |
+
+**Pattern:** use `Sentry.captureException(err, { tags: { flow }, extra })` for caught errors and `Sentry.addBreadcrumb({ category, message, level })` for navigation/action events. Use `console.error('[ComponentName]')` alongside for dev debugging.
 
 **Required env vars:**
 ```

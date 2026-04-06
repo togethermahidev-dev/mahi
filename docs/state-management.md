@@ -66,7 +66,7 @@ Manages the authenticated user's profile including streak counters.
   date_of_birth: string | null;
   contact_number: string | null;
   fitness_goals: string[] | null;
-  fitness_routine: string | null;   // comma-separated 3-letter day abbrevs e.g. 'Mon,Wed,Fri'
+  fitness_routine: string | null;   // comma-separated full day names e.g. 'Monday,Wednesday,Friday'
   avatar_url: string | null;
   streak_current: number;
   streak_highest: number;
@@ -80,6 +80,13 @@ Manages the authenticated user's profile including streak counters.
 const current = useUserStore.getState().profile;
 setProfile({ ...current, streak_current: streakResult.streak_current, ... });
 ```
+
+**Training days update flow** (`TrainingDaysScreen`):
+```ts
+const { error } = await updateFitnessRoutine(userId, selectedDays.join(','));
+if (!error) setProfile({ ...profile, fitness_routine: routine });
+```
+`fitness_routine` stores training days (days the user works out). Days not in the list are rest days. The `record_upload_streak` DB function uses this to exempt rest days from streak-breaking.
 
 **Usage:**
 ```ts

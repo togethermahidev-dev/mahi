@@ -62,6 +62,37 @@ export async function getFeedPosts(
   return { data: mapped, error: null };
 }
 
+/**
+ * Fetch the distinct dates on which a user posted, from `since` onwards.
+ * Used by the streak accountability grid.
+ */
+export async function getPostDates(
+  userId: string,
+  since: string, // ISO 'YYYY-MM-DD'
+): Promise<{ data: string[] | null; error: Error | null }> {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('created_at')
+    .eq('user_id', userId)
+    .gte('created_at', since)
+    .order('created_at', { ascending: true });
+
+  if (error) return { data: null, error: new Error(error.message) };
+  if (!data) return { data: [], error: null };
+
+  // Use local date to match the grid's local-time cell rendering
+  const dates = [...new Set(
+    (data as { created_at: string }[]).map((r) => {
+      const d = new Date(r.created_at);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }),
+  )];
+  return { data: dates, error: null };
+}
+
 export type ProfilePostCursor = { ts: string; id: string };
 
 /**

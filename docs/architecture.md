@@ -17,8 +17,8 @@ Mahi Fitness is a React Native fitness application built with Expo. Users take a
 | Gestures | react-native-gesture-handler | — |
 | Gradients | expo-linear-gradient | ~55.0.9 |
 | Blur | expo-blur | ~55.0.10 |
-| Analytics | PostHog *(placeholder)* | ^4.35.0 |
-| Error Tracking | Sentry *(placeholder)* | ^8.0.0 |
+| Analytics | PostHog | ^4.35.0 |
+| Error Tracking | Sentry | ^8.0.0 |
 
 ---
 
@@ -32,7 +32,7 @@ mahi-fitness/
 │   ├── store/          # Zustand global state (feedStore, messagesStore, authStore, userStore, …)
 │   ├── hooks/          # Thin store wrappers + utility hooks (useMessages, useConversation, …)
 │   ├── types/          # TypeScript types — database.ts is the source of truth for DB shapes
-│   ├── components/     # Shared UI components (AppHeader, NavigationDots, ThemeToggle, UserProfileOverlay, GlobalSearchOverlay, AvatarPicker)
+│   ├── components/     # Shared UI components (AppHeader, NavigationDots, ThemeToggle, UserProfileOverlay, GlobalSearchOverlay, AvatarPicker, TrainingDaysScreen, StreakGridPanel)
 │   └── screens/        # Screen-level components (including ConversationScreen)
 ├── docs/               # Project documentation
 ├── assets/             # Images, icons, splash
@@ -105,7 +105,7 @@ All tables use Row Level Security (RLS). Two Postgres RPCs handle social interac
 | `posts.ts` | `getFeedPosts` (via `get_feed_posts` RPC — returns `like_count`, `comment_count`, `liked_by_me`), `getUserPosts`, `createPost`, `FeedPost`, `FeedCursor`, `ProfilePostCursor` |
 | `social.ts` | `toggleLike` (single-RPC atomic toggle), `getComments`, `addComment`, `CommentWithProfile` |
 | `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `createOrGetConversation`, `deleteConversation`, `getMessages`, `ConversationPreview`, `MsgRow` |
-| `profile.ts` | `getProfile`, `searchProfiles`, `updateAvatarUrl`, `ProfileSearchResult` |
+| `profile.ts` | `getProfile`, `searchProfiles`, `updateAvatarUrl`, `updateFitnessRoutine`, `ProfileSearchResult` |
 | `streaks.ts` | `recordUpload`, `getStreakLogs`, `getActiveStreak` |
 | `auth.ts` | Auth helpers |
 | `email.ts` | OTP email via Edge Function |
@@ -204,11 +204,11 @@ Props:
 | `WelcomeScreen` | `src/screens/WelcomeScreen.tsx` | Active — sign-up / login |
 | `HorizontalNavigator` | `src/screens/HorizontalNavigator.tsx` | Active — horizontal gesture nav |
 | `VerticalNavigator` | `src/screens/VerticalNavigator.tsx` | Active — vertical gesture nav |
-| `CameraScreen` | `src/screens/CameraScreen.tsx` | Active — sequential dual-camera capture (front selfie → auto-flip → rear POV ~800 ms later), dual-photo preview (`DualPhotoPreview` Modal: rear full-screen + draggable front pip, tap pip to swap), already-posted guard, optimistic upload + streak |
+| `CameraScreen` | `src/screens/CameraScreen.tsx` | Active — sequential dual-camera capture (front selfie → auto-flip → rear POV ~800 ms later), dual-photo preview (`DualPhotoPreview` Modal: rear full-screen + draggable front pip, tap pip to swap), already-posted guard, optimistic upload + streak, rest-day indicator (shows "REST DAY" label when today is not in `fitness_routine`), Sentry error capture on upload failure |
 | `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()`; post metadata (avatar, username, timestamp, streak pill) overlaid on the image via `LinearGradient` (dark-to-transparent from top); dual-photo posts show a pip overlay (tap to swap); single-photo legacy posts render unchanged; 16:9 aspect ratio; header hide/show driven by scroll via `headerAnim` prop; scroll-top state reported via `onScrollTopChange` prop; tapping another user's avatar opens `UserProfileOverlay` → MESSAGE → `ConversationScreen` (profile + conversation overlays managed via local state); all interactions console-logged with `[FeedScreen]` prefix |
 | `HomeScreen` | `src/screens/HomeScreen.tsx` | Placeholder |
 | `SearchScreen` | `src/screens/SearchScreen.tsx` | Placeholder (global search is handled by `GlobalSearchOverlay` component, not this screen) |
-| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Active — own profile, streak stats, avatar picker (`AvatarPicker` component) |
+| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Active — own profile, streak stats, avatar picker (`AvatarPicker` component), training days editor (`TrainingDaysScreen` overlay), streak grid (`StreakGridPanel` overlay) |
 | `MessagesScreen` | `src/screens/MessagesScreen.tsx` | Active — inbox + requests from `useMessages()`; tapping a row opens `ConversationScreen` as an absolute overlay; REQUESTS tab has ACCEPT and DENY pill buttons |
 | `ConversationScreen` | `src/screens/ConversationScreen.tsx` | Active — individual message thread; inverted `FlatList` bubbles; real-time via `useConversation`; request banner (ACCEPT/DENY) shown to receiver on unaccepted conversations |
 | `InAppAnimationScreen` | `src/screens/InAppAnimationScreen.tsx` | Active — post-login entry animation |

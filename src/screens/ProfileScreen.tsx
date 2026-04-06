@@ -5,14 +5,16 @@ import { useAuthStore, useUserStore } from '@/store';
 import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import SettingsPanel from '@/components/SettingsPanel';
-import { SettingsIcon, CalendarIcon } from '@/components/ScreenIcons';
+import { SettingsIcon, CalendarIcon, StreakIcon } from '@/components/ScreenIcons';
 import AvatarPicker from '@/components/AvatarPicker';
 import TrainingDaysScreen from '@/components/TrainingDaysScreen';
+import StreakGridPanel from '@/components/StreakGridPanel';
 
 export default function ProfileScreen(): React.JSX.Element {
   const { dark } = useAppTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [trainingDaysOpen, setTrainingDaysOpen] = useState(false);
+  const [streakGridOpen, setStreakGridOpen] = useState(false);
   const bg      = dark ? '#1C1C19' : '#FFFFFF';
   const text    = dark ? '#E8E8E3' : '#1A1A17';
   const muted   = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
@@ -85,6 +87,15 @@ export default function ProfileScreen(): React.JSX.Element {
             <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
           </View>
         </View>
+
+        {/* Streak grid pill */}
+        <TouchableOpacity
+          onPress={() => setStreakGridOpen(true)}
+          activeOpacity={0.75}
+          style={styles.streakPill}
+        >
+          <StreakIcon size={16} color="#59c2d7" />
+        </TouchableOpacity>
       </View>
 
       {/* Personal streak photo grid */}
@@ -105,6 +116,18 @@ export default function ProfileScreen(): React.JSX.Element {
       <TrainingDaysScreen
         visible={trainingDaysOpen}
         onClose={() => setTrainingDaysOpen(false)}
+        dark={dark}
+      />
+
+      {/* Streak accountability grid — slides in from left */}
+      <StreakGridPanel
+        visible={streakGridOpen}
+        onClose={() => setStreakGridOpen(false)}
+        userId={profile?.id ?? userId ?? ''}
+        streakCurrent={profile?.streak_current ?? 0}
+        streakHighest={profile?.streak_highest ?? 0}
+        streakLastUploadDate={profile?.streak_last_upload_date ?? null}
+        fitnessRoutine={profile?.fitness_routine ?? null}
         dark={dark}
       />
     </View>
@@ -178,6 +201,14 @@ const styles = StyleSheet.create({
     width: 1,
     height: 40,
     opacity: 0.3,
+  },
+  streakPill: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
   },
   mapShadow: {
     flex: 1,
