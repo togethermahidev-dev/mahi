@@ -104,9 +104,9 @@ export default function StreakGridPanel({
   const border = dark ? 'rgba(232,232,227,0.08)' : 'rgba(26,26,23,0.06)';
 
   const cellPosted  = '#59c2d7';
-  const cellMissed  = dark ? 'rgba(232,232,227,0.18)' : 'rgba(26,26,23,0.12)';
-  const cellRest    = dark ? 'rgba(232,232,227,0.05)' : 'rgba(26,26,23,0.03)';
-  const cellToday   = dark ? 'rgba(232,232,227,0.25)' : 'rgba(26,26,23,0.15)';
+  const cellMissed  = dark ? 'rgba(89,194,215,0.25)' : 'rgba(89,194,215,0.20)';  // blue tint for missed
+  const cellRest    = dark ? 'rgba(89,194,215,0.08)' : 'rgba(89,194,215,0.06)';
+  const cellToday   = '#59c2d7';
 
   const slideAnim    = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -182,8 +182,6 @@ export default function StreakGridPanel({
     setLoading(false);
   };
 
-  if (!mounted && !visible) return null;
-
   // ─── Grid data (memoised — only changes once per day) ────────────────────────
   const { weeks, monthLabels } = useMemo(() => {
     const g = buildGrid(todayStr);
@@ -223,6 +221,9 @@ export default function StreakGridPanel({
     return isRestDay ? cellRest : cellMissed;
   };
 
+  // ─── Early exit (all hooks must be above this line) ─────────────────────────
+  if (!mounted && !visible) return null;
+
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       {/* Backdrop */}
@@ -258,7 +259,7 @@ export default function StreakGridPanel({
         >
           {isOnStreak
             ? `On a ${streakCurrent}-day streak`
-            : 'Fell off streak'}
+            : 'Streak tracker'}
         </Text>
 
         {/* Stats row */}
