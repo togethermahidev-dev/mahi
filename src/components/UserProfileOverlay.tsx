@@ -30,9 +30,10 @@ export default function UserProfileOverlay({
 }: UserProfileOverlayProps): React.JSX.Element {
   const currentUserId = useAuthStore((s) => s.user?.id);
 
-  const text   = dark ? '#E8E8E3' : '#1A1A17';
-  const muted  = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const cardBg = dark ? '#2A2A27' : '#F5F5F2';
+  const text     = dark ? '#E8E8E3' : '#1A1A17';
+  const muted    = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const cardBg   = dark ? '#2A2A27' : '#F5F5F2';
+  const avatarBg = dark ? '#3A3A37' : '#E8E8E3';
 
   const [profile,   setProfile]   = useState<ProfileRow | null>(null);
   const [loading,   setLoading]   = useState(true);
@@ -70,6 +71,15 @@ export default function UserProfileOverlay({
 
       {/* Card */}
       <View style={[styles.card, { backgroundColor: cardBg }]}>
+        {/* Back / close button */}
+        <TouchableOpacity
+          onPress={onClose}
+          style={styles.backBtn}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={[styles.backArrow, { color: muted }]}>‹</Text>
+        </TouchableOpacity>
+
         {loading ? (
           <ActivityIndicator color={muted} style={styles.loader} />
         ) : (
@@ -78,7 +88,7 @@ export default function UserProfileOverlay({
               {profile?.avatar_url ? (
                 <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
               ) : (
-                <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: muted }]}>
+                <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}>
                   <Text style={[styles.avatarInitial, { color: cardBg }]}>{initials}</Text>
                 </View>
               )}
@@ -123,7 +133,7 @@ export default function UserProfileOverlay({
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    zIndex:          20,
+    zIndex:          510,
     backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems:      'center',
     justifyContent:  'center',
@@ -131,11 +141,23 @@ const styles = StyleSheet.create({
   card: {
     width:             '80%',
     borderRadius:      20,
-    paddingTop:        32,
+    paddingTop:        16,
     paddingBottom:     28,
     paddingHorizontal: 24,
     alignItems:        'center',
     gap:               6,
+  },
+  backBtn: {
+    position:  'absolute',
+    top:       12,
+    left:      16,
+    zIndex:    1,
+    padding:   4,
+  },
+  backArrow: {
+    fontSize:   28,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    lineHeight: 30,
   },
   loader: {
     marginVertical: 40,

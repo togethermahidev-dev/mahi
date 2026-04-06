@@ -12,13 +12,17 @@ import {
   ActivityIndicator,
   Dimensions,
   KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { searchProfiles, type ProfileSearchResult } from '@/api';
+import { searchProfiles, type ProfileSearchResult, type ConversationPreview } from '@/api';
+import { useAuthStore } from '@/store';
+import UserProfileOverlay from '@/components/UserProfileOverlay';
+import ConversationScreen from '@/screens/ConversationScreen';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-function UserRow({ item, dark }: { item: ProfileSearchResult; dark: boolean }) {
+function UserRow({ item, dark, onPress }: { item: ProfileSearchResult; dark: boolean; onPress: () => void }) {
   const text     = dark ? '#E8E8E3' : '#1A1A17';
   const muted    = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
   const avatarBg = dark ? '#2A2A27' : '#E8E8E3';
@@ -27,7 +31,7 @@ function UserRow({ item, dark }: { item: ProfileSearchResult; dark: boolean }) {
   const initials    = displayName[0]?.toUpperCase() ?? '?';
 
   return (
-    <TouchableOpacity style={styles.row} activeOpacity={0.7}>
+    <TouchableOpacity style={styles.row} activeOpacity={0.7} onPress={onPress}>
       {item.avatar_url ? (
         <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
       ) : (
@@ -72,6 +76,9 @@ export default function GlobalSearchOverlay({
   const [results, setResults]   = useState<ProfileSearchResult[]>([]);
   const [loading, setLoading]   = useState(false);
   const [searched, setSearched] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [activeConvo, setActiveConvo]     = useState<ConversationPreview | null>(null);
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -88,9 +95,12 @@ export default function GlobalSearchOverlay({
         Animated.timing(fadeAnim,  { toValue: 0, duration: 180, useNativeDriver: true }),
         Animated.timing(slideAnim, { toValue: -24, duration: 180, useNativeDriver: true }),
       ]).start();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
       setQuery('');
       setResults([]);
       setSearched(false);
+      setProfileUserId(null);
+      setActiveConvo(null);
     }
   }, [visible]);
 
@@ -143,7 +153,10 @@ export default function GlobalSearchOverlay({
       <TouchableOpacity
         style={StyleSheet.absoluteFill}
         activeOpacity={1}
-        onPress={onClose}
+        onPress={() => {
+          Keyboard.dismiss();
+          onClose();
+        }}
       />
 
       <KeyboardAvoidingView
@@ -196,7 +209,17 @@ export default function GlobalSearchOverlay({
             <FlatList
               data={results}
               keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <UserRow item={item} dark={dark} />}
+              renderItem={({ item }) => (
+                <UserRow
+                  item={item}
+                  dark={dark}
+                  onPress={() => {
+                    if (item.id === currentUserId) return;
+                    Keyboard.dismiss();
+                    setProfileUserId(item.id);
+                  }}
+                />
+              )}
               ItemSeparatorComponent={() => (
                 <View
                   style={[
@@ -213,6 +236,28 @@ export default function GlobalSearchOverlay({
           )}
         </Animated.View>
       </KeyboardAvoidingView>
+
+      {/* Profile overlay — shown when a search result is tapped */}
+      {profileUserId ? (
+        <UserProfileOverlay
+          userId={profileUserId}
+          onClose={() => setProfileUserId(null)}
+          onOpenConvo={(convo) => {
+            setProfileUserId(null);
+            setActiveConvo(convo);
+          }}
+          dark={dark}
+        />
+      ) : null}
+
+      {/* Conversation screen — opened from profile overlay MESSAGE button */}
+      {activeConvo && currentUserId ? (
+        <ConversationScreen
+          conversation={activeConvo}
+          currentUserId={currentUserId}
+          onBack={() => setActiveConvo(null)}
+        />
+      ) : null}
     </Animated.View>
   );
 }
