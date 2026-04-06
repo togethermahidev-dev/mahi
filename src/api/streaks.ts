@@ -3,7 +3,8 @@
  *
  * Streak increments only when a user successfully posts a photo/video
  * via the native camera. Call `recordUpload` immediately after a post
- * is confirmed. Missing a day (no rest-day exemption) resets the streak.
+ * is confirmed. Rest days (days not in fitness_routine) are exempt —
+ * the streak continues without posting on those days.
  */
 
 import { supabase } from '@/lib/supabase';

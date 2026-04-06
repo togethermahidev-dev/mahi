@@ -40,7 +40,7 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 
 | Table | Key Columns | Notes |
 |---|---|---|
-| `public.profiles` | `id`, `username`, `display_name`, `avatar_url`, `streak_current`, `streak_highest`, `streak_lowest`, `streak_last_upload_date` | SELECT open to all authenticated users (feed joins require it) |
+| `public.profiles` | `id`, `username`, `display_name`, `avatar_url`, `streak_current`, `streak_highest`, `streak_lowest`, `streak_last_upload_date` | SELECT open to all authenticated users (feed joins and `searchProfiles` ILIKE queries require it). INSERT/UPDATE own only (`auth.uid() = id`). |
 | `public.posts` | `id`, `user_id`, `image_url`, `pov_image_url`, `caption`, `streak_day`, `created_at` | `image_url` = rear/POV photo (default full-screen). `pov_image_url` = front selfie pip (nullable — null for legacy single-photo posts). Paginated cursor sort: `created_at DESC, id DESC`. Unique index `posts_user_day_unique` enforces one post per user per UTC day. RLS INSERT policy additionally blocks same-day inserts. |
 | `public.post_likes` | `id`, `post_id`, `user_id`, `created_at` | Unique constraint `(post_id, user_id)`. RLS: authenticated read-all; insert/delete own only (`auth.uid() = user_id`). |
 | `public.post_comments` | `id`, `post_id`, `user_id`, `content`, `created_at` | Ordered oldest-first. RLS: authenticated read-all; insert/delete own only. |
@@ -163,9 +163,11 @@ Installed via `npx expo install expo-linear-gradient` (SDK 55 compatible version
 
 ## expo-blur
 
-**Status: Active (available, not currently used in UI)**
+**Status: Active**
 
-Installed as `~55.0.10`. Available for future frosted-glass effects if needed.
+Used for the `GlobalSearchOverlay` frosted-glass background. `BlurView` with `intensity={35}` and theme-aware `tint` (`'dark'` / `'light'`) covers the full screen behind the search input and results list. The overlay is triggered by a pull-down gesture from `CameraScreen` in `VerticalNavigator`.
+
+Installed as `~55.0.10`.
 
 ---
 

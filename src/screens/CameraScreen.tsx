@@ -23,6 +23,7 @@ import { useAuthStore, useUserStore, useFeedStore, useProfilePostsStore } from '
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { supabase } from '@/lib/supabase';
 import { createPost, recordUpload } from '@/api';
+import { Sentry } from '@/lib/sentry';
 
 // Must match PEEK_HEIGHT in VerticalNavigator.tsx
 const PEEK_HEIGHT = 110;
@@ -355,6 +356,13 @@ export default function CameraScreen(): React.JSX.Element {
   const today = new Date().toLocaleDateString('en-CA');
   const hasPostedToday = profile?.streak_last_upload_date === today;
 
+  const isRestDay = (() => {
+    const routine = profile?.fitness_routine;
+    if (!routine) return false;
+    const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    return !routine.split(',').includes(dayName);
+  })();
+
   useEffect(() => {
     if (cameraPermission && !cameraPermission.granted && cameraPermission.canAskAgain) {
       requestCameraPermission();
@@ -508,6 +516,10 @@ export default function CameraScreen(): React.JSX.Element {
       }
     } catch (err) {
       console.error('[uploadPhotos] upload failed', err);
+      Sentry.captureException(err, {
+        tags: { flow: 'camera', action: 'upload' },
+        extra: { userId },
+      });
       useFeedStore.getState().removePending(tempId);
       const current = useUserStore.getState().profile;
       if (current) setProfile({ ...current, streak_current: profile.streak_current });
@@ -577,6 +589,10 @@ export default function CameraScreen(): React.JSX.Element {
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
 
       <StreakBadge count={streakCount} />
+
+      {isRestDay && !hasPostedToday && (
+        <Text style={styles.restDayLabel}>REST DAY</Text>
+      )}
 
       {/* Capture progress overlay */}
       {captureLabel && (
@@ -651,6 +667,17 @@ const styles = StyleSheet.create({
     opacity: 0.65,
     marginTop: 3,
     lineHeight: 11,
+  },
+  restDayLabel: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 170 : 142,
+    right: 24,
+    color: '#E8E8E3',
+    fontSize: 10,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    letterSpacing: 2,
+    opacity: 0.5,
+    textAlign: 'center',
   },
   captureLabelWrap: {
     position: 'absolute',

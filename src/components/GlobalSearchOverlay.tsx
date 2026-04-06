@@ -19,6 +19,7 @@ import { searchProfiles, type ProfileSearchResult, type ConversationPreview } fr
 import { useAuthStore } from '@/store';
 import UserProfileOverlay from '@/components/UserProfileOverlay';
 import ConversationScreen from '@/screens/ConversationScreen';
+import { Sentry } from '@/lib/sentry';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -83,6 +84,8 @@ export default function GlobalSearchOverlay({
 
   useEffect(() => {
     if (visible) {
+      console.log('[GlobalSearch] opened');
+      Sentry.addBreadcrumb({ category: 'search', message: 'Search overlay opened', level: 'info' });
       Animated.parallel([
         Animated.spring(fadeAnim,  { toValue: 1, damping: 22, stiffness: 200, useNativeDriver: true }),
         Animated.spring(slideAnim, { toValue: 0, damping: 22, stiffness: 200, useNativeDriver: true }),
@@ -114,10 +117,24 @@ export default function GlobalSearchOverlay({
     }
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
-      const { data } = await searchProfiles(value);
-      setResults(data ?? []);
-      setSearched(true);
-      setLoading(false);
+      try {
+        const { data, error } = await searchProfiles(value);
+        if (error) {
+          console.log('[GlobalSearch] search error |', error.message);
+          Sentry.captureMessage(error.message, { level: 'warning', tags: { flow: 'search' }, extra: { query: value } });
+        }
+        const count = data?.length ?? 0;
+        console.log('[GlobalSearch] query:', value, '| results:', count);
+        setResults(data ?? []);
+        setSearched(true);
+      } catch (e) {
+        console.log('[GlobalSearch] search exception |', e);
+        Sentry.captureException(e, { tags: { flow: 'search' }, extra: { query: value } });
+        setResults([]);
+        setSearched(true);
+      } finally {
+        setLoading(false);
+      }
     }, 350);
   }, []);
 
@@ -214,7 +231,12 @@ export default function GlobalSearchOverlay({
                   item={item}
                   dark={dark}
                   onPress={() => {
-                    if (item.id === currentUserId) return;
+                    if (item.id === currentUserId) {
+                      console.log('[GlobalSearch] tap own profile — ignored |', item.id);
+                      return;
+                    }
+                    console.log('[GlobalSearch] tap profile |', item.id, '| user:', item.username);
+                    Sentry.addBreadcrumb({ category: 'search', message: `Profile tapped: ${item.username}`, level: 'info' });
                     Keyboard.dismiss();
                     setProfileUserId(item.id);
                   }}

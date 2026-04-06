@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { getProfile, createOrGetConversation } from '@/api';
 import { useAuthStore } from '@/store';
+import { Sentry } from '@/lib/sentry';
 import type { ConversationPreview } from '@/api';
 import type { Database } from '@/types';
 
@@ -40,10 +41,25 @@ export default function UserProfileOverlay({
   const [messaging, setMessaging] = useState(false);
 
   useEffect(() => {
-    getProfile(userId).then(({ data }) => {
-      setProfile(data ?? null);
-      setLoading(false);
-    });
+    console.log('[UserProfile] open |', userId);
+    Sentry.addBreadcrumb({ category: 'profile', message: `Profile overlay opened: ${userId}`, level: 'info' });
+    getProfile(userId)
+      .then(({ data, error }) => {
+        if (error) {
+          console.log('[UserProfile] fetch error |', userId, error.message);
+          Sentry.captureMessage(error.message, { level: 'warning', tags: { flow: 'profile', step: 'fetch' }, extra: { userId } });
+        } else {
+          console.log('[UserProfile] loaded |', data?.username ?? userId);
+        }
+        setProfile(data ?? null);
+        setLoading(false);
+      })
+      .catch((e) => {
+        console.log('[UserProfile] fetch exception |', userId, e);
+        Sentry.captureException(e, { tags: { flow: 'profile', step: 'fetch' }, extra: { userId } });
+        setProfile(null);
+        setLoading(false);
+      });
   }, [userId]);
 
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
@@ -51,12 +67,26 @@ export default function UserProfileOverlay({
 
   const handleMessage = async () => {
     if (!currentUserId || !profile || messaging) return;
+    console.log('[UserProfile] MESSAGE tap |', userId, '| user:', profile.username);
+    Sentry.addBreadcrumb({ category: 'profile', message: `Message tapped: ${profile.username}`, level: 'info' });
     setMessaging(true);
-    const { data, error } = await createOrGetConversation(currentUserId, userId);
-    setMessaging(false);
-    if (!error && data) {
-      onOpenConvo(data);
-      onClose();
+    try {
+      const { data, error } = await createOrGetConversation(currentUserId, userId);
+      setMessaging(false);
+      if (error) {
+        console.log('[UserProfile] createOrGetConversation error |', error.message);
+        Sentry.captureMessage(error.message, { level: 'warning', tags: { flow: 'profile', step: 'message' }, extra: { userId } });
+        return;
+      }
+      if (data) {
+        console.log('[UserProfile] conversation opened |', data.id);
+        onOpenConvo(data);
+        onClose();
+      }
+    } catch (e) {
+      console.log('[UserProfile] createOrGetConversation exception |', e);
+      Sentry.captureException(e, { tags: { flow: 'profile', step: 'message' }, extra: { userId } });
+      setMessaging(false);
     }
   };
 

@@ -5,12 +5,14 @@ import { useAuthStore, useUserStore } from '@/store';
 import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import SettingsPanel from '@/components/SettingsPanel';
-import { SettingsIcon } from '@/components/ScreenIcons';
+import { SettingsIcon, CalendarIcon } from '@/components/ScreenIcons';
 import AvatarPicker from '@/components/AvatarPicker';
+import TrainingDaysScreen from '@/components/TrainingDaysScreen';
 
 export default function ProfileScreen(): React.JSX.Element {
   const { dark } = useAppTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [trainingDaysOpen, setTrainingDaysOpen] = useState(false);
   const bg      = dark ? '#1C1C19' : '#FFFFFF';
   const text    = dark ? '#E8E8E3' : '#1A1A17';
   const muted   = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
@@ -57,6 +59,16 @@ export default function ProfileScreen(): React.JSX.Element {
           <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
         ) : null}
 
+        {/* Training days editor trigger */}
+        <TouchableOpacity
+          onPress={() => setTrainingDaysOpen(true)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={styles.trainingDaysBtn}
+        >
+          <CalendarIcon size={18} color={muted} />
+          <Text style={[styles.trainingDaysLabel, { color: muted }]}>Training Days</Text>
+        </TouchableOpacity>
+
         {/* Streak stats */}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
@@ -86,6 +98,13 @@ export default function ProfileScreen(): React.JSX.Element {
       <SettingsPanel
         visible={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+        dark={dark}
+      />
+
+      {/* Training days editor — slides in from left */}
+      <TrainingDaysScreen
+        visible={trainingDaysOpen}
+        onClose={() => setTrainingDaysOpen(false)}
         dark={dark}
       />
     </View>
@@ -124,7 +143,17 @@ const styles = StyleSheet.create({
   handle: {
     fontSize: 14,
     fontFamily: 'JosefinSans_400Regular_Italic',
-    marginBottom: 32,
+    marginBottom: 16,
+  },
+  trainingDaysBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 24,
+  },
+  trainingDaysLabel: {
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontSize: 12,
   },
   statsRow: {
     flexDirection: 'row',

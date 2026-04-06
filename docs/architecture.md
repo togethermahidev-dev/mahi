@@ -32,7 +32,7 @@ mahi-fitness/
 │   ├── store/          # Zustand global state (feedStore, messagesStore, authStore, userStore, …)
 │   ├── hooks/          # Thin store wrappers + utility hooks (useMessages, useConversation, …)
 │   ├── types/          # TypeScript types — database.ts is the source of truth for DB shapes
-│   ├── components/     # Shared UI components (AppHeader, NavigationDots, ThemeToggle, UserProfileOverlay, AvatarPicker)
+│   ├── components/     # Shared UI components (AppHeader, NavigationDots, ThemeToggle, UserProfileOverlay, GlobalSearchOverlay, AvatarPicker)
 │   └── screens/        # Screen-level components (including ConversationScreen)
 ├── docs/               # Project documentation
 ├── assets/             # Images, icons, splash
@@ -105,7 +105,7 @@ All tables use Row Level Security (RLS). Two Postgres RPCs handle social interac
 | `posts.ts` | `getFeedPosts` (via `get_feed_posts` RPC — returns `like_count`, `comment_count`, `liked_by_me`), `getUserPosts`, `createPost`, `FeedPost`, `FeedCursor`, `ProfilePostCursor` |
 | `social.ts` | `toggleLike` (single-RPC atomic toggle), `getComments`, `addComment`, `CommentWithProfile` |
 | `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `createOrGetConversation`, `deleteConversation`, `getMessages`, `ConversationPreview`, `MsgRow` |
-| `profile.ts` | `getProfile` |
+| `profile.ts` | `getProfile`, `searchProfiles`, `updateAvatarUrl`, `ProfileSearchResult` |
 | `streaks.ts` | `recordUpload`, `getStreakLogs`, `getActiveStreak` |
 | `auth.ts` | Auth helpers |
 | `email.ts` | OTP email via Edge Function |
@@ -158,6 +158,8 @@ Each slot is `SCREEN_HEIGHT` tall, positioned at `top: i * SLOT_HEIGHT`. Active 
 
 Render gating: only screens within ±1 index of `activeIndex` are fully mounted.
 
+**Global Search:** Pull-down gesture from `CameraScreen` (index 0) opens `GlobalSearchOverlay` — a frosted-glass full-screen overlay (`BlurView`, zIndex 500). Users can search for other profiles via `searchProfiles()`. Tapping a search result opens `UserProfileOverlay` (zIndex 510) on top of the search results; from there the user can tap MESSAGE to open `ConversationScreen`. The search overlay manages its own `profileUserId` and `activeConvo` state internally (same pattern as `FeedScreen`). Tapping your own profile in search results is a no-op (own-profile guard). All state (query, results, profile, conversation) is reset when the overlay closes.
+
 **Screen order (top → bottom):**
 
 | Index | Screen |
@@ -203,9 +205,9 @@ Props:
 | `HorizontalNavigator` | `src/screens/HorizontalNavigator.tsx` | Active — horizontal gesture nav |
 | `VerticalNavigator` | `src/screens/VerticalNavigator.tsx` | Active — vertical gesture nav |
 | `CameraScreen` | `src/screens/CameraScreen.tsx` | Active — sequential dual-camera capture (front selfie → auto-flip → rear POV ~800 ms later), dual-photo preview (`DualPhotoPreview` Modal: rear full-screen + draggable front pip, tap pip to swap), already-posted guard, optimistic upload + streak |
-| `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()`; post metadata (avatar, username, timestamp, streak pill) overlaid on the image via `LinearGradient` (dark-to-transparent from top); dual-photo posts show a pip overlay (tap to swap); single-photo legacy posts render unchanged; 16:9 aspect ratio; header hide/show driven by scroll via `headerAnim` prop; scroll-top state reported via `onScrollTopChange` prop; all interactions console-logged with `[FeedScreen]` prefix |
+| `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()`; post metadata (avatar, username, timestamp, streak pill) overlaid on the image via `LinearGradient` (dark-to-transparent from top); dual-photo posts show a pip overlay (tap to swap); single-photo legacy posts render unchanged; 16:9 aspect ratio; header hide/show driven by scroll via `headerAnim` prop; scroll-top state reported via `onScrollTopChange` prop; tapping another user's avatar opens `UserProfileOverlay` → MESSAGE → `ConversationScreen` (profile + conversation overlays managed via local state); all interactions console-logged with `[FeedScreen]` prefix |
 | `HomeScreen` | `src/screens/HomeScreen.tsx` | Placeholder |
-| `SearchScreen` | `src/screens/SearchScreen.tsx` | Placeholder |
+| `SearchScreen` | `src/screens/SearchScreen.tsx` | Placeholder (global search is handled by `GlobalSearchOverlay` component, not this screen) |
 | `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Active — own profile, streak stats, avatar picker (`AvatarPicker` component) |
 | `MessagesScreen` | `src/screens/MessagesScreen.tsx` | Active — inbox + requests from `useMessages()`; tapping a row opens `ConversationScreen` as an absolute overlay; REQUESTS tab has ACCEPT and DENY pill buttons |
 | `ConversationScreen` | `src/screens/ConversationScreen.tsx` | Active — individual message thread; inverted `FlatList` bubbles; real-time via `useConversation`; request banner (ACCEPT/DENY) shown to receiver on unaccepted conversations |

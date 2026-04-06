@@ -68,3 +68,13 @@ export async function updateAvatarUrl(userId: string, avatarUrl: string) {
     .select('avatar_url')
     .single();
 }
+
+/** Update a user's training-day routine (comma-separated full day names). */
+export async function updateFitnessRoutine(userId: string, routine: string | null) {
+  return supabase
+    .from('profiles')
+    .update({ fitness_routine: routine })
+    .eq('id', userId)
+    .select('fitness_routine')
+    .single();
+}
