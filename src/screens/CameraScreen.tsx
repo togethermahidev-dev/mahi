@@ -11,8 +11,10 @@ import {
   Alert,
   Dimensions,
   Modal,
-  PanResponder,
 } from 'react-native';
+import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { BlurView } from 'expo-blur';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -175,9 +177,13 @@ function DualPhotoPreview({
   const [primaryFacing, setPrimaryFacing] = useState<'rear' | 'front'>('rear');
 
   // Pip position — bottom-left by default
-  const pipX = useRef(PIP_MARGIN);
-  const pipY = useRef(SCREEN_HEIGHT - PIP_H - PIP_MARGIN - PEEK_HEIGHT - 80);
-  const pipAnim = useRef(new Animated.ValueXY({ x: pipX.current, y: pipY.current })).current;
+  const defaultPipX = PIP_MARGIN;
+  const defaultPipY = SCREEN_HEIGHT - PIP_H - PIP_MARGIN - PEEK_HEIGHT - 80;
+  const pipTransX = useSharedValue(defaultPipX);
+  const pipTransY = useSharedValue(defaultPipY);
+  const pipStartX = useSharedValue(defaultPipX);
+  const pipStartY = useSharedValue(defaultPipY);
+  const pipScaleVal = useSharedValue(1);
 
   // Frozen refs so image stays visible during slide-out animation
   const frozenFront = useRef<CapturedPhoto | null>(null);
@@ -209,44 +215,59 @@ function DualPhotoPreview({
         frozenRear.current  = null;
         setModalOpen(false);
         // Reset pip position for next time
-        pipX.current = PIP_MARGIN;
-        pipY.current = SCREEN_HEIGHT - PIP_H - PIP_MARGIN - PEEK_HEIGHT - 80;
-        pipAnim.setValue({ x: pipX.current, y: pipY.current });
+        pipTransX.value = defaultPipX;
+        pipTransY.value = defaultPipY;
+        pipStartX.value = defaultPipX;
+        pipStartY.value = defaultPipY;
+        pipScaleVal.value = 1;
         setPrimaryFacing('rear');
       });
     }
   }, [hasPhotos]);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        Math.abs(gestureState.dx) > 4 || Math.abs(gestureState.dy) > 4,
-      onPanResponderTerminationRequest: () => false,
-      onShouldBlockNativeResponder: () => true,
-      onPanResponderGrant: () => {
-        pipAnim.setOffset({ x: pipX.current, y: pipY.current });
-        pipAnim.setValue({ x: 0, y: 0 });
-      },
-      onPanResponderMove: Animated.event(
-        [null, { dx: pipAnim.x, dy: pipAnim.y }],
-        { useNativeDriver: false },
-      ),
-      onPanResponderRelease: (_, gestureState) => {
-        pipAnim.flattenOffset();
-        // Clamp within screen bounds
-        const rawX = pipX.current + gestureState.dx;
-        const rawY = pipY.current + gestureState.dy;
-        pipX.current = Math.max(PIP_MARGIN, Math.min(rawX, SCREEN_WIDTH  - PIP_W - PIP_MARGIN));
-        pipY.current = Math.max(PIP_MARGIN, Math.min(rawY, SCREEN_HEIGHT - PIP_H - PIP_MARGIN));
-        pipAnim.setValue({ x: pipX.current, y: pipY.current });
-      },
-    }),
-  ).current;
+  const pipPanGesture = Gesture.Pan()
+    .activateAfterLongPress(150)
+    .onStart(() => {
+      'worklet';
+      pipStartX.value = pipTransX.value;
+      pipStartY.value = pipTransY.value;
+      pipScaleVal.value = withSpring(1.1, { damping: 12, stiffness: 200 });
+      runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
+    })
+    .onUpdate((e) => {
+      'worklet';
+      const rawX = pipStartX.value + e.translationX;
+      const rawY = pipStartY.value + e.translationY;
+      pipTransX.value = Math.max(PIP_MARGIN, Math.min(rawX, SCREEN_WIDTH - PIP_W - PIP_MARGIN));
+      pipTransY.value = Math.max(PIP_MARGIN, Math.min(rawY, SCREEN_HEIGHT - PIP_H - PIP_MARGIN));
+    })
+    .onEnd(() => {
+      'worklet';
+      // Snap to nearest corner
+      const midX = (SCREEN_WIDTH - PIP_W) / 2;
+      const midY = (SCREEN_HEIGHT - PIP_H) / 2;
+      const snapX = pipTransX.value < midX ? PIP_MARGIN : SCREEN_WIDTH - PIP_W - PIP_MARGIN;
+      const snapY = pipTransY.value < midY ? PIP_MARGIN : SCREEN_HEIGHT - PIP_H - PIP_MARGIN;
+      pipTransX.value = withSpring(snapX, { damping: 16, stiffness: 140 });
+      pipTransY.value = withSpring(snapY, { damping: 16, stiffness: 140 });
+      pipScaleVal.value = withSpring(1, { damping: 12, stiffness: 200 });
+    });
 
-  const handlePipTap = () => {
-    setPrimaryFacing(f => (f === 'rear' ? 'front' : 'rear'));
-  };
+  const pipTapGesture = Gesture.Tap()
+    .runOnJS(true)
+    .onEnd(() => {
+      setPrimaryFacing(f => (f === 'rear' ? 'front' : 'rear'));
+    });
+
+  const pipGesture = Gesture.Race(pipPanGesture, pipTapGesture);
+
+  const pipAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: pipTransX.value },
+      { translateY: pipTransY.value },
+      { scale: pipScaleVal.value },
+    ],
+  }));
 
   const handleDiscard = () => {
     Alert.alert('Discard photos?', '', [
@@ -271,6 +292,7 @@ function DualPhotoPreview({
       statusBarTranslucent
       onRequestClose={handleDiscard}
     >
+      <GestureHandlerRootView style={{ flex: 1 }}>
       <Animated.View
         style={[styles.previewPanel, { transform: [{ translateX: slideAnim }] }]}
       >
@@ -285,22 +307,15 @@ function DualPhotoPreview({
 
         {/* Pip — draggable, tap to swap */}
         {pipUri && (
-          <Animated.View
-            style={[styles.pip, { transform: pipAnim.getTranslateTransform() }]}
-            {...panResponder.panHandlers}
-          >
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handlePipTap}
-              style={StyleSheet.absoluteFillObject}
-            >
+          <GestureDetector gesture={pipGesture}>
+            <Reanimated.View style={[styles.pip, pipAnimStyle]}>
               <Image
                 source={{ uri: pipUri }}
                 style={[StyleSheet.absoluteFillObject, { borderRadius: 12 }]}
                 resizeMode="cover"
               />
-            </TouchableOpacity>
-          </Animated.View>
+            </Reanimated.View>
+          </GestureDetector>
         )}
 
         {/* Discard — top right */}
@@ -329,6 +344,7 @@ function DualPhotoPreview({
           </TouchableOpacity>
         </View>
       </Animated.View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }

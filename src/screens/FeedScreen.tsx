@@ -7,7 +7,6 @@ import {
   RefreshControl,
   StyleSheet,
   Animated,
-  PanResponder,
   TouchableOpacity,
   useWindowDimensions,
   TextInput,
@@ -16,6 +15,7 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -123,57 +123,66 @@ function PostItem({
   const containerH = width * (16 / 9);
   const initialPipX = 12;
   const initialPipY = containerH - FEED_PIP_H - 12;
-  const pipAnim = useRef(new Animated.ValueXY({ x: initialPipX, y: initialPipY })).current;
-  const pipScale = useRef(new Animated.Value(1)).current;
-  const pipX = useRef(initialPipX);
-  const pipY = useRef(initialPipY);
+  const pipTransX = useSharedValue(initialPipX);
+  const pipTransY = useSharedValue(initialPipY);
+  const pipStartX = useSharedValue(initialPipX);
+  const pipStartY = useSharedValue(initialPipY);
+  const pipScaleVal = useSharedValue(1);
 
   // Reset PIP position when FlashList recycles this cell for a different post
   useEffect(() => {
-    pipX.current = initialPipX;
-    pipY.current = initialPipY;
-    pipAnim.setValue({ x: initialPipX, y: initialPipY });
-    pipScale.setValue(1);
+    pipTransX.value = initialPipX;
+    pipTransY.value = initialPipY;
+    pipStartX.value = initialPipX;
+    pipStartY.value = initialPipY;
+    pipScaleVal.value = 1;
   }, [item.id]);
 
-  const pipPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gs) =>
-        Math.abs(gs.dx) > 4 || Math.abs(gs.dy) > 4,
-      onPanResponderTerminationRequest: () => false,
-      onShouldBlockNativeResponder: () => true,
-      onPanResponderGrant: () => {
-        pipAnim.setOffset({ x: pipX.current, y: pipY.current });
-        pipAnim.setValue({ x: 0, y: 0 });
-        Animated.spring(pipScale, {
-          toValue: 1.1,
-          useNativeDriver: false,
-          speed: 20,
-          bounciness: 8,
-        }).start();
-      },
-      onPanResponderMove: Animated.event(
-        [null, { dx: pipAnim.x, dy: pipAnim.y }],
-        { useNativeDriver: false },
-      ),
-      onPanResponderRelease: (_, gs) => {
-        pipAnim.flattenOffset();
-        const rawX = pipX.current + gs.dx;
-        const rawY = pipY.current + gs.dy;
-        const margin = 8;
-        pipX.current = Math.max(margin, Math.min(rawX, width - FEED_PIP_W - margin));
-        pipY.current = Math.max(margin, Math.min(rawY, containerH - FEED_PIP_H - margin));
-        pipAnim.setValue({ x: pipX.current, y: pipY.current });
-        Animated.spring(pipScale, {
-          toValue: 1,
-          useNativeDriver: false,
-          speed: 20,
-          bounciness: 8,
-        }).start();
-      },
-    }),
-  ).current;
+  const margin = 8;
+  const pipPanGesture = Gesture.Pan()
+    .activateAfterLongPress(150)
+    .onStart(() => {
+      'worklet';
+      pipStartX.value = pipTransX.value;
+      pipStartY.value = pipTransY.value;
+      pipScaleVal.value = withSpring(1.1, { damping: 12, stiffness: 200 });
+      runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
+    })
+    .onUpdate((e) => {
+      'worklet';
+      const rawX = pipStartX.value + e.translationX;
+      const rawY = pipStartY.value + e.translationY;
+      pipTransX.value = Math.max(margin, Math.min(rawX, width - FEED_PIP_W - margin));
+      pipTransY.value = Math.max(margin, Math.min(rawY, containerH - FEED_PIP_H - margin));
+    })
+    .onEnd(() => {
+      'worklet';
+      // Snap to nearest corner
+      const midX = (width - FEED_PIP_W) / 2;
+      const midY = (containerH - FEED_PIP_H) / 2;
+      const snapX = pipTransX.value < midX ? margin : width - FEED_PIP_W - margin;
+      const snapY = pipTransY.value < midY ? margin : containerH - FEED_PIP_H - margin;
+      pipTransX.value = withSpring(snapX, { damping: 16, stiffness: 140 });
+      pipTransY.value = withSpring(snapY, { damping: 16, stiffness: 140 });
+      pipScaleVal.value = withSpring(1, { damping: 12, stiffness: 200 });
+    });
+
+  const pipAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: pipTransX.value },
+      { translateY: pipTransY.value },
+      { scale: pipScaleVal.value },
+    ],
+  }));
+
+  const pipTapGesture = Gesture.Tap()
+    .runOnJS(true)
+    .onEnd(() => {
+      console.log('[FeedScreen] PIP swap post', item.id);
+      setRearIsPrimary(p => !p);
+    });
+
+  const pipGesture = Gesture.Race(pipPanGesture, pipTapGesture);
 
   // ── Double-tap medal burst animation ─────────────────────────────────────
   const medalScale   = useRef(new Animated.Value(0)).current;
@@ -316,27 +325,17 @@ function PostItem({
             )}
           </View>
         </GestureDetector>
-        {/* Draggable PIP — outside GestureDetector to avoid gesture conflicts */}
+        {/* Draggable PIP — uses RNGH so it wins over scroll/navigation gestures */}
         {hasDual && pipUrl && (
-          <Animated.View
-            style={[
-              styles.feedPip,
-              { transform: [...pipAnim.getTranslateTransform(), { scale: pipScale }] },
-            ]}
-            {...pipPanResponder.panHandlers}
-          >
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => { console.log('[FeedScreen] PIP swap post', item.id); setRearIsPrimary(p => !p); }}
-              style={StyleSheet.absoluteFillObject}
-            >
+          <GestureDetector gesture={pipGesture}>
+            <Reanimated.View style={[styles.feedPip, pipAnimStyle]}>
               <Image
                 source={{ uri: pipUrl }}
                 style={[StyleSheet.absoluteFillObject, { borderRadius: 10 }]}
                 resizeMode="cover"
               />
-            </TouchableOpacity>
-          </Animated.View>
+            </Reanimated.View>
+          </GestureDetector>
         )}
       </View>
 
