@@ -7,6 +7,7 @@ import {
   RefreshControl,
   StyleSheet,
   Animated,
+  PanResponder,
   TouchableOpacity,
   useWindowDimensions,
   TextInput,
@@ -118,6 +119,46 @@ function PostItem({
   const primaryUrl = hasDual && !rearIsPrimary ? item.pov_image_url! : item.image_url;
   const pipUrl     = hasDual && !rearIsPrimary ? item.image_url : item.pov_image_url;
 
+  // ── Draggable PIP (FaceTime-style) ──────────────────────────────────────
+  const containerH = width * (16 / 9);
+  const initialPipX = 12;
+  const initialPipY = containerH - FEED_PIP_H - 12;
+  const pipAnim = useRef(new Animated.ValueXY({ x: initialPipX, y: initialPipY })).current;
+  const pipX = useRef(initialPipX);
+  const pipY = useRef(initialPipY);
+
+  // Reset PIP position when FlashList recycles this cell for a different post
+  useEffect(() => {
+    pipX.current = initialPipX;
+    pipY.current = initialPipY;
+    pipAnim.setValue({ x: initialPipX, y: initialPipY });
+  }, [item.id]);
+
+  const pipPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gs) =>
+        Math.abs(gs.dx) > 6 || Math.abs(gs.dy) > 6,
+      onPanResponderGrant: () => {
+        pipAnim.setOffset({ x: pipX.current, y: pipY.current });
+        pipAnim.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: Animated.event(
+        [null, { dx: pipAnim.x, dy: pipAnim.y }],
+        { useNativeDriver: false },
+      ),
+      onPanResponderRelease: (_, gs) => {
+        pipAnim.flattenOffset();
+        const rawX = pipX.current + gs.dx;
+        const rawY = pipY.current + gs.dy;
+        const margin = 8;
+        pipX.current = Math.max(margin, Math.min(rawX, width - FEED_PIP_W - margin));
+        pipY.current = Math.max(margin, Math.min(rawY, containerH - FEED_PIP_H - margin));
+        pipAnim.setValue({ x: pipX.current, y: pipY.current });
+      },
+    }),
+  ).current;
+
   // ── Double-tap medal burst animation ─────────────────────────────────────
   const medalScale   = useRef(new Animated.Value(0)).current;
   const medalOpacity = useRef(new Animated.Value(0)).current;
@@ -206,44 +247,72 @@ function PostItem({
   return (
     <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
       {/* Post image — double-tap to like */}
-      <GestureDetector gesture={doubleTap}>
-        <View style={[styles.imageContainer, { width }]}>
-          <Image
-            source={{ uri: primaryUrl }}
-            style={{ width, height: width * (16 / 9) }}
-            resizeMode="cover"
-          />
-          {/* Overlay gradient + post metadata */}
-          <LinearGradient
-            colors={['rgba(0,0,0,0.6)', 'transparent']}
-            style={styles.postOverlay}
+      <View style={[styles.imageContainer, { width }]}>
+        <GestureDetector gesture={doubleTap}>
+          <View style={{ width, height: width * (16 / 9) }}>
+            <Image
+              source={{ uri: primaryUrl }}
+              style={{ width, height: width * (16 / 9) }}
+              resizeMode="cover"
+            />
+            {/* Overlay gradient + post metadata */}
+            <LinearGradient
+              colors={['rgba(0,0,0,0.6)', 'transparent']}
+              style={styles.postOverlay}
+            >
+              <TouchableOpacity
+                style={styles.avatarRow}
+                onPress={() => onAvatarPress(item.profiles.id)}
+                activeOpacity={0.75}
+              >
+                {item.profiles.avatar_url ? (
+                  <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
+                ) : (
+                  <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: 'rgba(255,255,255,0.3)' }]}>
+                    <Text style={styles.avatarInitial}>{initials}</Text>
+                  </View>
+                )}
+                <View style={styles.userInfo}>
+                  <Text style={styles.usernameOverlay}>{name}</Text>
+                  <Text style={styles.timeOverlay}>{relativeTime(item.created_at)}</Text>
+                </View>
+              </TouchableOpacity>
+              <View style={styles.streakBadge}>
+                <Text style={styles.streakText}>DAY {item.streak_day}</Text>
+              </View>
+            </LinearGradient>
+            {/* Medal burst overlay — shown on double-tap */}
+            {showMedal && (
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.medalBurst,
+                  {
+                    left: medalPos.x - 40,
+                    top:  medalPos.y - 40,
+                    transform: [{ scale: medalScale }],
+                    opacity:   medalOpacity,
+                  },
+                ]}
+              >
+                <LikeIcon size={80} color="#FFFFFF" filled count={likeCount} />
+              </Animated.View>
+            )}
+          </View>
+        </GestureDetector>
+        {/* Draggable PIP — outside GestureDetector to avoid gesture conflicts */}
+        {hasDual && pipUrl && (
+          <Animated.View
+            style={[
+              styles.feedPip,
+              { transform: pipAnim.getTranslateTransform() },
+            ]}
+            {...pipPanResponder.panHandlers}
           >
             <TouchableOpacity
-              style={styles.avatarRow}
-              onPress={() => onAvatarPress(item.profiles.id)}
-              activeOpacity={0.75}
-            >
-              {item.profiles.avatar_url ? (
-                <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: 'rgba(255,255,255,0.3)' }]}>
-                  <Text style={styles.avatarInitial}>{initials}</Text>
-                </View>
-              )}
-              <View style={styles.userInfo}>
-                <Text style={styles.usernameOverlay}>{name}</Text>
-                <Text style={styles.timeOverlay}>{relativeTime(item.created_at)}</Text>
-              </View>
-            </TouchableOpacity>
-            <View style={styles.streakBadge}>
-              <Text style={styles.streakText}>DAY {item.streak_day}</Text>
-            </View>
-          </LinearGradient>
-          {hasDual && pipUrl && (
-            <TouchableOpacity
-              style={styles.feedPip}
               activeOpacity={0.85}
               onPress={() => { console.log('[FeedScreen] PIP swap post', item.id); setRearIsPrimary(p => !p); }}
+              style={StyleSheet.absoluteFillObject}
             >
               <Image
                 source={{ uri: pipUrl }}
@@ -251,26 +320,9 @@ function PostItem({
                 resizeMode="cover"
               />
             </TouchableOpacity>
-          )}
-          {/* Medal burst overlay — shown on double-tap */}
-          {showMedal && (
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.medalBurst,
-                {
-                  left: medalPos.x - 40,
-                  top:  medalPos.y - 40,
-                  transform: [{ scale: medalScale }],
-                  opacity:   medalOpacity,
-                },
-              ]}
-            >
-              <LikeIcon size={80} color="#FFFFFF" filled count={likeCount} />
-            </Animated.View>
-          )}
-        </View>
-      </GestureDetector>
+          </Animated.View>
+        )}
+      </View>
 
       {item.caption ? (
         <Text style={[styles.caption, { color: text }]}>{item.caption}</Text>
@@ -553,8 +605,8 @@ const styles = StyleSheet.create({
   },
   feedPip: {
     position: 'absolute',
-    bottom: 12,
-    left: 12,
+    top: 0,
+    left: 0,
     width: FEED_PIP_W,
     height: FEED_PIP_H,
     borderRadius: 10,
