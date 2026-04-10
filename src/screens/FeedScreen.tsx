@@ -141,6 +141,8 @@ function PostItem({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gs) =>
         Math.abs(gs.dx) > 4 || Math.abs(gs.dy) > 4,
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => true,
       onPanResponderGrant: () => {
         pipAnim.setOffset({ x: pipX.current, y: pipY.current });
         pipAnim.setValue({ x: 0, y: 0 });

@@ -222,6 +222,8 @@ function DualPhotoPreview({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) =>
         Math.abs(gestureState.dx) > 4 || Math.abs(gestureState.dy) > 4,
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => true,
       onPanResponderGrant: () => {
         pipAnim.setOffset({ x: pipX.current, y: pipY.current });
         pipAnim.setValue({ x: 0, y: 0 });
