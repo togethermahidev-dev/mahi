@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
+  Modal,
   StyleSheet,
   TouchableOpacity,
   FlatList,
@@ -82,15 +83,16 @@ export default function ConversationScreen({
   const reversed = [...messages].reverse();
 
   return (
+    <Modal visible animationType="slide" transparent={false} onRequestClose={onBack}>
     <View style={[styles.root, { backgroundColor: bg }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: border }]}>
         <TouchableOpacity
           onPress={onBack}
-          style={styles.backBtn}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={[styles.backBtn, { borderColor: border }]}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={[styles.backArrow, { color: text }]}>←</Text>
+          <Text style={[styles.backArrow, { color: text }]}>‹</Text>
         </TouchableOpacity>
         <Text style={[styles.headerName, { color: text }]} numberOfLines={1}>
           {otherName}
@@ -189,13 +191,13 @@ export default function ConversationScreen({
         </View>
       </KeyboardAvoidingView>
     </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 10,
+    flex: 1,
   },
   header: {
     flexDirection:    'row',
@@ -206,12 +208,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
-    width: 44,
-    alignItems: 'flex-start',
+    width:          36,
+    height:         36,
+    borderRadius:   18,
+    borderWidth:    1,
+    alignItems:     'center',
+    justifyContent: 'center',
   },
   backArrow: {
-    fontSize:   22,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontSize:   20,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    lineHeight: 22,
   },
   headerName: {
     flex:       1,

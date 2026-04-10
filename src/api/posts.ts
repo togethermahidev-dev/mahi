@@ -40,7 +40,7 @@ export async function getFeedPosts(
   if (!data)  return { data: [], error: null };
 
   // RPC returns flat rows; reshape into FeedPost (nested profiles object)
-  const mapped: FeedPost[] = (data as NonNullable<typeof data>).map((row) => ({
+  const mapped: FeedPost[] = (data as NonNullable<typeof data>).map((row: Database['public']['Functions']['get_feed_posts']['Returns'][number]) => ({
     id:            row.id,
     user_id:       row.user_id,
     image_url:     row.image_url,

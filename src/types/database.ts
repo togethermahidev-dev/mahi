@@ -150,6 +150,20 @@ export type Database = {
         };
         Update: Record<string, never>;
       };
+      follows: {
+        Row: {
+          id:           string;
+          follower_id:  string;
+          following_id: string;
+          created_at:   string;
+        };
+        Insert: {
+          id?:          string;
+          follower_id:  string;
+          following_id: string;
+        };
+        Update: Record<string, never>;
+      };
     };
     Views:     Record<string, never>;
     Functions: {
@@ -183,6 +197,14 @@ export type Database = {
           like_count:    number;
           comment_count: number;
           liked_by_me:   boolean;
+        }[];
+      };
+      get_follow_data: {
+        Args: { p_current_user_id: string; p_target_user_id: string };
+        Returns: {
+          is_following:    boolean;
+          follower_count:  number;
+          following_count: number;
         }[];
       };
     };

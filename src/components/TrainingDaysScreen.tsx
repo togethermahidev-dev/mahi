@@ -143,9 +143,9 @@ export default function TrainingDaysScreen({
           <TouchableOpacity
             onPress={onClose}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={styles.backBtn}
+            style={[styles.backBtn, { borderColor: muted }]}
           >
-            <Text style={[styles.backText, { color: text }]}>{'<'} Back</Text>
+            <Text style={[styles.backText, { color: text }]}>‹</Text>
           </TouchableOpacity>
 
           <Text style={[styles.title, { color: text }]}>TRAINING DAYS</Text>
@@ -217,12 +217,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
-    width: 70,
-    alignItems: 'flex-start',
+    width:          36,
+    height:         36,
+    borderRadius:   18,
+    borderWidth:    1,
+    alignItems:     'center',
+    justifyContent: 'center',
   },
   backText: {
-    fontFamily: 'JosefinSans_400Regular',
-    fontSize: 15,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontSize:   20,
+    lineHeight: 22,
   },
   title: {
     fontFamily: 'JosefinSans_700Bold',

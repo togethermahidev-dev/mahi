@@ -9,7 +9,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { getProfile, createOrGetConversation } from '@/api';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useFollowStore } from '@/store';
 import { Sentry } from '@/lib/sentry';
 import { StreakIcon } from '@/components/ScreenIcons';
 import StreakGridPanel from '@/components/StreakGridPanel';
@@ -38,10 +38,20 @@ export default function UserProfileOverlay({
   const cardBg   = dark ? '#2A2A27' : '#F5F5F2';
   const avatarBg = dark ? '#3A3A37' : '#E8E8E3';
 
+  const isFollowing    = useFollowStore((s) => s.followingByMe[userId] ?? false);
+  const followerCount  = useFollowStore((s) => s.counts[userId]?.follower_count ?? 0);
+  const followingCount = useFollowStore((s) => s.counts[userId]?.following_count ?? 0);
+  const loadFollowData = useFollowStore((s) => s.loadFollowData);
+  const toggleFollow   = useFollowStore((s) => s.toggleFollow);
+
   const [profile,   setProfile]   = useState<ProfileRow | null>(null);
   const [loading,   setLoading]   = useState(true);
   const [messaging, setMessaging] = useState(false);
   const [streakGridOpen, setStreakGridOpen] = useState(false);
+
+  useEffect(() => {
+    if (currentUserId) loadFollowData(currentUserId, userId);
+  }, [userId, currentUserId, loadFollowData]);
 
   useEffect(() => {
     console.log('[UserProfile] open |', userId);
@@ -93,6 +103,21 @@ export default function UserProfileOverlay({
     }
   };
 
+  const handleFollow = async () => {
+    if (!currentUserId) return;
+    console.log('[UserProfile] FOLLOW tap |', userId, '| action:', isFollowing ? 'unfollow' : 'follow');
+    Sentry.addBreadcrumb({ category: 'profile', message: `Follow toggled: ${userId}`, level: 'info' });
+    const { error } = await toggleFollow(currentUserId, userId);
+    if (error) {
+      console.log('[UserProfile] toggleFollow error |', error.message);
+      Sentry.captureMessage(error.message, {
+        level: 'warning',
+        tags: { flow: 'profile', step: 'follow' },
+        extra: { userId, action: isFollowing ? 'unfollow' : 'follow' },
+      });
+    }
+  };
+
   const isSelf = currentUserId === userId;
 
   return (
@@ -107,7 +132,7 @@ export default function UserProfileOverlay({
         {/* Back / close button */}
         <TouchableOpacity
           onPress={onClose}
-          style={styles.backBtn}
+          style={[styles.backBtn, { borderColor: muted }]}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Text style={[styles.backArrow, { color: muted }]}>‹</Text>
@@ -134,6 +159,18 @@ export default function UserProfileOverlay({
 
             <View style={styles.statsRow}>
               <View style={styles.stat}>
+                <Text style={[styles.statValue, { color: text }]}>{followerCount}</Text>
+                <Text style={[styles.statLabel, { color: muted }]}>FOLLOWERS</Text>
+              </View>
+              <View style={[styles.statDivider, { backgroundColor: muted }]} />
+              <View style={styles.stat}>
+                <Text style={[styles.statValue, { color: text }]}>{followingCount}</Text>
+                <Text style={[styles.statLabel, { color: muted }]}>FOLLOWING</Text>
+              </View>
+            </View>
+
+            <View style={styles.statsRow}>
+              <View style={styles.stat}>
                 <Text style={[styles.statValue, { color: text }]}>{profile?.streak_current ?? 0}</Text>
                 <Text style={[styles.statLabel, { color: muted }]}>STREAK</Text>
               </View>
@@ -154,16 +191,33 @@ export default function UserProfileOverlay({
             </TouchableOpacity>
 
             {!isSelf ? (
-              <TouchableOpacity
-                style={[styles.messageBtn, { borderColor: text, opacity: messaging ? 0.5 : 1 }]}
-                onPress={handleMessage}
-                activeOpacity={0.75}
-                disabled={messaging}
-              >
-                <Text style={[styles.messageBtnText, { color: text }]}>
-                  {messaging ? '…' : 'MESSAGE'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.actionRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.followBtn,
+                    isFollowing
+                      ? { borderColor: text, borderWidth: 1 }
+                      : { backgroundColor: '#59c2d7' },
+                  ]}
+                  onPress={handleFollow}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.followBtnText, { color: isFollowing ? text : '#FFFFFF' }]}>
+                    {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.messageBtn, { borderColor: text, opacity: messaging ? 0.5 : 1 }]}
+                  onPress={handleMessage}
+                  activeOpacity={0.75}
+                  disabled={messaging}
+                >
+                  <Text style={[styles.messageBtnText, { color: text }]}>
+                    {messaging ? '…' : 'MESSAGE'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             ) : null}
           </>
         )}
@@ -204,16 +258,21 @@ const styles = StyleSheet.create({
     gap:               6,
   },
   backBtn: {
-    position:  'absolute',
-    top:       12,
-    left:      16,
-    zIndex:    1,
-    padding:   4,
+    position:       'absolute',
+    top:            12,
+    left:           16,
+    zIndex:         1,
+    width:          36,
+    height:         36,
+    borderRadius:   18,
+    borderWidth:    1,
+    alignItems:     'center',
+    justifyContent: 'center',
   },
   backArrow: {
-    fontSize:   28,
+    fontSize:   20,
     fontFamily: 'JosefinSans_400Regular_Italic',
-    lineHeight: 30,
+    lineHeight: 22,
   },
   loader: {
     marginVertical: 40,
@@ -279,12 +338,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
+  actionRow: {
+    flexDirection:  'row',
+    gap:            12,
+    marginTop:      4,
+  },
+  followBtn: {
+    borderRadius:      50,
+    paddingHorizontal: 28,
+    paddingVertical:   9,
+  },
+  followBtnText: {
+    fontSize:      11,
+    fontFamily:    'JosefinSans_700Bold',
+    letterSpacing: 3,
+  },
   messageBtn: {
     borderWidth:       1,
     borderRadius:      50,
     paddingHorizontal: 28,
     paddingVertical:   9,
-    marginTop:         4,
   },
   messageBtnText: {
     fontSize:      11,

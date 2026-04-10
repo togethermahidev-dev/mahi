@@ -90,11 +90,12 @@ useConversation(conversationId) mount (ConversationScreen)
 | `public.posts` | Daily streak photos — one per user per day. `image_url` = rear/POV photo; `pov_image_url` = front selfie (nullable — null on legacy single-photo posts). Enforced by unique index `posts_user_day_unique (user_id, (created_at AT TIME ZONE 'UTC')::date)` and RLS INSERT policy |
 | `public.post_likes` | One row per user-post like. Unique constraint `(post_id, user_id)`. RLS: authenticated read-all, insert/delete own only. |
 | `public.post_comments` | Comments on posts. Ordered oldest-first. RLS: authenticated read-all, insert/delete own only. |
+| `public.follows` | Follow relationships. Unique constraint `(follower_id, following_id)`, self-follow check constraint. RLS: authenticated read-all, insert/delete own only (`auth.uid() = follower_id`). Explicit UPDATE deny policy. |
 | `public.conversations` | Messaging thread — one row per pair, ordered participants constraint |
 | `public.messages` | Individual messages within a conversation |
 | `public.streak_logs` | Audit log of streak events |
 
-All tables use Row Level Security (RLS). Two Postgres RPCs handle social interactions (see Database Functions below). The `record_upload_streak(p_user_id, p_upload_date)` Postgres function (SECURITY DEFINER, auth-guarded) is the authoritative source for streak updates — it uses `SELECT ... FOR UPDATE` to prevent race conditions on double-tap. Always call it before `createPost` so the post row receives the RPC-confirmed `streak_day` value.
+All tables use Row Level Security (RLS). Three Postgres RPCs handle social interactions (see Database Functions below). The `record_upload_streak(p_user_id, p_upload_date)` Postgres function (SECURITY DEFINER, auth-guarded) is the authoritative source for streak updates — it uses `SELECT ... FOR UPDATE` to prevent race conditions on double-tap. Always call it before `createPost` so the post row receives the RPC-confirmed `streak_day` value.
 
 ---
 
@@ -104,6 +105,7 @@ All tables use Row Level Security (RLS). Two Postgres RPCs handle social interac
 |---|---|
 | `posts.ts` | `getFeedPosts` (via `get_feed_posts` RPC — returns `like_count`, `comment_count`, `liked_by_me`), `getUserPosts`, `getPostDates` (distinct post dates for streak grid), `createPost`, `FeedPost`, `FeedCursor`, `ProfilePostCursor` |
 | `social.ts` | `toggleLike` (single-RPC atomic toggle), `getComments`, `addComment`, `CommentWithProfile` |
+| `follows.ts` | `followUser` (idempotent upsert), `unfollowUser`, `getFollowData` (single-RPC: `is_following` + `follower_count` + `following_count`) |
 | `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `createOrGetConversation`, `deleteConversation`, `getMessages`, `ConversationPreview`, `MsgRow` |
 | `profile.ts` | `getProfile`, `searchProfiles`, `updateAvatarUrl`, `updateFitnessRoutine`, `ProfileSearchResult` |
 | `streaks.ts` | `recordUpload`, `getStreakLogs`, `getActiveStreak` |
@@ -208,7 +210,7 @@ Props:
 | `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()`; post metadata (avatar, username, timestamp, streak pill) overlaid on the image via `LinearGradient` (dark-to-transparent from top); dual-photo posts show a pip overlay (tap to swap); single-photo legacy posts render unchanged; 16:9 aspect ratio; header hide/show driven by scroll via `headerAnim` prop; scroll-top state reported via `onScrollTopChange` prop; tapping another user's avatar opens `UserProfileOverlay` → MESSAGE → `ConversationScreen` (profile + conversation overlays managed via local state); all interactions console-logged with `[FeedScreen]` prefix |
 | `HomeScreen` | `src/screens/HomeScreen.tsx` | Placeholder |
 | `SearchScreen` | `src/screens/SearchScreen.tsx` | Placeholder (global search is handled by `GlobalSearchOverlay` component, not this screen) |
-| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Active — own profile, streak stats, avatar picker (`AvatarPicker` component), training days editor (`TrainingDaysScreen` overlay), streak grid (`StreakGridPanel` overlay) |
+| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Active — own profile, follower/following counts, streak stats, avatar picker (`AvatarPicker` component), training days editor (`TrainingDaysScreen` overlay), streak grid (`StreakGridPanel` overlay) |
 | `MessagesScreen` | `src/screens/MessagesScreen.tsx` | Active — inbox + requests from `useMessages()`; tapping a row opens `ConversationScreen` as an absolute overlay; REQUESTS tab has ACCEPT and DENY pill buttons |
 | `ConversationScreen` | `src/screens/ConversationScreen.tsx` | Active — individual message thread; inverted `FlatList` bubbles; real-time via `useConversation`; request banner (ACCEPT/DENY) shown to receiver on unaccepted conversations |
 | `InAppAnimationScreen` | `src/screens/InAppAnimationScreen.tsx` | Active — post-login entry animation |

@@ -173,7 +173,7 @@ export default function SettingsPanel({
           <Text style={[styles.panelTitle, { color: text }]}>SETTINGS</Text>
           <TouchableOpacity
             onPress={onClose}
-            style={styles.closeBtn}
+            style={[styles.closeBtn, { borderColor: muted }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Text style={[styles.closeBtnText, { color: muted }]}>✕</Text>
@@ -306,13 +306,15 @@ const styles = StyleSheet.create({
     letterSpacing: 5,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
+    width:          36,
+    height:         36,
+    borderRadius:   18,
+    borderWidth:    1,
+    alignItems:     'center',
     justifyContent: 'center',
   },
   closeBtnText: {
-    fontSize: 16,
+    fontSize: 14,
   },
   scroll: {
     flex: 1,

@@ -32,7 +32,7 @@
 - Profile data is inserted into `public.profiles` after successful `signInWithPassword`
 
 ## State Management
-- Zustand stores: `useAuthStore`, `useUserStore`, `useSignUpStore`, `useFeedStore`, `useMessagesStore`, `useProfilePostsStore` — all exported from `src/store/index.ts`
+- Zustand stores: `useAuthStore`, `useUserStore`, `useSignUpStore`, `useFeedStore`, `useMessagesStore`, `useProfilePostsStore`, `useFollowStore`, `useSocialStore` — all exported from `src/store/index.ts`
 - Sign-up form state lives in `useSignUpStore` (persists across app backgrounding mid-flow)
 - OTP state (sensitive) lives in AsyncStorage only, managed via `src/lib/otp.ts`
 - When writing back to profile after async work, always read from `useUserStore.getState().profile` — never spread a closure snapshot

@@ -44,6 +44,7 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 | `public.posts` | `id`, `user_id`, `image_url`, `pov_image_url`, `caption`, `streak_day`, `created_at` | `image_url` = rear/POV photo (default full-screen). `pov_image_url` = front selfie pip (nullable — null for legacy single-photo posts). Paginated cursor sort: `created_at DESC, id DESC`. Unique index `posts_user_day_unique` enforces one post per user per UTC day. RLS INSERT policy additionally blocks same-day inserts. |
 | `public.post_likes` | `id`, `post_id`, `user_id`, `created_at` | Unique constraint `(post_id, user_id)`. RLS: authenticated read-all; insert/delete own only (`auth.uid() = user_id`). |
 | `public.post_comments` | `id`, `post_id`, `user_id`, `content`, `created_at` | Ordered oldest-first. RLS: authenticated read-all; insert/delete own only. |
+| `public.follows` | `id`, `follower_id`, `following_id`, `created_at` | Unique constraint `(follower_id, following_id)`. CHECK constraint prevents self-follows (`follower_id <> following_id`). RLS: authenticated read-all; insert/delete own only (`auth.uid() = follower_id`); explicit UPDATE deny policy (`USING (false)`). `followUser` uses idempotent upsert (`ignoreDuplicates: true`). |
 | `public.conversations` | `id`, `participant_one`, `participant_two`, `status`, `initiated_by`, `updated_at` | `participant_one < participant_two` enforced by `ordered_participants` CHECK constraint. `conversations_participants_unique` UNIQUE INDEX on `(participant_one, participant_two)` required for upsert `ON CONFLICT`. `REPLICA IDENTITY FULL` set for Realtime UPDATE/DELETE events. |
 | `public.messages` | `id`, `conversation_id`, `sender_id`, `content`, `created_at` | Trigger updates `conversations.updated_at` on insert. `REPLICA IDENTITY FULL` set for Realtime. Immutable — no UPDATE or DELETE. |
 | `public.streak_logs` | `id`, `user_id`, `streak_count`, `started_at`, `ended_at`, `is_active`, `created_at` | Audit log managed by `record_upload_streak` RPC — tracks active and closed streaks |
@@ -56,6 +57,9 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 | `conversations_participants_unique` | `public.conversations` | `UNIQUE (participant_one, participant_two)` | Enables `ON CONFLICT (participant_one, participant_two)` upsert for `createOrGetConversation` |
 | `convos_p1_idx` | `public.conversations` | `(participant_one, updated_at DESC)` | Fast fetch of conversations where user is participant_one, sorted by recency |
 | `convos_p2_idx` | `public.conversations` | `(participant_two, updated_at DESC)` | Fast fetch of conversations where user is participant_two, sorted by recency |
+| `follows_unique` | `public.follows` | `UNIQUE (follower_id, following_id)` | Prevents duplicate follows; enables idempotent upsert with `ON CONFLICT` |
+| `idx_follows_follower` | `public.follows` | `(follower_id)` | Fast lookup of who a user follows (following count) |
+| `idx_follows_following` | `public.follows` | `(following_id)` | Fast lookup of a user's followers (follower count) |
 
 ### Database Functions
 
@@ -79,6 +83,14 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 - Manages `streak_logs` (opens new log on reset, updates count on extend).
 - Returns `{ streak_current, streak_highest, streak_lowest, action }`.
 - Always pass `p_upload_date` as the device's **local** date (`new Date().toLocaleDateString('en-CA')`) — do not rely on server `CURRENT_DATE` (UTC) to avoid timezone drift.
+
+**`get_follow_data(p_current_user_id uuid, p_target_user_id uuid)`** — `STABLE SECURITY INVOKER`
+- Returns `{ is_following: boolean, follower_count: bigint, following_count: bigint }` in a single query.
+- `is_following`: uses `EXISTS` (index-only probe) — returns `false` when viewing own profile (`p_current_user_id = p_target_user_id`).
+- `follower_count`: `COUNT(*)` where `following_id = target` (how many people follow the target).
+- `following_count`: `COUNT(*)` where `follower_id = target` (how many people the target follows).
+- Called via `supabase.rpc('get_follow_data', ...)` from `src/api/follows.ts:getFollowData`.
+- Replaces three separate queries (check status + two count queries) with one round trip.
 
 ### Storage
 
@@ -214,6 +226,7 @@ Error and crash reporting via `@sentry/react-native` v8.
 | Search | `GlobalSearchOverlay.tsx` | `captureException` on search error; breadcrumbs for overlay open, profile tap |
 | Camera upload | `CameraScreen.tsx` | `captureException` on upload failure |
 | Training days | `TrainingDaysScreen.tsx` | `captureException` on save failure; breadcrumbs for screen open, successful save |
+| Follow | `UserProfileOverlay.tsx` | `captureMessage` on toggle follow/unfollow error; breadcrumb on follow tap |
 
 **Pattern:** use `Sentry.captureException(err, { tags: { flow }, extra })` for caught errors and `Sentry.addBreadcrumb({ category, message, level })` for navigation/action events. Use `console.error('[ComponentName]')` alongside for dev debugging.
 

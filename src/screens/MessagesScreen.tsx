@@ -110,7 +110,11 @@ function ConvoRow({
   );
 }
 
-export default function MessagesScreen(): React.JSX.Element {
+interface MessagesScreenProps {
+  onBack?: () => void;
+}
+
+export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
   const bg     = dark ? '#1C1C19' : '#FFFFFF';
   const text   = dark ? '#E8E8E3' : '#1A1A17';
@@ -141,7 +145,17 @@ export default function MessagesScreen(): React.JSX.Element {
     <View style={[styles.root, { backgroundColor: bg }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: border }]}>
+        {onBack ? (
+          <TouchableOpacity
+            onPress={onBack}
+            style={[styles.backBtn, { borderColor: muted }]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={[styles.backArrow, { color: text }]}>‹</Text>
+          </TouchableOpacity>
+        ) : null}
         <Text style={[styles.headerTitle, { color: text }]}>MESSAGES</Text>
+        {onBack ? <View style={styles.backSpacer} /> : null}
       </View>
 
       {/* Tab bar */}
@@ -257,16 +271,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection:     'row',
+    alignItems:        'center',
     paddingTop:        Platform.OS === 'ios' ? 60 : 32,
     paddingHorizontal: 24,
     paddingBottom:     16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    alignItems:        'center',
+  },
+  backBtn: {
+    width:          36,
+    height:         36,
+    borderRadius:   18,
+    borderWidth:    1,
+    alignItems:     'center',
+    justifyContent: 'center',
+    marginRight:    12,
+  },
+  backArrow: {
+    fontSize:   20,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    lineHeight: 22,
   },
   headerTitle: {
+    flex:          1,
     fontSize:      24,
     fontFamily:    'JosefinSans_700Bold',
     letterSpacing: 8,
+    textAlign:     'center',
+  },
+  backSpacer: {
+    width:       36,
+    marginLeft:  12,
   },
   tabBar: {
     flexDirection:     'row',

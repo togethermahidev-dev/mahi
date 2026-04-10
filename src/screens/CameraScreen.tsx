@@ -459,6 +459,9 @@ export default function CameraScreen(): React.JSX.Element {
       caption:       null,
       streak_day:    optimisticStreakDay,
       created_at:    new Date().toISOString(),
+      like_count:    0,
+      comment_count: 0,
+      liked_by_me:   false,
       profiles: {
         id:           userId,
         username:     profile.username,

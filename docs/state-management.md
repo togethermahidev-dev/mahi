@@ -173,6 +173,38 @@ useSocialStore.getState().addComment(postId, userId, text, profile);
 
 ---
 
+### `useFollowStore` — `src/store/followStore.ts`
+
+Manages follow relationships between users. Owns follow status booleans and follower/following counts per user. Uses a single RPC (`get_follow_data`) to load all data in one query.
+
+| Field | Type | Description |
+|---|---|---|
+| `followingByMe` | `Record<string, boolean>` | Whether the current user follows each target user (keyed by target userId) |
+| `counts` | `Record<string, { follower_count, following_count }>` | Follower and following counts per user |
+
+| Action | Description |
+|---|---|
+| `loadFollowData(currentUserId, targetUserId)` | Fetch follow status + counts via single `get_follow_data` RPC. Called when a profile overlay opens or own profile mounts. |
+| `toggleFollow(currentUserId, targetUserId)` | Optimistic toggle — flips `followingByMe`, adjusts target's `follower_count` and current user's `following_count`. Uses idempotent upsert for follow, delete for unfollow. Rolls back on error. Returns `{ error }` for caller logging. |
+| `reset()` | Clear all state on sign-out. |
+
+**Cross-store pattern:** Unlike `socialStore` which writes counts to `feedStore`, `followStore` owns its own counts — they are independent of feed data. When toggling follow, the store optimistically updates both the target user's `follower_count` and the current user's `following_count` (if loaded).
+
+**Usage:**
+```ts
+const isFollowing    = useFollowStore((s) => s.followingByMe[userId] ?? false);
+const followerCount  = useFollowStore((s) => s.counts[userId]?.follower_count ?? 0);
+const followingCount = useFollowStore((s) => s.counts[userId]?.following_count ?? 0);
+
+// Load data when profile opens
+useFollowStore.getState().loadFollowData(currentUserId, targetUserId);
+
+// Toggle in event handler
+const { error } = await useFollowStore.getState().toggleFollow(currentUserId, targetUserId);
+```
+
+---
+
 ### `useProfilePostsStore` — `src/store/profilePostsStore.ts`
 
 Manages the post grid shown on `ProfileScreen`. Separate from `useFeedStore` — scoped to the currently viewed profile.
@@ -261,6 +293,7 @@ import {
   useMessagesStore,
   useProfilePostsStore,
   useSocialStore,
+  useFollowStore,
 } from '@/store';
 
 import type { PendingPost } from '@/store';
@@ -286,6 +319,7 @@ useUserStore.getState().reset();
 useFeedStore.getState().reset();
 useMessagesStore.getState().reset();
 useProfilePostsStore.getState().reset();
+useFollowStore.getState().reset();
 useSocialStore.getState().reset();  // also closes all Realtime channels
 ```
 

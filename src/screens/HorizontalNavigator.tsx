@@ -102,7 +102,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
 
         {/* Panel 2: Messages */}
         <View style={styles.panel}>
-          <MessagesScreen />
+          <MessagesScreen onBack={() => navigateHorizontal(1)} />
         </View>
       </Animated.View>
     </View>

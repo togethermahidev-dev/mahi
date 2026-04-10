@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useAuthStore, useUserStore } from '@/store';
+import { useAuthStore, useUserStore, useFollowStore } from '@/store';
 import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import SettingsPanel from '@/components/SettingsPanel';
@@ -23,6 +23,14 @@ export default function ProfileScreen(): React.JSX.Element {
   const profile    = useUserStore((s) => s.profile);
   const setProfile = useUserStore((s) => s.setProfile);
   const userId     = useAuthStore((s) => s.user?.id);
+
+  const followerCount  = useFollowStore((s) => s.counts[userId ?? '']?.follower_count ?? 0);
+  const followingCount = useFollowStore((s) => s.counts[userId ?? '']?.following_count ?? 0);
+  const loadFollowData = useFollowStore((s) => s.loadFollowData);
+
+  useEffect(() => {
+    if (userId) loadFollowData(userId, userId);
+  }, [userId, loadFollowData]);
 
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
 
@@ -71,8 +79,21 @@ export default function ProfileScreen(): React.JSX.Element {
           <Text style={[styles.trainingDaysLabel, { color: muted }]}>Training Days</Text>
         </TouchableOpacity>
 
-        {/* Streak stats */}
+        {/* Follow counts */}
         <View style={styles.statsRow}>
+          <View style={styles.stat}>
+            <Text style={[styles.statValue, { color: text }]}>{followerCount}</Text>
+            <Text style={[styles.statLabel, { color: muted }]}>FOLLOWERS</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: muted }]} />
+          <View style={styles.stat}>
+            <Text style={[styles.statValue, { color: text }]}>{followingCount}</Text>
+            <Text style={[styles.statLabel, { color: muted }]}>FOLLOWING</Text>
+          </View>
+        </View>
+
+        {/* Streak stats */}
+        <View style={[styles.statsRow, { marginTop: 16 }]}>
           <View style={styles.stat}>
             <Text style={[styles.statValue, { color: text }]}>
               {profile?.streak_current ?? 0}

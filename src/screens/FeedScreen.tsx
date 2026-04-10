@@ -364,7 +364,6 @@ function PostItem({
               renderItem={({ item: comment }) => (
                 <CommentRow comment={comment} dark={dark} />
               )}
-              estimatedItemSize={56}
               scrollEnabled={false}
             />
           )}
@@ -487,7 +486,6 @@ export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreen
         renderItem={({ item }) => (
           <PostItem item={item} dark={dark} width={screenWidth} onAvatarPress={handleAvatarPress} />
         )}
-        estimatedItemSize={screenWidth * (16 / 9) + 72}
         contentContainerStyle={styles.list}
         ListHeaderComponent={listHeader}
         onEndReached={hasMore ? loadMore : undefined}

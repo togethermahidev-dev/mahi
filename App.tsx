@@ -21,7 +21,7 @@ import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
 import HorizontalNavigator from '@/screens/HorizontalNavigator';
 import { supabase } from '@/lib/supabase';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useProfilePostsStore } from '@/store';
+import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useProfilePostsStore, useFollowStore } from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { getProfile } from '@/api';
@@ -85,6 +85,7 @@ export default function App(): React.JSX.Element {
         useFeedStore.getState().reset();
         useMessagesStore.getState().reset();
         useProfilePostsStore.getState().reset();
+        useFollowStore.getState().reset();
         Sentry.setUser(null);
         posthog.reset();
       }
