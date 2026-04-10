@@ -162,8 +162,8 @@ function PostItem({
       const midY = (containerH - FEED_PIP_H) / 2;
       const snapX = pipTransX.value < midX ? margin : width - FEED_PIP_W - margin;
       const snapY = pipTransY.value < midY ? margin : containerH - FEED_PIP_H - margin;
-      pipTransX.value = withSpring(snapX, { damping: 16, stiffness: 140 });
-      pipTransY.value = withSpring(snapY, { damping: 16, stiffness: 140 });
+      pipTransX.value = withSpring(snapX, { damping: 16, stiffness: 140, overshootClamping: true });
+      pipTransY.value = withSpring(snapY, { damping: 16, stiffness: 140, overshootClamping: true });
       pipScaleVal.value = withSpring(1, { damping: 12, stiffness: 200 });
     });
 

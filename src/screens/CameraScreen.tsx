@@ -248,8 +248,8 @@ function DualPhotoPreview({
       const midY = (SCREEN_HEIGHT - PIP_H) / 2;
       const snapX = pipTransX.value < midX ? PIP_MARGIN : SCREEN_WIDTH - PIP_W - PIP_MARGIN;
       const snapY = pipTransY.value < midY ? PIP_MARGIN : SCREEN_HEIGHT - PIP_H - PIP_MARGIN;
-      pipTransX.value = withSpring(snapX, { damping: 16, stiffness: 140 });
-      pipTransY.value = withSpring(snapY, { damping: 16, stiffness: 140 });
+      pipTransX.value = withSpring(snapX, { damping: 16, stiffness: 140, overshootClamping: true });
+      pipTransY.value = withSpring(snapY, { damping: 16, stiffness: 140, overshootClamping: true });
       pipScaleVal.value = withSpring(1, { damping: 12, stiffness: 200 });
     });
 
