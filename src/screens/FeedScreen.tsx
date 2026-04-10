@@ -124,6 +124,7 @@ function PostItem({
   const initialPipX = 12;
   const initialPipY = containerH - FEED_PIP_H - 12;
   const pipAnim = useRef(new Animated.ValueXY({ x: initialPipX, y: initialPipY })).current;
+  const pipScale = useRef(new Animated.Value(1)).current;
   const pipX = useRef(initialPipX);
   const pipY = useRef(initialPipY);
 
@@ -132,16 +133,23 @@ function PostItem({
     pipX.current = initialPipX;
     pipY.current = initialPipY;
     pipAnim.setValue({ x: initialPipX, y: initialPipY });
+    pipScale.setValue(1);
   }, [item.id]);
 
   const pipPanResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gs) =>
-        Math.abs(gs.dx) > 6 || Math.abs(gs.dy) > 6,
+        Math.abs(gs.dx) > 4 || Math.abs(gs.dy) > 4,
       onPanResponderGrant: () => {
         pipAnim.setOffset({ x: pipX.current, y: pipY.current });
         pipAnim.setValue({ x: 0, y: 0 });
+        Animated.spring(pipScale, {
+          toValue: 1.1,
+          useNativeDriver: false,
+          speed: 20,
+          bounciness: 8,
+        }).start();
       },
       onPanResponderMove: Animated.event(
         [null, { dx: pipAnim.x, dy: pipAnim.y }],
@@ -155,6 +163,12 @@ function PostItem({
         pipX.current = Math.max(margin, Math.min(rawX, width - FEED_PIP_W - margin));
         pipY.current = Math.max(margin, Math.min(rawY, containerH - FEED_PIP_H - margin));
         pipAnim.setValue({ x: pipX.current, y: pipY.current });
+        Animated.spring(pipScale, {
+          toValue: 1,
+          useNativeDriver: false,
+          speed: 20,
+          bounciness: 8,
+        }).start();
       },
     }),
   ).current;
@@ -305,7 +319,7 @@ function PostItem({
           <Animated.View
             style={[
               styles.feedPip,
-              { transform: pipAnim.getTranslateTransform() },
+              { transform: [...pipAnim.getTranslateTransform(), { scale: pipScale }] },
             ]}
             {...pipPanResponder.panHandlers}
           >
