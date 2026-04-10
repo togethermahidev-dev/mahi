@@ -5,7 +5,7 @@ import { useAuthStore, useUserStore, useFollowStore } from '@/store';
 import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import SettingsPanel from '@/components/SettingsPanel';
-import { SettingsIcon, CalendarIcon, StreakIcon } from '@/components/ScreenIcons';
+import { SettingsIcon } from '@/components/ScreenIcons';
 import AvatarPicker from '@/components/AvatarPicker';
 import TrainingDaysScreen from '@/components/TrainingDaysScreen';
 import StreakGridPanel from '@/components/StreakGridPanel';
@@ -73,10 +73,9 @@ export default function ProfileScreen(): React.JSX.Element {
         <TouchableOpacity
           onPress={() => setTrainingDaysOpen(true)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={styles.trainingDaysBtn}
+          style={[styles.trainingDaysPill, { borderColor: muted }]}
         >
-          <CalendarIcon size={18} color={muted} />
-          <Text style={[styles.trainingDaysLabel, { color: muted }]}>Training Days</Text>
+          <Text style={[styles.trainingDaysPillText, { color: muted }]}>SET REST DAYS</Text>
         </TouchableOpacity>
 
         {/* Follow counts */}
@@ -113,9 +112,9 @@ export default function ProfileScreen(): React.JSX.Element {
         <TouchableOpacity
           onPress={() => setStreakGridOpen(true)}
           activeOpacity={0.75}
-          style={styles.streakPill}
+          style={[styles.streakTrackerPill, { borderColor: '#59c2d7' }]}
         >
-          <StreakIcon size={16} color="#59c2d7" />
+          <Text style={styles.streakTrackerText}>STREAK TRACKER</Text>
         </TouchableOpacity>
       </View>
 
@@ -189,15 +188,17 @@ const styles = StyleSheet.create({
     fontFamily: 'JosefinSans_400Regular_Italic',
     marginBottom: 16,
   },
-  trainingDaysBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  trainingDaysPill: {
+    borderWidth: 1,
+    borderRadius: 50,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
     marginBottom: 24,
   },
-  trainingDaysLabel: {
-    fontFamily: 'JosefinSans_400Regular_Italic',
-    fontSize: 12,
+  trainingDaysPillText: {
+    fontFamily: 'JosefinSans_600SemiBold',
+    fontSize: 10,
+    letterSpacing: 2,
   },
   statsRow: {
     flexDirection: 'row',
@@ -223,13 +224,20 @@ const styles = StyleSheet.create({
     height: 40,
     opacity: 0.3,
   },
-  streakPill: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  streakTrackerPill: {
+    borderWidth: 1,
+    borderRadius: 50,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginTop: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
+  },
+  streakTrackerText: {
+    fontFamily: 'JosefinSans_600SemiBold',
+    fontSize: 10,
+    letterSpacing: 2,
+    color: '#59c2d7',
   },
   mapShadow: {
     flex: 1,
