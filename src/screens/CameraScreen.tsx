@@ -468,7 +468,7 @@ function CaptionSheet({ visible, initialValue, onClose }: CaptionSheetProps) {
 
 // ─── CameraScreen ─────────────────────────────────────────────────────────────
 
-type CaptureState = 'idle' | 'front' | 'switching' | 'rear';
+type CaptureState = 'idle' | 'front' | 'switching' | 'awaiting-rear' | 'rear';
 
 export default function CameraScreen(): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -527,8 +527,12 @@ export default function CameraScreen(): React.JSX.Element {
     return { uri: normalizedUri, base64 };
   };
 
-  // Sequential capture: front first, flip, then rear ~800ms later
-  const captureSequence = async () => {
+  // Two-stage capture: tap 1 takes the selfie and flips to rear; tap 2 takes
+  // the POV shot. Splitting this gives the user time to frame the second shot
+  // — the old auto-capture fired before people were ready and came out blurry.
+  const pendingFrontRef = useRef<CapturedPhoto | null>(null);
+
+  const startCaptureFront = async () => {
     if (captureState !== 'idle') return;
 
     // Step 1: ensure we're on front camera and take the selfie
@@ -541,20 +545,40 @@ export default function CameraScreen(): React.JSX.Element {
       setCaptureState('idle');
       return;
     }
+    pendingFrontRef.current = front;
 
-    // Step 2: flip to rear and wait for it to initialise
+    // Step 2: flip to rear and wait for it to initialise, then hand control
+    // back to the user — they must tap again when ready for the POV shot.
     setCaptureState('switching');
     setFacing('back');
     await new Promise(r => setTimeout(r, 800));
+    setCaptureState('awaiting-rear');
+  };
 
-    // Step 3: take the rear POV shot
+  const captureRear = async () => {
+    if (captureState !== 'awaiting-rear') return;
+    const front = pendingFrontRef.current;
+    if (!front) {
+      setCaptureState('idle');
+      return;
+    }
+
     setCaptureState('rear');
     const rear = await takePhoto();
     setCaptureState('idle');
+    pendingFrontRef.current = null;
     if (!rear) return;
 
     setFrontPhoto(front);
     setRearPhoto(rear);
+  };
+
+  const handleShutterPress = () => {
+    if (captureState === 'idle') {
+      startCaptureFront();
+    } else if (captureState === 'awaiting-rear') {
+      captureRear();
+    }
   };
 
   // Upload both photos, create post
@@ -688,6 +712,11 @@ export default function CameraScreen(): React.JSX.Element {
   const flipColor     = '#FFFFFF';
 
   const isCapturing = captureState !== 'idle';
+  // The shutter is tappable in 'idle' (start) and 'awaiting-rear' (take POV).
+  // Everything else is mid-capture and should be locked out.
+  const shutterDisabled =
+    hasPostedToday ||
+    (captureState !== 'idle' && captureState !== 'awaiting-rear');
 
   if (!cameraGranted || !micGranted) {
     let message: string;
@@ -723,9 +752,10 @@ export default function CameraScreen(): React.JSX.Element {
 
   // Capture state label shown while sequencing
   const captureLabel =
-    captureState === 'front'     ? 'SELFIE...' :
-    captureState === 'switching' ? 'SWITCHING...' :
-    captureState === 'rear'      ? 'POV...' : null;
+    captureState === 'front'         ? 'SELFIE...' :
+    captureState === 'switching'     ? 'SWITCHING...' :
+    captureState === 'awaiting-rear' ? 'TAP FOR POV' :
+    captureState === 'rear'          ? 'POV...' : null;
 
   return (
     <View style={styles.root}>
@@ -759,12 +789,12 @@ export default function CameraScreen(): React.JSX.Element {
             {
               borderColor: shutterRing,
               shadowColor: dark ? '#000000' : '#1A1A17',
-              opacity: isCapturing || hasPostedToday ? 0.3 : 1,
+              opacity: shutterDisabled ? 0.3 : 1,
             },
           ]}
           activeOpacity={0.82}
-          disabled={isCapturing || hasPostedToday}
-          onPress={captureSequence}
+          disabled={shutterDisabled}
+          onPress={handleShutterPress}
         >
           <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
         </TouchableOpacity>
