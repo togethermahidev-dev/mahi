@@ -18,6 +18,8 @@ import {
 } from '@/components/ScreenIcons';
 import CameraScreen from '@/screens/CameraScreen';
 import FeedScreen from '@/screens/FeedScreen';
+import NotificationsScreen from '@/screens/NotificationsScreen';
+import { useNotificationsStore } from '@/store';
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
 // PEEK_HEIGHT: strip of the next screen visible at the bottom of each screen.
@@ -65,9 +67,11 @@ export default function VerticalNavigator({
   onNavigateRight,
 }: VerticalNavigatorProps): React.JSX.Element {
   const { dark } = useAppTheme();
+  const unreadNotifications = useNotificationsStore((s) => s.unreadCount);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchVisible, setSearchVisible] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const activeIndexRef    = useRef(0);
   const baseOffsetRef     = useRef(0);
   const feedScrollAtTop   = useRef(true);
@@ -250,8 +254,25 @@ export default function VerticalNavigator({
           isDark={activeIndex === 0}
           onProfilePress={onNavigateLeft}
           onMessagesPress={onNavigateRight}
+          unreadNotifications={unreadNotifications}
+          onNotificationsPress={() => setNotifOpen(true)}
         />
       </Animated.View>
+
+      {/* Notifications overlay — sibling of the header Animated.View so it is
+          NOT affected by the hide-on-scroll transform. */}
+      <NotificationsScreen
+        visible={notifOpen}
+        onClose={() => setNotifOpen(false)}
+        onOpenPost={(_postId) => {
+          setNotifOpen(false);
+          // v1 no-op: FeedScreen scroll-to-post is a follow-up
+        }}
+        onOpenProfile={(_userId) => {
+          setNotifOpen(false);
+          // v1 no-op: UserProfileOverlay deep-link is a follow-up
+        }}
+      />
 
       {/* Navigation dots — vertical pill dots on the right edge.
           Camera screen always has a dark background, so always use white dots

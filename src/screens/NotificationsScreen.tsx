@@ -83,8 +83,10 @@ export default function NotificationsScreen({
             contentContainerStyle={styles.listContent}
             renderItem={({ item }: { item: NotificationWithActor }) => {
               const name     = item.actor.display_name ?? item.actor.username;
-              const initials = (name ?? '?')[0].toUpperCase();
+              const initials = name[0].toUpperCase();
 
+              // DB CHECK constraint guarantees one of the 4 types; default covers
+              // the generated-type widening to `string` so `caption` is always set.
               let caption: string;
               switch (item.type) {
                 case 'like':
