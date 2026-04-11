@@ -26,7 +26,7 @@ import { useNotificationsStore } from '@/store';
 //   → Must match the PEEK_HEIGHT constant in CameraScreen.tsx (shutter positioning).
 // SLOT_HEIGHT: the vertical space each screen occupies when active.
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
-export const PEEK_HEIGHT = 110;
+export const PEEK_HEIGHT = 0;
 const SLOT_HEIGHT = SCREEN_HEIGHT - PEEK_HEIGHT;
 const APP_HEADER_H = Platform.OS === 'ios' ? 108 : 80;
 

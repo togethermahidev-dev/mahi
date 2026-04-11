@@ -33,7 +33,7 @@ import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import { Sentry } from '@/lib/sentry';
 
 // Must match PEEK_HEIGHT in VerticalNavigator.tsx
-const PEEK_HEIGHT = 110;
+const PEEK_HEIGHT = 0;
 
 // ─── Midnight Countdown ───────────────────────────────────────────────────────
 
