@@ -6,7 +6,7 @@ Custom hooks live in `src/hooks/`. They are thin wrappers over Zustand stores or
 
 ## `useAppTheme` — `src/hooks/useAppTheme.ts`
 
-Resolves the effective colour scheme (light/dark) from the user's stored preference and the system setting.
+Reads the user's stored colour scheme preference from `useThemeStore` and exposes it as a flat theme object. The hook does not consult the OS `useColorScheme()` — the app has an explicit light/dark preference only (no `'system'` mode).
 
 ```ts
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -18,7 +18,7 @@ const { dark, colorScheme, colors } = useAppTheme();
 
 | Field | Type | Description |
 |---|---|---|
-| `mode` | `'light' \| 'dark' \| 'system'` | Stored user preference |
+| `mode` | `'light' \| 'dark'` | Stored user preference (same value as `colorScheme`) |
 | `colorScheme` | `'light' \| 'dark'` | Resolved effective scheme |
 | `dark` | `boolean` | `true` when effective scheme is dark |
 | `colors.bg` | `string` | `#1C1C19` (dark) / `#FFFFFF` (light) |
@@ -79,7 +79,7 @@ const { posts, isLoading, hasMore, loadMore, refresh } = useFeed();
 | `loadMore` | `() => void` | Append next cursor page |
 | `refresh` | `() => void` | Force re-fetch from page 1 |
 
-Each `FeedPost` now includes `like_count: number`, `comment_count: number`, and `liked_by_me: boolean` — populated by the `get_feed_posts` RPC on initial load. These counts are kept live by `socialStore` writing back via `feedStore.patchPost` after each interaction or Realtime event.
+Each `FeedPost` now includes `like_count: number`, `comment_count: number`, `liked_by_me: boolean`, and `tagged_users: TaggedUser[]` — all populated by the `get_feed_posts` RPC on initial load. Counts are kept live by `socialStore` writing back via `feedStore.patchPost` after each interaction or Realtime event. `tagged_users` is always a (possibly empty) array because the SQL coalesces the aggregation — the client never has to handle `null`. See `docs/architecture.md#caption--tagging` and `docs/integrations.md#database-functions` for the full tagging contract.
 
 **Zero-skeleton guarantee:** once the store has any data, `isLoading` is always `false` across re-mounts. `FeedScreen` never shows a skeleton after first load.
 

@@ -33,7 +33,7 @@ mahi-fitness/
 │   ├── store/          # Zustand global state (feedStore, messagesStore, authStore, userStore, …)
 │   ├── hooks/          # Thin store wrappers + utility hooks (useMessages, useConversation, …)
 │   ├── types/          # TypeScript types — database.ts is the source of truth for DB shapes
-│   ├── components/     # Shared UI components (AppHeader, NavigationDots, ThemeToggle, UserProfileOverlay, GlobalSearchOverlay, AvatarPicker, TrainingDaysScreen, StreakGridPanel, CaptionText)
+│   ├── components/     # Shared UI components (AppHeader, NavigationDots, ThemeToggle, UserProfileOverlay, GlobalSearchOverlay, AvatarPicker, TrainingDaysScreen, StreakGridPanel, CaptionText, TaggedBubbleStack)
 │   └── screens/        # Screen-level components (including ConversationScreen)
 ├── docs/               # Project documentation
 ├── assets/             # Images, icons, splash
@@ -92,6 +92,7 @@ useConversation(conversationId) mount (ConversationScreen)
 | `public.post_likes` | One row per user-post like. Unique constraint `(post_id, user_id)`. RLS: authenticated read-all, insert/delete own only. |
 | `public.post_comments` | Comments on posts. Ordered oldest-first. RLS: authenticated read-all, insert/delete own only. |
 | `public.follows` | Follow relationships. Unique constraint `(follower_id, following_id)`, self-follow check constraint. RLS: authenticated read-all, insert/delete own only (`auth.uid() = follower_id`). Explicit UPDATE deny policy. |
+| `public.post_tags` | User-tag junction table: which users were mentioned on which post. Composite PK `(post_id, user_id)`. RLS: authenticated read-all, insert only when the caller owns the referenced post. Aggregated into `tagged_users` by the `get_feed_posts` RPC. |
 | `public.conversations` | Messaging thread — one row per pair, ordered participants constraint |
 | `public.messages` | Individual messages within a conversation |
 | `public.streak_logs` | Audit log of streak events |
@@ -104,7 +105,7 @@ All tables use Row Level Security (RLS). Three Postgres RPCs handle social inter
 
 | File | Exports |
 |---|---|
-| `posts.ts` | `getFeedPosts` (via `get_feed_posts` RPC — returns `like_count`, `comment_count`, `liked_by_me`), `getUserPosts`, `getPostDates` (distinct post dates for streak grid), `createPost`, `FeedPost`, `FeedCursor`, `ProfilePostCursor` |
+| `posts.ts` | `getFeedPosts` (via `get_feed_posts` RPC — returns `like_count`, `comment_count`, `liked_by_me`, and `tagged_users`), `getUserPosts`, `getPostDates` (distinct post dates for streak grid), `createPost` (accepts optional `taggedUserIds: string[]` to insert into `post_tags`), `FeedPost`, `FeedCursor`, `ProfilePostCursor`, `TaggedUser` |
 | `social.ts` | `toggleLike` (single-RPC atomic toggle), `getComments`, `addComment`, `CommentWithProfile` |
 | `follows.ts` | `followUser` (idempotent upsert), `unfollowUser`, `getFollowData` (single-RPC: `is_following` + `follower_count` + `following_count`) |
 | `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `createOrGetConversation`, `deleteConversation`, `getMessages`, `ConversationPreview`, `MsgRow` |
@@ -255,12 +256,89 @@ Full-screen portrait calendar overlay that visualises the user's post history. M
 
 ## Caption + Tagging
 
-Users can attach a caption and tag other users when posting. Implemented across:
+Users can attach an optional caption and tag up to 10 other users when posting. The whole flow lives inside the `DualPhotoPreview` modal in `CameraScreen.tsx` and renders in `FeedScreen.tsx`.
 
-- **Capture flow** (`CameraScreen.tsx`) — after both photos are captured, a caption input and inline user search (via `searchProfiles`) lets the user type a message and tag up to N other users. Caption text and tagged-user ids are passed to `createPost`.
-- **Persistence** — caption stored on `public.posts.caption`; tag relationships stored in the `public.post_tags` junction table (`post_id`, `user_id`).
-- **Feed read path** — `get_feed_posts` RPC aggregates tagged users per row and returns them on each `FeedPost` as `tagged_users: { user_id, username, display_name, avatar_url }[]`.
-- **Display** — `CaptionText` (`src/components/CaptionText.tsx`) renders the caption with tagged usernames styled as pressable `#59c2d7` spans that open `UserProfileOverlay` for that user.
+### Preview UI (`DualPhotoPreview`)
+
+After both photos are captured, three controls stack above the POST button, all centred in `postButtonFloat`:
+
+```
+┌──────────────────────────────┐
+│        ＋ Tag people          │  ← tag pill (tap → TagSheet)
+├──────────────────────────────┤
+│      ＋ Add a caption         │  ← caption pill (tap → CaptionSheet)
+├──────────────────────────────┤
+│            POST              │  ← existing post button
+└──────────────────────────────┘
+```
+
+Both pills share the same `BlurView intensity={40} tint="dark"` treatment (height 36, radius 18, `#FFFFFF` text when filled, muted when empty) and both read from their respective parent state (`taggedUsers: TaggedUser[]`, `caption: string`). The tag pill label is computed by `tagPillLabel(taggedUsers)` — `'＋ Tag people'` for zero, `'@username'` for one, `'@user1 +N'` for two or more.
+
+**Shared PIP-dodge.** Both pills live inside a single `Reanimated.View` with a `pillDodgeAnimStyle` driven by a `useDerivedValue` worklet. The worklet checks AABB intersection between the draggable PIP's current position and the union rect covering both pills (derived from `pillW`, `pillH`, `pillGap`, `postBtnH`). If the PIP overlaps, both pills lift together by `-(PIP_H + 16)` with a spring; when the PIP moves away, they spring back. The pills therefore never drift apart and always dodge as one unit.
+
+### Sheet state machine
+
+`DualPhotoPreview` holds two pieces of state that coordinate the sheets:
+
+```ts
+type ActiveSheet = 'none' | 'caption' | 'tag';
+const [activeSheet, setActiveSheet] = useState<ActiveSheet>('none');
+const [captionAtIndex, setCaptionAtIndex] = useState<number | null>(null);
+```
+
+Only one sheet renders at a time (their `visible` props derive from `activeSheet`). Transitions:
+
+| From | Trigger | To | Side effect |
+|---|---|---|---|
+| `'none'` | tap caption pill | `'caption'` | — |
+| `'none'` | tap tag pill | `'tag'` | `captionAtIndex = null` |
+| `'caption'` | user types `@` | `'tag'` | `onCaptionChange(currentText)` + `captionAtIndex = cursor-1` |
+| `'caption'` | DONE / scrim / back | `'none'` | `onCaptionChange(draft.trim())` |
+| `'tag'` | DONE | `'none'` | `onTaggedUsersChange(selected)` |
+| `'tag'` | ✕ / scrim / back (pill flow) | `'none'` | — |
+| `'tag'` | user tapped (singleShot, `@` flow) | `'caption'` | splice `@username ` at `captionAtIndex+1` into caption; append picked user to `taggedUsers` (deduped, capped at `MAX_TAGS`) |
+| `'tag'` | ✕ / scrim / back (`@` flow) | `'caption'` | leave the typed `@` in place |
+
+### `CaptionSheet` (`@` bridge)
+
+Extends the simple `CaptionSheet` from the caption feature with one extra prop, `onOpenTagAt?: (atIndex, currentText) => void`. Inside, the `TextInput` now tracks the current caret via `onSelectionChange` into a `cursorRef: useRef<number>`, and `handleChangeText` detects a freshly-typed `@` at the cursor position. When detected, it fires `onOpenTagAt(cursor-1, next)` and early-returns without updating local `draft` state — the parent commits the text (including the `@`) and swaps the active sheet to `'tag'`.
+
+### `TagSheet` + `TagUserRow`
+
+New bottom sheet defined alongside `CaptionSheet` in `CameraScreen.tsx`. Visual shell matches the caption sheet (slide-up `Modal`, `Pressable` scrim dismiss, `KeyboardAvoidingView`, `sheetPanel` panel with grab handle + label row). Differences:
+
+- **Top-right ✕ close button** (`sheetCloseX`) — absolutely positioned, 28×28 hit target. Required because multi-select needs distinct commit vs cancel affordances.
+- **Search input** (`tagSearchInput`) — 44pt pill, `autoFocus`, 350ms debounced `searchProfiles(q, 20)` matching the existing `GlobalSearchOverlay` pattern.
+- **Result list** — `FlatList` of `TagUserRow` rows, `keyboardShouldPersistTaps="handled"`, `maxHeight: SCREEN_HEIGHT * 0.45`. Each row renders the `ProfileSearchResult`'s avatar (or initial fallback), display name, `@handle`, and a cyan `✓` when selected. Tapping a row toggles membership in the local `selected: TaggedUser[]` state.
+- **`MAX_TAGS = 10`** — attempting to add an 11th fires a `Haptics.NotificationFeedbackType.Warning` and no-ops.
+- **DONE button** — same cyan treatment as the caption sheet; calls `onCommit(selected)`.
+- **`singleShot` prop** — when `true` (set by the `@` bridge via `singleShot={captionAtIndex !== null}`), the sheet hides the counter and DONE button, and `toggle()` commits immediately with the single tapped user. This is the `@`-autocomplete behaviour.
+
+### `TaggedBubbleStack` (on-photo overlay)
+
+Shared component at `src/components/TaggedBubbleStack.tsx`. Renders a vertical stack of `@username` bubbles (`BlurView intensity={40} tint="dark"`, 28pt height, 14pt radius, `rgba(0,0,0,0.45)` background, white italic text) — max 3 visible, 4th+ collapses to a `+N more` chip. Returns `null` when `users.length === 0`.
+
+- **Default positioning** is absolute `left: 16, bottom: 16` with `alignItems: 'flex-start'`. Uses `pointerEvents="box-none"` so taps outside the bubbles pass through to the photo.
+- **Accepts an optional `style` prop** to override the default anchor — used by the camera preview to lift the stack above the pill column (`bubbleStackBottom` is computed from `pillsT` and a 16pt gap).
+- **Accepts an optional `onPressUser` prop** — when provided, tapping a bubble fires with the `TaggedUser`. When absent (e.g. in the preview), the `TouchableOpacity` is `disabled` and taps fall through.
+- **Z-order requirement.** In both the preview and the feed, `TaggedBubbleStack` is rendered **before** the draggable PIP in JSX source order so the PIP paints on top. Dragging the PIP into the bubble region should not hide the PIP — the bubbles yield visually to the user-controlled interactive element.
+
+### Feed display (`FeedScreen`)
+
+Inside each `PostItem`, the `TaggedBubbleStack` is rendered as an absolute overlay inside `styles.imageContainer` (which already has `position: 'relative'`), passed the post's `tagged_users` array plus an `onPressUser` handler that routes through the existing `onAvatarPress(userId)` → `UserProfileOverlay` flow.
+
+The caption itself is rendered via the `CaptionText` component (`src/components/CaptionText.tsx`):
+
+- When `tagged.length === 0`, returns a plain `<Text>` — fast path.
+- Otherwise builds a regex `@(user1|user2|...)\b` from the tagged users' usernames (defensively regex-escaped), walks the caption with `matchAll`, and emits a mixed array of plain string segments and cyan `<Text>` spans for each `@username` match.
+- Each cyan span has its own `onPress` handler firing `onPressUser(user)` for that username — tapping jumps to the user's profile the same way a bubble does.
+
+### Persistence + read path
+
+- **`public.posts.caption`** stores the optional caption string (nullable).
+- **`public.post_tags`** (junction: `post_id`, `user_id`) stores tag relationships, inserted by `createPost` after the post row lands. `createPost` dedups `taggedUserIds` via `Array.from(new Set(...))` before inserting, and surfaces partial-failure (post created but tag insert failed) via the returned `{ data, error }` tuple. `CameraScreen`'s `uploadPhotos` handler treats that as "confirm post, log tag failure to Sentry, move on."
+- **`get_feed_posts` RPC** returns an extra `tagged_users` column built by a correlated `jsonb_agg` over `post_tags` joined to `profiles`, wrapped in `coalesce(..., '[]'::jsonb)` so the client always receives an array (never `null`). See `docs/integrations.md` for the full function contract.
+- **`FeedPost.tagged_users: TaggedUser[]`** is required (non-null). The `src/api/posts.ts:getFeedPosts` row mapper passes `row.tagged_users` straight through — no fallback needed because the SQL coalesces.
 
 ---
 

@@ -47,7 +47,7 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 | `public.follows` | `id`, `follower_id`, `following_id`, `created_at` | Unique constraint `(follower_id, following_id)`. CHECK constraint prevents self-follows (`follower_id <> following_id`). RLS: authenticated read-all; insert/delete own only (`auth.uid() = follower_id`); explicit UPDATE deny policy (`USING (false)`). `followUser` uses idempotent upsert (`ignoreDuplicates: true`). |
 | `public.conversations` | `id`, `participant_one`, `participant_two`, `status`, `initiated_by`, `updated_at` | `participant_one < participant_two` enforced by `ordered_participants` CHECK constraint. `conversations_participants_unique` UNIQUE INDEX on `(participant_one, participant_two)` required for upsert `ON CONFLICT`. `REPLICA IDENTITY FULL` set for Realtime UPDATE/DELETE events. |
 | `public.messages` | `id`, `conversation_id`, `sender_id`, `content`, `created_at` | Trigger updates `conversations.updated_at` on insert. `REPLICA IDENTITY FULL` set for Realtime. Immutable — no UPDATE or DELETE. |
-| `public.post_tags` | `post_id`, `user_id` | Junction table storing user tags on posts (user mentions in captions). Composite PK `(post_id, user_id)`. `get_feed_posts` RPC aggregates these into a `tagged_users` array per post row. Immutable — no UPDATE. |
+| `public.post_tags` | `post_id`, `user_id` | Junction table storing user tags on posts (user mentions in captions + on-photo bubble overlays). Composite PK `(post_id, user_id)` — dedup enforced at the DB layer. Both FKs use `ON DELETE CASCADE` (deleting a post or a profile also clears its tags). RLS: `SELECT using (true)` (tags are visible whenever the parent post is visible); `INSERT with check (exists (select 1 from posts p where p.id = post_id and p.user_id = auth.uid()))` — a user can only tag on posts they own. No UPDATE or DELETE policies (immutable v1; re-post to change). `post_tags_user_id_idx` btree on `user_id` for future "posts I was tagged in" lookups. `get_feed_posts` RPC aggregates these into a `tagged_users` array per post row. |
 | `public.streak_logs` | `id`, `user_id`, `streak_count`, `started_at`, `ended_at`, `is_active`, `created_at` | Audit log managed by `record_upload_streak` RPC — tracks active and closed streaks |
 
 ### Database Indexes
@@ -61,6 +61,7 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 | `follows_unique` | `public.follows` | `UNIQUE (follower_id, following_id)` | Prevents duplicate follows; enables idempotent upsert with `ON CONFLICT` |
 | `idx_follows_follower` | `public.follows` | `(follower_id)` | Fast lookup of who a user follows (following count) |
 | `idx_follows_following` | `public.follows` | `(following_id)` | Fast lookup of a user's followers (follower count) |
+| `post_tags_user_id_idx` | `public.post_tags` | `(user_id)` | Btree for "posts I was tagged in" lookups (mentions-inbox future) |
 
 ### Database Functions
 
@@ -72,9 +73,17 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 
 **`get_feed_posts(p_limit int, p_cursor_ts timestamptz, p_cursor_id uuid)`** — `SECURITY DEFINER STABLE`
 - Replaces the old `posts` table select + `FEED_SELECT` constant.
-- Returns enriched feed rows including `like_count`, `comment_count`, `liked_by_me` (lateral join against `auth.uid()`), and `tagged_users` — an aggregated `{ user_id, username, display_name, avatar_url }[]` array built from a `post_tags → profiles` join per row. Empty array when no tags exist.
+- Returns enriched feed rows including `like_count`, `comment_count`, `liked_by_me` (lateral `EXISTS` probe against `auth.uid()`), and `tagged_users` — an aggregated `{ user_id, username, display_name, avatar_url }[]` array built from a correlated `jsonb_agg(jsonb_build_object(...) order by tp.username)` subquery joining `post_tags` to `profiles`. The subquery result is wrapped in `coalesce(..., '[]'::jsonb)` so the column is **always an array, never NULL** — clients never need a `?? []` fallback and `FeedPost.tagged_users` is typed as required (`TaggedUser[]`, not `TaggedUser[] | null`).
 - Cursor pagination: `p_cursor_ts` + `p_cursor_id` mirror the old `created_at DESC, id DESC` cursor. Both default to `null` for the first page.
 - Called via `supabase.rpc('get_feed_posts', ...)` from `src/api/posts.ts:getFeedPosts`.
+
+**`createPost` client contract (not an RPC, lives in `src/api/posts.ts`)**
+- Inserts one row into `public.posts` and, if `taggedUserIds` is provided and non-empty, a second batch insert into `public.post_tags` using `Array.from(new Set(taggedUserIds))` for client-side dedup before the DB's composite-PK would reject duplicates.
+- Returns `{ data, error }` with three possible shapes:
+  - `{ data: PostRow, error: null }` — both inserts succeeded.
+  - `{ data: null, error }` — the post insert itself failed; nothing was written.
+  - `{ data: PostRow, error }` — **partial failure**: the post row was created but the subsequent `post_tags` insert failed. Callers must check both fields. `CameraScreen.uploadPhotos` treats this as "confirm the post, log the tag-insert error to Sentry with `tags: { flow: 'camera', action: 'post_tags_insert' }`, and keep going."
+- RLS on `post_tags` requires the caller to own the post being tagged (`auth.uid() = posts.user_id`), so the second insert is safe to run immediately after the first.
 
 **`record_upload_streak(p_user_id uuid, p_upload_date date)`** — `SECURITY DEFINER`
 - Authoritative streak counter. Auth-guarded: rejects calls where `p_user_id <> auth.uid()`.

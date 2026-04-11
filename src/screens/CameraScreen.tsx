@@ -17,7 +17,7 @@ import {
   FlatList,
 } from 'react-native';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS, useDerivedValue } from 'react-native-reanimated';
+import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { BlurView } from 'expo-blur';
@@ -219,29 +219,18 @@ function DualPhotoPreview({
   // tag pill and commits/cancels go straight back to 'none'.
   const [captionAtIndex, setCaptionAtIndex] = useState<number | null>(null);
 
-  // Union rect covering both stacked pills (tag above, caption below).
-  // Used by the PIP-dodge check; both pills lift together when the PIP overlaps.
-  const pillW = 280;
+  // Inline tag + caption pill row sits just above POST. The PIP is allowed
+  // to paint over it, so there is no dodge animation — leaves room to add
+  // more pills inline later without re-tuning lift logic.
+  const pillRowW = Math.min(SCREEN_WIDTH - 32, 360);
   const pillH = 36;
   const pillGap = 12;
-  const pillL = (SCREEN_WIDTH - pillW) / 2;
-  const pillR = pillL + pillW;
-  const pillsB = SCREEN_HEIGHT - PEEK_HEIGHT - 32 - 64 /* post btn */ - 12;
-  const pillsT = pillsB - pillH - pillGap - pillH;
-
-  const pillDodgeY = useDerivedValue(() => {
-    'worklet';
-    const overlaps =
-      pipTransX.value + PIP_W > pillL &&
-      pipTransX.value < pillR &&
-      pipTransY.value + PIP_H > pillsT &&
-      pipTransY.value < pillsB;
-    return withSpring(overlaps ? -(PIP_H + 16) : 0, { damping: 18, stiffness: 180 });
-  });
-
-  const pillDodgeAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: pillDodgeY.value }],
-  }));
+  const postBtnH = 64;
+  const pillsB = SCREEN_HEIGHT - PEEK_HEIGHT - 32 - postBtnH - pillGap;
+  const pillsT = pillsB - pillH;
+  // Anchor for the TaggedBubbleStack in the preview — sit above the pill
+  // row with a 16pt breathing gap. Derived so it can't drift from pills.
+  const bubbleStackBottom = SCREEN_HEIGHT - pillsT + 16;
 
   useEffect(() => {
     if (hasPhotos) {
@@ -358,7 +347,7 @@ function DualPhotoPreview({
 
         {/* Tagged bubbles — read-only preview, anchored above the pill column.
             Rendered BEFORE the PIP so the draggable PIP paints on top. */}
-        <TaggedBubbleStack users={taggedUsers} style={{ left: 16, bottom: 310 }} />
+        <TaggedBubbleStack users={taggedUsers} style={{ left: 16, bottom: bubbleStackBottom }} />
 
         {/* Pip — draggable, tap to swap */}
         {pipUri && (
@@ -385,13 +374,21 @@ function DualPhotoPreview({
 
         {/* Post — bottom center */}
         <View style={styles.postButtonFloat}>
-          {/* Tag + Caption pills — lift together if the PIP overlaps */}
-          <Reanimated.View style={[pillDodgeAnimStyle, { alignItems: 'center' }]}>
+          {/* Tag + Caption pills — inline. PIP may paint over this row. */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: pillGap,
+              width: pillRowW,
+            }}
+          >
             <TouchableOpacity
               activeOpacity={0.85}
               disabled={isUploading}
               onPress={() => setActiveSheet('tag')}
-              style={{ marginBottom: pillGap }}
+              style={{ flex: 1, marginRight: pillGap / 2 }}
             >
               <BlurView intensity={40} tint="dark" style={styles.captionPill}>
                 <Text
@@ -408,7 +405,7 @@ function DualPhotoPreview({
               activeOpacity={0.85}
               disabled={isUploading}
               onPress={() => setActiveSheet('caption')}
-              style={{ marginBottom: pillGap }}
+              style={{ flex: 1, marginLeft: pillGap / 2 }}
             >
               <BlurView intensity={40} tint="dark" style={styles.captionPill}>
                 <Text
@@ -420,7 +417,7 @@ function DualPhotoPreview({
                 </Text>
               </BlurView>
             </TouchableOpacity>
-          </Reanimated.View>
+          </View>
 
           <TouchableOpacity
             style={[styles.postButton, isUploading && { opacity: 0.5 }]}
@@ -590,8 +587,8 @@ function TagUserRow({
   selected: boolean;
   onPress: () => void;
 }) {
-  const display = item.display_name ?? item.first_name ?? item.username ?? '—';
-  const initial = display[0]?.toUpperCase() ?? '?';
+  const display = item.display_name ?? item.first_name ?? item.username;
+  const initial = display[0].toUpperCase();
   return (
     <TouchableOpacity
       style={[styles.tagRow, selected && styles.tagRowSelected]}
@@ -1010,8 +1007,8 @@ export default function CameraScreen(): React.JSX.Element {
 
   const cameraGranted = cameraPermission.granted;
   const micGranted    = micPermission.granted;
-  const shutterRing   = dark ? '#FFFFFF' : '#1A1A17';
-  const shutterFill   = dark ? '#FFFFFF' : '#1A1A17';
+  const shutterRing   = '#59c2d7';
+  const shutterFill   = '#59c2d7';
   const flipColor     = '#FFFFFF';
 
   const isCapturing = captureState !== 'idle';
@@ -1306,7 +1303,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.18)',
     backgroundColor: 'rgba(0,0,0,0.35)',
-    maxWidth: 280,
   },
   captionPillText: {
     color: 'rgba(255,255,255,0.75)',

@@ -105,8 +105,8 @@ export default function StreakGridPanel({
   const border = dark ? 'rgba(232,232,227,0.08)' : 'rgba(26,26,23,0.06)';
 
   const cellPosted  = '#59c2d7';
-  const cellMissed  = dark ? 'rgba(89,194,215,0.25)' : 'rgba(89,194,215,0.20)';
-  const cellRest    = dark ? 'rgba(89,194,215,0.08)' : 'rgba(89,194,215,0.06)';
+  const cellMissed  = dark ? 'rgba(89,194,215,0.55)' : 'rgba(89,194,215,0.50)';
+  const cellRest    = dark ? 'rgba(89,194,215,0.22)' : 'rgba(89,194,215,0.18)';
   const cellToday   = '#59c2d7';
 
   // Panel slide-in (kept on legacy RN Animated — different view from the pan canvas)
@@ -205,7 +205,7 @@ export default function StreakGridPanel({
   // weekdayIndex is 0=Mon ... 6=Sun, derived from the cell's column in the grid.
   const getCellColor = (dateStr: string, weekdayIndex: number): string => {
     if (postDates.has(dateStr)) return cellPosted;
-    if (dateStr === todayStr) return 'transparent'; // today gets a border instead
+    if (dateStr === todayStr) return cellToday; // today filled with brand cyan
     if (dateStr > todayStr) return cellRest;
 
     // Past day with no post — check if it was a training day

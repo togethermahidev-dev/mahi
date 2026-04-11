@@ -275,7 +275,7 @@ Persists sign-up form state across app backgrounding mid-flow. Cleared on comple
 
 ### `useThemeStore` — `src/store/themeStore.ts`
 
-Persists the user's colour scheme preference (`'light' | 'dark' | 'system'`). Rehydrated at cold start via `rehydrateTheme()`.
+Persists the user's colour scheme preference (`'light' | 'dark'`). Rehydrated at cold start via `rehydrateTheme()` which reads `@mahi/theme_mode` from `AsyncStorage` and calls `setMode()`. Exposes `setMode(mode)`, `cycleMode()` (toggles between light and dark), and `reset()` (returns to `'light'` default). The `ThemeMode` type is re-exported from `src/store/index.ts` as a type alias for consumers.
 
 ---
 
@@ -296,7 +296,7 @@ import {
   useFollowStore,
 } from '@/store';
 
-import type { PendingPost } from '@/store';
+import type { PendingPost, ThemeMode } from '@/store';
 ```
 
 ---
@@ -312,7 +312,7 @@ useMessagesStore.getState().sync(userId);
 
 This means by the time the user navigates to FeedScreen or MessagesScreen, data is already in the stores — zero loading skeletons.
 
-On sign-out, all stores are reset:
+On sign-out, the following stores are reset in `App.tsx`:
 
 ```ts
 useUserStore.getState().reset();
@@ -320,8 +320,9 @@ useFeedStore.getState().reset();
 useMessagesStore.getState().reset();
 useProfilePostsStore.getState().reset();
 useFollowStore.getState().reset();
-useSocialStore.getState().reset();  // also closes all Realtime channels
 ```
+
+> **Note:** `useSocialStore.reset()` is not currently called on sign-out. The store owns per-post Realtime channels and comment caches; on a user switch they persist until `FeedScreen` unmounts the visible posts via `onViewableItemsChanged` and the per-post ref counts drop to zero. If you introduce multi-account switching without killing the process, add `useSocialStore.getState().reset()` to the sign-out branch in `App.tsx`.
 
 ---
 
