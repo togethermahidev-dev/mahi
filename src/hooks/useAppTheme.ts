@@ -1,12 +1,11 @@
-import { useColorScheme } from 'react-native';
 import { useThemeStore } from '@/store';
 
 export type EffectiveColorScheme = 'light' | 'dark';
 
 export interface AppTheme {
   /** Raw stored preference */
-  mode: 'system' | 'light' | 'dark';
-  /** Resolved scheme — system preference is applied when mode === 'system' */
+  mode: 'light' | 'dark';
+  /** Resolved scheme */
   colorScheme: EffectiveColorScheme;
   /** Convenience boolean — true when effective scheme is dark */
   dark: boolean;
@@ -20,19 +19,14 @@ export interface AppTheme {
 
 /**
  * Drop-in replacement for `useColorScheme()` across the app.
- * Respects the user's stored preference (light / dark / system).
+ * Respects the user's stored preference (light / dark).
  * All screens should use `const { dark } = useAppTheme()` instead of
  * `useColorScheme()` directly.
  */
 export function useAppTheme(): AppTheme {
-  const mode         = useThemeStore((s) => s.mode);
-  const rawScheme    = useColorScheme();
-  const systemScheme: EffectiveColorScheme =
-    rawScheme === 'dark' ? 'dark' : 'light';
+  const mode = useThemeStore((s) => s.mode);
 
-  const colorScheme: EffectiveColorScheme =
-    mode === 'system' ? systemScheme : mode;
-
+  const colorScheme: EffectiveColorScheme = mode;
   const dark = colorScheme === 'dark';
 
   return {

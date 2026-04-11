@@ -3,12 +3,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const THEME_KEY = '@mahi/theme_mode';
 
-export type ThemeMode = 'system' | 'light' | 'dark';
+export type ThemeMode = 'light' | 'dark';
 
 const CYCLE: Record<ThemeMode, ThemeMode> = {
-  light:  'dark',
-  dark:   'system',
-  system: 'light',
+  light: 'dark',
+  dark:  'light',
 };
 
 interface ThemeState {
@@ -19,7 +18,7 @@ interface ThemeState {
 }
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
-  mode: 'system',
+  mode: 'light',
 
   setMode: (mode) => {
     set({ mode });
@@ -31,7 +30,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   },
 
   reset: () => {
-    set({ mode: 'system' });
+    set({ mode: 'light' });
     AsyncStorage.removeItem(THEME_KEY).catch(() => null);
   },
 }));
@@ -39,7 +38,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
 /** Call once at app cold-start to restore the persisted theme preference. */
 export async function rehydrateTheme(): Promise<void> {
   const stored = await AsyncStorage.getItem(THEME_KEY);
-  if (stored === 'light' || stored === 'dark' || stored === 'system') {
+  if (stored === 'light' || stored === 'dark') {
     useThemeStore.getState().setMode(stored);
   }
 }

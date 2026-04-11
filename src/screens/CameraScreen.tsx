@@ -14,6 +14,7 @@ import {
   TextInput,
   Pressable,
   KeyboardAvoidingView,
+  FlatList,
 } from 'react-native';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS, useDerivedValue } from 'react-native-reanimated';
@@ -27,7 +28,8 @@ import { decode } from 'base64-arraybuffer';
 import { useAuthStore, useUserStore, useFeedStore, useProfilePostsStore } from '@/store';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { supabase } from '@/lib/supabase';
-import { createPost, recordUpload } from '@/api';
+import { createPost, recordUpload, searchProfiles, type TaggedUser, type FeedPost, type ProfileSearchResult } from '@/api';
+import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import { Sentry } from '@/lib/sentry';
 
 // Must match PEEK_HEIGHT in VerticalNavigator.tsx
@@ -158,6 +160,12 @@ const PIP_W = 130;
 const PIP_H = 170;
 const PIP_MARGIN = 16;
 
+function tagPillLabel(tagged: TaggedUser[]): string {
+  if (tagged.length === 0) return '＋ Tag people';
+  if (tagged.length === 1) return `@${tagged[0].username}`;
+  return `@${tagged[0].username} +${tagged.length - 1}`;
+}
+
 interface DualPhotoPreviewProps {
   frontPhoto: CapturedPhoto | null;
   rearPhoto:  CapturedPhoto | null;
@@ -166,6 +174,8 @@ interface DualPhotoPreviewProps {
   isUploading: boolean;
   caption: string;
   onCaptionChange: (v: string) => void;
+  taggedUsers: TaggedUser[];
+  onTaggedUsersChange: (users: TaggedUser[]) => void;
 }
 
 function DualPhotoPreview({
@@ -176,6 +186,8 @@ function DualPhotoPreview({
   isUploading,
   caption,
   onCaptionChange,
+  taggedUsers,
+  onTaggedUsersChange,
 }: DualPhotoPreviewProps) {
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const [modalOpen, setModalOpen] = useState(false);
@@ -199,23 +211,31 @@ function DualPhotoPreview({
   if (rearPhoto  !== null) frozenRear.current  = rearPhoto;
 
   const hasPhotos = frontPhoto !== null && rearPhoto !== null;
-  const [sheetOpen, setSheetOpen] = useState(false);
+  type ActiveSheet = 'none' | 'caption' | 'tag';
+  const [activeSheet, setActiveSheet] = useState<ActiveSheet>('none');
+  // When non-null, the tag sheet was opened by typing `@` at this index in
+  // the caption. On commit we splice `username ` right after that `@`, then
+  // reopen the caption sheet. When null, the tag sheet was opened via the
+  // tag pill and commits/cancels go straight back to 'none'.
+  const [captionAtIndex, setCaptionAtIndex] = useState<number | null>(null);
 
-  // Caption pill resting rect — used by the PIP-dodge check below.
+  // Union rect covering both stacked pills (tag above, caption below).
+  // Used by the PIP-dodge check; both pills lift together when the PIP overlaps.
   const pillW = 280;
   const pillH = 36;
+  const pillGap = 12;
   const pillL = (SCREEN_WIDTH - pillW) / 2;
   const pillR = pillL + pillW;
-  const pillB = SCREEN_HEIGHT - PEEK_HEIGHT - 32 - 64 /* post btn */ - 12;
-  const pillT = pillB - pillH;
+  const pillsB = SCREEN_HEIGHT - PEEK_HEIGHT - 32 - 64 /* post btn */ - 12;
+  const pillsT = pillsB - pillH - pillGap - pillH;
 
   const pillDodgeY = useDerivedValue(() => {
     'worklet';
     const overlaps =
       pipTransX.value + PIP_W > pillL &&
       pipTransX.value < pillR &&
-      pipTransY.value + PIP_H > pillT &&
-      pipTransY.value < pillB;
+      pipTransY.value + PIP_H > pillsT &&
+      pipTransY.value < pillsB;
     return withSpring(overlaps ? -(PIP_H + 16) : 0, { damping: 18, stiffness: 180 });
   });
 
@@ -244,7 +264,7 @@ function DualPhotoPreview({
         frozenFront.current = null;
         frozenRear.current  = null;
         setModalOpen(false);
-        setSheetOpen(false);
+        setActiveSheet('none');
         // Reset pip position for next time
         pipTransX.value = defaultPipX;
         pipTransY.value = defaultPipY;
@@ -336,6 +356,10 @@ function DualPhotoPreview({
           />
         )}
 
+        {/* Tagged bubbles — read-only preview, anchored above the pill column.
+            Rendered BEFORE the PIP so the draggable PIP paints on top. */}
+        <TaggedBubbleStack users={taggedUsers} style={{ left: 16, bottom: 310 }} />
+
         {/* Pip — draggable, tap to swap */}
         {pipUri && (
           <GestureDetector gesture={pipGesture}>
@@ -361,12 +385,30 @@ function DualPhotoPreview({
 
         {/* Post — bottom center */}
         <View style={styles.postButtonFloat}>
-          {/* Caption pill — dodges the PIP if it overlaps */}
-          <Reanimated.View style={[pillDodgeAnimStyle, { marginBottom: 12 }]}>
+          {/* Tag + Caption pills — lift together if the PIP overlaps */}
+          <Reanimated.View style={[pillDodgeAnimStyle, { alignItems: 'center' }]}>
             <TouchableOpacity
               activeOpacity={0.85}
               disabled={isUploading}
-              onPress={() => setSheetOpen(true)}
+              onPress={() => setActiveSheet('tag')}
+              style={{ marginBottom: pillGap }}
+            >
+              <BlurView intensity={40} tint="dark" style={styles.captionPill}>
+                <Text
+                  style={[styles.captionPillText, taggedUsers.length > 0 && { color: '#FFFFFF' }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {tagPillLabel(taggedUsers)}
+                </Text>
+              </BlurView>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              disabled={isUploading}
+              onPress={() => setActiveSheet('caption')}
+              style={{ marginBottom: pillGap }}
             >
               <BlurView intensity={40} tint="dark" style={styles.captionPill}>
                 <Text
@@ -396,11 +438,63 @@ function DualPhotoPreview({
       </Animated.View>
 
       <CaptionSheet
-        visible={sheetOpen}
+        visible={activeSheet === 'caption'}
         initialValue={caption}
         onClose={(committed) => {
           onCaptionChange(committed);
-          setSheetOpen(false);
+          setActiveSheet('none');
+        }}
+        onOpenTagAt={(atIndex, currentText) => {
+          // User typed `@` mid-caption. Commit the current text (with the
+          // `@` still in place) and hand off to TagSheet in single-shot mode.
+          onCaptionChange(currentText);
+          setCaptionAtIndex(atIndex);
+          setActiveSheet('tag');
+        }}
+      />
+
+      <TagSheet
+        visible={activeSheet === 'tag'}
+        initialSelected={taggedUsers}
+        singleShot={captionAtIndex !== null}
+        onCancel={() => {
+          // If we came from the caption `@` bridge, return to the caption
+          // sheet (the `@` stays in the text). Otherwise, close entirely.
+          if (captionAtIndex !== null) {
+            setCaptionAtIndex(null);
+            setActiveSheet('caption');
+          } else {
+            setActiveSheet('none');
+          }
+        }}
+        onCommit={(users) => {
+          if (captionAtIndex !== null && users.length > 0) {
+            // `@` bridge commit: splice `username ` right after the `@`
+            // at captionAtIndex, add the user to the taggedUsers list
+            // (deduped + capped), and reopen the caption sheet.
+            const picked = users[0];
+            const insertion = `${picked.username} `;
+            const spliced =
+              caption.slice(0, captionAtIndex + 1) +
+              insertion +
+              caption.slice(captionAtIndex + 1);
+            onCaptionChange(spliced);
+
+            const already = taggedUsers.some((u) => u.user_id === picked.user_id);
+            if (!already) {
+              if (taggedUsers.length >= MAX_TAGS) {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              } else {
+                onTaggedUsersChange([...taggedUsers, picked]);
+              }
+            }
+
+            setCaptionAtIndex(null);
+            setActiveSheet('caption');
+          } else {
+            onTaggedUsersChange(users);
+            setActiveSheet('none');
+          }
         }}
       />
       </GestureHandlerRootView>
@@ -414,10 +508,13 @@ interface CaptionSheetProps {
   visible:      boolean;
   initialValue: string;
   onClose:      (committed: string) => void;
+  /** Fires when the user types `@` — parent closes this sheet and opens TagSheet. */
+  onOpenTagAt?: (atIndex: number, currentText: string) => void;
 }
 
-function CaptionSheet({ visible, initialValue, onClose }: CaptionSheetProps) {
+function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSheetProps) {
   const [draft, setDraft] = useState(initialValue);
+  const cursorRef = useRef(0);
 
   // Reseed when the sheet re-opens (ignore initialValue changes while open).
   useEffect(() => {
@@ -426,6 +523,19 @@ function CaptionSheet({ visible, initialValue, onClose }: CaptionSheetProps) {
   }, [visible]);
 
   const commit = () => onClose(draft.trim());
+
+  const handleChangeText = (next: string) => {
+    // Detect a freshly typed `@` at the current cursor. If so, hand off to
+    // the parent which will commit the current draft and open the TagSheet.
+    if (onOpenTagAt && next.length > draft.length) {
+      const pos = cursorRef.current;
+      if (pos > 0 && next[pos - 1] === '@') {
+        onOpenTagAt(pos - 1, next);
+        return;
+      }
+    }
+    setDraft(next);
+  };
 
   return (
     <Modal
@@ -449,7 +559,8 @@ function CaptionSheet({ visible, initialValue, onClose }: CaptionSheetProps) {
           <TextInput
             style={styles.sheetInput}
             value={draft}
-            onChangeText={setDraft}
+            onChangeText={handleChangeText}
+            onSelectionChange={(e) => { cursorRef.current = e.nativeEvent.selection.end; }}
             placeholder="What's the story?"
             placeholderTextColor="rgba(232,232,227,0.45)"
             multiline
@@ -460,6 +571,182 @@ function CaptionSheet({ visible, initialValue, onClose }: CaptionSheetProps) {
           <TouchableOpacity style={styles.sheetDone} activeOpacity={0.85} onPress={commit}>
             <Text style={styles.sheetDoneText}>DONE</Text>
           </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+// ─── Tag Sheet ────────────────────────────────────────────────────────────────
+
+const MAX_TAGS = 10;
+
+function TagUserRow({
+  item,
+  selected,
+  onPress,
+}: {
+  item: ProfileSearchResult;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const display = item.display_name ?? item.first_name ?? item.username ?? '—';
+  const initial = display[0]?.toUpperCase() ?? '?';
+  return (
+    <TouchableOpacity
+      style={[styles.tagRow, selected && styles.tagRowSelected]}
+      activeOpacity={0.7}
+      onPress={onPress}
+    >
+      {item.avatar_url ? (
+        <Image source={{ uri: item.avatar_url }} style={styles.tagAvatar} />
+      ) : (
+        <View style={[styles.tagAvatar, styles.tagAvatarFallback]}>
+          <Text style={styles.tagAvatarInitial}>{initial}</Text>
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
+        <Text style={styles.tagRowName}>{display}</Text>
+        <Text style={styles.tagRowHandle}>@{item.username}</Text>
+      </View>
+      {selected ? <Text style={styles.tagRowCheck}>✓</Text> : null}
+    </TouchableOpacity>
+  );
+}
+
+interface TagSheetProps {
+  visible:         boolean;
+  initialSelected: TaggedUser[];
+  onCancel:        () => void;
+  onCommit:        (users: TaggedUser[]) => void;
+  /**
+   * When true, tapping a user immediately commits just that one user and
+   * closes the sheet — used by the caption `@` bridge where picking is a
+   * single-shot autocomplete, not multi-select.
+   */
+  singleShot?:     boolean;
+}
+
+function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: TagSheetProps) {
+  const [selected, setSelected] = useState<TaggedUser[]>(initialSelected);
+  const [query, setQuery]       = useState('');
+  const [results, setResults]   = useState<ProfileSearchResult[]>([]);
+  const [loading, setLoading]   = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reseed when the sheet re-opens; ignore changes to initialSelected while open.
+  useEffect(() => {
+    if (visible) {
+      setSelected(initialSelected);
+      setQuery('');
+      setResults([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  // Debounced search — mirrors GlobalSearchOverlay's 350ms pattern.
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const q = query.trim();
+    if (!q) { setResults([]); setLoading(false); return; }
+    setLoading(true);
+    debounceRef.current = setTimeout(async () => {
+      const { data } = await searchProfiles(q, 20);
+      setResults(data ?? []);
+      setLoading(false);
+    }, 350);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query]);
+
+  const toggle = (u: ProfileSearchResult) => {
+    const asTagged: TaggedUser = {
+      user_id:      u.id,
+      username:     u.username,
+      display_name: u.display_name,
+      avatar_url:   u.avatar_url,
+    };
+
+    // Single-shot mode: tap to immediately commit just this one user.
+    if (singleShot) {
+      onCommit([asTagged]);
+      return;
+    }
+
+    const already = selected.some((s) => s.user_id === u.id);
+    if (already) {
+      setSelected((prev) => prev.filter((s) => s.user_id !== u.id));
+      return;
+    }
+    if (selected.length >= MAX_TAGS) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      return;
+    }
+    setSelected((prev) => [...prev, asTagged]);
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={onCancel}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.sheetFlex}
+      >
+        <Pressable style={styles.sheetScrim} onPress={onCancel} />
+        <View style={styles.sheetPanel}>
+          <TouchableOpacity style={styles.sheetCloseX} onPress={onCancel} activeOpacity={0.7}>
+            <Text style={styles.sheetCloseXText}>✕</Text>
+          </TouchableOpacity>
+
+          <View style={styles.sheetHandle} />
+
+          <View style={styles.sheetLabelRow}>
+            <Text style={styles.sheetLabel}>TAG PEOPLE</Text>
+            {singleShot
+              ? null
+              : <Text style={styles.sheetCounter}>{selected.length}/{MAX_TAGS}</Text>}
+          </View>
+
+          <TextInput
+            style={styles.tagSearchInput}
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search for someone to tag"
+            placeholderTextColor="rgba(232,232,227,0.45)"
+            autoFocus
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+          />
+
+          <FlatList
+            data={results}
+            keyExtractor={(item) => item.id}
+            keyboardShouldPersistTaps="handled"
+            style={styles.tagResultsList}
+            ListEmptyComponent={
+              query.trim() && !loading
+                ? <Text style={styles.tagEmptyText}>No users found.</Text>
+                : null
+            }
+            renderItem={({ item }) => (
+              <TagUserRow
+                item={item}
+                selected={selected.some((s) => s.user_id === item.id)}
+                onPress={() => toggle(item)}
+              />
+            )}
+          />
+
+          {singleShot ? null : (
+            <TouchableOpacity style={styles.sheetDone} activeOpacity={0.85} onPress={() => onCommit(selected)}>
+              <Text style={styles.sheetDoneText}>DONE</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -482,6 +769,7 @@ export default function CameraScreen(): React.JSX.Element {
   const [frontPhoto,   setFrontPhoto]   = useState<CapturedPhoto | null>(null);
   const [rearPhoto,    setRearPhoto]    = useState<CapturedPhoto | null>(null);
   const [caption,      setCaption]      = useState<string>('');
+  const [taggedUsers,  setTaggedUsers]  = useState<TaggedUser[]>([]);
 
   const userId     = useAuthStore((s) => s.user?.id);
   const profile    = useUserStore((s) => s.profile);
@@ -589,6 +877,7 @@ export default function CameraScreen(): React.JSX.Element {
     const tempId              = `pending_${Date.now()}`;
     const optimisticStreakDay = profile.streak_current + 1;
     const captionValue = caption || null;
+    const taggedUsersSnapshot = taggedUsers;
 
     setProfile({ ...profile, streak_current: optimisticStreakDay });
 
@@ -605,6 +894,7 @@ export default function CameraScreen(): React.JSX.Element {
       like_count:    0,
       comment_count: 0,
       liked_by_me:   false,
+      tagged_users:  taggedUsersSnapshot,
       profiles: {
         id:           userId,
         username:     profile.username,
@@ -617,6 +907,7 @@ export default function CameraScreen(): React.JSX.Element {
     setFrontPhoto(null);
     setRearPhoto(null);
     setCaption('');
+    setTaggedUsers([]);
     setIsUploading(false);
 
     let rearStoragePath:  string | null = null;
@@ -651,8 +942,18 @@ export default function CameraScreen(): React.JSX.Element {
         povImageUrl: frontUrl,
         streakDay:   confirmedStreakDay,
         caption:     captionValue ?? undefined,
+        taggedUserIds: taggedUsersSnapshot.map((u) => u.user_id),
       });
-      if (postErr) throw postErr;
+      // createPost returns (data, error) where a non-null error with non-null
+      // data means "post created but tag insert failed". In that case we still
+      // want to confirm the post in the feed; just log the tag-insert failure.
+      if (postErr && !postData) throw postErr;
+      if (postErr && postData) {
+        Sentry.captureException(postErr, {
+          tags: { flow: 'camera', action: 'post_tags_insert' },
+          extra: { userId, postId: postData.id },
+        });
+      }
 
       if (postData) {
         useFeedStore.getState().confirmPending(tempId, {
@@ -663,7 +964,8 @@ export default function CameraScreen(): React.JSX.Element {
             display_name: profile.display_name,
             avatar_url:   profile.avatar_url,
           },
-        } as import('@/api').FeedPost);
+          tagged_users: taggedUsersSnapshot,
+        } as FeedPost);
 
         useProfilePostsStore.getState().addPost(postData);
       }
@@ -699,6 +1001,7 @@ export default function CameraScreen(): React.JSX.Element {
     setFrontPhoto(null);
     setRearPhoto(null);
     setCaption('');
+    setTaggedUsers([]);
   };
 
   if (!cameraPermission || !micPermission) {
@@ -811,6 +1114,8 @@ export default function CameraScreen(): React.JSX.Element {
         isUploading={isUploading}
         caption={caption}
         onCaptionChange={setCaption}
+        taggedUsers={taggedUsers}
+        onTaggedUsersChange={setTaggedUsers}
       />
     </View>
   );
@@ -1073,6 +1378,83 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'JosefinSans_600SemiBold',
     letterSpacing: 2,
+  },
+  // ── Tag sheet (search + user rows)
+  sheetCloseX: {
+    position: 'absolute',
+    top: 10,
+    right: 14,
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  sheetCloseXText: {
+    color: 'rgba(232,232,227,0.6)',
+    fontSize: 18,
+    fontFamily: 'JosefinSans_600SemiBold',
+  },
+  tagSearchInput: {
+    height: 44,
+    color: '#E8E8E3',
+    fontSize: 15,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    paddingHorizontal: 14,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  tagResultsList: {
+    maxHeight: SCREEN_HEIGHT * 0.45,
+  },
+  tagEmptyText: {
+    color: 'rgba(232,232,227,0.45)',
+    fontSize: 13,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 10,
+    gap: 12,
+  },
+  tagRowSelected: {
+    backgroundColor: 'rgba(89,194,215,0.08)',
+    borderRadius: 8,
+  },
+  tagAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+  },
+  tagAvatarFallback: {
+    backgroundColor: '#2A2A27',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tagAvatarInitial: {
+    color: '#E8E8E3',
+    fontSize: 15,
+    fontFamily: 'JosefinSans_600SemiBold',
+  },
+  tagRowName: {
+    color: '#E8E8E3',
+    fontSize: 14,
+    fontFamily: 'JosefinSans_600SemiBold',
+  },
+  tagRowHandle: {
+    color: 'rgba(232,232,227,0.45)',
+    fontSize: 12,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    marginTop: 1,
+  },
+  tagRowCheck: {
+    color: '#59c2d7',
+    fontSize: 18,
+    fontFamily: 'JosefinSans_600SemiBold',
   },
   // ── Permissions ───────────────────────────────────────────────────────────
   permissionCenter: {

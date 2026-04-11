@@ -164,6 +164,17 @@ export type Database = {
         };
         Update: Record<string, never>;
       };
+      post_tags: {
+        Row: {
+          post_id: string;
+          user_id: string;
+        };
+        Insert: {
+          post_id: string;
+          user_id: string;
+        };
+        Update: Record<string, never>;
+      };
     };
     Views:     Record<string, never>;
     Functions: {
@@ -197,6 +208,7 @@ export type Database = {
           like_count:    number;
           comment_count: number;
           liked_by_me:   boolean;
+          tagged_users:  { user_id: string; username: string; display_name: string | null; avatar_url: string | null }[];
         }[];
       };
       get_follow_data: {

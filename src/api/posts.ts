@@ -11,11 +11,19 @@ import type { Database } from '@/types';
 type PostRow    = Database['public']['Tables']['posts']['Row'];
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
+export type TaggedUser = {
+  user_id:      string;
+  username:     string;
+  display_name: string | null;
+  avatar_url:   string | null;
+};
+
 export type FeedPost = PostRow & {
   profiles:      Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
   like_count:    number;
   comment_count: number;
   liked_by_me:   boolean;
+  tagged_users:  TaggedUser[];
 };
 
 export type FeedCursor = { ts: string; id: string };
@@ -51,6 +59,7 @@ export async function getFeedPosts(
     like_count:    row.like_count    ?? 0,
     comment_count: row.comment_count ?? 0,
     liked_by_me:   row.liked_by_me   ?? false,
+    tagged_users:  row.tagged_users,
     profiles: {
       id:           row.profile_id,
       username:     row.username,
@@ -125,15 +134,18 @@ export async function getUserPosts(
 
 /**
  * Insert a new post record after a successful camera upload.
+ * If `taggedUserIds` is provided, inserts corresponding rows into `post_tags`
+ * after the post is created. RLS on `post_tags` verifies caller owns the post.
  */
 export async function createPost(opts: {
-  userId:       string;
-  imageUrl:     string;
-  streakDay:    number;
-  caption?:     string;
-  povImageUrl?: string;
+  userId:        string;
+  imageUrl:      string;
+  streakDay:     number;
+  caption?:      string;
+  povImageUrl?:  string;
+  taggedUserIds?: string[];
 }): Promise<{ data: PostRow | null; error: Error | null }> {
-  const { userId, imageUrl, streakDay, caption, povImageUrl } = opts;
+  const { userId, imageUrl, streakDay, caption, povImageUrl, taggedUserIds } = opts;
   const { data, error } = await supabase
     .from('posts')
     .insert({
@@ -147,5 +159,15 @@ export async function createPost(opts: {
     .single();
 
   if (error) return { data: null, error: new Error(error.message) };
+
+  if (data && taggedUserIds && taggedUserIds.length > 0) {
+    const uniqueIds = Array.from(new Set(taggedUserIds));
+    const rows = uniqueIds.map((uid) => ({ post_id: data.id, user_id: uid }));
+    const { error: tagErr } = await supabase.from('post_tags').insert(rows);
+    if (tagErr) {
+      return { data, error: new Error(`post created but tag insert failed: ${tagErr.message}`) };
+    }
+  }
+
   return { data, error: null };
 }

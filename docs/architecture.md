@@ -14,7 +14,8 @@ Mahi Fitness is a React Native fitness application built with Expo. Users take a
 | State Management | Zustand | ^5.0.11 |
 | Session Storage | AsyncStorage | ^2.2.0 |
 | List Rendering | @shopify/flash-list | — |
-| Gestures | react-native-gesture-handler | — |
+| Gestures | react-native-gesture-handler | ~2.30.0 |
+| UI Animation | react-native-reanimated | ~4.2.1 |
 | Gradients | expo-linear-gradient | ~55.0.9 |
 | Blur | expo-blur | ~55.0.10 |
 | Analytics | PostHog | ^4.35.0 |
@@ -32,7 +33,7 @@ mahi-fitness/
 │   ├── store/          # Zustand global state (feedStore, messagesStore, authStore, userStore, …)
 │   ├── hooks/          # Thin store wrappers + utility hooks (useMessages, useConversation, …)
 │   ├── types/          # TypeScript types — database.ts is the source of truth for DB shapes
-│   ├── components/     # Shared UI components (AppHeader, NavigationDots, ThemeToggle, UserProfileOverlay, GlobalSearchOverlay, AvatarPicker, TrainingDaysScreen, StreakGridPanel)
+│   ├── components/     # Shared UI components (AppHeader, NavigationDots, ThemeToggle, UserProfileOverlay, GlobalSearchOverlay, AvatarPicker, TrainingDaysScreen, StreakGridPanel, CaptionText)
 │   └── screens/        # Screen-level components (including ConversationScreen)
 ├── docs/               # Project documentation
 ├── assets/             # Images, icons, splash
@@ -206,14 +207,60 @@ Props:
 | `WelcomeScreen` | `src/screens/WelcomeScreen.tsx` | Active — sign-up / login |
 | `HorizontalNavigator` | `src/screens/HorizontalNavigator.tsx` | Active — horizontal gesture nav |
 | `VerticalNavigator` | `src/screens/VerticalNavigator.tsx` | Active — vertical gesture nav |
-| `CameraScreen` | `src/screens/CameraScreen.tsx` | Active — sequential dual-camera capture (front selfie → auto-flip → rear POV ~800 ms later), dual-photo preview (`DualPhotoPreview` Modal: rear full-screen + draggable front pip, tap pip to swap), already-posted guard, optimistic upload + streak, rest-day indicator (shows "REST DAY" label when today is not in `fitness_routine`), Sentry error capture on upload failure |
-| `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()`; post metadata (avatar, username, timestamp, streak pill) overlaid on the image via `LinearGradient` (dark-to-transparent from top); dual-photo posts show a pip overlay (tap to swap); single-photo legacy posts render unchanged; 16:9 aspect ratio; header hide/show driven by scroll via `headerAnim` prop; scroll-top state reported via `onScrollTopChange` prop; tapping another user's avatar opens `UserProfileOverlay` → MESSAGE → `ConversationScreen` (profile + conversation overlays managed via local state); all interactions console-logged with `[FeedScreen]` prefix |
+| `CameraScreen` | `src/screens/CameraScreen.tsx` | Active — **two-tap** dual-camera capture: tap 1 takes the front selfie and auto-flips to rear; the user frames the POV shot and taps 2 to capture the rear. `captureState` state machine: `idle → front → switching → awaiting-rear → rear → idle`. After both photos are captured, `DualPhotoPreview` Modal opens (rear full-screen + draggable front pip, tap pip to swap). Includes already-posted guard, optimistic upload + streak, caption editor with user tagging (see Caption + Tagging section), rest-day indicator (shows "REST DAY" label when today is not in `fitness_routine`), and Sentry error capture on upload failure |
+| `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()`; post metadata (avatar, username, timestamp, streak pill) overlaid on the image via `LinearGradient` (dark-to-transparent from top); dual-photo posts render a draggable pip (tap to swap) using `react-native-gesture-handler` `Gesture.Pan` + `react-native-reanimated` shared values with long-press activation and corner-snap; single-photo legacy posts render unchanged; 16:9 aspect ratio; captions + tagged users rendered via `CaptionText` component; header hide/show driven by scroll via `headerAnim` prop; scroll-top state reported via `onScrollTopChange` prop; tapping another user's avatar opens `UserProfileOverlay` → MESSAGE → `ConversationScreen` (profile + conversation overlays managed via local state); all interactions console-logged with `[FeedScreen]` prefix |
 | `HomeScreen` | `src/screens/HomeScreen.tsx` | Placeholder |
 | `SearchScreen` | `src/screens/SearchScreen.tsx` | Placeholder (global search is handled by `GlobalSearchOverlay` component, not this screen) |
-| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Active — own profile, follower/following counts, streak stats, avatar picker (`AvatarPicker` component), training days editor (`TrainingDaysScreen` overlay), streak grid (`StreakGridPanel` overlay) |
+| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Active — own profile, follower/following counts, streak stats, avatar picker (`AvatarPicker` component), training days editor (`TrainingDaysScreen` overlay), streak grid (`StreakGridPanel` — full-screen portrait calendar with months stacked vertically on the left, M T W T F S S column headers, and a pan-draggable canvas inside a bordered viewport; see `StreakGridPanel` notes below) |
 | `MessagesScreen` | `src/screens/MessagesScreen.tsx` | Active — inbox + requests from `useMessages()`; tapping a row opens `ConversationScreen` as an absolute overlay; REQUESTS tab has ACCEPT and DENY pill buttons |
 | `ConversationScreen` | `src/screens/ConversationScreen.tsx` | Active — individual message thread; inverted `FlatList` bubbles; real-time via `useConversation`; request banner (ACCEPT/DENY) shown to receiver on unaccepted conversations |
 | `InAppAnimationScreen` | `src/screens/InAppAnimationScreen.tsx` | Active — post-login entry animation |
+
+---
+
+## StreakGridPanel (`src/components/StreakGridPanel.tsx`)
+
+Full-screen portrait calendar overlay that visualises the user's post history. Mounted by `ProfileScreen` (own profile) and by `UserProfileOverlay` (other users' profiles) as a slide-in panel (slide handled by legacy RN `Animated`, not Reanimated — the slide and the pan canvas run on different views).
+
+**Layout:**
+
+```
+┌─ panel ───────────────────────────────────┐
+│  STREAK                                 × │
+│  On a 12-day streak                       │
+│      12 STREAK  │  17 BEST                │
+│  ┌─ bordered viewport ─────────────────┐  │
+│  │         M  T  W  T  F  S  S         │  │
+│  │  ┌──────────────────────────────┐   │  │
+│  │  │ Jan   □ □ □ □ □ □ □          │   │  │
+│  │  │       □ □ ■ ■ □ ■ □          │   │  │
+│  │  │ Feb   □ □ □ □ □ □ □          │   │  │
+│  │  │  …    (pan-draggable canvas) │   │  │
+│  │  └──────────────────────────────┘   │  │
+│  └─────────────────────────────────────┘  │
+└───────────────────────────────────────────┘
+```
+
+**Grid data** — `buildMonthGrid(todayStr)` returns 12 `MonthBlock`s covering the last 12 months ordered oldest → newest so the current month is the last row in the canvas. Each block contains `{ label, year, leadingBlanks, days[] }`. `leadingBlanks = (firstDayOfMonth.getDay() + 6) % 7` maps the 1st of the month to a Monday-first column offset. Days after today in the current month are omitted.
+
+**Cell colouring** — same logic as the old grid (`getCellColor`). Posted → solid cyan (`#59c2d7`); today with no post → transparent + cyan border; past training days with no post → faded cyan (missed); rest days (not in `fitness_routine`) and future days → very faded cyan. The weekday for a rest-day check is derived from `(leadingBlanks + dayIdx) % 7` indexed into `WEEKDAY_NAMES` — no per-cell `Intl` lookups.
+
+**Pan gesture** — the canvas sits inside a clipping viewport (`overflow: 'hidden'`) wrapped in a `GestureDetector` around a `Reanimated.View`. `Gesture.Pan()` updates a `translateY` shared value with a worklet clamp: `minY = Math.min(0, viewportH - contentH)` → `translateY = max(minY, min(0, startY + translationY))`. Vertical-only on purpose — the 7-column grid fits any portrait viewport, so X-pan would only desync the fixed weekday header. No long-press activation (immediate drag), no corner-snap, no spring-on-end — it's a map surface, not a widget.
+
+**Initial position** — on first layout, `seedPosition()` reads `viewportH` and `contentH` (set via `onLayout` on the viewport and the canvas respectively) and seeds `translateY = min(0, viewportH - contentH)` so the current month lands near the bottom of the viewport (today visible). Idempotent — safe to re-seed on rotation. Shared values reset to 0 naturally on unmount; the panel unmounts when `visible && mounted` both go false, so re-opening gives a fresh pan state.
+
+**Gesture isolation from parent navigators** — `HorizontalNavigator` and `VerticalNavigator` both use `PanResponder` with a 10px `onMoveShouldSet` threshold. RNGH installs native gesture recognizers that dispatch before the JS responder system, so touches landing inside the `GestureDetector` are captured by RNGH before the navigators' threshold is crossed. No `simultaneousHandlers` or `waitFor` configuration is required. Horizontal finger movement inside the grid is captured by the pan gesture (and ignored by the worklet), so it cannot bubble up and trigger a horizontal navigator page. Same pattern is used by the `FeedScreen` pip drag.
+
+---
+
+## Caption + Tagging
+
+Users can attach a caption and tag other users when posting. Implemented across:
+
+- **Capture flow** (`CameraScreen.tsx`) — after both photos are captured, a caption input and inline user search (via `searchProfiles`) lets the user type a message and tag up to N other users. Caption text and tagged-user ids are passed to `createPost`.
+- **Persistence** — caption stored on `public.posts.caption`; tag relationships stored in the `public.post_tags` junction table (`post_id`, `user_id`).
+- **Feed read path** — `get_feed_posts` RPC aggregates tagged users per row and returns them on each `FeedPost` as `tagged_users: { user_id, username, display_name, avatar_url }[]`.
+- **Display** — `CaptionText` (`src/components/CaptionText.tsx`) renders the caption with tagged usernames styled as pressable `#59c2d7` spans that open `UserProfileOverlay` for that user.
 
 ---
 

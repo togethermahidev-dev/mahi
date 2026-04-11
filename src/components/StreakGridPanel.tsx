@@ -3,24 +3,31 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  LayoutChangeEvent,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Reanimated, {
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { getPostDates } from '@/api';
 import { Sentry } from '@/lib/sentry';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ─── Grid constants ──────���─────────────────────────────────────────────────────
-const CELL_SIZE = 13;
-const CELL_GAP  = 2;
-const LABEL_W   = 28;  // width reserved for day-of-week labels
-const MONTHS    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const DAY_LABELS: [number, string][] = [[1, 'Mon'], [3, 'Wed'], [5, 'Fri']];
+// ─── Grid constants ──────────────────────────────────────────────────────────
+const CELL_SIZE       = 28;
+const CELL_GAP        = 4;
+const MONTH_LABEL_W   = 44;
+const WEEKDAY_LABELS  = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const WEEKDAY_NAMES   = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const MONTH_NAMES     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS_BLOCK_W    = 7 * CELL_SIZE + 6 * CELL_GAP;
 
 interface StreakGridPanelProps {
   visible: boolean;
@@ -33,7 +40,14 @@ interface StreakGridPanelProps {
   dark: boolean;
 }
 
-// ─── Helpers ────────��──────────────────────────────────────────────────────────
+type MonthBlock = {
+  label: string;
+  year: number;
+  leadingBlanks: number; // 0-6, Monday-first offset of the 1st of the month
+  days: string[];        // YYYY-MM-DD for each day of the month (up to today for the current month)
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** YYYY-MM-DD for a Date using local time. */
 function toDateStr(d: Date): string {
@@ -43,50 +57,37 @@ function toDateStr(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Build the grid: weeks (columns) of 7 day-cells. */
-function buildGrid(todayStr: string) {
+/** Build 12 month blocks from 11 months ago through the current month. */
+function buildMonthGrid(todayStr: string): MonthBlock[] {
   const today = new Date(todayStr + 'T00:00:00');
-  // Go back 364 days then adjust to nearest Sunday
-  const start = new Date(today);
-  start.setDate(start.getDate() - 364);
-  start.setDate(start.getDate() - start.getDay()); // back to Sunday
+  const months: MonthBlock[] = [];
 
-  const weeks: string[][] = [];
-  let week: string[] = [];
-  const cursor = new Date(start);
+  for (let offset = 11; offset >= 0; offset--) {
+    const first = new Date(today.getFullYear(), today.getMonth() - offset, 1);
+    // Mon-first weekday offset: Sun=0 → 6, Mon=1 → 0, Tue=2 → 1, ...
+    const leadingBlanks = (first.getDay() + 6) % 7;
 
-  while (cursor <= today) {
-    week.push(toDateStr(cursor));
-    if (week.length === 7) {
-      weeks.push(week);
-      week = [];
+    // How many days to include — full month unless we're on the current month
+    const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+    const lastDay = offset === 0 ? today.getDate() : daysInMonth;
+
+    const days: string[] = [];
+    for (let d = 1; d <= lastDay; d++) {
+      days.push(toDateStr(new Date(first.getFullYear(), first.getMonth(), d)));
     }
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  if (week.length > 0) {
-    weeks.push(week);
+
+    months.push({
+      label: MONTH_NAMES[first.getMonth()],
+      year: first.getFullYear(),
+      leadingBlanks,
+      days,
+    });
   }
 
-  return { weeks, startDate: start };
+  return months;
 }
 
-/** Determine which column index each month label should appear at. */
-function buildMonthLabels(weeks: string[][]): { col: number; label: string }[] {
-  const labels: { col: number; label: string }[] = [];
-  let lastMonth = -1;
-  for (let c = 0; c < weeks.length; c++) {
-    // Use the first day of each week
-    const d = new Date(weeks[c][0] + 'T00:00:00');
-    const m = d.getMonth();
-    if (m !== lastMonth) {
-      labels.push({ col: c, label: MONTHS[m] });
-      lastMonth = m;
-    }
-  }
-  return labels;
-}
-
-// ─── Component ───────────────────────────────────��─────────────────────────────
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function StreakGridPanel({
   visible,
@@ -104,13 +105,19 @@ export default function StreakGridPanel({
   const border = dark ? 'rgba(232,232,227,0.08)' : 'rgba(26,26,23,0.06)';
 
   const cellPosted  = '#59c2d7';
-  const cellMissed  = dark ? 'rgba(89,194,215,0.25)' : 'rgba(89,194,215,0.20)';  // blue tint for missed
+  const cellMissed  = dark ? 'rgba(89,194,215,0.25)' : 'rgba(89,194,215,0.20)';
   const cellRest    = dark ? 'rgba(89,194,215,0.08)' : 'rgba(89,194,215,0.06)';
   const cellToday   = '#59c2d7';
 
+  // Panel slide-in (kept on legacy RN Animated — different view from the pan canvas)
   const slideAnim    = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
-  const scrollRef    = useRef<ScrollView>(null);
+
+  // Pan canvas (Reanimated) — resets to 0 naturally when the panel unmounts on close.
+  const translateY = useSharedValue(0);
+  const startY     = useSharedValue(0);
+  const viewportH  = useSharedValue(0);
+  const contentH   = useSharedValue(0);
 
   const [mounted, setMounted]     = useState(false);
   const [loading, setLoading]     = useState(false);
@@ -122,7 +129,7 @@ export default function StreakGridPanel({
     [fitnessRoutine],
   );
 
-  // ─── Animation lifecycle ─────────────────────────────────────────────────────
+  // ─── Animation lifecycle ─────────────────────────────────────────────────
   useEffect(() => {
     if (visible) {
       setMounted(true);
@@ -160,7 +167,7 @@ export default function StreakGridPanel({
     }
   }, [visible]);
 
-  // ─── Data fetch ─────────���────────────────────────────────────────────────────
+  // ─── Data fetch ──────────────────────────────────────────────────────────
   const fetchPostDates = async () => {
     setLoading(true);
     const since = new Date();
@@ -182,25 +189,10 @@ export default function StreakGridPanel({
     setLoading(false);
   };
 
-  // ─── Grid data (memoised — only changes once per day) ────────────────────────
-  const { weeks, monthLabels } = useMemo(() => {
-    const g = buildGrid(todayStr);
-    return { weeks: g.weeks, monthLabels: buildMonthLabels(g.weeks) };
-  }, [todayStr]);
+  // ─── Grid data (memoised — only changes once per day) ────────────────────
+  const months = useMemo(() => buildMonthGrid(todayStr), [todayStr]);
 
-  // ─── Precompute day-of-week name for every grid cell (avoids per-render Intl) ─
-  const dayNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const week of weeks) {
-      for (const dateStr of week) {
-        const d = new Date(dateStr + 'T00:00:00');
-        map.set(dateStr, d.toLocaleDateString('en-US', { weekday: 'long' }));
-      }
-    }
-    return map;
-  }, [weeks]);
-
-  // ─── Streak status ──────────────────────────────────────────────────────────
+  // ─── Streak status ───────────────────────────────────────────────────────
   const yesterdayStr = useMemo(() => {
     const y = new Date();
     y.setDate(y.getDate() - 1);
@@ -209,19 +201,53 @@ export default function StreakGridPanel({
   const isOnStreak = !!streakLastUploadDate && streakCurrent > 0
     && (streakLastUploadDate === todayStr || streakLastUploadDate === yesterdayStr);
 
-  // ─── Cell colour ────────────────────────────────────────────────────────────
-  const getCellColor = (dateStr: string): string => {
+  // ─── Cell colour ─────────────────────────────────────────────────────────
+  // weekdayIndex is 0=Mon ... 6=Sun, derived from the cell's column in the grid.
+  const getCellColor = (dateStr: string, weekdayIndex: number): string => {
     if (postDates.has(dateStr)) return cellPosted;
     if (dateStr === todayStr) return 'transparent'; // today gets a border instead
     if (dateStr > todayStr) return cellRest;
 
     // Past day with no post — check if it was a training day
-    const dayName = dayNameMap.get(dateStr) ?? '';
-    const isRestDay = trainingDays ? !trainingDays.has(dayName) : false;
+    const isRestDay = trainingDays ? !trainingDays.has(WEEKDAY_NAMES[weekdayIndex]) : false;
     return isRestDay ? cellRest : cellMissed;
   };
 
-  // ─── Early exit (all hooks must be above this line) ─────────────────────────
+  // ─── Pan gesture ─────────────────────────────────────────────────────────
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      'worklet';
+      startY.value = translateY.value;
+    })
+    .onUpdate((e) => {
+      'worklet';
+      const raw = startY.value + e.translationY;
+      const minY = Math.min(0, viewportH.value - contentH.value);
+      translateY.value = Math.max(minY, Math.min(0, raw));
+    });
+
+  const canvasStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  // Seed translateY so today lands near the bottom of the viewport once both
+  // dimensions are known. Idempotent — re-seeding on rotation is desirable.
+  const seedPosition = () => {
+    if (viewportH.value === 0 || contentH.value === 0) return;
+    translateY.value = Math.min(0, viewportH.value - contentH.value);
+  };
+
+  const onViewportLayout = (e: LayoutChangeEvent) => {
+    viewportH.value = e.nativeEvent.layout.height;
+    seedPosition();
+  };
+
+  const onCanvasLayout = (e: LayoutChangeEvent) => {
+    contentH.value = e.nativeEvent.layout.height;
+    seedPosition();
+  };
+
+  // ─── Early exit (all hooks must be above this line) ─────────────────────
   if (!mounted && !visible) return null;
 
   return (
@@ -275,71 +301,58 @@ export default function StreakGridPanel({
           </View>
         </View>
 
-        {/* Grid */}
+        {/* Bordered grid frame */}
         {loading ? (
           <ActivityIndicator color={muted} style={styles.loader} />
         ) : (
-          <View style={styles.gridContainer}>
-            {/* Month labels */}
-            <View style={[styles.monthRow, { marginLeft: LABEL_W }]}>
-              {monthLabels.map(({ col, label }) => (
-                <Text
-                  key={`${label}-${col}`}
+          <View style={[styles.gridFrame, { borderColor: border }]}>
+            {/* Fixed weekday header */}
+            <View style={styles.weekdayHeader}>
+              {WEEKDAY_LABELS.map((label, i) => (
+                <View
+                  key={i}
                   style={[
-                    styles.monthLabel,
-                    { color: muted, left: col * (CELL_SIZE + CELL_GAP) },
+                    styles.weekdayCell,
+                    i < WEEKDAY_LABELS.length - 1 && { marginRight: CELL_GAP },
                   ]}
                 >
-                  {label}
-                </Text>
+                  <Text style={[styles.weekdayText, { color: muted }]}>{label}</Text>
+                </View>
               ))}
             </View>
 
-            <View style={styles.gridRow}>
-              {/* Day-of-week labels */}
-              <View style={[styles.dayLabels, { width: LABEL_W }]}>
-                {DAY_LABELS.map(([row, label]) => (
-                  <Text
-                    key={label}
-                    style={[
-                      styles.dayLabel,
-                      { color: muted, top: row * (CELL_SIZE + CELL_GAP) },
-                    ]}
-                  >
-                    {label}
-                  </Text>
-                ))}
-              </View>
-
-              {/* Scrollable grid */}
-              <ScrollView
-                ref={scrollRef}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                onContentSizeChange={() =>
-                  scrollRef.current?.scrollToEnd({ animated: false })
-                }
-              >
-                <View style={styles.weeksRow}>
-                  {weeks.map((week, ci) => (
-                    <View key={ci} style={styles.weekCol}>
-                      {week.map((dateStr) => {
-                        const isToday = dateStr === todayStr && !postDates.has(dateStr);
-                        return (
-                          <View
-                            key={dateStr}
-                            style={[
-                              styles.cell,
-                              { backgroundColor: getCellColor(dateStr) },
-                              isToday && { borderWidth: 1, borderColor: cellToday },
-                            ]}
-                          />
-                        );
-                      })}
+            {/* Clipping viewport */}
+            <View style={styles.viewport} onLayout={onViewportLayout}>
+              <GestureDetector gesture={panGesture}>
+                <Reanimated.View style={canvasStyle} onLayout={onCanvasLayout}>
+                  {months.map((month) => (
+                    <View key={`${month.label}-${month.year}`} style={styles.monthRow}>
+                      <Text style={[styles.monthLabel, { color: muted }]}>
+                        {month.label}
+                      </Text>
+                      <View style={styles.daysBlock}>
+                        {Array.from({ length: month.leadingBlanks }).map((_, i) => (
+                          <View key={`blank-${i}`} style={styles.blankCell} />
+                        ))}
+                        {month.days.map((dateStr, dayIdx) => {
+                          const weekdayIndex = (month.leadingBlanks + dayIdx) % 7;
+                          const isToday = dateStr === todayStr && !postDates.has(dateStr);
+                          return (
+                            <View
+                              key={dateStr}
+                              style={[
+                                styles.cell,
+                                { backgroundColor: getCellColor(dateStr, weekdayIndex) },
+                                isToday && { borderWidth: 1, borderColor: cellToday },
+                              ]}
+                            />
+                          );
+                        })}
+                      </View>
                     </View>
                   ))}
-                </View>
-              </ScrollView>
+                </Reanimated.View>
+              </GestureDetector>
             </View>
           </View>
         )}
@@ -348,7 +361,7 @@ export default function StreakGridPanel({
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────���────────────────────
+// ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -394,7 +407,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 32,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   stat: {
     alignItems: 'center',
@@ -418,44 +431,56 @@ const styles = StyleSheet.create({
   loader: {
     marginTop: 60,
   },
-  gridContainer: {
-    paddingHorizontal: 24,
+  gridFrame: {
+    flex: 1,
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 12,
+  },
+  weekdayHeader: {
+    flexDirection: 'row',
+    marginLeft: MONTH_LABEL_W,
+    marginBottom: 8,
+  },
+  weekdayCell: {
+    width: CELL_SIZE,
+    alignItems: 'center',
+  },
+  weekdayText: {
+    fontFamily: 'JosefinSans_600SemiBold',
+    fontSize: 10,
+    letterSpacing: 1,
+  },
+  viewport: {
+    flex: 1,
+    overflow: 'hidden',
   },
   monthRow: {
-    height: 18,
-    position: 'relative',
-    marginBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: CELL_GAP * 2,
   },
   monthLabel: {
-    position: 'absolute',
-    fontFamily: 'JosefinSans_400Regular',
-    fontSize: 10,
-    top: 0,
-  },
-  gridRow: {
-    flexDirection: 'row',
-  },
-  dayLabels: {
-    position: 'relative',
-    height: 7 * (CELL_SIZE + CELL_GAP) - CELL_GAP,
-  },
-  dayLabel: {
-    position: 'absolute',
-    fontFamily: 'JosefinSans_400Regular',
-    fontSize: 9,
+    width: MONTH_LABEL_W,
+    fontFamily: 'JosefinSans_600SemiBold',
+    fontSize: 12,
     lineHeight: CELL_SIZE,
-    left: 0,
   },
-  weeksRow: {
+  daysBlock: {
+    width: DAYS_BLOCK_W,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: CELL_GAP,
   },
-  weekCol: {
-    gap: CELL_GAP,
+  blankCell: {
+    width: CELL_SIZE,
+    height: CELL_SIZE,
   },
   cell: {
     width: CELL_SIZE,
     height: CELL_SIZE,
-    borderRadius: 2,
+    borderRadius: 4,
   },
 });

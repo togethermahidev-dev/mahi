@@ -47,6 +47,7 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 | `public.follows` | `id`, `follower_id`, `following_id`, `created_at` | Unique constraint `(follower_id, following_id)`. CHECK constraint prevents self-follows (`follower_id <> following_id`). RLS: authenticated read-all; insert/delete own only (`auth.uid() = follower_id`); explicit UPDATE deny policy (`USING (false)`). `followUser` uses idempotent upsert (`ignoreDuplicates: true`). |
 | `public.conversations` | `id`, `participant_one`, `participant_two`, `status`, `initiated_by`, `updated_at` | `participant_one < participant_two` enforced by `ordered_participants` CHECK constraint. `conversations_participants_unique` UNIQUE INDEX on `(participant_one, participant_two)` required for upsert `ON CONFLICT`. `REPLICA IDENTITY FULL` set for Realtime UPDATE/DELETE events. |
 | `public.messages` | `id`, `conversation_id`, `sender_id`, `content`, `created_at` | Trigger updates `conversations.updated_at` on insert. `REPLICA IDENTITY FULL` set for Realtime. Immutable — no UPDATE or DELETE. |
+| `public.post_tags` | `post_id`, `user_id` | Junction table storing user tags on posts (user mentions in captions). Composite PK `(post_id, user_id)`. `get_feed_posts` RPC aggregates these into a `tagged_users` array per post row. Immutable — no UPDATE. |
 | `public.streak_logs` | `id`, `user_id`, `streak_count`, `started_at`, `ended_at`, `is_active`, `created_at` | Audit log managed by `record_upload_streak` RPC — tracks active and closed streaks |
 
 ### Database Indexes
@@ -71,7 +72,7 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 
 **`get_feed_posts(p_limit int, p_cursor_ts timestamptz, p_cursor_id uuid)`** — `SECURITY DEFINER STABLE`
 - Replaces the old `posts` table select + `FEED_SELECT` constant.
-- Returns enriched feed rows including `like_count`, `comment_count`, and `liked_by_me` (lateral join against `auth.uid()`).
+- Returns enriched feed rows including `like_count`, `comment_count`, `liked_by_me` (lateral join against `auth.uid()`), and `tagged_users` — an aggregated `{ user_id, username, display_name, avatar_url }[]` array built from a `post_tags → profiles` join per row. Empty array when no tags exist.
 - Cursor pagination: `p_cursor_ts` + `p_cursor_id` mirror the old `created_at DESC, id DESC` cursor. Both default to `null` for the first page.
 - Called via `supabase.rpc('get_feed_posts', ...)` from `src/api/posts.ts:getFeedPosts`.
 
@@ -180,6 +181,30 @@ Installed via `npx expo install expo-linear-gradient` (SDK 55 compatible version
 Used for the `GlobalSearchOverlay` frosted-glass background. `BlurView` with `intensity={35}` and theme-aware `tint` (`'dark'` / `'light'`) covers the full screen behind the search input and results list. The overlay is triggered by a pull-down gesture from `CameraScreen` in `VerticalNavigator`.
 
 Installed as `~55.0.10`.
+
+---
+
+## react-native-gesture-handler + react-native-reanimated
+
+**Status: Active** — `react-native-gesture-handler ~2.30.0`, `react-native-reanimated ~4.2.1`, `react-native-worklets 0.7.2`.
+
+Two gesture systems coexist in the app — legacy RN `PanResponder` for full-screen navigators, and RNGH `Gesture.Pan` + Reanimated shared values for localised drag surfaces.
+
+**PanResponder (legacy RN)** — used by `HorizontalNavigator` and `VerticalNavigator` for screen-to-screen paging. Each navigator uses `onMoveShouldSetPanResponder` with a **10px movement threshold** and axis-exclusive ownership (`Math.abs(dx) > Math.abs(dy)` for horizontal, inverse for vertical). The vertical navigator additionally gates downward swipes on `FeedScreen` (index 1) by the list's scroll-top state.
+
+**RNGH `Gesture.Pan` + Reanimated** — used by three localised drag surfaces:
+
+| Surface | File | Pattern |
+|---|---|---|
+| `CameraScreen` pip (inside `DualPhotoPreview` Modal) | `src/screens/CameraScreen.tsx` | Long-press activation (`activateAfterLongPress(150)`), bounds-clamp to screen corners, corner-snap spring on end, Tap-race for swap. Lives in its own `GestureHandlerRootView` because the Modal spawns a separate native window. |
+| `FeedScreen` per-post pip | `src/screens/FeedScreen.tsx:142` | Same pattern as CameraScreen pip (long-press + corner-snap + Tap-race). Lives inside both navigators — proves RNGH coexists with the parent `PanResponder` stacks. |
+| `StreakGridPanel` canvas | `src/components/StreakGridPanel.tsx` | Vertical-only pan inside a clipping viewport. No long-press (immediate drag), no snap, no spring-on-end — it's a map surface, not a widget. See `StreakGridPanel` notes in `architecture.md`. |
+
+**Coexistence rule:** RNGH installs native gesture recognizers that dispatch **before** the JS responder system evaluates `PanResponder` thresholds. Because both navigators require 10px of movement before claiming a touch, RNGH has a free head-start and captures any touch landing inside a `GestureDetector` before the navigator's threshold is crossed. **No `simultaneousHandlers` or `waitFor` configuration is required.** The `FeedScreen` pip drag inside the navigator stack is the production-verified proof.
+
+**Root wrapping** — `App.tsx` wraps the whole tree in `GestureHandlerRootView` (required by RNGH). Components that render inside native `<Modal>` windows (e.g. `CameraScreen`'s `DualPhotoPreview`, `ProfileMediaMapModal`) must wrap their own root because a Modal is a separate native window and the app-level root does not cross that boundary. Components that render as plain absolute overlays (e.g. `StreakGridPanel`) rely on the app-level root and do **not** need their own.
+
+**Shared-value pattern** — drag surfaces declare `useSharedValue` refs (e.g. `translateY`, `startY`, `viewportH`, `contentH`), read/write them inside `.onStart` / `.onUpdate` worklets (marked `'worklet'`), and consume them via `useAnimatedStyle` applied to a `Reanimated.View`. The `GestureDetector` must wrap the same `Reanimated.View` that consumes the animated style. Layout measurements flow via `onLayout` handlers that write directly to shared values (JS-thread writes to shared values are safe).
 
 ---
 

@@ -23,6 +23,8 @@ import { useFeed } from '@/hooks/useFeed';
 import { useFeedStore, useSocialStore, useUserStore, useAuthStore } from '@/store';
 import { LikeIcon, CommentIcon } from '@/components/ScreenIcons';
 import UserProfileOverlay from '@/components/UserProfileOverlay';
+import TaggedBubbleStack from '@/components/TaggedBubbleStack';
+import CaptionText from '@/components/CaptionText';
 import ConversationScreen from '@/screens/ConversationScreen';
 import type { FeedPost, ConversationPreview } from '@/api';
 import type { CommentWithProfile } from '@/api/social';
@@ -325,6 +327,12 @@ function PostItem({
             )}
           </View>
         </GestureDetector>
+        {/* Tagged user bubbles — overlay on photo, bottom-left auto-stack.
+            Rendered BEFORE the PIP so the draggable PIP paints on top. */}
+        <TaggedBubbleStack
+          users={item.tagged_users}
+          onPressUser={(u) => onAvatarPress(u.user_id)}
+        />
         {/* Draggable PIP — uses RNGH so it wins over scroll/navigation gestures */}
         {hasDual && pipUrl && (
           <GestureDetector gesture={pipGesture}>
@@ -340,7 +348,12 @@ function PostItem({
       </View>
 
       {item.caption ? (
-        <Text style={[styles.caption, { color: text }]}>{item.caption}</Text>
+        <CaptionText
+          caption={item.caption}
+          tagged={item.tagged_users}
+          style={[styles.caption, { color: text }]}
+          onPressUser={(u) => onAvatarPress(u.user_id)}
+        />
       ) : null}
 
       {/* ── Action bar ── */}

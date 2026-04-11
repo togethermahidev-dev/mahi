@@ -1,11 +1,9 @@
 /**
  * ThemeToggle
  *
- * Cycles through Light → Dark → System on each press.
- * Each mode has a fitness-flavoured SVG icon:
- *   Dumbbell    — Light mode  (compact, daytime training)
- *   Barbell     — Dark mode   (heavy, night session)
- *   Heartbeat   — System/Auto (pulse = reactive to environment)
+ * Toggles between Light ↔ Dark on each press.
+ *   Blue Cloud + Sun — Light mode  (bright, daytime)
+ *   Moon            — Dark mode   (night)
  *
  * A spring pulse animation plays on every tap.
  * Sits on the camera feed so default color is white.
@@ -13,7 +11,7 @@
 
 import React, { useRef } from 'react';
 import { TouchableOpacity, Animated, StyleSheet } from 'react-native';
-import Svg, { Path, Line } from 'react-native-svg';
+import Svg, { Path, Circle, G } from 'react-native-svg';
 import { useThemeStore } from '@/store';
 import type { ThemeMode } from '@/store/themeStore';
 
@@ -24,49 +22,43 @@ interface IconProps {
   size:  number;
 }
 
-/** Dumbbell — Light mode. Compact, daytime training energy. */
-function DumbbellIcon({ color, size }: IconProps) {
+/** Blue Cloud with Sun peeking — Light mode. */
+function CloudSunIcon({ size }: IconProps) {
+  const blue = '#4FA8FF';
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* Short center bar */}
-      <Line x1="8" y1="12" x2="16" y2="12" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-      {/* Left weight plate — two vertical lines */}
-      <Line x1="5.5" y1="9"   x2="5.5" y2="15"  stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-      <Line x1="7.5" y1="8"   x2="7.5" y2="16"  stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-      {/* Right weight plate — two vertical lines */}
-      <Line x1="16.5" y1="8"  x2="16.5" y2="16" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-      <Line x1="18.5" y1="9"  x2="18.5" y2="15" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+      {/* Sun peeking behind the cloud — top-right */}
+      <G>
+        <Circle cx="17" cy="8" r="2.4" fill="#FFC93B" stroke="#FFC93B" strokeWidth={1.2} />
+        {/* Sun rays */}
+        <Path
+          d="M17 3.5v1.4 M17 11.1v1.4 M21.5 8h-1.4 M13.9 8h-1.4 M20.18 4.82l-0.99 0.99 M14.82 11.19l-0.99 0.99 M20.18 11.18l-0.99 -0.99 M14.82 4.81l-0.99 -0.99"
+          stroke="#FFC93B"
+          strokeWidth={1.4}
+          strokeLinecap="round"
+        />
+      </G>
+      {/* Cloud — fills the bottom-left, slightly overlapping the sun */}
+      <Path
+        d="M7 19h10.5a3.5 3.5 0 0 0 0.6 -6.95 A5 5 0 0 0 8.1 11.2 A4 4 0 0 0 7 19z"
+        fill={blue}
+        stroke={blue}
+        strokeWidth={1.4}
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }
 
-/** Barbell — Dark mode. Heavy Olympic bar, night session. */
-function BarbellIcon({ color, size }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* Full-width bar */}
-      <Line x1="1.5" y1="12" x2="22.5" y2="12" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-      {/* Left outer plate */}
-      <Line x1="3"   y1="8.5" x2="3"   y2="15.5" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-      {/* Left inner plate */}
-      <Line x1="6"   y1="7.5" x2="6"   y2="16.5" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-      {/* Right inner plate */}
-      <Line x1="18"  y1="7.5" x2="18"  y2="16.5" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-      {/* Right outer plate */}
-      <Line x1="21"  y1="8.5" x2="21"  y2="15.5" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-    </Svg>
-  );
-}
-
-/** Heartbeat / ECG pulse — System mode. Reactive to your environment like a pulse. */
-function HeartbeatIcon({ color, size }: IconProps) {
+/** Crescent Moon — Dark mode. */
+function MoonIcon({ color, size }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M2 12h4l2 -4.5L11 17l3 -9.5L16.5 12H22"
+        d="M20.5 14.3A8 8 0 0 1 9.7 3.5a0.6 0.6 0 0 0 -0.82 -0.72 9.5 9.5 0 1 0 12.34 12.34 0.6 0.6 0 0 0 -0.72 -0.82z"
+        fill={color}
         stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
+        strokeWidth={1.4}
         strokeLinejoin="round"
       />
     </Svg>
@@ -76,9 +68,8 @@ function HeartbeatIcon({ color, size }: IconProps) {
 // ─── Mode → Icon map ──────────────────────────────────────────────────────────
 
 const MODE_ICON: Record<ThemeMode, (props: IconProps) => React.JSX.Element> = {
-  light:  DumbbellIcon,
-  dark:   BarbellIcon,
-  system: HeartbeatIcon,
+  light: CloudSunIcon,
+  dark:  MoonIcon,
 };
 
 // ─── ThemeToggle ──────────────────────────────────────────────────────────────
