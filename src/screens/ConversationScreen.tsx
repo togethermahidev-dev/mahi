@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,28 +8,20 @@ import {
   FlatList,
   TextInput,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   ActivityIndicator,
 } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useConversation } from '@/hooks/useConversation';
 import { useMessages } from '@/hooks/useMessages';
+import { groupMessagesByDate, type GroupedRow } from '@/lib/groupMessages';
 import type { ConversationPreview } from '@/api';
 
 interface ConversationScreenProps {
   conversation:  ConversationPreview;
   currentUserId: string;
   onBack:        () => void;
-}
-
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1)  return 'just now';
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24)  return `${hrs}h`;
-  return `${Math.floor(hrs / 24)}d`;
 }
 
 export default function ConversationScreen({
@@ -67,7 +59,15 @@ export default function ConversationScreen({
     setInputText('');
     await send(content);
     setSending(false);
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
+
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidShow', () => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    });
+    return () => sub.remove();
+  }, []);
 
   const handleAccept = async () => {
     await accept(conversation.id);
@@ -79,8 +79,11 @@ export default function ConversationScreen({
     onBack();
   };
 
-  // FlatList renders newest at bottom — use inverted list with reversed data
-  const reversed = [...messages].reverse();
+  // FlatList renders newest at bottom — use inverted list with reversed grouped rows
+  const rows = useMemo<GroupedRow[]>(
+    () => groupMessagesByDate(messages).reverse(),
+    [messages],
+  );
 
   return (
     <Modal visible animationType="slide" transparent={false} onRequestClose={onBack}>
@@ -134,12 +137,24 @@ export default function ConversationScreen({
       ) : (
         <FlatList
           ref={flatListRef}
-          data={reversed}
-          keyExtractor={(item) => item.id}
+          data={rows}
+          keyExtractor={(item) =>
+            item.type === 'header' ? item.id : item.msg.id
+          }
           inverted
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => {
-            const isOwn = item.sender_id === currentUserId;
+            if (item.type === 'header') {
+              return (
+                <View style={styles.dayHeader}>
+                  <Text style={[styles.dayHeaderText, { color: muted }]}>
+                    {item.label}
+                  </Text>
+                </View>
+              );
+            }
+            const msg = item.msg;
+            const isOwn = msg.sender_id === currentUserId;
             return (
               <View style={[styles.bubbleWrap, isOwn ? styles.bubbleWrapOwn : styles.bubbleWrapOther]}>
                 <View
@@ -148,11 +163,17 @@ export default function ConversationScreen({
                     { backgroundColor: isOwn ? ownBubble : otherBubble },
                   ]}
                 >
-                  <Text style={[styles.bubbleText, { color: text }]}>{item.content}</Text>
+                  <Text style={[styles.bubbleText, { color: text }]}>{msg.content}</Text>
                 </View>
-                <Text style={[styles.bubbleTime, { color: muted }]}>
-                  {relativeTime(item.created_at)}
-                </Text>
+                {item.showTime ? (
+                  <Text style={[styles.bubbleTime, { color: muted }]}>
+                    {new Date(msg.created_at).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false,
+                    })}
+                  </Text>
+                ) : null}
               </View>
             );
           }}
@@ -297,6 +318,16 @@ const styles = StyleSheet.create({
     fontSize:   10,
     fontFamily: 'JosefinSans_400Regular_Italic',
     paddingHorizontal: 4,
+  },
+  dayHeader: {
+    alignItems:      'center',
+    paddingVertical: 8,
+    marginTop:       4,
+  },
+  dayHeaderText: {
+    fontSize:      11,
+    fontFamily:    'JosefinSans_400Regular_Italic',
+    letterSpacing: 1,
   },
   emptyWrap: {
     flex:           1,
