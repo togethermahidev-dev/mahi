@@ -195,9 +195,25 @@ function DualPhotoPreview({
   // Which photo is the full-screen background: 'rear' or 'front'
   const [primaryFacing, setPrimaryFacing] = useState<'rear' | 'front'>('rear');
 
-  // Pip position — bottom-left by default
+  // Inline tag + caption pill row sits just above POST. The PIP is kept
+  // strictly above this row (and thus above POST too) via a hard clamp on
+  // the pan/snap Y bounds — leaves room to add more pills inline later
+  // without any dodge animation.
+  const pillRowW = Math.min(SCREEN_WIDTH - 32, 360);
+  const pillH = 36;
+  const pillGap = 12;
+  const postBtnH = 64;
+  const pillsB = SCREEN_HEIGHT - PEEK_HEIGHT - 32 - postBtnH - pillGap;
+  const pillsT = pillsB - pillH;
+  // Lowest Y the PIP's top-left is allowed to reach: 12pt above the pill row.
+  const pipMaxY = pillsT - PIP_H - 12;
+  // Anchor for the TaggedBubbleStack in the preview — sit above the pill
+  // row with a 16pt breathing gap. Derived so it can't drift from pills.
+  const bubbleStackBottom = SCREEN_HEIGHT - pillsT + 16;
+
+  // Pip position — bottom-left of the PIP-safe region by default.
   const defaultPipX = PIP_MARGIN;
-  const defaultPipY = SCREEN_HEIGHT - PIP_H - PIP_MARGIN - PEEK_HEIGHT - 80;
+  const defaultPipY = pipMaxY;
   const pipTransX = useSharedValue(defaultPipX);
   const pipTransY = useSharedValue(defaultPipY);
   const pipStartX = useSharedValue(defaultPipX);
@@ -218,19 +234,6 @@ function DualPhotoPreview({
   // reopen the caption sheet. When null, the tag sheet was opened via the
   // tag pill and commits/cancels go straight back to 'none'.
   const [captionAtIndex, setCaptionAtIndex] = useState<number | null>(null);
-
-  // Inline tag + caption pill row sits just above POST. The PIP is allowed
-  // to paint over it, so there is no dodge animation — leaves room to add
-  // more pills inline later without re-tuning lift logic.
-  const pillRowW = Math.min(SCREEN_WIDTH - 32, 360);
-  const pillH = 36;
-  const pillGap = 12;
-  const postBtnH = 64;
-  const pillsB = SCREEN_HEIGHT - PEEK_HEIGHT - 32 - postBtnH - pillGap;
-  const pillsT = pillsB - pillH;
-  // Anchor for the TaggedBubbleStack in the preview — sit above the pill
-  // row with a 16pt breathing gap. Derived so it can't drift from pills.
-  const bubbleStackBottom = SCREEN_HEIGHT - pillsT + 16;
 
   useEffect(() => {
     if (hasPhotos) {
@@ -279,15 +282,18 @@ function DualPhotoPreview({
       const rawX = pipStartX.value + e.translationX;
       const rawY = pipStartY.value + e.translationY;
       pipTransX.value = Math.max(PIP_MARGIN, Math.min(rawX, SCREEN_WIDTH - PIP_W - PIP_MARGIN));
-      pipTransY.value = Math.max(PIP_MARGIN, Math.min(rawY, SCREEN_HEIGHT - PIP_H - PIP_MARGIN));
+      // Hard clamp Y so the PIP can never slide under the pill row or POST.
+      pipTransY.value = Math.max(PIP_MARGIN, Math.min(rawY, pipMaxY));
     })
     .onEnd(() => {
       'worklet';
-      // Snap to nearest corner
+      // Snap to nearest of the two allowed corners (top-left / top-right of
+      // the PIP-safe region). The bottom bound is the pill row, not the
+      // screen, so "bottom corners" here mean pipMaxY, not screen bottom.
       const midX = (SCREEN_WIDTH - PIP_W) / 2;
-      const midY = (SCREEN_HEIGHT - PIP_H) / 2;
+      const midY = (PIP_MARGIN + pipMaxY) / 2;
       const snapX = pipTransX.value < midX ? PIP_MARGIN : SCREEN_WIDTH - PIP_W - PIP_MARGIN;
-      const snapY = pipTransY.value < midY ? PIP_MARGIN : SCREEN_HEIGHT - PIP_H - PIP_MARGIN;
+      const snapY = pipTransY.value < midY ? PIP_MARGIN : pipMaxY;
       pipTransX.value = withSpring(snapX, { damping: 16, stiffness: 140, overshootClamping: true });
       pipTransY.value = withSpring(snapY, { damping: 16, stiffness: 140, overshootClamping: true });
       pipScaleVal.value = withSpring(1, { damping: 12, stiffness: 200 });
