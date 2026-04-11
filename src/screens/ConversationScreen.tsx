@@ -188,7 +188,10 @@ export default function ConversationScreen({
       )}
 
       {/* Input bar */}
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
         <View style={[styles.inputBar, { borderTopColor: border, backgroundColor: bg }]}>
           <TextInput
             style={[styles.input, { color: text, borderColor: border }]}
@@ -343,7 +346,10 @@ const styles = StyleSheet.create({
     flexDirection:     'row',
     alignItems:        'flex-end',
     paddingHorizontal: 16,
-    paddingVertical:   10,
+    paddingTop:        10,
+    // Extra bottom padding on iOS to clear the home-indicator area —
+    // without a SafeAreaView the input bar was sitting under the indicator.
+    paddingBottom:     Platform.OS === 'ios' ? 34 : 10,
     borderTopWidth:    StyleSheet.hairlineWidth,
     gap:               10,
   },

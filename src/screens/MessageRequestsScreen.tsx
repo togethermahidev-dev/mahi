@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,6 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMessages } from '@/hooks/useMessages';
 import { useAuthStore } from '@/store';
 import ConversationScreen from '@/screens/ConversationScreen';
-import MessageRequestsScreen from '@/screens/MessageRequestsScreen';
 import type { ConversationPreview } from '@/api';
 
 function relativeTime(iso: string): string {
@@ -25,18 +24,24 @@ function relativeTime(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function ConvoRow({
+function RequestRow({
   item,
+  showAccept,
   onPress,
+  onAccept,
+  onDeny,
   text,
   muted,
   border,
 }: {
-  item:   ConversationPreview;
-  onPress:() => void;
-  text:   string;
-  muted:  string;
-  border: string;
+  item:       ConversationPreview;
+  showAccept: boolean;
+  onPress:    () => void;
+  onAccept:   () => void;
+  onDeny:     () => void;
+  text:       string;
+  muted:      string;
+  border:     string;
 }) {
   const name     = item.other_profile.display_name ?? item.other_profile.username;
   const initials = (item.other_profile.username ?? '?')[0].toUpperCase();
@@ -67,101 +72,100 @@ function ConvoRow({
         ) : null}
       </View>
 
-      <Text style={[styles.convoTime, { color: muted }]}>
-        {relativeTime(item.updated_at)}
-      </Text>
+      <View style={styles.convoRight}>
+        <Text style={[styles.convoTime, { color: muted }]}>
+          {relativeTime(item.updated_at)}
+        </Text>
+        {showAccept ? (
+          <View style={styles.actionBtns}>
+            <TouchableOpacity
+              style={[styles.actionBtn, { borderColor: text }]}
+              onPress={onAccept}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.actionBtnText, { color: text }]}>ACCEPT</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.denyBtn]}
+              onPress={onDeny}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.actionBtnText, styles.denyText]}>DENY</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Text style={[styles.pendingLabel, { color: muted }]}>PENDING</Text>
+        )}
+      </View>
     </TouchableOpacity>
   );
 }
 
-interface MessagesScreenProps {
-  onBack?: () => void;
+interface MessageRequestsScreenProps {
+  onBack: () => void;
 }
 
-export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): React.JSX.Element {
+export default function MessageRequestsScreen({
+  onBack,
+}: MessageRequestsScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const bg     = dark ? '#1C1C19' : '#FFFFFF';
   const text   = dark ? '#E8E8E3' : '#1A1A17';
   const muted  = dark ? 'rgba(232,232,227,0.4)' : 'rgba(26,26,23,0.4)';
   const border = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.12)';
 
-  const [openConvo, setOpenConvo]           = useState<ConversationPreview | null>(null);
-  const [showRequests, setShowRequests]     = useState(false);
-
-  const { inbox, requests, isLoading, refresh } = useMessages();
+  const { requests, isLoading, refresh, accept, deny } = useMessages();
   const userId = useAuthStore((s) => s.user?.id);
 
-  // Only requests addressed to *this* user (i.e., where they are the receiver,
-  // not the requester) count toward the attention badge.
-  const incomingRequestCount = useMemo(
-    () => requests.filter((r) => !r.is_requester).length,
-    [requests],
-  );
-
-  if (showRequests) {
-    return <MessageRequestsScreen onBack={() => setShowRequests(false)} />;
-  }
+  const [openConvo, setOpenConvo] = React.useState<ConversationPreview | null>(null);
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      {/* Header */}
       <View style={[styles.header, { borderBottomColor: border }]}>
-        {onBack ? (
-          <TouchableOpacity
-            onPress={onBack}
-            style={[styles.backBtn, { borderColor: muted }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={[styles.backArrow, { color: text }]}>‹</Text>
-          </TouchableOpacity>
-        ) : null}
-        <Text style={[styles.headerTitle, { color: text }]}>MESSAGES</Text>
-        {onBack ? <View style={styles.backSpacer} /> : null}
+        <TouchableOpacity
+          onPress={onBack}
+          style={[styles.backBtn, { borderColor: muted }]}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={[styles.backArrow, { color: text }]}>‹</Text>
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: text }]}>REQUESTS</Text>
+        <View style={styles.backSpacer} />
       </View>
 
-      {/* Requests pill row — shows badge with count of incoming (non-self) requests */}
-      <TouchableOpacity
-        style={[styles.requestsPill, { borderBottomColor: border }]}
-        onPress={() => setShowRequests(true)}
-        activeOpacity={0.7}
-      >
-        <Text style={[styles.requestsLabel, { color: text }]}>MESSAGE REQUESTS</Text>
-        <View style={styles.requestsRight}>
-          {incomingRequestCount > 0 ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{incomingRequestCount}</Text>
-            </View>
-          ) : null}
-          <Text style={[styles.chevron, { color: muted }]}>›</Text>
-        </View>
-      </TouchableOpacity>
-
-      {/* Inbox list */}
       <FlatList
-        data={inbox}
+        data={requests}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ConvoRow
-            item={item}
-            onPress={() => setOpenConvo(item)}
-            text={text}
-            muted={muted}
-            border={border}
-          />
-        )}
+        renderItem={({ item }) => {
+          // Only receivers (not the original requester) see accept/deny controls.
+          const isReceiver = !item.is_requester;
+          return (
+            <RequestRow
+              item={item}
+              showAccept={isReceiver}
+              onPress={() => setOpenConvo(item)}
+              onAccept={() => accept(item.id)}
+              onDeny={() => deny(item.id)}
+              text={text}
+              muted={muted}
+              border={border}
+            />
+          );
+        }}
         refreshing={isLoading}
         onRefresh={refresh}
         ListEmptyComponent={
           !isLoading ? (
             <View style={styles.placeholder}>
-              <Text style={[styles.placeholderTitle, { color: text }]}>INBOX</Text>
-              <Text style={[styles.placeholderSub, { color: muted }]}>No messages yet</Text>
+              <Text style={[styles.placeholderTitle, { color: text }]}>NO REQUESTS</Text>
+              <Text style={[styles.placeholderSub, { color: muted }]}>
+                You're all caught up
+              </Text>
             </View>
           ) : null
         }
       />
 
-      {/* ConversationScreen overlay */}
       {openConvo && userId ? (
         <ConversationScreen
           conversation={openConvo}
@@ -210,44 +214,6 @@ const styles = StyleSheet.create({
     width:       36,
     marginLeft:  12,
   },
-  requestsPill: {
-    flexDirection:     'row',
-    alignItems:        'center',
-    justifyContent:    'space-between',
-    paddingHorizontal: 24,
-    paddingVertical:   16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  requestsLabel: {
-    fontSize:      12,
-    fontFamily:    'JosefinSans_600SemiBold',
-    letterSpacing: 3,
-  },
-  requestsRight: {
-    flexDirection: 'row',
-    alignItems:    'center',
-    gap:           10,
-  },
-  badge: {
-    minWidth:          20,
-    height:            20,
-    borderRadius:      10,
-    paddingHorizontal: 6,
-    backgroundColor:   '#FF6B6B',
-    alignItems:        'center',
-    justifyContent:    'center',
-  },
-  badgeText: {
-    color:      '#FFFFFF',
-    fontSize:   11,
-    fontFamily: 'JosefinSans_700Bold',
-    lineHeight: 14,
-  },
-  chevron: {
-    fontSize:   22,
-    fontFamily: 'JosefinSans_400Regular_Italic',
-    lineHeight: 22,
-  },
   convoRow: {
     flexDirection:     'row',
     alignItems:        'center',
@@ -282,9 +248,38 @@ const styles = StyleSheet.create({
     fontSize:   12,
     fontFamily: 'JosefinSans_400Regular_Italic',
   },
+  convoRight: {
+    alignItems: 'flex-end',
+    gap:        6,
+  },
   convoTime: {
     fontSize:   11,
     fontFamily: 'JosefinSans_400Regular_Italic',
+  },
+  actionBtns: {
+    gap: 5,
+  },
+  actionBtn: {
+    borderWidth:       1,
+    borderRadius:      50,
+    paddingHorizontal: 12,
+    paddingVertical:   4,
+  },
+  denyBtn: {
+    borderColor: '#FF6B6B',
+  },
+  actionBtnText: {
+    fontSize:      10,
+    fontFamily:    'JosefinSans_600SemiBold',
+    letterSpacing: 2,
+  },
+  denyText: {
+    color: '#FF6B6B',
+  },
+  pendingLabel: {
+    fontSize:      10,
+    fontFamily:    'JosefinSans_600SemiBold',
+    letterSpacing: 2,
   },
   placeholder: {
     flex:           1,
