@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { ProfileIcon, MessagesIcon } from '@/components/ScreenIcons';
+import { ProfileIcon, MessagesIcon, NotificationsIcon } from '@/components/ScreenIcons';
 
 interface AppHeaderProps {
   // true on Camera screen (always dark bg) → white text/icons
@@ -16,12 +16,16 @@ interface AppHeaderProps {
   isDark: boolean;
   onProfilePress: () => void;
   onMessagesPress: () => void;
+  unreadNotifications: number;
+  onNotificationsPress: () => void;
 }
 
 export default function AppHeader({
   isDark,
   onProfilePress,
   onMessagesPress,
+  unreadNotifications,
+  onNotificationsPress,
 }: AppHeaderProps): React.JSX.Element {
   const { dark: systemDark } = useAppTheme();
   // isDark = camera screen (always dark bg); systemDark = OS-level dark mode
@@ -58,6 +62,16 @@ export default function AppHeader({
           {/* Front layer: main colour */}
           <Text style={[styles.title, { color: mahiColor }]}>MAHI</Text>
         </View>
+
+        {/* Notifications bell pill — opens NotificationsScreen overlay */}
+        <TouchableOpacity
+          style={[styles.bellPill, { backgroundColor: pillBg }]}
+          onPress={onNotificationsPress}
+          activeOpacity={0.75}
+        >
+          <NotificationsIcon size={16} color={pillIcon} />
+          {unreadNotifications > 0 && <View style={styles.bellDot} />}
+        </TouchableOpacity>
 
         {/* Messages pill — navigates to Messages screen (horizontal right) */}
         <TouchableOpacity
@@ -117,5 +131,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'absolute',
     right: 0,
+  },
+  bellPill: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 44,
+  },
+  bellDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#59c2d7',
   },
 });

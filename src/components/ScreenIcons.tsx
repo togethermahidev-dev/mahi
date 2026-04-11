@@ -239,6 +239,29 @@ export function SettingsIcon({ size, color }: IconProps) {
   );
 }
 
+export function NotificationsIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Bell body — rounded cap, flared skirt */}
+      <Path
+        d="M12 3 C9.24 3 7 5.24 7 8 v4 l-2 2 v1 h14 v-1 l-2 -2 V8 c0 -2.76 -2.24 -5 -5 -5 z"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      {/* Clapper */}
+      <Path
+        d="M10 18 a2 2 0 1 0 4 0 h-4 z"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 export function MessagesIcon({ size, color }: IconProps) {
   const bubble = "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z";
   return (

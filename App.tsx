@@ -21,7 +21,7 @@ import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
 import HorizontalNavigator from '@/screens/HorizontalNavigator';
 import { supabase } from '@/lib/supabase';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useProfilePostsStore, useFollowStore } from '@/store';
+import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useNotificationsStore, useProfilePostsStore, useFollowStore } from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { getProfile } from '@/api';
@@ -58,9 +58,10 @@ export default function App(): React.JSX.Element {
         getProfile(s.user.id).then(({ data }) => {
           if (data) useUserStore.getState().setProfile(data);
         });
-        // Background-hydrate feed + messages stores (non-blocking)
+        // Background-hydrate feed + messages + notifications stores (non-blocking)
         useFeedStore.getState().sync();
         useMessagesStore.getState().sync(s.user.id);
+        useNotificationsStore.getState().sync(s.user.id);
       }
     });
 
@@ -75,15 +76,17 @@ export default function App(): React.JSX.Element {
         getProfile(s.user.id).then(({ data }) => {
           if (data) useUserStore.getState().setProfile(data);
         });
-        // Background-hydrate feed + messages stores (non-blocking)
+        // Background-hydrate feed + messages + notifications stores (non-blocking)
         useFeedStore.getState().sync();
         useMessagesStore.getState().sync(s.user.id);
+        useNotificationsStore.getState().sync(s.user.id);
         Sentry.setUser({ id: s.user.id, email: s.user.email });
         posthog.identify(s.user.id, { email: s.user.email ?? null });
       } else {
         useUserStore.getState().reset();
         useFeedStore.getState().reset();
         useMessagesStore.getState().reset();
+        useNotificationsStore.getState().reset();
         useProfilePostsStore.getState().reset();
         useFollowStore.getState().reset();
         Sentry.setUser(null);
