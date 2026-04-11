@@ -122,5 +122,6 @@ const styles = StyleSheet.create({
   panel: {
     width: SCREEN_WIDTH,
     flex: 1,
+    overflow: 'hidden',
   },
 });
