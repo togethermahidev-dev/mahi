@@ -11,9 +11,12 @@ import {
   Alert,
   Dimensions,
   Modal,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
+import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS, useDerivedValue } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { BlurView } from 'expo-blur';
@@ -161,6 +164,8 @@ interface DualPhotoPreviewProps {
   onDiscard:  () => void;
   onPost:     (front: CapturedPhoto, rear: CapturedPhoto) => void;
   isUploading: boolean;
+  caption: string;
+  onCaptionChange: (v: string) => void;
 }
 
 function DualPhotoPreview({
@@ -169,6 +174,8 @@ function DualPhotoPreview({
   onDiscard,
   onPost,
   isUploading,
+  caption,
+  onCaptionChange,
 }: DualPhotoPreviewProps) {
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const [modalOpen, setModalOpen] = useState(false);
@@ -192,6 +199,29 @@ function DualPhotoPreview({
   if (rearPhoto  !== null) frozenRear.current  = rearPhoto;
 
   const hasPhotos = frontPhoto !== null && rearPhoto !== null;
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Caption pill resting rect — used by the PIP-dodge check below.
+  const pillW = 280;
+  const pillH = 36;
+  const pillL = (SCREEN_WIDTH - pillW) / 2;
+  const pillR = pillL + pillW;
+  const pillB = SCREEN_HEIGHT - PEEK_HEIGHT - 32 - 64 /* post btn */ - 12;
+  const pillT = pillB - pillH;
+
+  const pillDodgeY = useDerivedValue(() => {
+    'worklet';
+    const overlaps =
+      pipTransX.value + PIP_W > pillL &&
+      pipTransX.value < pillR &&
+      pipTransY.value + PIP_H > pillT &&
+      pipTransY.value < pillB;
+    return withSpring(overlaps ? -(PIP_H + 16) : 0, { damping: 18, stiffness: 180 });
+  });
+
+  const pillDodgeAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: pillDodgeY.value }],
+  }));
 
   useEffect(() => {
     if (hasPhotos) {
@@ -214,6 +244,7 @@ function DualPhotoPreview({
         frozenFront.current = null;
         frozenRear.current  = null;
         setModalOpen(false);
+        setSheetOpen(false);
         // Reset pip position for next time
         pipTransX.value = defaultPipX;
         pipTransY.value = defaultPipY;
@@ -330,6 +361,25 @@ function DualPhotoPreview({
 
         {/* Post — bottom center */}
         <View style={styles.postButtonFloat}>
+          {/* Caption pill — dodges the PIP if it overlaps */}
+          <Reanimated.View style={[pillDodgeAnimStyle, { marginBottom: 12 }]}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              disabled={isUploading}
+              onPress={() => setSheetOpen(true)}
+            >
+              <BlurView intensity={40} tint="dark" style={styles.captionPill}>
+                <Text
+                  style={[styles.captionPillText, caption.trim() && { color: '#FFFFFF' }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {caption.trim() || '＋ Add a caption'}
+                </Text>
+              </BlurView>
+            </TouchableOpacity>
+          </Reanimated.View>
+
           <TouchableOpacity
             style={[styles.postButton, isUploading && { opacity: 0.5 }]}
             activeOpacity={0.82}
@@ -344,7 +394,74 @@ function DualPhotoPreview({
           </TouchableOpacity>
         </View>
       </Animated.View>
+
+      <CaptionSheet
+        visible={sheetOpen}
+        initialValue={caption}
+        onClose={(committed) => {
+          onCaptionChange(committed);
+          setSheetOpen(false);
+        }}
+      />
       </GestureHandlerRootView>
+    </Modal>
+  );
+}
+
+// ─── Caption Sheet ────────────────────────────────────────────────────────────
+
+interface CaptionSheetProps {
+  visible:      boolean;
+  initialValue: string;
+  onClose:      (committed: string) => void;
+}
+
+function CaptionSheet({ visible, initialValue, onClose }: CaptionSheetProps) {
+  const [draft, setDraft] = useState(initialValue);
+
+  // Reseed when the sheet re-opens (ignore initialValue changes while open).
+  useEffect(() => {
+    if (visible) setDraft(initialValue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  const commit = () => onClose(draft.trim());
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={commit}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.sheetFlex}
+      >
+        <Pressable style={styles.sheetScrim} onPress={commit} />
+        <View style={styles.sheetPanel}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetLabelRow}>
+            <Text style={styles.sheetLabel}>CAPTION</Text>
+            <Text style={styles.sheetCounter}>{draft.length}/200</Text>
+          </View>
+          <TextInput
+            style={styles.sheetInput}
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="What's the story?"
+            placeholderTextColor="rgba(232,232,227,0.45)"
+            multiline
+            maxLength={200}
+            autoFocus
+            textAlignVertical="top"
+          />
+          <TouchableOpacity style={styles.sheetDone} activeOpacity={0.85} onPress={commit}>
+            <Text style={styles.sheetDoneText}>DONE</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -364,6 +481,7 @@ export default function CameraScreen(): React.JSX.Element {
   const [isUploading,  setIsUploading]  = useState(false);
   const [frontPhoto,   setFrontPhoto]   = useState<CapturedPhoto | null>(null);
   const [rearPhoto,    setRearPhoto]    = useState<CapturedPhoto | null>(null);
+  const [caption,      setCaption]      = useState<string>('');
 
   const userId     = useAuthStore((s) => s.user?.id);
   const profile    = useUserStore((s) => s.profile);
@@ -446,6 +564,7 @@ export default function CameraScreen(): React.JSX.Element {
 
     const tempId              = `pending_${Date.now()}`;
     const optimisticStreakDay = profile.streak_current + 1;
+    const captionValue = caption || null;
 
     setProfile({ ...profile, streak_current: optimisticStreakDay });
 
@@ -456,7 +575,7 @@ export default function CameraScreen(): React.JSX.Element {
       user_id:       userId,
       image_url:     rear.uri,
       pov_image_url: front.uri,
-      caption:       null,
+      caption:       captionValue,
       streak_day:    optimisticStreakDay,
       created_at:    new Date().toISOString(),
       like_count:    0,
@@ -473,6 +592,7 @@ export default function CameraScreen(): React.JSX.Element {
     // Dismiss preview immediately so camera returns while upload runs
     setFrontPhoto(null);
     setRearPhoto(null);
+    setCaption('');
     setIsUploading(false);
 
     let rearStoragePath:  string | null = null;
@@ -506,6 +626,7 @@ export default function CameraScreen(): React.JSX.Element {
         imageUrl:    rearUrl,
         povImageUrl: frontUrl,
         streakDay:   confirmedStreakDay,
+        caption:     captionValue ?? undefined,
       });
       if (postErr) throw postErr;
 
@@ -553,6 +674,7 @@ export default function CameraScreen(): React.JSX.Element {
   const handleDiscard = () => {
     setFrontPhoto(null);
     setRearPhoto(null);
+    setCaption('');
   };
 
   if (!cameraPermission || !micPermission) {
@@ -657,6 +779,8 @@ export default function CameraScreen(): React.JSX.Element {
         onDiscard={handleDiscard}
         onPost={uploadPhotos}
         isUploading={isUploading}
+        caption={caption}
+        onCaptionChange={setCaption}
       />
     </View>
   );
@@ -834,6 +958,89 @@ const styles = StyleSheet.create({
   postButtonText: {
     color: '#111111',
     fontSize: 16,
+    fontFamily: 'JosefinSans_600SemiBold',
+    letterSpacing: 2,
+  },
+  captionPill: {
+    height: 36,
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    maxWidth: 280,
+  },
+  captionPillText: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 13,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+  },
+  // ── Caption bottom sheet
+  sheetFlex: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  sheetScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  sheetPanel: {
+    backgroundColor: '#1C1C19',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 24,
+    gap: 12,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignSelf: 'center',
+    marginBottom: 4,
+  },
+  sheetLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sheetLabel: {
+    color: '#E8E8E3',
+    fontSize: 11,
+    fontFamily: 'JosefinSans_600SemiBold',
+    letterSpacing: 2,
+  },
+  sheetCounter: {
+    color: 'rgba(232,232,227,0.45)',
+    fontSize: 12,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+  },
+  sheetInput: {
+    minHeight: 96,
+    maxHeight: 160,
+    color: '#E8E8E3',
+    fontSize: 15,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    paddingVertical: 8,
+    paddingHorizontal: 0,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.15)',
+  },
+  sheetDone: {
+    backgroundColor: '#59c2d7',
+    borderRadius: 50,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  sheetDoneText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontFamily: 'JosefinSans_600SemiBold',
     letterSpacing: 2,
   },
