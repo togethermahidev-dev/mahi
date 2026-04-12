@@ -37,6 +37,43 @@ export async function unfollowUser(
   return { data: null, error: null };
 }
 
+export type FollowListUser = {
+  id: string;
+  username: string;
+  display_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+};
+
+/** Fetch the list of followers or following for a user. */
+export async function getFollowList(
+  userId: string,
+  type: 'followers' | 'following',
+): Promise<{ data: FollowListUser[] | null; error: Error | null }> {
+  if (type === 'followers') {
+    const { data, error } = await supabase
+      .from('follows')
+      .select('profiles!follows_follower_id_fkey(id, username, display_name, first_name, last_name, avatar_url)')
+      .eq('following_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) return { data: null, error: new Error(error.message) };
+    const users = (data ?? []).map((row: any) => row.profiles as FollowListUser);
+    return { data: users, error: null };
+  }
+
+  const { data, error } = await supabase
+    .from('follows')
+    .select('profiles!follows_following_id_fkey(id, username, display_name, first_name, last_name, avatar_url)')
+    .eq('follower_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) return { data: null, error: new Error(error.message) };
+  const users = (data ?? []).map((row: any) => row.profiles as FollowListUser);
+  return { data: users, error: null };
+}
+
 /** Fetch follow status + counts in a single RPC call. */
 export async function getFollowData(
   currentUserId: string,

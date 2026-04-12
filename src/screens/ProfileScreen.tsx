@@ -9,12 +9,15 @@ import { SettingsIcon } from '@/components/ScreenIcons';
 import AvatarPicker from '@/components/AvatarPicker';
 import TrainingDaysScreen from '@/components/TrainingDaysScreen';
 import StreakGridPanel from '@/components/StreakGridPanel';
+import FollowListModal from '@/components/FollowListModal';
 
 export default function ProfileScreen(): React.JSX.Element {
   const { dark } = useAppTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [trainingDaysOpen, setTrainingDaysOpen] = useState(false);
   const [streakGridOpen, setStreakGridOpen] = useState(false);
+  const [followListOpen, setFollowListOpen] = useState(false);
+  const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
   const bg      = dark ? '#1C1C19' : '#FFFFFF';
   const text    = dark ? '#E8E8E3' : '#1A1A17';
   const muted   = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
@@ -80,15 +83,23 @@ export default function ProfileScreen(): React.JSX.Element {
 
         {/* Follow counts */}
         <View style={styles.statsRow}>
-          <View style={styles.stat}>
+          <TouchableOpacity
+            style={styles.stat}
+            activeOpacity={0.7}
+            onPress={() => { setFollowListType('followers'); setFollowListOpen(true); }}
+          >
             <Text style={[styles.statValue, { color: text }]}>{followerCount}</Text>
             <Text style={[styles.statLabel, { color: muted }]}>FOLLOWERS</Text>
-          </View>
+          </TouchableOpacity>
           <View style={[styles.statDivider, { backgroundColor: muted }]} />
-          <View style={styles.stat}>
+          <TouchableOpacity
+            style={styles.stat}
+            activeOpacity={0.7}
+            onPress={() => { setFollowListType('following'); setFollowListOpen(true); }}
+          >
             <Text style={[styles.statValue, { color: text }]}>{followingCount}</Text>
             <Text style={[styles.statLabel, { color: muted }]}>FOLLOWING</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Streak stats */}
@@ -148,6 +159,15 @@ export default function ProfileScreen(): React.JSX.Element {
         streakHighest={profile?.streak_highest ?? 0}
         streakLastUploadDate={profile?.streak_last_upload_date ?? null}
         fitnessRoutine={profile?.fitness_routine ?? null}
+        dark={dark}
+      />
+
+      {/* Followers / following list */}
+      <FollowListModal
+        visible={followListOpen}
+        onClose={() => setFollowListOpen(false)}
+        userId={userId ?? ''}
+        type={followListType}
         dark={dark}
       />
     </View>

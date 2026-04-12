@@ -13,6 +13,7 @@ import { useAuthStore, useFollowStore } from '@/store';
 import { Sentry } from '@/lib/sentry';
 import { StreakIcon } from '@/components/ScreenIcons';
 import StreakGridPanel from '@/components/StreakGridPanel';
+import FollowListModal from '@/components/FollowListModal';
 import type { ConversationPreview } from '@/api';
 import type { Database } from '@/types';
 
@@ -48,6 +49,8 @@ export default function UserProfileOverlay({
   const [loading,   setLoading]   = useState(true);
   const [messaging, setMessaging] = useState(false);
   const [streakGridOpen, setStreakGridOpen] = useState(false);
+  const [followListOpen, setFollowListOpen] = useState(false);
+  const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
 
   useEffect(() => {
     if (currentUserId) loadFollowData(currentUserId, userId);
@@ -158,15 +161,23 @@ export default function UserProfileOverlay({
             ) : null}
 
             <View style={styles.statsRow}>
-              <View style={styles.stat}>
+              <TouchableOpacity
+                style={styles.stat}
+                activeOpacity={0.7}
+                onPress={() => { setFollowListType('followers'); setFollowListOpen(true); }}
+              >
                 <Text style={[styles.statValue, { color: text }]}>{followerCount}</Text>
                 <Text style={[styles.statLabel, { color: muted }]}>FOLLOWERS</Text>
-              </View>
+              </TouchableOpacity>
               <View style={[styles.statDivider, { backgroundColor: muted }]} />
-              <View style={styles.stat}>
+              <TouchableOpacity
+                style={styles.stat}
+                activeOpacity={0.7}
+                onPress={() => { setFollowListType('following'); setFollowListOpen(true); }}
+              >
                 <Text style={[styles.statValue, { color: text }]}>{followingCount}</Text>
                 <Text style={[styles.statLabel, { color: muted }]}>FOLLOWING</Text>
-              </View>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.statsRow}>
@@ -236,6 +247,15 @@ export default function UserProfileOverlay({
           dark={dark}
         />
       ) : null}
+
+      {/* Followers / following list */}
+      <FollowListModal
+        visible={followListOpen}
+        onClose={() => setFollowListOpen(false)}
+        userId={userId}
+        type={followListType}
+        dark={dark}
+      />
     </View>
   );
 }
