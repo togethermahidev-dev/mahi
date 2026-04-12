@@ -758,7 +758,7 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
 
 // ─── CameraScreen ─────────────────────────────────────────────────────────────
 
-type CaptureState = 'idle' | 'front' | 'switching' | 'awaiting-rear' | 'rear';
+type CaptureState = 'idle' | 'rear' | 'switching' | 'awaiting-front' | 'front';
 
 export default function CameraScreen(): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -766,7 +766,7 @@ export default function CameraScreen(): React.JSX.Element {
   const cameraRef = useRef<CameraView>(null);
   const { dark } = useAppTheme();
 
-  const [facing,       setFacing]       = useState<'back' | 'front'>('front');
+  const [facing,       setFacing]       = useState<'back' | 'front'>('back');
   const [captureState, setCaptureState] = useState<CaptureState>('idle');
   const [isUploading,  setIsUploading]  = useState(false);
   const [frontPhoto,   setFrontPhoto]   = useState<CapturedPhoto | null>(null);
@@ -818,47 +818,47 @@ export default function CameraScreen(): React.JSX.Element {
     return { uri: normalizedUri, base64 };
   };
 
-  // Two-stage capture: tap 1 takes the selfie and flips to rear; tap 2 takes
-  // the POV shot. Splitting this gives the user time to frame the second shot
-  // — the old auto-capture fired before people were ready and came out blurry.
-  const pendingFrontRef = useRef<CapturedPhoto | null>(null);
+  // Two-stage capture: tap 1 takes the POV shot and flips to front; tap 2
+  // takes the selfie. Splitting this gives the user time to frame the second
+  // shot — the old auto-capture fired before people were ready and came out blurry.
+  const pendingRearRef = useRef<CapturedPhoto | null>(null);
 
-  const startCaptureFront = async () => {
+  const startCaptureRear = async () => {
     if (captureState !== 'idle') return;
 
-    // Step 1: ensure we're on front camera and take the selfie
-    setCaptureState('front');
-    setFacing('front');
+    // Step 1: ensure we're on rear camera and take the POV shot
+    setCaptureState('rear');
+    setFacing('back');
     // Brief pause for camera to settle after potential facing change
     await new Promise(r => setTimeout(r, 300));
-    const front = await takePhoto();
-    if (!front) {
+    const rear = await takePhoto();
+    if (!rear) {
       setCaptureState('idle');
       return;
     }
-    pendingFrontRef.current = front;
+    pendingRearRef.current = rear;
 
-    // Step 2: flip to rear and wait for it to initialise, then hand control
-    // back to the user — they must tap again when ready for the POV shot.
+    // Step 2: flip to front and wait for it to initialise, then hand control
+    // back to the user — they must tap again when ready for the selfie.
     setCaptureState('switching');
-    setFacing('back');
+    setFacing('front');
     await new Promise(r => setTimeout(r, 800));
-    setCaptureState('awaiting-rear');
+    setCaptureState('awaiting-front');
   };
 
-  const captureRear = async () => {
-    if (captureState !== 'awaiting-rear') return;
-    const front = pendingFrontRef.current;
-    if (!front) {
+  const captureFront = async () => {
+    if (captureState !== 'awaiting-front') return;
+    const rear = pendingRearRef.current;
+    if (!rear) {
       setCaptureState('idle');
       return;
     }
 
-    setCaptureState('rear');
-    const rear = await takePhoto();
+    setCaptureState('front');
+    const front = await takePhoto();
     setCaptureState('idle');
-    pendingFrontRef.current = null;
-    if (!rear) return;
+    pendingRearRef.current = null;
+    if (!front) return;
 
     setFrontPhoto(front);
     setRearPhoto(rear);
@@ -866,9 +866,9 @@ export default function CameraScreen(): React.JSX.Element {
 
   const handleShutterPress = () => {
     if (captureState === 'idle') {
-      startCaptureFront();
-    } else if (captureState === 'awaiting-rear') {
-      captureRear();
+      startCaptureRear();
+    } else if (captureState === 'awaiting-front') {
+      captureFront();
     }
   };
 
@@ -1018,11 +1018,11 @@ export default function CameraScreen(): React.JSX.Element {
   const flipColor     = '#FFFFFF';
 
   const isCapturing = captureState !== 'idle';
-  // The shutter is tappable in 'idle' (start) and 'awaiting-rear' (take POV).
+  // The shutter is tappable in 'idle' (start) and 'awaiting-front' (take selfie).
   // Everything else is mid-capture and should be locked out.
   const shutterDisabled =
     hasPostedToday ||
-    (captureState !== 'idle' && captureState !== 'awaiting-rear');
+    (captureState !== 'idle' && captureState !== 'awaiting-front');
 
   if (!cameraGranted || !micGranted) {
     let message: string;
@@ -1058,10 +1058,10 @@ export default function CameraScreen(): React.JSX.Element {
 
   // Capture state label shown while sequencing
   const captureLabel =
-    captureState === 'front'         ? 'SELFIE...' :
-    captureState === 'switching'     ? 'SWITCHING...' :
-    captureState === 'awaiting-rear' ? 'TAP FOR POV' :
-    captureState === 'rear'          ? 'POV...' : null;
+    captureState === 'rear'            ? 'POV...' :
+    captureState === 'switching'       ? 'SWITCHING...' :
+    captureState === 'awaiting-front'  ? 'TAP FOR SELFIE' :
+    captureState === 'front'           ? 'SELFIE...' : null;
 
   return (
     <View style={styles.root}>

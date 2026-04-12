@@ -34,8 +34,9 @@ yarn-error.*
 .env*.local
 .env
 
-# Claude local settings (may contain tokens)
-.claude/settings.local.json
+CLAUDE.md
+CLAUDE.local.md
+.claude/
 .mcp.json
 
 # Sentry CLI config
