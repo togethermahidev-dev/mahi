@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useBlockStore } from '@/store';
 import type { NotificationWithActor } from '@/api';
 
 interface NotificationsScreenProps {
@@ -46,6 +47,11 @@ export default function NotificationsScreen({
   const avatarBg = dark ? 'rgba(232,232,227,0.1)'  : 'rgba(26,26,23,0.08)';
 
   const { items, isLoading, markRead, markAllRead } = useNotifications();
+  const blockedSet = useBlockStore((s) => s.blockedSet);
+  const filteredItems = useMemo(
+    () => items.filter((n) => !blockedSet.has(n.actor_id)),
+    [items, blockedSet],
+  );
 
   const handleClose = () => {
     markAllRead();
@@ -78,7 +84,7 @@ export default function NotificationsScreen({
           </View>
         ) : (
           <FlatList
-            data={items}
+            data={filteredItems}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             renderItem={({ item }: { item: NotificationWithActor }) => {

@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { searchProfiles, type ProfileSearchResult, type ConversationPreview } from '@/api';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useBlockStore } from '@/store';
 import UserProfileOverlay from '@/components/UserProfileOverlay';
 import ConversationScreen from '@/screens/ConversationScreen';
 import { Sentry } from '@/lib/sentry';
@@ -123,9 +123,11 @@ export default function GlobalSearchOverlay({
           console.log('[GlobalSearch] search error |', error.message);
           Sentry.captureMessage(error.message, { level: 'warning', tags: { flow: 'search' }, extra: { query: value } });
         }
-        const count = data?.length ?? 0;
-        console.log('[GlobalSearch] query:', value, '| results:', count);
-        setResults(data ?? []);
+        const filtered = (data ?? []).filter(
+          (u) => !useBlockStore.getState().isBlocked(u.id),
+        );
+        console.log('[GlobalSearch] query:', value, '| results:', filtered.length);
+        setResults(filtered);
         setSearched(true);
       } catch (e) {
         console.log('[GlobalSearch] search exception |', e);

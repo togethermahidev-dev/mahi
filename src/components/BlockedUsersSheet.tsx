@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,86 +8,97 @@ import {
   TouchableOpacity,
   Platform,
   ActivityIndicator,
+  Alert,
+  TextInput,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { getFollowList, type FollowListUser, type ConversationPreview } from '@/api';
-import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
-import UserProfileOverlay from '@/components/UserProfileOverlay';
-import ConversationScreen from '@/screens/ConversationScreen';
+import { getBlockedUsers, type BlockedUser } from '@/api';
+import { useAuthStore, useBlockStore } from '@/store';
+import { posthog } from '@/lib/posthog';
+import { Sentry } from '@/lib/sentry';
 
-interface FollowListModalProps {
+interface BlockedUsersSheetProps {
   visible: boolean;
   onClose: () => void;
-  userId: string;
-  type: 'followers' | 'following';
-  dark: boolean;
+  dark:    boolean;
 }
 
-export default function FollowListModal({
+export default function BlockedUsersSheet({
   visible,
   onClose,
-  userId,
-  type,
   dark,
-}: FollowListModalProps): React.JSX.Element {
-  const currentUserId       = useAuthStore((s) => s.user?.id);
-  const toggleFollow        = useFollowStore((s) => s.toggleFollow);
-  const subscribeToFollows  = useFollowStore((s) => s.subscribeToFollows);
+}: BlockedUsersSheetProps): React.JSX.Element {
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const unblockAction = useBlockStore((s) => s.unblock);
 
   const bg       = dark ? '#1C1C19' : '#FFFFFF';
   const text     = dark ? '#E8E8E3' : '#1A1A17';
   const muted    = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
   const border   = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.12)';
   const avatarBg = dark ? '#2A2A27' : '#E8E8E3';
+  const inputBg  = dark ? '#2A2A27' : '#F0F0ED';
 
-  const [users, setUsers]               = useState<FollowListUser[]>([]);
-  const [loading, setLoading]           = useState(true);
-  const [profileUserId, setProfileUserId] = useState<string | null>(null);
-  const [activeConvo, setActiveConvo]   = useState<ConversationPreview | null>(null);
+  const [users, setUsers]     = useState<BlockedUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery]     = useState('');
 
   const fetchList = useCallback(async () => {
-    const { data } = await getFollowList(userId, type);
-    const filtered = (data ?? []).filter(
-      (u) => !useBlockStore.getState().isBlocked(u.id),
-    );
-    setUsers(filtered);
+    if (!currentUserId) return;
+    const { data } = await getBlockedUsers(currentUserId);
+    setUsers(data ?? []);
     setLoading(false);
-  }, [userId, type]);
+  }, [currentUserId]);
 
-  // Fetch list + subscribe to realtime changes
   useEffect(() => {
     if (!visible) {
       setUsers([]);
       setLoading(true);
-      setProfileUserId(null);
-      setActiveConvo(null);
+      setQuery('');
       return;
     }
-    if (!currentUserId) return;
-
     setLoading(true);
     fetchList();
+  }, [visible, fetchList]);
 
-    const unsubscribe = subscribeToFollows(userId, currentUserId, fetchList);
-    return unsubscribe;
-  }, [visible, userId, type, currentUserId, fetchList, subscribeToFollows]);
+  const filtered = useMemo(() => {
+    if (!query.trim()) return users;
+    const q = query.toLowerCase();
+    return users.filter(
+      (u) =>
+        u.username.toLowerCase().includes(q) ||
+        (u.display_name?.toLowerCase().includes(q) ?? false),
+    );
+  }, [users, query]);
 
-  const handleUnfollow = useCallback(async (targetUserId: string) => {
-    if (!currentUserId) return;
-    // Optimistic removal from list
-    setUsers((prev) => prev.filter((u) => u.id !== targetUserId));
-    const { error } = await toggleFollow(currentUserId, targetUserId);
-    if (error) {
-      // Rollback — re-fetch the list
-      fetchList();
-    }
-  }, [currentUserId, toggleFollow, fetchList]);
+  const handleUnblock = useCallback(
+    (blockedUser: BlockedUser) => {
+      Alert.alert(
+        `Unblock @${blockedUser.username}?`,
+        'They will be able to see your posts and message you again. You will need to re-follow each other.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Unblock',
+            onPress: async () => {
+              if (!currentUserId) return;
+              // Optimistic removal from list
+              setUsers((prev) => prev.filter((u) => u.blocked_id !== blockedUser.blocked_id));
 
-  const title = type === 'followers' ? 'FOLLOWERS' : 'FOLLOWING';
-  const emptyMessage = type === 'followers' ? 'No followers yet' : 'Not following anyone yet';
+              posthog.capture('user_unblocked', { unblocked_user_id: blockedUser.blocked_id });
+              Sentry.addBreadcrumb({ category: 'moderation', message: `Unblocked: ${blockedUser.blocked_id}`, level: 'info' });
 
-  // Show unfollow button only on the current user's own "following" list
-  const showUnfollow = type === 'following' && userId === currentUserId;
+              const { error } = await unblockAction(currentUserId, blockedUser.blocked_id);
+              if (error) {
+                // Rollback — re-fetch the list
+                fetchList();
+              }
+            },
+          },
+        ],
+      );
+    },
+    [currentUserId, unblockAction, fetchList],
+  );
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
@@ -102,10 +113,24 @@ export default function FollowListModal({
             <Text style={[styles.backArrow, { color: text }]}>{'\u2039'}</Text>
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: text }]} numberOfLines={1}>
-            {title}
+            BLOCKED USERS
           </Text>
           {/* Spacer to keep title centred */}
           <View style={styles.backBtn} />
+        </View>
+
+        {/* Search bar */}
+        <View style={[styles.searchWrap, { borderBottomColor: border }]}>
+          <TextInput
+            style={[styles.searchInput, { backgroundColor: inputBg, color: text }]}
+            placeholder="Search blocked users..."
+            placeholderTextColor={muted}
+            value={query}
+            onChangeText={setQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+          />
         </View>
 
         {/* Content */}
@@ -115,26 +140,20 @@ export default function FollowListModal({
           </View>
         ) : (
           <FlashList
-            data={users}
-            keyExtractor={(item) => item.id}
+            data={filtered}
+            keyExtractor={(item) => item.blocked_id}
+            estimatedItemSize={68}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ItemSeparatorComponent={() => (
               <View style={[styles.separator, { backgroundColor: border }]} />
             )}
             renderItem={({ item }) => {
-              const displayName = item.display_name ?? item.first_name ?? item.username ?? '\u2014';
+              const displayName = item.display_name ?? item.username ?? '\u2014';
               const initials    = displayName[0]?.toUpperCase() ?? '?';
 
               return (
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    if (item.id === currentUserId) return;
-                    setProfileUserId(item.id);
-                  }}
-                  style={styles.row}
-                >
+                <View style={styles.row}>
                   {item.avatar_url ? (
                     <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
                   ) : (
@@ -144,54 +163,30 @@ export default function FollowListModal({
                   )}
                   <View style={styles.rowText}>
                     <Text style={[styles.name, { color: text }]}>{displayName}</Text>
-                    {item.username ? (
-                      <Text style={[styles.handle, { color: muted }]}>@{item.username}</Text>
-                    ) : null}
+                    <Text style={[styles.handle, { color: muted }]}>@{item.username}</Text>
                   </View>
-                  {showUnfollow ? (
-                    <TouchableOpacity
-                      style={[styles.unfollowBtn, { borderColor: text }]}
-                      activeOpacity={0.75}
-                      onPress={() => handleUnfollow(item.id)}
-                    >
-                      <Text style={[styles.unfollowBtnText, { color: text }]}>FOLLOWING</Text>
-                    </TouchableOpacity>
-                  ) : null}
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.unblockBtn, { borderColor: text }]}
+                    activeOpacity={0.75}
+                    onPress={() => handleUnblock(item)}
+                  >
+                    <Text style={[styles.unblockBtnText, { color: text }]}>UNBLOCK</Text>
+                  </TouchableOpacity>
+                </View>
               );
             }}
             ListEmptyComponent={
               !loading ? (
                 <View style={styles.emptyWrap}>
-                  <Text style={[styles.emptyText, { color: muted }]}>{emptyMessage}</Text>
+                  <Text style={[styles.emptyText, { color: muted }]}>
+                    {query.trim() ? 'No results' : 'No blocked users'}
+                  </Text>
                 </View>
               ) : null
             }
           />
         )}
       </View>
-
-      {/* Profile overlay — shown when a row is tapped */}
-      {profileUserId ? (
-        <UserProfileOverlay
-          userId={profileUserId}
-          onClose={() => setProfileUserId(null)}
-          onOpenConvo={(convo) => {
-            setProfileUserId(null);
-            setActiveConvo(convo);
-          }}
-          dark={dark}
-        />
-      ) : null}
-
-      {/* Conversation screen — opened from profile overlay MESSAGE button */}
-      {activeConvo && currentUserId ? (
-        <ConversationScreen
-          conversation={activeConvo}
-          currentUserId={currentUserId}
-          onBack={() => setActiveConvo(null)}
-        />
-      ) : null}
     </Modal>
   );
 }
@@ -227,6 +222,18 @@ const styles = StyleSheet.create({
     fontSize:      16,
     fontFamily:    'JosefinSans_700Bold',
     letterSpacing: 3,
+  },
+  searchWrap: {
+    paddingHorizontal: 20,
+    paddingVertical:   12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  searchInput: {
+    height:         40,
+    borderRadius:   20,
+    paddingHorizontal: 16,
+    fontFamily:     'JosefinSans_400Regular_Italic',
+    fontSize:       14,
   },
   loadingWrap: {
     flex:           1,
@@ -269,13 +276,13 @@ const styles = StyleSheet.create({
     fontFamily: 'JosefinSans_400Regular_Italic',
     fontSize:   13,
   },
-  unfollowBtn: {
+  unblockBtn: {
     borderWidth:       1,
     borderRadius:      50,
     paddingHorizontal: 14,
     paddingVertical:   6,
   },
-  unfollowBtnText: {
+  unblockBtnText: {
     fontSize:      10,
     fontFamily:    'JosefinSans_700Bold',
     letterSpacing: 2,

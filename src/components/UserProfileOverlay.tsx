@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   View,
   Text,
   Image,
@@ -8,8 +9,9 @@ import {
   ActivityIndicator,
   TouchableWithoutFeedback,
 } from 'react-native';
-import { getProfile, createOrGetConversation } from '@/api';
-import { useAuthStore, useFollowStore } from '@/store';
+import { getProfile, createOrGetConversation, reportUser, hasReported, type ReportReason } from '@/api';
+import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
+import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
 import { StreakIcon } from '@/components/ScreenIcons';
 import StreakGridPanel from '@/components/StreakGridPanel';
@@ -45,12 +47,18 @@ export default function UserProfileOverlay({
   const loadFollowData = useFollowStore((s) => s.loadFollowData);
   const toggleFollow   = useFollowStore((s) => s.toggleFollow);
 
+  const isBlockedByMe = useBlockStore((s) => s.blockedByMe.has(userId));
+  const isBlocked     = useBlockStore((s) => s.blockedSet.has(userId));
+  const blockAction   = useBlockStore((s) => s.block);
+  const unblockAction = useBlockStore((s) => s.unblock);
+
   const [profile,   setProfile]   = useState<ProfileRow | null>(null);
   const [loading,   setLoading]   = useState(true);
   const [messaging, setMessaging] = useState(false);
   const [streakGridOpen, setStreakGridOpen] = useState(false);
   const [followListOpen, setFollowListOpen] = useState(false);
   const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     if (currentUserId) loadFollowData(currentUserId, userId);
@@ -121,6 +129,135 @@ export default function UserProfileOverlay({
     }
   };
 
+  const handleBlock = () => {
+    if (!currentUserId || !profile) return;
+    Alert.alert(
+      `Block @${profile.username}?`,
+      'They won\'t be able to see your posts, message you, or follow you.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: async () => {
+            posthog.capture('user_blocked', { blocked_user_id: userId });
+            Sentry.addBreadcrumb({ category: 'moderation', message: `Blocked: ${userId}`, level: 'info' });
+            const { error } = await blockAction(currentUserId, userId);
+            if (error) {
+              Sentry.captureMessage(error.message, {
+                level: 'warning',
+                tags: { flow: 'moderation', step: 'block' },
+                extra: { userId },
+              });
+            }
+            onClose();
+          },
+        },
+      ],
+    );
+  };
+
+  const handleUnblock = () => {
+    if (!currentUserId || !profile) return;
+    Alert.alert(
+      `Unblock @${profile.username}?`,
+      'They will be able to see your posts and message you again. You will need to re-follow each other.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unblock',
+          onPress: async () => {
+            posthog.capture('user_unblocked', { unblocked_user_id: userId });
+            Sentry.addBreadcrumb({ category: 'moderation', message: `Unblocked: ${userId}`, level: 'info' });
+            const { error } = await unblockAction(currentUserId, userId);
+            if (error) {
+              Sentry.captureMessage(error.message, {
+                level: 'warning',
+                tags: { flow: 'moderation', step: 'unblock' },
+                extra: { userId },
+              });
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleReport = async () => {
+    if (!currentUserId || !profile || reporting) return;
+    setReporting(true);
+
+    // Check if already reported
+    const { data: alreadyReported } = await hasReported(currentUserId, userId);
+    if (alreadyReported) {
+      setReporting(false);
+      Alert.alert('Already Reported', `You have already reported @${profile.username}.`);
+      return;
+    }
+
+    const reasons: { label: string; value: ReportReason }[] = [
+      { label: 'Spam',                  value: 'spam' },
+      { label: 'Harassment',            value: 'harassment' },
+      { label: 'Inappropriate Content', value: 'inappropriate_content' },
+      { label: 'Impersonation',         value: 'impersonation' },
+      { label: 'Other',                 value: 'other' },
+    ];
+
+    Alert.alert(
+      `Report @${profile.username}?`,
+      'Select a reason:',
+      [
+        ...reasons.map((r) => ({
+          text: r.label,
+          onPress: async () => {
+            posthog.capture('user_reported', {
+              reported_user_id: userId,
+              reason: r.value,
+              has_description: false,
+            });
+            Sentry.addBreadcrumb({
+              category: 'moderation',
+              message: `Reported: ${userId} reason: ${r.value}`,
+              level: 'info',
+            });
+            const { error } = await reportUser({
+              reporterId:     currentUserId,
+              reportedUserId: userId,
+              reason:         r.value,
+            });
+            if (error) {
+              Sentry.captureMessage(error.message, {
+                level: 'warning',
+                tags: { flow: 'moderation', step: 'report' },
+                extra: { userId, reason: r.value },
+              });
+            } else {
+              Alert.alert('Report Submitted', 'Thank you for helping keep the community safe.');
+            }
+          },
+        })),
+        { text: 'Cancel', style: 'cancel', onPress: () => setReporting(false) },
+      ],
+    );
+  };
+
+  const handleEllipsis = () => {
+    if (!profile) return;
+    Alert.alert(
+      `@${profile.username}`,
+      '',
+      [
+        {
+          text: isBlockedByMe ? 'Unblock' : 'Block',
+          style: isBlockedByMe ? 'default' : 'destructive',
+          onPress: isBlockedByMe ? handleUnblock : handleBlock,
+        },
+        { text: 'Report', onPress: handleReport },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  };
+
   const isSelf = currentUserId === userId;
 
   return (
@@ -141,8 +278,38 @@ export default function UserProfileOverlay({
           <Text style={[styles.backArrow, { color: muted }]}>‹</Text>
         </TouchableOpacity>
 
+        {/* Ellipsis menu — top-right (only for other users) */}
+        {!isSelf && !loading ? (
+          <TouchableOpacity
+            onPress={handleEllipsis}
+            style={[styles.ellipsisBtn, { borderColor: muted }]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={[styles.ellipsisText, { color: muted }]}>...</Text>
+          </TouchableOpacity>
+        ) : null}
+
         {loading ? (
           <ActivityIndicator color={muted} style={styles.loader} />
+        ) : isBlocked ? (
+          /* Block gate — minimal card for blocked users */
+          <View style={styles.blockedWrap}>
+            <Text style={[styles.blockedTitle, { color: text }]}>User Unavailable</Text>
+            <Text style={[styles.blockedSubtitle, { color: muted }]}>
+              {isBlockedByMe
+                ? 'You have blocked this user.'
+                : 'This content is not available.'}
+            </Text>
+            {isBlockedByMe ? (
+              <TouchableOpacity
+                style={[styles.unblockBtn, { borderColor: text }]}
+                onPress={handleUnblock}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.unblockBtnText, { color: text }]}>UNBLOCK</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
         ) : (
           <>
             <View style={styles.avatarWrap}>
@@ -380,6 +547,52 @@ const styles = StyleSheet.create({
     paddingVertical:   9,
   },
   messageBtnText: {
+    fontSize:      11,
+    fontFamily:    'JosefinSans_700Bold',
+    letterSpacing: 3,
+  },
+  ellipsisBtn: {
+    position:       'absolute',
+    top:            12,
+    right:          16,
+    zIndex:         1,
+    width:          36,
+    height:         36,
+    borderRadius:   18,
+    borderWidth:    1,
+    alignItems:     'center',
+    justifyContent: 'center',
+  },
+  ellipsisText: {
+    fontSize:    16,
+    fontFamily:  'JosefinSans_700Bold',
+    lineHeight:  18,
+    marginTop:   -4,
+  },
+  blockedWrap: {
+    alignItems:   'center',
+    paddingVertical: 32,
+    gap:          12,
+  },
+  blockedTitle: {
+    fontSize:      16,
+    fontFamily:    'JosefinSans_700Bold',
+    letterSpacing: 3,
+  },
+  blockedSubtitle: {
+    fontSize:   13,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    textAlign:  'center',
+    paddingHorizontal: 16,
+  },
+  unblockBtn: {
+    borderWidth:       1,
+    borderRadius:      50,
+    paddingHorizontal: 28,
+    paddingVertical:   9,
+    marginTop:         8,
+  },
+  unblockBtnText: {
     fontSize:      11,
     fontFamily:    'JosefinSans_700Bold',
     letterSpacing: 3,

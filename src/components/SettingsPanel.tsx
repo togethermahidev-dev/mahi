@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { signOut } from '@/api/auth';
 import Constants from 'expo-constants';
+import BlockedUsersSheet from '@/components/BlockedUsersSheet';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -60,6 +61,7 @@ export default function SettingsPanel({
   const privacyAnim = useRef(new Animated.Value(0)).current;
 
   const [mounted, setMounted] = useState(false);
+  const [blockedListOpen, setBlockedListOpen] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -209,6 +211,9 @@ export default function SettingsPanel({
                 key={item}
                 style={[styles.subRow, { borderBottomColor: border }]}
                 activeOpacity={0.7}
+                onPress={() => {
+                  if (item === 'User Controls') setBlockedListOpen(true);
+                }}
               >
                 <Text style={[styles.subLabel, { color: muted }]}>{item}</Text>
               </TouchableOpacity>
@@ -271,6 +276,13 @@ export default function SettingsPanel({
           </Text>
         </ScrollView>
       </Animated.View>
+
+      {/* Blocked users list — opened from User Controls */}
+      <BlockedUsersSheet
+        visible={blockedListOpen}
+        onClose={() => setBlockedListOpen(false)}
+        dark={dark}
+      />
     </View>
   );
 }

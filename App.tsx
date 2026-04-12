@@ -21,10 +21,10 @@ import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
 import HorizontalNavigator from '@/screens/HorizontalNavigator';
 import { supabase } from '@/lib/supabase';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useNotificationsStore, useProfilePostsStore, useFollowStore } from '@/store';
+import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useNotificationsStore, useProfilePostsStore, useFollowStore, useBlockStore } from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { getProfile } from '@/api';
+import { getProfile, signOut } from '@/api';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 
@@ -56,12 +56,16 @@ export default function App(): React.JSX.Element {
       // Load profile (including streak) into global store on cold-start restore
       if (s?.user) {
         getProfile(s.user.id).then(({ data }) => {
-          if (data) useUserStore.getState().setProfile(data);
+          if (data) {
+            if (data.is_banned) { signOut().catch(() => {}); return; }
+            useUserStore.getState().setProfile(data);
+          }
         });
-        // Background-hydrate feed + messages + notifications stores (non-blocking)
+        // Background-hydrate feed + messages + notifications + blocks stores (non-blocking)
         useFeedStore.getState().sync();
         useMessagesStore.getState().sync(s.user.id);
         useNotificationsStore.getState().sync(s.user.id);
+        useBlockStore.getState().sync(s.user.id);
       }
     });
 
@@ -74,12 +78,16 @@ export default function App(): React.JSX.Element {
       if (s?.user) {
         // Keep profile (+ streak) in sync with auth state
         getProfile(s.user.id).then(({ data }) => {
-          if (data) useUserStore.getState().setProfile(data);
+          if (data) {
+            if (data.is_banned) { signOut().catch(() => {}); return; }
+            useUserStore.getState().setProfile(data);
+          }
         });
-        // Background-hydrate feed + messages + notifications stores (non-blocking)
+        // Background-hydrate feed + messages + notifications + blocks stores (non-blocking)
         useFeedStore.getState().sync();
         useMessagesStore.getState().sync(s.user.id);
         useNotificationsStore.getState().sync(s.user.id);
+        useBlockStore.getState().sync(s.user.id);
         Sentry.setUser({ id: s.user.id, email: s.user.email });
         posthog.identify(s.user.id, { email: s.user.email ?? null });
       } else {
@@ -89,6 +97,7 @@ export default function App(): React.JSX.Element {
         useNotificationsStore.getState().reset();
         useProfilePostsStore.getState().reset();
         useFollowStore.getState().reset();
+        useBlockStore.getState().reset();
         Sentry.setUser(null);
         posthog.reset();
       }

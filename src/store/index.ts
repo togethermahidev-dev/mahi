@@ -11,3 +11,4 @@ export { useProfilePostsStore } from './profilePostsStore';
 export { useSocialStore } from './socialStore';
 export type { } from './socialStore';
 export { useFollowStore } from './followStore';
+export { useBlockStore } from './blockStore';
