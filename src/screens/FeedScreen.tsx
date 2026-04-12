@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingTop: 14,
+    paddingTop: APP_HEADER_H + 4,
     paddingBottom: 32,
   },
   avatarRow: {
