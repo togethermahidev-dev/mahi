@@ -301,6 +301,26 @@ export default function StreakGridPanel({
           </View>
         </View>
 
+        {/* Legend / key */}
+        <View style={styles.legendRow}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: cellPosted }]} />
+            <Text style={[styles.legendText, { color: muted }]}>Active</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: cellMissed }]} />
+            <Text style={[styles.legendText, { color: muted }]}>Missed</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: cellRest }]} />
+            <Text style={[styles.legendText, { color: muted }]}>Rest day</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: 'transparent', borderWidth: 1, borderColor: cellToday }]} />
+            <Text style={[styles.legendText, { color: muted }]}>Today</Text>
+          </View>
+        </View>
+
         {/* Bordered grid frame */}
         {loading ? (
           <ActivityIndicator color={muted} style={styles.loader} />
@@ -430,6 +450,28 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 60,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+  },
+  legendText: {
+    fontFamily: 'JosefinSans_600SemiBold',
+    fontSize: 10,
+    letterSpacing: 1,
   },
   gridFrame: {
     flex: 1,
