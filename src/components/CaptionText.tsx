@@ -3,10 +3,11 @@ import { Text, type TextStyle, type StyleProp } from 'react-native';
 import type { TaggedUser } from '@/api';
 
 interface Props {
-  caption:      string;
-  tagged:       TaggedUser[];
-  style:        StyleProp<TextStyle>;
-  onPressUser?: (user: TaggedUser) => void;
+  caption:        string;
+  tagged:         TaggedUser[];
+  style:          StyleProp<TextStyle>;
+  onPressUser?:   (user: TaggedUser) => void;
+  numberOfLines?: number;
 }
 
 /**
@@ -14,9 +15,9 @@ interface Props {
  * username matches a tagged user. Tapping a highlighted token calls
  * `onPressUser` with that user. Plain text passes through unchanged.
  */
-export default function CaptionText({ caption, tagged, style, onPressUser }: Props) {
+export default function CaptionText({ caption, tagged, style, onPressUser, numberOfLines }: Props) {
   if (!caption) return null;
-  if (tagged.length === 0) return <Text style={style}>{caption}</Text>;
+  if (tagged.length === 0) return <Text style={style} numberOfLines={numberOfLines}>{caption}</Text>;
 
   // Escape defensively in case a username contains regex metacharacters.
   const escaped = tagged.map((u) => u.username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
@@ -42,5 +43,5 @@ export default function CaptionText({ caption, tagged, style, onPressUser }: Pro
   }
   if (last < caption.length) parts.push(caption.slice(last));
 
-  return <Text style={style}>{parts}</Text>;
+  return <Text style={style} numberOfLines={numberOfLines}>{parts}</Text>;
 }

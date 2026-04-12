@@ -9,6 +9,7 @@ import {
   Animated,
   TouchableOpacity,
   useWindowDimensions,
+  Dimensions,
   TextInput,
   KeyboardAvoidingView,
   Keyboard,
@@ -31,6 +32,10 @@ import type { CommentWithProfile } from '@/api/social';
 
 // AppHeader: paddingTop (60 ios / 32 android) + inner row (~36px) + paddingBottom (12)
 const APP_HEADER_H = Platform.OS === 'ios' ? 108 : 80;
+
+// TikTok-style snap: each card fills the full screen height
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const CARD_HEIGHT = SCREEN_HEIGHT;
 
 // Pip dimensions for the feed card
 const FEED_PIP_W = 90;
@@ -80,11 +85,13 @@ function PostItem({
   dark,
   width,
   onAvatarPress,
+  onCommentPress,
 }: {
   item: FeedPost;
   dark: boolean;
   width: number;
   onAvatarPress: (userId: string) => void;
+  onCommentPress: (postId: string) => void;
 }) {
   const text   = dark ? '#E8E8E3' : '#1A1A17';
   const muted  = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
@@ -95,13 +102,10 @@ function PostItem({
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
 
   const [rearIsPrimary, setRearIsPrimary] = useState(true);
-  const [commentsOpen, setCommentsOpen]   = useState(false);
-  const [commentText, setCommentText]     = useState('');
 
   // ── Store selectors ──────────────────────────────────────────────────────
   const currentUser  = useUserStore((s) => s.profile);
   const likedByMe    = useSocialStore((s) => s.likedByMe[item.id] ?? item.liked_by_me);
-  const comments     = useSocialStore((s) => s.comments[item.id]);
   const likeCount    = useFeedStore((s) => {
     const p = s.posts.find((p) => p.id === item.id);
     return p?.like_count ?? item.like_count;
@@ -122,7 +126,8 @@ function PostItem({
   const pipUrl     = hasDual && !rearIsPrimary ? item.image_url : item.pov_image_url;
 
   // ── Draggable PIP (FaceTime-style) ──────────────────────────────────────
-  const containerH = width * (16 / 9);
+  const ACTION_BAR_H = 60; // paddingVertical:8 * 2 + icon ~44
+  const containerH = CARD_HEIGHT - ACTION_BAR_H;
   const initialPipX = 12;
   const initialPipY = containerH - FEED_PIP_H - 12;
   const pipTransX = useSharedValue(initialPipX);
@@ -247,42 +252,23 @@ function PostItem({
     useSocialStore.getState().toggleLike(item.id, currentUser.id);
   }, [item.id, currentUser, likedByMe]);
 
-  // ── Comment handlers ─────────────────────────────────────────────────────
-  const handleCommentToggle = useCallback(() => {
-    setCommentsOpen((v) => {
-      const next = !v;
-      console.log('[FeedScreen] comment toggle post', item.id, '| open:', next);
-      if (next) useSocialStore.getState().loadComments(item.id);
-      return next;
-    });
-  }, [item.id]);
-
-  const handleSubmitComment = useCallback(() => {
-    const trimmed = commentText.trim();
-    console.log('[FeedScreen] submit comment post', item.id, '| text:', trimmed, '| user:', currentUser?.id);
-    if (!trimmed || !currentUser) { console.warn('[FeedScreen] submit comment: missing text or user'); return; }
-    useSocialStore.getState().addComment(item.id, currentUser.id, trimmed, {
-      id:           currentUser.id,
-      username:     currentUser.username,
-      display_name: currentUser.display_name ?? null,
-      avatar_url:   currentUser.avatar_url   ?? null,
-    });
-    setCommentText('');
-    Keyboard.dismiss();
-  }, [commentText, item.id, currentUser]);
+  // ── Comment handler ──────────────────────────────────────────────────────
+  const handleCommentPress = useCallback(() => {
+    onCommentPress(item.id);
+  }, [item.id, onCommentPress]);
 
   return (
-    <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+    <View style={[styles.card, { backgroundColor: cardBg, height: CARD_HEIGHT }]}>
       {/* Post image — double-tap to like */}
-      <View style={[styles.imageContainer, { width }]}>
+      <View style={[styles.imageContainer, { width, flex: 1 }]}>
         <GestureDetector gesture={doubleTap}>
-          <View style={{ width, height: width * (16 / 9) }}>
+          <View style={{ width, flex: 1 }}>
             <Image
               source={{ uri: primaryUrl }}
-              style={{ width, height: width * (16 / 9) }}
+              style={StyleSheet.absoluteFill}
               resizeMode="cover"
             />
-            {/* Overlay gradient + post metadata */}
+            {/* Top gradient + post metadata */}
             <LinearGradient
               colors={['rgba(0,0,0,0.6)', 'transparent']}
               style={styles.postOverlay}
@@ -308,6 +294,22 @@ function PostItem({
                 <Text style={styles.streakText}>DAY {item.streak_day}</Text>
               </View>
             </LinearGradient>
+            {/* Bottom gradient + caption overlay */}
+            {item.caption ? (
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.7)']}
+                style={styles.captionOverlay}
+                pointerEvents="box-none"
+              >
+                <CaptionText
+                  caption={item.caption}
+                  tagged={item.tagged_users}
+                  style={styles.captionText}
+                  onPressUser={(u) => onAvatarPress(u.user_id)}
+                  numberOfLines={2}
+                />
+              </LinearGradient>
+            ) : null}
             {/* Medal burst overlay — shown on double-tap */}
             {showMedal && (
               <Animated.View
@@ -347,65 +349,148 @@ function PostItem({
         )}
       </View>
 
-      {item.caption ? (
-        <CaptionText
-          caption={item.caption}
-          tagged={item.tagged_users}
-          style={[styles.caption, { color: text }]}
-          onPressUser={(u) => onAvatarPress(u.user_id)}
-        />
-      ) : null}
-
       {/* ── Action bar ── */}
       <View style={[styles.actionBar, { borderTopColor: border }]}>
         <TouchableOpacity style={styles.actionBtn} onPress={handleLike} activeOpacity={0.7}>
           <LikeIcon size={44} color={text} filled={likedByMe} count={likeCount} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={handleCommentToggle} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.actionBtn} onPress={handleCommentPress} activeOpacity={0.7}>
           <CommentIcon size={22} color={muted} />
           <Text style={[styles.actionCount, { color: muted }]}>{commentCount}</Text>
         </TouchableOpacity>
       </View>
+    </View>
+  );
+}
 
-      {/* ── Inline comments section ── */}
-      {commentsOpen && (
-        <View style={[styles.commentsSection, { borderTopColor: border }]}>
-          {comments && comments.length > 0 && (
+// ─── CommentSheet (bottom-sheet overlay) ────────────────────────────────────
+
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.6;
+
+function CommentSheet({
+  postId,
+  dark,
+  onClose,
+}: {
+  postId: string;
+  dark: boolean;
+  onClose: () => void;
+}) {
+  const text   = dark ? '#E8E8E3' : '#1A1A17';
+  const muted  = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const border = dark ? 'rgba(232,232,227,0.1)'  : 'rgba(26,26,23,0.1)';
+  const sheetBg = dark ? '#252521' : '#F5F5F0';
+
+  const [commentText, setCommentText] = useState('');
+  const currentUser = useUserStore((s) => s.profile);
+  const comments    = useSocialStore((s) => s.comments[postId]);
+  const commentCount = useFeedStore((s) => {
+    const p = s.posts.find((p) => p.id === postId);
+    return p?.comment_count ?? 0;
+  });
+
+  // Slide-up animation
+  const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+
+  useEffect(() => {
+    useSocialStore.getState().loadComments(postId);
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      damping: 22,
+      stiffness: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [postId]);
+
+  const dismiss = useCallback(() => {
+    Animated.timing(slideAnim, {
+      toValue: SHEET_HEIGHT,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => onClose());
+  }, [onClose, slideAnim]);
+
+  const handleSubmitComment = useCallback(() => {
+    const trimmed = commentText.trim();
+    if (!trimmed || !currentUser) return;
+    useSocialStore.getState().addComment(postId, currentUser.id, trimmed, {
+      id:           currentUser.id,
+      username:     currentUser.username,
+      display_name: currentUser.display_name ?? null,
+      avatar_url:   currentUser.avatar_url   ?? null,
+    });
+    setCommentText('');
+    Keyboard.dismiss();
+  }, [commentText, postId, currentUser]);
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      {/* Backdrop */}
+      <TouchableOpacity
+        style={styles.sheetBackdrop}
+        activeOpacity={1}
+        onPress={dismiss}
+      />
+      {/* Sheet */}
+      <Animated.View
+        style={[
+          styles.sheetContainer,
+          {
+            height: SHEET_HEIGHT,
+            backgroundColor: sheetBg,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+      >
+        {/* Handle */}
+        <View style={styles.sheetHandle}>
+          <View style={[styles.sheetHandleBar, { backgroundColor: muted }]} />
+          <Text style={[styles.sheetTitle, { color: text }]}>
+            {commentCount} {commentCount === 1 ? 'COMMENT' : 'COMMENTS'}
+          </Text>
+        </View>
+
+        {/* Comment list */}
+        <View style={{ flex: 1 }}>
+          {comments && comments.length > 0 ? (
             <FlashList
               data={comments}
               keyExtractor={(c) => c.id}
               renderItem={({ item: comment }) => (
                 <CommentRow comment={comment} dark={dark} />
               )}
-              scrollEnabled={false}
-            />
-          )}
 
-          {/* Comment input */}
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          >
-            <View style={[styles.commentInputRow, { borderTopColor: border }]}>
-              <TextInput
-                style={[styles.commentInput, { color: text, borderColor: border }]}
-                placeholder="Add a comment…"
-                placeholderTextColor={muted}
-                value={commentText}
-                onChangeText={setCommentText}
-                returnKeyType="send"
-                onSubmitEditing={handleSubmitComment}
-              />
-              <TouchableOpacity
-                style={[styles.commentSubmit, { backgroundColor: '#59c2d7' }]}
-                onPress={handleSubmitComment}
-                activeOpacity={0.75}
-              >
-                <Text style={styles.commentSubmitText}>SEND</Text>
-              </TouchableOpacity>
+            />
+          ) : (
+            <View style={styles.sheetEmpty}>
+              <Text style={[styles.sheetEmptyText, { color: muted }]}>No comments yet</Text>
             </View>
-          </KeyboardAvoidingView>
+          )}
         </View>
-      )}
+
+        {/* Comment input */}
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={[styles.commentInputRow, { borderTopColor: border }]}>
+            <TextInput
+              style={[styles.commentInput, { color: text, borderColor: border }]}
+              placeholder="Add a comment…"
+              placeholderTextColor={muted}
+              value={commentText}
+              onChangeText={setCommentText}
+              returnKeyType="send"
+              onSubmitEditing={handleSubmitComment}
+              autoFocus
+            />
+            <TouchableOpacity
+              style={[styles.commentSubmit, { backgroundColor: '#59c2d7' }]}
+              onPress={handleSubmitComment}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.commentSubmitText}>SEND</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Animated.View>
     </View>
   );
 }
@@ -426,10 +511,11 @@ export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreen
 
   const { posts, isLoading, error, hasMore, loadMore, refresh } = useFeed();
 
-  // Profile overlay + conversation overlay — lifted to FeedScreen so overlays
-  // cover the full screen (not just the PostItem card)
+  // Profile overlay, conversation overlay, and comment sheet — lifted to
+  // FeedScreen so overlays cover the full screen (not just the PostItem card)
   const [profileUserId, setProfileUserId]   = useState<string | null>(null);
   const [activeConvo,   setActiveConvo]     = useState<ConversationPreview | null>(null);
+  const [commentPostId, setCommentPostId]   = useState<string | null>(null);
   const currentUserId = useAuthStore((s) => s.user?.id);
 
   const handleAvatarPress = useCallback((userId: string) => {
@@ -461,35 +547,24 @@ export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreen
   );
 
   // ── Scroll-driven header hide/show ───────────────────────────────────────
-  const lastScrollY        = useRef(0);
   const localHeaderAnim    = useRef(new Animated.Value(0)).current;
   const headerOffset       = headerAnim ?? localHeaderAnim;
 
   const atTopRef = useRef(true);
 
   const handleScroll = (e: any) => {
-    const y     = e.nativeEvent.contentOffset.y;
-    const delta = y - lastScrollY.current;
-    lastScrollY.current = y;
+    const y = e.nativeEvent.contentOffset.y;
 
     const isAtTop = y <= 2;
     if (isAtTop !== atTopRef.current) {
       atTopRef.current = isAtTop;
-      console.log('[FeedScreen] scroll top change → atTop:', isAtTop, '| y:', y);
       onScrollTopChange?.(isAtTop);
     }
 
-    if (isAtTop) {
-      Animated.timing(headerOffset, { toValue: 0, duration: 150, useNativeDriver: true }).start();
-      return;
-    }
-
-    headerOffset.setValue(
-      Math.min(APP_HEADER_H, Math.max(0, (headerOffset as any)._value + delta)),
-    );
+    // Show header on first card, hide on all others
+    const target = isAtTop ? 0 : APP_HEADER_H;
+    Animated.timing(headerOffset, { toValue: target, duration: 150, useNativeDriver: true }).start();
   };
-
-  const listHeader = <View style={{ height: APP_HEADER_H }} />;
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
@@ -497,17 +572,24 @@ export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreen
         data={posts}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <PostItem item={item} dark={dark} width={screenWidth} onAvatarPress={handleAvatarPress} />
+          <PostItem
+            item={item}
+            dark={dark}
+            width={screenWidth}
+            onAvatarPress={handleAvatarPress}
+            onCommentPress={setCommentPostId}
+          />
         )}
-        contentContainerStyle={styles.list}
-        ListHeaderComponent={listHeader}
+        snapToInterval={CARD_HEIGHT}
+        snapToAlignment="start"
+        decelerationRate="fast"
         onEndReached={hasMore ? loadMore : undefined}
         onEndReachedThreshold={0.4}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         onViewableItemsChanged={handleViewableChange}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
+        viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
         refreshControl={
           <RefreshControl
             refreshing={isLoading && posts.length === 0}
@@ -553,6 +635,15 @@ export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreen
           onBack={() => setActiveConvo(null)}
         />
       ) : null}
+
+      {/* Comment sheet — opened when comment button is tapped */}
+      {commentPostId ? (
+        <CommentSheet
+          postId={commentPostId}
+          dark={dark}
+          onClose={() => setCommentPostId(null)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -561,12 +652,8 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  list: {
-    paddingBottom: 32,
-  },
   card: {
     borderRadius: 0,
-    borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
   },
   postOverlay: {
@@ -650,10 +737,23 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
   },
-  caption: {
-    padding: 12,
+  // ── Caption overlay (on image)
+  captionOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 12,
+    paddingTop: 40,
+    paddingBottom: 14,
+  },
+  captionText: {
     fontSize: 13,
     fontFamily: 'JosefinSans_400Regular_Italic',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   // ── Action bar
   actionBar: {
@@ -673,10 +773,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'JosefinSans_600SemiBold',
   },
-  // ── Comments section
-  commentsSection: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
+  // ── Comment rows (shared by CommentSheet)
   commentRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -739,6 +836,45 @@ const styles = StyleSheet.create({
     fontFamily: 'JosefinSans_600SemiBold',
     letterSpacing: 2,
     color: '#FFFFFF',
+  },
+  // ── Comment sheet (bottom-sheet overlay)
+  sheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  sheetContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: 'hidden',
+  },
+  sheetHandle: {
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 12,
+    gap: 8,
+  },
+  sheetHandleBar: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+  },
+  sheetTitle: {
+    fontSize: 12,
+    fontFamily: 'JosefinSans_600SemiBold',
+    letterSpacing: 2,
+  },
+  sheetEmpty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetEmptyText: {
+    fontSize: 13,
+    fontFamily: 'JosefinSans_400Regular_Italic',
   },
   // ── Empty / error
   empty: {
