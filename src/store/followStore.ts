@@ -4,11 +4,16 @@ import {
   unfollowUser  as apiUnfollow,
   getFollowData as apiGetFollowData,
 } from '@/api';
+import { supabase } from '@/lib/supabase';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface FollowCounts {
   follower_count:  number;
   following_count: number;
 }
+
+/** Callback invoked when the follows table changes for a subscribed user. */
+type FollowChangeListener = () => void;
 
 interface FollowState {
   /** Whether the current user follows userId. Keyed by target userId. */
@@ -20,8 +25,15 @@ interface FollowState {
   loadFollowData: (currentUserId: string, targetUserId: string) => Promise<void>;
   /** Optimistic toggle follow with rollback. Returns error for caller logging. */
   toggleFollow:   (currentUserId: string, targetUserId: string) => Promise<{ error: Error | null }>;
+
+  /** Subscribe to realtime follow changes for a user. Returns unsubscribe fn. */
+  subscribeToFollows: (userId: string, currentUserId: string, onChange?: FollowChangeListener) => () => void;
+
   reset: () => void;
 }
+
+/** Active realtime channels keyed by userId. */
+const followChannels = new Map<string, { channel: RealtimeChannel; refCount: number }>();
 
 export const useFollowStore = create<FollowState>((set, get) => ({
   followingByMe: {},
@@ -97,5 +109,60 @@ export const useFollowStore = create<FollowState>((set, get) => ({
     return { error: null };
   },
 
-  reset: () => set({ followingByMe: {}, counts: {} }),
+  subscribeToFollows: (userId, currentUserId, onChange) => {
+    const key = `follows:${userId}`;
+    const existing = followChannels.get(key);
+    if (existing) {
+      existing.refCount++;
+      return () => {
+        existing.refCount--;
+        if (existing.refCount <= 0) {
+          supabase.removeChannel(existing.channel);
+          followChannels.delete(key);
+        }
+      };
+    }
+
+    const handler = () => {
+      // Re-fetch counts from server
+      get().loadFollowData(currentUserId, userId);
+      // Notify listener (e.g. FollowListModal re-fetches its list)
+      onChange?.();
+    };
+
+    const channel = supabase
+      .channel(key)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'follows', filter: `following_id=eq.${userId}` },
+        handler,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'follows', filter: `follower_id=eq.${userId}` },
+        handler,
+      )
+      .subscribe();
+
+    followChannels.set(key, { channel, refCount: 1 });
+
+    return () => {
+      const entry = followChannels.get(key);
+      if (!entry) return;
+      entry.refCount--;
+      if (entry.refCount <= 0) {
+        supabase.removeChannel(entry.channel);
+        followChannels.delete(key);
+      }
+    };
+  },
+
+  reset: () => {
+    // Tear down all follow channels
+    for (const [key, { channel }] of followChannels) {
+      supabase.removeChannel(channel);
+    }
+    followChannels.clear();
+    set({ followingByMe: {}, counts: {} });
+  },
 }));

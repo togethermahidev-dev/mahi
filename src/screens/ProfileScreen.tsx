@@ -27,13 +27,16 @@ export default function ProfileScreen(): React.JSX.Element {
   const setProfile = useUserStore((s) => s.setProfile);
   const userId     = useAuthStore((s) => s.user?.id);
 
-  const followerCount  = useFollowStore((s) => s.counts[userId ?? '']?.follower_count ?? 0);
-  const followingCount = useFollowStore((s) => s.counts[userId ?? '']?.following_count ?? 0);
-  const loadFollowData = useFollowStore((s) => s.loadFollowData);
+  const followerCount      = useFollowStore((s) => s.counts[userId ?? '']?.follower_count ?? 0);
+  const followingCount     = useFollowStore((s) => s.counts[userId ?? '']?.following_count ?? 0);
+  const loadFollowData     = useFollowStore((s) => s.loadFollowData);
+  const subscribeToFollows = useFollowStore((s) => s.subscribeToFollows);
 
   useEffect(() => {
-    if (userId) loadFollowData(userId, userId);
-  }, [userId, loadFollowData]);
+    if (!userId) return;
+    loadFollowData(userId, userId);
+    return subscribeToFollows(userId, userId);
+  }, [userId, loadFollowData, subscribeToFollows]);
 
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
 

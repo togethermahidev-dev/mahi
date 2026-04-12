@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { getFollowList, type FollowListUser, type ConversationPreview } from '@/api';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useFollowStore } from '@/store';
 import UserProfileOverlay from '@/components/UserProfileOverlay';
 import ConversationScreen from '@/screens/ConversationScreen';
 
@@ -30,7 +30,9 @@ export default function FollowListModal({
   type,
   dark,
 }: FollowListModalProps): React.JSX.Element {
-  const currentUserId = useAuthStore((s) => s.user?.id);
+  const currentUserId       = useAuthStore((s) => s.user?.id);
+  const toggleFollow        = useFollowStore((s) => s.toggleFollow);
+  const subscribeToFollows  = useFollowStore((s) => s.subscribeToFollows);
 
   const bg       = dark ? '#1C1C19' : '#FFFFFF';
   const text     = dark ? '#E8E8E3' : '#1A1A17';
@@ -43,6 +45,13 @@ export default function FollowListModal({
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [activeConvo, setActiveConvo]   = useState<ConversationPreview | null>(null);
 
+  const fetchList = useCallback(async () => {
+    const { data } = await getFollowList(userId, type);
+    setUsers(data ?? []);
+    setLoading(false);
+  }, [userId, type]);
+
+  // Fetch list + subscribe to realtime changes
   useEffect(() => {
     if (!visible) {
       setUsers([]);
@@ -51,20 +60,31 @@ export default function FollowListModal({
       setActiveConvo(null);
       return;
     }
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      const { data } = await getFollowList(userId, type);
-      if (!cancelled) {
-        setUsers(data ?? []);
-        setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [visible, userId, type]);
+    if (!currentUserId) return;
+
+    setLoading(true);
+    fetchList();
+
+    const unsubscribe = subscribeToFollows(userId, currentUserId, fetchList);
+    return unsubscribe;
+  }, [visible, userId, type, currentUserId, fetchList, subscribeToFollows]);
+
+  const handleUnfollow = useCallback(async (targetUserId: string) => {
+    if (!currentUserId) return;
+    // Optimistic removal from list
+    setUsers((prev) => prev.filter((u) => u.id !== targetUserId));
+    const { error } = await toggleFollow(currentUserId, targetUserId);
+    if (error) {
+      // Rollback — re-fetch the list
+      fetchList();
+    }
+  }, [currentUserId, toggleFollow, fetchList]);
 
   const title = type === 'followers' ? 'FOLLOWERS' : 'FOLLOWING';
   const emptyMessage = type === 'followers' ? 'No followers yet' : 'Not following anyone yet';
+
+  // Show unfollow button only on the current user's own "following" list
+  const showUnfollow = type === 'following' && userId === currentUserId;
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
@@ -96,7 +116,6 @@ export default function FollowListModal({
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
-            estimatedItemSize={68}
             ItemSeparatorComponent={() => (
               <View style={[styles.separator, { backgroundColor: border }]} />
             )}
@@ -126,6 +145,15 @@ export default function FollowListModal({
                       <Text style={[styles.handle, { color: muted }]}>@{item.username}</Text>
                     ) : null}
                   </View>
+                  {showUnfollow ? (
+                    <TouchableOpacity
+                      style={[styles.unfollowBtn, { borderColor: text }]}
+                      activeOpacity={0.75}
+                      onPress={() => handleUnfollow(item.id)}
+                    >
+                      <Text style={[styles.unfollowBtnText, { color: text }]}>FOLLOWING</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </TouchableOpacity>
               );
             }}
@@ -205,7 +233,6 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 20,
     paddingVertical:   12,
-    flexGrow:          1,
   },
   row: {
     flexDirection: 'row',
@@ -238,6 +265,17 @@ const styles = StyleSheet.create({
   handle: {
     fontFamily: 'JosefinSans_400Regular_Italic',
     fontSize:   13,
+  },
+  unfollowBtn: {
+    borderWidth:       1,
+    borderRadius:      50,
+    paddingHorizontal: 14,
+    paddingVertical:   6,
+  },
+  unfollowBtnText: {
+    fontSize:      10,
+    fontFamily:    'JosefinSans_700Bold',
+    letterSpacing: 2,
   },
   separator: {
     height: 1,
