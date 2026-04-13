@@ -368,7 +368,7 @@ function PostItem({
             <HeartIcon size={44} color="#FFFFFF" filled={likedByMe} />
             <Text style={styles.sideActionCount}>{likeCount}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.sideActionBtn} onPress={handleCommentPress} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.sideActionBtn} onPress={handleCommentPress} activeOpacity={0.7} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <CommentIcon size={42} color="#FFFFFF" />
             <Text style={styles.sideActionCount}>{commentCount}</Text>
           </TouchableOpacity>
