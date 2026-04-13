@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import ReanimatedView, {
+import Reanimated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
@@ -18,7 +18,6 @@ import ReanimatedView, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { useAppTheme } from '@/hooks/useAppTheme';
 import CaptionText from '@/components/CaptionText';
 import type { Database } from '@/types';
 
@@ -35,10 +34,6 @@ interface PostDetailModalProps {
 }
 
 export default function PostDetailModal({ post, onClose }: PostDetailModalProps): React.JSX.Element {
-  const { dark } = useAppTheme();
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -166,13 +161,13 @@ export default function PostDetailModal({ post, onClose }: PostDetailModalProps)
       {/* Draggable PiP */}
       {hasDual && pipUrl && (
         <GestureDetector gesture={pipGesture}>
-          <ReanimatedView style={[styles.pip, pipAnimStyle]}>
+          <Reanimated.View style={[styles.pip, pipAnimStyle]}>
             <Image
               source={{ uri: pipUrl }}
               style={[StyleSheet.absoluteFillObject, { borderRadius: 10 }]}
               resizeMode="cover"
             />
-          </ReanimatedView>
+          </Reanimated.View>
         </GestureDetector>
       )}
     </Animated.View>
