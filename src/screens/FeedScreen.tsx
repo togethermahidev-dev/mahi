@@ -22,7 +22,7 @@ import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeed } from '@/hooks/useFeed';
 import { useFeedStore, useSocialStore, useUserStore, useAuthStore } from '@/store';
-import { LikeIcon, CommentIcon } from '@/components/ScreenIcons';
+import { LikeIcon, HeartIcon, CommentIcon } from '@/components/ScreenIcons';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import CaptionText from '@/components/CaptionText';
@@ -125,10 +125,9 @@ function PostItem({
   const pipUrl     = hasDual && !rearIsPrimary ? item.image_url : item.pov_image_url;
 
   // ── Draggable PIP (FaceTime-style) ──────────────────────────────────────
-  const ACTION_BAR_H = 60; // paddingVertical:8 * 2 + icon ~44
-  const containerH = CARD_HEIGHT - ACTION_BAR_H;
+  const containerH = CARD_HEIGHT;
   const initialPipX = 12;
-  const initialPipY = containerH - FEED_PIP_H - 12;
+  const initialPipY = APP_HEADER_H + 8;
   const pipTransX = useSharedValue(initialPipX);
   const pipTransY = useSharedValue(initialPipY);
   const pipStartX = useSharedValue(initialPipX);
@@ -267,10 +266,20 @@ function PostItem({
               style={StyleSheet.absoluteFill}
               resizeMode="cover"
             />
-            {/* Top gradient + post metadata */}
+            {/* Top gradient — streak badge only */}
             <LinearGradient
               colors={['rgba(0,0,0,0.6)', 'transparent']}
               style={styles.postOverlay}
+            >
+              <View style={styles.streakBadge}>
+                <Text style={styles.streakText}>DAY {item.streak_day}</Text>
+              </View>
+            </LinearGradient>
+            {/* Bottom gradient — profile row + caption */}
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.7)']}
+              style={styles.captionOverlay}
+              pointerEvents="box-none"
             >
               <TouchableOpacity
                 style={styles.avatarRow}
@@ -289,17 +298,7 @@ function PostItem({
                   <Text style={styles.timeOverlay}>{relativeTime(item.created_at)}</Text>
                 </View>
               </TouchableOpacity>
-              <View style={styles.streakBadge}>
-                <Text style={styles.streakText}>DAY {item.streak_day}</Text>
-              </View>
-            </LinearGradient>
-            {/* Bottom gradient + caption overlay */}
-            {item.caption ? (
-              <LinearGradient
-                colors={['transparent', 'rgba(0,0,0,0.7)']}
-                style={styles.captionOverlay}
-                pointerEvents="box-none"
-              >
+              {item.caption ? (
                 <CaptionText
                   caption={item.caption}
                   tagged={item.tagged_users}
@@ -307,9 +306,9 @@ function PostItem({
                   onPressUser={(u) => onAvatarPress(u.user_id)}
                   numberOfLines={2}
                 />
-              </LinearGradient>
-            ) : null}
-            {/* Medal burst overlay — shown on double-tap */}
+              ) : null}
+            </LinearGradient>
+            {/* Heart burst overlay — shown on double-tap */}
             {showMedal && (
               <Animated.View
                 pointerEvents="none"
@@ -323,7 +322,7 @@ function PostItem({
                   },
                 ]}
               >
-                <LikeIcon size={80} color="#FFFFFF" filled count={likeCount} />
+                <HeartIcon size={80} color="#FFFFFF" filled />
               </Animated.View>
             )}
           </View>
@@ -346,17 +345,18 @@ function PostItem({
             </Reanimated.View>
           </GestureDetector>
         )}
-      </View>
 
-      {/* ── Action bar ── */}
-      <View style={[styles.actionBar, { borderTopColor: border }]}>
-        <TouchableOpacity style={styles.actionBtn} onPress={handleLike} activeOpacity={0.7}>
-          <LikeIcon size={44} color={text} filled={likedByMe} count={likeCount} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={handleCommentPress} activeOpacity={0.7}>
-          <CommentIcon size={22} color={muted} />
-          <Text style={[styles.actionCount, { color: muted }]}>{commentCount}</Text>
-        </TouchableOpacity>
+        {/* ── Right-side action column (Reels / TikTok style) ── */}
+        <View style={styles.sideActions} pointerEvents="box-none">
+          <TouchableOpacity style={styles.sideActionBtn} onPress={handleLike} activeOpacity={0.7}>
+            <HeartIcon size={28} color="#FFFFFF" filled={likedByMe} />
+            <Text style={styles.sideActionCount}>{likeCount}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.sideActionBtn} onPress={handleCommentPress} activeOpacity={0.7}>
+            <CommentIcon size={26} color="#FFFFFF" />
+            <Text style={styles.sideActionCount}>{commentCount}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -657,8 +657,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-end',
     paddingHorizontal: 12,
     paddingTop: APP_HEADER_H + 4,
     paddingBottom: 32,
@@ -741,6 +741,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 40,
     paddingBottom: 14,
+    gap: 8,
   },
   captionText: {
     fontSize: 13,
@@ -750,23 +751,25 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
-  // ── Action bar
-  actionBar: {
-    flexDirection: 'row',
+  // ── Right-side action column (Reels / TikTok style)
+  sideActions: {
+    position: 'absolute',
+    right: 12,
+    bottom: 100,
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
     gap: 20,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  actionBtn: {
-    flexDirection: 'row',
+  sideActionBtn: {
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
-  actionCount: {
-    fontSize: 13,
+  sideActionCount: {
+    fontSize: 12,
     fontFamily: 'JosefinSans_600SemiBold',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   // ── Comment rows (shared by CommentSheet)
   commentRow: {

@@ -262,6 +262,30 @@ export function NotificationsIcon({ size, color }: IconProps) {
   );
 }
 
+/**
+ * HeartIcon — simple heart for like button (IG Reels / TikTok style).
+ * Filled red when liked, outline when not.
+ */
+export function HeartIcon({
+  size,
+  color,
+  filled = false,
+}: IconProps & { filled?: boolean }) {
+  const heart = "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z";
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d={heart}
+        fill={filled ? '#E05A5A' : 'transparent'}
+        stroke={filled ? '#E05A5A' : color}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 export function MessagesIcon({ size, color }: IconProps) {
   const bubble = "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z";
   return (
