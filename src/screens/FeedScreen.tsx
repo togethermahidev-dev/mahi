@@ -143,7 +143,7 @@ function PostItem({
   const PIP_SAFE_RIGHT  = width - FEED_PIP_W - 70;
 
   const initialPipX = PIP_SAFE_LEFT;
-  const initialPipY = PIP_SAFE_TOP;
+  const initialPipY = PIP_SAFE_BOTTOM;
   const pipTransX = useSharedValue(initialPipX);
   const pipTransY = useSharedValue(initialPipY);
   const pipStartX = useSharedValue(initialPipX);
