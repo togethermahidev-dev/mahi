@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useProfilePostsStore } from '@/store';
 
 export function useProfilePosts(userId: string) {
@@ -6,15 +6,8 @@ export function useProfilePosts(userId: string) {
   const hasMore   = useProfilePostsStore((s) => s.hasMore);
   const isSyncing = useProfilePostsStore((s) => s.isSyncing);
 
-  // useRef guard prevents double-sync if the component re-mounts or two
-  // instances mount simultaneously (store's isSyncing check is a secondary guard).
-  const initialized = useRef(false);
-
   useEffect(() => {
-    if (!initialized.current) {
-      initialized.current = true;
-      useProfilePostsStore.getState().sync(userId);
-    }
+    useProfilePostsStore.getState().sync(userId);
   }, [userId]);
 
   return {
