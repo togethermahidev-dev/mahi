@@ -128,14 +128,19 @@ function PostItem({
   const containerH = CARD_HEIGHT;
 
   // Safe zone: keep PiP clear of all overlay UI elements.
-  // Top:    app header + tagged pills area (~3 rows × 32px + gaps + padding)
-  // Bottom: caption overlay (avatar row ~42 + caption ~40 + paddingBottom 80)
-  // Right:  side action column (icons 44px + count + padding ≈ 70px)
+  // These values define where the PiP's TOP-LEFT corner can be placed.
+  //
+  // Top:    app header (108) + tagged pills (~3×32 + gaps) + buffer
+  // Bottom: from the bottom up — paddingBottom(80) + avatar(42) + gap(10)
+  //         + caption(~40) + buffer(16) = ~188px of content, so PiP top
+  //         must be at most containerH - 188 - FEED_PIP_H
+  // Right:  side action column sits at right:12, icons ~44px wide + padding
   // Left:   small margin
-  const PIP_SAFE_TOP    = APP_HEADER_H + 120;   // below header + tagged pills
-  const PIP_SAFE_BOTTOM = containerH - 200;      // above avatar row + caption
+  const BOTTOM_CONTENT_H = 200; // avatar + caption + paddingBottom + buffer
+  const PIP_SAFE_TOP    = APP_HEADER_H + 120;
+  const PIP_SAFE_BOTTOM = containerH - BOTTOM_CONTENT_H - FEED_PIP_H;
   const PIP_SAFE_LEFT   = 8;
-  const PIP_SAFE_RIGHT  = width - FEED_PIP_W - 70; // left of side action buttons
+  const PIP_SAFE_RIGHT  = width - FEED_PIP_W - 70;
 
   const initialPipX = PIP_SAFE_LEFT;
   const initialPipY = PIP_SAFE_TOP;
