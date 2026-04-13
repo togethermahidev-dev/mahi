@@ -53,7 +53,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
       // Claim horizontal swipes; vertical swipes pass to VerticalNavigator inside.
       // When a fullscreen overlay (profile, search, notifs) is open, don't claim.
       onMoveShouldSetPanResponder: (_e, { dx, dy }) =>
-        !overlayRef.current && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10,
+        !overlayRef.current && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 20,
 
       onPanResponderGrant: () => {
         hTapeAnim.stopAnimation();

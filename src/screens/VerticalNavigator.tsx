@@ -117,7 +117,7 @@ export default function VerticalNavigator({
       // On the feed screen (index 1), only claim a downward swipe (back to camera)
       // when the feed scroll is at the top — otherwise let the FlashList scroll.
       onMoveShouldSetPanResponder: (_e, { dx, dy }) => {
-        if (Math.abs(dy) <= Math.abs(dx) || Math.abs(dy) <= 10) return false;
+        if (Math.abs(dy) <= Math.abs(dx) || Math.abs(dy) <= 20) return false;
         if (activeIndexRef.current === 1 && dy > 0 && !feedScrollAtTop.current) return false;
         return true;
       },

@@ -769,6 +769,7 @@ export default function CameraScreen(): React.JSX.Element {
   const [facing,       setFacing]       = useState<'back' | 'front'>('back');
   const [captureState, setCaptureState] = useState<CaptureState>('idle');
   const [isUploading,  setIsUploading]  = useState(false);
+  const uploadingRef = useRef(false);
   const [frontPhoto,   setFrontPhoto]   = useState<CapturedPhoto | null>(null);
   const [rearPhoto,    setRearPhoto]    = useState<CapturedPhoto | null>(null);
   const [caption,      setCaption]      = useState<string>('');
@@ -889,6 +890,8 @@ export default function CameraScreen(): React.JSX.Element {
   // Upload both photos, create post
   const uploadPhotos = async (front: CapturedPhoto, rear: CapturedPhoto) => {
     if (!userId || !profile) return;
+    if (uploadingRef.current) return;
+    uploadingRef.current = true;
     setIsUploading(true);
 
     const tempId              = `pending_${Date.now()}`;
@@ -1011,6 +1014,8 @@ export default function CameraScreen(): React.JSX.Element {
       // Clean up any orphaned storage objects
       const toRemove = [rearStoragePath, frontStoragePath].filter(Boolean) as string[];
       if (toRemove.length) supabase.storage.from('posts').remove(toRemove).catch(() => {});
+    } finally {
+      uploadingRef.current = false;
     }
   };
 
