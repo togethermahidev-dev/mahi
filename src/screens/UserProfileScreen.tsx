@@ -60,14 +60,19 @@ export default function UserProfileScreen({
   // A horizontal swipe dismisses the profile instead of navigating underneath.
   const gestureBlocker = useRef(
     PanResponder.create({
+      // Claim touch on start to block HorizontalNavigator behind this screen.
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      // Only escalate to a move-claim for clear horizontal swipes (dismiss gesture).
+      // The old () => true was stealing sloppy taps from child buttons.
+      onMoveShouldSetPanResponder: (_e, { dx, dy }) =>
+        Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 20,
       onPanResponderRelease: (_e, { dx, vx }) => {
         if (Math.abs(dx) > 60 || Math.abs(vx) > 0.4) {
           onBackRef.current();
         }
       },
-      onPanResponderTerminationRequest: () => false,
+      // Allow child TouchableOpacity elements to reclaim the touch.
+      onPanResponderTerminationRequest: () => true,
     }),
   ).current;
 

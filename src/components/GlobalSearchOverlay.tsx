@@ -86,14 +86,15 @@ export default function GlobalSearchOverlay({
   const dismissPan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_e, { dy }) => Math.abs(dy) > 10,
+      onMoveShouldSetPanResponder: (_e, { dy }) => Math.abs(dy) > 20,
       onPanResponderRelease: (_e, { dy, vy }) => {
         if (dy < -60 || vy < -0.4) {
           Keyboard.dismiss();
           onClose();
         }
       },
-      onPanResponderTerminationRequest: () => false,
+      // Allow child elements (search bar, result rows, cancel) to reclaim touches.
+      onPanResponderTerminationRequest: () => true,
     }),
   ).current;
 
