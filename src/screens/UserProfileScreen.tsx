@@ -17,6 +17,7 @@ import { Sentry } from '@/lib/sentry';
 import StreakGridPanel from '@/components/StreakGridPanel';
 import FollowListModal from '@/components/FollowListModal';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
+import PostDetailModal from '@/components/PostDetailModal';
 import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview } from '@/api';
 import type { Database } from '@/types';
@@ -84,6 +85,7 @@ export default function UserProfileScreen({
   const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
   const [reporting, setReporting] = useState(false);
   const [activeConvo, setActiveConvo] = useState<ConversationPreview | null>(null);
+  const [selectedPost, setSelectedPost] = useState<Database['public']['Tables']['posts']['Row'] | null>(null);
 
   useEffect(() => {
     if (currentUserId) loadFollowData(currentUserId, userId);
@@ -417,7 +419,7 @@ export default function UserProfileScreen({
           {/* Media grid */}
           {profile ? (
             <View style={[styles.mapShadow, { shadowColor: dark ? '#000' : '#1A1A17' }]}>
-              <ProfileMediaMap userId={profile.id} isSelf={false} />
+              <ProfileMediaMap userId={profile.id} isSelf={false} onPostPress={setSelectedPost} />
             </View>
           ) : null}
         </>
@@ -453,6 +455,11 @@ export default function UserProfileScreen({
           currentUserId={currentUserId}
           onBack={() => setActiveConvo(null)}
         />
+      ) : null}
+
+      {/* Post detail — opened when a grid cell is tapped */}
+      {selectedPost ? (
+        <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />
       ) : null}
     </View>
   );
