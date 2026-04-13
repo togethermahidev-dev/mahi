@@ -790,6 +790,15 @@ export default function CameraScreen(): React.JSX.Element {
     return !routine.split(',').includes(dayName);
   })();
 
+  const doubleTapToFlip = Gesture.Tap()
+    .numberOfTaps(2)
+    .runOnJS(true)
+    .onEnd(() => {
+      if (captureState !== 'idle') return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setFacing(f => f === 'back' ? 'front' : 'back');
+    });
+
   useEffect(() => {
     if (cameraPermission && !cameraPermission.granted && cameraPermission.canAskAgain) {
       requestCameraPermission();
@@ -1070,6 +1079,7 @@ export default function CameraScreen(): React.JSX.Element {
     captureState === 'capturing-second' ? 'CAPTURING...' : null;
 
   return (
+    <GestureDetector gesture={doubleTapToFlip}>
     <View style={styles.root}>
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
 
@@ -1134,6 +1144,7 @@ export default function CameraScreen(): React.JSX.Element {
         onTaggedUsersChange={setTaggedUsers}
       />
     </View>
+    </GestureDetector>
   );
 }
 
