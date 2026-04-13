@@ -638,7 +638,9 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
               </View>
 
               <Text style={[styles.label, { color: muted }]}>Training days</Text>
-              <Text style={[styles.subtitle, { color: muted }]}>Which days do you train?</Text>
+              <Text style={[styles.subtitle, { color: muted }]}>
+                Which days do you train?{'\n'}You can always change this later in your profile.
+              </Text>
               <View style={styles.daysRow}>
                 {DAYS.map(({ label, full }) => {
                   const selected = fitnessRoutine.includes(full);

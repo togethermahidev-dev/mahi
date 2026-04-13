@@ -13,6 +13,7 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Keyboard,
+  PanResponder,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { searchProfiles, type ProfileSearchResult } from '@/api';
@@ -80,6 +81,22 @@ export default function GlobalSearchOverlay({
   const currentUserId = useAuthStore((s) => s.user?.id);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Swipe-up anywhere on the overlay dismisses it (and blocks the gesture
+  // from leaking through to the VerticalNavigator behind it).
+  const dismissPan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_e, { dy }) => Math.abs(dy) > 10,
+      onPanResponderRelease: (_e, { dy, vy }) => {
+        if (dy < -60 || vy < -0.4) {
+          Keyboard.dismiss();
+          onClose();
+        }
+      },
+      onPanResponderTerminationRequest: () => false,
+    }),
+  ).current;
+
   useEffect(() => {
     if (visible) {
       console.log('[GlobalSearch] opened');
@@ -142,8 +159,7 @@ export default function GlobalSearchOverlay({
   return (
     <Animated.View
       style={[styles.root, { opacity: fadeAnim }]}
-      onStartShouldSetResponder={() => true}
-      onMoveShouldSetResponder={() => true}
+      {...dismissPan.panHandlers}
     >
       {/* Full-screen frosted glass background */}
       <BlurView
