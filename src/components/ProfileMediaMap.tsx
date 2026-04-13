@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Dimensions,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -43,13 +44,13 @@ function CameraIcon({ color }: { color: string }) {
   );
 }
 
-function GridCell({ post, dark }: { post: PostRow; dark: boolean }) {
+function GridCell({ post, dark, onPress }: { post: PostRow; dark: boolean; onPress: () => void }) {
   const [imgError, setImgError] = useState(false);
   const badgeBg   = dark ? 'rgba(26,26,23,0.75)' : 'rgba(232,232,227,0.75)';
   const badgeText = dark ? '#E8E8E3' : '#1A1A17';
 
   return (
-    <View style={styles.cell}>
+    <TouchableOpacity style={styles.cell} onPress={onPress} activeOpacity={0.8}>
       <Image
         source={imgError || !post.image_url ? PLACEHOLDER_IMG : { uri: post.image_url }}
         style={styles.cellImage}
@@ -59,23 +60,23 @@ function GridCell({ post, dark }: { post: PostRow; dark: boolean }) {
       <View style={[styles.badge, { backgroundColor: badgeBg }]}>
         <Text style={[styles.badgeText, { color: badgeText }]}>DAY {post.streak_day}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 interface ProfileMediaMapProps {
   userId: string;
   isSelf: boolean;
+  onPostPress?: (post: PostRow) => void;
 }
 
-export default function ProfileMediaMap({ userId, isSelf }: ProfileMediaMapProps): React.JSX.Element {
+export default function ProfileMediaMap({ userId, isSelf, onPostPress }: ProfileMediaMapProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const bg   = dark ? '#1C1C19' : '#FFFFFF';
   const text = dark ? '#E8E8E3' : '#1A1A17';
   const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
 
-  const { posts: allPosts, isLoading } = useProfilePosts(userId);
-  const posts = allPosts.slice(0, 6);
+  const { posts, isLoading, hasMore, loadMore } = useProfilePosts(userId);
 
   if (isLoading) {
     return (
@@ -109,9 +110,12 @@ export default function ProfileMediaMap({ userId, isSelf }: ProfileMediaMapProps
       style={{ backgroundColor: bg }}
       contentContainerStyle={styles.grid}
       columnWrapperStyle={styles.row}
-      renderItem={({ item }) => <GridCell post={item} dark={dark} />}
-      scrollEnabled={false}
+      renderItem={({ item }) => (
+        <GridCell post={item} dark={dark} onPress={() => onPostPress?.(item)} />
+      )}
       showsVerticalScrollIndicator={false}
+      onEndReached={hasMore ? loadMore : undefined}
+      onEndReachedThreshold={0.4}
     />
   );
 }

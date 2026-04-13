@@ -4,12 +4,16 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAuthStore, useUserStore, useFollowStore } from '@/store';
 import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
+import PostDetailModal from '@/components/PostDetailModal';
 import SettingsPanel from '@/components/SettingsPanel';
 import { SettingsIcon } from '@/components/ScreenIcons';
 import AvatarPicker from '@/components/AvatarPicker';
 import TrainingDaysScreen from '@/components/TrainingDaysScreen';
 import StreakGridPanel from '@/components/StreakGridPanel';
 import FollowListModal from '@/components/FollowListModal';
+import type { Database } from '@/types';
+
+type PostRow = Database['public']['Tables']['posts']['Row'];
 
 export default function ProfileScreen(): React.JSX.Element {
   const { dark } = useAppTheme();
@@ -18,6 +22,7 @@ export default function ProfileScreen(): React.JSX.Element {
   const [streakGridOpen, setStreakGridOpen] = useState(false);
   const [followListOpen, setFollowListOpen] = useState(false);
   const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
+  const [selectedPost, setSelectedPost] = useState<PostRow | null>(null);
   const bg      = dark ? '#1C1C19' : '#FFFFFF';
   const text    = dark ? '#E8E8E3' : '#1A1A17';
   const muted   = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
@@ -135,7 +140,7 @@ export default function ProfileScreen(): React.JSX.Element {
       {/* Personal streak photo grid */}
       {profile && userId ? (
         <View style={[styles.mapShadow, { shadowColor: dark ? '#000' : '#1A1A17' }]}>
-          <ProfileMediaMap userId={profile.id} isSelf={userId === profile.id} />
+          <ProfileMediaMap userId={profile.id} isSelf={userId === profile.id} onPostPress={setSelectedPost} />
         </View>
       ) : null}
 
@@ -173,6 +178,11 @@ export default function ProfileScreen(): React.JSX.Element {
         type={followListType}
         dark={dark}
       />
+
+      {/* Post detail — opened when a grid cell is tapped */}
+      {selectedPost ? (
+        <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />
+      ) : null}
     </View>
   );
 }
