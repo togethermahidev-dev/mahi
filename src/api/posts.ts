@@ -115,7 +115,7 @@ export async function getUserPosts(
 ): Promise<{ data: PostRow[] | null; error: Error | null }> {
   let query = supabase
     .from('posts')
-    .select('id, user_id, image_url, streak_day, created_at')
+    .select('id, user_id, image_url, pov_image_url, caption, streak_day, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
