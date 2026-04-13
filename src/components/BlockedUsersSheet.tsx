@@ -200,6 +200,7 @@ export default function BlockedUsersSheet({
       {/* Full-screen profile — opened when avatar/name is tapped */}
       {profileUserId ? (
         <UserProfileScreen
+          key={profileUserId}
           userId={profileUserId}
           onBack={() => setProfileUserId(null)}
           dark={dark}

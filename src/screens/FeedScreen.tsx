@@ -615,6 +615,7 @@ export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreen
       {/* Full-screen profile — shown when another user's avatar is tapped */}
       {profileUserId ? (
         <UserProfileScreen
+          key={profileUserId}
           userId={profileUserId}
           onBack={() => setProfileUserId(null)}
           dark={dark}

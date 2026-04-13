@@ -279,6 +279,7 @@ export default function VerticalNavigator({
       {/* Full-screen profile — opened from notifications */}
       {profileUserId ? (
         <UserProfileScreen
+          key={profileUserId}
           userId={profileUserId}
           onBack={() => setProfileUserId(null)}
           dark={dark}

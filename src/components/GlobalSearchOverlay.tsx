@@ -277,6 +277,7 @@ export default function GlobalSearchOverlay({
       {/* Full-screen profile — shown when a search result is tapped */}
       {profileUserId ? (
         <UserProfileScreen
+          key={profileUserId}
           userId={profileUserId}
           onBack={() => setProfileUserId(null)}
           dark={dark}

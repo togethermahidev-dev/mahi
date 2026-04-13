@@ -171,6 +171,7 @@ export default function FollowListModal({
       {/* Full-screen profile — shown when a row is tapped */}
       {profileUserId ? (
         <UserProfileScreen
+          key={profileUserId}
           userId={profileUserId}
           onBack={() => setProfileUserId(null)}
           dark={dark}

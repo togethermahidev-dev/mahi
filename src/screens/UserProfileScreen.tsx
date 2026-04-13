@@ -51,6 +51,11 @@ export default function UserProfileScreen({
   const blockAction   = useBlockStore((s) => s.block);
   const unblockAction = useBlockStore((s) => s.unblock);
 
+  // Keep a stable ref to onBack so the PanResponder closure always calls the
+  // latest callback even if the parent re-renders with a new function identity.
+  const onBackRef = useRef(onBack);
+  onBackRef.current = onBack;
+
   // Block all gestures from leaking to HorizontalNavigator behind this screen.
   // A horizontal swipe dismisses the profile instead of navigating underneath.
   const gestureBlocker = useRef(
@@ -59,7 +64,7 @@ export default function UserProfileScreen({
       onMoveShouldSetPanResponder: () => true,
       onPanResponderRelease: (_e, { dx, vx }) => {
         if (Math.abs(dx) > 60 || Math.abs(vx) > 0.4) {
-          onBack();
+          onBackRef.current();
         }
       },
       onPanResponderTerminationRequest: () => false,
