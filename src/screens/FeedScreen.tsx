@@ -266,11 +266,17 @@ function PostItem({
               style={StyleSheet.absoluteFill}
               resizeMode="cover"
             />
-            {/* Top gradient — streak badge only */}
+            {/* Top gradient — tagged pills + streak badge inline */}
             <LinearGradient
               colors={['rgba(0,0,0,0.6)', 'transparent']}
               style={styles.postOverlay}
+              pointerEvents="box-none"
             >
+              <TaggedBubbleStack
+                users={item.tagged_users}
+                onPressUser={(u) => onAvatarPress(u.user_id)}
+                style={styles.topTaggedPills}
+              />
               <View style={styles.streakBadge}>
                 <Text style={styles.streakText}>DAY {item.streak_day}</Text>
               </View>
@@ -327,12 +333,7 @@ function PostItem({
             )}
           </View>
         </GestureDetector>
-        {/* Tagged user bubbles — overlay on photo, bottom-left auto-stack.
-            Rendered BEFORE the PIP so the draggable PIP paints on top. */}
-        <TaggedBubbleStack
-          users={item.tagged_users}
-          onPressUser={(u) => onAvatarPress(u.user_id)}
-        />
+        {/* (Tagged pills moved to top gradient row) */}
         {/* Draggable PIP — uses RNGH so it wins over scroll/navigation gestures */}
         {hasDual && pipUrl && (
           <GestureDetector gesture={pipGesture}>
@@ -658,10 +659,19 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     paddingHorizontal: 12,
     paddingTop: APP_HEADER_H + 4,
     paddingBottom: 32,
+  },
+  topTaggedPills: {
+    position: 'relative',
+    left: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    flex: 1,
+    gap: 6,
   },
   avatarRow: {
     flexDirection: 'row',
@@ -697,13 +707,13 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.75)',
   },
   streakBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 50,
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
   streakText: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: 'JosefinSans_600SemiBold',
     letterSpacing: 2,
     color: '#FFFFFF',

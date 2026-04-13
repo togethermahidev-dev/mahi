@@ -46,14 +46,14 @@ const styles = StyleSheet.create({
   stack: {
     position: 'absolute',
     left: 16,
-    bottom: 180,
+    bottom: 16,
     gap: 6,
     alignItems: 'flex-start',
   },
   bubble: {
-    height: 28,
-    borderRadius: 14,
-    paddingHorizontal: 12,
+    height: 32,
+    borderRadius: 16,
+    paddingHorizontal: 14,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   },
   bubbleText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: 'JosefinSans_400Regular_Italic',
   },
 });
