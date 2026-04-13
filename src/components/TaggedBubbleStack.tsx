@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   stack: {
     position: 'absolute',
     left: 16,
-    bottom: 16,
+    bottom: 180,
     gap: 6,
     alignItems: 'flex-start',
   },
