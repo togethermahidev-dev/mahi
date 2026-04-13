@@ -19,6 +19,7 @@ import {
 import CameraScreen from '@/screens/CameraScreen';
 import FeedScreen from '@/screens/FeedScreen';
 import NotificationsScreen from '@/screens/NotificationsScreen';
+import UserProfileScreen from '@/screens/UserProfileScreen';
 import { useNotificationsStore } from '@/store';
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
@@ -72,6 +73,7 @@ export default function VerticalNavigator({
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchVisible, setSearchVisible] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const activeIndexRef    = useRef(0);
   const baseOffsetRef     = useRef(0);
   const feedScrollAtTop   = useRef(true);
@@ -268,11 +270,20 @@ export default function VerticalNavigator({
           setNotifOpen(false);
           // v1 no-op: FeedScreen scroll-to-post is a follow-up
         }}
-        onOpenProfile={(_userId) => {
+        onOpenProfile={(uid) => {
           setNotifOpen(false);
-          // v1 no-op: UserProfileOverlay deep-link is a follow-up
+          setProfileUserId(uid);
         }}
       />
+
+      {/* Full-screen profile — opened from notifications */}
+      {profileUserId ? (
+        <UserProfileScreen
+          userId={profileUserId}
+          onBack={() => setProfileUserId(null)}
+          dark={dark}
+        />
+      ) : null}
 
       {/* Navigation dots — vertical pill dots on the right edge.
           Camera screen always has a dark background, so always use white dots

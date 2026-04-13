@@ -111,46 +111,60 @@ export default function NotificationsScreen({
                   caption    = `@${item.actor.username}`;
               }
 
-              const handleRowPress = () => {
+              const handleAvatarPress = () => {
                 markRead(item.id);
-                handleClose();
+                onOpenProfile(item.actor_id);
+                onClose();
+              };
+
+              const handleContentPress = () => {
+                markRead(item.id);
                 if (item.type === 'follow') {
                   onOpenProfile(item.actor_id);
                 } else if (item.post_id) {
                   onOpenPost(item.post_id);
+                } else {
+                  onOpenProfile(item.actor_id);
                 }
+                onClose();
               };
 
               return (
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={handleRowPress}
-                  style={[styles.row, { borderBottomColor: border }]}
-                >
-                  {item.actor.avatar_url ? (
-                    <Image
-                      source={{ uri: item.actor.avatar_url }}
-                      style={styles.avatar}
-                    />
-                  ) : (
-                    <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}>
-                      <Text style={[styles.avatarInitials, { color: text }]}>{initials}</Text>
-                    </View>
-                  )}
+                <View style={[styles.row, { borderBottomColor: border }]}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={handleAvatarPress}
+                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  >
+                    {item.actor.avatar_url ? (
+                      <Image
+                        source={{ uri: item.actor.avatar_url }}
+                        style={styles.avatar}
+                      />
+                    ) : (
+                      <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}>
+                        <Text style={[styles.avatarInitials, { color: text }]}>{initials}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
 
-                  <View style={styles.rowText}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={handleContentPress}
+                    style={styles.rowText}
+                  >
                     <Text style={[styles.rowCaption, { color: text }]} numberOfLines={2}>
                       {caption}
                     </Text>
                     <Text style={[styles.rowTime, { color: muted }]}>
                       {relativeTime(item.created_at)}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
 
                   {item.is_read === false ? (
                     <View style={styles.unreadDot} />
                   ) : null}
-                </TouchableOpacity>
+                </View>
               );
             }}
             ListEmptyComponent={

@@ -16,6 +16,7 @@ import { getBlockedUsers, type BlockedUser } from '@/api';
 import { useAuthStore, useBlockStore } from '@/store';
 import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
+import UserProfileScreen from '@/screens/UserProfileScreen';
 
 interface BlockedUsersSheetProps {
   visible: boolean;
@@ -41,6 +42,7 @@ export default function BlockedUsersSheet({
   const [users, setUsers]     = useState<BlockedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery]     = useState('');
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const fetchList = useCallback(async () => {
     if (!currentUserId) return;
@@ -54,6 +56,7 @@ export default function BlockedUsersSheet({
       setUsers([]);
       setLoading(true);
       setQuery('');
+      setProfileUserId(null);
       return;
     }
     setLoading(true);
@@ -154,17 +157,23 @@ export default function BlockedUsersSheet({
 
               return (
                 <View style={styles.row}>
-                  {item.avatar_url ? (
-                    <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-                  ) : (
-                    <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}>
-                      <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
+                  <TouchableOpacity
+                    style={styles.rowTappable}
+                    activeOpacity={0.7}
+                    onPress={() => setProfileUserId(item.blocked_id)}
+                  >
+                    {item.avatar_url ? (
+                      <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+                    ) : (
+                      <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}>
+                        <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
+                      </View>
+                    )}
+                    <View style={styles.rowText}>
+                      <Text style={[styles.name, { color: text }]}>{displayName}</Text>
+                      <Text style={[styles.handle, { color: muted }]}>@{item.username}</Text>
                     </View>
-                  )}
-                  <View style={styles.rowText}>
-                    <Text style={[styles.name, { color: text }]}>{displayName}</Text>
-                    <Text style={[styles.handle, { color: muted }]}>@{item.username}</Text>
-                  </View>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.unblockBtn, { borderColor: text }]}
                     activeOpacity={0.75}
@@ -187,6 +196,15 @@ export default function BlockedUsersSheet({
           />
         )}
       </View>
+
+      {/* Full-screen profile — opened when avatar/name is tapped */}
+      {profileUserId ? (
+        <UserProfileScreen
+          userId={profileUserId}
+          onBack={() => setProfileUserId(null)}
+          dark={dark}
+        />
+      ) : null}
     </Modal>
   );
 }
@@ -248,6 +266,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems:    'center',
     paddingVertical: 12,
+    gap:           12,
+  },
+  rowTappable: {
+    flexDirection: 'row',
+    alignItems:    'center',
+    flex:          1,
     gap:           12,
   },
   avatar: {

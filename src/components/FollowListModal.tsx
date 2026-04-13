@@ -10,10 +10,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { getFollowList, type FollowListUser, type ConversationPreview } from '@/api';
+import { getFollowList, type FollowListUser } from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
-import UserProfileOverlay from '@/components/UserProfileOverlay';
-import ConversationScreen from '@/screens/ConversationScreen';
+import UserProfileScreen from '@/screens/UserProfileScreen';
 
 interface FollowListModalProps {
   visible: boolean;
@@ -43,7 +42,6 @@ export default function FollowListModal({
   const [users, setUsers]               = useState<FollowListUser[]>([]);
   const [loading, setLoading]           = useState(true);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
-  const [activeConvo, setActiveConvo]   = useState<ConversationPreview | null>(null);
 
   const fetchList = useCallback(async () => {
     const { data } = await getFollowList(userId, type);
@@ -60,7 +58,6 @@ export default function FollowListModal({
       setUsers([]);
       setLoading(true);
       setProfileUserId(null);
-      setActiveConvo(null);
       return;
     }
     if (!currentUserId) return;
@@ -171,25 +168,12 @@ export default function FollowListModal({
         )}
       </View>
 
-      {/* Profile overlay — shown when a row is tapped */}
+      {/* Full-screen profile — shown when a row is tapped */}
       {profileUserId ? (
-        <UserProfileOverlay
+        <UserProfileScreen
           userId={profileUserId}
-          onClose={() => setProfileUserId(null)}
-          onOpenConvo={(convo) => {
-            setProfileUserId(null);
-            setActiveConvo(convo);
-          }}
+          onBack={() => setProfileUserId(null)}
           dark={dark}
-        />
-      ) : null}
-
-      {/* Conversation screen — opened from profile overlay MESSAGE button */}
-      {activeConvo && currentUserId ? (
-        <ConversationScreen
-          conversation={activeConvo}
-          currentUserId={currentUserId}
-          onBack={() => setActiveConvo(null)}
         />
       ) : null}
     </Modal>

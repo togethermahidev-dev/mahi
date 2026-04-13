@@ -15,10 +15,9 @@ import {
   Keyboard,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { searchProfiles, type ProfileSearchResult, type ConversationPreview } from '@/api';
+import { searchProfiles, type ProfileSearchResult } from '@/api';
 import { useAuthStore, useBlockStore } from '@/store';
-import UserProfileOverlay from '@/components/UserProfileOverlay';
-import ConversationScreen from '@/screens/ConversationScreen';
+import UserProfileScreen from '@/screens/UserProfileScreen';
 import { Sentry } from '@/lib/sentry';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -78,7 +77,6 @@ export default function GlobalSearchOverlay({
   const [loading, setLoading]   = useState(false);
   const [searched, setSearched] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
-  const [activeConvo, setActiveConvo]     = useState<ConversationPreview | null>(null);
   const currentUserId = useAuthStore((s) => s.user?.id);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -103,7 +101,6 @@ export default function GlobalSearchOverlay({
       setResults([]);
       setSearched(false);
       setProfileUserId(null);
-      setActiveConvo(null);
     }
   }, [visible]);
 
@@ -261,25 +258,12 @@ export default function GlobalSearchOverlay({
         </Animated.View>
       </KeyboardAvoidingView>
 
-      {/* Profile overlay — shown when a search result is tapped */}
+      {/* Full-screen profile — shown when a search result is tapped */}
       {profileUserId ? (
-        <UserProfileOverlay
+        <UserProfileScreen
           userId={profileUserId}
-          onClose={() => setProfileUserId(null)}
-          onOpenConvo={(convo) => {
-            setProfileUserId(null);
-            setActiveConvo(convo);
-          }}
+          onBack={() => setProfileUserId(null)}
           dark={dark}
-        />
-      ) : null}
-
-      {/* Conversation screen — opened from profile overlay MESSAGE button */}
-      {activeConvo && currentUserId ? (
-        <ConversationScreen
-          conversation={activeConvo}
-          currentUserId={currentUserId}
-          onBack={() => setActiveConvo(null)}
         />
       ) : null}
     </Animated.View>

@@ -5,41 +5,39 @@ import {
   Text,
   Image,
   StyleSheet,
+  Platform,
   TouchableOpacity,
   ActivityIndicator,
-  TouchableWithoutFeedback,
 } from 'react-native';
 import { getProfile, createOrGetConversation, reportUser, hasReported, type ReportReason } from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
 import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
-import { StreakIcon } from '@/components/ScreenIcons';
 import StreakGridPanel from '@/components/StreakGridPanel';
 import FollowListModal from '@/components/FollowListModal';
+import ProfileMediaMap from '@/components/ProfileMediaMap';
+import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview } from '@/api';
 import type { Database } from '@/types';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
-interface UserProfileOverlayProps {
-  userId:      string;
-  onClose:     () => void;
-  onOpenConvo: (conversation: ConversationPreview) => void;
-  dark:        boolean;
+interface UserProfileScreenProps {
+  userId: string;
+  onBack: () => void;
+  dark:   boolean;
 }
 
-export default function UserProfileOverlay({
+export default function UserProfileScreen({
   userId,
-  onClose,
-  onOpenConvo,
+  onBack,
   dark,
-}: UserProfileOverlayProps): React.JSX.Element {
+}: UserProfileScreenProps): React.JSX.Element {
   const currentUserId = useAuthStore((s) => s.user?.id);
 
-  const text     = dark ? '#E8E8E3' : '#1A1A17';
-  const muted    = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const cardBg   = dark ? '#2A2A27' : '#F5F5F2';
-  const avatarBg = dark ? '#3A3A37' : '#E8E8E3';
+  const bg     = dark ? '#1C1C19' : '#FFFFFF';
+  const text   = dark ? '#E8E8E3' : '#1A1A17';
+  const muted  = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
 
   const isFollowing    = useFollowStore((s) => s.followingByMe[userId] ?? false);
   const followerCount  = useFollowStore((s) => s.counts[userId]?.follower_count ?? 0);
@@ -59,27 +57,23 @@ export default function UserProfileOverlay({
   const [followListOpen, setFollowListOpen] = useState(false);
   const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
   const [reporting, setReporting] = useState(false);
+  const [activeConvo, setActiveConvo] = useState<ConversationPreview | null>(null);
 
   useEffect(() => {
     if (currentUserId) loadFollowData(currentUserId, userId);
   }, [userId, currentUserId, loadFollowData]);
 
   useEffect(() => {
-    console.log('[UserProfile] open |', userId);
-    Sentry.addBreadcrumb({ category: 'profile', message: `Profile overlay opened: ${userId}`, level: 'info' });
+    Sentry.addBreadcrumb({ category: 'profile', message: `User profile opened: ${userId}`, level: 'info' });
     getProfile(userId)
       .then(({ data, error }) => {
         if (error) {
-          console.log('[UserProfile] fetch error |', userId, error.message);
           Sentry.captureMessage(error.message, { level: 'warning', tags: { flow: 'profile', step: 'fetch' }, extra: { userId } });
-        } else {
-          console.log('[UserProfile] loaded |', data?.username ?? userId);
         }
         setProfile(data ?? null);
         setLoading(false);
       })
       .catch((e) => {
-        console.log('[UserProfile] fetch exception |', userId, e);
         Sentry.captureException(e, { tags: { flow: 'profile', step: 'fetch' }, extra: { userId } });
         setProfile(null);
         setLoading(false);
@@ -88,27 +82,23 @@ export default function UserProfileOverlay({
 
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
   const initials    = displayName[0]?.toUpperCase() ?? '?';
+  const isSelf      = currentUserId === userId;
 
   const handleMessage = async () => {
     if (!currentUserId || !profile || messaging) return;
-    console.log('[UserProfile] MESSAGE tap |', userId, '| user:', profile.username);
     Sentry.addBreadcrumb({ category: 'profile', message: `Message tapped: ${profile.username}`, level: 'info' });
     setMessaging(true);
     try {
       const { data, error } = await createOrGetConversation(currentUserId, userId);
       setMessaging(false);
       if (error) {
-        console.log('[UserProfile] createOrGetConversation error |', error.message);
         Sentry.captureMessage(error.message, { level: 'warning', tags: { flow: 'profile', step: 'message' }, extra: { userId } });
         return;
       }
       if (data) {
-        console.log('[UserProfile] conversation opened |', data.id);
-        onOpenConvo(data);
-        onClose();
+        setActiveConvo(data);
       }
     } catch (e) {
-      console.log('[UserProfile] createOrGetConversation exception |', e);
       Sentry.captureException(e, { tags: { flow: 'profile', step: 'message' }, extra: { userId } });
       setMessaging(false);
     }
@@ -116,11 +106,9 @@ export default function UserProfileOverlay({
 
   const handleFollow = async () => {
     if (!currentUserId) return;
-    console.log('[UserProfile] FOLLOW tap |', userId, '| action:', isFollowing ? 'unfollow' : 'follow');
     Sentry.addBreadcrumb({ category: 'profile', message: `Follow toggled: ${userId}`, level: 'info' });
     const { error } = await toggleFollow(currentUserId, userId);
     if (error) {
-      console.log('[UserProfile] toggleFollow error |', error.message);
       Sentry.captureMessage(error.message, {
         level: 'warning',
         tags: { flow: 'profile', step: 'follow' },
@@ -150,7 +138,7 @@ export default function UserProfileOverlay({
                 extra: { userId },
               });
             }
-            onClose();
+            onBack();
           },
         },
       ],
@@ -187,7 +175,6 @@ export default function UserProfileOverlay({
     if (!currentUserId || !profile || reporting) return;
     setReporting(true);
 
-    // Check if already reported
     const { data: alreadyReported } = await hasReported(currentUserId, userId);
     if (alreadyReported) {
       setReporting(false);
@@ -225,6 +212,7 @@ export default function UserProfileOverlay({
               reportedUserId: userId,
               reason:         r.value,
             });
+            setReporting(false);
             if (error) {
               Sentry.captureMessage(error.message, {
                 level: 'warning',
@@ -258,75 +246,70 @@ export default function UserProfileOverlay({
     );
   };
 
-  const isSelf = currentUserId === userId;
-
   return (
-    <View style={styles.backdrop}>
-      {/* Tapping the backdrop closes */}
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={StyleSheet.absoluteFill} />
-      </TouchableWithoutFeedback>
+    <View style={[styles.root, { backgroundColor: bg }]}>
+      {/* Back button — top-left */}
+      <TouchableOpacity
+        onPress={onBack}
+        style={[styles.backBtn, { borderColor: muted }]}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Text style={[styles.backArrow, { color: muted }]}>‹</Text>
+      </TouchableOpacity>
 
-      {/* Card */}
-      <View style={[styles.card, { backgroundColor: cardBg }]}>
-        {/* Back / close button */}
+      {/* Ellipsis menu — top-right (only for other users) */}
+      {!isSelf && !loading ? (
         <TouchableOpacity
-          onPress={onClose}
-          style={[styles.backBtn, { borderColor: muted }]}
+          onPress={handleEllipsis}
+          style={[styles.ellipsisBtn, { borderColor: muted }]}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={[styles.backArrow, { color: muted }]}>‹</Text>
+          <Text style={[styles.ellipsisText, { color: muted }]}>...</Text>
         </TouchableOpacity>
+      ) : null}
 
-        {/* Ellipsis menu — top-right (only for other users) */}
-        {!isSelf && !loading ? (
-          <TouchableOpacity
-            onPress={handleEllipsis}
-            style={[styles.ellipsisBtn, { borderColor: muted }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={[styles.ellipsisText, { color: muted }]}>...</Text>
-          </TouchableOpacity>
-        ) : null}
-
-        {loading ? (
-          <ActivityIndicator color={muted} style={styles.loader} />
-        ) : isBlocked ? (
-          /* Block gate — minimal card for blocked users */
-          <View style={styles.blockedWrap}>
-            <Text style={[styles.blockedTitle, { color: text }]}>User Unavailable</Text>
-            <Text style={[styles.blockedSubtitle, { color: muted }]}>
-              {isBlockedByMe
-                ? 'You have blocked this user.'
-                : 'This content is not available.'}
-            </Text>
-            {isBlockedByMe ? (
-              <TouchableOpacity
-                style={[styles.unblockBtn, { borderColor: text }]}
-                onPress={handleUnblock}
-                activeOpacity={0.75}
-              >
-                <Text style={[styles.unblockBtnText, { color: text }]}>UNBLOCK</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-        ) : (
-          <>
+      {loading ? (
+        <ActivityIndicator color={muted} style={styles.loader} />
+      ) : isBlocked ? (
+        <View style={styles.blockedWrap}>
+          <Text style={[styles.blockedTitle, { color: text }]}>User Unavailable</Text>
+          <Text style={[styles.blockedSubtitle, { color: muted }]}>
+            {isBlockedByMe
+              ? 'You have blocked this user.'
+              : 'This content is not available.'}
+          </Text>
+          {isBlockedByMe ? (
+            <TouchableOpacity
+              style={[styles.unblockBtn, { borderColor: text }]}
+              onPress={handleUnblock}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.unblockBtnText, { color: text }]}>UNBLOCK</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : (
+        <>
+          {/* Profile header */}
+          <View style={styles.header}>
+            {/* Avatar */}
             <View style={styles.avatarWrap}>
               {profile?.avatar_url ? (
                 <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
               ) : (
-                <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}>
-                  <Text style={[styles.avatarInitial, { color: cardBg }]}>{initials}</Text>
+                <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: dark ? '#3A3A37' : '#E8E8E3' }]}>
+                  <Text style={[styles.avatarInitial, { color: bg }]}>{initials}</Text>
                 </View>
               )}
             </View>
 
+            {/* Name + handle */}
             <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
             {profile?.username ? (
               <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
             ) : null}
 
+            {/* Follow counts */}
             <View style={styles.statsRow}>
               <TouchableOpacity
                 style={styles.stat}
@@ -347,14 +330,19 @@ export default function UserProfileOverlay({
               </TouchableOpacity>
             </View>
 
-            <View style={styles.statsRow}>
+            {/* Streak stats */}
+            <View style={[styles.statsRow, { marginTop: 16 }]}>
               <View style={styles.stat}>
-                <Text style={[styles.statValue, { color: text }]}>{profile?.streak_current ?? 0}</Text>
+                <Text style={[styles.statValue, { color: text }]}>
+                  {profile?.streak_current ?? 0}
+                </Text>
                 <Text style={[styles.statLabel, { color: muted }]}>STREAK</Text>
               </View>
               <View style={[styles.statDivider, { backgroundColor: muted }]} />
               <View style={styles.stat}>
-                <Text style={[styles.statValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
+                <Text style={[styles.statValue, { color: text }]}>
+                  {profile?.streak_highest ?? 0}
+                </Text>
                 <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
               </View>
             </View>
@@ -363,11 +351,12 @@ export default function UserProfileOverlay({
             <TouchableOpacity
               onPress={() => setStreakGridOpen(true)}
               activeOpacity={0.75}
-              style={styles.streakPill}
+              style={[styles.streakTrackerPill, { borderColor: '#59c2d7' }]}
             >
-              <StreakIcon size={16} color="#59c2d7" />
+              <Text style={styles.streakTrackerText}>STREAK TRACKER</Text>
             </TouchableOpacity>
 
+            {/* Follow / Message actions */}
             {!isSelf ? (
               <View style={styles.actionRow}>
                 <TouchableOpacity
@@ -397,11 +386,18 @@ export default function UserProfileOverlay({
                 </TouchableOpacity>
               </View>
             ) : null}
-          </>
-        )}
-      </View>
+          </View>
 
-      {/* Streak accountability grid — slides in from left */}
+          {/* Media grid */}
+          {profile ? (
+            <View style={[styles.mapShadow, { shadowColor: dark ? '#000' : '#1A1A17' }]}>
+              <ProfileMediaMap userId={profile.id} isSelf={false} />
+            </View>
+          ) : null}
+        </>
+      )}
+
+      {/* Streak accountability grid */}
       {profile ? (
         <StreakGridPanel
           visible={streakGridOpen}
@@ -423,31 +419,32 @@ export default function UserProfileOverlay({
         type={followListType}
         dark={dark}
       />
+
+      {/* Conversation screen — opened from MESSAGE button */}
+      {activeConvo && currentUserId ? (
+        <ConversationScreen
+          conversation={activeConvo}
+          currentUserId={currentUserId}
+          onBack={() => setActiveConvo(null)}
+        />
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  root: {
     ...StyleSheet.absoluteFillObject,
-    zIndex:          510,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    alignItems:      'center',
-    justifyContent:  'center',
-  },
-  card: {
-    width:             '80%',
-    borderRadius:      20,
-    paddingTop:        16,
-    paddingBottom:     28,
-    paddingHorizontal: 24,
-    alignItems:        'center',
-    gap:               6,
+    zIndex: 510,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: Platform.OS === 'ios' ? 60 : 32,
   },
   backBtn: {
     position:       'absolute',
-    top:            12,
-    left:           16,
+    top:            Platform.OS === 'ios' ? 60 : 32,
+    left:           24,
     zIndex:         1,
     width:          36,
     height:         36,
@@ -461,8 +458,31 @@ const styles = StyleSheet.create({
     fontFamily: 'JosefinSans_400Regular_Italic',
     lineHeight: 22,
   },
+  ellipsisBtn: {
+    position:       'absolute',
+    top:            Platform.OS === 'ios' ? 60 : 32,
+    right:          24,
+    zIndex:         1,
+    width:          36,
+    height:         36,
+    borderRadius:   18,
+    borderWidth:    1,
+    alignItems:     'center',
+    justifyContent: 'center',
+  },
+  ellipsisText: {
+    fontSize:    16,
+    fontFamily:  'JosefinSans_700Bold',
+    lineHeight:  18,
+    marginTop:   -4,
+  },
   loader: {
-    marginVertical: 40,
+    marginTop: 120,
+  },
+  header: {
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    width: '100%',
   },
   avatarWrap: {
     marginBottom: 12,
@@ -481,54 +501,60 @@ const styles = StyleSheet.create({
     fontFamily: 'JosefinSans_700Bold',
   },
   displayName: {
-    fontSize:      18,
+    fontSize:      22,
     fontFamily:    'JosefinSans_700Bold',
-    letterSpacing: 3,
+    letterSpacing: 4,
+    marginBottom:  6,
     textAlign:     'center',
-    marginBottom:  2,
   },
   handle: {
-    fontSize:      13,
+    fontSize:      14,
     fontFamily:    'JosefinSans_400Regular_Italic',
     marginBottom:  16,
   },
   statsRow: {
     flexDirection: 'row',
     alignItems:    'center',
-    gap:           24,
-    marginBottom:  20,
+    gap:           32,
   },
   stat: {
     alignItems: 'center',
-    gap:        3,
+    gap:        4,
   },
   statValue: {
-    fontSize:   22,
+    fontSize:   28,
     fontFamily: 'JosefinSans_700Bold',
-    lineHeight: 22,
+    lineHeight: 28,
   },
   statLabel: {
-    fontSize:      9,
+    fontSize:      10,
     fontFamily:    'JosefinSans_600SemiBold',
     letterSpacing: 3,
   },
   statDivider: {
     width:   1,
-    height:  32,
+    height:  40,
     opacity: 0.3,
   },
-  streakPill: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  streakTrackerPill: {
+    borderWidth: 1,
+    borderRadius: 50,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginTop: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+  },
+  streakTrackerText: {
+    fontFamily: 'JosefinSans_600SemiBold',
+    fontSize: 10,
+    letterSpacing: 2,
+    color: '#59c2d7',
   },
   actionRow: {
     flexDirection:  'row',
     gap:            12,
-    marginTop:      4,
+    marginTop:      20,
   },
   followBtn: {
     borderRadius:      50,
@@ -551,28 +577,10 @@ const styles = StyleSheet.create({
     fontFamily:    'JosefinSans_700Bold',
     letterSpacing: 3,
   },
-  ellipsisBtn: {
-    position:       'absolute',
-    top:            12,
-    right:          16,
-    zIndex:         1,
-    width:          36,
-    height:         36,
-    borderRadius:   18,
-    borderWidth:    1,
-    alignItems:     'center',
-    justifyContent: 'center',
-  },
-  ellipsisText: {
-    fontSize:    16,
-    fontFamily:  'JosefinSans_700Bold',
-    lineHeight:  18,
-    marginTop:   -4,
-  },
   blockedWrap: {
-    alignItems:   'center',
-    paddingVertical: 32,
-    gap:          12,
+    alignItems:      'center',
+    paddingVertical: 120,
+    gap:             12,
   },
   blockedTitle: {
     fontSize:      16,
@@ -596,5 +604,10 @@ const styles = StyleSheet.create({
     fontSize:      11,
     fontFamily:    'JosefinSans_700Bold',
     letterSpacing: 3,
+  },
+  mapShadow: {
+    flex: 1,
+    width: '100%',
+    marginTop: 96,
   },
 });

@@ -23,11 +23,10 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeed } from '@/hooks/useFeed';
 import { useFeedStore, useSocialStore, useUserStore, useAuthStore } from '@/store';
 import { LikeIcon, CommentIcon } from '@/components/ScreenIcons';
-import UserProfileOverlay from '@/components/UserProfileOverlay';
+import UserProfileScreen from '@/screens/UserProfileScreen';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import CaptionText from '@/components/CaptionText';
-import ConversationScreen from '@/screens/ConversationScreen';
-import type { FeedPost, ConversationPreview } from '@/api';
+import type { FeedPost } from '@/api';
 import type { CommentWithProfile } from '@/api/social';
 
 // AppHeader: paddingTop (60 ios / 32 android) + inner row (~36px) + paddingBottom (12)
@@ -514,7 +513,6 @@ export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreen
   // Profile overlay, conversation overlay, and comment sheet — lifted to
   // FeedScreen so overlays cover the full screen (not just the PostItem card)
   const [profileUserId, setProfileUserId]   = useState<string | null>(null);
-  const [activeConvo,   setActiveConvo]     = useState<ConversationPreview | null>(null);
   const [commentPostId, setCommentPostId]   = useState<string | null>(null);
   const currentUserId = useAuthStore((s) => s.user?.id);
 
@@ -614,25 +612,12 @@ export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreen
         }
       />
 
-      {/* Profile overlay — shown when another user's avatar is tapped */}
+      {/* Full-screen profile — shown when another user's avatar is tapped */}
       {profileUserId ? (
-        <UserProfileOverlay
+        <UserProfileScreen
           userId={profileUserId}
-          onClose={() => setProfileUserId(null)}
-          onOpenConvo={(convo) => {
-            setProfileUserId(null);
-            setActiveConvo(convo);
-          }}
+          onBack={() => setProfileUserId(null)}
           dark={dark}
-        />
-      ) : null}
-
-      {/* Conversation screen overlay — opened from profile overlay */}
-      {activeConvo && currentUserId ? (
-        <ConversationScreen
-          conversation={activeConvo}
-          currentUserId={currentUserId}
-          onBack={() => setActiveConvo(null)}
         />
       ) : null}
 
