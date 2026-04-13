@@ -22,7 +22,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // OTA_NUMBER → over-the-air update number, bump this after each EAS Update push
 const APP_VERSION = Constants.expoConfig?.version ?? '0.0.0';
 const BUILD_NUMBER = Constants.expoConfig?.ios?.buildNumber ?? '0';
-const OTA_NUMBER = '06'; // ← bump after each OTA update
+const OTA_NUMBER = '07'; // ← bump after each OTA update
 const PANEL_WIDTH = SCREEN_WIDTH * 0.82;
 
 interface SettingsPanelProps {
