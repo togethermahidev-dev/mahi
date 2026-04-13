@@ -59,6 +59,7 @@ const SCREEN_BG_LIGHT = ['#111111', '#FFFFFF'] as const;
 interface VerticalNavigatorProps {
   onNavigateLeft:  () => void; // tap profile pill or swipe right → Profile screen
   onNavigateRight: () => void; // tap messages icon or swipe left → Messages screen
+  onOverlayChange?: (active: boolean) => void; // true when a fullscreen overlay is open
 }
 
 // ─── VerticalNavigator ────────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ interface VerticalNavigatorProps {
 export default function VerticalNavigator({
   onNavigateLeft,
   onNavigateRight,
+  onOverlayChange,
 }: VerticalNavigatorProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const unreadNotifications = useNotificationsStore((s) => s.unreadCount);
@@ -74,6 +76,17 @@ export default function VerticalNavigator({
   const [searchVisible, setSearchVisible] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+
+  // Track child overlay state (e.g. FeedScreen profile overlay)
+  const feedOverlayRef = useRef(false);
+
+  // Notify parent whenever a fullscreen overlay opens or closes
+  const overlayActive = searchVisible || notifOpen || !!profileUserId || feedOverlayRef.current;
+  const prevOverlay = useRef(false);
+  if (overlayActive !== prevOverlay.current) {
+    prevOverlay.current = overlayActive;
+    onOverlayChange?.(overlayActive);
+  }
   const activeIndexRef    = useRef(0);
   const baseOffsetRef     = useRef(0);
   const feedScrollAtTop   = useRef(true);
@@ -215,6 +228,10 @@ export default function VerticalNavigator({
                   <FeedScreen
                     onScrollTopChange={(atTop) => { feedScrollAtTop.current = atTop; }}
                     headerAnim={headerAnim}
+                    onOverlayChange={(active) => {
+                      feedOverlayRef.current = active;
+                      onOverlayChange?.(searchVisible || notifOpen || !!profileUserId || active);
+                    }}
                   />
                 ) : (
                   <Component />

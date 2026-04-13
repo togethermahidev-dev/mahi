@@ -29,6 +29,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
   const [hIndex, setHIndex] = useState(DEFAULT_INDEX);
   const hIndexRef  = useRef(DEFAULT_INDEX);
   const hBaseRef   = useRef(0);
+  const overlayRef = useRef(false);
   const hTapeAnim  = useRef(
     new Animated.Value(-(DEFAULT_INDEX * SCREEN_WIDTH)),
   ).current;
@@ -50,8 +51,9 @@ export default function HorizontalNavigator(): React.JSX.Element {
   const panResponder = useRef(
     PanResponder.create({
       // Claim horizontal swipes; vertical swipes pass to VerticalNavigator inside.
+      // When a fullscreen overlay (profile, search, notifs) is open, don't claim.
       onMoveShouldSetPanResponder: (_e, { dx, dy }) =>
-        Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10,
+        !overlayRef.current && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10,
 
       onPanResponderGrant: () => {
         hTapeAnim.stopAnimation();
@@ -97,6 +99,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
           <VerticalNavigator
             onNavigateLeft={() => navigateHorizontal(0)}
             onNavigateRight={() => navigateHorizontal(2)}
+            onOverlayChange={(active) => { overlayRef.current = active; }}
           />
         </View>
 

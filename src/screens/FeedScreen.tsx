@@ -499,9 +499,10 @@ function CommentSheet({
 interface FeedScreenProps {
   onScrollTopChange?: (atTop: boolean) => void;
   headerAnim?: Animated.Value;
+  onOverlayChange?: (active: boolean) => void;
 }
 
-export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreenProps = {}): React.JSX.Element {
+export default function FeedScreen({ onScrollTopChange, headerAnim, onOverlayChange }: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
   const { width: screenWidth } = useWindowDimensions();
   const bg    = dark ? '#1C1C19' : '#FFFFFF';
@@ -515,6 +516,14 @@ export default function FeedScreen({ onScrollTopChange, headerAnim }: FeedScreen
   const [profileUserId, setProfileUserId]   = useState<string | null>(null);
   const [commentPostId, setCommentPostId]   = useState<string | null>(null);
   const currentUserId = useAuthStore((s) => s.user?.id);
+
+  // Notify parent when a fullscreen overlay (profile) opens/closes
+  const feedOverlay = !!profileUserId;
+  const prevFeedOverlay = useRef(false);
+  if (feedOverlay !== prevFeedOverlay.current) {
+    prevFeedOverlay.current = feedOverlay;
+    onOverlayChange?.(feedOverlay);
+  }
 
   const handleAvatarPress = useCallback((userId: string) => {
     // Don't open overlay for own profile
