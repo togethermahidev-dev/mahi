@@ -126,8 +126,19 @@ function PostItem({
 
   // ── Draggable PIP (FaceTime-style) ──────────────────────────────────────
   const containerH = CARD_HEIGHT;
-  const initialPipX = 12;
-  const initialPipY = APP_HEADER_H + 8;
+
+  // Safe zone: keep PiP clear of all overlay UI elements.
+  // Top:    app header + tagged pills area (~3 rows × 32px + gaps + padding)
+  // Bottom: caption overlay (avatar row ~42 + caption ~40 + paddingBottom 80)
+  // Right:  side action column (icons 44px + count + padding ≈ 70px)
+  // Left:   small margin
+  const PIP_SAFE_TOP    = APP_HEADER_H + 120;   // below header + tagged pills
+  const PIP_SAFE_BOTTOM = containerH - 200;      // above avatar row + caption
+  const PIP_SAFE_LEFT   = 8;
+  const PIP_SAFE_RIGHT  = width - FEED_PIP_W - 70; // left of side action buttons
+
+  const initialPipX = PIP_SAFE_LEFT;
+  const initialPipY = PIP_SAFE_TOP;
   const pipTransX = useSharedValue(initialPipX);
   const pipTransY = useSharedValue(initialPipY);
   const pipStartX = useSharedValue(initialPipX);
@@ -143,7 +154,6 @@ function PostItem({
     pipScaleVal.value = 1;
   }, [item.id]);
 
-  const margin = 8;
   const pipPanGesture = Gesture.Pan()
     .activateAfterLongPress(150)
     .onStart(() => {
@@ -157,16 +167,16 @@ function PostItem({
       'worklet';
       const rawX = pipStartX.value + e.translationX;
       const rawY = pipStartY.value + e.translationY;
-      pipTransX.value = Math.max(margin, Math.min(rawX, width - FEED_PIP_W - margin));
-      pipTransY.value = Math.max(margin, Math.min(rawY, containerH - FEED_PIP_H - margin));
+      pipTransX.value = Math.max(PIP_SAFE_LEFT, Math.min(rawX, PIP_SAFE_RIGHT));
+      pipTransY.value = Math.max(PIP_SAFE_TOP, Math.min(rawY, PIP_SAFE_BOTTOM));
     })
     .onEnd(() => {
       'worklet';
-      // Snap to nearest corner
-      const midX = (width - FEED_PIP_W) / 2;
-      const midY = (containerH - FEED_PIP_H) / 2;
-      const snapX = pipTransX.value < midX ? margin : width - FEED_PIP_W - margin;
-      const snapY = pipTransY.value < midY ? margin : containerH - FEED_PIP_H - margin;
+      // Snap to nearest corner within the safe zone
+      const midX = (PIP_SAFE_LEFT + PIP_SAFE_RIGHT) / 2;
+      const midY = (PIP_SAFE_TOP + PIP_SAFE_BOTTOM) / 2;
+      const snapX = pipTransX.value < midX ? PIP_SAFE_LEFT : PIP_SAFE_RIGHT;
+      const snapY = pipTransY.value < midY ? PIP_SAFE_TOP : PIP_SAFE_BOTTOM;
       pipTransX.value = withSpring(snapX, { damping: 16, stiffness: 140, overshootClamping: true });
       pipTransY.value = withSpring(snapY, { damping: 16, stiffness: 140, overshootClamping: true });
       pipScaleVal.value = withSpring(1, { damping: 12, stiffness: 200 });
