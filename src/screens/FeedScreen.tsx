@@ -349,11 +349,11 @@ function PostItem({
         {/* ── Right-side action column (Reels / TikTok style) ── */}
         <View style={styles.sideActions} pointerEvents="box-none">
           <TouchableOpacity style={styles.sideActionBtn} onPress={handleLike} activeOpacity={0.7}>
-            <HeartIcon size={28} color="#FFFFFF" filled={likedByMe} />
+            <HeartIcon size={44} color="#FFFFFF" filled={likedByMe} />
             <Text style={styles.sideActionCount}>{likeCount}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.sideActionBtn} onPress={handleCommentPress} activeOpacity={0.7}>
-            <CommentIcon size={26} color="#FFFFFF" />
+            <CommentIcon size={42} color="#FFFFFF" />
             <Text style={styles.sideActionCount}>{commentCount}</Text>
           </TouchableOpacity>
         </View>
