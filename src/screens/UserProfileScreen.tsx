@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   View,
@@ -8,6 +8,7 @@ import {
   Platform,
   TouchableOpacity,
   ActivityIndicator,
+  PanResponder,
 } from 'react-native';
 import { getProfile, createOrGetConversation, reportUser, hasReported, type ReportReason } from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
@@ -49,6 +50,21 @@ export default function UserProfileScreen({
   const isBlocked     = useBlockStore((s) => s.blockedSet.has(userId));
   const blockAction   = useBlockStore((s) => s.block);
   const unblockAction = useBlockStore((s) => s.unblock);
+
+  // Block all gestures from leaking to HorizontalNavigator behind this screen.
+  // A horizontal swipe dismisses the profile instead of navigating underneath.
+  const gestureBlocker = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderRelease: (_e, { dx, vx }) => {
+        if (Math.abs(dx) > 60 || Math.abs(vx) > 0.4) {
+          onBack();
+        }
+      },
+      onPanResponderTerminationRequest: () => false,
+    }),
+  ).current;
 
   const [profile,   setProfile]   = useState<ProfileRow | null>(null);
   const [loading,   setLoading]   = useState(true);
@@ -247,7 +263,7 @@ export default function UserProfileScreen({
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: bg }]}>
+    <View style={[styles.root, { backgroundColor: bg }]} {...gestureBlocker.panHandlers}>
       {/* Back button — top-left */}
       <TouchableOpacity
         onPress={onBack}
