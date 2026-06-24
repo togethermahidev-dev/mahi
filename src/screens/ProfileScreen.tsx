@@ -8,8 +8,7 @@ import PostDetailModal from '@/components/PostDetailModal';
 import SettingsPanel from '@/components/SettingsPanel';
 import { SettingsIcon } from '@/components/ScreenIcons';
 import AvatarPicker from '@/components/AvatarPicker';
-import TrainingDaysScreen from '@/components/TrainingDaysScreen';
-import StreakGridPanel from '@/components/StreakGridPanel';
+import RestDaysStreakPanel from '@/components/RestDaysStreakPanel';
 import FollowListModal from '@/components/FollowListModal';
 import type { Database } from '@/types';
 
@@ -18,8 +17,7 @@ type PostRow = Database['public']['Tables']['posts']['Row'];
 export default function ProfileScreen(): React.JSX.Element {
   const { dark } = useAppTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [trainingDaysOpen, setTrainingDaysOpen] = useState(false);
-  const [streakGridOpen, setStreakGridOpen] = useState(false);
+  const [restDaysStreakOpen, setRestDaysStreakOpen] = useState(false);
   const [followListOpen, setFollowListOpen] = useState(false);
   const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
   const [selectedPost, setSelectedPost] = useState<PostRow | null>(null);
@@ -80,13 +78,15 @@ export default function ProfileScreen(): React.JSX.Element {
           <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
         ) : null}
 
-        {/* Training days editor trigger */}
+        {/* Merged Rest Days & Streak panel trigger */}
         <TouchableOpacity
-          onPress={() => setTrainingDaysOpen(true)}
+          onPress={() => setRestDaysStreakOpen(true)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={[styles.trainingDaysPill, { borderColor: muted }]}
+          activeOpacity={0.75}
+          style={[styles.restDaysStreakPill, { borderColor: '#59c2d7' }]}
         >
-          <Text style={[styles.trainingDaysPillText, { color: muted }]}>SET REST DAYS</Text>
+          <Text style={styles.restDaysStreakPillText}>REST DAYS & STREAK</Text>
+          <Text style={styles.restDaysStreakChevron}>{'▲'}</Text>
         </TouchableOpacity>
 
         {/* Follow counts */}
@@ -128,15 +128,6 @@ export default function ProfileScreen(): React.JSX.Element {
             <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
           </View>
         </View>
-
-        {/* Streak grid pill */}
-        <TouchableOpacity
-          onPress={() => setStreakGridOpen(true)}
-          activeOpacity={0.75}
-          style={[styles.streakTrackerPill, { borderColor: '#59c2d7' }]}
-        >
-          <Text style={styles.streakTrackerText}>STREAK TRACKER</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Personal streak photo grid */}
@@ -153,17 +144,10 @@ export default function ProfileScreen(): React.JSX.Element {
       {/* Settings panel — slides in from left */}
       <SettingsPanel visible={settingsOpen} onClose={() => setSettingsOpen(false)} dark={dark} />
 
-      {/* Training days editor — slides in from left */}
-      <TrainingDaysScreen
-        visible={trainingDaysOpen}
-        onClose={() => setTrainingDaysOpen(false)}
-        dark={dark}
-      />
-
-      {/* Streak accountability grid — slides in from left */}
-      <StreakGridPanel
-        visible={streakGridOpen}
-        onClose={() => setStreakGridOpen(false)}
+      {/* Merged rest-days editor + streak grid — slides in from left */}
+      <RestDaysStreakPanel
+        visible={restDaysStreakOpen}
+        onClose={() => setRestDaysStreakOpen(false)}
         userId={profile?.id ?? userId ?? ''}
         streakCurrent={profile?.streak_current ?? 0}
         streakHighest={profile?.streak_highest ?? 0}
@@ -223,17 +207,25 @@ const styles = StyleSheet.create({
     fontFamily: 'JosefinSans_400Regular_Italic',
     marginBottom: 16,
   },
-  trainingDaysPill: {
+  restDaysStreakPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     borderWidth: 1,
     borderRadius: 50,
     paddingHorizontal: 16,
     paddingVertical: 6,
     marginBottom: 24,
   },
-  trainingDaysPillText: {
+  restDaysStreakPillText: {
     fontFamily: 'JosefinSans_600SemiBold',
     fontSize: 10,
     letterSpacing: 2,
+    color: '#59c2d7',
+  },
+  restDaysStreakChevron: {
+    fontSize: 8,
+    color: '#59c2d7',
   },
   statsRow: {
     flexDirection: 'row',
@@ -258,21 +250,6 @@ const styles = StyleSheet.create({
     width: 1,
     height: 40,
     opacity: 0.3,
-  },
-  streakTrackerPill: {
-    borderWidth: 1,
-    borderRadius: 50,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    marginTop: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  streakTrackerText: {
-    fontFamily: 'JosefinSans_600SemiBold',
-    fontSize: 10,
-    letterSpacing: 2,
-    color: '#59c2d7',
   },
   mapShadow: {
     flex: 1,
