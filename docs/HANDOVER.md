@@ -60,6 +60,7 @@ Adding a full-stack feature is a mechanical copy of proven files — full recipe
 | DB table + RLS + RPC | `follows` table + `get_follow_data` in `supabase/migrations/` |
 | User-facing failure feedback | `useToastStore.getState().show(...)` |
 | Slide-in panel / page spring | `StreakGridPanel.tsx` / `HorizontalNavigator.tsx` (`damping:22, stiffness:160, mass:0.9`) |
+| Gate a feature behind a flag | `useFeatureFlag('flag-key')` (keys in `src/lib/featureFlags.ts`; see [feature-flags.md](./feature-flags.md)) |
 
 ---
 
@@ -118,6 +119,7 @@ After editing source, rebuild the graph per [CLAUDE.md](../CLAUDE.md). Before pu
 - [architecture.md](./architecture.md) — data flow + **layering contract**
 - [adding-a-feature.md](./adding-a-feature.md) — the copy-this recipe
 - [feature-roadmap.md](./feature-roadmap.md) — the goal backlog (Phases 1–5), each spec'd
+- [feature-flags.md](./feature-flags.md) — PostHog flags, the `useFeatureFlag` gate, MCP scoping
 - [state-management.md](./state-management.md) · [integrations.md](./integrations.md) · [hooks.md](./hooks.md)
 - [supabase/README.md](../supabase/README.md) — backend + migration reconciliation
 - [RULES.md](../RULES.md) — project rules (also points here)

@@ -96,6 +96,8 @@ export default function App(): React.JSX.Element {
         hydrateForUser(s.user.id);
         Sentry.setUser({ id: s.user.id, email: s.user.email });
         posthog.identify(s.user.id, { email: s.user.email ?? null });
+        // Re-evaluate feature flags for the now-identified user.
+        posthog.reloadFeatureFlagsAsync().catch(() => {});
       } else {
         useUserStore.getState().reset();
         useFeedStore.getState().reset();

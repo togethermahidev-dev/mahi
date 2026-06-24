@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { ProfileIcon, MessagesIcon, NotificationsIcon } from '@/components/ScreenIcons';
 
 interface AppHeaderProps {
@@ -22,6 +23,10 @@ export default function AppHeader({
   onNotificationsPress,
 }: AppHeaderProps): React.JSX.Element {
   const { dark: systemDark } = useAppTheme();
+  // Reference pattern: gate a feature in one line with useFeatureFlag. The
+  // 'notifications-core' flag is at 100% (default-on), so the bell shows
+  // normally; flip it off in PostHog to hide the entry point.
+  const showNotifications = useFeatureFlag('notifications-core');
   // isDark = camera screen (always dark bg); systemDark = OS-level dark mode
   const onDark = isDark || systemDark;
   const mahiColor = onDark ? '#FFFFFF' : '#1A1A17';
@@ -61,15 +66,19 @@ export default function AppHeader({
           <Text style={[styles.title, { color: mahiColor }]}>MAHI</Text>
         </View>
 
-        {/* Notifications bell pill — opens NotificationsScreen overlay */}
-        <TouchableOpacity
-          style={[styles.bellPill, { backgroundColor: pillBg }]}
-          onPress={onNotificationsPress}
-          activeOpacity={0.75}
-        >
-          <NotificationsIcon size={16} color={pillIcon} />
-          {unreadNotifications > 0 && <View style={styles.bellDot} />}
-        </TouchableOpacity>
+        {/* Notifications bell pill — opens NotificationsScreen overlay.
+            Gated by the 'notifications-core' flag (absolutely positioned, so
+            hiding it leaves the other pills undisturbed). */}
+        {showNotifications && (
+          <TouchableOpacity
+            style={[styles.bellPill, { backgroundColor: pillBg }]}
+            onPress={onNotificationsPress}
+            activeOpacity={0.75}
+          >
+            <NotificationsIcon size={16} color={pillIcon} />
+            {unreadNotifications > 0 && <View style={styles.bellDot} />}
+          </TouchableOpacity>
+        )}
 
         {/* Messages pill — navigates to Messages screen (horizontal right) */}
         <TouchableOpacity
