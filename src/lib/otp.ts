@@ -1,92 +1,54 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { env } from '@/lib/env';
 
 const OTP_KEY = '@mahi:otp_state';
-const OTP_EXPIRY_MS = 10 * 60 * 1000;   // 10 minutes
-const RESEND_COOLDOWN_MS = 60 * 1000;    // 1 minute between resends
-const MAX_ATTEMPTS = 3;
+const RESEND_COOLDOWN_MS = 60 * 1000; // 1 minute between resends
 
-// App Store review bypass — allows review team to sign up without a real email
-const BYPASS_EMAIL = 'appreview@togethermahi.com';
-const BYPASS_CODE = '1234';
+const SUPABASE_URL = env.supabaseUrl;
 
-
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-
+/**
+ * Minimal OTP state for client-side resend cooldown tracking.
+ * The actual code is never stored on the client anymore — it's generated,
+ * stored, and verified entirely server-side (send-otp / complete-signup).
+ * The cooldown timestamp is not security-sensitive, so it stays local.
+ */
 export interface OTPState {
   email: string;
-  code: string;
-  expiresAt: number;  // Unix ms
-  attempts: number;
-  sentAt: number;     // Unix ms — used for resend cooldown
+  sentAt: number; // Unix ms — used for resend cooldown only
 }
 
+/**
+ * Send an OTP to the given email address.
+ * The server generates the code, stores it securely, and emails it.
+ * The client only tracks the send timestamp for cooldown purposes —
+ * it never sees or stores the code.
+ */
 export async function sendOTP(email: string): Promise<void> {
-  const code = Math.floor(1000 + Math.random() * 9000).toString();
+  const normalizedEmail = email.toLowerCase().trim();
 
-  const state: OTPState = {
-    email: email.toLowerCase(),
-    code,
-    expiresAt: Date.now() + OTP_EXPIRY_MS,
-    attempts: 0,
-    sentAt: Date.now(),
-  };
-
-  await AsyncStorage.setItem(OTP_KEY, JSON.stringify(state));
-
+  // Call send-otp Edge Function — it generates the code server-side.
   const res = await fetch(`${SUPABASE_URL}/functions/v1/send-otp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: email.toLowerCase(), code }),
+    body: JSON.stringify({ email: normalizedEmail }),
   });
 
   if (!res.ok) {
-    await AsyncStorage.removeItem(OTP_KEY);
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error ?? 'Failed to send verification email.');
+    throw new Error((err as { error?: string }).error ?? 'Failed to send verification email.');
   }
+
+  // Store only the send timestamp for cooldown purposes.
+  const state: OTPState = {
+    email: normalizedEmail,
+    sentAt: Date.now(),
+  };
+  await AsyncStorage.setItem(OTP_KEY, JSON.stringify(state));
 }
 
-export async function verifyOTP(
-  inputCode: string,
-): Promise<{ success: boolean; error?: string }> {
-  const raw = await AsyncStorage.getItem(OTP_KEY);
-  if (!raw) {
-    return { success: false, error: 'No code found. Please request a new one.' };
-  }
-
-  const state: OTPState = JSON.parse(raw);
-
-  // App Store review bypass
-  if (state.email === BYPASS_EMAIL && inputCode === BYPASS_CODE) {
-    await AsyncStorage.removeItem(OTP_KEY);
-    return { success: true };
-  }
-
-  if (Date.now() > state.expiresAt) {
-    await AsyncStorage.removeItem(OTP_KEY);
-    return { success: false, error: 'Code expired. Please request a new one.' };
-  }
-
-  if (state.attempts >= MAX_ATTEMPTS) {
-    return { success: false, error: 'Too many attempts. Please request a new code.' };
-  }
-
-  if (inputCode !== state.code) {
-    await AsyncStorage.setItem(
-      OTP_KEY,
-      JSON.stringify({ ...state, attempts: state.attempts + 1 }),
-    );
-    const remaining = MAX_ATTEMPTS - (state.attempts + 1);
-    return {
-      success: false,
-      error: `Incorrect code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`,
-    };
-  }
-
-  await AsyncStorage.removeItem(OTP_KEY);
-  return { success: true };
-}
-
+/**
+ * Check if the user can resend the OTP (respects the 1-minute cooldown).
+ */
 export async function canResend(): Promise<boolean> {
   const raw = await AsyncStorage.getItem(OTP_KEY);
   if (!raw) return true;
@@ -94,11 +56,17 @@ export async function canResend(): Promise<boolean> {
   return Date.now() - state.sentAt >= RESEND_COOLDOWN_MS;
 }
 
+/**
+ * Get the stored OTP state (for UI to show resend status).
+ */
 export async function getOTPState(): Promise<OTPState | null> {
   const raw = await AsyncStorage.getItem(OTP_KEY);
   return raw ? (JSON.parse(raw) as OTPState) : null;
 }
 
+/**
+ * Clear OTP state from AsyncStorage.
+ */
 export async function clearOTP(): Promise<void> {
   await AsyncStorage.removeItem(OTP_KEY);
 }

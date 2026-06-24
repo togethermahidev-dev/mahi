@@ -8,8 +8,9 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import { env } from '@/lib/env';
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+const SUPABASE_URL = env.supabaseUrl;
 
 export async function signIn(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password });
@@ -20,14 +21,22 @@ export async function signOut() {
 }
 
 /**
- * Creates a confirmed auth user via the admin API (Edge Function),
- * then immediately signs them in to obtain a session.
+ * Complete signup: verify the OTP and create a confirmed auth user.
+ *
+ * Body: { email, password, code }
+ * - email: user's email
+ * - password: user's password (8+ chars)
+ * - code: OTP sent to the email
+ *
+ * The Edge Function verifies the code server-side before creating the auth
+ * user with email_confirm: true, then deletes the OTP record. This makes OTP
+ * verification mandatory and server-authoritative.
  */
-export async function completeSignup(email: string, password: string) {
+export async function completeSignup(email: string, password: string, code: string) {
   const response = await fetch(`${SUPABASE_URL}/functions/v1/complete-signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, code }),
   });
 
   if (!response.ok) {

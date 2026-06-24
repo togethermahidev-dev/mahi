@@ -6,14 +6,19 @@
  * Next.js API routes (e.g. POST /api/email/send-otp) — nothing else changes.
  */
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+import { env } from '@/lib/env';
 
-/** Send a 6-digit OTP to the given email address via Resend. */
-export async function sendOtp(email: string, code: string) {
+const SUPABASE_URL = env.supabaseUrl;
+
+/**
+ * Send an OTP to the given email address via Resend.
+ * The server generates the code and sends it — the code is NEVER passed by the client.
+ */
+export async function sendOtp(email: string) {
   const response = await fetch(`${SUPABASE_URL}/functions/v1/send-otp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, code }),
+    body: JSON.stringify({ email }),
   });
 
   if (!response.ok) {
