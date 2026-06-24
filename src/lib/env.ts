@@ -9,6 +9,9 @@
  */
 
 function required(name: string): string {
+  // env.ts is the single sanctioned reader of process.env; the dynamic lookup is
+  // intentional here (every other module imports the typed `env` below instead).
+  // eslint-disable-next-line expo/no-dynamic-env-var
   const value = process.env[name];
   if (!value) {
     throw new Error(
