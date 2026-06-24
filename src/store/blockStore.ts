@@ -1,9 +1,5 @@
 import { create } from 'zustand';
-import {
-  blockUser   as apiBlock,
-  unblockUser as apiUnblock,
-  getBlockedIds,
-} from '@/api';
+import { blockUser as apiBlock, unblockUser as apiUnblock, getBlockedIds } from '@/api';
 import { Sentry } from '@/lib/sentry';
 import { useFeedStore } from '@/store/feedStore';
 import { useMessagesStore } from '@/store/messagesStore';
@@ -11,16 +7,18 @@ import { useFollowStore } from '@/store/followStore';
 
 interface BlockState {
   /** All user IDs invisible to the current user (blocked by me + blocked me). */
-  blockedSet:  Set<string>;
+  blockedSet: Set<string>;
   /** IDs I have explicitly blocked (subset — needed for "Block" vs "Unblock" UI). */
   blockedByMe: Set<string>;
+  /** True while a sync is in flight — guards against duplicate concurrent fetches. */
+  isSyncing: boolean;
 
   /** Load blocked IDs on auth. Called once from App.tsx. */
-  sync:      (userId: string) => Promise<void>;
+  sync: (userId: string) => Promise<void>;
   /** Optimistic block with rollback. */
-  block:     (currentUserId: string, targetUserId: string) => Promise<{ error: Error | null }>;
+  block: (currentUserId: string, targetUserId: string) => Promise<{ error: Error | null }>;
   /** Optimistic unblock with rollback. */
-  unblock:   (currentUserId: string, targetUserId: string) => Promise<{ error: Error | null }>;
+  unblock: (currentUserId: string, targetUserId: string) => Promise<{ error: Error | null }>;
   /** Check if a user is in the blocked set (either direction). */
   isBlocked: (userId: string) => boolean;
 
@@ -28,24 +26,29 @@ interface BlockState {
 }
 
 export const useBlockStore = create<BlockState>((set, get) => ({
-  blockedSet:  new Set<string>(),
+  blockedSet: new Set<string>(),
   blockedByMe: new Set<string>(),
+  isSyncing: false,
 
   sync: async (userId) => {
-    const { data, error } = await getBlockedIds(userId);
-    if (error || !data) return;
+    if (get().isSyncing) return;
+    set({ isSyncing: true });
 
-    const blockedByMe = new Set(data.blockedByMe);
-    const blockedSet  = new Set([...data.blockedByMe, ...data.blockedMe]);
-    set({ blockedByMe, blockedSet });
+    const { data, error } = await getBlockedIds(userId);
+    if (!error && data) {
+      const blockedByMe = new Set(data.blockedByMe);
+      const blockedSet = new Set([...data.blockedByMe, ...data.blockedMe]);
+      set({ blockedByMe, blockedSet });
+    }
+    set({ isSyncing: false });
   },
 
   block: async (currentUserId, targetUserId) => {
-    const prevBlockedSet  = get().blockedSet;
+    const prevBlockedSet = get().blockedSet;
     const prevBlockedByMe = get().blockedByMe;
 
     // Optimistic update
-    const nextBlockedSet  = new Set(prevBlockedSet);
+    const nextBlockedSet = new Set(prevBlockedSet);
     const nextBlockedByMe = new Set(prevBlockedByMe);
     nextBlockedSet.add(targetUserId);
     nextBlockedByMe.add(targetUserId);
@@ -78,11 +81,11 @@ export const useBlockStore = create<BlockState>((set, get) => ({
   },
 
   unblock: async (currentUserId, targetUserId) => {
-    const prevBlockedSet  = get().blockedSet;
+    const prevBlockedSet = get().blockedSet;
     const prevBlockedByMe = get().blockedByMe;
 
     // Optimistic update
-    const nextBlockedSet  = new Set(prevBlockedSet);
+    const nextBlockedSet = new Set(prevBlockedSet);
     const nextBlockedByMe = new Set(prevBlockedByMe);
     nextBlockedSet.delete(targetUserId);
     nextBlockedByMe.delete(targetUserId);
@@ -111,5 +114,5 @@ export const useBlockStore = create<BlockState>((set, get) => ({
 
   isBlocked: (userId) => get().blockedSet.has(userId),
 
-  reset: () => set({ blockedSet: new Set(), blockedByMe: new Set() }),
+  reset: () => set({ blockedSet: new Set(), blockedByMe: new Set(), isSyncing: false }),
 }));

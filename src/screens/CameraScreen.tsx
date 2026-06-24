@@ -17,7 +17,12 @@ import {
   FlatList,
 } from 'react-native';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { BlurView } from 'expo-blur';
@@ -26,9 +31,17 @@ import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import Svg, { Path } from 'react-native-svg';
 import { decode } from 'base64-arraybuffer';
 import { useAuthStore, useUserStore, useFeedStore, useProfilePostsStore } from '@/store';
+import { useToastStore } from '@/store/toastStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { supabase } from '@/lib/supabase';
-import { createPost, recordUpload, searchProfiles, type TaggedUser, type FeedPost, type ProfileSearchResult } from '@/api';
+import {
+  createPost,
+  recordUpload,
+  searchProfiles,
+  type TaggedUser,
+  type FeedPost,
+  type ProfileSearchResult,
+} from '@/api';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import { Sentry } from '@/lib/sentry';
 
@@ -38,7 +51,7 @@ const PEEK_HEIGHT = 0;
 // ─── Midnight Countdown ───────────────────────────────────────────────────────
 
 function getMsUntilMidnight(): number {
-  const now  = new Date();
+  const now = new Date();
   const next = new Date(now);
   next.setHours(24, 0, 0, 0);
   return next.getTime() - now.getTime();
@@ -79,7 +92,7 @@ function MidnightCountdown({ onUnlock }: { onUnlock: () => void }) {
 // ─── Streak Badge ─────────────────────────────────────────────────────────────
 
 function StreakBadge({ count }: { count: number }) {
-  const scaleAnim   = useRef(new Animated.Value(4)).current;
+  const scaleAnim = useRef(new Animated.Value(4)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -101,10 +114,7 @@ function StreakBadge({ count }: { count: number }) {
 
   return (
     <Animated.View
-      style={[
-        styles.streakBadge,
-        { transform: [{ scale: scaleAnim }], opacity: opacityAnim },
-      ]}
+      style={[styles.streakBadge, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}
     >
       <Text style={styles.streakNumber}>{count}</Text>
       <Text style={styles.streakLabel}>DAY{'\n'}STREAK</Text>
@@ -168,9 +178,9 @@ function tagPillLabel(tagged: TaggedUser[]): string {
 
 interface DualPhotoPreviewProps {
   frontPhoto: CapturedPhoto | null;
-  rearPhoto:  CapturedPhoto | null;
-  onDiscard:  () => void;
-  onPost:     (front: CapturedPhoto, rear: CapturedPhoto) => void;
+  rearPhoto: CapturedPhoto | null;
+  onDiscard: () => void;
+  onPost: (front: CapturedPhoto, rear: CapturedPhoto) => void;
   isUploading: boolean;
   caption: string;
   onCaptionChange: (v: string) => void;
@@ -222,9 +232,9 @@ function DualPhotoPreview({
 
   // Frozen refs so image stays visible during slide-out animation
   const frozenFront = useRef<CapturedPhoto | null>(null);
-  const frozenRear  = useRef<CapturedPhoto | null>(null);
+  const frozenRear = useRef<CapturedPhoto | null>(null);
   if (frontPhoto !== null) frozenFront.current = frontPhoto;
-  if (rearPhoto  !== null) frozenRear.current  = rearPhoto;
+  if (rearPhoto !== null) frozenRear.current = rearPhoto;
 
   const hasPhotos = frontPhoto !== null && rearPhoto !== null;
   type ActiveSheet = 'none' | 'caption' | 'tag';
@@ -254,7 +264,7 @@ function DualPhotoPreview({
         useNativeDriver: true,
       }).start(() => {
         frozenFront.current = null;
-        frozenRear.current  = null;
+        frozenRear.current = null;
         setModalOpen(false);
         setActiveSheet('none');
         // Reset pip position for next time
@@ -302,7 +312,7 @@ function DualPhotoPreview({
   const pipTapGesture = Gesture.Tap()
     .runOnJS(true)
     .onEnd(() => {
-      setPrimaryFacing(f => (f === 'rear' ? 'front' : 'rear'));
+      setPrimaryFacing((f) => (f === 'rear' ? 'front' : 'rear'));
     });
 
   const pipGesture = Gesture.Race(pipPanGesture, pipTapGesture);
@@ -322,13 +332,9 @@ function DualPhotoPreview({
     ]);
   };
 
-  const primaryUri = primaryFacing === 'rear'
-    ? frozenRear.current?.uri
-    : frozenFront.current?.uri;
+  const primaryUri = primaryFacing === 'rear' ? frozenRear.current?.uri : frozenFront.current?.uri;
 
-  const pipUri = primaryFacing === 'rear'
-    ? frozenFront.current?.uri
-    : frozenRear.current?.uri;
+  const pipUri = primaryFacing === 'rear' ? frozenFront.current?.uri : frozenRear.current?.uri;
 
   return (
     <Modal
@@ -339,167 +345,165 @@ function DualPhotoPreview({
       onRequestClose={handleDiscard}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
-      <Animated.View
-        style={[styles.previewPanel, { transform: [{ translateX: slideAnim }] }]}
-      >
-        {/* Primary full-screen photo */}
-        {primaryUri && (
-          <Image
-            source={{ uri: primaryUri }}
-            style={StyleSheet.absoluteFillObject}
-            resizeMode="cover"
-          />
-        )}
+        <Animated.View style={[styles.previewPanel, { transform: [{ translateX: slideAnim }] }]}>
+          {/* Primary full-screen photo */}
+          {primaryUri && (
+            <Image
+              source={{ uri: primaryUri }}
+              style={StyleSheet.absoluteFillObject}
+              resizeMode="cover"
+            />
+          )}
 
-        {/* Tagged bubbles — read-only preview, anchored above the pill column.
+          {/* Tagged bubbles — read-only preview, anchored above the pill column.
             Rendered BEFORE the PIP so the draggable PIP paints on top. */}
-        <TaggedBubbleStack users={taggedUsers} style={{ left: 16, bottom: bubbleStackBottom }} />
+          <TaggedBubbleStack users={taggedUsers} style={{ left: 16, bottom: bubbleStackBottom }} />
 
-        {/* Pip — draggable, tap to swap */}
-        {pipUri && (
-          <GestureDetector gesture={pipGesture}>
-            <Reanimated.View style={[styles.pip, pipAnimStyle]}>
-              <Image
-                source={{ uri: pipUri }}
-                style={[StyleSheet.absoluteFillObject, { borderRadius: 12 }]}
-                resizeMode="cover"
-              />
-            </Reanimated.View>
-          </GestureDetector>
-        )}
+          {/* Pip — draggable, tap to swap */}
+          {pipUri && (
+            <GestureDetector gesture={pipGesture}>
+              <Reanimated.View style={[styles.pip, pipAnimStyle]}>
+                <Image
+                  source={{ uri: pipUri }}
+                  style={[StyleSheet.absoluteFillObject, { borderRadius: 12 }]}
+                  resizeMode="cover"
+                />
+              </Reanimated.View>
+            </GestureDetector>
+          )}
 
-        {/* Discard — top right */}
-        <TouchableOpacity
-          style={styles.discardButton}
-          activeOpacity={0.8}
-          onPress={handleDiscard}
-          disabled={isUploading}
-        >
-          <Text style={styles.discardX}>✕</Text>
-        </TouchableOpacity>
-
-        {/* Post — bottom center */}
-        <View style={styles.postButtonFloat}>
-          {/* Tag + Caption pills — inline. PIP may paint over this row. */}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: pillGap,
-              width: pillRowW,
-            }}
+          {/* Discard — top right */}
+          <TouchableOpacity
+            style={styles.discardButton}
+            activeOpacity={0.8}
+            onPress={handleDiscard}
+            disabled={isUploading}
           >
-            <TouchableOpacity
-              activeOpacity={0.85}
-              disabled={isUploading}
-              onPress={() => setActiveSheet('tag')}
-              style={{ flex: 1, marginRight: pillGap / 2 }}
+            <Text style={styles.discardX}>✕</Text>
+          </TouchableOpacity>
+
+          {/* Post — bottom center */}
+          <View style={styles.postButtonFloat}>
+            {/* Tag + Caption pills — inline. PIP may paint over this row. */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: pillGap,
+                width: pillRowW,
+              }}
             >
-              <BlurView intensity={40} tint="dark" style={styles.captionPill}>
-                <Text
-                  style={[styles.captionPillText, taggedUsers.length > 0 && { color: '#FFFFFF' }]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {tagPillLabel(taggedUsers)}
-                </Text>
-              </BlurView>
-            </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                disabled={isUploading}
+                onPress={() => setActiveSheet('tag')}
+                style={{ flex: 1, marginRight: pillGap / 2 }}
+              >
+                <BlurView intensity={40} tint="dark" style={styles.captionPill}>
+                  <Text
+                    style={[styles.captionPillText, taggedUsers.length > 0 && { color: '#FFFFFF' }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {tagPillLabel(taggedUsers)}
+                  </Text>
+                </BlurView>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                disabled={isUploading}
+                onPress={() => setActiveSheet('caption')}
+                style={{ flex: 1, marginLeft: pillGap / 2 }}
+              >
+                <BlurView intensity={40} tint="dark" style={styles.captionPill}>
+                  <Text
+                    style={[styles.captionPillText, caption.trim() && { color: '#FFFFFF' }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {caption.trim() || '＋ Add a caption'}
+                  </Text>
+                </BlurView>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
-              activeOpacity={0.85}
+              style={[styles.postButton, isUploading && { opacity: 0.5 }]}
+              activeOpacity={0.82}
               disabled={isUploading}
-              onPress={() => setActiveSheet('caption')}
-              style={{ flex: 1, marginLeft: pillGap / 2 }}
+              onPress={() => {
+                if (frozenFront.current && frozenRear.current) {
+                  onPost(frozenFront.current, frozenRear.current);
+                }
+              }}
             >
-              <BlurView intensity={40} tint="dark" style={styles.captionPill}>
-                <Text
-                  style={[styles.captionPillText, caption.trim() && { color: '#FFFFFF' }]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {caption.trim() || '＋ Add a caption'}
-                </Text>
-              </BlurView>
+              <Text style={styles.postButtonText}>POST</Text>
             </TouchableOpacity>
           </View>
+        </Animated.View>
 
-          <TouchableOpacity
-            style={[styles.postButton, isUploading && { opacity: 0.5 }]}
-            activeOpacity={0.82}
-            disabled={isUploading}
-            onPress={() => {
-              if (frozenFront.current && frozenRear.current) {
-                onPost(frozenFront.current, frozenRear.current);
-              }
-            }}
-          >
-            <Text style={styles.postButtonText}>POST</Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-
-      <CaptionSheet
-        visible={activeSheet === 'caption'}
-        initialValue={caption}
-        onClose={(committed) => {
-          onCaptionChange(committed);
-          setActiveSheet('none');
-        }}
-        onOpenTagAt={(atIndex, currentText) => {
-          // User typed `@` mid-caption. Commit the current text (with the
-          // `@` still in place) and hand off to TagSheet in single-shot mode.
-          onCaptionChange(currentText);
-          setCaptionAtIndex(atIndex);
-          setActiveSheet('tag');
-        }}
-      />
-
-      <TagSheet
-        visible={activeSheet === 'tag'}
-        initialSelected={taggedUsers}
-        singleShot={captionAtIndex !== null}
-        onCancel={() => {
-          // If we came from the caption `@` bridge, return to the caption
-          // sheet (the `@` stays in the text). Otherwise, close entirely.
-          if (captionAtIndex !== null) {
-            setCaptionAtIndex(null);
-            setActiveSheet('caption');
-          } else {
+        <CaptionSheet
+          visible={activeSheet === 'caption'}
+          initialValue={caption}
+          onClose={(committed) => {
+            onCaptionChange(committed);
             setActiveSheet('none');
-          }
-        }}
-        onCommit={(users) => {
-          if (captionAtIndex !== null && users.length > 0) {
-            // `@` bridge commit: splice `username ` right after the `@`
-            // at captionAtIndex, add the user to the taggedUsers list
-            // (deduped + capped), and reopen the caption sheet.
-            const picked = users[0];
-            const insertion = `${picked.username} `;
-            const spliced =
-              caption.slice(0, captionAtIndex + 1) +
-              insertion +
-              caption.slice(captionAtIndex + 1);
-            onCaptionChange(spliced);
+          }}
+          onOpenTagAt={(atIndex, currentText) => {
+            // User typed `@` mid-caption. Commit the current text (with the
+            // `@` still in place) and hand off to TagSheet in single-shot mode.
+            onCaptionChange(currentText);
+            setCaptionAtIndex(atIndex);
+            setActiveSheet('tag');
+          }}
+        />
 
-            const already = taggedUsers.some((u) => u.user_id === picked.user_id);
-            if (!already) {
-              if (taggedUsers.length >= MAX_TAGS) {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-              } else {
-                onTaggedUsersChange([...taggedUsers, picked]);
-              }
+        <TagSheet
+          visible={activeSheet === 'tag'}
+          initialSelected={taggedUsers}
+          singleShot={captionAtIndex !== null}
+          onCancel={() => {
+            // If we came from the caption `@` bridge, return to the caption
+            // sheet (the `@` stays in the text). Otherwise, close entirely.
+            if (captionAtIndex !== null) {
+              setCaptionAtIndex(null);
+              setActiveSheet('caption');
+            } else {
+              setActiveSheet('none');
             }
+          }}
+          onCommit={(users) => {
+            if (captionAtIndex !== null && users.length > 0) {
+              // `@` bridge commit: splice `username ` right after the `@`
+              // at captionAtIndex, add the user to the taggedUsers list
+              // (deduped + capped), and reopen the caption sheet.
+              const picked = users[0];
+              const insertion = `${picked.username} `;
+              const spliced =
+                caption.slice(0, captionAtIndex + 1) +
+                insertion +
+                caption.slice(captionAtIndex + 1);
+              onCaptionChange(spliced);
 
-            setCaptionAtIndex(null);
-            setActiveSheet('caption');
-          } else {
-            onTaggedUsersChange(users);
-            setActiveSheet('none');
-          }
-        }}
-      />
+              const already = taggedUsers.some((u) => u.user_id === picked.user_id);
+              if (!already) {
+                if (taggedUsers.length >= MAX_TAGS) {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                } else {
+                  onTaggedUsersChange([...taggedUsers, picked]);
+                }
+              }
+
+              setCaptionAtIndex(null);
+              setActiveSheet('caption');
+            } else {
+              onTaggedUsersChange(users);
+              setActiveSheet('none');
+            }
+          }}
+        />
       </GestureHandlerRootView>
     </Modal>
   );
@@ -508,9 +512,9 @@ function DualPhotoPreview({
 // ─── Caption Sheet ────────────────────────────────────────────────────────────
 
 interface CaptionSheetProps {
-  visible:      boolean;
+  visible: boolean;
   initialValue: string;
-  onClose:      (committed: string) => void;
+  onClose: (committed: string) => void;
   /** Fires when the user types `@` — parent closes this sheet and opens TagSheet. */
   onOpenTagAt?: (atIndex: number, currentText: string) => void;
 }
@@ -563,7 +567,9 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
             style={styles.sheetInput}
             value={draft}
             onChangeText={handleChangeText}
-            onSelectionChange={(e) => { cursorRef.current = e.nativeEvent.selection.end; }}
+            onSelectionChange={(e) => {
+              cursorRef.current = e.nativeEvent.selection.end;
+            }}
             placeholder="What's the story?"
             placeholderTextColor="rgba(232,232,227,0.45)"
             multiline
@@ -618,23 +624,23 @@ function TagUserRow({
 }
 
 interface TagSheetProps {
-  visible:         boolean;
+  visible: boolean;
   initialSelected: TaggedUser[];
-  onCancel:        () => void;
-  onCommit:        (users: TaggedUser[]) => void;
+  onCancel: () => void;
+  onCommit: (users: TaggedUser[]) => void;
   /**
    * When true, tapping a user immediately commits just that one user and
    * closes the sheet — used by the caption `@` bridge where picking is a
    * single-shot autocomplete, not multi-select.
    */
-  singleShot?:     boolean;
+  singleShot?: boolean;
 }
 
 function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: TagSheetProps) {
   const [selected, setSelected] = useState<TaggedUser[]>(initialSelected);
-  const [query, setQuery]       = useState('');
-  const [results, setResults]   = useState<ProfileSearchResult[]>([]);
-  const [loading, setLoading]   = useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<ProfileSearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reseed when the sheet re-opens; ignore changes to initialSelected while open.
@@ -651,22 +657,28 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const q = query.trim();
-    if (!q) { setResults([]); setLoading(false); return; }
+    if (!q) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     debounceRef.current = setTimeout(async () => {
       const { data } = await searchProfiles(q, 20);
       setResults(data ?? []);
       setLoading(false);
     }, 350);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [query]);
 
   const toggle = (u: ProfileSearchResult) => {
     const asTagged: TaggedUser = {
-      user_id:      u.id,
-      username:     u.username,
+      user_id: u.id,
+      username: u.username,
       display_name: u.display_name,
-      avatar_url:   u.avatar_url,
+      avatar_url: u.avatar_url,
     };
 
     // Single-shot mode: tap to immediately commit just this one user.
@@ -709,9 +721,11 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
 
           <View style={styles.sheetLabelRow}>
             <Text style={styles.sheetLabel}>TAG PEOPLE</Text>
-            {singleShot
-              ? null
-              : <Text style={styles.sheetCounter}>{selected.length}/{MAX_TAGS}</Text>}
+            {singleShot ? null : (
+              <Text style={styles.sheetCounter}>
+                {selected.length}/{MAX_TAGS}
+              </Text>
+            )}
           </View>
 
           <TextInput
@@ -732,9 +746,9 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
             keyboardShouldPersistTaps="handled"
             style={styles.tagResultsList}
             ListEmptyComponent={
-              query.trim() && !loading
-                ? <Text style={styles.tagEmptyText}>No users found.</Text>
-                : null
+              query.trim() && !loading ? (
+                <Text style={styles.tagEmptyText}>No users found.</Text>
+              ) : null
             }
             renderItem={({ item }) => (
               <TagUserRow
@@ -746,7 +760,11 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
           />
 
           {singleShot ? null : (
-            <TouchableOpacity style={styles.sheetDone} activeOpacity={0.85} onPress={() => onCommit(selected)}>
+            <TouchableOpacity
+              style={styles.sheetDone}
+              activeOpacity={0.85}
+              onPress={() => onCommit(selected)}
+            >
               <Text style={styles.sheetDoneText}>DONE</Text>
             </TouchableOpacity>
           )}
@@ -758,25 +776,30 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
 
 // ─── CameraScreen ─────────────────────────────────────────────────────────────
 
-type CaptureState = 'idle' | 'capturing-first' | 'switching' | 'awaiting-second' | 'capturing-second';
+type CaptureState =
+  | 'idle'
+  | 'capturing-first'
+  | 'switching'
+  | 'awaiting-second'
+  | 'capturing-second';
 
 export default function CameraScreen(): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const [micPermission,    requestMicPermission]    = useMicrophonePermissions();
+  const [micPermission, requestMicPermission] = useMicrophonePermissions();
   const cameraRef = useRef<CameraView>(null);
   const { dark } = useAppTheme();
 
-  const [facing,       setFacing]       = useState<'back' | 'front'>('back');
+  const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [captureState, setCaptureState] = useState<CaptureState>('idle');
-  const [isUploading,  setIsUploading]  = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const uploadingRef = useRef(false);
-  const [frontPhoto,   setFrontPhoto]   = useState<CapturedPhoto | null>(null);
-  const [rearPhoto,    setRearPhoto]    = useState<CapturedPhoto | null>(null);
-  const [caption,      setCaption]      = useState<string>('');
-  const [taggedUsers,  setTaggedUsers]  = useState<TaggedUser[]>([]);
+  const [frontPhoto, setFrontPhoto] = useState<CapturedPhoto | null>(null);
+  const [rearPhoto, setRearPhoto] = useState<CapturedPhoto | null>(null);
+  const [caption, setCaption] = useState<string>('');
+  const [taggedUsers, setTaggedUsers] = useState<TaggedUser[]>([]);
 
-  const userId     = useAuthStore((s) => s.user?.id);
-  const profile    = useUserStore((s) => s.profile);
+  const userId = useAuthStore((s) => s.user?.id);
+  const profile = useUserStore((s) => s.profile);
   const setProfile = useUserStore((s) => s.setProfile);
 
   const streakCount = profile?.streak_current ?? 0;
@@ -797,7 +820,7 @@ export default function CameraScreen(): React.JSX.Element {
     .onEnd(() => {
       if (captureState !== 'idle') return;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setFacing(f => f === 'back' ? 'front' : 'back');
+      setFacing((f) => (f === 'back' ? 'front' : 'back'));
     });
 
   useEffect(() => {
@@ -831,7 +854,7 @@ export default function CameraScreen(): React.JSX.Element {
   // Two-stage capture: tap 1 takes whichever camera is currently showing,
   // then flips to the other side for tap 2. The user picks their starting
   // side with the flip button before capturing.
-  const firstPhotoRef  = useRef<CapturedPhoto | null>(null);
+  const firstPhotoRef = useRef<CapturedPhoto | null>(null);
   const firstFacingRef = useRef<'back' | 'front'>('back');
 
   const captureFirst = async () => {
@@ -840,7 +863,7 @@ export default function CameraScreen(): React.JSX.Element {
     // Step 1: capture the current camera side
     setCaptureState('capturing-first');
     firstFacingRef.current = facing;
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 300));
     const photo = await takePhoto();
     if (!photo) {
       setCaptureState('idle');
@@ -851,7 +874,7 @@ export default function CameraScreen(): React.JSX.Element {
     // Step 2: flip to the other side and wait for the user to tap again
     setCaptureState('switching');
     setFacing(facing === 'back' ? 'front' : 'back');
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 800));
     setCaptureState('awaiting-second');
   };
 
@@ -894,7 +917,7 @@ export default function CameraScreen(): React.JSX.Element {
     uploadingRef.current = true;
     setIsUploading(true);
 
-    const tempId              = `pending_${Date.now()}`;
+    const tempId = `pending_${Date.now()}`;
     const optimisticStreakDay = profile.streak_current + 1;
     const captionValue = caption || null;
     const taggedUsersSnapshot = taggedUsers;
@@ -903,23 +926,23 @@ export default function CameraScreen(): React.JSX.Element {
 
     // Optimistic feed entry — use rear as primary display image
     useFeedStore.getState().addPending({
-      id:            tempId,
-      isPending:     true,
-      user_id:       userId,
-      image_url:     rear.uri,
+      id: tempId,
+      isPending: true,
+      user_id: userId,
+      image_url: rear.uri,
       pov_image_url: front.uri,
-      caption:       captionValue,
-      streak_day:    optimisticStreakDay,
-      created_at:    new Date().toISOString(),
-      like_count:    0,
+      caption: captionValue,
+      streak_day: optimisticStreakDay,
+      created_at: new Date().toISOString(),
+      like_count: 0,
       comment_count: 0,
-      liked_by_me:   false,
-      tagged_users:  taggedUsersSnapshot,
+      liked_by_me: false,
+      tagged_users: taggedUsersSnapshot,
       profiles: {
-        id:           userId,
-        username:     profile.username,
+        id: userId,
+        username: profile.username,
         display_name: profile.display_name,
-        avatar_url:   profile.avatar_url,
+        avatar_url: profile.avatar_url,
       },
     });
 
@@ -930,26 +953,32 @@ export default function CameraScreen(): React.JSX.Element {
     setTaggedUsers([]);
     setIsUploading(false);
 
-    let rearStoragePath:  string | null = null;
+    let rearStoragePath: string | null = null;
     let frontStoragePath: string | null = null;
 
     try {
-      const rearBuffer  = decode(rear.base64);
+      const rearBuffer = decode(rear.base64);
       const frontBuffer = decode(front.base64);
-      const timestamp   = Date.now();
-      rearStoragePath   = `${userId}/${timestamp}_${Math.random().toString(36).slice(2)}.jpg`;
-      frontStoragePath  = `${userId}/${timestamp}_${Math.random().toString(36).slice(2)}_pov.jpg`;
+      const timestamp = Date.now();
+      rearStoragePath = `${userId}/${timestamp}_${Math.random().toString(36).slice(2)}.jpg`;
+      frontStoragePath = `${userId}/${timestamp}_${Math.random().toString(36).slice(2)}_pov.jpg`;
 
       // Upload both in parallel
       const [rearUpload, frontUpload] = await Promise.all([
-        supabase.storage.from('posts').upload(rearStoragePath,  rearBuffer,  { contentType: 'image/jpeg', upsert: false }),
-        supabase.storage.from('posts').upload(frontStoragePath, frontBuffer, { contentType: 'image/jpeg', upsert: false }),
+        supabase.storage
+          .from('posts')
+          .upload(rearStoragePath, rearBuffer, { contentType: 'image/jpeg', upsert: false }),
+        supabase.storage
+          .from('posts')
+          .upload(frontStoragePath, frontBuffer, { contentType: 'image/jpeg', upsert: false }),
       ]);
-      if (rearUpload.error)  throw new Error(rearUpload.error.message);
+      if (rearUpload.error) throw new Error(rearUpload.error.message);
       if (frontUpload.error) throw new Error(frontUpload.error.message);
 
-      const rearUrl  = supabase.storage.from('posts').getPublicUrl(rearUpload.data.path).data.publicUrl;
-      const frontUrl = supabase.storage.from('posts').getPublicUrl(frontUpload.data.path).data.publicUrl;
+      const rearUrl = supabase.storage.from('posts').getPublicUrl(rearUpload.data.path)
+        .data.publicUrl;
+      const frontUrl = supabase.storage.from('posts').getPublicUrl(frontUpload.data.path)
+        .data.publicUrl;
 
       const { data: streakResult, error: streakErr } = await recordUpload(userId, today);
       if (streakErr) throw streakErr;
@@ -958,10 +987,10 @@ export default function CameraScreen(): React.JSX.Element {
 
       const { data: postData, error: postErr } = await createPost({
         userId,
-        imageUrl:    rearUrl,
+        imageUrl: rearUrl,
         povImageUrl: frontUrl,
-        streakDay:   confirmedStreakDay,
-        caption:     captionValue ?? undefined,
+        streakDay: confirmedStreakDay,
+        caption: captionValue ?? undefined,
         taggedUserIds: taggedUsersSnapshot.map((u) => u.user_id),
       });
       // createPost returns (data, error) where a non-null error with non-null
@@ -979,10 +1008,10 @@ export default function CameraScreen(): React.JSX.Element {
         useFeedStore.getState().confirmPending(tempId, {
           ...postData,
           profiles: {
-            id:           userId,
-            username:     profile.username,
+            id: userId,
+            username: profile.username,
             display_name: profile.display_name,
-            avatar_url:   profile.avatar_url,
+            avatar_url: profile.avatar_url,
           },
           tagged_users: taggedUsersSnapshot,
         } as FeedPost);
@@ -995,9 +1024,9 @@ export default function CameraScreen(): React.JSX.Element {
         if (current) {
           setProfile({
             ...current,
-            streak_current:          streakResult.streak_current,
-            streak_highest:          streakResult.streak_highest,
-            streak_lowest:           streakResult.streak_lowest,
+            streak_current: streakResult.streak_current,
+            streak_highest: streakResult.streak_highest,
+            streak_lowest: streakResult.streak_lowest,
             streak_last_upload_date: today,
           });
         }
@@ -1009,11 +1038,16 @@ export default function CameraScreen(): React.JSX.Element {
         extra: { userId },
       });
       useFeedStore.getState().removePending(tempId);
+      useToastStore.getState().show("Couldn't post — please try again");
       const current = useUserStore.getState().profile;
       if (current) setProfile({ ...current, streak_current: profile.streak_current });
       // Clean up any orphaned storage objects
       const toRemove = [rearStoragePath, frontStoragePath].filter(Boolean) as string[];
-      if (toRemove.length) supabase.storage.from('posts').remove(toRemove).catch(() => {});
+      if (toRemove.length)
+        supabase.storage
+          .from('posts')
+          .remove(toRemove)
+          .catch(() => {});
     } finally {
       uploadingRef.current = false;
     }
@@ -1031,17 +1065,16 @@ export default function CameraScreen(): React.JSX.Element {
   }
 
   const cameraGranted = cameraPermission.granted;
-  const micGranted    = micPermission.granted;
-  const shutterRing   = '#59c2d7';
-  const shutterFill   = '#59c2d7';
-  const flipColor     = '#FFFFFF';
+  const micGranted = micPermission.granted;
+  const shutterRing = '#59c2d7';
+  const shutterFill = '#59c2d7';
+  const flipColor = '#FFFFFF';
 
   const isCapturing = captureState !== 'idle';
   // The shutter is tappable in 'idle' (start) and 'awaiting-second' (take second shot).
   // Everything else is mid-capture and should be locked out.
   const shutterDisabled =
-    hasPostedToday ||
-    (captureState !== 'idle' && captureState !== 'awaiting-second');
+    hasPostedToday || (captureState !== 'idle' && captureState !== 'awaiting-second');
 
   if (!cameraGranted || !micGranted) {
     let message: string;
@@ -1054,8 +1087,8 @@ export default function CameraScreen(): React.JSX.Element {
     }
 
     const canAskCamera = !cameraGranted && cameraPermission.canAskAgain;
-    const canAskMic    = !micGranted    && micPermission.canAskAgain;
-    const canAskAny    = canAskCamera || canAskMic;
+    const canAskMic = !micGranted && micPermission.canAskAgain;
+    const canAskAny = canAskCamera || canAskMic;
 
     return (
       <View style={styles.root}>
@@ -1078,77 +1111,82 @@ export default function CameraScreen(): React.JSX.Element {
   // Capture state label shown while sequencing
   const secondLabel = facing === 'back' ? 'POV' : 'SELFIE';
   const captureLabel =
-    captureState === 'capturing-first'  ? 'CAPTURING...' :
-    captureState === 'switching'        ? 'SWITCHING...' :
-    captureState === 'awaiting-second'  ? `TAP FOR ${secondLabel}` :
-    captureState === 'capturing-second' ? 'CAPTURING...' : null;
+    captureState === 'capturing-first'
+      ? 'CAPTURING...'
+      : captureState === 'switching'
+        ? 'SWITCHING...'
+        : captureState === 'awaiting-second'
+          ? `TAP FOR ${secondLabel}`
+          : captureState === 'capturing-second'
+            ? 'CAPTURING...'
+            : null;
 
   return (
     <GestureDetector gesture={doubleTapToFlip}>
-    <View style={styles.root}>
-      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
+      <View style={styles.root}>
+        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
 
-      <StreakBadge count={streakCount} />
+        <StreakBadge count={streakCount} />
 
-      {isRestDay && !hasPostedToday && (
-        <Text style={styles.restDayLabel}>REST DAY</Text>
-      )}
+        {isRestDay && !hasPostedToday && <Text style={styles.restDayLabel}>REST DAY</Text>}
 
-      {/* Capture progress overlay */}
-      {captureLabel && (
-        <View style={styles.captureLabelWrap}>
-          <Text style={styles.captureLabel}>{captureLabel}</Text>
+        {/* Capture progress overlay */}
+        {captureLabel && (
+          <View style={styles.captureLabelWrap}>
+            <Text style={styles.captureLabel}>{captureLabel}</Text>
+          </View>
+        )}
+
+        {hasPostedToday && (
+          <MidnightCountdown
+            onUnlock={() => {
+              setProfile({ ...useUserStore.getState().profile! });
+            }}
+          />
+        )}
+
+        <View style={styles.controlsRow}>
+          <TouchableOpacity
+            style={[styles.flipButton, { opacity: captureState !== 'idle' ? 0.3 : 1 }]}
+            activeOpacity={0.7}
+            disabled={captureState !== 'idle'}
+            onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
+          >
+            <FlipIcon color={flipColor} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.shutterOuter,
+              {
+                borderColor: shutterRing,
+                shadowColor: dark ? '#000000' : '#1A1A17',
+                opacity: shutterDisabled ? 0.3 : 1,
+              },
+            ]}
+            activeOpacity={0.82}
+            disabled={shutterDisabled}
+            onPress={handleShutterPress}
+          >
+            <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
+          </TouchableOpacity>
+
+          {/* Spacer */}
+          <View style={styles.flipButton} />
         </View>
-      )}
 
-      {hasPostedToday && (
-        <MidnightCountdown onUnlock={() => {
-          setProfile({ ...useUserStore.getState().profile! });
-        }} />
-      )}
-
-      <View style={styles.controlsRow}>
-        <TouchableOpacity
-          style={[styles.flipButton, { opacity: captureState !== 'idle' ? 0.3 : 1 }]}
-          activeOpacity={0.7}
-          disabled={captureState !== 'idle'}
-          onPress={() => setFacing(f => f === 'back' ? 'front' : 'back')}
-        >
-          <FlipIcon color={flipColor} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.shutterOuter,
-            {
-              borderColor: shutterRing,
-              shadowColor: dark ? '#000000' : '#1A1A17',
-              opacity: shutterDisabled ? 0.3 : 1,
-            },
-          ]}
-          activeOpacity={0.82}
-          disabled={shutterDisabled}
-          onPress={handleShutterPress}
-        >
-          <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
-        </TouchableOpacity>
-
-        {/* Spacer */}
-        <View style={styles.flipButton} />
+        <DualPhotoPreview
+          frontPhoto={frontPhoto}
+          rearPhoto={rearPhoto}
+          onDiscard={handleDiscard}
+          onPost={uploadPhotos}
+          isUploading={isUploading}
+          caption={caption}
+          onCaptionChange={setCaption}
+          taggedUsers={taggedUsers}
+          onTaggedUsersChange={setTaggedUsers}
+        />
       </View>
-
-      <DualPhotoPreview
-        frontPhoto={frontPhoto}
-        rearPhoto={rearPhoto}
-        onDiscard={handleDiscard}
-        onPost={uploadPhotos}
-        isUploading={isUploading}
-        caption={caption}
-        onCaptionChange={setCaption}
-        taggedUsers={taggedUsers}
-        onTaggedUsersChange={setTaggedUsers}
-      />
-    </View>
     </GestureDetector>
   );
 }

@@ -1,11 +1,11 @@
 import * as Sentry from '@sentry/react-native';
+import { env } from '@/lib/env';
 
 export function initSentry() {
-  const env = process.env.EXPO_PUBLIC_APP_ENV ?? 'development';
-  const enabled = env === 'production';
+  const enabled = env.appEnv === 'production';
   Sentry.init({
-    dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-    environment: env,
+    dsn: env.sentryDsn ?? undefined,
+    environment: env.appEnv,
     enabled,
     tracesSampleRate: 1.0,
   });

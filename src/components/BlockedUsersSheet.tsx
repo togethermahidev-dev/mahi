@@ -21,7 +21,7 @@ import UserProfileScreen from '@/screens/UserProfileScreen';
 interface BlockedUsersSheetProps {
   visible: boolean;
   onClose: () => void;
-  dark:    boolean;
+  dark: boolean;
 }
 
 export default function BlockedUsersSheet({
@@ -32,16 +32,16 @@ export default function BlockedUsersSheet({
   const currentUserId = useAuthStore((s) => s.user?.id);
   const unblockAction = useBlockStore((s) => s.unblock);
 
-  const bg       = dark ? '#1C1C19' : '#FFFFFF';
-  const text     = dark ? '#E8E8E3' : '#1A1A17';
-  const muted    = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const border   = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.12)';
+  const bg = dark ? '#1C1C19' : '#FFFFFF';
+  const text = dark ? '#E8E8E3' : '#1A1A17';
+  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const border = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.12)';
   const avatarBg = dark ? '#2A2A27' : '#E8E8E3';
-  const inputBg  = dark ? '#2A2A27' : '#F0F0ED';
+  const inputBg = dark ? '#2A2A27' : '#F0F0ED';
 
-  const [users, setUsers]     = useState<BlockedUser[]>([]);
+  const [users, setUsers] = useState<BlockedUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [query, setQuery]     = useState('');
+  const [query, setQuery] = useState('');
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const fetchList = useCallback(async () => {
@@ -68,8 +68,7 @@ export default function BlockedUsersSheet({
     const q = query.toLowerCase();
     return users.filter(
       (u) =>
-        u.username.toLowerCase().includes(q) ||
-        (u.display_name?.toLowerCase().includes(q) ?? false),
+        u.username.toLowerCase().includes(q) || (u.display_name?.toLowerCase().includes(q) ?? false)
     );
   }, [users, query]);
 
@@ -88,7 +87,11 @@ export default function BlockedUsersSheet({
               setUsers((prev) => prev.filter((u) => u.blocked_id !== blockedUser.blocked_id));
 
               posthog.capture('user_unblocked', { unblocked_user_id: blockedUser.blocked_id });
-              Sentry.addBreadcrumb({ category: 'moderation', message: `Unblocked: ${blockedUser.blocked_id}`, level: 'info' });
+              Sentry.addBreadcrumb({
+                category: 'moderation',
+                message: `Unblocked: ${blockedUser.blocked_id}`,
+                level: 'info',
+              });
 
               const { error } = await unblockAction(currentUserId, blockedUser.blocked_id);
               if (error) {
@@ -97,10 +100,10 @@ export default function BlockedUsersSheet({
               }
             },
           },
-        ],
+        ]
       );
     },
-    [currentUserId, unblockAction, fetchList],
+    [currentUserId, unblockAction, fetchList]
   );
 
   return (
@@ -145,7 +148,6 @@ export default function BlockedUsersSheet({
           <FlashList
             data={filtered}
             keyExtractor={(item) => item.blocked_id}
-            estimatedItemSize={68}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ItemSeparatorComponent={() => (
@@ -153,7 +155,7 @@ export default function BlockedUsersSheet({
             )}
             renderItem={({ item }) => {
               const displayName = item.display_name ?? item.username ?? '\u2014';
-              const initials    = displayName[0]?.toUpperCase() ?? '?';
+              const initials = displayName[0]?.toUpperCase() ?? '?';
 
               return (
                 <View style={styles.row}>
@@ -165,7 +167,13 @@ export default function BlockedUsersSheet({
                     {item.avatar_url ? (
                       <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
                     ) : (
-                      <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}>
+                      <View
+                        style={[
+                          styles.avatar,
+                          styles.avatarFallback,
+                          { backgroundColor: avatarBg },
+                        ]}
+                      >
                         <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
                       </View>
                     )}
@@ -215,114 +223,114 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection:     'row',
-    alignItems:        'center',
-    paddingTop:        Platform.OS === 'ios' ? 60 : 32,
-    paddingBottom:     16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 60 : 32,
+    paddingBottom: 16,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
-    width:          36,
-    height:         36,
-    borderRadius:   18,
-    borderWidth:    1,
-    alignItems:     'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   backArrow: {
-    fontSize:   20,
+    fontSize: 20,
     fontFamily: 'JosefinSans_400Regular_Italic',
     lineHeight: 22,
   },
   headerTitle: {
-    flex:          1,
-    textAlign:     'center',
-    fontSize:      16,
-    fontFamily:    'JosefinSans_700Bold',
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 16,
+    fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 3,
   },
   searchWrap: {
     paddingHorizontal: 20,
-    paddingVertical:   12,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   searchInput: {
-    height:         40,
-    borderRadius:   20,
+    height: 40,
+    borderRadius: 20,
     paddingHorizontal: 16,
-    fontFamily:     'JosefinSans_400Regular_Italic',
-    fontSize:       14,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontSize: 14,
   },
   loadingWrap: {
-    flex:           1,
-    alignItems:     'center',
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   listContent: {
     paddingHorizontal: 20,
-    paddingVertical:   12,
+    paddingVertical: 12,
   },
   row: {
     flexDirection: 'row',
-    alignItems:    'center',
+    alignItems: 'center',
     paddingVertical: 12,
-    gap:           12,
+    gap: 12,
   },
   rowTappable: {
     flexDirection: 'row',
-    alignItems:    'center',
-    flex:          1,
-    gap:           12,
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
   },
   avatar: {
-    width:        44,
-    height:       44,
+    width: 44,
+    height: 44,
     borderRadius: 22,
   },
   avatarFallback: {
-    alignItems:     'center',
+    alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize:   18,
+    fontSize: 18,
     fontFamily: 'JosefinSans_700Bold',
   },
   rowText: {
     flex: 1,
-    gap:  2,
+    gap: 2,
   },
   name: {
-    fontFamily:    'JosefinSans_600SemiBold',
-    fontSize:      15,
+    fontFamily: 'JosefinSans_600SemiBold',
+    fontSize: 15,
     letterSpacing: 1,
   },
   handle: {
     fontFamily: 'JosefinSans_400Regular_Italic',
-    fontSize:   13,
+    fontSize: 13,
   },
   unblockBtn: {
-    borderWidth:       1,
-    borderRadius:      50,
+    borderWidth: 1,
+    borderRadius: 50,
     paddingHorizontal: 14,
-    paddingVertical:   6,
+    paddingVertical: 6,
   },
   unblockBtnText: {
-    fontSize:      10,
-    fontFamily:    'JosefinSans_700Bold',
+    fontSize: 10,
+    fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 2,
   },
   separator: {
     height: 1,
   },
   emptyWrap: {
-    flex:           1,
-    alignItems:     'center',
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingTop:     60,
+    paddingTop: 60,
   },
   emptyText: {
-    fontSize:   13,
+    fontSize: 13,
     fontFamily: 'JosefinSans_400Regular_Italic',
   },
 });

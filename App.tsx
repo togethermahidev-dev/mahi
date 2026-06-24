@@ -21,15 +21,44 @@ import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
 import HorizontalNavigator from '@/screens/HorizontalNavigator';
 import { supabase } from '@/lib/supabase';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useNotificationsStore, useProfilePostsStore, useFollowStore, useBlockStore } from '@/store';
+import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useNotificationsStore, useProfilePostsStore, useFollowStore, useBlockStore, useSocialStore } from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { getProfile, signOut } from '@/api';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ToastHost } from '@/components/ToastHost';
 
 // Prevent the native OS splash from auto-hiding before our custom one is drawn.
 SplashScreen.preventAutoHideAsync();
+
+/**
+ * Hydrate all per-user state after a session is established. Shared by the
+ * cold-start getSession() path and the onAuthStateChange path so the
+ * profile-fetch + store-sync logic lives in exactly one place. Each store sync
+ * guards against duplicate/concurrent work, so calling this twice on cold start
+ * (getSession + INITIAL_SESSION event) is safe.
+ */
+async function hydrateForUser(userId: string): Promise<void> {
+  try {
+    const { data } = await getProfile(userId);
+    if (data) {
+      if (data.is_banned) { signOut().catch(() => {}); return; }
+      useUserStore.getState().setProfile(data);
+    }
+  } catch (err) {
+    // Never let the profile fetch reject silently (e.g. revoked/expired session).
+    console.error('[App] hydrateForUser getProfile failed', err);
+    Sentry.captureException(err, { tags: { flow: 'auth', action: 'getProfile' } });
+  }
+
+  // Background-hydrate stores (non-blocking). Each guards against duplicate work.
+  useFeedStore.getState().sync();
+  useMessagesStore.getState().sync(userId);
+  useNotificationsStore.getState().sync(userId);
+  useBlockStore.getState().sync(userId);
+}
 
 export default function App(): React.JSX.Element {
   const [splashDone, setSplashDone] = useState(false);
@@ -53,20 +82,8 @@ export default function App(): React.JSX.Element {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setIsLoading(false);
-      // Load profile (including streak) into global store on cold-start restore
-      if (s?.user) {
-        getProfile(s.user.id).then(({ data }) => {
-          if (data) {
-            if (data.is_banned) { signOut().catch(() => {}); return; }
-            useUserStore.getState().setProfile(data);
-          }
-        });
-        // Background-hydrate feed + messages + notifications + blocks stores (non-blocking)
-        useFeedStore.getState().sync();
-        useMessagesStore.getState().sync(s.user.id);
-        useNotificationsStore.getState().sync(s.user.id);
-        useBlockStore.getState().sync(s.user.id);
-      }
+      // Load profile (+ streak) and hydrate stores on cold-start restore
+      if (s?.user) hydrateForUser(s.user.id);
     });
 
     const {
@@ -76,18 +93,7 @@ export default function App(): React.JSX.Element {
       setIsLoading(false);
 
       if (s?.user) {
-        // Keep profile (+ streak) in sync with auth state
-        getProfile(s.user.id).then(({ data }) => {
-          if (data) {
-            if (data.is_banned) { signOut().catch(() => {}); return; }
-            useUserStore.getState().setProfile(data);
-          }
-        });
-        // Background-hydrate feed + messages + notifications + blocks stores (non-blocking)
-        useFeedStore.getState().sync();
-        useMessagesStore.getState().sync(s.user.id);
-        useNotificationsStore.getState().sync(s.user.id);
-        useBlockStore.getState().sync(s.user.id);
+        hydrateForUser(s.user.id);
         Sentry.setUser({ id: s.user.id, email: s.user.email });
         posthog.identify(s.user.id, { email: s.user.email ?? null });
       } else {
@@ -98,6 +104,7 @@ export default function App(): React.JSX.Element {
         useProfilePostsStore.getState().reset();
         useFollowStore.getState().reset();
         useBlockStore.getState().reset();
+        useSocialStore.getState().reset();
         Sentry.setUser(null);
         posthog.reset();
       }
@@ -151,8 +158,11 @@ export default function App(): React.JSX.Element {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      {content}
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        {content}
+        <ToastHost />
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }

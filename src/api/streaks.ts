@@ -11,7 +11,17 @@ import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types';
 
 type StreakLog = Database['public']['Tables']['streak_logs']['Row'];
-type StreakResult = Database['public']['Functions']['record_upload_streak']['Returns'];
+
+/**
+ * Typed shape of the `record_upload_streak` RPC result.
+ * The generated type is `Json`; this narrows it to the actual contract so
+ * callers get typed streak fields. Keep in sync with the DB function.
+ */
+export interface StreakResult {
+  streak_current: number;
+  streak_highest: number;
+  streak_lowest: number | null;
+}
 
 /**
  * Record a camera upload for streak tracking.
@@ -23,7 +33,7 @@ type StreakResult = Database['public']['Functions']['record_upload_streak']['Ret
  */
 export async function recordUpload(
   userId: string,
-  date?: string,
+  date?: string
 ): Promise<{ data: StreakResult | null; error: Error | null }> {
   const args: { p_user_id: string; p_upload_date?: string } = {
     p_user_id: userId,
@@ -41,7 +51,7 @@ export async function recordUpload(
  * Useful for displaying a streak timeline or stats screen.
  */
 export async function getStreakLogs(
-  userId: string,
+  userId: string
 ): Promise<{ data: StreakLog[] | null; error: Error | null }> {
   const { data, error } = await supabase
     .from('streak_logs')
@@ -58,7 +68,7 @@ export async function getStreakLogs(
  * Returns null data (no error) if no active streak exists yet.
  */
 export async function getActiveStreak(
-  userId: string,
+  userId: string
 ): Promise<{ data: StreakLog | null; error: Error | null }> {
   const { data, error } = await supabase
     .from('streak_logs')
