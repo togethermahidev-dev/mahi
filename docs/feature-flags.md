@@ -60,8 +60,10 @@ user-scoped servers.
 
 - **Supabase MCP** — pinned to `--project-ref=pzepodsppqtvptzmwxzs` (the Mahi project); it cannot reach any other
   Supabase project.
-- **PostHog MCP** — `mcp-remote` to `https://eu.mcp.posthog.com/sse?project_id=130791`, authenticated with a
-  **personal API key (`phx_…`)**. The URL pins the Mahi project.
+- **PostHog MCP** — `mcp-remote` to `https://mcp.posthog.com/mcp?project_id=130791`, authenticated with a
+  **personal API key (`phx_…`)** passed via the `POSTHOG_AUTH_HEADER` env var. PostHog has a single MCP host
+  (`mcp.posthog.com`) that auto-routes to your data region (EU here) from the key — there is **no**
+  `eu.mcp.posthog.com` (that hostname has no DNS record). `?project_id=130791` pins the Mahi project.
 
 **Two PostHog keys, two purposes — never mix them:**
 - The app SDK uses the **public project key** (`phc_…`) via `EXPO_PUBLIC_POSTHOG_API_KEY` (safe to ship).
