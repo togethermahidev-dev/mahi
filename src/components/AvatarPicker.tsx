@@ -40,6 +40,7 @@ import {
   Alert,
   Image,
   Linking,
+  Modal,
   Platform,
   StyleSheet,
   Text,
@@ -244,14 +245,28 @@ export default function AvatarPicker({
 }: AvatarPickerProps): React.JSX.Element {
   const { uploading, localUri, handleEditPress } = useAvatarUpload(userId, onUpdate);
 
+  // Full-screen lightbox state — presentation only, so it stays in the component
+  // rather than the upload hook. Only opens when there is a real image to enlarge.
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
   // Show local optimistic preview while uploading, otherwise the persisted URL.
   const displayUri = localUri ?? avatarUrl;
 
+  const openLightbox = useCallback(() => {
+    console.log('[AvatarPicker] open lightbox');
+    setLightboxOpen(true);
+  }, []);
+  const closeLightbox = useCallback(() => setLightboxOpen(false), []);
+
   return (
     <View style={styles.container}>
-      {/* Avatar — image or person silhouette placeholder */}
+      {/* Avatar — image or person silhouette placeholder.
+          Tapping a real image opens the full-screen lightbox; the silhouette
+          fallback has nothing meaningful to enlarge, so its tap is disabled. */}
       {displayUri ? (
-        <Image source={{ uri: displayUri }} style={styles.avatar} />
+        <TouchableOpacity activeOpacity={0.9} onPress={openLightbox}>
+          <Image source={{ uri: displayUri }} style={styles.avatar} />
+        </TouchableOpacity>
       ) : (
         <View style={[styles.avatar, styles.fallback, { backgroundColor: colors.muted }]}>
           <Svg width={48} height={48} viewBox="0 0 24 24" fill="none">
@@ -276,7 +291,10 @@ export default function AvatarPicker({
         </View>
       )}
 
-      {/* Edit button — visible only to the profile owner, hidden while uploading */}
+      {/* Edit button — visible only to the profile owner, hidden while uploading.
+          Rendered as a sibling ON TOP of the avatar's TouchableOpacity (separate
+          absolute hit area) so its "+" tap opens the picker and is NOT swallowed
+          by the avatar's enlarge tap. */}
       {isSelf && !uploading && (
         <TouchableOpacity
           style={styles.editButton}
@@ -286,6 +304,39 @@ export default function AvatarPicker({
         >
           <Text style={styles.editPlus}>+</Text>
         </TouchableOpacity>
+      )}
+
+      {/* Full-screen lightbox — enlarged avatar on a dim scrim.
+          Always dismissable: tap the scrim, tap the ✕, or hardware back. */}
+      {displayUri && (
+        <Modal
+          visible={lightboxOpen}
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={closeLightbox}
+        >
+          <TouchableOpacity
+            style={styles.lightboxScrim}
+            activeOpacity={1}
+            onPress={closeLightbox}
+          >
+            <Image
+              source={{ uri: displayUri }}
+              style={styles.lightboxImage}
+              resizeMode="contain"
+            />
+            {/* Circular ✕ — independent dismiss affordance. */}
+            <TouchableOpacity
+              style={styles.lightboxClose}
+              activeOpacity={0.8}
+              onPress={closeLightbox}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.lightboxCloseX}>✕</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
       )}
     </View>
   );
@@ -339,6 +390,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 18,
     color: '#1A1A17',
+    fontFamily: 'JosefinSans_600SemiBold',
+  },
+
+  // ── Lightbox ──
+  lightboxScrim: {
+    flex: 1,
+    // Dim scrim, consistent with other backdrops in the app (e.g.
+    // RestDaysStreakPanel/StreakGridPanel use rgba(0,0,0,0.5)); darker here
+    // so the enlarged avatar reads as a focused lightbox.
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lightboxImage: {
+    width: '85%',
+    // Avatars are square (1:1) — keep the aspect so the enlarge stays circular-source.
+    aspectRatio: 1,
+    borderRadius: 16,
+  },
+  lightboxClose: {
+    position: 'absolute',
+    top: 56,
+    right: 24,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lightboxCloseX: {
+    fontSize: 18,
+    lineHeight: 20,
+    color: '#FFFFFF',
     fontFamily: 'JosefinSans_600SemiBold',
   },
 });
