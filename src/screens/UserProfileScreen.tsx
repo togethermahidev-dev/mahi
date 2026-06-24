@@ -24,6 +24,7 @@ import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
 import StreakGridPanel from '@/components/StreakGridPanel';
 import FollowListModal from '@/components/FollowListModal';
+import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostDetailModal from '@/components/PostDetailModal';
 import ConversationScreen from '@/screens/ConversationScreen';
@@ -108,6 +109,7 @@ export default function UserProfileScreen({
   const [selectedPost, setSelectedPost] = useState<
     Database['public']['Tables']['posts']['Row'] | null
   >(null);
+  const [suggestedUserId, setSuggestedUserId] = useState<string | null>(null);
 
   useEffect(() => {
     Animated.spring(translateX, {
@@ -479,6 +481,10 @@ export default function UserProfileScreen({
                 </TouchableOpacity>
               </View>
             ) : null}
+
+            {/* Suggested follows — syncs on mount, renders null when empty.
+                Excludes the profile being viewed so we never suggest this page. */}
+            <SuggestedFollowsStrip onPressUser={setSuggestedUserId} excludeUserId={userId} />
           </View>
 
           {/* Media grid */}
@@ -525,6 +531,16 @@ export default function UserProfileScreen({
       {/* Post detail — opened when a grid cell is tapped */}
       {selectedPost ? (
         <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />
+      ) : null}
+
+      {/* Suggested user's profile — opened from a suggestion card */}
+      {suggestedUserId ? (
+        <UserProfileScreen
+          key={suggestedUserId}
+          userId={suggestedUserId}
+          onBack={() => setSuggestedUserId(null)}
+          dark={dark}
+        />
       ) : null}
     </Animated.View>
   );

@@ -98,3 +98,29 @@ export async function getFollowData(
   if (!row) return { data: null, error: new Error('get_follow_data returned no rows') };
   return { data: row, error: null };
 }
+
+/** A suggested user to follow. Only public profile fields (the RPC enforces this). */
+export interface SuggestedUser {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  /** Number of mutual connections (follow-of-follows). Absent for popularity fallback. */
+  mutual_count?: number;
+}
+
+/** Fetch follow suggestions (follow-of-follows, block-filtered) via a single RPC. */
+export async function getSuggestedFollows(
+  currentUserId: string,
+  limit = 20,
+  offset = 0
+): Promise<{ data: SuggestedUser[] | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('get_suggested_follows', {
+    p_current_user_id: currentUserId,
+    p_limit: limit,
+    p_offset: offset,
+  });
+
+  if (error) return { data: null, error: new Error(error.message) };
+  return { data: (data ?? []) as SuggestedUser[], error: null };
+}

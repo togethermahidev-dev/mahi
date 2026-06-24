@@ -596,6 +596,16 @@ export type Database = {
           is_following: boolean;
         }[];
       };
+      get_suggested_follows: {
+        Args: { p_current_user_id: string; p_limit?: number; p_offset?: number };
+        Returns: {
+          avatar_url: string;
+          display_name: string;
+          id: string;
+          mutual_count: number;
+          username: string;
+        }[];
+      };
       record_upload_streak: {
         Args: { p_upload_date?: string; p_user_id: string };
         Returns: Json;

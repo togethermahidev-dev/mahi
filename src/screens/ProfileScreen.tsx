@@ -11,6 +11,8 @@ import { SettingsIcon } from '@/components/ScreenIcons';
 import AvatarPicker from '@/components/AvatarPicker';
 import RestDaysStreakPanel from '@/components/RestDaysStreakPanel';
 import FollowListModal from '@/components/FollowListModal';
+import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
+import UserProfileScreen from '@/screens/UserProfileScreen';
 import type { Database } from '@/types';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
@@ -28,6 +30,7 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
   const [followListOpen, setFollowListOpen] = useState(false);
   const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
   const [selectedPost, setSelectedPost] = useState<PostRow | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const bg = dark ? '#1C1C19' : '#FFFFFF';
   const text = dark ? '#E8E8E3' : '#1A1A17';
   const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
@@ -142,6 +145,9 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
             <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
           </View>
         </View>
+
+        {/* Suggested follows — syncs on mount, renders null when empty */}
+        <SuggestedFollowsStrip onPressUser={setProfileUserId} excludeUserId={userId} />
       </View>
 
       {/* Personal streak photo grid */}
@@ -182,6 +188,16 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
       {/* Post detail — opened when a grid cell is tapped */}
       {selectedPost ? (
         <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />
+      ) : null}
+
+      {/* Suggested user's profile — opened from a suggestion card */}
+      {profileUserId ? (
+        <UserProfileScreen
+          key={profileUserId}
+          userId={profileUserId}
+          onBack={() => setProfileUserId(null)}
+          dark={dark}
+        />
       ) : null}
     </View>
   );
