@@ -400,18 +400,30 @@ function PostItem({
         )}
 
         {/* ── Right-side action column (Reels / TikTok style) ── */}
+        {/* Icon SIZE is decoupled from HIT TARGET: glyphs stay small (~32px)
+            while each button is a ≥48×48 tappable area + generous hitSlop so
+            near-miss taps still register. Column raised (bottom:140) so the
+            buttons sit higher and clear of the caption row.
+            hitSlop is asymmetric (left:4) on purpose: the left edge faces the
+            draggable PiP's bottom-right snap zone, so we don't extend the hit
+            area that way — it grows up/down/right instead. */}
         <View style={styles.sideActions} pointerEvents="box-none">
-          <TouchableOpacity style={styles.sideActionBtn} onPress={handleLike} activeOpacity={0.7}>
-            <HeartIcon size={44} color="#FFFFFF" filled={likedByMe} />
+          <TouchableOpacity
+            style={styles.sideActionBtn}
+            onPress={handleLike}
+            activeOpacity={0.7}
+            hitSlop={{ top: 20, bottom: 20, left: 4, right: 20 }}
+          >
+            <HeartIcon size={32} color="#FFFFFF" filled={likedByMe} />
             <Text style={styles.sideActionCount}>{likeCount}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.sideActionBtn}
             onPress={handleCommentPress}
             activeOpacity={0.7}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            hitSlop={{ top: 20, bottom: 20, left: 4, right: 20 }}
           >
-            <CommentIcon size={42} color="#FFFFFF" />
+            <CommentIcon size={32} color="#FFFFFF" />
             <Text style={styles.sideActionCount}>{commentCount}</Text>
           </TouchableOpacity>
         </View>
@@ -822,12 +834,18 @@ const styles = StyleSheet.create({
   sideActions: {
     position: 'absolute',
     right: 12,
-    bottom: 100,
+    bottom: 140,
     alignItems: 'center',
     gap: 20,
   },
   sideActionBtn: {
+    // Hit target ≥48×48 (icon glyph stays ~32px, centered) so taps that
+    // land just outside the glyph still register. hitSlop adds up to 20px more
+    // on top/bottom/right (left kept tight to avoid the PiP snap zone).
+    minWidth: 48,
+    minHeight: 48,
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
   },
   sideActionCount: {
