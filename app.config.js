@@ -33,6 +33,13 @@ const config = {
       },
     ],
     [
+      'expo-location',
+      {
+        locationWhenInUsePermission:
+          'Mahi uses your location to optionally tag where a post was taken.',
+      },
+    ],
+    [
       '@sentry/react-native/expo',
       {
         organization: 'mahi-org',
@@ -59,6 +66,8 @@ const config = {
       NSCameraUsageDescription: 'Mahi uses the camera to power your fitness accountability features.',
       NSMicrophoneUsageDescription: 'Mahi uses the microphone to record your workout sessions.',
       NSPhotoLibraryUsageDescription: 'Mahi uses your photo library to let you share workout photos.',
+      NSLocationWhenInUseUsageDescription:
+        'Mahi uses your location to optionally tag where a post was taken.',
       NSUserTrackingUsageDescription: 'Mahi uses analytics to improve your fitness experience.',
     },
   },

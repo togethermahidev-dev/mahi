@@ -140,6 +140,13 @@ export async function getUserPosts(
  * Insert a new post record after a successful camera upload.
  * If `taggedUserIds` is provided, inserts corresponding rows into `post_tags`
  * after the post is created. RLS on `post_tags` verifies caller owns the post.
+ *
+ * `latitude`/`longitude` are optional per-post coordinates (explicit opt-in in
+ * the camera flow). They are only set when both are provided; otherwise the
+ * columns are left null so location-less posts stay valid. Coordinates are
+ * already rounded to ~city-block precision by `src/lib/location.ts` before they
+ * reach this layer — do NOT round again here. Anyone who can read the post can
+ * read its coordinates (they inherit the post's existing public read RLS).
  */
 export async function createPost(opts: {
   userId: string;
@@ -148,8 +155,14 @@ export async function createPost(opts: {
   caption?: string;
   povImageUrl?: string;
   taggedUserIds?: string[];
+  latitude?: number | null;
+  longitude?: number | null;
 }): Promise<{ data: PostRow | null; error: Error | null }> {
-  const { userId, imageUrl, streakDay, caption, povImageUrl, taggedUserIds } = opts;
+  const { userId, imageUrl, streakDay, caption, povImageUrl, taggedUserIds, latitude, longitude } =
+    opts;
+  // Only attach coordinates when BOTH are present — a half-set fix is dropped to
+  // null so we never persist a lone lat or lng. `?? null` normalises undefined.
+  const hasCoords = latitude != null && longitude != null;
   const { data, error } = await supabase
     .from('posts')
     .insert({
@@ -158,6 +171,8 @@ export async function createPost(opts: {
       streak_day: streakDay,
       caption,
       pov_image_url: povImageUrl ?? null,
+      latitude: hasCoords ? latitude : null,
+      longitude: hasCoords ? longitude : null,
     })
     .select()
     .single();

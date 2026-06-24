@@ -44,6 +44,7 @@ import {
 } from '@/api';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import { Sentry } from '@/lib/sentry';
+import { requestLocationPermission, getCurrentLocation } from '@/lib/location';
 
 // Must match PEEK_HEIGHT in VerticalNavigator.tsx
 const PEEK_HEIGHT = 0;
@@ -213,6 +214,12 @@ interface DualPhotoPreviewProps {
   onCaptionChange: (v: string) => void;
   taggedUsers: TaggedUser[];
   onTaggedUsersChange: (users: TaggedUser[]) => void;
+  /** Per-post location toggle. Default OFF — explicit opt-in, never silent. */
+  locationEnabled: boolean;
+  /** Toggle the per-post location pill. On the first enable this triggers the
+   *  native permission prompt (asked once, cached) and may settle back to OFF
+   *  if the user denies. */
+  onToggleLocation: () => void;
 }
 
 function DualPhotoPreview({
@@ -225,6 +232,8 @@ function DualPhotoPreview({
   onCaptionChange,
   taggedUsers,
   onTaggedUsersChange,
+  locationEnabled,
+  onToggleLocation,
 }: DualPhotoPreviewProps) {
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const [modalOpen, setModalOpen] = useState(false);
@@ -595,6 +604,43 @@ function DualPhotoPreview({
                     ellipsizeMode="tail"
                   >
                     {caption.trim() || '＋ Add a caption'}
+                  </Text>
+                </BlurView>
+              </TouchableOpacity>
+            </View>
+
+            {/* Per-post location pill — default OFF (explicit opt-in). First tap
+              ON triggers the native permission prompt (asked once, cached in
+              lib/location.ts); a denial silently leaves it OFF. When ON the pill
+              fills with the theme accent so the opt-in state is unmistakable.
+              Posting never depends on this succeeding — the upload handler
+              degrades to null coords on deny/failure. */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: pillGap,
+                width: pillRowW,
+              }}
+            >
+              <TouchableOpacity
+                activeOpacity={0.85}
+                disabled={isUploading}
+                onPress={onToggleLocation}
+                style={{ flex: 1 }}
+              >
+                <BlurView
+                  intensity={40}
+                  tint="dark"
+                  style={[styles.captionPill, locationEnabled && styles.locationPillActive]}
+                >
+                  <Text
+                    style={[styles.captionPillText, locationEnabled && { color: '#FFFFFF' }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {locationEnabled ? '📍 Location on' : '📍 Add location'}
                   </Text>
                 </BlurView>
               </TouchableOpacity>
@@ -978,6 +1024,10 @@ export default function CameraScreen(): React.JSX.Element {
   const [rearPhoto, setRearPhoto] = useState<CapturedPhoto | null>(null);
   const [caption, setCaption] = useState<string>('');
   const [taggedUsers, setTaggedUsers] = useState<TaggedUser[]>([]);
+  // Per-post location opt-in. Default OFF — we NEVER attach coordinates unless
+  // the user explicitly turns this on for the current post. Reset after each
+  // post / discard so location never silently carries over.
+  const [locationEnabled, setLocationEnabled] = useState(false);
 
   const userId = useAuthStore((s) => s.user?.id);
   const profile = useUserStore((s) => s.profile);
@@ -1131,6 +1181,24 @@ export default function CameraScreen(): React.JSX.Element {
     }
   };
 
+  // Toggle the per-post location opt-in. Turning OFF is instant. Turning ON the
+  // FIRST time triggers the native permission prompt via lib/location.ts (asked
+  // once, decision cached in AsyncStorage — re-enabling later never re-prompts).
+  // A denial leaves the toggle OFF so the UI reflects the real grant state and
+  // we never imply we'll attach coords we can't get. Never throws.
+  const handleToggleLocation = async () => {
+    if (locationEnabled) {
+      setLocationEnabled(false);
+      return;
+    }
+    Haptics.selectionAsync();
+    // requestLocationPermission caches the decision; first call prompts, later
+    // calls return the cached grant/deny without re-prompting.
+    const granted = await requestLocationPermission();
+    console.log('[CameraScreen] location toggle requested permission', { granted });
+    setLocationEnabled(granted);
+  };
+
   // Upload both photos, create post
   const uploadPhotos = async (front: CapturedPhoto, rear: CapturedPhoto) => {
     if (!userId || !profile) return;
@@ -1142,6 +1210,8 @@ export default function CameraScreen(): React.JSX.Element {
     const optimisticStreakDay = profile.streak_current + 1;
     const captionValue = caption || null;
     const taggedUsersSnapshot = taggedUsers;
+    // Snapshot the location opt-in for THIS post before we reset UI state below.
+    const locationEnabledSnapshot = locationEnabled;
 
     setProfile({ ...profile, streak_current: optimisticStreakDay });
 
@@ -1154,6 +1224,11 @@ export default function CameraScreen(): React.JSX.Element {
       pov_image_url: front.uri,
       caption: captionValue,
       streak_day: optimisticStreakDay,
+      // Optimistic entry carries no coords — the per-post location fix is taken
+      // lazily right before createPost (below), and confirmPending later swaps in
+      // postData with the real (rounded) coordinates if location was opted in.
+      latitude: null,
+      longitude: null,
       created_at: new Date().toISOString(),
       like_count: 0,
       comment_count: 0,
@@ -1172,6 +1247,7 @@ export default function CameraScreen(): React.JSX.Element {
     setRearPhoto(null);
     setCaption('');
     setTaggedUsers([]);
+    setLocationEnabled(false);
     setIsUploading(false);
 
     let rearStoragePath: string | null = null;
@@ -1206,6 +1282,16 @@ export default function CameraScreen(): React.JSX.Element {
 
       const confirmedStreakDay = streakResult?.streak_current ?? optimisticStreakDay;
 
+      // Per-post location: ONLY when the user opted in for this post. getCurrentLocation
+      // returns null on denial, a too-coarse fix, or any error — and it already
+      // rounds to ~city-block precision. A null here means we post with no coords;
+      // location must NEVER block or crash the post.
+      let coords: { latitude: number; longitude: number } | null = null;
+      if (locationEnabledSnapshot) {
+        coords = await getCurrentLocation();
+        console.log('[CameraScreen] location for post', coords ? 'attached' : 'unavailable');
+      }
+
       const { data: postData, error: postErr } = await createPost({
         userId,
         imageUrl: rearUrl,
@@ -1213,6 +1299,8 @@ export default function CameraScreen(): React.JSX.Element {
         streakDay: confirmedStreakDay,
         caption: captionValue ?? undefined,
         taggedUserIds: taggedUsersSnapshot.map((u) => u.user_id),
+        latitude: coords?.latitude,
+        longitude: coords?.longitude,
       });
       // createPost returns (data, error) where a non-null error with non-null
       // data means "post created but tag insert failed". In that case we still
@@ -1279,6 +1367,7 @@ export default function CameraScreen(): React.JSX.Element {
     setRearPhoto(null);
     setCaption('');
     setTaggedUsers([]);
+    setLocationEnabled(false);
   };
 
   if (!cameraPermission || !micPermission) {
@@ -1471,6 +1560,8 @@ export default function CameraScreen(): React.JSX.Element {
           onCaptionChange={setCaption}
           taggedUsers={taggedUsers}
           onTaggedUsersChange={setTaggedUsers}
+          locationEnabled={locationEnabled}
+          onToggleLocation={handleToggleLocation}
         />
       </View>
     </GestureDetector>
@@ -1703,6 +1794,12 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.75)',
     fontSize: 13,
     fontFamily: 'JosefinSans_400Regular_Italic',
+  },
+  // Location pill in its opted-in (ON) state — fills with the accent so the
+  // explicit opt-in reads at a glance. Mirrors lensOptionActive's accent fill.
+  locationPillActive: {
+    backgroundColor: '#59c2d7',
+    borderColor: '#59c2d7',
   },
   // ── Caption bottom sheet
   sheetFlex: {

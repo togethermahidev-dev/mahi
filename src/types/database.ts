@@ -337,6 +337,8 @@ export type Database = {
           created_at: string;
           id: string;
           image_url: string;
+          latitude: number | null;
+          longitude: number | null;
           pov_image_url: string | null;
           streak_day: number;
           user_id: string;
@@ -346,6 +348,8 @@ export type Database = {
           created_at?: string;
           id?: string;
           image_url: string;
+          latitude?: number | null;
+          longitude?: number | null;
           pov_image_url?: string | null;
           streak_day: number;
           user_id: string;
@@ -355,6 +359,8 @@ export type Database = {
           created_at?: string;
           id?: string;
           image_url?: string;
+          latitude?: number | null;
+          longitude?: number | null;
           pov_image_url?: string | null;
           streak_day?: number;
           user_id?: string;

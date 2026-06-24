@@ -23,6 +23,13 @@
   `appreview@togethermahi.com` / `1234` backdoor was removed; it shipped a working credential in the
   production binary.)
 
+## Location / Privacy (per-post location)
+- Per-post location is **explicit opt-in** — never silent, and **never requested at onboarding**. Ask only on first use that needs it (e.g. a post attempt with location enabled), mirroring the camera-permission pattern.
+- The consent decision (`granted` / `denied`) is **cached locally in AsyncStorage** (`@mahi:location_consent`, via `src/lib/location.ts`) so the user is asked **once** — the OS remembers too, but the cache prevents re-prompt churn.
+- Coordinates are **rounded to ~city-block precision** (3 decimal places ≈ 110m) via `roundCoord` before they ever leave `location.ts`, to avoid exact-home exposure. Low-quality fixes (accuracy worse than ~100m) are **dropped** (`null`).
+- A one-shot `getCurrentPositionAsync` (Balanced accuracy) is used — **not** a watch — for battery. Denials/errors degrade to `null`/`false` and never throw to the caller; a post without location stays valid.
+- Coordinates inherit the **post's public-read RLS** — there is no separate authz on the columns, so **anyone who can see the post can see its (rounded) coordinates**. RLS is unchanged and must not be weakened.
+
 ## Camera / Upload Flow
 - Shutter captures only — no upload until user taps POST on the preview screen
 - Photo preview renders in a `Modal` that slides in from the right — never use `absoluteFillObject` inside the camera slot (conflicts with VerticalNavigator `overflow: hidden` and AppHeader overlay)
