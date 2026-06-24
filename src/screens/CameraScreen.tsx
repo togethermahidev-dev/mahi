@@ -152,6 +152,25 @@ function FlipIcon({ color }: { color: string }) {
   );
 }
 
+// ─── Lens selection (0.5× ultra-wide) ─────────────────────────────────────────
+// expo-camera exposes `selectedLens` (string, iOS only) for picking a physical
+// lens, and `zoom` (0..1) on both platforms. There is NO true sub-1× zoom: zoom
+// only narrows the FoV, so 0.5× (ultra-wide) is achievable ONLY by selecting the
+// ultra-wide lens. On iOS that lens is reported by getAvailableLensesAsync /
+// onAvailableLensesChanged as 'builtInUltraWideCamera'. On Android the lens list
+// comes back empty, so the helper returns null and the caller hides the control —
+// gracefully defaulting to 1× rather than faking a wide shot via zoom.
+//
+// This ONE helper is the entire iOS↔Android divergence: callers only ever ask
+// "is there an ultra-wide lens, and what's its id?" — they never branch on OS.
+function findUltraWideLens(lenses: string[]): string | null {
+  // iOS device-type identifiers (see Apple AVCaptureDevice.DeviceType). Match
+  // case-insensitively on the substring so we tolerate both the bare type and
+  // any vendor-prefixed variants the native module may surface.
+  const match = lenses.find((l) => l.toLowerCase().includes('ultrawide'));
+  return match ?? null;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -159,6 +178,14 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 interface CapturedPhoto {
   uri: string;
   base64: string;
+  /**
+   * Captured pixel width / height. > 1 means the shot was taken landscape
+   * (device turned sideways while the UI stayed portrait-locked — see
+   * `responsiveOrientationWhenOrientationLocked` on <CameraView>). Defaults to
+   * the portrait-ish ~0.75 a sensor yields when held upright. Used to render the
+   * preview PIP in the photo's true aspect instead of forcing a portrait box.
+   */
+  aspectRatio: number;
 }
 
 // ─── Dual Photo Preview ───────────────────────────────────────────────────────
@@ -205,6 +232,27 @@ function DualPhotoPreview({
   // Which photo is the full-screen background: 'rear' or 'front'
   const [primaryFacing, setPrimaryFacing] = useState<'rear' | 'front'>('rear');
 
+  // Frozen refs so image stays visible during slide-out animation. Declared
+  // here (before the PIP layout math) because pipH below reads the pip photo's
+  // aspect ratio off frozenFront/frozenRear.
+  const frozenFront = useRef<CapturedPhoto | null>(null);
+  const frozenRear = useRef<CapturedPhoto | null>(null);
+  if (frontPhoto !== null) frozenFront.current = frontPhoto;
+  if (rearPhoto !== null) frozenRear.current = rearPhoto;
+
+  // The PIP shows whichever photo is NOT the full-screen one. Its width is
+  // fixed (PIP_W); its height tracks that photo's true aspect so a landscape
+  // capture (taken with the phone sideways while the UI stayed portrait) renders
+  // wide-and-short instead of being center-cropped into a tall portrait box.
+  // Height is clamped to [PIP_W*0.6 .. PIP_H] so a very wide shot can't collapse
+  // to a sliver and a portrait shot can't exceed the original box. Falls back to
+  // the original portrait PIP_H when aspect is unknown.
+  const pipPhoto = primaryFacing === 'rear' ? frozenFront.current : frozenRear.current;
+  const pipAspect = pipPhoto?.aspectRatio && pipPhoto.aspectRatio > 0 ? pipPhoto.aspectRatio : null;
+  const pipH = pipAspect
+    ? Math.round(Math.max(PIP_W * 0.6, Math.min(PIP_W / pipAspect, PIP_H)))
+    : PIP_H;
+
   // Inline tag + caption pill row sits just above POST. The PIP is kept
   // strictly above this row (and thus above POST too) via a hard clamp on
   // the pan/snap Y bounds — leaves room to add more pills inline later
@@ -216,7 +264,9 @@ function DualPhotoPreview({
   const pillsB = SCREEN_HEIGHT - PEEK_HEIGHT - 32 - postBtnH - pillGap;
   const pillsT = pillsB - pillH;
   // Lowest Y the PIP's top-left is allowed to reach: 12pt above the pill row.
-  const pipMaxY = pillsT - PIP_H - 12;
+  // Uses the dynamic pipH so a shorter (landscape) PIP can sit a touch lower
+  // while still clearing the pill row and POST.
+  const pipMaxY = pillsT - pipH - 12;
   // Anchor for the TaggedBubbleStack in the preview — sit above the pill
   // row with a 16pt breathing gap. Derived so it can't drift from pills.
   const bubbleStackBottom = SCREEN_HEIGHT - pillsT + 16;
@@ -230,11 +280,32 @@ function DualPhotoPreview({
   const pipStartY = useSharedValue(defaultPipY);
   const pipScaleVal = useSharedValue(1);
 
-  // Frozen refs so image stays visible during slide-out animation
-  const frozenFront = useRef<CapturedPhoto | null>(null);
-  const frozenRear = useRef<CapturedPhoto | null>(null);
-  if (frontPhoto !== null) frozenFront.current = frontPhoto;
-  if (rearPhoto !== null) frozenRear.current = rearPhoto;
+  // Primary (full-screen) photo pinch-zoom state. scale in [MIN..MAX]; transX/Y
+  // pan the zoomed image but are clamped so it can never be dragged fully
+  // off-screen (see clampPrimaryPan). A double-tap resets all three to neutral.
+  const PRIMARY_MIN_SCALE = 1;
+  const PRIMARY_MAX_SCALE = 4;
+  const primaryScale = useSharedValue(1);
+  const primaryTransX = useSharedValue(0);
+  const primaryTransY = useSharedValue(0);
+  // Gesture-start anchors so successive pinch/pan deltas compose correctly.
+  const primaryStartScale = useSharedValue(1);
+  const primaryStartTransX = useSharedValue(0);
+  const primaryStartTransY = useSharedValue(0);
+
+  // Reset zoom to neutral (used on swap + on close). Worklet-safe.
+  const resetPrimaryZoom = (animated: boolean) => {
+    'worklet';
+    if (animated) {
+      primaryScale.value = withSpring(1, { damping: 18, stiffness: 160 });
+      primaryTransX.value = withSpring(0, { damping: 18, stiffness: 160 });
+      primaryTransY.value = withSpring(0, { damping: 18, stiffness: 160 });
+    } else {
+      primaryScale.value = 1;
+      primaryTransX.value = 0;
+      primaryTransY.value = 0;
+    }
+  };
 
   const hasPhotos = frontPhoto !== null && rearPhoto !== null;
   type ActiveSheet = 'none' | 'caption' | 'tag';
@@ -273,6 +344,10 @@ function DualPhotoPreview({
         pipStartX.value = defaultPipX;
         pipStartY.value = defaultPipY;
         pipScaleVal.value = 1;
+        // Reset primary zoom for next time.
+        primaryScale.value = 1;
+        primaryTransX.value = 0;
+        primaryTransY.value = 0;
         setPrimaryFacing('rear');
       });
     }
@@ -312,6 +387,8 @@ function DualPhotoPreview({
   const pipTapGesture = Gesture.Tap()
     .runOnJS(true)
     .onEnd(() => {
+      // Reset zoom so the newly-promoted photo starts at 1x (recommended).
+      resetPrimaryZoom(false);
       setPrimaryFacing((f) => (f === 'rear' ? 'front' : 'rear'));
     });
 
@@ -322,6 +399,93 @@ function DualPhotoPreview({
       { translateX: pipTransX.value },
       { translateY: pipTransY.value },
       { scale: pipScaleVal.value },
+    ],
+  }));
+
+  // ── Primary photo pinch-to-zoom + pan ─────────────────────────────────────
+  // Image fills the screen (resizeMode:cover). When scaled by `s`, the extra
+  // width/height beyond the screen is (s-1)*SCREEN_*; the image can travel half
+  // of that in each direction before an edge pulls inside the screen. Clamp pan
+  // to that range so the photo can never be dragged fully off-screen.
+  const clampPrimaryPan = (tx: number, ty: number, s: number) => {
+    'worklet';
+    const maxX = (Math.max(s, 1) - 1) * SCREEN_WIDTH * 0.5;
+    const maxY = (Math.max(s, 1) - 1) * SCREEN_HEIGHT * 0.5;
+    return {
+      x: Math.max(-maxX, Math.min(tx, maxX)),
+      y: Math.max(-maxY, Math.min(ty, maxY)),
+    };
+  };
+
+  const primaryPinchGesture = Gesture.Pinch()
+    .onStart(() => {
+      'worklet';
+      primaryStartScale.value = primaryScale.value;
+    })
+    .onUpdate((e) => {
+      'worklet';
+      const next = Math.max(
+        PRIMARY_MIN_SCALE,
+        Math.min(primaryStartScale.value * e.scale, PRIMARY_MAX_SCALE),
+      );
+      primaryScale.value = next;
+      // Re-clamp pan against the new scale so shrinking re-centers the edges.
+      const c = clampPrimaryPan(primaryTransX.value, primaryTransY.value, next);
+      primaryTransX.value = c.x;
+      primaryTransY.value = c.y;
+    })
+    .onEnd(() => {
+      'worklet';
+      if (primaryScale.value <= PRIMARY_MIN_SCALE) {
+        resetPrimaryZoom(true);
+      }
+    });
+
+  // Pan the zoomed image. Only meaningful while zoomed in; at 1x the clamp
+  // pins translation to 0 so it's a no-op and won't fight the PiP/swap.
+  const primaryPanGesture = Gesture.Pan()
+    .minPointers(1)
+    .maxPointers(1)
+    .onStart(() => {
+      'worklet';
+      primaryStartTransX.value = primaryTransX.value;
+      primaryStartTransY.value = primaryTransY.value;
+    })
+    .onUpdate((e) => {
+      'worklet';
+      const c = clampPrimaryPan(
+        primaryStartTransX.value + e.translationX,
+        primaryStartTransY.value + e.translationY,
+        primaryScale.value,
+      );
+      primaryTransX.value = c.x;
+      primaryTransY.value = c.y;
+    });
+
+  const primaryDoubleTapGesture = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd(() => {
+      'worklet';
+      resetPrimaryZoom(true);
+      runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
+    });
+
+  // Compose: pinch + pan run together (Simultaneous) so a two-finger pinch can
+  // also drag; double-tap is Exclusive (a completed double-tap shouldn't also
+  // register as the start of a pan). This stack lives on the full-screen photo's
+  // own GestureDetector; the PiP keeps its separate detector on the view painted
+  // on top, so touches on the PiP route to the PiP gesture and touches on the
+  // background route here — the two never compete for the same touch.
+  const primaryGesture = Gesture.Exclusive(
+    primaryDoubleTapGesture,
+    Gesture.Simultaneous(primaryPinchGesture, primaryPanGesture),
+  );
+
+  const primaryAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: primaryTransX.value },
+      { translateY: primaryTransY.value },
+      { scale: primaryScale.value },
     ],
   }));
 
@@ -346,23 +510,30 @@ function DualPhotoPreview({
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Animated.View style={[styles.previewPanel, { transform: [{ translateX: slideAnim }] }]}>
-          {/* Primary full-screen photo */}
+          {/* Primary full-screen photo — pinch to zoom, drag to pan when
+            zoomed, double-tap to reset. Lives behind the PIP/pills. */}
           {primaryUri && (
-            <Image
-              source={{ uri: primaryUri }}
-              style={StyleSheet.absoluteFillObject}
-              resizeMode="cover"
-            />
+            <GestureDetector gesture={primaryGesture}>
+              <Reanimated.View style={[StyleSheet.absoluteFillObject, primaryAnimStyle]}>
+                <Image
+                  source={{ uri: primaryUri }}
+                  style={StyleSheet.absoluteFillObject}
+                  resizeMode="cover"
+                />
+              </Reanimated.View>
+            </GestureDetector>
           )}
 
           {/* Tagged bubbles — read-only preview, anchored above the pill column.
             Rendered BEFORE the PIP so the draggable PIP paints on top. */}
           <TaggedBubbleStack users={taggedUsers} style={{ left: 16, bottom: bubbleStackBottom }} />
 
-          {/* Pip — draggable, tap to swap */}
+          {/* Pip — draggable, tap to swap. Height tracks the pip photo's aspect
+            (pipH) so a landscape shot shows wide-and-short, not cropped into a
+            portrait box. The clamp/snap math above uses the same pipH. */}
           {pipUri && (
             <GestureDetector gesture={pipGesture}>
-              <Reanimated.View style={[styles.pip, pipAnimStyle]}>
+              <Reanimated.View style={[styles.pip, { height: pipH }, pipAnimStyle]}>
                 <Image
                   source={{ uri: pipUri }}
                   style={[StyleSheet.absoluteFillObject, { borderRadius: 12 }]}
@@ -791,6 +962,16 @@ export default function CameraScreen(): React.JSX.Element {
 
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [captureState, setCaptureState] = useState<CaptureState>('idle');
+
+  // 0.5× ultra-wide lens (back camera only; pure capture config, not persisted).
+  // `availableLenses` is populated from the camera ref (iOS reports physical
+  // lenses; Android reports none). `ultraWideLens` is the ultra-wide lens id if
+  // this device has one — when null the toggle is hidden and we stay at 1×.
+  // `useUltraWide` is the user's current choice; we default to 1× because the
+  // ultra-wide lens distorts faces.
+  const [availableLenses, setAvailableLenses] = useState<string[]>([]);
+  const [useUltraWide, setUseUltraWide] = useState(false);
+  const ultraWideLens = findUltraWideLens(availableLenses);
   const [isUploading, setIsUploading] = useState(false);
   const uploadingRef = useRef(false);
   const [frontPhoto, setFrontPhoto] = useState<CapturedPhoto | null>(null);
@@ -835,20 +1016,60 @@ export default function CameraScreen(): React.JSX.Element {
     }
   }, [micPermission?.status]);
 
+  // Query the physical lenses for the active camera. On iOS this resolves to the
+  // device's lens ids (incl. ultra-wide on capable devices); on Android it
+  // resolves to [] (no per-lens selection) so the 0.5× control stays hidden.
+  // Fired from CameraView.onCameraReady and onAvailableLensesChanged so it stays
+  // correct across front/back flips. Guarded with a try/catch + mounted ref so a
+  // platform without the API never crashes the camera.
+  const refreshAvailableLenses = async () => {
+    try {
+      const lenses = (await cameraRef.current?.getAvailableLensesAsync?.()) ?? [];
+      setAvailableLenses(lenses);
+      console.log('[CameraScreen] available lenses', lenses);
+    } catch (err) {
+      console.log('[CameraScreen] getAvailableLensesAsync failed', err);
+      setAvailableLenses([]);
+    }
+  };
+
+  // If the ultra-wide lens isn't available for the current camera (e.g. after a
+  // flip to the selfie cam, or on a device without one), force back to 1× so we
+  // never pass an unsupported lens id to CameraView.
+  useEffect(() => {
+    if (!ultraWideLens && useUltraWide) {
+      setUseUltraWide(false);
+    }
+  }, [ultraWideLens, useUltraWide]);
+
   // Helper: take a photo from whatever camera is currently active
   const takePhoto = async (): Promise<CapturedPhoto | null> => {
     if (!cameraRef.current) return null;
     const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
     if (!photo?.uri) return null;
-    // Re-encode to bake EXIF orientation into pixel data
-    const { uri: normalizedUri } = await manipulateAsync(photo.uri, [], {
+    // Re-encode to bake EXIF orientation into pixel data. With
+    // `responsiveOrientationWhenOrientationLocked` on (iOS), a sideways-held
+    // device produces a landscape-EXIF shot even though the app stays
+    // portrait-locked; this manipulate step flattens that EXIF into the actual
+    // pixels, so the result's width/height already reflect the true orientation.
+    const {
+      uri: normalizedUri,
+      width,
+      height,
+    } = await manipulateAsync(photo.uri, [], {
       compress: 0.8,
       format: SaveFormat.JPEG,
     });
     const base64 = await FileSystem.readAsStringAsync(normalizedUri, {
       encoding: FileSystem.EncodingType.Base64,
     });
-    return { uri: normalizedUri, base64 };
+    // Derive aspect from the flattened pixels; fall back to the raw capture
+    // dims, then a portrait default, so a missing value never yields NaN/0.
+    const w = width || photo.width || 3;
+    const h = height || photo.height || 4;
+    const aspectRatio = h > 0 ? w / h : 0.75;
+    console.log('[CameraScreen] captured', { w, h, aspectRatio });
+    return { uri: normalizedUri, base64, aspectRatio };
   };
 
   // Two-stage capture: tap 1 takes whichever camera is currently showing,
@@ -1124,7 +1345,32 @@ export default function CameraScreen(): React.JSX.Element {
   return (
     <GestureDetector gesture={doubleTapToFlip}>
       <View style={styles.root}>
-        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
+        <CameraView
+          ref={cameraRef}
+          style={StyleSheet.absoluteFill}
+          facing={facing}
+          // 0.5× ultra-wide is a back-camera-only physical lens (iOS). Only pass
+          // a selectedLens when the user opted in AND we're on the back camera —
+          // never feed a back-cam lens id to the selfie cam. undefined ⇒ default
+          // wide-angle (1×). No-op on Android (selectedLens is iOS-only).
+          selectedLens={
+            facing === 'back' && useUltraWide && ultraWideLens ? ultraWideLens : undefined
+          }
+          onCameraReady={refreshAvailableLenses}
+          onAvailableLensesChanged={(e) => setAvailableLenses(e.lenses)}
+          // Landscape capture WITHOUT a global orientation unlock. The app stays
+          // portrait-locked (app.config.js orientation:'portrait' — every other
+          // screen + the hand-rolled navigators hardcode portrait dimensions, so
+          // a global unlock would break them). This iOS-only flag lets ONLY the
+          // camera sense physical tilt and bake the matching EXIF orientation into
+          // the shot: hold the phone sideways and you get a true landscape photo,
+          // while the camera chrome stays upright. No-op on Android (falls back to
+          // a portrait-aspect shot), no native dep, no prebuild required.
+          responsiveOrientationWhenOrientationLocked
+          onResponsiveOrientationChanged={(e) =>
+            console.log('[CameraScreen] responsive orientation', e.orientation)
+          }
+        />
 
         <StreakBadge count={streakCount} />
 
@@ -1143,6 +1389,46 @@ export default function CameraScreen(): React.JSX.Element {
               setProfile({ ...useUserStore.getState().profile! });
             }}
           />
+        )}
+
+        {/* 0.5× / 1× lens toggle — back camera only. Hidden entirely when the
+          device has no ultra-wide lens (Android, or older iPhones), so it never
+          offers an option we can't honour. Locked out mid-capture and after
+          today's post, matching the shutter/flip gating. Sits just above the
+          shutter row so it reads as a capture-config affordance. */}
+        {facing === 'back' && ultraWideLens && !hasPostedToday && (
+          <View style={styles.lensToggleWrap} pointerEvents="box-none">
+            <View style={styles.lensToggle}>
+              <TouchableOpacity
+                style={[styles.lensOption, !useUltraWide && styles.lensOptionActive]}
+                activeOpacity={0.8}
+                disabled={isCapturing}
+                onPress={() => {
+                  if (!useUltraWide) return;
+                  Haptics.selectionAsync();
+                  setUseUltraWide(false);
+                }}
+              >
+                <Text style={[styles.lensOptionText, !useUltraWide && styles.lensOptionTextActive]}>
+                  1×
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.lensOption, useUltraWide && styles.lensOptionActive]}
+                activeOpacity={0.8}
+                disabled={isCapturing}
+                onPress={() => {
+                  if (useUltraWide) return;
+                  Haptics.selectionAsync();
+                  setUseUltraWide(true);
+                }}
+              >
+                <Text style={[styles.lensOptionText, useUltraWide && styles.lensOptionTextActive]}>
+                  0.5×
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         )}
 
         <View style={styles.controlsRow}>
@@ -1306,6 +1592,42 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
+  },
+  // ── 0.5× / 1× lens toggle ──────────────────────────────────────────────────
+  lensToggleWrap: {
+    position: 'absolute',
+    bottom: PEEK_HEIGHT + 32 + 72 + 20, // above the shutter row (shutter is 72 tall)
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  lensToggle: {
+    flexDirection: 'row',
+    borderRadius: 20,
+    padding: 3,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  lensOption: {
+    minWidth: 44,
+    height: 30,
+    paddingHorizontal: 12,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lensOptionActive: {
+    backgroundColor: '#59c2d7',
+  },
+  lensOptionText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    fontFamily: 'JosefinSans_600SemiBold',
+    letterSpacing: 1,
+  },
+  lensOptionTextActive: {
+    color: '#FFFFFF',
   },
   // ── Preview panel ─────────────────────────────────────────────────────────
   previewPanel: {
