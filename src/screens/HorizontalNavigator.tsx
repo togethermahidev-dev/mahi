@@ -79,9 +79,11 @@ export default function HorizontalNavigator(): React.JSX.Element {
   return (
     <View style={styles.root} {...panResponder.panHandlers}>
       <Animated.View style={[styles.tape, { transform: [{ translateX: hTapeAnim }] }]}>
-        {/* Panel 0: Profile */}
+        {/* Panel 0: Profile — always mounted; `isActive` flips true when the
+            tape settles on index 0 so ProfileScreen can recover a raced/empty
+            first posts-sync (hand-rolled nav focus, not react-navigation). */}
         <View style={styles.panel}>
-          <ProfileScreen />
+          <ProfileScreen isActive={hIndex === 0} />
         </View>
 
         {/* Panel 1: VerticalNavigator (main content) — default visible panel */}

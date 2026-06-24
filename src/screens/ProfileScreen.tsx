@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { useAuthStore, useUserStore, useFollowStore } from '@/store';
 import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
@@ -14,7 +15,13 @@ import type { Database } from '@/types';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 
-export default function ProfileScreen(): React.JSX.Element {
+interface ProfileScreenProps {
+  // True when this panel is the active panel in HorizontalNavigator (index 0).
+  // Drives a focus re-sync of the posts grid to recover a raced/empty first load.
+  isActive?: boolean;
+}
+
+export default function ProfileScreen({ isActive = true }: ProfileScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [restDaysStreakOpen, setRestDaysStreakOpen] = useState(false);
@@ -29,6 +36,13 @@ export default function ProfileScreen(): React.JSX.Element {
   const profile = useUserStore((s) => s.profile);
   const setProfile = useUserStore((s) => s.setProfile);
   const userId = useAuthStore((s) => s.user?.id);
+
+  // Drive a focus-aware re-sync of the posts grid. ProfileScreen is always
+  // mounted (HorizontalNavigator index 0), so the grid's mount-only sync can't
+  // recover a raced/empty first load — passing `isActive` lets useProfilePosts
+  // re-sync when this panel becomes active and the store is empty/stale.
+  // The grid (ProfileMediaMap) reads the same singleton store, so it re-renders.
+  useProfilePosts(userId ?? '', isActive && !!userId);
 
   const followerCount = useFollowStore((s) => s.counts[userId ?? '']?.follower_count ?? 0);
   const followingCount = useFollowStore((s) => s.counts[userId ?? '']?.following_count ?? 0);

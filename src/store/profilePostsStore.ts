@@ -6,12 +6,42 @@ type PostRow = Database['public']['Tables']['posts']['Row'];
 
 const PAGE_SIZE = 30;
 
+// How long a successful sync stays "fresh" before a focus-driven re-sync is
+// allowed. Keeps swiping back to profile from re-fetching on every gesture
+// while still recovering from a raced/empty first load.
+export const PROFILE_POSTS_STALE_MS = 30_000;
+
+/**
+ * Pure predicate: should the profile-posts store re-sync when the panel
+ * becomes active? Re-sync only when the store is EMPTY (e.g. a raced first
+ * load returned nothing) or STALE (last successful sync older than `ttlMs`).
+ * Never re-sync while a sync is already in flight.
+ *
+ * Kept pure (no store/RN deps) so it is unit-testable in a node environment.
+ */
+export function shouldResync(args: {
+  isActive: boolean;
+  isSyncing: boolean;
+  postCount: number;
+  lastSyncedAt: number | null;
+  now: number;
+  ttlMs: number;
+}): boolean {
+  const { isActive, isSyncing, postCount, lastSyncedAt, now, ttlMs } = args;
+  if (!isActive || isSyncing) return false;
+  if (postCount === 0) return true;
+  if (lastSyncedAt === null) return true;
+  return now - lastSyncedAt >= ttlMs;
+}
+
 interface ProfilePostsState {
   userId: string | null;
   posts: PostRow[];
   cursor: ProfilePostCursor | undefined;
   hasMore: boolean;
   isSyncing: boolean;
+  // Timestamp (ms) of the last successful sync, used for staleness checks.
+  lastSyncedAt: number | null;
 
   sync: (userId: string, force?: boolean) => Promise<void>;
   loadMore: (userId: string) => Promise<void>;
@@ -25,14 +55,19 @@ export const useProfilePostsStore = create<ProfilePostsState>((set, get) => ({
   cursor: undefined,
   hasMore: true,
   isSyncing: false,
+  lastSyncedAt: null,
 
   sync: async (userId, force = false) => {
     const { isSyncing, posts, userId: currentUserId } = get();
     // If the userId changed, clear stale data and force a fresh fetch
     if (currentUserId !== userId) {
-      set({ userId, posts: [], cursor: undefined, hasMore: true });
+      set({ userId, posts: [], cursor: undefined, hasMore: true, lastSyncedAt: null });
       force = true;
     }
+    // Concurrency guard only — never block on `posts.length > 0` when the store
+    // is EMPTY, otherwise a raced/empty first load could never recover. Skip a
+    // redundant fetch only when we already have posts and the caller isn't
+    // forcing (e.g. a stale-driven re-sync passes force=true).
     if (isSyncing || (!force && posts.length > 0)) return;
     set({ isSyncing: true, userId });
 
@@ -46,7 +81,12 @@ export const useProfilePostsStore = create<ProfilePostsState>((set, get) => ({
       const cursor: ProfilePostCursor | undefined = data.length
         ? { ts: data.at(-1)!.created_at, id: data.at(-1)!.id }
         : undefined;
-      set({ posts: data, cursor, hasMore: data.length === PAGE_SIZE });
+      // An empty result keeps hasMore=true so a later focus can re-sync and
+      // recover; a full page means more may exist; a short page means done.
+      const hasMore = data.length === 0 ? true : data.length === PAGE_SIZE;
+      set({ posts: data, cursor, hasMore, lastSyncedAt: Date.now() });
+    } else if (error) {
+      console.log(`[profilePostsStore] sync error userId=${userId}`, error);
     }
     set({ isSyncing: false });
   },
@@ -82,5 +122,13 @@ export const useProfilePostsStore = create<ProfilePostsState>((set, get) => ({
       return { posts: [post, ...deduped] };
     }),
 
-  reset: () => set({ userId: null, posts: [], cursor: undefined, hasMore: true, isSyncing: false }),
+  reset: () =>
+    set({
+      userId: null,
+      posts: [],
+      cursor: undefined,
+      hasMore: true,
+      isSyncing: false,
+      lastSyncedAt: null,
+    }),
 }));
