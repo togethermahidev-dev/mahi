@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
+  Dimensions,
   View,
   Text,
   Image,
@@ -29,6 +31,8 @@ import type { ConversationPreview } from '@/api';
 import type { Database } from '@/types';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 interface UserProfileScreenProps {
   userId: string;
@@ -63,6 +67,11 @@ export default function UserProfileScreen({
   const onBackRef = useRef(onBack);
   onBackRef.current = onBack;
 
+  // Entrance animation: spring the overlay in from the right (SCREEN_WIDTH → 0)
+  // on mount so every caller (notifications, feed, search) gets the same motion
+  // for free. Same spring params as HorizontalNavigator page changes.
+  const translateX = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+
   // Block all gestures from leaking to HorizontalNavigator behind this screen.
   // A horizontal swipe dismisses the profile instead of navigating underneath.
   const gestureBlocker = useRef(
@@ -73,6 +82,11 @@ export default function UserProfileScreen({
       // The old () => true was stealing sloppy taps from child buttons.
       onMoveShouldSetPanResponder: (_e, { dx, dy }) =>
         Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 20,
+      // Race guard: if a dismiss swipe starts while the entrance spring is still
+      // running, freeze translateX at its current value so the overlay doesn't jump.
+      onPanResponderGrant: () => {
+        translateX.stopAnimation();
+      },
       onPanResponderRelease: (_e, { dx, vx }) => {
         if (Math.abs(dx) > 60 || Math.abs(vx) > 0.4) {
           onBackRef.current();
@@ -94,6 +108,16 @@ export default function UserProfileScreen({
   const [selectedPost, setSelectedPost] = useState<
     Database['public']['Tables']['posts']['Row'] | null
   >(null);
+
+  useEffect(() => {
+    Animated.spring(translateX, {
+      toValue: 0,
+      damping: 22,
+      stiffness: 160,
+      mass: 0.9,
+      useNativeDriver: true,
+    }).start();
+  }, [translateX]);
 
   useEffect(() => {
     if (currentUserId) loadFollowData(currentUserId, userId);
@@ -303,7 +327,10 @@ export default function UserProfileScreen({
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: bg }]} {...gestureBlocker.panHandlers}>
+    <Animated.View
+      style={[styles.root, { backgroundColor: bg, transform: [{ translateX }] }]}
+      {...gestureBlocker.panHandlers}
+    >
       {/* Back button — top-left */}
       <TouchableOpacity
         onPress={onBack}
@@ -499,7 +526,7 @@ export default function UserProfileScreen({
       {selectedPost ? (
         <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
