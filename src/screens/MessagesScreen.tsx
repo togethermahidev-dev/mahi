@@ -5,6 +5,9 @@ import { useMessages } from '@/hooks/useMessages';
 import { useAuthStore } from '@/store';
 import ConversationScreen from '@/screens/ConversationScreen';
 import MessageRequestsScreen from '@/screens/MessageRequestsScreen';
+import UserProfileScreen from '@/screens/UserProfileScreen';
+import GlobalSearchOverlay from '@/components/GlobalSearchOverlay';
+import { SearchIcon } from '@/components/ScreenIcons';
 import type { ConversationPreview } from '@/api';
 
 function relativeTime(iso: string): string {
@@ -20,12 +23,14 @@ function relativeTime(iso: string): string {
 function ConvoRow({
   item,
   onPress,
+  onAvatarPress,
   text,
   muted,
   border,
 }: {
   item: ConversationPreview;
   onPress: () => void;
+  onAvatarPress: () => void;
   text: string;
   muted: string;
   border: string;
@@ -38,27 +43,41 @@ function ConvoRow({
       : item.last_message.content
     : '';
 
+  // Avatar and body are SIBLINGS (not nested pressables) so the touch targets
+  // don't overlap: tapping the avatar opens the profile, tapping the rest of
+  // the row opens the conversation. No dead zone between them.
   return (
-    <TouchableOpacity
-      style={[styles.convoRow, { borderBottomColor: border }]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      {item.other_profile.avatar_url ? (
-        <Image source={{ uri: item.other_profile.avatar_url }} style={styles.convoAvatar} />
-      ) : (
-        <View style={[styles.convoAvatar, styles.convoAvatarFallback, { backgroundColor: muted }]}>
-          <Text style={[styles.convoInitial, { color: text }]}>{initials}</Text>
+    <View style={[styles.convoRow, { borderBottomColor: border }]}>
+      <TouchableOpacity
+        onPress={onAvatarPress}
+        activeOpacity={0.7}
+        hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+      >
+        {item.other_profile.avatar_url ? (
+          <Image source={{ uri: item.other_profile.avatar_url }} style={styles.convoAvatar} />
+        ) : (
+          <View
+            style={[styles.convoAvatar, styles.convoAvatarFallback, { backgroundColor: muted }]}
+          >
+            <Text style={[styles.convoInitial, { color: text }]}>{initials}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.convoBody}
+        onPress={onPress}
+        activeOpacity={0.7}
+        hitSlop={{ top: 14, bottom: 14, right: 8 }}
+      >
+        <View style={styles.convoInfo}>
+          <Text style={[styles.convoName, { color: text }]}>{name}</Text>
+          {preview ? <Text style={[styles.convoPreview, { color: muted }]}>{preview}</Text> : null}
         </View>
-      )}
 
-      <View style={styles.convoInfo}>
-        <Text style={[styles.convoName, { color: text }]}>{name}</Text>
-        {preview ? <Text style={[styles.convoPreview, { color: muted }]}>{preview}</Text> : null}
-      </View>
-
-      <Text style={[styles.convoTime, { color: muted }]}>{relativeTime(item.updated_at)}</Text>
-    </TouchableOpacity>
+        <Text style={[styles.convoTime, { color: muted }]}>{relativeTime(item.updated_at)}</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -75,6 +94,9 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
 
   const [openConvo, setOpenConvo] = useState<ConversationPreview | null>(null);
   const [showRequests, setShowRequests] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
+  // Profile overlay — mirrors FeedScreen's local overlay state (avatar → profile).
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const { inbox, requests, isLoading, refresh } = useMessages();
   const userId = useAuthStore((s) => s.user?.id);
@@ -102,9 +124,19 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
           >
             <Text style={[styles.backArrow, { color: text }]}>‹</Text>
           </TouchableOpacity>
-        ) : null}
+        ) : (
+          // Spacer balances the right-side search icon so the title stays centred.
+          <View style={styles.headerIconBtn} />
+        )}
         <Text style={[styles.headerTitle, { color: text }]}>MESSAGES</Text>
-        {onBack ? <View style={styles.backSpacer} /> : null}
+        <TouchableOpacity
+          onPress={() => setSearchVisible(true)}
+          style={styles.headerIconBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.7}
+        >
+          <SearchIcon size={22} color={text} />
+        </TouchableOpacity>
       </View>
 
       {/* Requests pill row — shows badge with count of incoming (non-self) requests */}
@@ -132,6 +164,11 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
           <ConvoRow
             item={item}
             onPress={() => setOpenConvo(item)}
+            onAvatarPress={() => {
+              // Don't open an overlay for our own profile.
+              if (item.other_profile.id === userId) return;
+              setProfileUserId(item.other_profile.id);
+            }}
             text={text}
             muted={muted}
             border={border}
@@ -157,6 +194,25 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
           onBack={() => setOpenConvo(null)}
         />
       ) : null}
+
+      {/* Full-screen profile — shown when a conversation avatar is tapped */}
+      {profileUserId ? (
+        <UserProfileScreen
+          key={profileUserId}
+          userId={profileUserId}
+          onBack={() => setProfileUserId(null)}
+          dark={dark}
+        />
+      ) : null}
+
+      {/* Global search overlay — reuses the same block-filtered overlay as the
+          Camera pull-down. Its root is absoluteFill at zIndex 500, so it fully
+          covers the Messages screen when opened from the header search icon. */}
+      <GlobalSearchOverlay
+        visible={searchVisible}
+        onClose={() => setSearchVisible(false)}
+        dark={dark}
+      />
     </View>
   );
 }
@@ -194,9 +250,11 @@ const styles = StyleSheet.create({
     letterSpacing: 8,
     textAlign: 'center',
   },
-  backSpacer: {
+  headerIconBtn: {
     width: 36,
-    marginLeft: 12,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   requestsPill: {
     flexDirection: 'row',
@@ -242,6 +300,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+  },
+  convoBody: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
   convoAvatar: {
