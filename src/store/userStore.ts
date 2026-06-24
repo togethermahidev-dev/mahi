@@ -6,7 +6,7 @@ interface UserProfile {
   display_name: string | null;
   first_name: string | null;
   last_name: string | null;
-  date_of_birth: string | null;  // ISO date 'YYYY-MM-DD'
+  date_of_birth: string | null; // ISO date 'YYYY-MM-DD'
   contact_number: string | null;
   fitness_goals: string[] | null;
   fitness_routine: string | null;
@@ -14,7 +14,7 @@ interface UserProfile {
   streak_current: number;
   streak_highest: number;
   streak_lowest: number | null;
-  streak_last_upload_date: string | null;  // ISO date 'YYYY-MM-DD'
+  streak_last_upload_date: string | null; // ISO date 'YYYY-MM-DD'
 }
 
 interface UserState {

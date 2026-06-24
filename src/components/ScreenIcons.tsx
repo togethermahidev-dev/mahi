@@ -103,41 +103,25 @@ export function LikeIcon({
   filled = false,
   count = 0,
 }: IconProps & { filled?: boolean; count?: number }) {
-  const discCx    = 12;
-  const discCy    = 10;
-  const discR     = 8;
-  const countStr  = count > 999 ? '999+' : String(count);
-  const fontSize  = countStr.length > 2 ? 5 : countStr.length > 1 ? 6 : 7;
+  const discCx = 12;
+  const discCy = 10;
+  const discR = 8;
+  const countStr = count > 999 ? '999+' : String(count);
+  const fontSize = countStr.length > 2 ? 5 : countStr.length > 1 ? 6 : 7;
   const textColor = filled ? '#FFFFFF' : color;
 
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       {/* Ribbon tails — always visible */}
       {/* Left ribbon — red */}
-      <Path
-        d="M9 17 L7 24 L12 21 Z"
-        fill="#E05A5A"
-      />
+      <Path d="M9 17 L7 24 L12 21 Z" fill="#E05A5A" />
       {/* Right ribbon — Mahi blue */}
-      <Path
-        d="M15 17 L17 24 L12 21 Z"
-        fill="#59c2d7"
-      />
+      <Path d="M15 17 L17 24 L12 21 Z" fill="#59c2d7" />
       {/* Centre ribbon strip */}
-      <Path
-        d="M10.5 17 L11 24 L13 24 L13.5 17 Z"
-        fill={color}
-        opacity={0.5}
-      />
+      <Path d="M10.5 17 L11 24 L13 24 L13.5 17 Z" fill={color} opacity={0.5} />
 
       {/* Echo disc — always #59c2d7, offset (+1.5, +1.5) */}
-      <Circle
-        cx={discCx + 1.5}
-        cy={discCy + 1.5}
-        r={discR}
-        fill="#59c2d7"
-        opacity={0.35}
-      />
+      <Circle cx={discCx + 1.5} cy={discCy + 1.5} r={discR} fill="#59c2d7" opacity={0.35} />
 
       {/* Main disc */}
       <Circle
@@ -170,7 +154,7 @@ export function LikeIcon({
  * Same double-layer treatment as MessagesIcon.
  */
 export function CommentIcon({ size, color }: IconProps) {
-  const bubble = "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z";
+  const bubble = 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z';
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       {/* Echo layer — #59c2d7, offset */}
@@ -194,7 +178,7 @@ export function CommentIcon({ size, color }: IconProps) {
  * Same double-layer treatment as CommentIcon.
  */
 export function StreakIcon({ size, color }: IconProps) {
-  const flame = "M12 2C8 7 4 11 4 15a8 8 0 0016 0c0-4-4-8-8-13z";
+  const flame = 'M12 2C8 7 4 11 4 15a8 8 0 0016 0c0-4-4-8-8-13z';
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       {/* Echo layer — #59c2d7, offset */}
@@ -216,7 +200,16 @@ export function StreakIcon({ size, color }: IconProps) {
 export function CalendarIcon({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect x="3" y="4" width="18" height="18" rx="2" stroke={color} strokeWidth={1.8} strokeLinejoin="round" />
+      <Rect
+        x="3"
+        y="4"
+        width="18"
+        height="18"
+        rx="2"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+      />
       <Line x1="16" y1="2" x2="16" y2="6" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
       <Line x1="8" y1="2" x2="8" y2="6" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
       <Line x1="3" y1="10" x2="21" y2="10" stroke={color} strokeWidth={1.8} />
@@ -227,7 +220,15 @@ export function CalendarIcon({ size, color }: IconProps) {
 export function SettingsIcon({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx="12" cy="12" r="3" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+      <Circle
+        cx="12"
+        cy="12"
+        r="3"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <Path
         d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
         stroke={color}
@@ -266,12 +267,9 @@ export function NotificationsIcon({ size, color }: IconProps) {
  * HeartIcon — simple heart for like button (IG Reels / TikTok style).
  * Filled red when liked, outline when not.
  */
-export function HeartIcon({
-  size,
-  color,
-  filled = false,
-}: IconProps & { filled?: boolean }) {
-  const heart = "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z";
+export function HeartIcon({ size, color, filled = false }: IconProps & { filled?: boolean }) {
+  const heart =
+    'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z';
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -287,7 +285,7 @@ export function HeartIcon({
 }
 
 export function MessagesIcon({ size, color }: IconProps) {
-  const bubble = "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z";
+  const bubble = 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z';
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       {/* Blue echo — offset behind, same treatment as the MAHI logo */}

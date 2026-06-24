@@ -19,7 +19,7 @@ import type { ThemeMode } from '@/store/themeStore';
 
 interface IconProps {
   color: string;
-  size:  number;
+  size: number;
 }
 
 /** Blue Cloud with Sun peeking — Light mode. */
@@ -69,7 +69,7 @@ function MoonIcon({ color, size }: IconProps) {
 
 const MODE_ICON: Record<ThemeMode, (props: IconProps) => React.JSX.Element> = {
   light: CloudSunIcon,
-  dark:  MoonIcon,
+  dark: MoonIcon,
 };
 
 // ─── ThemeToggle ──────────────────────────────────────────────────────────────
@@ -77,16 +77,16 @@ const MODE_ICON: Record<ThemeMode, (props: IconProps) => React.JSX.Element> = {
 interface ThemeToggleProps {
   /** Icon color — defaults to white for use on the dark camera feed */
   color?: string;
-  size?:  number;
+  size?: number;
 }
 
 export default function ThemeToggle({
   color = '#FFFFFF',
-  size  = 22,
+  size = 22,
 }: ThemeToggleProps): React.JSX.Element {
-  const mode      = useThemeStore((s) => s.mode);
+  const mode = useThemeStore((s) => s.mode);
   const cycleMode = useThemeStore((s) => s.cycleMode);
-  const scale     = useRef(new Animated.Value(1)).current;
+  const scale = useRef(new Animated.Value(1)).current;
 
   const Icon = MODE_ICON[mode];
 
@@ -94,16 +94,16 @@ export default function ThemeToggle({
     // Compress then spring back — confirms the tap and switches the icon
     Animated.sequence([
       Animated.spring(scale, {
-        toValue:     0.68,
-        speed:       60,
-        bounciness:  0,
+        toValue: 0.68,
+        speed: 60,
+        bounciness: 0,
         useNativeDriver: true,
       }),
       Animated.spring(scale, {
-        toValue:    1,
-        damping:    10,
-        stiffness:  200,
-        mass:       0.6,
+        toValue: 1,
+        damping: 10,
+        stiffness: 200,
+        mass: 0.6,
         useNativeDriver: true,
       }),
     ]).start();
@@ -127,7 +127,7 @@ export default function ThemeToggle({
 
 const styles = StyleSheet.create({
   button: {
-    alignItems:     'center',
+    alignItems: 'center',
     justifyContent: 'center',
   },
 });

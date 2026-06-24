@@ -1,20 +1,27 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, type ViewStyle, type StyleProp } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  type ViewStyle,
+  type StyleProp,
+} from 'react-native';
 import { BlurView } from 'expo-blur';
 import type { TaggedUser } from '@/api';
 
 const MAX_VISIBLE = 3;
 
 interface Props {
-  users:        TaggedUser[];
+  users: TaggedUser[];
   onPressUser?: (user: TaggedUser) => void;
   /** Override the default absolute `left:16, bottom:16` positioning. */
-  style?:       StyleProp<ViewStyle>;
+  style?: StyleProp<ViewStyle>;
 }
 
 export default function TaggedBubbleStack({ users, onPressUser, style }: Props) {
   if (users.length === 0) return null;
-  const visible  = users.slice(0, MAX_VISIBLE);
+  const visible = users.slice(0, MAX_VISIBLE);
   const overflow = users.length - MAX_VISIBLE;
 
   return (

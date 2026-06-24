@@ -46,7 +46,7 @@ function CameraIcon({ color }: { color: string }) {
 
 function GridCell({ post, dark, onPress }: { post: PostRow; dark: boolean; onPress: () => void }) {
   const [imgError, setImgError] = useState(false);
-  const badgeBg   = dark ? 'rgba(26,26,23,0.75)' : 'rgba(232,232,227,0.75)';
+  const badgeBg = dark ? 'rgba(26,26,23,0.75)' : 'rgba(232,232,227,0.75)';
   const badgeText = dark ? '#E8E8E3' : '#1A1A17';
 
   return (
@@ -70,9 +70,13 @@ interface ProfileMediaMapProps {
   onPostPress?: (post: PostRow) => void;
 }
 
-export default function ProfileMediaMap({ userId, isSelf, onPostPress }: ProfileMediaMapProps): React.JSX.Element {
+export default function ProfileMediaMap({
+  userId,
+  isSelf,
+  onPostPress,
+}: ProfileMediaMapProps): React.JSX.Element {
   const { dark } = useAppTheme();
-  const bg   = dark ? '#1C1C19' : '#FFFFFF';
+  const bg = dark ? '#1C1C19' : '#FFFFFF';
   const text = dark ? '#E8E8E3' : '#1A1A17';
   const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
 
@@ -94,9 +98,7 @@ export default function ProfileMediaMap({ userId, isSelf, onPostPress }: Profile
           {isSelf ? 'UPLOAD YOUR FIRST WORKOUT' : 'NO POSTS YET'}
         </Text>
         <Text style={[styles.emptySubtitle, { color: muted }]}>
-          {isSelf
-            ? 'Snap a photo and it will appear here.'
-            : "This user hasn't posted yet."}
+          {isSelf ? 'Snap a photo and it will appear here.' : "This user hasn't posted yet."}
         </Text>
       </View>
     );

@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { ProfileIcon, MessagesIcon, NotificationsIcon } from '@/components/ScreenIcons';
@@ -29,10 +23,10 @@ export default function AppHeader({
 }: AppHeaderProps): React.JSX.Element {
   const { dark: systemDark } = useAppTheme();
   // isDark = camera screen (always dark bg); systemDark = OS-level dark mode
-  const onDark   = isDark || systemDark;
+  const onDark = isDark || systemDark;
   const mahiColor = onDark ? '#FFFFFF' : '#1A1A17';
-  const pillBg    = isDark ? '#FFFFFF' : (systemDark ? '#E8E8E3' : '#1A1A17');
-  const pillIcon  = isDark ? '#1A1A17' : (systemDark ? '#1A1A17' : '#FFFFFF');
+  const pillBg = isDark ? '#FFFFFF' : systemDark ? '#E8E8E3' : '#1A1A17';
+  const pillIcon = isDark ? '#1A1A17' : systemDark ? '#1A1A17' : '#FFFFFF';
 
   // Gradient: dark screens (camera/dark mode) → dark-to-clear; light mode → white-to-clear
   const gradientColors: [string, string] = onDark
@@ -44,7 +38,11 @@ export default function AppHeader({
     // area to the screen beneath (camera feed, etc.) while still receiving
     // touches on the profile pill and messages icon.
     <View style={styles.root} pointerEvents="box-none">
-      <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} pointerEvents="none" />
+      <LinearGradient
+        colors={gradientColors}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
       <View style={styles.inner}>
         {/* Profile pill — navigates to Profile screen (horizontal left) */}
         <TouchableOpacity

@@ -7,14 +7,14 @@ import type { Database } from '@/types';
 type MsgRow = Database['public']['Tables']['messages']['Row'];
 
 export interface UseConversationResult {
-  messages:  MsgRow[];
+  messages: MsgRow[];
   isLoading: boolean;
-  send:      (content: string) => Promise<void>;
+  send: (content: string) => Promise<void>;
 }
 
 export function useConversation(conversationId: string): UseConversationResult {
   const userId = useAuthStore((s) => s.user?.id);
-  const [messages, setMessages]   = useState<MsgRow[]>([]);
+  const [messages, setMessages] = useState<MsgRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   // Keep a stable ref for use inside the realtime callback
   const messagesRef = useRef<MsgRow[]>(messages);
@@ -28,7 +28,9 @@ export function useConversation(conversationId: string): UseConversationResult {
       if (!cancelled && data) setMessages(data);
       if (!cancelled) setIsLoading(false);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [conversationId]);
 
   // Real-time: subscribe to new messages inserted into this conversation
@@ -38,22 +40,22 @@ export function useConversation(conversationId: string): UseConversationResult {
       .on(
         'postgres_changes',
         {
-          event:  'INSERT',
+          event: 'INSERT',
           schema: 'public',
-          table:  'messages',
+          table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
           const incoming = payload.new as MsgRow;
-          const current  = messagesRef.current;
+          const current = messagesRef.current;
 
           // Deduplicate: ignore if we already have the real id
           if (current.some((m) => m.id === incoming.id)) return;
 
           // Replace the most recent temp message from the same sender, if any
-          const tempIdx = [...current].reverse().findIndex(
-            (m) => m.id.startsWith('temp_') && m.sender_id === incoming.sender_id,
-          );
+          const tempIdx = [...current]
+            .reverse()
+            .findIndex((m) => m.id.startsWith('temp_') && m.sender_id === incoming.sender_id);
           const realIdx = tempIdx >= 0 ? current.length - 1 - tempIdx : -1;
 
           if (realIdx >= 0) {
@@ -68,11 +70,13 @@ export function useConversation(conversationId: string): UseConversationResult {
 
           // Update the preview in the messages list
           useMessagesStore.getState().patchConversationLastMessage(conversationId, incoming);
-        },
+        }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [conversationId]);
 
   const send = async (content: string) => {
@@ -81,11 +85,11 @@ export function useConversation(conversationId: string): UseConversationResult {
     // Optimistic insert
     const tempId = `temp_${Date.now()}_${Math.random()}`;
     const optimistic: MsgRow = {
-      id:              tempId,
+      id: tempId,
       conversation_id: conversationId,
-      sender_id:       userId,
+      sender_id: userId,
       content,
-      created_at:      new Date().toISOString(),
+      created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimistic]);
 

@@ -37,25 +37,29 @@ export default function TrainingDaysScreen({
   onClose,
   dark,
 }: TrainingDaysScreenProps): React.JSX.Element | null {
-  const bg    = dark ? '#1C1C19' : '#FFFFFF';
-  const text  = dark ? '#E8E8E3' : '#1A1A17';
+  const bg = dark ? '#1C1C19' : '#FFFFFF';
+  const text = dark ? '#E8E8E3' : '#1A1A17';
   const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
 
-  const profile    = useUserStore((s) => s.profile);
+  const profile = useUserStore((s) => s.profile);
   const setProfile = useUserStore((s) => s.setProfile);
-  const userId     = useAuthStore((s) => s.user?.id);
+  const userId = useAuthStore((s) => s.user?.id);
 
-  const slideAnim    = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
+  const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
-  const [mounted, setMounted]         = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
-  const [saving, setSaving]             = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Sync local state when overlay opens
   useEffect(() => {
     if (visible) {
-      Sentry.addBreadcrumb({ category: 'training_days', message: 'Training days screen opened', level: 'info' });
+      Sentry.addBreadcrumb({
+        category: 'training_days',
+        message: 'Training days screen opened',
+        level: 'info',
+      });
       const routine = profile?.fitness_routine;
       setSelectedDays(routine ? routine.split(',').filter(Boolean) : []);
       setMounted(true);
@@ -94,7 +98,7 @@ export default function TrainingDaysScreen({
 
   const toggleDay = (full: string) => {
     setSelectedDays((prev) =>
-      prev.includes(full) ? prev.filter((d) => d !== full) : [...prev, full],
+      prev.includes(full) ? prev.filter((d) => d !== full) : [...prev, full]
     );
   };
 
@@ -217,16 +221,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
-    width:          36,
-    height:         36,
-    borderRadius:   18,
-    borderWidth:    1,
-    alignItems:     'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   backText: {
     fontFamily: 'JosefinSans_400Regular_Italic',
-    fontSize:   20,
+    fontSize: 20,
     lineHeight: 22,
   },
   title: {

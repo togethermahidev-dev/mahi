@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import {
-  Modal, View, Text, TextInput, TouchableOpacity,
-  StyleSheet, SafeAreaView, ScrollView, useColorScheme,
+  Modal,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  useColorScheme,
   ActivityIndicator,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
@@ -16,19 +23,23 @@ interface Props {
   onAuthComplete: () => void;
 }
 
-export default function LoginSheet({ visible, onDismiss, onAuthComplete }: Props): React.JSX.Element {
+export default function LoginSheet({
+  visible,
+  onDismiss,
+  onAuthComplete,
+}: Props): React.JSX.Element {
   const dark = useColorScheme() === 'dark';
-  const bg      = dark ? '#1C1C19' : '#FFFFFF';
-  const text    = dark ? '#FFFFFF' : '#0F0F0D';
+  const bg = dark ? '#1C1C19' : '#FFFFFF';
+  const text = dark ? '#FFFFFF' : '#0F0F0D';
   const inputBg = dark ? '#2A2A27' : '#F5F5F0';
-  const muted   = dark ? '#888'    : '#999';
-  const red     = dark ? '#E06060' : '#C03030';
+  const muted = dark ? '#888' : '#999';
+  const red = dark ? '#E06060' : '#C03030';
 
-  const [email, setEmail]               = useState('');
-  const [password, setPassword]         = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading]           = useState(false);
-  const [error, setError]               = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -63,9 +74,9 @@ export default function LoginSheet({ visible, onDismiss, onAuthComplete }: Props
     onDismiss();
   };
 
-  const atIndex    = email.indexOf('@');
-  const showPills  = atIndex !== -1 && email.slice(atIndex + 1).length <= 1;
-  const localPart  = atIndex !== -1 ? email.slice(0, atIndex + 1) : email + '@';
+  const atIndex = email.indexOf('@');
+  const showPills = atIndex !== -1 && email.slice(atIndex + 1).length <= 1;
+  const localPart = atIndex !== -1 ? email.slice(0, atIndex + 1) : email + '@';
 
   return (
     <Modal
@@ -98,7 +109,7 @@ export default function LoginSheet({ visible, onDismiss, onAuthComplete }: Props
           {/* Email domain pills */}
           {showPills && (
             <View style={styles.pillRow}>
-              {DOMAINS.map(domain => (
+              {DOMAINS.map((domain) => (
                 <TouchableOpacity
                   key={domain}
                   style={[styles.pill, { borderColor: text }]}
@@ -124,15 +135,15 @@ export default function LoginSheet({ visible, onDismiss, onAuthComplete }: Props
               autoCapitalize="none"
               autoCorrect={false}
             />
-            <TouchableOpacity onPress={() => setShowPassword(p => !p)} activeOpacity={0.7}>
-              <Text style={[styles.toggle, { color: muted }]}>{showPassword ? 'Hide' : 'Show'}</Text>
+            <TouchableOpacity onPress={() => setShowPassword((p) => !p)} activeOpacity={0.7}>
+              <Text style={[styles.toggle, { color: muted }]}>
+                {showPassword ? 'Hide' : 'Show'}
+              </Text>
             </TouchableOpacity>
           </View>
 
           {/* Inline error */}
-          {error !== '' && (
-            <Text style={[styles.errorText, { color: red }]}>{error}</Text>
-          )}
+          {error !== '' && <Text style={[styles.errorText, { color: red }]}>{error}</Text>}
 
           {/* Login button */}
           <TouchableOpacity
@@ -141,10 +152,11 @@ export default function LoginSheet({ visible, onDismiss, onAuthComplete }: Props
             onPress={handleLogin}
             disabled={loading}
           >
-            {loading
-              ? <ActivityIndicator color={bg} />
-              : <Text style={[styles.buttonText, { color: bg }]}>Login</Text>
-            }
+            {loading ? (
+              <ActivityIndicator color={bg} />
+            ) : (
+              <Text style={[styles.buttonText, { color: bg }]}>Login</Text>
+            )}
           </TouchableOpacity>
 
           {/* Forgot password */}
@@ -161,7 +173,12 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { padding: 32, gap: 12 },
   title: { fontSize: 32, fontFamily: 'JosefinSans_700Bold', letterSpacing: 4, marginBottom: 16 },
-  label: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', letterSpacing: 1, marginBottom: -4 },
+  label: {
+    fontSize: 13,
+    fontFamily: 'JosefinSans_600SemiBold',
+    letterSpacing: 1,
+    marginBottom: -4,
+  },
   input: {
     borderRadius: 14,
     paddingHorizontal: 16,
@@ -198,6 +215,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   buttonText: { fontSize: 18, fontFamily: 'JosefinSans_600SemiBold' },
-  forgot:    { fontSize: 14, fontFamily: 'JosefinSans_400Regular_Italic', textAlign: 'center', marginTop: 4 },
+  forgot: {
+    fontSize: 14,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    textAlign: 'center',
+    marginTop: 4,
+  },
   errorText: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold' },
 });

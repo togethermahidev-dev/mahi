@@ -19,9 +19,9 @@ import { groupMessagesByDate, type GroupedRow } from '@/lib/groupMessages';
 import type { ConversationPreview } from '@/api';
 
 interface ConversationScreenProps {
-  conversation:  ConversationPreview;
+  conversation: ConversationPreview;
   currentUserId: string;
-  onBack:        () => void;
+  onBack: () => void;
 }
 
 export default function ConversationScreen({
@@ -30,26 +30,26 @@ export default function ConversationScreen({
   onBack,
 }: ConversationScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
-  const bg      = dark ? '#1C1C19' : '#FFFFFF';
-  const text    = dark ? '#E8E8E3' : '#1A1A17';
-  const muted   = dark ? 'rgba(232,232,227,0.4)' : 'rgba(26,26,23,0.4)';
-  const border  = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.12)';
-  const ownBubble  = dark ? 'rgba(232,232,227,0.15)' : 'rgba(26,26,23,0.1)';
+  const bg = dark ? '#1C1C19' : '#FFFFFF';
+  const text = dark ? '#E8E8E3' : '#1A1A17';
+  const muted = dark ? 'rgba(232,232,227,0.4)' : 'rgba(26,26,23,0.4)';
+  const border = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.12)';
+  const ownBubble = dark ? 'rgba(232,232,227,0.15)' : 'rgba(26,26,23,0.1)';
   const otherBubble = dark ? 'rgba(232,232,227,0.07)' : 'rgba(26,26,23,0.05)';
 
   const { messages, isLoading, send } = useConversation(conversation.id);
   const { accept, deny } = useMessages();
 
   const [inputText, setInputText] = useState('');
-  const [sending, setSending]     = useState(false);
+  const [sending, setSending] = useState(false);
   // Track local accepted state so the banner dismisses immediately
-  const [accepted, setAccepted]   = useState(conversation.status === 'active');
+  const [accepted, setAccepted] = useState(conversation.status === 'active');
 
   const flatListRef = useRef<FlatList>(null);
 
   const otherName = conversation.other_profile.display_name ?? conversation.other_profile.username;
 
-  const isRequest  = !accepted;
+  const isRequest = !accepted;
   const isReceiver = conversation.initiated_by !== currentUserId;
 
   const handleSend = async () => {
@@ -80,141 +80,133 @@ export default function ConversationScreen({
   };
 
   // FlatList renders newest at bottom — use inverted list with reversed grouped rows
-  const rows = useMemo<GroupedRow[]>(
-    () => groupMessagesByDate(messages).reverse(),
-    [messages],
-  );
+  const rows = useMemo<GroupedRow[]>(() => groupMessagesByDate(messages).reverse(), [messages]);
 
   return (
     <Modal visible animationType="slide" transparent={false} onRequestClose={onBack}>
-    <View style={[styles.root, { backgroundColor: bg }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: border }]}>
-        <TouchableOpacity
-          onPress={onBack}
-          style={[styles.backBtn, { borderColor: border }]}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={[styles.backArrow, { color: text }]}>‹</Text>
-        </TouchableOpacity>
-        <Text style={[styles.headerName, { color: text }]} numberOfLines={1}>
-          {otherName}
-        </Text>
-        {/* Spacer to keep name centred */}
-        <View style={styles.backBtn} />
-      </View>
-
-      {/* Request banner — shown to the receiver before they accept */}
-      {isRequest && isReceiver ? (
-        <View style={[styles.requestBanner, { borderBottomColor: border, backgroundColor: bg }]}>
-          <Text style={[styles.requestText, { color: muted }]}>
-            Message request from @{conversation.other_profile.username}
+      <View style={[styles.root, { backgroundColor: bg }]}>
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: border }]}>
+          <TouchableOpacity
+            onPress={onBack}
+            style={[styles.backBtn, { borderColor: border }]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={[styles.backArrow, { color: text }]}>‹</Text>
+          </TouchableOpacity>
+          <Text style={[styles.headerName, { color: text }]} numberOfLines={1}>
+            {otherName}
           </Text>
-          <View style={styles.requestActions}>
-            <TouchableOpacity
-              style={[styles.requestBtn, { borderColor: text }]}
-              onPress={handleAccept}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.requestBtnText, { color: text }]}>ACCEPT</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.requestBtn, styles.denyBtn]}
-              onPress={handleDeny}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.requestBtnText, styles.denyText]}>DENY</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Spacer to keep name centred */}
+          <View style={styles.backBtn} />
         </View>
-      ) : null}
 
-      {/* Message list */}
-      {isLoading ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator color={muted} />
-        </View>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={rows}
-          keyExtractor={(item) =>
-            item.type === 'header' ? item.id : item.msg.id
-          }
-          inverted
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => {
-            if (item.type === 'header') {
+        {/* Request banner — shown to the receiver before they accept */}
+        {isRequest && isReceiver ? (
+          <View style={[styles.requestBanner, { borderBottomColor: border, backgroundColor: bg }]}>
+            <Text style={[styles.requestText, { color: muted }]}>
+              Message request from @{conversation.other_profile.username}
+            </Text>
+            <View style={styles.requestActions}>
+              <TouchableOpacity
+                style={[styles.requestBtn, { borderColor: text }]}
+                onPress={handleAccept}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.requestBtnText, { color: text }]}>ACCEPT</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.requestBtn, styles.denyBtn]}
+                onPress={handleDeny}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.requestBtnText, styles.denyText]}>DENY</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Message list */}
+        {isLoading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator color={muted} />
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={rows}
+            keyExtractor={(item) => (item.type === 'header' ? item.id : item.msg.id)}
+            inverted
+            contentContainerStyle={styles.listContent}
+            renderItem={({ item }) => {
+              if (item.type === 'header') {
+                return (
+                  <View style={styles.dayHeader}>
+                    <Text style={[styles.dayHeaderText, { color: muted }]}>{item.label}</Text>
+                  </View>
+                );
+              }
+              const msg = item.msg;
+              const isOwn = msg.sender_id === currentUserId;
               return (
-                <View style={styles.dayHeader}>
-                  <Text style={[styles.dayHeaderText, { color: muted }]}>
-                    {item.label}
-                  </Text>
+                <View
+                  style={[styles.bubbleWrap, isOwn ? styles.bubbleWrapOwn : styles.bubbleWrapOther]}
+                >
+                  <View
+                    style={[styles.bubble, { backgroundColor: isOwn ? ownBubble : otherBubble }]}
+                  >
+                    <Text style={[styles.bubbleText, { color: text }]}>{msg.content}</Text>
+                  </View>
+                  {item.showTime ? (
+                    <Text style={[styles.bubbleTime, { color: muted }]}>
+                      {new Date(msg.created_at).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                      })}
+                    </Text>
+                  ) : null}
                 </View>
               );
-            }
-            const msg = item.msg;
-            const isOwn = msg.sender_id === currentUserId;
-            return (
-              <View style={[styles.bubbleWrap, isOwn ? styles.bubbleWrapOwn : styles.bubbleWrapOther]}>
-                <View
-                  style={[
-                    styles.bubble,
-                    { backgroundColor: isOwn ? ownBubble : otherBubble },
-                  ]}
-                >
-                  <Text style={[styles.bubbleText, { color: text }]}>{msg.content}</Text>
+            }}
+            ListEmptyComponent={
+              !isLoading ? (
+                <View style={styles.emptyWrap}>
+                  <Text style={[styles.emptyText, { color: muted }]}>No messages yet</Text>
                 </View>
-                {item.showTime ? (
-                  <Text style={[styles.bubbleTime, { color: muted }]}>
-                    {new Date(msg.created_at).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: false,
-                    })}
-                  </Text>
-                ) : null}
-              </View>
-            );
-          }}
-          ListEmptyComponent={
-            !isLoading ? (
-              <View style={styles.emptyWrap}>
-                <Text style={[styles.emptyText, { color: muted }]}>No messages yet</Text>
-              </View>
-            ) : null
-          }
-        />
-      )}
-
-      {/* Input bar */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-      >
-        <View style={[styles.inputBar, { borderTopColor: border, backgroundColor: bg }]}>
-          <TextInput
-            style={[styles.input, { color: text, borderColor: border }]}
-            placeholder="Message…"
-            placeholderTextColor={muted}
-            value={inputText}
-            onChangeText={setInputText}
-            multiline
-            maxLength={1000}
-            returnKeyType="send"
-            onSubmitEditing={handleSend}
+              ) : null
+            }
           />
-          <TouchableOpacity
-            style={[styles.sendBtn, { opacity: inputText.trim() ? 1 : 0.35 }]}
-            onPress={handleSend}
-            activeOpacity={0.7}
-            disabled={!inputText.trim() || sending}
-          >
-            <Text style={[styles.sendText, { color: text }]}>SEND</Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-    </View>
+        )}
+
+        {/* Input bar */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+          <View style={[styles.inputBar, { borderTopColor: border, backgroundColor: bg }]}>
+            <TextInput
+              style={[styles.input, { color: text, borderColor: border }]}
+              placeholder="Message…"
+              placeholderTextColor={muted}
+              value={inputText}
+              onChangeText={setInputText}
+              multiline
+              maxLength={1000}
+              returnKeyType="send"
+              onSubmitEditing={handleSend}
+            />
+            <TouchableOpacity
+              style={[styles.sendBtn, { opacity: inputText.trim() ? 1 : 0.35 }]}
+              onPress={handleSend}
+              activeOpacity={0.7}
+              disabled={!inputText.trim() || sending}
+            >
+              <Text style={[styles.sendText, { color: text }]}>SEND</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -224,60 +216,60 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection:    'row',
-    alignItems:       'center',
-    paddingTop:       Platform.OS === 'ios' ? 60 : 32,
-    paddingBottom:    16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 60 : 32,
+    paddingBottom: 16,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
-    width:          36,
-    height:         36,
-    borderRadius:   18,
-    borderWidth:    1,
-    alignItems:     'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   backArrow: {
-    fontSize:   20,
+    fontSize: 20,
     fontFamily: 'JosefinSans_400Regular_Italic',
     lineHeight: 22,
   },
   headerName: {
-    flex:       1,
-    textAlign:  'center',
-    fontSize:   16,
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 16,
     fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 3,
   },
   requestBanner: {
     paddingHorizontal: 24,
-    paddingVertical:   12,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 10,
   },
   requestText: {
-    fontSize:   12,
+    fontSize: 12,
     fontFamily: 'JosefinSans_400Regular_Italic',
-    textAlign:  'center',
+    textAlign: 'center',
   },
   requestActions: {
-    flexDirection:  'row',
+    flexDirection: 'row',
     justifyContent: 'center',
-    gap:            12,
+    gap: 12,
   },
   requestBtn: {
-    borderWidth:       1,
-    borderRadius:      50,
+    borderWidth: 1,
+    borderRadius: 50,
     paddingHorizontal: 20,
-    paddingVertical:   6,
+    paddingVertical: 6,
   },
   denyBtn: {
     borderColor: '#FF6B6B',
   },
   requestBtnText: {
-    fontSize:   10,
+    fontSize: 10,
     fontFamily: 'JosefinSans_600SemiBold',
     letterSpacing: 2,
   },
@@ -285,89 +277,89 @@ const styles = StyleSheet.create({
     color: '#FF6B6B',
   },
   loadingWrap: {
-    flex:           1,
-    alignItems:     'center',
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   listContent: {
     paddingHorizontal: 16,
-    paddingVertical:   12,
-    flexGrow:          1,
+    paddingVertical: 12,
+    flexGrow: 1,
   },
   bubbleWrap: {
     marginVertical: 4,
-    maxWidth:       '75%',
-    gap:            3,
+    maxWidth: '75%',
+    gap: 3,
   },
   bubbleWrapOwn: {
-    alignSelf:  'flex-end',
+    alignSelf: 'flex-end',
     alignItems: 'flex-end',
   },
   bubbleWrapOther: {
-    alignSelf:  'flex-start',
+    alignSelf: 'flex-start',
     alignItems: 'flex-start',
   },
   bubble: {
-    borderRadius:  16,
+    borderRadius: 16,
     paddingHorizontal: 14,
-    paddingVertical:   8,
+    paddingVertical: 8,
   },
   bubbleText: {
-    fontSize:   14,
+    fontSize: 14,
     fontFamily: 'JosefinSans_400Regular_Italic',
     lineHeight: 20,
   },
   bubbleTime: {
-    fontSize:   10,
+    fontSize: 10,
     fontFamily: 'JosefinSans_400Regular_Italic',
     paddingHorizontal: 4,
   },
   dayHeader: {
-    alignItems:      'center',
+    alignItems: 'center',
     paddingVertical: 8,
-    marginTop:       4,
+    marginTop: 4,
   },
   dayHeaderText: {
-    fontSize:      11,
-    fontFamily:    'JosefinSans_400Regular_Italic',
+    fontSize: 11,
+    fontFamily: 'JosefinSans_400Regular_Italic',
     letterSpacing: 1,
   },
   emptyWrap: {
-    flex:           1,
-    alignItems:     'center',
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingTop:     60,
+    paddingTop: 60,
   },
   emptyText: {
-    fontSize:   13,
+    fontSize: 13,
     fontFamily: 'JosefinSans_400Regular_Italic',
   },
   inputBar: {
-    flexDirection:     'row',
-    alignItems:        'flex-end',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     paddingHorizontal: 16,
-    paddingTop:        10,
+    paddingTop: 10,
     // Extra bottom padding on iOS to clear the home-indicator area —
     // without a SafeAreaView the input bar was sitting under the indicator.
-    paddingBottom:     Platform.OS === 'ios' ? 34 : 10,
-    borderTopWidth:    StyleSheet.hairlineWidth,
-    gap:               10,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 10,
   },
   input: {
-    flex:              1,
-    borderWidth:       StyleSheet.hairlineWidth,
-    borderRadius:      20,
+    flex: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical:   8,
-    fontSize:          14,
-    fontFamily:        'JosefinSans_400Regular_Italic',
-    maxHeight:         100,
+    paddingVertical: 8,
+    fontSize: 14,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    maxHeight: 100,
   },
   sendBtn: {
     paddingBottom: 8,
   },
   sendText: {
-    fontSize:   11,
+    fontSize: 11,
     fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 2,
   },

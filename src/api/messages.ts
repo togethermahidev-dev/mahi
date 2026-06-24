@@ -12,14 +12,14 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types';
 
-type ConvRow  = Database['public']['Tables']['conversations']['Row'];
-type MsgRow   = Database['public']['Tables']['messages']['Row'];
-type ProfRow  = Database['public']['Tables']['profiles']['Row'];
+type ConvRow = Database['public']['Tables']['conversations']['Row'];
+type MsgRow = Database['public']['Tables']['messages']['Row'];
+type ProfRow = Database['public']['Tables']['profiles']['Row'];
 
 export type ConversationPreview = ConvRow & {
   other_profile: Pick<ProfRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
-  last_message:  Pick<MsgRow, 'id' | 'content' | 'sender_id' | 'created_at'> | null;
-  is_requester:  boolean;
+  last_message: Pick<MsgRow, 'id' | 'content' | 'sender_id' | 'created_at'> | null;
+  is_requester: boolean;
 };
 
 const CONVO_SELECT = `
@@ -35,7 +35,7 @@ const CONVO_SELECT = `
 
 async function fetchConversations(
   userId: string,
-  status: 'active' | 'requested',
+  status: 'active' | 'requested'
 ): Promise<{ data: ConversationPreview[] | null; error: Error | null }> {
   const { data: convos, error: convosErr } = await supabase
     .from('conversations')
@@ -50,9 +50,7 @@ async function fetchConversations(
   // Collect unique other-participant IDs
   const otherIds = [
     ...new Set(
-      convos.map((c) =>
-        c.participant_one === userId ? c.participant_two : c.participant_one,
-      ),
+      convos.map((c) => (c.participant_one === userId ? c.participant_two : c.participant_one))
     ),
   ];
 
@@ -69,16 +67,16 @@ async function fetchConversations(
   const result: ConversationPreview[] = convos.map((c) => {
     const otherId = c.participant_one === userId ? c.participant_two : c.participant_one;
     const rawMsgs = (c.messages as MsgRow[] | undefined) ?? [];
-    const sorted  = rawMsgs.slice().sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
+    const sorted = rawMsgs
+      .slice()
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     // Destructure out the raw messages array — not part of ConversationPreview
     const { messages: _msgs, ...convoFields } = c as typeof c & { messages: MsgRow[] };
     return {
       ...convoFields,
       other_profile: profileMap.get(otherId)!,
-      last_message:  sorted[0] ?? null,
-      is_requester:  c.initiated_by === userId,
+      last_message: sorted[0] ?? null,
+      is_requester: c.initiated_by === userId,
     };
   });
 
@@ -87,22 +85,20 @@ async function fetchConversations(
 
 /** Conversations where the current user is a participant and status = 'active'. */
 export async function getInbox(
-  userId: string,
+  userId: string
 ): Promise<{ data: ConversationPreview[] | null; error: Error | null }> {
   return fetchConversations(userId, 'active');
 }
 
 /** Conversations where the current user is a participant and status = 'requested'. */
 export async function getRequests(
-  userId: string,
+  userId: string
 ): Promise<{ data: ConversationPreview[] | null; error: Error | null }> {
   return fetchConversations(userId, 'requested');
 }
 
 /** Accept a message request — moves it from REQUESTS to INBOX. */
-export async function acceptRequest(
-  conversationId: string,
-): Promise<{ error: Error | null }> {
+export async function acceptRequest(conversationId: string): Promise<{ error: Error | null }> {
   const { error } = await supabase
     .from('conversations')
     .update({ status: 'active' })
@@ -115,8 +111,8 @@ export async function acceptRequest(
 /** Send a message in an active conversation. */
 export async function sendMessage(
   conversationId: string,
-  senderId:       string,
-  content:        string,
+  senderId: string,
+  content: string
 ): Promise<{ data: MsgRow | null; error: Error | null }> {
   const { data, error } = await supabase
     .from('messages')
@@ -134,8 +130,8 @@ export async function sendMessage(
  * is always satisfied regardless of argument order.
  */
 export async function createOrGetConversation(
-  senderId:   string,
-  receiverId: string,
+  senderId: string,
+  receiverId: string
 ): Promise<{ data: ConversationPreview | null; error: Error | null }> {
   const p1 = senderId < receiverId ? senderId : receiverId;
   const p2 = senderId < receiverId ? receiverId : senderId;
@@ -145,7 +141,7 @@ export async function createOrGetConversation(
     .from('conversations')
     .upsert(
       { participant_one: p1, participant_two: p2, status: 'requested', initiated_by: senderId },
-      { onConflict: 'participant_one,participant_two', ignoreDuplicates: true },
+      { onConflict: 'participant_one,participant_two', ignoreDuplicates: true }
     );
 
   if (upsertErr) return { data: null, error: new Error(upsertErr.message) };
@@ -158,41 +154,39 @@ export async function createOrGetConversation(
     .eq('participant_two', p2)
     .single();
 
-  if (fetchErr || !convos) return { data: null, error: new Error(fetchErr?.message ?? 'Not found') };
+  if (fetchErr || !convos)
+    return { data: null, error: new Error(fetchErr?.message ?? 'Not found') };
 
-  const otherId = convos.participant_one === senderId ? convos.participant_two : convos.participant_one;
+  const otherId =
+    convos.participant_one === senderId ? convos.participant_two : convos.participant_one;
   const { data: profile, error: profErr } = await supabase
     .from('profiles')
     .select('id, username, display_name, avatar_url')
     .eq('id', otherId)
     .single();
 
-  if (profErr || !profile) return { data: null, error: new Error(profErr?.message ?? 'Profile not found') };
+  if (profErr || !profile)
+    return { data: null, error: new Error(profErr?.message ?? 'Profile not found') };
 
-  const rawMsgs = ((convos as typeof convos & { messages?: MsgRow[] }).messages ?? []);
-  const sorted  = rawMsgs.slice().sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-  );
+  const rawMsgs = (convos as typeof convos & { messages?: MsgRow[] }).messages ?? [];
+  const sorted = rawMsgs
+    .slice()
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   const { messages: _msgs, ...convoFields } = convos as typeof convos & { messages: MsgRow[] };
 
   const preview: ConversationPreview = {
     ...convoFields,
     other_profile: profile,
-    last_message:  sorted[0] ?? null,
-    is_requester:  convos.initiated_by === senderId,
+    last_message: sorted[0] ?? null,
+    is_requester: convos.initiated_by === senderId,
   };
 
   return { data: preview, error: null };
 }
 
 /** Delete a conversation (used for DENY). Cascades to messages via FK. */
-export async function deleteConversation(
-  conversationId: string,
-): Promise<{ error: Error | null }> {
-  const { error } = await supabase
-    .from('conversations')
-    .delete()
-    .eq('id', conversationId);
+export async function deleteConversation(conversationId: string): Promise<{ error: Error | null }> {
+  const { error } = await supabase.from('conversations').delete().eq('id', conversationId);
 
   if (error) return { error: new Error(error.message) };
   return { error: null };
@@ -200,7 +194,7 @@ export async function deleteConversation(
 
 /** Fetch all messages for a conversation, oldest first. */
 export async function getMessages(
-  conversationId: string,
+  conversationId: string
 ): Promise<{ data: MsgRow[] | null; error: Error | null }> {
   const { data, error } = await supabase
     .from('messages')

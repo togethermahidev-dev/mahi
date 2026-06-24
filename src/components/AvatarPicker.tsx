@@ -84,10 +84,8 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
 
   // expo-image-picker permission hooks — separate from expo-camera's hooks.
   // These are scoped to ImagePicker usage and do not interfere with CameraScreen.
-  const [cameraPermission, requestCameraPermission] =
-    ImagePicker.useCameraPermissions();
-  const [libraryPermission, requestLibraryPermission] =
-    ImagePicker.useMediaLibraryPermissions();
+  const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
+  const [libraryPermission, requestLibraryPermission] = ImagePicker.useMediaLibraryPermissions();
 
   /** Shows a non-blocking alert directing the user to open Settings. */
   const showPermissionAlert = useCallback((type: 'Camera' | 'Media Library') => {
@@ -97,7 +95,7 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
       [
         { text: 'Not Now', style: 'cancel' },
         { text: 'Open Settings', onPress: () => Linking.openSettings() },
-      ],
+      ]
     );
   }, []);
 
@@ -106,75 +104,79 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
    *
    * Steps: read file → base64 → ArrayBuffer → Supabase Storage → DB update → notify parent.
    */
-  const processAndUpload = useCallback(async (uri: string) => {
-    setLocalUri(uri); // optimistic preview
-    setUploading(true);
-    try {
-      // Read as Base64 (matches the pattern used in CameraScreen.tsx)
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      const buffer = decode(base64);
-
-      // Deterministic path — upsert overwrites the previous avatar in-place.
-      const storagePath = `${userId}/avatar.jpg`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(storagePath, buffer, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        });
-      if (uploadError) throw uploadError;
-
-      // Stable public URL written to DB. Cache-buster applied in-memory only
-      // so RN Image always re-renders after re-upload without polluting the DB
-      // with ephemeral timestamps.
-      const publicUrl = supabase.storage
-        .from('avatars')
-        .getPublicUrl(storagePath).data.publicUrl;
-
-      const { error: dbError } = await updateAvatarUrl(userId, publicUrl);
-      if (dbError) throw dbError;
-
-      onUpdate(`${publicUrl}?t=${Date.now()}`);
-      setLocalUri(null); // clear optimistic preview; parent now holds the persisted URL
-    } catch {
-      // Attempt best-effort cleanup of the orphaned storage file
-      // in case the upload succeeded but the DB write failed.
+  const processAndUpload = useCallback(
+    async (uri: string) => {
+      setLocalUri(uri); // optimistic preview
+      setUploading(true);
       try {
-        await supabase.storage.from('avatars').remove([`${userId}/avatar.jpg`]);
+        // Read as Base64 (matches the pattern used in CameraScreen.tsx)
+        const base64 = await FileSystem.readAsStringAsync(uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        const buffer = decode(base64);
+
+        // Deterministic path — upsert overwrites the previous avatar in-place.
+        const storagePath = `${userId}/avatar.jpg`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(storagePath, buffer, {
+            contentType: 'image/jpeg',
+            upsert: true,
+          });
+        if (uploadError) throw uploadError;
+
+        // Stable public URL written to DB. Cache-buster applied in-memory only
+        // so RN Image always re-renders after re-upload without polluting the DB
+        // with ephemeral timestamps.
+        const publicUrl = supabase.storage.from('avatars').getPublicUrl(storagePath).data.publicUrl;
+
+        const { error: dbError } = await updateAvatarUrl(userId, publicUrl);
+        if (dbError) throw dbError;
+
+        onUpdate(`${publicUrl}?t=${Date.now()}`);
+        setLocalUri(null); // clear optimistic preview; parent now holds the persisted URL
       } catch {
-        // Non-blocking — ignore cleanup failure
+        // Attempt best-effort cleanup of the orphaned storage file
+        // in case the upload succeeded but the DB write failed.
+        try {
+          await supabase.storage.from('avatars').remove([`${userId}/avatar.jpg`]);
+        } catch {
+          // Non-blocking — ignore cleanup failure
+        }
+        setLocalUri(null);
+        Alert.alert('Upload Failed', 'Could not update your profile photo. Please try again.');
+      } finally {
+        setUploading(false);
       }
-      setLocalUri(null);
-      Alert.alert('Upload Failed', 'Could not update your profile photo. Please try again.');
-    } finally {
-      setUploading(false);
-    }
-  }, [userId, onUpdate]);
+    },
+    [userId, onUpdate]
+  );
 
   /**
    * Shared permission guard.
    * Returns `true` if the permission is (or becomes) granted, `false` otherwise.
    */
-  const ensurePermission = useCallback(async (
-    permission: ImagePicker.PermissionResponse | null,
-    request: () => Promise<ImagePicker.PermissionResponse>,
-    type: 'Camera' | 'Media Library',
-  ): Promise<boolean> => {
-    let perm = permission;
-    if (!perm?.granted) {
-      if (perm?.canAskAgain) {
-        perm = await request();
-      }
+  const ensurePermission = useCallback(
+    async (
+      permission: ImagePicker.PermissionResponse | null,
+      request: () => Promise<ImagePicker.PermissionResponse>,
+      type: 'Camera' | 'Media Library'
+    ): Promise<boolean> => {
+      let perm = permission;
       if (!perm?.granted) {
-        showPermissionAlert(type);
-        return false;
+        if (perm?.canAskAgain) {
+          perm = await request();
+        }
+        if (!perm?.granted) {
+          showPermissionAlert(type);
+          return false;
+        }
       }
-    }
-    return true;
-  }, [showPermissionAlert]);
+      return true;
+    },
+    [showPermissionAlert]
+  );
 
   /** Opens the native camera. Awaits upload to prevent parallel requests. */
   const handleCamera = useCallback(async () => {
@@ -214,7 +216,10 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         { options: ['Cancel', 'Take Photo', 'Choose from Library'], cancelButtonIndex: 0 },
-        (i) => { if (i === 1) handleCamera(); else if (i === 2) handleLibrary(); },
+        (i) => {
+          if (i === 1) handleCamera();
+          else if (i === 2) handleLibrary();
+        }
       );
     } else {
       Alert.alert('Update Photo', '', [

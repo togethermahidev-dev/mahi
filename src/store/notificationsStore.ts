@@ -13,24 +13,24 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 const notifChannels = new Map<string, RealtimeChannel>();
 
 interface NotificationsState {
-  items:       NotificationWithActor[];
+  items: NotificationWithActor[];
   unreadCount: number;
-  isSyncing:   boolean;
+  isSyncing: boolean;
 
-  sync:        (userId: string) => Promise<void>;
-  markRead:    (notificationId: string) => Promise<void>;
+  sync: (userId: string) => Promise<void>;
+  markRead: (notificationId: string) => Promise<void>;
   markAllRead: (userId: string) => Promise<void>;
   /** Subscribe to new notifications arriving in real-time. */
-  subscribe:   (userId: string) => void;
+  subscribe: (userId: string) => void;
   /** Tear down the notifications subscription. */
   unsubscribe: (userId: string) => void;
-  reset:       () => void;
+  reset: () => void;
 }
 
 export const useNotificationsStore = create<NotificationsState>((set, get) => ({
-  items:       [],
+  items: [],
   unreadCount: 0,
-  isSyncing:   false,
+  isSyncing: false,
 
   sync: async (userId: string) => {
     if (get().isSyncing) return;
@@ -41,8 +41,8 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       getUnreadCount(userId),
     ]);
 
-    if (itemsResult.data)           set({ items: itemsResult.data });
-    if (unreadResult.data != null)  set({ unreadCount: unreadResult.data });
+    if (itemsResult.data) set({ items: itemsResult.data });
+    if (unreadResult.data != null) set({ unreadCount: unreadResult.data });
     set({ isSyncing: false });
   },
 
@@ -56,9 +56,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
     // Optimistic: flip this one to read, decrement count only if it was unread
     set((state) => ({
-      items: state.items.map((n) =>
-        n.id === notificationId ? { ...n, is_read: true } : n,
-      ),
+      items: state.items.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n)),
       unreadCount: prevIsRead ? state.unreadCount : state.unreadCount - 1,
     }));
 
@@ -67,7 +65,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       // Rollback on failure
       set((state) => ({
         items: state.items.map((n) =>
-          n.id === notificationId ? { ...n, is_read: prevIsRead } : n,
+          n.id === notificationId ? { ...n, is_read: prevIsRead } : n
         ),
         unreadCount: prevUnreadCount,
       }));
@@ -132,10 +130,16 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
     const ch = supabase
       .channel(key)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'notifications',
-        filter: `user_id=eq.${userId}`,
-      }, handleInsert)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        handleInsert
+      )
       .subscribe();
 
     notifChannels.set(key, ch);
@@ -144,7 +148,10 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   unsubscribe: (userId: string) => {
     const key = `notifications:${userId}`;
     const ch = notifChannels.get(key);
-    if (ch) { supabase.removeChannel(ch); notifChannels.delete(key); }
+    if (ch) {
+      supabase.removeChannel(ch);
+      notifChannels.delete(key);
+    }
   },
 
   reset: () => {

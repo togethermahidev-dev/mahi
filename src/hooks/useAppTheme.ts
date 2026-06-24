@@ -10,8 +10,8 @@ export interface AppTheme {
   /** Convenience boolean — true when effective scheme is dark */
   dark: boolean;
   colors: {
-    bg:       string;
-    text:     string;
+    bg: string;
+    text: string;
     offWhite: string;
     offBlack: string;
   };
@@ -34,8 +34,8 @@ export function useAppTheme(): AppTheme {
     colorScheme,
     dark,
     colors: {
-      bg:       dark ? '#1C1C19' : '#FFFFFF',
-      text:     dark ? '#E8E8E3' : '#1A1A17',
+      bg: dark ? '#1C1C19' : '#FFFFFF',
+      text: dark ? '#E8E8E3' : '#1A1A17',
       offWhite: '#E8E8E3',
       offBlack: '#1A1A17',
     },

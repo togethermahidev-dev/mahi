@@ -83,6 +83,32 @@ useConversation(conversationId) mount (ConversationScreen)
 
 ---
 
+## Layering Contract
+
+The architecture is 5 layers with a strictly **downward** dependency direction:
+`screens/components → hooks → stores → api → lib → supabase`. Every change must obey these
+import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.md).
+
+| Layer | May import | Must NOT | Owns |
+|---|---|---|---|
+| **Screens / Components** | hooks, stores (`getState()` actions only), components, lib, types | `src/api/*` or the supabase client for app data (the `App.tsx` auth bootstrap is the one sanctioned exception) | rendering, local UI state |
+| **Hooks** (`src/hooks/*`) | stores, types | business logic; direct API calls (delegate to a store action) | realtime subscription lifecycle in a `[userId]`-keyed `useEffect`; re-exposing store selectors/actions |
+| **Stores** (`src/store/*`) | api, lib (supabase for realtime channels only), types, other stores (documented cross-store effects) | putting realtime channels in `set()` state | optimistic state + rollback; realtime channels in a module-level `Map`; a `reset()` that tears down channels + clears state, **wired into `App.tsx` sign-out** |
+| **API** (`src/api/*`) | lib (supabase), types | React, Zustand, any state | pure stateless calls returning `{ data: T \| null, error: Error \| null }` (wrap PostgrestError via `new Error(error.message)`); barrel-exported from `index.ts` |
+| **lib** (`src/lib/*`) | nothing from upper layers | — | singleton clients (supabase/sentry/posthog), the typed `env` accessor, pure utils |
+
+**The only legal sideways import is store→store** for already-documented cross-store refreshes
+(e.g. `socialStore` → `feedStore.patchPost`; `blockStore` → `feedStore`/`messagesStore`/`followStore`).
+
+**Cross-cutting invariants:**
+- **Env:** never read `process.env.*` directly — import the typed, fail-fast `env` from `src/lib/env.ts`.
+- **Sign-out:** every store with a `reset()` must be called in the `App.tsx` sign-out branch (prevents
+  cross-account state/realtime leaks on the same device).
+- **Errors:** the whole tree is wrapped in `src/components/ErrorBoundary.tsx` (reports to Sentry, shows a
+  recoverable fallback). It is the only sanctioned class component.
+
+---
+
 ## Database Schema
 
 | Table | Purpose |

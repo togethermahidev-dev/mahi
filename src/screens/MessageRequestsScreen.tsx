@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-  Image,
-  Platform,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, Platform } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMessages } from '@/hooks/useMessages';
 import { useAuthStore } from '@/store';
@@ -17,10 +9,10 @@ import type { ConversationPreview } from '@/api';
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60_000);
-  if (mins < 1)  return 'just now';
+  if (mins < 1) return 'just now';
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24)  return `${hrs}h ago`;
+  if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
@@ -34,18 +26,18 @@ function RequestRow({
   muted,
   border,
 }: {
-  item:       ConversationPreview;
+  item: ConversationPreview;
   showAccept: boolean;
-  onPress:    () => void;
-  onAccept:   () => void;
-  onDeny:     () => void;
-  text:       string;
-  muted:      string;
-  border:     string;
+  onPress: () => void;
+  onAccept: () => void;
+  onDeny: () => void;
+  text: string;
+  muted: string;
+  border: string;
 }) {
-  const name     = item.other_profile.display_name ?? item.other_profile.username;
+  const name = item.other_profile.display_name ?? item.other_profile.username;
   const initials = (item.other_profile.username ?? '?')[0].toUpperCase();
-  const preview  = item.last_message?.content
+  const preview = item.last_message?.content
     ? item.last_message.content.length > 40
       ? item.last_message.content.slice(0, 40) + '…'
       : item.last_message.content
@@ -67,15 +59,11 @@ function RequestRow({
 
       <View style={styles.convoInfo}>
         <Text style={[styles.convoName, { color: text }]}>{name}</Text>
-        {preview ? (
-          <Text style={[styles.convoPreview, { color: muted }]}>{preview}</Text>
-        ) : null}
+        {preview ? <Text style={[styles.convoPreview, { color: muted }]}>{preview}</Text> : null}
       </View>
 
       <View style={styles.convoRight}>
-        <Text style={[styles.convoTime, { color: muted }]}>
-          {relativeTime(item.updated_at)}
-        </Text>
+        <Text style={[styles.convoTime, { color: muted }]}>{relativeTime(item.updated_at)}</Text>
         {showAccept ? (
           <View style={styles.actionBtns}>
             <TouchableOpacity
@@ -109,9 +97,9 @@ export default function MessageRequestsScreen({
   onBack,
 }: MessageRequestsScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
-  const bg     = dark ? '#1C1C19' : '#FFFFFF';
-  const text   = dark ? '#E8E8E3' : '#1A1A17';
-  const muted  = dark ? 'rgba(232,232,227,0.4)' : 'rgba(26,26,23,0.4)';
+  const bg = dark ? '#1C1C19' : '#FFFFFF';
+  const text = dark ? '#E8E8E3' : '#1A1A17';
+  const muted = dark ? 'rgba(232,232,227,0.4)' : 'rgba(26,26,23,0.4)';
   const border = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.12)';
 
   const { requests, isLoading, refresh, accept, deny } = useMessages();
@@ -158,9 +146,7 @@ export default function MessageRequestsScreen({
           !isLoading ? (
             <View style={styles.placeholder}>
               <Text style={[styles.placeholderTitle, { color: text }]}>NO REQUESTS</Text>
-              <Text style={[styles.placeholderSub, { color: muted }]}>
-                You're all caught up
-              </Text>
+              <Text style={[styles.placeholderSub, { color: muted }]}>You're all caught up</Text>
             </View>
           ) : null
         }
@@ -182,119 +168,119 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection:     'row',
-    alignItems:        'center',
-    paddingTop:        Platform.OS === 'ios' ? 60 : 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 60 : 32,
     paddingHorizontal: 24,
-    paddingBottom:     16,
+    paddingBottom: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
-    width:          36,
-    height:         36,
-    borderRadius:   18,
-    borderWidth:    1,
-    alignItems:     'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    marginRight:    12,
+    marginRight: 12,
   },
   backArrow: {
-    fontSize:   20,
+    fontSize: 20,
     fontFamily: 'JosefinSans_400Regular_Italic',
     lineHeight: 22,
   },
   headerTitle: {
-    flex:          1,
-    fontSize:      24,
-    fontFamily:    'JosefinSans_700Bold',
+    flex: 1,
+    fontSize: 24,
+    fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 8,
-    textAlign:     'center',
+    textAlign: 'center',
   },
   backSpacer: {
-    width:       36,
-    marginLeft:  12,
+    width: 36,
+    marginLeft: 12,
   },
   convoRow: {
-    flexDirection:     'row',
-    alignItems:        'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical:   14,
+    paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    gap:               12,
+    gap: 12,
   },
   convoAvatar: {
-    width:        44,
-    height:       44,
+    width: 44,
+    height: 44,
     borderRadius: 22,
   },
   convoAvatarFallback: {
-    alignItems:     'center',
+    alignItems: 'center',
     justifyContent: 'center',
   },
   convoInitial: {
-    fontSize:   16,
+    fontSize: 16,
     fontFamily: 'JosefinSans_700Bold',
   },
   convoInfo: {
     flex: 1,
-    gap:  3,
+    gap: 3,
   },
   convoName: {
-    fontSize:      13,
-    fontFamily:    'JosefinSans_600SemiBold',
+    fontSize: 13,
+    fontFamily: 'JosefinSans_600SemiBold',
     letterSpacing: 1.5,
   },
   convoPreview: {
-    fontSize:   12,
+    fontSize: 12,
     fontFamily: 'JosefinSans_400Regular_Italic',
   },
   convoRight: {
     alignItems: 'flex-end',
-    gap:        6,
+    gap: 6,
   },
   convoTime: {
-    fontSize:   11,
+    fontSize: 11,
     fontFamily: 'JosefinSans_400Regular_Italic',
   },
   actionBtns: {
     gap: 5,
   },
   actionBtn: {
-    borderWidth:       1,
-    borderRadius:      50,
+    borderWidth: 1,
+    borderRadius: 50,
     paddingHorizontal: 12,
-    paddingVertical:   4,
+    paddingVertical: 4,
   },
   denyBtn: {
     borderColor: '#FF6B6B',
   },
   actionBtnText: {
-    fontSize:      10,
-    fontFamily:    'JosefinSans_600SemiBold',
+    fontSize: 10,
+    fontFamily: 'JosefinSans_600SemiBold',
     letterSpacing: 2,
   },
   denyText: {
     color: '#FF6B6B',
   },
   pendingLabel: {
-    fontSize:      10,
-    fontFamily:    'JosefinSans_600SemiBold',
+    fontSize: 10,
+    fontFamily: 'JosefinSans_600SemiBold',
     letterSpacing: 2,
   },
   placeholder: {
-    flex:           1,
-    alignItems:     'center',
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingTop:     60,
-    gap:            8,
+    paddingTop: 60,
+    gap: 8,
   },
   placeholderTitle: {
-    fontSize:      20,
-    fontFamily:    'JosefinSans_700Bold',
+    fontSize: 20,
+    fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 6,
   },
   placeholderSub: {
-    fontSize:   13,
+    fontSize: 13,
     fontFamily: 'JosefinSans_400Regular_Italic',
   },
 });

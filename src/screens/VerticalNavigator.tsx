@@ -1,21 +1,11 @@
 import React, { useMemo, useRef, useState } from 'react';
-import {
-  Animated,
-  Dimensions,
-  Platform,
-  PanResponder,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { Animated, Dimensions, Platform, PanResponder, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import NavigationDots from '@/components/NavigationDots';
 import AppHeader from '@/components/AppHeader';
 import GlobalSearchOverlay from '@/components/GlobalSearchOverlay';
-import {
-  CameraIcon,
-  FeedIcon,
-} from '@/components/ScreenIcons';
+import { CameraIcon, FeedIcon } from '@/components/ScreenIcons';
 import CameraScreen from '@/screens/CameraScreen';
 import FeedScreen from '@/screens/FeedScreen';
 import NotificationsScreen from '@/screens/NotificationsScreen';
@@ -32,7 +22,7 @@ const SLOT_HEIGHT = SCREEN_HEIGHT - PEEK_HEIGHT;
 const APP_HEADER_H = Platform.OS === 'ios' ? 108 : 80;
 
 // ─── Gesture thresholds ────────────────────────────────────────────────────────
-const SWIPE_PX = 60;  // min drag distance to trigger navigation
+const SWIPE_PX = 60; // min drag distance to trigger navigation
 const SWIPE_VY = 0.4; // min release velocity to trigger navigation
 
 // Pull-down threshold to open search (only when at top/camera screen)
@@ -44,20 +34,20 @@ const SEARCH_PULL_VY = 0.3;
 // Profile is not in the vertical tape — it lives in the horizontal layer.
 const SCREENS = [
   { key: 'camera', Component: CameraScreen, Icon: CameraIcon },
-  { key: 'feed',   Component: FeedScreen,   Icon: FeedIcon },
+  { key: 'feed', Component: FeedScreen, Icon: FeedIcon },
 ] as const;
 
 const SCREEN_ICONS = SCREENS.map((s) => s.Icon);
 
 // Background colours per screen in each theme mode. Used for off-screen
 // placeholder views so the peek strip colour is always correct.
-const SCREEN_BG_DARK  = ['#111111', '#1C1C19'] as const;
+const SCREEN_BG_DARK = ['#111111', '#1C1C19'] as const;
 const SCREEN_BG_LIGHT = ['#111111', '#FFFFFF'] as const;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface VerticalNavigatorProps {
-  onNavigateLeft:  () => void; // tap profile pill or swipe right → Profile screen
+  onNavigateLeft: () => void; // tap profile pill or swipe right → Profile screen
   onNavigateRight: () => void; // tap messages icon or swipe left → Messages screen
   onOverlayChange?: (active: boolean) => void; // true when a fullscreen overlay is open
 }
@@ -87,11 +77,11 @@ export default function VerticalNavigator({
     prevOverlay.current = overlayActive;
     onOverlayChange?.(overlayActive);
   }
-  const activeIndexRef    = useRef(0);
-  const baseOffsetRef     = useRef(0);
-  const feedScrollAtTop   = useRef(true);
-  const tapeAnim          = useRef(new Animated.Value(0)).current;
-  const headerAnim        = useRef(new Animated.Value(0)).current;
+  const activeIndexRef = useRef(0);
+  const baseOffsetRef = useRef(0);
+  const feedScrollAtTop = useRef(true);
+  const tapeAnim = useRef(new Animated.Value(0)).current;
+  const headerAnim = useRef(new Animated.Value(0)).current;
 
   // Snap the tape to a target screen with a spring animation and haptic.
   const navigateTo = (index: number) => {
@@ -129,10 +119,7 @@ export default function VerticalNavigator({
         // Stronger haptic when touch starts inside the peek strip zone and
         // there is a next screen to navigate to.
         const touchY = evt.nativeEvent.pageY;
-        if (
-          touchY > SCREEN_HEIGHT - PEEK_HEIGHT &&
-          activeIndexRef.current < SCREENS.length - 1
-        ) {
+        if (touchY > SCREEN_HEIGHT - PEEK_HEIGHT && activeIndexRef.current < SCREENS.length - 1) {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         }
       },
@@ -143,9 +130,9 @@ export default function VerticalNavigator({
         const raw = baseOffsetRef.current + dy;
         // Rubber-band resistance at the first and last screens
         let clamped: number;
-        if (raw > max)      clamped = max + (raw - max) / 3;
+        if (raw > max) clamped = max + (raw - max) / 3;
         else if (raw < min) clamped = min + (raw - min) / 3;
-        else                clamped = raw;
+        else clamped = raw;
         tapeAnim.setValue(clamped);
       },
 
@@ -153,7 +140,7 @@ export default function VerticalNavigator({
         const i = activeIndexRef.current;
         let next = i;
         if ((dy < -SWIPE_PX || vy < -SWIPE_VY) && i < SCREENS.length - 1) next = i + 1;
-        if ((dy >  SWIPE_PX || vy >  SWIPE_VY) && i > 0)                   next = i - 1;
+        if ((dy > SWIPE_PX || vy > SWIPE_VY) && i > 0) next = i - 1;
 
         // Pull down while on top (camera) screen → open search overlay
         if (i === 0 && (dy > SEARCH_PULL_PX || vy > SEARCH_PULL_VY)) {
@@ -165,7 +152,7 @@ export default function VerticalNavigator({
 
         navigateTo(next);
       },
-    }),
+    })
   ).current;
 
   // ─── Peek strip border radius ──────────────────────────────────────────────
@@ -188,9 +175,9 @@ export default function VerticalNavigator({
               inputRange: [-i * SLOT_HEIGHT, -(i - 1) * SLOT_HEIGHT],
               outputRange: [0, 40],
               extrapolate: 'clamp',
-            }),
+            })
       ),
-    [],
+    []
   );
 
   const bgPalette = dark ? SCREEN_BG_DARK : SCREEN_BG_LIGHT;
@@ -198,9 +185,7 @@ export default function VerticalNavigator({
   return (
     <View style={styles.root} {...panResponder.panHandlers}>
       {/* Tape — all screens stacked vertically, translated by tapeAnim */}
-      <Animated.View
-        style={[styles.tape, { transform: [{ translateY: tapeAnim }] }]}
-      >
+      <Animated.View style={[styles.tape, { transform: [{ translateY: tapeAnim }] }]}>
         {SCREENS.map(({ key, Component }, i) => {
           const radius = borderRadii[i];
 
@@ -217,7 +202,7 @@ export default function VerticalNavigator({
                 {
                   top: i * SLOT_HEIGHT,
                   backgroundColor: bgPalette[i],
-                  borderTopLeftRadius:  radius ?? 0,
+                  borderTopLeftRadius: radius ?? 0,
                   borderTopRightRadius: radius ?? 0,
                   overflow: 'hidden',
                 },
@@ -226,7 +211,9 @@ export default function VerticalNavigator({
               {isNearby ? (
                 key === 'feed' ? (
                   <FeedScreen
-                    onScrollTopChange={(atTop) => { feedScrollAtTop.current = atTop; }}
+                    onScrollTopChange={(atTop) => {
+                      feedScrollAtTop.current = atTop;
+                    }}
                     headerAnim={headerAnim}
                     onOverlayChange={(active) => {
                       feedOverlayRef.current = active;
@@ -237,12 +224,7 @@ export default function VerticalNavigator({
                   <Component />
                 )
               ) : (
-                <View
-                  style={[
-                    StyleSheet.absoluteFill,
-                    { backgroundColor: bgPalette[i] },
-                  ]}
-                />
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: bgPalette[i] }]} />
               )}
             </Animated.View>
           );
@@ -259,13 +241,15 @@ export default function VerticalNavigator({
           left: 0,
           right: 0,
           zIndex: 200,
-          transform: [{
-            translateY: headerAnim.interpolate({
-              inputRange:  [0, APP_HEADER_H],
-              outputRange: [0, -APP_HEADER_H],
-              extrapolate: 'clamp',
-            }),
-          }],
+          transform: [
+            {
+              translateY: headerAnim.interpolate({
+                inputRange: [0, APP_HEADER_H],
+                outputRange: [0, -APP_HEADER_H],
+                extrapolate: 'clamp',
+              }),
+            },
+          ],
         }}
         pointerEvents="box-none"
       >

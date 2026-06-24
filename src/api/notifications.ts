@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types';
 
 type NotificationRow = Database['public']['Tables']['notifications']['Row'];
-type ProfRow         = Database['public']['Tables']['profiles']['Row'];
+type ProfRow = Database['public']['Tables']['profiles']['Row'];
 
 export type NotificationWithActor = NotificationRow & {
   actor: Pick<ProfRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
@@ -10,7 +10,7 @@ export type NotificationWithActor = NotificationRow & {
 
 export async function getNotifications(
   userId: string,
-  limit: number = 50,
+  limit: number = 50
 ): Promise<{ data: NotificationWithActor[] | null; error: Error | null }> {
   const { data: notifs, error: notifsErr } = await supabase
     .from('notifications')
@@ -43,7 +43,7 @@ export async function getNotifications(
 }
 
 export async function getUnreadCount(
-  userId: string,
+  userId: string
 ): Promise<{ data: number | null; error: Error | null }> {
   const { count, error } = await supabase
     .from('notifications')
@@ -55,9 +55,7 @@ export async function getUnreadCount(
   return { data: count ?? 0, error: null };
 }
 
-export async function markAsRead(
-  notificationId: string,
-): Promise<{ error: Error | null }> {
+export async function markAsRead(notificationId: string): Promise<{ error: Error | null }> {
   const { error } = await supabase
     .from('notifications')
     .update({ is_read: true })
@@ -67,9 +65,7 @@ export async function markAsRead(
   return { error: null };
 }
 
-export async function markAllAsRead(
-  userId: string,
-): Promise<{ error: Error | null }> {
+export async function markAllAsRead(userId: string): Promise<{ error: Error | null }> {
   const { error } = await supabase
     .from('notifications')
     .update({ is_read: true })

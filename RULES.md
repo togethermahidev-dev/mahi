@@ -1,5 +1,12 @@
 # mahi-fitness — Project Rules for Claude
 
+## Architecture & Adding Features
+- 5-layer architecture, strict downward deps: `screens/components → hooks → stores → api → lib → supabase`.
+  See the **Layering Contract** in `docs/architecture.md` for the per-layer import rules.
+- To add a full-stack feature, follow `docs/adding-a-feature.md` (copy `follows.ts` / `followStore.ts` /
+  `useNotifications.ts` as templates). Every new store's `reset()` MUST be wired into the `App.tsx` sign-out branch.
+- Never read `process.env.*` directly — import the typed, fail-fast `env` from `src/lib/env.ts`.
+
 ## Supabase Edge Functions
 - All Edge Functions are deployed with `verify_jwt: false`
 - These functions handle pre-auth flows (sign-up, OTP, email checks)
@@ -11,7 +18,10 @@
 - Verification is done entirely client-side by comparing against the stored OTPState
 - Resend sender address: `onboarding@resend.dev`
   - TODO: change to `noreply@togethermahi.com` once SMTP is configured in Resend
-- App Store review bypass: `appreview@togethermahi.com` / `123456`
+- App Store review: provide Apple a **real seeded account** (created via the normal OTP flow) or a
+  TestFlight build — there is **no hardcoded bypass** in the client. (The previous
+  `appreview@togethermahi.com` / `1234` backdoor was removed; it shipped a working credential in the
+  production binary.)
 
 ## Camera / Upload Flow
 - Shutter captures only — no upload until user taps POST on the preview screen

@@ -10,7 +10,13 @@ import {
   ActivityIndicator,
   PanResponder,
 } from 'react-native';
-import { getProfile, createOrGetConversation, reportUser, hasReported, type ReportReason } from '@/api';
+import {
+  getProfile,
+  createOrGetConversation,
+  reportUser,
+  hasReported,
+  type ReportReason,
+} from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
 import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
@@ -27,7 +33,7 @@ type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 interface UserProfileScreenProps {
   userId: string;
   onBack: () => void;
-  dark:   boolean;
+  dark: boolean;
 }
 
 export default function UserProfileScreen({
@@ -37,19 +43,19 @@ export default function UserProfileScreen({
 }: UserProfileScreenProps): React.JSX.Element {
   const currentUserId = useAuthStore((s) => s.user?.id);
 
-  const bg     = dark ? '#1C1C19' : '#FFFFFF';
-  const text   = dark ? '#E8E8E3' : '#1A1A17';
-  const muted  = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const bg = dark ? '#1C1C19' : '#FFFFFF';
+  const text = dark ? '#E8E8E3' : '#1A1A17';
+  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
 
-  const isFollowing    = useFollowStore((s) => s.followingByMe[userId] ?? false);
-  const followerCount  = useFollowStore((s) => s.counts[userId]?.follower_count ?? 0);
+  const isFollowing = useFollowStore((s) => s.followingByMe[userId] ?? false);
+  const followerCount = useFollowStore((s) => s.counts[userId]?.follower_count ?? 0);
   const followingCount = useFollowStore((s) => s.counts[userId]?.following_count ?? 0);
   const loadFollowData = useFollowStore((s) => s.loadFollowData);
-  const toggleFollow   = useFollowStore((s) => s.toggleFollow);
+  const toggleFollow = useFollowStore((s) => s.toggleFollow);
 
   const isBlockedByMe = useBlockStore((s) => s.blockedByMe.has(userId));
-  const isBlocked     = useBlockStore((s) => s.blockedSet.has(userId));
-  const blockAction   = useBlockStore((s) => s.block);
+  const isBlocked = useBlockStore((s) => s.blockedSet.has(userId));
+  const blockAction = useBlockStore((s) => s.block);
   const unblockAction = useBlockStore((s) => s.unblock);
 
   // Keep a stable ref to onBack so the PanResponder closure always calls the
@@ -74,29 +80,39 @@ export default function UserProfileScreen({
       },
       // Allow child TouchableOpacity elements to reclaim the touch.
       onPanResponderTerminationRequest: () => true,
-    }),
+    })
   ).current;
 
-  const [profile,   setProfile]   = useState<ProfileRow | null>(null);
-  const [loading,   setLoading]   = useState(true);
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [loading, setLoading] = useState(true);
   const [messaging, setMessaging] = useState(false);
   const [streakGridOpen, setStreakGridOpen] = useState(false);
   const [followListOpen, setFollowListOpen] = useState(false);
   const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
   const [reporting, setReporting] = useState(false);
   const [activeConvo, setActiveConvo] = useState<ConversationPreview | null>(null);
-  const [selectedPost, setSelectedPost] = useState<Database['public']['Tables']['posts']['Row'] | null>(null);
+  const [selectedPost, setSelectedPost] = useState<
+    Database['public']['Tables']['posts']['Row'] | null
+  >(null);
 
   useEffect(() => {
     if (currentUserId) loadFollowData(currentUserId, userId);
   }, [userId, currentUserId, loadFollowData]);
 
   useEffect(() => {
-    Sentry.addBreadcrumb({ category: 'profile', message: `User profile opened: ${userId}`, level: 'info' });
+    Sentry.addBreadcrumb({
+      category: 'profile',
+      message: `User profile opened: ${userId}`,
+      level: 'info',
+    });
     getProfile(userId)
       .then(({ data, error }) => {
         if (error) {
-          Sentry.captureMessage(error.message, { level: 'warning', tags: { flow: 'profile', step: 'fetch' }, extra: { userId } });
+          Sentry.captureMessage(error.message, {
+            level: 'warning',
+            tags: { flow: 'profile', step: 'fetch' },
+            extra: { userId },
+          });
         }
         setProfile(data ?? null);
         setLoading(false);
@@ -109,18 +125,26 @@ export default function UserProfileScreen({
   }, [userId]);
 
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
-  const initials    = displayName[0]?.toUpperCase() ?? '?';
-  const isSelf      = currentUserId === userId;
+  const initials = displayName[0]?.toUpperCase() ?? '?';
+  const isSelf = currentUserId === userId;
 
   const handleMessage = async () => {
     if (!currentUserId || !profile || messaging) return;
-    Sentry.addBreadcrumb({ category: 'profile', message: `Message tapped: ${profile.username}`, level: 'info' });
+    Sentry.addBreadcrumb({
+      category: 'profile',
+      message: `Message tapped: ${profile.username}`,
+      level: 'info',
+    });
     setMessaging(true);
     try {
       const { data, error } = await createOrGetConversation(currentUserId, userId);
       setMessaging(false);
       if (error) {
-        Sentry.captureMessage(error.message, { level: 'warning', tags: { flow: 'profile', step: 'message' }, extra: { userId } });
+        Sentry.captureMessage(error.message, {
+          level: 'warning',
+          tags: { flow: 'profile', step: 'message' },
+          extra: { userId },
+        });
         return;
       }
       if (data) {
@@ -134,7 +158,11 @@ export default function UserProfileScreen({
 
   const handleFollow = async () => {
     if (!currentUserId) return;
-    Sentry.addBreadcrumb({ category: 'profile', message: `Follow toggled: ${userId}`, level: 'info' });
+    Sentry.addBreadcrumb({
+      category: 'profile',
+      message: `Follow toggled: ${userId}`,
+      level: 'info',
+    });
     const { error } = await toggleFollow(currentUserId, userId);
     if (error) {
       Sentry.captureMessage(error.message, {
@@ -149,7 +177,7 @@ export default function UserProfileScreen({
     if (!currentUserId || !profile) return;
     Alert.alert(
       `Block @${profile.username}?`,
-      'They won\'t be able to see your posts, message you, or follow you.',
+      "They won't be able to see your posts, message you, or follow you.",
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -157,7 +185,11 @@ export default function UserProfileScreen({
           style: 'destructive',
           onPress: async () => {
             posthog.capture('user_blocked', { blocked_user_id: userId });
-            Sentry.addBreadcrumb({ category: 'moderation', message: `Blocked: ${userId}`, level: 'info' });
+            Sentry.addBreadcrumb({
+              category: 'moderation',
+              message: `Blocked: ${userId}`,
+              level: 'info',
+            });
             const { error } = await blockAction(currentUserId, userId);
             if (error) {
               Sentry.captureMessage(error.message, {
@@ -169,7 +201,7 @@ export default function UserProfileScreen({
             onBack();
           },
         },
-      ],
+      ]
     );
   };
 
@@ -184,7 +216,11 @@ export default function UserProfileScreen({
           text: 'Unblock',
           onPress: async () => {
             posthog.capture('user_unblocked', { unblocked_user_id: userId });
-            Sentry.addBreadcrumb({ category: 'moderation', message: `Unblocked: ${userId}`, level: 'info' });
+            Sentry.addBreadcrumb({
+              category: 'moderation',
+              message: `Unblocked: ${userId}`,
+              level: 'info',
+            });
             const { error } = await unblockAction(currentUserId, userId);
             if (error) {
               Sentry.captureMessage(error.message, {
@@ -195,7 +231,7 @@ export default function UserProfileScreen({
             }
           },
         },
-      ],
+      ]
     );
   };
 
@@ -211,67 +247,59 @@ export default function UserProfileScreen({
     }
 
     const reasons: { label: string; value: ReportReason }[] = [
-      { label: 'Spam',                  value: 'spam' },
-      { label: 'Harassment',            value: 'harassment' },
+      { label: 'Spam', value: 'spam' },
+      { label: 'Harassment', value: 'harassment' },
       { label: 'Inappropriate Content', value: 'inappropriate_content' },
-      { label: 'Impersonation',         value: 'impersonation' },
-      { label: 'Other',                 value: 'other' },
+      { label: 'Impersonation', value: 'impersonation' },
+      { label: 'Other', value: 'other' },
     ];
 
-    Alert.alert(
-      `Report @${profile.username}?`,
-      'Select a reason:',
-      [
-        ...reasons.map((r) => ({
-          text: r.label,
-          onPress: async () => {
-            posthog.capture('user_reported', {
-              reported_user_id: userId,
-              reason: r.value,
-              has_description: false,
+    Alert.alert(`Report @${profile.username}?`, 'Select a reason:', [
+      ...reasons.map((r) => ({
+        text: r.label,
+        onPress: async () => {
+          posthog.capture('user_reported', {
+            reported_user_id: userId,
+            reason: r.value,
+            has_description: false,
+          });
+          Sentry.addBreadcrumb({
+            category: 'moderation',
+            message: `Reported: ${userId} reason: ${r.value}`,
+            level: 'info',
+          });
+          const { error } = await reportUser({
+            reporterId: currentUserId,
+            reportedUserId: userId,
+            reason: r.value,
+          });
+          setReporting(false);
+          if (error) {
+            Sentry.captureMessage(error.message, {
+              level: 'warning',
+              tags: { flow: 'moderation', step: 'report' },
+              extra: { userId, reason: r.value },
             });
-            Sentry.addBreadcrumb({
-              category: 'moderation',
-              message: `Reported: ${userId} reason: ${r.value}`,
-              level: 'info',
-            });
-            const { error } = await reportUser({
-              reporterId:     currentUserId,
-              reportedUserId: userId,
-              reason:         r.value,
-            });
-            setReporting(false);
-            if (error) {
-              Sentry.captureMessage(error.message, {
-                level: 'warning',
-                tags: { flow: 'moderation', step: 'report' },
-                extra: { userId, reason: r.value },
-              });
-            } else {
-              Alert.alert('Report Submitted', 'Thank you for helping keep the community safe.');
-            }
-          },
-        })),
-        { text: 'Cancel', style: 'cancel', onPress: () => setReporting(false) },
-      ],
-    );
+          } else {
+            Alert.alert('Report Submitted', 'Thank you for helping keep the community safe.');
+          }
+        },
+      })),
+      { text: 'Cancel', style: 'cancel', onPress: () => setReporting(false) },
+    ]);
   };
 
   const handleEllipsis = () => {
     if (!profile) return;
-    Alert.alert(
-      `@${profile.username}`,
-      '',
-      [
-        {
-          text: isBlockedByMe ? 'Unblock' : 'Block',
-          style: isBlockedByMe ? 'default' : 'destructive',
-          onPress: isBlockedByMe ? handleUnblock : handleBlock,
-        },
-        { text: 'Report', onPress: handleReport },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-    );
+    Alert.alert(`@${profile.username}`, '', [
+      {
+        text: isBlockedByMe ? 'Unblock' : 'Block',
+        style: isBlockedByMe ? 'default' : 'destructive',
+        onPress: isBlockedByMe ? handleUnblock : handleBlock,
+      },
+      { text: 'Report', onPress: handleReport },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   return (
@@ -302,9 +330,7 @@ export default function UserProfileScreen({
         <View style={styles.blockedWrap}>
           <Text style={[styles.blockedTitle, { color: text }]}>User Unavailable</Text>
           <Text style={[styles.blockedSubtitle, { color: muted }]}>
-            {isBlockedByMe
-              ? 'You have blocked this user.'
-              : 'This content is not available.'}
+            {isBlockedByMe ? 'You have blocked this user.' : 'This content is not available.'}
           </Text>
           {isBlockedByMe ? (
             <TouchableOpacity
@@ -325,7 +351,13 @@ export default function UserProfileScreen({
               {profile?.avatar_url ? (
                 <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
               ) : (
-                <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: dark ? '#3A3A37' : '#E8E8E3' }]}>
+                <View
+                  style={[
+                    styles.avatar,
+                    styles.avatarFallback,
+                    { backgroundColor: dark ? '#3A3A37' : '#E8E8E3' },
+                  ]}
+                >
                   <Text style={[styles.avatarInitial, { color: bg }]}>{initials}</Text>
                 </View>
               )}
@@ -342,7 +374,10 @@ export default function UserProfileScreen({
               <TouchableOpacity
                 style={styles.stat}
                 activeOpacity={0.7}
-                onPress={() => { setFollowListType('followers'); setFollowListOpen(true); }}
+                onPress={() => {
+                  setFollowListType('followers');
+                  setFollowListOpen(true);
+                }}
               >
                 <Text style={[styles.statValue, { color: text }]}>{followerCount}</Text>
                 <Text style={[styles.statLabel, { color: muted }]}>FOLLOWERS</Text>
@@ -351,7 +386,10 @@ export default function UserProfileScreen({
               <TouchableOpacity
                 style={styles.stat}
                 activeOpacity={0.7}
-                onPress={() => { setFollowListType('following'); setFollowListOpen(true); }}
+                onPress={() => {
+                  setFollowListType('following');
+                  setFollowListOpen(true);
+                }}
               >
                 <Text style={[styles.statValue, { color: text }]}>{followingCount}</Text>
                 <Text style={[styles.statLabel, { color: muted }]}>FOLLOWING</Text>
@@ -475,39 +513,39 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 60 : 32,
   },
   backBtn: {
-    position:       'absolute',
-    top:            Platform.OS === 'ios' ? 60 : 32,
-    left:           24,
-    zIndex:         1,
-    width:          36,
-    height:         36,
-    borderRadius:   18,
-    borderWidth:    1,
-    alignItems:     'center',
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 32,
+    left: 24,
+    zIndex: 1,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   backArrow: {
-    fontSize:   20,
+    fontSize: 20,
     fontFamily: 'JosefinSans_400Regular_Italic',
     lineHeight: 22,
   },
   ellipsisBtn: {
-    position:       'absolute',
-    top:            Platform.OS === 'ios' ? 60 : 32,
-    right:          24,
-    zIndex:         1,
-    width:          36,
-    height:         36,
-    borderRadius:   18,
-    borderWidth:    1,
-    alignItems:     'center',
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 32,
+    right: 24,
+    zIndex: 1,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   ellipsisText: {
-    fontSize:    16,
-    fontFamily:  'JosefinSans_700Bold',
-    lineHeight:  18,
-    marginTop:   -4,
+    fontSize: 16,
+    fontFamily: 'JosefinSans_700Bold',
+    lineHeight: 18,
+    marginTop: -4,
   },
   loader: {
     marginTop: 120,
@@ -521,52 +559,52 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatar: {
-    width:        80,
-    height:       80,
+    width: 80,
+    height: 80,
     borderRadius: 40,
   },
   avatarFallback: {
-    alignItems:     'center',
+    alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize:   28,
+    fontSize: 28,
     fontFamily: 'JosefinSans_700Bold',
   },
   displayName: {
-    fontSize:      22,
-    fontFamily:    'JosefinSans_700Bold',
+    fontSize: 22,
+    fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 4,
-    marginBottom:  6,
-    textAlign:     'center',
+    marginBottom: 6,
+    textAlign: 'center',
   },
   handle: {
-    fontSize:      14,
-    fontFamily:    'JosefinSans_400Regular_Italic',
-    marginBottom:  16,
+    fontSize: 14,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    marginBottom: 16,
   },
   statsRow: {
     flexDirection: 'row',
-    alignItems:    'center',
-    gap:           32,
+    alignItems: 'center',
+    gap: 32,
   },
   stat: {
     alignItems: 'center',
-    gap:        4,
+    gap: 4,
   },
   statValue: {
-    fontSize:   28,
+    fontSize: 28,
     fontFamily: 'JosefinSans_700Bold',
     lineHeight: 28,
   },
   statLabel: {
-    fontSize:      10,
-    fontFamily:    'JosefinSans_600SemiBold',
+    fontSize: 10,
+    fontFamily: 'JosefinSans_600SemiBold',
     letterSpacing: 3,
   },
   statDivider: {
-    width:   1,
-    height:  40,
+    width: 1,
+    height: 40,
     opacity: 0.3,
   },
   streakTrackerPill: {
@@ -585,57 +623,57 @@ const styles = StyleSheet.create({
     color: '#59c2d7',
   },
   actionRow: {
-    flexDirection:  'row',
-    gap:            12,
-    marginTop:      20,
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
   },
   followBtn: {
-    borderRadius:      50,
+    borderRadius: 50,
     paddingHorizontal: 28,
-    paddingVertical:   9,
+    paddingVertical: 9,
   },
   followBtnText: {
-    fontSize:      11,
-    fontFamily:    'JosefinSans_700Bold',
+    fontSize: 11,
+    fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 3,
   },
   messageBtn: {
-    borderWidth:       1,
-    borderRadius:      50,
+    borderWidth: 1,
+    borderRadius: 50,
     paddingHorizontal: 28,
-    paddingVertical:   9,
+    paddingVertical: 9,
   },
   messageBtnText: {
-    fontSize:      11,
-    fontFamily:    'JosefinSans_700Bold',
+    fontSize: 11,
+    fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 3,
   },
   blockedWrap: {
-    alignItems:      'center',
+    alignItems: 'center',
     paddingVertical: 120,
-    gap:             12,
+    gap: 12,
   },
   blockedTitle: {
-    fontSize:      16,
-    fontFamily:    'JosefinSans_700Bold',
+    fontSize: 16,
+    fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 3,
   },
   blockedSubtitle: {
-    fontSize:   13,
+    fontSize: 13,
     fontFamily: 'JosefinSans_400Regular_Italic',
-    textAlign:  'center',
+    textAlign: 'center',
     paddingHorizontal: 16,
   },
   unblockBtn: {
-    borderWidth:       1,
-    borderRadius:      50,
+    borderWidth: 1,
+    borderRadius: 50,
     paddingHorizontal: 28,
-    paddingVertical:   9,
-    marginTop:         8,
+    paddingVertical: 9,
+    marginTop: 8,
   },
   unblockBtnText: {
-    fontSize:      11,
-    fontFamily:    'JosefinSans_700Bold',
+    fontSize: 11,
+    fontFamily: 'JosefinSans_700Bold',
     letterSpacing: 3,
   },
   mapShadow: {

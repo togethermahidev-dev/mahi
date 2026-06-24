@@ -11,23 +11,41 @@ import {
   View,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Reanimated, {
-  useAnimatedStyle,
-  useSharedValue,
-} from 'react-native-reanimated';
+import Reanimated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { getPostDates } from '@/api';
 import { Sentry } from '@/lib/sentry';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ─── Grid constants ──────────────────────────────────────────────────────────
-const CELL_SIZE       = 28;
-const CELL_GAP        = 4;
-const MONTH_LABEL_W   = 44;
-const WEEKDAY_LABELS  = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-const WEEKDAY_NAMES   = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-const MONTH_NAMES     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const DAYS_BLOCK_W    = 7 * CELL_SIZE + 6 * CELL_GAP;
+const CELL_SIZE = 28;
+const CELL_GAP = 4;
+const MONTH_LABEL_W = 44;
+const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const WEEKDAY_NAMES = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
+const MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+const DAYS_BLOCK_W = 7 * CELL_SIZE + 6 * CELL_GAP;
 
 interface StreakGridPanelProps {
   visible: boolean;
@@ -44,7 +62,7 @@ type MonthBlock = {
   label: string;
   year: number;
   leadingBlanks: number; // 0-6, Monday-first offset of the 1st of the month
-  days: string[];        // YYYY-MM-DD for each day of the month (up to today for the current month)
+  days: string[]; // YYYY-MM-DD for each day of the month (up to today for the current month)
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -99,41 +117,45 @@ export default function StreakGridPanel({
   fitnessRoutine,
   dark,
 }: StreakGridPanelProps): React.JSX.Element | null {
-  const bg    = dark ? '#1C1C19' : '#FFFFFF';
-  const text  = dark ? '#E8E8E3' : '#1A1A17';
+  const bg = dark ? '#1C1C19' : '#FFFFFF';
+  const text = dark ? '#E8E8E3' : '#1A1A17';
   const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
   const border = dark ? 'rgba(232,232,227,0.08)' : 'rgba(26,26,23,0.06)';
 
-  const cellPosted  = '#59c2d7';
-  const cellMissed  = dark ? 'rgba(89,194,215,0.55)' : 'rgba(89,194,215,0.50)';
-  const cellRest    = dark ? 'rgba(89,194,215,0.22)' : 'rgba(89,194,215,0.18)';
-  const cellToday   = '#59c2d7';
+  const cellPosted = '#59c2d7';
+  const cellMissed = dark ? 'rgba(89,194,215,0.55)' : 'rgba(89,194,215,0.50)';
+  const cellRest = dark ? 'rgba(89,194,215,0.22)' : 'rgba(89,194,215,0.18)';
+  const cellToday = '#59c2d7';
 
   // Panel slide-in (kept on legacy RN Animated — different view from the pan canvas)
-  const slideAnim    = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
+  const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
   // Pan canvas (Reanimated) — resets to 0 naturally when the panel unmounts on close.
   const translateY = useSharedValue(0);
-  const startY     = useSharedValue(0);
-  const viewportH  = useSharedValue(0);
-  const contentH   = useSharedValue(0);
+  const startY = useSharedValue(0);
+  const viewportH = useSharedValue(0);
+  const contentH = useSharedValue(0);
 
-  const [mounted, setMounted]     = useState(false);
-  const [loading, setLoading]     = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [postDates, setPostDates] = useState<Set<string>>(new Set());
 
   const todayStr = useMemo(() => toDateStr(new Date()), []);
   const trainingDays = useMemo(
     () => (fitnessRoutine ? new Set(fitnessRoutine.split(',')) : null),
-    [fitnessRoutine],
+    [fitnessRoutine]
   );
 
   // ─── Animation lifecycle ─────────────────────────────────────────────────
   useEffect(() => {
     if (visible) {
       setMounted(true);
-      Sentry.addBreadcrumb({ category: 'streak_grid', message: 'Streak grid opened', level: 'info' });
+      Sentry.addBreadcrumb({
+        category: 'streak_grid',
+        message: 'Streak grid opened',
+        level: 'info',
+      });
       Animated.parallel([
         Animated.spring(slideAnim, {
           toValue: 0,
@@ -198,8 +220,10 @@ export default function StreakGridPanel({
     y.setDate(y.getDate() - 1);
     return toDateStr(y);
   }, []);
-  const isOnStreak = !!streakLastUploadDate && streakCurrent > 0
-    && (streakLastUploadDate === todayStr || streakLastUploadDate === yesterdayStr);
+  const isOnStreak =
+    !!streakLastUploadDate &&
+    streakCurrent > 0 &&
+    (streakLastUploadDate === todayStr || streakLastUploadDate === yesterdayStr);
 
   // ─── Cell colour ─────────────────────────────────────────────────────────
   // weekdayIndex is 0=Mon ... 6=Sun, derived from the cell's column in the grid.
@@ -265,7 +289,12 @@ export default function StreakGridPanel({
         style={[styles.panel, { backgroundColor: bg, transform: [{ translateX: slideAnim }] }]}
       >
         {/* Header */}
-        <View style={[styles.topBar, { borderBottomColor: border, paddingTop: Platform.OS === 'ios' ? 60 : 32 }]}>
+        <View
+          style={[
+            styles.topBar,
+            { borderBottomColor: border, paddingTop: Platform.OS === 'ios' ? 60 : 32 },
+          ]}
+        >
           <Text style={[styles.title, { color: text }]}>STREAK</Text>
           <TouchableOpacity
             onPress={onClose}
@@ -277,15 +306,8 @@ export default function StreakGridPanel({
         </View>
 
         {/* Status indicator */}
-        <Text
-          style={[
-            styles.statusText,
-            { color: isOnStreak ? '#59c2d7' : muted },
-          ]}
-        >
-          {isOnStreak
-            ? `On a ${streakCurrent}-day streak`
-            : 'Streak tracker'}
+        <Text style={[styles.statusText, { color: isOnStreak ? '#59c2d7' : muted }]}>
+          {isOnStreak ? `On a ${streakCurrent}-day streak` : 'Streak tracker'}
         </Text>
 
         {/* Stats row */}
@@ -316,7 +338,12 @@ export default function StreakGridPanel({
             <Text style={[styles.legendText, { color: muted }]}>Rest day</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: 'transparent', borderWidth: 1, borderColor: cellToday }]} />
+            <View
+              style={[
+                styles.legendDot,
+                { backgroundColor: 'transparent', borderWidth: 1, borderColor: cellToday },
+              ]}
+            />
             <Text style={[styles.legendText, { color: muted }]}>Today</Text>
           </View>
         </View>
@@ -347,9 +374,7 @@ export default function StreakGridPanel({
                 <Reanimated.View style={canvasStyle} onLayout={onCanvasLayout}>
                   {months.map((month) => (
                     <View key={`${month.label}-${month.year}`} style={styles.monthRow}>
-                      <Text style={[styles.monthLabel, { color: muted }]}>
-                        {month.label}
-                      </Text>
+                      <Text style={[styles.monthLabel, { color: muted }]}>{month.label}</Text>
                       <View style={styles.daysBlock}>
                         {Array.from({ length: month.leadingBlanks }).map((_, i) => (
                           <View key={`blank-${i}`} style={styles.blankCell} />
@@ -405,11 +430,11 @@ const styles = StyleSheet.create({
     letterSpacing: 5,
   },
   closeBtn: {
-    width:          36,
-    height:         36,
-    borderRadius:   18,
-    borderWidth:    1,
-    alignItems:     'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   closeBtnText: {

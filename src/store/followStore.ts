@@ -1,14 +1,14 @@
 import { create } from 'zustand';
 import {
-  followUser    as apiFollow,
-  unfollowUser  as apiUnfollow,
+  followUser as apiFollow,
+  unfollowUser as apiUnfollow,
   getFollowData as apiGetFollowData,
 } from '@/api';
 import { supabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface FollowCounts {
-  follower_count:  number;
+  follower_count: number;
   following_count: number;
 }
 
@@ -19,15 +19,19 @@ interface FollowState {
   /** Whether the current user follows userId. Keyed by target userId. */
   followingByMe: Record<string, boolean>;
   /** Follower/following counts keyed by userId. */
-  counts:        Record<string, FollowCounts>;
+  counts: Record<string, FollowCounts>;
 
   /** Load follow status + counts for a user via single RPC. */
   loadFollowData: (currentUserId: string, targetUserId: string) => Promise<void>;
   /** Optimistic toggle follow with rollback. Returns error for caller logging. */
-  toggleFollow:   (currentUserId: string, targetUserId: string) => Promise<{ error: Error | null }>;
+  toggleFollow: (currentUserId: string, targetUserId: string) => Promise<{ error: Error | null }>;
 
   /** Subscribe to realtime follow changes for a user. Returns unsubscribe fn. */
-  subscribeToFollows: (userId: string, currentUserId: string, onChange?: FollowChangeListener) => () => void;
+  subscribeToFollows: (
+    userId: string,
+    currentUserId: string,
+    onChange?: FollowChangeListener
+  ) => () => void;
 
   reset: () => void;
 }
@@ -37,7 +41,7 @@ const followChannels = new Map<string, { channel: RealtimeChannel; refCount: num
 
 export const useFollowStore = create<FollowState>((set, get) => ({
   followingByMe: {},
-  counts:        {},
+  counts: {},
 
   loadFollowData: async (currentUserId, targetUserId) => {
     const { data, error } = await apiGetFollowData(currentUserId, targetUserId);
@@ -49,7 +53,7 @@ export const useFollowStore = create<FollowState>((set, get) => ({
       counts: {
         ...s.counts,
         [targetUserId]: {
-          follower_count:  data.follower_count,
+          follower_count: data.follower_count,
           following_count: data.following_count,
         },
       },
@@ -58,7 +62,7 @@ export const useFollowStore = create<FollowState>((set, get) => ({
 
   toggleFollow: async (currentUserId, targetUserId) => {
     const wasFollowing = get().followingByMe[targetUserId] ?? false;
-    const prevCounts   = get().counts[targetUserId] ?? { follower_count: 0, following_count: 0 };
+    const prevCounts = get().counts[targetUserId] ?? { follower_count: 0, following_count: 0 };
 
     // Optimistic update — target's follower count
     set((s) => ({
@@ -135,12 +139,12 @@ export const useFollowStore = create<FollowState>((set, get) => ({
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'follows', filter: `following_id=eq.${userId}` },
-        handler,
+        handler
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'follows', filter: `follower_id=eq.${userId}` },
-        handler,
+        handler
       )
       .subscribe();
 

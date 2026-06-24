@@ -12,7 +12,7 @@ interface NavigationDotsProps {
 
 // Active dot: rounded square with icon inside
 // Inactive dot: small pill (same as before)
-const ACTIVE_SIZE   = 28;
+const ACTIVE_SIZE = 28;
 const INACTIVE_SIZE = 6;
 const ACTIVE_RADIUS = 10;
 
@@ -24,7 +24,7 @@ export default function NavigationDots({
   onDotPress,
 }: NavigationDotsProps): React.JSX.Element {
   const dotAnims = useRef<Animated.Value[]>(
-    Array.from({ length: count }, (_, i) => new Animated.Value(i === 0 ? 1 : 0)),
+    Array.from({ length: count }, (_, i) => new Animated.Value(i === 0 ? 1 : 0))
   ).current;
 
   useEffect(() => {
@@ -34,12 +34,12 @@ export default function NavigationDots({
         damping: 18,
         stiffness: 140,
         useNativeDriver: false, // width/height are not transform properties
-      }),
+      })
     );
     Animated.parallel(animations).start();
   }, [activeIndex]);
 
-  const dotColor  = dark ? '#FFFFFF' : '#1A1A17';
+  const dotColor = dark ? '#FFFFFF' : '#1A1A17';
   const iconColor = dark ? '#1A1A17' : '#FFFFFF'; // icon contrasts against the filled dot bg
 
   return (
@@ -66,11 +66,7 @@ export default function NavigationDots({
         const Icon = icons[i];
 
         return (
-          <TouchableOpacity
-            key={i}
-            activeOpacity={0.7}
-            onPress={() => onDotPress?.(i)}
-          >
+          <TouchableOpacity key={i} activeOpacity={0.7} onPress={() => onDotPress?.(i)}>
             <Animated.View
               style={[
                 styles.dot,

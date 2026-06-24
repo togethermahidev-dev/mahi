@@ -1,7 +1,12 @@
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
-  Animated, Dimensions, Image,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  Dimensions,
+  Image,
 } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import LoginSheet from '@/components/LoginSheet';
@@ -16,13 +21,13 @@ interface Props {
 
 export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Element {
   const { dark } = useAppTheme();
-  const sheetBg   = dark ? '#1C1C19' : '#FFFFFF';
+  const sheetBg = dark ? '#1C1C19' : '#FFFFFF';
   const sheetText = dark ? '#FFFFFF' : '#0F0F0D';
 
   const topY = useRef(new Animated.Value(0)).current;
   const botY = useRef(new Animated.Value(0)).current;
 
-  const [showLogin, setShowLogin]   = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
 
   const handleAuthComplete = () => {
@@ -30,19 +35,23 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
     setShowSignup(false);
     Animated.parallel([
       Animated.timing(topY, { toValue: -height, duration: 400, useNativeDriver: true }),
-      Animated.timing(botY, { toValue: height,  duration: 400, useNativeDriver: true }),
+      Animated.timing(botY, { toValue: height, duration: 400, useNativeDriver: true }),
     ]).start(() => onAuthComplete());
   };
 
   return (
     <View style={styles.root}>
-      <Animated.View style={[styles.topSheet, { backgroundColor: sheetBg, transform: [{ translateY: topY }] }]}>
+      <Animated.View
+        style={[styles.topSheet, { backgroundColor: sheetBg, transform: [{ translateY: topY }] }]}
+      >
         <View style={styles.titles}>
           <View style={styles.titleWrapper}>
             <Text style={[styles.title, styles.titleEcho]}>MAHI</Text>
             <Text style={[styles.title, { color: sheetText }]}>MAHI</Text>
           </View>
-          <Text style={[styles.subtitle, { color: sheetText }]}>The fitness accountability app</Text>
+          <Text style={[styles.subtitle, { color: sheetText }]}>
+            The fitness accountability app
+          </Text>
         </View>
         <TouchableOpacity
           style={[styles.button, { backgroundColor: sheetText }]}
@@ -55,7 +64,12 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
 
       <View style={styles.gap} />
 
-      <Animated.View style={[styles.bottomSheet, { backgroundColor: sheetBg, transform: [{ translateY: botY }] }]}>
+      <Animated.View
+        style={[
+          styles.bottomSheet,
+          { backgroundColor: sheetBg, transform: [{ translateY: botY }] },
+        ]}
+      >
         <Image
           source={require('../../assets/mahibw.png')}
           style={styles.topSheetBg}

@@ -33,7 +33,10 @@ interface PostDetailModalProps {
   onClose: () => void;
 }
 
-export default function PostDetailModal({ post, onClose }: PostDetailModalProps): React.JSX.Element {
+export default function PostDetailModal({
+  post,
+  onClose,
+}: PostDetailModalProps): React.JSX.Element {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -42,7 +45,7 @@ export default function PostDetailModal({ post, onClose }: PostDetailModalProps)
 
   const handleClose = () => {
     Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() =>
-      onClose(),
+      onClose()
     );
   };
 
@@ -125,10 +128,7 @@ export default function PostDetailModal({ post, onClose }: PostDetailModalProps)
       />
 
       {/* Top gradient — close button + streak badge */}
-      <LinearGradient
-        colors={['rgba(0,0,0,0.6)', 'transparent']}
-        style={styles.topOverlay}
-      >
+      <LinearGradient colors={['rgba(0,0,0,0.6)', 'transparent']} style={styles.topOverlay}>
         <TouchableOpacity
           onPress={handleClose}
           style={styles.closeBtn}

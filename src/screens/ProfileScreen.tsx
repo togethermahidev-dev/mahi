@@ -23,18 +23,18 @@ export default function ProfileScreen(): React.JSX.Element {
   const [followListOpen, setFollowListOpen] = useState(false);
   const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
   const [selectedPost, setSelectedPost] = useState<PostRow | null>(null);
-  const bg      = dark ? '#1C1C19' : '#FFFFFF';
-  const text    = dark ? '#E8E8E3' : '#1A1A17';
-  const muted   = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const bg = dark ? '#1C1C19' : '#FFFFFF';
+  const text = dark ? '#E8E8E3' : '#1A1A17';
+  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
   const toggleColor = dark ? '#E8E8E3' : '#1A1A17';
 
-  const profile    = useUserStore((s) => s.profile);
+  const profile = useUserStore((s) => s.profile);
   const setProfile = useUserStore((s) => s.setProfile);
-  const userId     = useAuthStore((s) => s.user?.id);
+  const userId = useAuthStore((s) => s.user?.id);
 
-  const followerCount      = useFollowStore((s) => s.counts[userId ?? '']?.follower_count ?? 0);
-  const followingCount     = useFollowStore((s) => s.counts[userId ?? '']?.following_count ?? 0);
-  const loadFollowData     = useFollowStore((s) => s.loadFollowData);
+  const followerCount = useFollowStore((s) => s.counts[userId ?? '']?.follower_count ?? 0);
+  const followingCount = useFollowStore((s) => s.counts[userId ?? '']?.following_count ?? 0);
+  const loadFollowData = useFollowStore((s) => s.loadFollowData);
   const subscribeToFollows = useFollowStore((s) => s.subscribeToFollows);
 
   useEffect(() => {
@@ -94,7 +94,10 @@ export default function ProfileScreen(): React.JSX.Element {
           <TouchableOpacity
             style={styles.stat}
             activeOpacity={0.7}
-            onPress={() => { setFollowListType('followers'); setFollowListOpen(true); }}
+            onPress={() => {
+              setFollowListType('followers');
+              setFollowListOpen(true);
+            }}
           >
             <Text style={[styles.statValue, { color: text }]}>{followerCount}</Text>
             <Text style={[styles.statLabel, { color: muted }]}>FOLLOWERS</Text>
@@ -103,7 +106,10 @@ export default function ProfileScreen(): React.JSX.Element {
           <TouchableOpacity
             style={styles.stat}
             activeOpacity={0.7}
-            onPress={() => { setFollowListType('following'); setFollowListOpen(true); }}
+            onPress={() => {
+              setFollowListType('following');
+              setFollowListOpen(true);
+            }}
           >
             <Text style={[styles.statValue, { color: text }]}>{followingCount}</Text>
             <Text style={[styles.statLabel, { color: muted }]}>FOLLOWING</Text>
@@ -113,16 +119,12 @@ export default function ProfileScreen(): React.JSX.Element {
         {/* Streak stats */}
         <View style={[styles.statsRow, { marginTop: 16 }]}>
           <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: text }]}>
-              {profile?.streak_current ?? 0}
-            </Text>
+            <Text style={[styles.statValue, { color: text }]}>{profile?.streak_current ?? 0}</Text>
             <Text style={[styles.statLabel, { color: muted }]}>STREAK</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: muted }]} />
           <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: text }]}>
-              {profile?.streak_highest ?? 0}
-            </Text>
+            <Text style={[styles.statValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
             <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
           </View>
         </View>
@@ -140,16 +142,16 @@ export default function ProfileScreen(): React.JSX.Element {
       {/* Personal streak photo grid */}
       {profile && userId ? (
         <View style={[styles.mapShadow, { shadowColor: dark ? '#000' : '#1A1A17' }]}>
-          <ProfileMediaMap userId={profile.id} isSelf={userId === profile.id} onPostPress={setSelectedPost} />
+          <ProfileMediaMap
+            userId={profile.id}
+            isSelf={userId === profile.id}
+            onPostPress={setSelectedPost}
+          />
         </View>
       ) : null}
 
       {/* Settings panel — slides in from left */}
-      <SettingsPanel
-        visible={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        dark={dark}
-      />
+      <SettingsPanel visible={settingsOpen} onClose={() => setSettingsOpen(false)} dark={dark} />
 
       {/* Training days editor — slides in from left */}
       <TrainingDaysScreen

@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-} from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -17,13 +10,16 @@ interface Props {
   onClose: () => void;
 }
 
-export default function ProfileMediaMapModal({ visible, onClose }: Props): React.JSX.Element | null {
+export default function ProfileMediaMapModal({
+  visible,
+  onClose,
+}: Props): React.JSX.Element | null {
   const { dark } = useAppTheme();
-  const bg    = dark ? '#1C1C19' : '#FFFFFF';
-  const text  = dark ? '#E8E8E3' : '#1A1A17';
+  const bg = dark ? '#1C1C19' : '#FFFFFF';
+  const text = dark ? '#E8E8E3' : '#1A1A17';
   const btnBg = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.08)';
 
-  const userId  = useAuthStore((s) => s.user?.id);
+  const userId = useAuthStore((s) => s.user?.id);
   const profile = useUserStore((s) => s.profile);
 
   if (!userId || !profile) return null;
@@ -39,7 +35,6 @@ export default function ProfileMediaMapModal({ visible, onClose }: Props): React
           or pinch/pan gestures will not initialise (Worklets error) */}
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaView style={[styles.root, { backgroundColor: bg }]}>
-
           <View style={styles.header}>
             <Text style={[styles.title, { color: text }]}>MY FEED</Text>
 
@@ -56,7 +51,6 @@ export default function ProfileMediaMapModal({ visible, onClose }: Props): React
           <View style={styles.canvas}>
             <ProfileMediaMap userId={profile.id} isSelf={userId === profile.id} />
           </View>
-
         </SafeAreaView>
       </GestureHandlerRootView>
     </Modal>

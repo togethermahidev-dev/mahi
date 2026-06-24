@@ -23,13 +23,21 @@ import { Sentry } from '@/lib/sentry';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-function UserRow({ item, dark, onPress }: { item: ProfileSearchResult; dark: boolean; onPress: () => void }) {
-  const text     = dark ? '#E8E8E3' : '#1A1A17';
-  const muted    = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+function UserRow({
+  item,
+  dark,
+  onPress,
+}: {
+  item: ProfileSearchResult;
+  dark: boolean;
+  onPress: () => void;
+}) {
+  const text = dark ? '#E8E8E3' : '#1A1A17';
+  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
   const avatarBg = dark ? '#2A2A27' : '#E8E8E3';
 
   const displayName = item.display_name ?? item.first_name ?? item.username ?? '—';
-  const initials    = displayName[0]?.toUpperCase() ?? '?';
+  const initials = displayName[0]?.toUpperCase() ?? '?';
 
   return (
     <TouchableOpacity style={styles.row} activeOpacity={0.7} onPress={onPress}>
@@ -64,18 +72,18 @@ export default function GlobalSearchOverlay({
   onClose,
   dark,
 }: GlobalSearchOverlayProps): React.JSX.Element | null {
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-24)).current;
-  const inputRef  = useRef<TextInput>(null);
+  const inputRef = useRef<TextInput>(null);
 
-  const text    = dark ? '#E8E8E3' : '#1A1A17';
-  const muted   = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const text = dark ? '#E8E8E3' : '#1A1A17';
+  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
   const inputBg = dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
-  const tint    = dark ? 'dark' : 'light';
+  const tint = dark ? 'dark' : 'light';
 
-  const [query, setQuery]       = useState('');
-  const [results, setResults]   = useState<ProfileSearchResult[]>([]);
-  const [loading, setLoading]   = useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<ProfileSearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const currentUserId = useAuthStore((s) => s.user?.id);
@@ -95,7 +103,7 @@ export default function GlobalSearchOverlay({
       },
       // Allow child elements (search bar, result rows, cancel) to reclaim touches.
       onPanResponderTerminationRequest: () => true,
-    }),
+    })
   ).current;
 
   useEffect(() => {
@@ -103,15 +111,25 @@ export default function GlobalSearchOverlay({
       console.log('[GlobalSearch] opened');
       Sentry.addBreadcrumb({ category: 'search', message: 'Search overlay opened', level: 'info' });
       Animated.parallel([
-        Animated.spring(fadeAnim,  { toValue: 1, damping: 22, stiffness: 200, useNativeDriver: true }),
-        Animated.spring(slideAnim, { toValue: 0, damping: 22, stiffness: 200, useNativeDriver: true }),
+        Animated.spring(fadeAnim, {
+          toValue: 1,
+          damping: 22,
+          stiffness: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          damping: 22,
+          stiffness: 200,
+          useNativeDriver: true,
+        }),
       ]).start(() => {
         inputRef.current?.focus();
       });
     } else {
       inputRef.current?.blur();
       Animated.parallel([
-        Animated.timing(fadeAnim,  { toValue: 0, duration: 180, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
         Animated.timing(slideAnim, { toValue: -24, duration: 180, useNativeDriver: true }),
       ]).start();
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -136,11 +154,13 @@ export default function GlobalSearchOverlay({
         const { data, error } = await searchProfiles(value);
         if (error) {
           console.log('[GlobalSearch] search error |', error.message);
-          Sentry.captureMessage(error.message, { level: 'warning', tags: { flow: 'search' }, extra: { query: value } });
+          Sentry.captureMessage(error.message, {
+            level: 'warning',
+            tags: { flow: 'search' },
+            extra: { query: value },
+          });
         }
-        const filtered = (data ?? []).filter(
-          (u) => !useBlockStore.getState().isBlocked(u.id),
-        );
+        const filtered = (data ?? []).filter((u) => !useBlockStore.getState().isBlocked(u.id));
         console.log('[GlobalSearch] query:', value, '| results:', filtered.length);
         setResults(filtered);
         setSearched(true);
@@ -158,25 +178,16 @@ export default function GlobalSearchOverlay({
   if (!visible) return null;
 
   return (
-    <Animated.View
-      style={[styles.root, { opacity: fadeAnim }]}
-      {...dismissPan.panHandlers}
-    >
+    <Animated.View style={[styles.root, { opacity: fadeAnim }]} {...dismissPan.panHandlers}>
       {/* Full-screen frosted glass background */}
-      <BlurView
-        intensity={35}
-        tint={tint}
-        style={StyleSheet.absoluteFill}
-      />
+      <BlurView intensity={35} tint={tint} style={StyleSheet.absoluteFill} />
 
       {/* Subtle colour wash on top of blur */}
       <View
         style={[
           StyleSheet.absoluteFill,
           {
-            backgroundColor: dark
-              ? 'rgba(18,18,16,0.25)'
-              : 'rgba(250,250,248,0.25)',
+            backgroundColor: dark ? 'rgba(18,18,16,0.25)' : 'rgba(250,250,248,0.25)',
           },
         ]}
         pointerEvents="none"
@@ -197,9 +208,7 @@ export default function GlobalSearchOverlay({
         style={styles.content}
         pointerEvents="box-none"
       >
-        <Animated.View
-          style={[styles.inner, { transform: [{ translateY: slideAnim }] }]}
-        >
+        <Animated.View style={[styles.inner, { transform: [{ translateY: slideAnim }] }]}>
           {/* Search bar row */}
           <View style={styles.barRow}>
             <View style={[styles.pill, { backgroundColor: inputBg }]}>
@@ -217,13 +226,22 @@ export default function GlobalSearchOverlay({
                 clearButtonMode="while-editing"
               />
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.cancelBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.cancelBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
               <Text style={[styles.cancelText, { color: text }]}>CANCEL</Text>
             </TouchableOpacity>
           </View>
 
           {/* Divider */}
-          <View style={[styles.divider, { backgroundColor: dark ? 'rgba(232,232,227,0.1)' : 'rgba(26,26,23,0.08)' }]} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: dark ? 'rgba(232,232,227,0.1)' : 'rgba(26,26,23,0.08)' },
+            ]}
+          />
 
           {/* Results */}
           {loading ? (
@@ -252,7 +270,11 @@ export default function GlobalSearchOverlay({
                       return;
                     }
                     console.log('[GlobalSearch] tap profile |', item.id, '| user:', item.username);
-                    Sentry.addBreadcrumb({ category: 'search', message: `Profile tapped: ${item.username}`, level: 'info' });
+                    Sentry.addBreadcrumb({
+                      category: 'search',
+                      message: `Profile tapped: ${item.username}`,
+                      level: 'info',
+                    });
                     Keyboard.dismiss();
                     setProfileUserId(item.id);
                   }}

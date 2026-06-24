@@ -8,22 +8,22 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types';
 
-type PostRow    = Database['public']['Tables']['posts']['Row'];
+type PostRow = Database['public']['Tables']['posts']['Row'];
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 export type TaggedUser = {
-  user_id:      string;
-  username:     string;
+  user_id: string;
+  username: string;
   display_name: string | null;
-  avatar_url:   string | null;
+  avatar_url: string | null;
 };
 
 export type FeedPost = PostRow & {
-  profiles:      Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
-  like_count:    number;
+  profiles: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
+  like_count: number;
   comment_count: number;
-  liked_by_me:   boolean;
-  tagged_users:  TaggedUser[];
+  liked_by_me: boolean;
+  tagged_users: TaggedUser[];
 };
 
 export type FeedCursor = { ts: string; id: string };
@@ -36,37 +36,39 @@ export type FeedCursor = { ts: string; id: string };
  */
 export async function getFeedPosts(
   limit: number,
-  cursor?: FeedCursor,
+  cursor?: FeedCursor
 ): Promise<{ data: FeedPost[] | null; error: Error | null }> {
   const { data, error } = await supabase.rpc('get_feed_posts', {
-    p_limit:     limit,
-    p_cursor_ts: cursor?.ts     ?? null,
-    p_cursor_id: cursor?.id     ?? null,
+    p_limit: limit,
+    p_cursor_ts: cursor?.ts ?? null,
+    p_cursor_id: cursor?.id ?? null,
   });
 
   if (error) return { data: null, error: new Error(error.message) };
-  if (!data)  return { data: [], error: null };
+  if (!data) return { data: [], error: null };
 
   // RPC returns flat rows; reshape into FeedPost (nested profiles object)
-  const mapped: FeedPost[] = (data as NonNullable<typeof data>).map((row: Database['public']['Functions']['get_feed_posts']['Returns'][number]) => ({
-    id:            row.id,
-    user_id:       row.user_id,
-    image_url:     row.image_url,
-    pov_image_url: row.pov_image_url,
-    caption:       row.caption,
-    streak_day:    row.streak_day,
-    created_at:    row.created_at,
-    like_count:    row.like_count    ?? 0,
-    comment_count: row.comment_count ?? 0,
-    liked_by_me:   row.liked_by_me   ?? false,
-    tagged_users:  row.tagged_users,
-    profiles: {
-      id:           row.profile_id,
-      username:     row.username,
-      display_name: row.display_name,
-      avatar_url:   row.avatar_url,
-    },
-  }));
+  const mapped: FeedPost[] = (data as NonNullable<typeof data>).map(
+    (row: Database['public']['Functions']['get_feed_posts']['Returns'][number]) => ({
+      id: row.id,
+      user_id: row.user_id,
+      image_url: row.image_url,
+      pov_image_url: row.pov_image_url,
+      caption: row.caption,
+      streak_day: row.streak_day,
+      created_at: row.created_at,
+      like_count: row.like_count ?? 0,
+      comment_count: row.comment_count ?? 0,
+      liked_by_me: row.liked_by_me ?? false,
+      tagged_users: row.tagged_users,
+      profiles: {
+        id: row.profile_id,
+        username: row.username,
+        display_name: row.display_name,
+        avatar_url: row.avatar_url,
+      },
+    })
+  );
 
   return { data: mapped, error: null };
 }
@@ -77,7 +79,7 @@ export async function getFeedPosts(
  */
 export async function getPostDates(
   userId: string,
-  since: string, // ISO 'YYYY-MM-DD'
+  since: string // ISO 'YYYY-MM-DD'
 ): Promise<{ data: string[] | null; error: Error | null }> {
   const { data, error } = await supabase
     .from('posts')
@@ -90,15 +92,17 @@ export async function getPostDates(
   if (!data) return { data: [], error: null };
 
   // Use local date to match the grid's local-time cell rendering
-  const dates = [...new Set(
-    (data as { created_at: string }[]).map((r) => {
-      const d = new Date(r.created_at);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    }),
-  )];
+  const dates = [
+    ...new Set(
+      (data as { created_at: string }[]).map((r) => {
+        const d = new Date(r.created_at);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      })
+    ),
+  ];
   return { data: dates, error: null };
 }
 
@@ -111,7 +115,7 @@ export type ProfilePostCursor = { ts: string; id: string };
 export async function getUserPosts(
   userId: string,
   limit = 30,
-  cursor?: ProfilePostCursor,
+  cursor?: ProfilePostCursor
 ): Promise<{ data: PostRow[] | null; error: Error | null }> {
   let query = supabase
     .from('posts')
@@ -123,7 +127,7 @@ export async function getUserPosts(
 
   if (cursor) {
     query = query.or(
-      `created_at.lt.${cursor.ts},and(created_at.eq.${cursor.ts},id.lt.${cursor.id})`,
+      `created_at.lt.${cursor.ts},and(created_at.eq.${cursor.ts},id.lt.${cursor.id})`
     );
   }
 
@@ -138,20 +142,20 @@ export async function getUserPosts(
  * after the post is created. RLS on `post_tags` verifies caller owns the post.
  */
 export async function createPost(opts: {
-  userId:        string;
-  imageUrl:      string;
-  streakDay:     number;
-  caption?:      string;
-  povImageUrl?:  string;
+  userId: string;
+  imageUrl: string;
+  streakDay: number;
+  caption?: string;
+  povImageUrl?: string;
   taggedUserIds?: string[];
 }): Promise<{ data: PostRow | null; error: Error | null }> {
   const { userId, imageUrl, streakDay, caption, povImageUrl, taggedUserIds } = opts;
   const { data, error } = await supabase
     .from('posts')
     .insert({
-      user_id:       userId,
-      image_url:     imageUrl,
-      streak_day:    streakDay,
+      user_id: userId,
+      image_url: imageUrl,
+      streak_day: streakDay,
       caption,
       pov_image_url: povImageUrl ?? null,
     })

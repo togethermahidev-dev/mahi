@@ -16,7 +16,12 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Reanimated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -43,20 +48,20 @@ const FEED_PIP_H = 120;
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const secs = Math.floor(diff / 1_000);
-  if (secs < 60)  return `${secs}s ago`;
+  if (secs < 60) return `${secs}s ago`;
   const mins = Math.floor(secs / 60);
-  if (mins < 60)  return `${mins}m ago`;
+  if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24)   return `${hrs}h ago`;
+  if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
 // ─── CommentRow ──────────────────────────────────────────────────────────────
 
 function CommentRow({ comment, dark }: { comment: CommentWithProfile; dark: boolean }) {
-  const text   = dark ? '#E8E8E3' : '#1A1A17';
-  const muted  = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const name   = comment.profiles.display_name ?? comment.profiles.username;
+  const text = dark ? '#E8E8E3' : '#1A1A17';
+  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const name = comment.profiles.display_name ?? comment.profiles.username;
   const initials = (comment.profiles.username ?? '?')[0].toUpperCase();
 
   return (
@@ -92,20 +97,20 @@ function PostItem({
   onAvatarPress: (userId: string) => void;
   onCommentPress: (postId: string) => void;
 }) {
-  const text   = dark ? '#E8E8E3' : '#1A1A17';
-  const muted  = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const border = dark ? 'rgba(232,232,227,0.1)'  : 'rgba(26,26,23,0.1)';
+  const text = dark ? '#E8E8E3' : '#1A1A17';
+  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const border = dark ? 'rgba(232,232,227,0.1)' : 'rgba(26,26,23,0.1)';
   const cardBg = dark ? '#252521' : '#F5F5F0';
 
-  const name     = item.profiles.display_name ?? item.profiles.username;
+  const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
 
   const [rearIsPrimary, setRearIsPrimary] = useState(true);
 
   // ── Store selectors ──────────────────────────────────────────────────────
-  const currentUser  = useUserStore((s) => s.profile);
-  const likedByMe    = useSocialStore((s) => s.likedByMe[item.id] ?? item.liked_by_me);
-  const likeCount    = useFeedStore((s) => {
+  const currentUser = useUserStore((s) => s.profile);
+  const likedByMe = useSocialStore((s) => s.likedByMe[item.id] ?? item.liked_by_me);
+  const likeCount = useFeedStore((s) => {
     const p = s.posts.find((p) => p.id === item.id);
     return p?.like_count ?? item.like_count;
   });
@@ -120,9 +125,9 @@ function PostItem({
   }, [item.id, item.liked_by_me]);
 
   // ── Dual-camera pip ──────────────────────────────────────────────────────
-  const hasDual    = !!item.pov_image_url;
+  const hasDual = !!item.pov_image_url;
   const primaryUrl = hasDual && !rearIsPrimary ? item.pov_image_url! : item.image_url;
-  const pipUrl     = hasDual && !rearIsPrimary ? item.image_url : item.pov_image_url;
+  const pipUrl = hasDual && !rearIsPrimary ? item.image_url : item.pov_image_url;
 
   // ── Draggable PIP (FaceTime-style) ──────────────────────────────────────
   const containerH = CARD_HEIGHT;
@@ -137,10 +142,10 @@ function PostItem({
   // Right:  side action column sits at right:12, icons ~44px wide + padding
   // Left:   small margin
   const BOTTOM_CONTENT_H = 200; // avatar + caption + paddingBottom + buffer
-  const PIP_SAFE_TOP    = APP_HEADER_H + 120;
+  const PIP_SAFE_TOP = APP_HEADER_H + 120;
   const PIP_SAFE_BOTTOM = containerH - BOTTOM_CONTENT_H - FEED_PIP_H;
-  const PIP_SAFE_LEFT   = 8;
-  const PIP_SAFE_RIGHT  = width - FEED_PIP_W - 70;
+  const PIP_SAFE_LEFT = 8;
+  const PIP_SAFE_RIGHT = width - FEED_PIP_W - 70;
 
   const initialPipX = PIP_SAFE_LEFT;
   const initialPipY = PIP_SAFE_BOTTOM;
@@ -199,56 +204,72 @@ function PostItem({
     .runOnJS(true)
     .onEnd(() => {
       console.log('[FeedScreen] PIP swap post', item.id);
-      setRearIsPrimary(p => !p);
+      setRearIsPrimary((p) => !p);
     });
 
   const pipGesture = Gesture.Race(pipPanGesture, pipTapGesture);
 
   // ── Double-tap medal burst animation ─────────────────────────────────────
-  const medalScale   = useRef(new Animated.Value(0)).current;
+  const medalScale = useRef(new Animated.Value(0)).current;
   const medalOpacity = useRef(new Animated.Value(0)).current;
-  const [medalPos, setMedalPos]       = useState({ x: 0, y: 0 });
-  const [showMedal, setShowMedal]     = useState(false);
+  const [medalPos, setMedalPos] = useState({ x: 0, y: 0 });
+  const [showMedal, setShowMedal] = useState(false);
 
-  const triggerMedalBurst = useCallback((x: number, y: number) => {
-    setMedalPos({ x, y });
-    setShowMedal(true);
-    medalScale.setValue(0);
-    medalOpacity.setValue(1);
+  const triggerMedalBurst = useCallback(
+    (x: number, y: number) => {
+      setMedalPos({ x, y });
+      setShowMedal(true);
+      medalScale.setValue(0);
+      medalOpacity.setValue(1);
 
-    Animated.sequence([
-      Animated.spring(medalScale, {
-        toValue: 1.3,
-        useNativeDriver: true,
-        speed: 30,
-        bounciness: 8,
-      }),
-      Animated.timing(medalScale, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.delay(300),
-      Animated.timing(medalOpacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start(() => setShowMedal(false));
-  }, [medalScale, medalOpacity]);
+      Animated.sequence([
+        Animated.spring(medalScale, {
+          toValue: 1.3,
+          useNativeDriver: true,
+          speed: 30,
+          bounciness: 8,
+        }),
+        Animated.timing(medalScale, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.delay(300),
+        Animated.timing(medalOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => setShowMedal(false));
+    },
+    [medalScale, medalOpacity]
+  );
 
-  const handleDoubleTap = useCallback((x: number, y: number) => {
-    console.log('[FeedScreen] double-tap post', item.id, '| likedByMe:', likedByMe, '| user:', currentUser?.id);
-    if (!currentUser) { console.warn('[FeedScreen] double-tap: no currentUser'); return; }
-    if (!likedByMe) {
-      console.log('[FeedScreen] double-tap → toggleLike (like)');
-      useSocialStore.getState().toggleLike(item.id, currentUser.id);
-    } else {
-      console.log('[FeedScreen] double-tap → already liked, skipping');
-    }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    triggerMedalBurst(x, y);
-  }, [currentUser, likedByMe, item.id, triggerMedalBurst]);
+  const handleDoubleTap = useCallback(
+    (x: number, y: number) => {
+      console.log(
+        '[FeedScreen] double-tap post',
+        item.id,
+        '| likedByMe:',
+        likedByMe,
+        '| user:',
+        currentUser?.id
+      );
+      if (!currentUser) {
+        console.warn('[FeedScreen] double-tap: no currentUser');
+        return;
+      }
+      if (!likedByMe) {
+        console.log('[FeedScreen] double-tap → toggleLike (like)');
+        useSocialStore.getState().toggleLike(item.id, currentUser.id);
+      } else {
+        console.log('[FeedScreen] double-tap → already liked, skipping');
+      }
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      triggerMedalBurst(x, y);
+    },
+    [currentUser, likedByMe, item.id, triggerMedalBurst]
+  );
 
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
@@ -259,8 +280,18 @@ function PostItem({
 
   // ── Like handler (action bar tap) ───────────────────────────────────────
   const handleLike = useCallback(() => {
-    console.log('[FeedScreen] like button tap post', item.id, '| likedByMe:', likedByMe, '| user:', currentUser?.id);
-    if (!currentUser) { console.warn('[FeedScreen] like: no currentUser'); return; }
+    console.log(
+      '[FeedScreen] like button tap post',
+      item.id,
+      '| likedByMe:',
+      likedByMe,
+      '| user:',
+      currentUser?.id
+    );
+    if (!currentUser) {
+      console.warn('[FeedScreen] like: no currentUser');
+      return;
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     useSocialStore.getState().toggleLike(item.id, currentUser.id);
   }, [item.id, currentUser, likedByMe]);
@@ -310,7 +341,13 @@ function PostItem({
                 {item.profiles.avatar_url ? (
                   <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
                 ) : (
-                  <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: 'rgba(255,255,255,0.3)' }]}>
+                  <View
+                    style={[
+                      styles.avatar,
+                      styles.avatarFallback,
+                      { backgroundColor: 'rgba(255,255,255,0.3)' },
+                    ]}
+                  >
                     <Text style={styles.avatarInitial}>{initials}</Text>
                   </View>
                 )}
@@ -337,9 +374,9 @@ function PostItem({
                   styles.medalBurst,
                   {
                     left: medalPos.x - 40,
-                    top:  medalPos.y - 40,
+                    top: medalPos.y - 40,
                     transform: [{ scale: medalScale }],
-                    opacity:   medalOpacity,
+                    opacity: medalOpacity,
                   },
                 ]}
               >
@@ -368,7 +405,12 @@ function PostItem({
             <HeartIcon size={44} color="#FFFFFF" filled={likedByMe} />
             <Text style={styles.sideActionCount}>{likeCount}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.sideActionBtn} onPress={handleCommentPress} activeOpacity={0.7} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <TouchableOpacity
+            style={styles.sideActionBtn}
+            onPress={handleCommentPress}
+            activeOpacity={0.7}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
             <CommentIcon size={42} color="#FFFFFF" />
             <Text style={styles.sideActionCount}>{commentCount}</Text>
           </TouchableOpacity>
@@ -391,14 +433,14 @@ function CommentSheet({
   dark: boolean;
   onClose: () => void;
 }) {
-  const text   = dark ? '#E8E8E3' : '#1A1A17';
-  const muted  = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const border = dark ? 'rgba(232,232,227,0.1)'  : 'rgba(26,26,23,0.1)';
+  const text = dark ? '#E8E8E3' : '#1A1A17';
+  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const border = dark ? 'rgba(232,232,227,0.1)' : 'rgba(26,26,23,0.1)';
   const sheetBg = dark ? '#252521' : '#F5F5F0';
 
   const [commentText, setCommentText] = useState('');
   const currentUser = useUserStore((s) => s.profile);
-  const comments    = useSocialStore((s) => s.comments[postId]);
+  const comments = useSocialStore((s) => s.comments[postId]);
   const commentCount = useFeedStore((s) => {
     const p = s.posts.find((p) => p.id === postId);
     return p?.comment_count ?? 0;
@@ -429,10 +471,10 @@ function CommentSheet({
     const trimmed = commentText.trim();
     if (!trimmed || !currentUser) return;
     useSocialStore.getState().addComment(postId, currentUser.id, trimmed, {
-      id:           currentUser.id,
-      username:     currentUser.username,
+      id: currentUser.id,
+      username: currentUser.username,
       display_name: currentUser.display_name ?? null,
-      avatar_url:   currentUser.avatar_url   ?? null,
+      avatar_url: currentUser.avatar_url ?? null,
     });
     setCommentText('');
     Keyboard.dismiss();
@@ -441,11 +483,7 @@ function CommentSheet({
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       {/* Backdrop */}
-      <TouchableOpacity
-        style={styles.sheetBackdrop}
-        activeOpacity={1}
-        onPress={dismiss}
-      />
+      <TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={dismiss} />
       {/* Sheet */}
       <Animated.View
         style={[
@@ -471,10 +509,7 @@ function CommentSheet({
             <FlashList
               data={comments}
               keyExtractor={(c) => c.id}
-              renderItem={({ item: comment }) => (
-                <CommentRow comment={comment} dark={dark} />
-              )}
-
+              renderItem={({ item: comment }) => <CommentRow comment={comment} dark={dark} />}
             />
           ) : (
             <View style={styles.sheetEmpty}>
@@ -518,19 +553,23 @@ interface FeedScreenProps {
   onOverlayChange?: (active: boolean) => void;
 }
 
-export default function FeedScreen({ onScrollTopChange, headerAnim, onOverlayChange }: FeedScreenProps = {}): React.JSX.Element {
+export default function FeedScreen({
+  onScrollTopChange,
+  headerAnim,
+  onOverlayChange,
+}: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
   const { width: screenWidth } = useWindowDimensions();
-  const bg    = dark ? '#1C1C19' : '#FFFFFF';
-  const text  = dark ? '#E8E8E3' : '#1A1A17';
+  const bg = dark ? '#1C1C19' : '#FFFFFF';
+  const text = dark ? '#E8E8E3' : '#1A1A17';
   const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
 
   const { posts, isLoading, error, hasMore, loadMore, refresh } = useFeed();
 
   // Profile overlay, conversation overlay, and comment sheet — lifted to
   // FeedScreen so overlays cover the full screen (not just the PostItem card)
-  const [profileUserId, setProfileUserId]   = useState<string | null>(null);
-  const [commentPostId, setCommentPostId]   = useState<string | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const currentUserId = useAuthStore((s) => s.user?.id);
 
   // Notify parent when a fullscreen overlay (profile) opens/closes
@@ -541,11 +580,14 @@ export default function FeedScreen({ onScrollTopChange, headerAnim, onOverlayCha
     onOverlayChange?.(feedOverlay);
   }
 
-  const handleAvatarPress = useCallback((userId: string) => {
-    // Don't open overlay for own profile
-    if (userId === currentUserId) return;
-    setProfileUserId(userId);
-  }, [currentUserId]);
+  const handleAvatarPress = useCallback(
+    (userId: string) => {
+      // Don't open overlay for own profile
+      if (userId === currentUserId) return;
+      setProfileUserId(userId);
+    },
+    [currentUserId]
+  );
 
   // ── Realtime subscriptions — managed at screen level via viewable items ──
   const visiblePostIds = useRef(new Set<string>());
@@ -566,12 +608,12 @@ export default function FeedScreen({ onScrollTopChange, headerAnim, onOverlayCha
 
       visiblePostIds.current = nowVisible;
     },
-    [],
+    []
   );
 
   // ── Scroll-driven header hide/show ───────────────────────────────────────
-  const localHeaderAnim    = useRef(new Animated.Value(0)).current;
-  const headerOffset       = headerAnim ?? localHeaderAnim;
+  const localHeaderAnim = useRef(new Animated.Value(0)).current;
+  const headerOffset = headerAnim ?? localHeaderAnim;
 
   const atTopRef = useRef(true);
 
@@ -586,7 +628,11 @@ export default function FeedScreen({ onScrollTopChange, headerAnim, onOverlayCha
 
     // Show header on first card, hide on all others
     const target = isAtTop ? 0 : APP_HEADER_H;
-    Animated.timing(headerOffset, { toValue: target, duration: 150, useNativeDriver: true }).start();
+    Animated.timing(headerOffset, {
+      toValue: target,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
   };
 
   return (
@@ -649,11 +695,7 @@ export default function FeedScreen({ onScrollTopChange, headerAnim, onOverlayCha
 
       {/* Comment sheet — opened when comment button is tapped */}
       {commentPostId ? (
-        <CommentSheet
-          postId={commentPostId}
-          dark={dark}
-          onClose={() => setCommentPostId(null)}
-        />
+        <CommentSheet postId={commentPostId} dark={dark} onClose={() => setCommentPostId(null)} />
       ) : null}
     </View>
   );

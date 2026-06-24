@@ -14,29 +14,29 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 const msgChannels = new Map<string, RealtimeChannel>();
 
 interface MessagesState {
-  inbox:     ConversationPreview[];
-  requests:  ConversationPreview[];
+  inbox: ConversationPreview[];
+  requests: ConversationPreview[];
   isSyncing: boolean;
 
-  sync:   (userId: string) => Promise<void>;
+  sync: (userId: string) => Promise<void>;
   accept: (conversationId: string) => Promise<void>;
   /** Optimistic delete from requests (DENY flow). */
-  deny:   (conversationId: string) => Promise<void>;
+  deny: (conversationId: string) => Promise<void>;
   /** Update the last_message preview for a conversation — called from real-time handlers. */
   patchConversationLastMessage: (
     conversationId: string,
-    msg: Pick<MsgRow, 'id' | 'content' | 'sender_id' | 'created_at'>,
+    msg: Pick<MsgRow, 'id' | 'content' | 'sender_id' | 'created_at'>
   ) => void;
   /** Subscribe to new conversations/requests arriving in real-time. */
-  subscribeToInbox:   (userId: string) => void;
+  subscribeToInbox: (userId: string) => void;
   /** Tear down the inbox subscription. */
   unsubscribeFromInbox: (userId: string) => void;
-  reset:  () => void;
+  reset: () => void;
 }
 
 export const useMessagesStore = create<MessagesState>((set, get) => ({
-  inbox:     [],
-  requests:  [],
+  inbox: [],
+  requests: [],
   isSyncing: false,
 
   sync: async (userId: string) => {
@@ -48,7 +48,7 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
       getRequests(userId),
     ]);
 
-    if (inboxResult.data)    set({ inbox:    inboxResult.data });
+    if (inboxResult.data) set({ inbox: inboxResult.data });
     if (requestsResult.data) set({ requests: requestsResult.data });
     set({ isSyncing: false });
   },
@@ -61,7 +61,7 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     if (accepted) {
       set((state) => ({
         requests: state.requests.filter((c) => c.id !== conversationId),
-        inbox:    [{ ...accepted, status: 'active' as const }, ...state.inbox],
+        inbox: [{ ...accepted, status: 'active' as const }, ...state.inbox],
       }));
     }
 
@@ -69,7 +69,7 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     if (error && accepted) {
       // Rollback on failure
       set((state) => ({
-        inbox:    state.inbox.filter((c) => c.id !== conversationId),
+        inbox: state.inbox.filter((c) => c.id !== conversationId),
         requests: [...state.requests, accepted],
       }));
     }
@@ -96,14 +96,10 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
   patchConversationLastMessage: (conversationId, msg) => {
     set((state) => ({
       inbox: state.inbox.map((c) =>
-        c.id === conversationId
-          ? { ...c, last_message: msg, updated_at: msg.created_at }
-          : c,
+        c.id === conversationId ? { ...c, last_message: msg, updated_at: msg.created_at } : c
       ),
       requests: state.requests.map((c) =>
-        c.id === conversationId
-          ? { ...c, last_message: msg, updated_at: msg.created_at }
-          : c,
+        c.id === conversationId ? { ...c, last_message: msg, updated_at: msg.created_at } : c
       ),
     }));
   },
@@ -131,7 +127,7 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
         if (conv) {
           set((state) => ({
             requests: state.requests.filter((c) => c.id !== updated.id),
-            inbox:    [{ ...conv, status: 'active' as const }, ...state.inbox],
+            inbox: [{ ...conv, status: 'active' as const }, ...state.inbox],
           }));
         }
       }
@@ -140,27 +136,51 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     // Channel 1: this user is participant_one
     const ch1 = supabase
       .channel(keyP1)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'conversations',
-        filter: `participant_one=eq.${userId}`,
-      }, handleInsert)
-      .on('postgres_changes', {
-        event: 'UPDATE', schema: 'public', table: 'conversations',
-        filter: `participant_one=eq.${userId}`,
-      }, handleUpdate)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'conversations',
+          filter: `participant_one=eq.${userId}`,
+        },
+        handleInsert
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'conversations',
+          filter: `participant_one=eq.${userId}`,
+        },
+        handleUpdate
+      )
       .subscribe();
 
     // Channel 2: this user is participant_two
     const ch2 = supabase
       .channel(keyP2)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'conversations',
-        filter: `participant_two=eq.${userId}`,
-      }, handleInsert)
-      .on('postgres_changes', {
-        event: 'UPDATE', schema: 'public', table: 'conversations',
-        filter: `participant_two=eq.${userId}`,
-      }, handleUpdate)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'conversations',
+          filter: `participant_two=eq.${userId}`,
+        },
+        handleInsert
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'conversations',
+          filter: `participant_two=eq.${userId}`,
+        },
+        handleUpdate
+      )
       .subscribe();
 
     msgChannels.set(keyP1, ch1);
@@ -170,7 +190,10 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
   unsubscribeFromInbox: (userId: string) => {
     [`inbox_p1:${userId}`, `inbox_p2:${userId}`].forEach((key) => {
       const ch = msgChannels.get(key);
-      if (ch) { supabase.removeChannel(ch); msgChannels.delete(key); }
+      if (ch) {
+        supabase.removeChannel(ch);
+        msgChannels.delete(key);
+      }
     });
   },
 

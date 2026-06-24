@@ -46,17 +46,17 @@ export default function SettingsPanel({
   onClose,
   dark,
 }: SettingsPanelProps): React.JSX.Element | null {
-  const text   = dark ? '#E8E8E3' : '#1A1A17';
-  const muted  = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const text = dark ? '#E8E8E3' : '#1A1A17';
+  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
   const border = dark ? 'rgba(232,232,227,0.08)' : 'rgba(26,26,23,0.06)';
   const panelBg = dark ? '#1C1C19' : '#FFFFFF';
   const backdropColor = dark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.4)';
 
-  const slideAnim   = useRef(new Animated.Value(-PANEL_WIDTH)).current;
+  const slideAnim = useRef(new Animated.Value(-PANEL_WIDTH)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
   const [accountOpen, setAccountOpen] = useState(false);
-  const [privacyOpen, setPrivacyOpen]  = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   const accountAnim = useRef(new Animated.Value(0)).current;
   const privacyAnim = useRef(new Animated.Value(0)).current;
 
@@ -105,7 +105,7 @@ export default function SettingsPanel({
   const toggleAccordion = (
     isOpen: boolean,
     setOpen: (v: boolean) => void,
-    anim: Animated.Value,
+    anim: Animated.Value
   ) => {
     const next = !isOpen;
     setOpen(next);
@@ -133,7 +133,7 @@ export default function SettingsPanel({
           },
         },
       ],
-      { cancelable: true },
+      { cancelable: true }
     );
   };
 
@@ -147,11 +147,7 @@ export default function SettingsPanel({
     'Delete Account',
   ];
 
-  const privacySubItems = [
-    'T&Cs',
-    'Privacy Policy',
-    'Request My Personal Data',
-  ];
+  const privacySubItems = ['T&Cs', 'Privacy Policy', 'Request My Personal Data'];
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -165,13 +161,15 @@ export default function SettingsPanel({
 
       {/* Panel */}
       <Animated.View
-        style={[
-          styles.panel,
-          { backgroundColor: panelBg, transform: [{ translateX: slideAnim }] },
-        ]}
+        style={[styles.panel, { backgroundColor: panelBg, transform: [{ translateX: slideAnim }] }]}
       >
         {/* Close button */}
-        <View style={[styles.closeRow, { borderBottomColor: border, paddingTop: Platform.OS === 'ios' ? 60 : 32 }]}>
+        <View
+          style={[
+            styles.closeRow,
+            { borderBottomColor: border, paddingTop: Platform.OS === 'ios' ? 60 : 32 },
+          ]}
+        >
           <Text style={[styles.panelTitle, { color: text }]}>SETTINGS</Text>
           <TouchableOpacity
             onPress={onClose}
@@ -318,11 +316,11 @@ const styles = StyleSheet.create({
     letterSpacing: 5,
   },
   closeBtn: {
-    width:          36,
-    height:         36,
-    borderRadius:   18,
-    borderWidth:    1,
-    alignItems:     'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   closeBtnText: {

@@ -6,34 +6,34 @@ const PAGE_SIZE = 20;
 export type PendingPost = FeedPost & { isPending: true };
 
 interface FeedState {
-  posts:     FeedPost[];
-  pending:   PendingPost[];
-  cursor:    FeedCursor | undefined;
-  hasMore:   boolean;
+  posts: FeedPost[];
+  pending: PendingPost[];
+  cursor: FeedCursor | undefined;
+  hasMore: boolean;
   isSyncing: boolean;
-  error:     Error | null;
+  error: Error | null;
 
-  sync:           (force?: boolean) => Promise<void>;
-  loadMore:       () => Promise<void>;
-  addPending:     (post: PendingPost) => void;
+  sync: (force?: boolean) => Promise<void>;
+  loadMore: () => Promise<void>;
+  addPending: (post: PendingPost) => void;
   confirmPending: (tempId: string, real: FeedPost) => void;
-  removePending:  (tempId: string) => void;
-  patchPost:      (id: string, partial: Partial<FeedPost>) => void;
-  reset:          () => void;
+  removePending: (tempId: string) => void;
+  patchPost: (id: string, partial: Partial<FeedPost>) => void;
+  reset: () => void;
 }
 
 export const useFeedStore = create<FeedState>((set, get) => ({
-  posts:     [],
-  pending:   [],
-  cursor:    undefined,
-  hasMore:   true,
+  posts: [],
+  pending: [],
+  cursor: undefined,
+  hasMore: true,
   isSyncing: false,
-  error:     null,
+  error: null,
 
   sync: async (force = false) => {
     const { isSyncing, posts } = get();
     if (isSyncing) return;
-    if (!force && posts.length > 0) return;  // already populated, skip
+    if (!force && posts.length > 0) return; // already populated, skip
     set({ isSyncing: true, error: null });
 
     const { data, error } = await getFeedPosts(PAGE_SIZE);
@@ -59,8 +59,8 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         ? { ts: data[data.length - 1].created_at, id: data[data.length - 1].id }
         : cursor;
       set({
-        posts:   [...posts, ...data],
-        cursor:  newCursor,
+        posts: [...posts, ...data],
+        cursor: newCursor,
         hasMore: data.length === PAGE_SIZE,
       });
     } else if (error) {
@@ -69,13 +69,12 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     set({ isSyncing: false });
   },
 
-  addPending: (post) =>
-    set((state) => ({ pending: [post, ...state.pending] })),
+  addPending: (post) => set((state) => ({ pending: [post, ...state.pending] })),
 
   confirmPending: (tempId, real) =>
     set((state) => ({
       pending: state.pending.filter((p) => p.id !== tempId),
-      posts:   [real, ...state.posts],
+      posts: [real, ...state.posts],
     })),
 
   removePending: (tempId) =>
@@ -83,9 +82,16 @@ export const useFeedStore = create<FeedState>((set, get) => ({
 
   patchPost: (id, partial) =>
     set((state) => ({
-      posts: state.posts.map((p) => p.id === id ? { ...p, ...partial } : p),
+      posts: state.posts.map((p) => (p.id === id ? { ...p, ...partial } : p)),
     })),
 
   reset: () =>
-    set({ posts: [], pending: [], cursor: undefined, hasMore: true, isSyncing: false, error: null }),
+    set({
+      posts: [],
+      pending: [],
+      cursor: undefined,
+      hasMore: true,
+      isSyncing: false,
+      error: null,
+    }),
 }));

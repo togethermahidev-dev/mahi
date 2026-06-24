@@ -6,8 +6,7 @@ export type GroupedRow =
   | { type: 'header'; label: string; id: string }
   | { type: 'message'; msg: MsgRow; showTime: boolean };
 
-const dayKey = (iso: string): string =>
-  new Date(iso).toLocaleDateString('en-CA');
+const dayKey = (iso: string): string => new Date(iso).toLocaleDateString('en-CA');
 
 function formatDayLabel(date: Date, todayKey: string): string {
   const key = date.toLocaleDateString('en-CA');
@@ -15,9 +14,7 @@ function formatDayLabel(date: Date, todayKey: string): string {
 
   const today = new Date(todayKey + 'T00:00:00');
   const target = new Date(key + 'T00:00:00');
-  const diffDays = Math.round(
-    (today.getTime() - target.getTime()) / 86_400_000,
-  );
+  const diffDays = Math.round((today.getTime() - target.getTime()) / 86_400_000);
 
   if (diffDays === 1) return 'Yesterday';
   if (diffDays >= 2 && diffDays <= 6) {
@@ -64,9 +61,7 @@ export function groupMessagesByDate(messages: MsgRow[]): GroupedRow[] {
       const sameSender = next.sender_id === msg.sender_id;
       const sameDay = dayKey(next.created_at) === key;
       const withinWindow =
-        new Date(next.created_at).getTime() -
-          new Date(msg.created_at).getTime() <=
-        300_000;
+        new Date(next.created_at).getTime() - new Date(msg.created_at).getTime() <= 300_000;
       if (sameSender && sameDay && withinWindow) showTime = false;
     }
 

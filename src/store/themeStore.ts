@@ -7,7 +7,7 @@ export type ThemeMode = 'light' | 'dark';
 
 const CYCLE: Record<ThemeMode, ThemeMode> = {
   light: 'dark',
-  dark:  'light',
+  dark: 'light',
 };
 
 interface ThemeState {

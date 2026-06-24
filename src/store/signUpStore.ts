@@ -15,11 +15,13 @@ interface SignUpFormState {
   username: string;
   displayName: string;
   fitnessGoals: string[];
-  fitnessRoutine: string[];  // days of week, joined to text on DB insert
+  fitnessRoutine: string[]; // days of week, joined to text on DB insert
   // Actions
-  setField: <K extends keyof Omit<SignUpFormState, 'setField' | 'toggleGoal' | 'toggleRoutineDay' | 'reset'>>(
+  setField: <
+    K extends keyof Omit<SignUpFormState, 'setField' | 'toggleGoal' | 'toggleRoutineDay' | 'reset'>,
+  >(
     key: K,
-    val: SignUpFormState[K],
+    val: SignUpFormState[K]
   ) => void;
   toggleGoal: (goal: string) => void;
   toggleRoutineDay: (day: string) => void;

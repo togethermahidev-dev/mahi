@@ -3,10 +3,10 @@ import { Text, type TextStyle, type StyleProp } from 'react-native';
 import type { TaggedUser } from '@/api';
 
 interface Props {
-  caption:        string;
-  tagged:         TaggedUser[];
-  style:          StyleProp<TextStyle>;
-  onPressUser?:   (user: TaggedUser) => void;
+  caption: string;
+  tagged: TaggedUser[];
+  style: StyleProp<TextStyle>;
+  onPressUser?: (user: TaggedUser) => void;
   numberOfLines?: number;
 }
 
@@ -17,7 +17,12 @@ interface Props {
  */
 export default function CaptionText({ caption, tagged, style, onPressUser, numberOfLines }: Props) {
   if (!caption) return null;
-  if (tagged.length === 0) return <Text style={style} numberOfLines={numberOfLines}>{caption}</Text>;
+  if (tagged.length === 0)
+    return (
+      <Text style={style} numberOfLines={numberOfLines}>
+        {caption}
+      </Text>
+    );
 
   // Escape defensively in case a username contains regex metacharacters.
   const escaped = tagged.map((u) => u.username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
@@ -37,11 +42,15 @@ export default function CaptionText({ caption, tagged, style, onPressUser, numbe
         onPress={user && onPressUser ? () => onPressUser(user) : undefined}
       >
         {m[0]}
-      </Text>,
+      </Text>
     );
     last = start + m[0].length;
   }
   if (last < caption.length) parts.push(caption.slice(last));
 
-  return <Text style={style} numberOfLines={numberOfLines}>{parts}</Text>;
+  return (
+    <Text style={style} numberOfLines={numberOfLines}>
+      {parts}
+    </Text>
+  );
 }

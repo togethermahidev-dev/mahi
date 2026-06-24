@@ -1,11 +1,5 @@
 import React, { useRef, useState } from 'react';
-import {
-  Animated,
-  Dimensions,
-  PanResponder,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { Animated, Dimensions, PanResponder, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import VerticalNavigator from '@/screens/VerticalNavigator';
 import ProfileScreen from '@/screens/ProfileScreen';
@@ -15,7 +9,7 @@ import MessagesScreen from '@/screens/MessagesScreen';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ─── Gesture thresholds ────────────────────────────────────────────────────────
-const H_SWIPE_PX = 60;  // min drag distance to trigger navigation
+const H_SWIPE_PX = 60; // min drag distance to trigger navigation
 const H_SWIPE_VX = 0.4; // min release velocity to trigger navigation
 
 // ─── Panel registry ───────────────────────────────────────────────────────────
@@ -27,12 +21,10 @@ const DEFAULT_INDEX = 1; // VerticalNavigator is the entry panel
 
 export default function HorizontalNavigator(): React.JSX.Element {
   const [hIndex, setHIndex] = useState(DEFAULT_INDEX);
-  const hIndexRef  = useRef(DEFAULT_INDEX);
-  const hBaseRef   = useRef(0);
+  const hIndexRef = useRef(DEFAULT_INDEX);
+  const hBaseRef = useRef(0);
   const overlayRef = useRef(false);
-  const hTapeAnim  = useRef(
-    new Animated.Value(-(DEFAULT_INDEX * SCREEN_WIDTH)),
-  ).current;
+  const hTapeAnim = useRef(new Animated.Value(-(DEFAULT_INDEX * SCREEN_WIDTH))).current;
 
   // Snap the horizontal tape to a target panel with a spring animation.
   const navigateHorizontal = (index: number) => {
@@ -61,14 +53,14 @@ export default function HorizontalNavigator(): React.JSX.Element {
       },
 
       onPanResponderMove: (_e, { dx }) => {
-        const max = 0;                                    // leftmost edge (Profile)
+        const max = 0; // leftmost edge (Profile)
         const min = -((PANEL_COUNT - 1) * SCREEN_WIDTH); // rightmost edge (Messages)
         const raw = hBaseRef.current + dx;
         // Rubber-band resistance at both ends
         let clamped: number;
-        if (raw > max)      clamped = max + (raw - max) / 3;
+        if (raw > max) clamped = max + (raw - max) / 3;
         else if (raw < min) clamped = min + (raw - min) / 3;
-        else                clamped = raw;
+        else clamped = raw;
         hTapeAnim.setValue(clamped);
       },
 
@@ -76,19 +68,17 @@ export default function HorizontalNavigator(): React.JSX.Element {
         const i = hIndexRef.current;
         let next = i;
         // Swipe right (dx > 0) → go to left panel (Profile)
-        if ((dx >  H_SWIPE_PX || vx >  H_SWIPE_VX) && i > 0)              next = i - 1;
+        if ((dx > H_SWIPE_PX || vx > H_SWIPE_VX) && i > 0) next = i - 1;
         // Swipe left (dx < 0) → go to right panel (Messages)
         if ((dx < -H_SWIPE_PX || vx < -H_SWIPE_VX) && i < PANEL_COUNT - 1) next = i + 1;
         navigateHorizontal(next);
       },
-    }),
+    })
   ).current;
 
   return (
     <View style={styles.root} {...panResponder.panHandlers}>
-      <Animated.View
-        style={[styles.tape, { transform: [{ translateX: hTapeAnim }] }]}
-      >
+      <Animated.View style={[styles.tape, { transform: [{ translateX: hTapeAnim }] }]}>
         {/* Panel 0: Profile */}
         <View style={styles.panel}>
           <ProfileScreen />
@@ -99,7 +89,9 @@ export default function HorizontalNavigator(): React.JSX.Element {
           <VerticalNavigator
             onNavigateLeft={() => navigateHorizontal(0)}
             onNavigateRight={() => navigateHorizontal(2)}
-            onOverlayChange={(active) => { overlayRef.current = active; }}
+            onOverlayChange={(active) => {
+              overlayRef.current = active;
+            }}
           />
         </View>
 

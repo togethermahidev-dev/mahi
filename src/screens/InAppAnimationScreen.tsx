@@ -1,12 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  Dimensions,
-  useColorScheme,
-} from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions, useColorScheme } from 'react-native';
 
 const { height } = Dimensions.get('window');
 
@@ -16,11 +9,11 @@ interface Props {
 
 export default function InAppAnimationScreen({ onComplete }: Props): React.JSX.Element {
   const dark = useColorScheme() === 'dark';
-  const sheetBg   = dark ? '#1C1C19' : '#FFFFFF';
+  const sheetBg = dark ? '#1C1C19' : '#FFFFFF';
   const sheetText = dark ? '#FFFFFF' : '#0F0F0D';
 
   // Both values double as entry and exit: -height→0 (in), 0→-height (out top) / height→0 (in), 0→height (out bottom)
-  const topAnim    = useRef(new Animated.Value(-height)).current;
+  const topAnim = useRef(new Animated.Value(-height)).current;
   const bottomAnim = useRef(new Animated.Value(height)).current;
 
   useEffect(() => {
@@ -29,15 +22,15 @@ export default function InAppAnimationScreen({ onComplete }: Props): React.JSX.E
     // Brief pause lets native auth modal finish its dismiss animation
     const entryTimer = setTimeout(() => {
       Animated.parallel([
-        Animated.timing(topAnim,    { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(topAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
         Animated.timing(bottomAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
       ]).start(() => {
         // Hold so the user sees the MAHI branding
         holdTimer = setTimeout(() => {
           // Top exits up, bottom exits down — same split as WelcomeScreen
           Animated.parallel([
-            Animated.timing(topAnim,    { toValue: -height, duration: 400, useNativeDriver: true }),
-            Animated.timing(bottomAnim, { toValue:  height, duration: 400, useNativeDriver: true }),
+            Animated.timing(topAnim, { toValue: -height, duration: 400, useNativeDriver: true }),
+            Animated.timing(bottomAnim, { toValue: height, duration: 400, useNativeDriver: true }),
           ]).start(() => onComplete());
         }, 1500);
       });
