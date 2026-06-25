@@ -148,3 +148,9 @@ $$;
 
 -- Definer-rights RPC: grant execute to authenticated clients.
 GRANT EXECUTE ON FUNCTION public.get_suggested_follows(uuid, int, int) TO authenticated;
+
+-- Suggestions are a signed-in feature. Postgres grants EXECUTE to PUBLIC by
+-- default, which would let the anon role call this SECURITY DEFINER function;
+-- revoke that so only the explicit authenticated grant above remains. (Clears
+-- the anon_security_definer_function_executable advisor.)
+REVOKE EXECUTE ON FUNCTION public.get_suggested_follows(uuid, int, int) FROM public, anon;
