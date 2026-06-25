@@ -68,6 +68,9 @@ importers:
       expo-location:
         specifier: ~55.1.10
         version: 55.1.10(expo@55.0.8)(typescript@5.9.3)
+      expo-sensors:
+        specifier: ~55.0.15
+        version: 55.0.15(expo@55.0.8)(react-native@0.83.2(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))
       expo-splash-screen:
         specifier: ~55.0.12
         version: 55.0.12(expo@55.0.8)(typescript@5.9.3)
@@ -2463,6 +2466,12 @@ packages:
     resolution: {integrity: sha512-pw3cZiaSlBrqRJUD/pHuMnKGsRTW6XJ255FrjDd3HC4QrqErCnfSQPmz+Sv4Qkelcvd9UGdAewyTqZdFwjLwOw==}
     peerDependencies:
       react: '*'
+      react-native: '*'
+
+  expo-sensors@55.0.15:
+    resolution: {integrity: sha512-kQ4JsgnkM4niP5IHzC8cqs94Lngp9SIuKbaFI2rauXiON8iGndodUAl/Pccpe8W1UHS4NQu6kcrAOi0rpIiowg==}
+    peerDependencies:
+      expo: '*'
       react-native: '*'
 
   expo-server@55.0.6:
@@ -7720,6 +7729,12 @@ snapshots:
     dependencies:
       invariant: 2.2.4
       react: 19.2.0
+      react-native: 0.83.2(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0)
+
+  expo-sensors@55.0.15(expo@55.0.8)(react-native@0.83.2(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0)):
+    dependencies:
+      expo: 55.0.8(@babel/core@7.29.0)(@expo/dom-webview@55.0.3)(react-native@0.83.2(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+      invariant: 2.2.4
       react-native: 0.83.2(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0)
 
   expo-server@55.0.6: {}

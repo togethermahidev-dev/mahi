@@ -106,6 +106,9 @@ function PostItem({
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
 
   const [rearIsPrimary, setRearIsPrimary] = useState(true);
+  // Whether the primary photo is landscape (wider than tall), detected on load,
+  // so a landscape post is letterboxed (contain) rather than center-cropped.
+  const [primaryLandscape, setPrimaryLandscape] = useState(false);
 
   // ── Store selectors ──────────────────────────────────────────────────────
   const currentUser = useUserStore((s) => s.profile);
@@ -306,11 +309,18 @@ function PostItem({
       {/* Post image — double-tap to like */}
       <View style={[styles.imageContainer, { width, flex: 1 }]}>
         <GestureDetector gesture={doubleTap}>
-          <View style={{ width, flex: 1 }}>
+          <View style={[{ width, flex: 1 }, primaryLandscape && styles.letterbox]}>
             <Image
               source={{ uri: primaryUrl }}
               style={StyleSheet.absoluteFill}
-              resizeMode="cover"
+              resizeMode={primaryLandscape ? 'contain' : 'cover'}
+              onLoad={(e) => {
+                const src = e.nativeEvent?.source;
+                // Landscape (wider than tall) → letterbox; portrait/square stay cover.
+                if (src?.width && src?.height) {
+                  setPrimaryLandscape(src.width / src.height > 1.05);
+                }
+              }}
             />
             {/* Top gradient — tagged pills + streak badge inline */}
             <LinearGradient
@@ -789,6 +799,11 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     position: 'relative',
+  },
+  // Black bars behind a letterboxed (contain) landscape photo — standard
+  // photo-letterbox color, not a theme surface.
+  letterbox: {
+    backgroundColor: '#000',
   },
   feedPip: {
     position: 'absolute',

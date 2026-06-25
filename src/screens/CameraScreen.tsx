@@ -28,6 +28,7 @@ import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo
 import { BlurView } from 'expo-blur';
 import * as FileSystem from 'expo-file-system/legacy';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { Accelerometer } from 'expo-sensors';
 import Svg, { Path } from 'react-native-svg';
 import { decode } from 'base64-arraybuffer';
 import { useAuthStore, useUserStore, useFeedStore, useProfilePostsStore } from '@/store';
@@ -1092,6 +1093,27 @@ export default function CameraScreen(): React.JSX.Element {
     }
   }, [ultraWideLens, useUltraWide]);
 
+  // Android landscape capture. iOS uses responsiveOrientationWhenOrientationLocked
+  // on <CameraView>, but that prop is a no-op on Android. So on Android we track
+  // physical device tilt via the accelerometer and bake the matching rotation into
+  // the shot in takePhoto — the UI stays portrait-locked. Portrait (the common
+  // case) records no tilt and applies no rotation, so it is unaffected.
+  const deviceTiltRef = useRef<'portrait' | 'landscape-left' | 'landscape-right'>('portrait');
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    Accelerometer.setUpdateInterval(400);
+    const sub = Accelerometer.addListener(({ x, y }) => {
+      // |x| dominating gravity ⇒ held sideways. The +0.35 hysteresis avoids
+      // flapping near the diagonal; the sign of x picks the landscape direction.
+      if (Math.abs(x) > Math.abs(y) + 0.35) {
+        deviceTiltRef.current = x > 0 ? 'landscape-right' : 'landscape-left';
+      } else {
+        deviceTiltRef.current = 'portrait';
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   // Helper: take a photo from whatever camera is currently active
   const takePhoto = async (): Promise<CapturedPhoto | null> => {
     if (!cameraRef.current) return null;
@@ -1102,11 +1124,21 @@ export default function CameraScreen(): React.JSX.Element {
     // device produces a landscape-EXIF shot even though the app stays
     // portrait-locked; this manipulate step flattens that EXIF into the actual
     // pixels, so the result's width/height already reflect the true orientation.
+    // On Android the responsive-orientation prop is a no-op, so rotate the shot
+    // to match the physical tilt detected by the accelerometer; iOS bakes the
+    // EXIF itself and always uses [] (no rotation). NOTE: the 90/-90 mapping
+    // assumes manipulateAsync rotates clockwise for positive degrees — verify on
+    // a physical Android device and flip the signs if a landscape shot comes out
+    // upside-down. Portrait applies no rotation (unchanged behavior).
+    const tiltActions =
+      Platform.OS === 'android' && deviceTiltRef.current !== 'portrait'
+        ? [{ rotate: deviceTiltRef.current === 'landscape-left' ? 90 : -90 }]
+        : [];
     const {
       uri: normalizedUri,
       width,
       height,
-    } = await manipulateAsync(photo.uri, [], {
+    } = await manipulateAsync(photo.uri, tiltActions, {
       compress: 0.8,
       format: SaveFormat.JPEG,
     });

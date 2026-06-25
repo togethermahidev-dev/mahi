@@ -33,6 +33,7 @@
     "expo-image-picker": "~55.0.13",
     "expo-linear-gradient": "~55.0.9",
     "expo-location": "~55.1.10",
+    "expo-sensors": "~55.0.15",
     "expo-splash-screen": "~55.0.12",
     "expo-status-bar": "~55.0.4",
     "expo-task-manager": "~55.0.10",
