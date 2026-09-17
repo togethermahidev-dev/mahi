@@ -6,11 +6,10 @@ Phases run in order; each one ships, is verified red→green, and is committed b
 Read first: [HANDOVER.md](./HANDOVER.md) (rules, goal loop), [architecture.md](./architecture.md#layering-contract)
 (layering contract), [adding-a-feature.md](./adding-a-feature.md) (copy-this recipe).
 
-> **Assumed PRD decisions** (swap before building the phase that uses them):
-> D1 streak = weeks in a row with ≥1 post + total visits · D2 taggable = mutual follows + invites ·
-> D3 feed = people you follow · D4 unlock = 24 h · D5 missed tag visible to the pair only ·
-> D6 tagger earns a point · D7 cap 3 points/day · D11 quiet hours 22:00–07:00 local.
-> Numeric rules (48 h, 24 h, cap, quiet hours, grace) live in one `app_config` row, not in code.
+> **Decisions:** [decisions.md](./decisions.md) records every choice, the options not taken, and where
+> this plan uses each one. Parked: #1 streak rule and #10 existing streaks (ask before Phase 5),
+> #12 success targets (ask before Phase 8). Numeric rules (48 h, 24 h, cap, quiet hours, grace) live
+> in one `app_config` row, not in code.
 
 ---
 
@@ -113,24 +112,37 @@ feed unlock (`max(post.created_at) + unlock_window > now()`).
 ## 4. Phases
 
 Each phase lists: goal · migrations · server functions · Edge Functions · client layers (API → store →
-hook → UI) · verification · owner-only steps. File paths are new unless marked *edit*.
+hook → UI) · verification · **Owner says go** (steps that wait for the owner's go-ahead in that
+session; credentials, store releases and website hosting are done by the owner). File paths are new
+unless marked *edit*.
 
 ### Phase 0 — Ground work
 
-**Goal:** a safe place to build, a schema that matches production, and the day-boundary bug fixed.
+**Goal:** safe working on the live database, a schema that matches production, and the
+day-boundary bug fixed.
 
 1. **Guard hook** — `.claude/hooks/guard.cjs` + `.claude/hooks/guard.config.cjs`, wired as a
    `PreToolUse` hook in `.claude/settings.json` (*edit*). Config: `prodMarkers:
    ['pzepodsppqtvptzmwxzs', '--profile production', '--channel production']`, `prodMcpServers:
-   ['supabase']` with write tools blocked (`apply_migration`, `deploy_edge_function`,
-   `merge_branch`, write `execute_sql`). It also denies: DDL through `execute_sql`, migration files
+   ['supabase']`. Per decision #13, production schema changes are allowed, but only as
+   `supabase db push` of a committed migration file, and only after that session's backup exists
+   (next item). It denies `apply_migration`, `deploy_edge_function` and `merge_branch` through the
+   MCP, writes through `execute_sql`, and also denies: DDL through `execute_sql`, migration files
    not named `<14-digit timestamp>_<snake_case>.sql` or not newest-last, edits to a migration that
    is already in the live history, `git add -A/./-u`, `git commit -a`, and AI attribution in commit
    messages. It asks first for `git push` and `eas build`. Unit-test the hook
    (`.claude/hooks/guard.test.cjs`). Flip-test: attempt a blocked call → hook refuses (red) →
    read-only call passes (green).
-2. **Non-production database** — a Supabase preview branch of `pzepodsppqtvptzmwxzs` (owner
-   approves the cost). All migrations in this plan are applied there first.
+2. **Working on production safely** (decision #13: free plan, no preview branches, no automatic
+   backups):
+   - Before every `supabase db push`: `supabase db dump --linked -f supabase/backups/<ts>_schema.sql`
+     and `supabase db dump --linked --data-only -f supabase/backups/<ts>_data.sql`.
+     `supabase/backups/` is added to `.gitignore` (it holds real user data).
+   - Every migration has its rollback file (item 5) written and read over before it is pushed.
+   - Migrations are expand-only until the version gate (Phase 3), so old app versions never break.
+   - pgTAP tests run inside a transaction that is rolled back, so they leave no rows behind.
+     Concurrency checks use two dedicated test accounts and delete what they create.
+   - Push, deploy and `db push` still happen only when the owner says so in that session.
 3. **Make the repo match production** — the live history is the record, so the repo adopts it:
    - `supabase link --project-ref pzepodsppqtvptzmwxzs`, then `supabase migration fetch` downloads
      the 31 applied migrations into `supabase/migrations/` under their real timestamped names
@@ -151,18 +163,19 @@ hook → UI) · verification · owner-only steps. File paths are new unless mark
    - Client: `src/api/profile.ts` (*edit*) `setTimezone()`; `App.tsx` (*edit*) calls it in
      `hydrateForUser` with `Intl.DateTimeFormat().resolvedOptions().timeZone`.
 5. **Rollbacks and production deploys** — every migration gets a matching
-   `supabase/rollbacks/<name>.rollback.sql`, written and tested on the branch with it. Add
+   `supabase/rollbacks/<name>.rollback.sql`, written with it. Add
    `.github/workflows/db-deploy.yml`: manual trigger only, the owner must type `DEPLOY-TO-PROD`,
    GitHub environment approval, then `supabase db push`, `supabase functions deploy`, and a type
    regeneration check. This is the owner's one button for every "Owner-only: apply …" step below.
-6. **Test harness** — `supabase/tests/*.sql` (pgTAP), run with `supabase test db` against the
-   branch. Add a `db-test` job to `.github/workflows/ci.yml` (*edit*) once a local DB can run in CI.
+6. **Test harness** — `supabase/tests/*.sql` (pgTAP; the `pgtap` extension is added by the
+   `timezone_postdate` migration), run with `supabase test db --linked`. Each file wraps itself in
+   `begin; … rollback;`.
 
 **Verify:** pgTAP — insert two posts for one user at 23:30 and 00:30 London time on the same UTC day →
 both succeed (red before `timezone_postdate`, green after); two at 09:00 and 18:00 local → second fails.
 
-**Owner-only:** approve the branch cost; `supabase link` + `supabase migration fetch`;
-`supabase migration repair` only if drift was found; apply `timezone_postdate` to production.
+**Owner says go:** `supabase link` (needs the database password) + `supabase migration fetch`;
+`supabase migration repair` only if drift was found; backup, then push `timezone_postdate`.
 
 ---
 
@@ -223,7 +236,7 @@ both succeed (red before `timezone_postdate`, green after); two at 09:00 and 18:
 → one row; two concurrent `claim_push_batch` calls → disjoint rows. Device — like a post from a second
 account → push arrives once; sign out → no more pushes to that device.
 
-**Owner-only:** APNs key + FCM credentials in EAS; the `send-push` URL and shared secret in Vault and
+**Owner says go:** APNs key + FCM credentials in EAS; the `send-push` URL and shared secret in Vault and
 as a function secret; deploy `send-push`; apply `push`; a new development build (native module added).
 
 ---
@@ -242,7 +255,10 @@ deadlines and their pushes, and answers any tags the poster holds.
 - **`create_post(p_client_id, p_image_path, p_pov_image_path, p_caption, p_tagged_ids uuid[],
   p_invite_count int, p_lat, p_lng)`** — the single write path:
   1. If a post with `p_client_id` exists for the caller → return it (idempotent retry).
-  2. Lock the caller's profile row. Compute `v_today` = now in `profiles.timezone`.
+  2. Lock, in one `SELECT … ORDER BY id FOR UPDATE`, the caller's profile row and the profile
+     rows of every tagger whose open tag this post will answer. One statement, fixed order: two
+     concurrent posts can wait on each other but never deadlock. Compute `v_today` = now in the
+     caller's `profiles.timezone`.
   3. Validate: both paths start with `auth.uid()/` and exist in `storage.objects`; tag count +
      invite count = 3 (or fewer only when the caller has fewer than 3 taggable friends — until
      Phase 5 ships); every tagged id is taggable (same rules as `get_taggable_friends`).
@@ -310,7 +326,7 @@ deadlines and their pushes, and answers any tags the poster holds.
 - Jest: `countdown.ts`.
 - Device: A tags B → B gets a push → B posts → A gets "posted Xh after your tag".
 
-**Owner-only:** apply `tag_challenges`; publish the app build (JS + native from Phase 1).
+**Owner says go:** apply `tag_challenges`; publish the app build (JS + native from Phase 1).
 
 ---
 
@@ -327,7 +343,7 @@ deadlines and their pushes, and answers any tags the poster holds.
 **Verify:** pgTAP — authenticated direct insert into `posts` → permission denied; `create_post` still
 works.
 
-**Owner-only:** raise `min_app_version` only after the Phase 2 build is live in the store; apply `contract_posting`.
+**Owner says go:** raise `min_app_version` only after the Phase 2 build is live in the store; apply `contract_posting`.
 
 ---
 
@@ -388,7 +404,7 @@ for both the post data and the image files.
 - `feed_lock_enabled = false` → unlocked for followers.
 - Device: fresh account → locked feed → post → unlocked; old public URL (after `private_bucket`) → 400.
 
-**Owner-only:** apply `feed_lock`; ship the build; after adoption (Phase 3 version gate), apply `private_bucket`.
+**Owner says go:** apply `feed_lock`; ship the build; after adoption (Phase 3 version gate), apply `private_bucket`.
 
 ---
 
@@ -400,11 +416,12 @@ for both the post data and the image files.
 - `point_events`, `profiles.points/visits/streak_weeks/last_post_week`.
 - Inside `create_post` step 6, for each answered challenge: insert `point_events` for the answerer
   and the tagger (`ON CONFLICT DO NOTHING`), skipping any user who already has
-  `daily_point_cap` events for their local date (tagger's profile row is locked in id order with
-  the caller's to avoid deadlocks). Increment `profiles.points` only for inserted rows.
-- Streak step 5 becomes: `visits += 1`; `week = date_trunc('week', v_today)`; if `last_post_week =
-  week` → unchanged; if `= week - 7 days` → `streak_weeks += 1`; else → `1`. Best streak kept in
-  `streak_highest`. Existing users: `streak_weeks` seeded from their current streak (decision D10).
+  `daily_point_cap` events for their local date (both profile rows are already locked by step 2).
+  Increment `profiles.points` only for inserted rows.
+- Streak step 5: **ask the owner decisions #1 and #10 before writing this migration.** Whatever the
+  rule, it runs inside `create_post` from `v_today` only, and `visits += 1` on every post. If #1 is
+  the weekly streak: `week = date_trunc('week', v_today)`; `last_post_week = week` → unchanged;
+  `= week - 7 days` → `streak_weeks += 1`; else → `1`; best kept in `streak_highest`.
 - `get_feed`, `get_user_posts`, `searchProfiles` (`src/api/profile.ts`) and `get_taggable_friends`
   return `points`.
 - Drop `fitness_routine` from the streak rule (the column stays until a later cleanup).
@@ -422,7 +439,7 @@ for both the post data and the image files.
 one event; weekly streak across a skipped week → resets to 1; timezone Sunday/Monday boundary
 correct for `Europe/London` and `America/New_York`.
 
-**Owner-only:** apply `points_streak`; ship the build.
+**Owner says go:** apply `points_streak`; ship the build.
 
 ---
 
@@ -460,7 +477,7 @@ correct for `Europe/London` and `America/New_York`.
 after read = 0. Device — airplane-mode send, reconnect, retry → one message; two quick sends keep
 their order and content.
 
-**Owner-only:** apply `messages`; ship the build.
+**Owner says go:** apply `messages`; ship the build.
 
 ---
 
@@ -505,7 +522,7 @@ an account older than 24 h → rejected; claim starts the 48-hour clock. Jest �
 Device — share link → install → sign up with code → tag appears with 48 h left; inviter gets
 "joined".
 
-**Owner-only:** host the landing page and `apple-app-site-association` / `assetlinks.json` on
+**Owner says go:** host the landing page and `apple-app-site-association` / `assetlinks.json` on
 `togethermahi.com`; apply `invites`; ship the build.
 
 ---
@@ -561,9 +578,9 @@ written, so the order below is the order they are created and applied.
 
 Every migration that replaces a live function ends with `NOTIFY pgrst, 'reload schema';`.
 
-Rules: never edit a migration once applied anywhere; every migration is applied to the preview branch,
-tested with `supabase test db`, then handed to the owner for production. Regenerate
-`src/types/database.ts` after each.
+Rules: never edit a migration once it has been pushed; each one is written with its rollback and
+pgTAP test, backed up for, pushed to production with `supabase db push` when the owner says so, then
+tested with `supabase test db --linked`. Regenerate `src/types/database.ts` after each.
 
 ## 7. New and changed hooks (summary)
 
