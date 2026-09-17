@@ -536,10 +536,10 @@ Device — share link → install → sign up with code → tag appears with 48 
 
 ---
 
-## 5. What Pingmee taught (patterns only, no code copied)
+## 5. What similar apps taught (patterns only, no code copied)
 
 Mahi keeps its own shape: Postgres RPCs called from `src/api/`, Zustand stores, no TanStack Query,
-no action-router Edge Functions. From a read-only survey of `pingmee-v2`, these patterns are adopted:
+no action-router Edge Functions. From a read-only review of similar apps, these patterns are adopted:
 
 | Pattern | Used in |
 | --- | --- |
@@ -552,9 +552,9 @@ no action-router Edge Functions. From a read-only survey of `pingmee-v2`, these 
 | Guard hook enforcing migration naming/order and blocking production writes | P0 |
 | Manual, typed-confirmation production deploy workflow | P0 |
 
-Where Mahi goes further than Pingmee: server-side idempotency (`client_id`) for posts and messages
-(Pingmee has none), Expo receipt checks and dead-token cleanup (Pingmee never reads receipts), quiet
-hours and grouped pushes (not in Pingmee), and pgTAP tests for every rule (Pingmee has no SQL tests).
+Where Mahi goes further than similar apps: server-side idempotency (`client_id`) for posts and
+messages, Expo receipt checks and dead-token cleanup, quiet hours and grouped pushes, and pgTAP tests
+for every rule.
 
 ---
 
