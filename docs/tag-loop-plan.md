@@ -602,6 +602,34 @@ their order and content.
 
 ### Phase 7 — Invite links
 
+*Built 2026-09-17, not live, and the landing page is not hosted.*
+`supabase/migrations/20260917121508_invites.sql` (+ rollback,
+`supabase/deferred/contract_invites.sql`; `supabase/tests/invites_test.sql`, 27 checks, red before
+the migration, green after). Differences from the design below:
+
+- **`app_config.invite_links_enabled` gates decision #8** instead of a code change. While it is
+  false, too few friends still excuses fewer than 3 tags, so every old app build keeps posting.
+  The contract step is one line (`update app_config set invite_links_enabled = true`), run after
+  the version gate covers the build that can invite.
+- **One direction of link:** `invites.challenge_id`, not the `tag_challenges.invite_id` of §3.
+  `tag_challenges.tagged_id` and `expires_at` became nullable — a challenge waiting on an invite
+  has neither, and every rule compares against `now()`, which a null never matches, so a waiting
+  invite is never answered, never missed and is in nobody's open tags.
+- **Claiming reuses the live tag path:** `claim_invite` inserts the `post_tags` row, so the
+  existing `notify_on_tag` trigger makes the notification and the "you've been tagged" push. Only
+  the two reminders and the inviter's `invite_joined` are enqueued directly.
+- **Codes** are 6 characters from a 32-letter alphabet with no `0`, `O`, `1` or `I`, re-rolled
+  against the unique index; tokens stay 16 random bytes as hex. `claim_invite` and
+  `get_invite_preview` take either. `pgcrypto` lives in the `extensions` schema on this project,
+  so `gen_random_bytes` is called qualified.
+- **App:** `src/lib/inviteLink.ts` (pure, 8 Jest checks), `src/api/invites.ts`,
+  `src/store/inviteStore.ts` (token in memory only — invites expire), `src/hooks/useInviteLink.ts`
+  wired once in `App.tsx`. The tag sheet's slot counter counts invites; posting hands each link to
+  the share sheet in turn, because a link is for one person and works once. Sign-up shows who
+  invited you, or a code field when the app wasn't opened by the link. Flag `invite-links`.
+- **Not built:** a screen listing invites you've already sent. A link skipped in the share sheet
+  stays on the server with no way back to it from the app.
+
 **Goal:** tagging someone not on Mahi sends a link; when they sign up, their 48-hour tag starts.
 
 **Migration `invites`**
