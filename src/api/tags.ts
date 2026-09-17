@@ -10,6 +10,7 @@ export type TaggableFriend = {
   avatar_url: string | null;
   /** You already tagged them and they haven't answered yet. */
   has_open_tag: boolean;
+  points: number;
 };
 
 export type OpenTag = {

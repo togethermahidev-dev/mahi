@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { useAuthStore, useUserStore, useFollowStore } from '@/store';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostDetailModal from '@/components/PostDetailModal';
@@ -38,6 +39,7 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
 
   const profile = useUserStore((s) => s.profile);
   const setProfile = useUserStore((s) => s.setProfile);
+  const showPoints = useFeatureFlag('mahi-points');
   const userId = useAuthStore((s) => s.user?.id);
 
   // Drive a focus-aware re-sync of the posts grid. ProfileScreen is always
@@ -144,6 +146,15 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
             <Text style={[styles.statValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
             <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
           </View>
+          {showPoints ? (
+            <>
+              <View style={[styles.statDivider, { backgroundColor: muted }]} />
+              <View style={styles.stat}>
+                <Text style={[styles.statValue, { color: text }]}>{profile?.points ?? 0}</Text>
+                <Text style={[styles.statLabel, { color: muted }]}>🔥 POINTS</Text>
+              </View>
+            </>
+          ) : null}
         </View>
 
         {/* Suggested follows — syncs on mount, renders null when empty */}

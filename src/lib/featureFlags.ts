@@ -40,6 +40,7 @@ export const FEATURE_FLAGS = [
   // Tag loop (see docs/tag-loop-plan.md)
   'push-core', // P1 push permission prompt (server keeps queueing when off)
   'tag-challenges', // P2 open-tags banner (the 3-tag rule is switched in app_config)
+  'mahi-points', // P5 points badges and profile stat
 ] as const;
 
 /** A known PostHog feature flag key. */

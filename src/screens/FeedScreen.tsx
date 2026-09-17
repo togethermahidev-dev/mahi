@@ -32,6 +32,7 @@ import UserProfileScreen from '@/screens/UserProfileScreen';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import CaptionText from '@/components/CaptionText';
 import { formatWait } from '@/lib/countdown';
+import PointsBadge from '@/components/PointsBadge';
 import type { FeedPost } from '@/api';
 import type { CommentWithProfile } from '@/api/social';
 
@@ -416,7 +417,10 @@ function PostItem({
                   </View>
                 )}
                 <View style={styles.userInfo}>
-                  <Text style={styles.usernameOverlay}>{name}</Text>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.usernameOverlay}>{name}</Text>
+                    <PointsBadge points={item.profiles.points} style={styles.pointsOverlay} />
+                  </View>
                   <Text style={styles.timeOverlay}>{relativeTime(item.created_at)}</Text>
                 </View>
               </TouchableOpacity>
@@ -1048,6 +1052,14 @@ const styles = StyleSheet.create({
     fontFamily: 'JosefinSans_400Regular_Italic',
   },
   // ── Empty / error
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pointsOverlay: {
+    color: '#FFFFFF',
+  },
   lockedCard: {
     height: CARD_HEIGHT,
     alignItems: 'center',

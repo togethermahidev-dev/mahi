@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { searchProfiles, type ProfileSearchResult } from '@/api';
+import PointsBadge from '@/components/PointsBadge';
 import { useAuthStore, useBlockStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { Sentry } from '@/lib/sentry';
@@ -54,9 +55,7 @@ function UserRow({
           <Text style={[styles.handle, { color: muted }]}>@{item.username}</Text>
         ) : null}
       </View>
-      {item.streak_current != null && item.streak_current > 0 ? (
-        <Text style={[styles.streakText, { color: muted }]}>🔥 {item.streak_current}</Text>
-      ) : null}
+      <PointsBadge points={item.points} style={[styles.streakText, { color: muted }]} />
     </TouchableOpacity>
   );
 }

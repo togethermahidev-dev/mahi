@@ -52,6 +52,7 @@ import {
 } from '@/api';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import OpenTagsBanner from '@/components/OpenTagsBanner';
+import PointsBadge from '@/components/PointsBadge';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { formatWait } from '@/lib/countdown';
@@ -855,7 +856,10 @@ function TagUserRow({
         </View>
       )}
       <View style={{ flex: 1 }}>
-        <Text style={styles.tagRowName}>{display}</Text>
+        <Text style={styles.tagRowName}>
+          {display}{' '}
+          <PointsBadge points={item.points} style={styles.tagRowHandle} />
+        </Text>
         <Text style={styles.tagRowHandle}>
           @{item.username}
           {item.has_open_tag ? ' · waiting on your last tag' : ''}
@@ -1395,6 +1399,7 @@ export default function CameraScreen(): React.JSX.Element {
 
       const firstAnswered = result.answered[0];
       if (firstAnswered) {
+        useUserStore.getState().refresh(userId);
         const more = result.answered.length > 1 ? ` +${result.answered.length - 1}` : '';
         useToastStore
           .getState()

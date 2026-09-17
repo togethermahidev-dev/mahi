@@ -486,6 +486,26 @@ for both the post data and the image files.
 
 ### Phase 5 — Points and the new streak
 
+*Points built 2026-09-17, not live; the streak half waits for decisions #1 and #10.*
+`supabase/migrations/20260917115316_points.sql` (+ rollback, tested by applying it locally;
+`supabase/tests/points_test.sql`, 10 checks, flip-tested by removing the cap). Differences from the
+design below:
+
+- **No stored counter.** `point_events` holds one row per point; `public.points(profile)` counts them
+  on read and is exposed as a PostgREST computed column (`select('*, points')`). No transaction
+  updates a shared total, so there is no profile lock to deadlock on (two friends answering each
+  other's tags at the same moment was the risk).
+- **Daily cap as a constraint:** `unique (user_id, local_date, slot)` with `slot ≤
+  app_config.daily_point_cap`; `award_point` tries slots in order. `unique (challenge_id, user_id)`
+  stops double pay. Awards run in user-id order inside `answer_tags_on_post`, so any post from any
+  app build pays out. Banned users earn nothing; points survive a deleted challenge.
+- `get_taggable_friends` and `feed_item` return points.
+- **App:** `PointsBadge` ("🔥 N", flag `mahi-points`) on feed cards, tag-sheet rows and search rows
+  (search's fire icon used to show the streak); a "🔥 POINTS" stat on both profile screens;
+  `getProfile` / `searchProfiles` select `points`; `userStore.refresh()` re-reads the profile after a
+  post answers tags.
+
+
 **Goal:** points and streaks are counted once, on the server, in the posting transaction.
 
 **Migration `points_streak`**

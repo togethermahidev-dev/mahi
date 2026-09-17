@@ -41,7 +41,7 @@ if (!showSuggestions) return null;
 
 **Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
 are switched in the `app_config` table):
-`push-core` (P1, the one-time "turn on notifications" prompt) · `tag-challenges` (P2, the open-tags banner)
+`push-core` (P1, the one-time "turn on notifications" prompt) · `tag-challenges` (P2, the open-tags banner) · `mahi-points` (P5, points badges)
 
 ## Creating / managing flags
 

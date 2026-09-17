@@ -20,7 +20,7 @@ export type TaggedUser = {
 };
 
 export type FeedPost = PostRow & {
-  profiles: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
+  profiles: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'> & { points?: number };
   like_count: number;
   comment_count: number;
   liked_by_me: boolean;
@@ -61,7 +61,7 @@ type FeedItem = {
   liked_by_me: boolean;
   tagged_users: TaggedUser[];
   response: { tagger_username: string; seconds: number } | null;
-  profile: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
+  profile: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'> & { points: number };
 };
 
 // Photo links last an hour; the feed re-reads before its unlock ends.

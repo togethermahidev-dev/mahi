@@ -20,6 +20,7 @@ import {
   type ReportReason,
 } from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
 import StreakGridPanel from '@/components/StreakGridPanel';
@@ -98,7 +99,8 @@ export default function UserProfileScreen({
     })
   ).current;
 
-  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [profile, setProfile] = useState<(ProfileRow & { points?: number }) | null>(null);
+  const showPoints = useFeatureFlag('mahi-points');
   const [loading, setLoading] = useState(true);
   const [messaging, setMessaging] = useState(false);
   const [streakGridOpen, setStreakGridOpen] = useState(false);
@@ -440,6 +442,15 @@ export default function UserProfileScreen({
                 </Text>
                 <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
               </View>
+              {showPoints ? (
+                <>
+                  <View style={[styles.statDivider, { backgroundColor: muted }]} />
+                  <View style={styles.stat}>
+                    <Text style={[styles.statValue, { color: text }]}>{profile?.points ?? 0}</Text>
+                    <Text style={[styles.statLabel, { color: muted }]}>🔥 POINTS</Text>
+                  </View>
+                </>
+              ) : null}
             </View>
 
             {/* Streak grid pill */}

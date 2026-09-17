@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getProfile } from '@/api';
 
 interface UserProfile {
   id: string;
@@ -15,16 +16,28 @@ interface UserProfile {
   streak_highest: number;
   streak_lowest: number | null;
   streak_last_upload_date: string | null; // ISO date 'YYYY-MM-DD'
+  /** Mahi points (server-counted). */
+  points?: number;
 }
 
 interface UserState {
   profile: UserProfile | null;
   setProfile: (profile: UserProfile | null) => void;
+  /** Re-read the signed-in profile from the server (e.g. points after answering tags). */
+  refresh: (userId: string) => Promise<void>;
   reset: () => void;
 }
 
-export const useUserStore = create<UserState>((set) => ({
+export const useUserStore = create<UserState>((set, get) => ({
   profile: null,
   setProfile: (profile) => set({ profile }),
+  refresh: async (userId) => {
+    const { data, error } = await getProfile(userId);
+    if (error) {
+      console.log('[userStore] refresh failed', error.message);
+      return;
+    }
+    if (data && get().profile?.id === userId) set({ profile: data });
+  },
   reset: () => set({ profile: null }),
 }));
