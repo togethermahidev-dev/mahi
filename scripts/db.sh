@@ -3,6 +3,7 @@
 #
 #   scripts/db.sh backup            schema + data dump into supabase/backups/ (gitignored)
 #   scripts/db.sh test [file ...]   run pgTAP tests (default: supabase/tests/*.sql); each rolls back
+#   scripts/db.sh try <files...>    run migrations + tests in one transaction, then roll it all back
 #   scripts/db.sh push [--dry-run]  push new migrations with the Supabase CLI
 #
 # The password is read from ~/.pgpass (chmod 600), never from this repo. The line looks like:
@@ -40,6 +41,21 @@ case "${1:-}" in
     done
     exit $failed
     ;;
+  try)
+    # Dry run on production: migrations + tests in ONE transaction that is always rolled back.
+    shift
+    [ $# -gt 0 ] || { echo "usage: scripts/db.sh try <migration.sql ...> <test.sql ...>" >&2; exit 1; }
+    out=$(
+      {
+        echo 'begin;'
+        for f in "$@"; do grep -viE '^\s*(begin|rollback|commit)\s*;\s*$' "$f"; echo; done
+        echo 'rollback;'
+      } | psql "$CONN" -X -q -A -t -v ON_ERROR_STOP=1 2>&1
+    ) || { echo "$out"; exit 1; }
+    echo "$out"
+    echo "$out" | grep -qE '^not ok|Looks like you failed|ERROR' && exit 1
+    exit 0
+    ;;
   push)
     shift
     pw=$(awk -F: -v h="$HOST" -v p="$PORT" -v u="$DB_USER" \
@@ -49,7 +65,7 @@ case "${1:-}" in
     supabase db push --db-url "postgresql://$DB_USER:$enc@$HOST:$PORT/$DB" "$@"
     ;;
   *)
-    sed -n 2,9p "$0"
+    sed -n 2,10p "$0"
     exit 1
     ;;
 esac

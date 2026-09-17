@@ -139,6 +139,9 @@ day-boundary bug fixed.
      refuses any push unless both files are under 60 minutes old.
    - `scripts/db.sh test` — runs every `supabase/tests/*.sql` with `psql`; each file is
      `begin; … rollback;`, so tests leave no rows behind.
+   - `scripts/db.sh try <migration> <test>` — applies a migration and runs its test on production in
+     one transaction that is always rolled back. Every migration is tried this way before it is pushed,
+     which gives the red→green check on the real schema without leaving anything behind.
    - `scripts/db.sh push [--dry-run]` — the Supabase CLI push, with the connection built from
      `~/.pgpass`.
    - Every migration has its rollback file written and read over before it is pushed.

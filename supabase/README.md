@@ -22,6 +22,8 @@ Rules (enforced by `.claude/hooks/guard.cjs`):
   backups):
   - `scripts/db.sh backup` — schema + data dump into `backups/` (gitignored — it holds user data).
     The guard refuses a push without a backup under 60 minutes old.
+  - `scripts/db.sh try <migration.sql> <test.sql>` — dry run: applies the migration and runs its
+    test in one transaction on production, then rolls everything back. Do this before every push.
   - `scripts/db.sh push --dry-run`, then `scripts/db.sh push`.
   - `scripts/db.sh test` — runs `tests/*.sql` with `psql`; every file is `begin; … rollback;`.
 - The script reads the database password from `~/.pgpass` (the owner adds it; never committed):
