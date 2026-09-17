@@ -1,26 +1,34 @@
 # supabase/
 
 Version-controlled backend for Mahi: schema, RLS, RPCs, triggers, storage, realtime, and Edge Functions.
+Production project: `pzepodsppqtvptzmwxzs` (free plan, eu-west-2). There is no separate test database;
+see decision #13 in [docs/decisions.md](../docs/decisions.md).
 
 ## Migrations (`migrations/`)
 
-| File | Contents |
-|---|---|
-| `0001_schema.sql` | All tables + inline constraints/indexes (incl. `user_blocks`, `user_reports`, `otp_codes`, `profiles.is_banned`) |
-| `0002_rls.sql` | Row-Level Security enable + policies for every table (RLS is the only authorization layer) |
-| `0003_functions.sql` | RPCs (`toggle_like`, `get_feed_posts`, `record_upload_streak`, `get_follow_data`) + triggers (message→conversation `updated_at`, block cascade) |
-| `0004_storage_realtime.sql` | `posts` public bucket + storage policies + realtime publication / replica identity |
+The files are production's own migration history, downloaded from
+`supabase_migrations.schema_migrations` on 2026-09-17 (31 files, `20260224124711` to
+`20260625080354`), plus `20260917105120_reconcile_drift.sql`, which records the `avatars` bucket and
+policies that had been created in the dashboard. Every live table, column, function, trigger, policy,
+index and bucket was checked against these files; nothing else was missing.
 
-## ⚠ Reconciliation before pushing to the live project
+Rules (enforced by `.claude/hooks/guard.cjs`):
 
-These migrations were **reconstructed** from `src/types/database.ts` + `docs/integrations.md` (the live DB's schema is authoritative but the `sbp_` token was revoked, so it could not be pulled). They are a correct, version-controlled **baseline** — but before applying to the live project:
+- Create migrations with `supabase migration new <name>` (14-digit timestamp prefix, newest last).
+  Never edit a migration once it has been pushed; add a new one.
+- Each migration has an undo script in `rollbacks/<same name>.rollback.sql` and a pgTAP test in
+  `tests/`.
+- Production changes only through the CLI push command, after a fresh backup (the free plan has no
+  automatic backups):
+  - `supabase db dump --linked -f supabase/backups/<ts>_schema.sql`
+  - `supabase db dump --linked --data-only -f supabase/backups/<ts>_data.sql`
+  - `backups/` is gitignored — it holds user data.
+- Tests: `supabase test db --linked`. Every test file runs inside `begin; … rollback;`.
 
-1. Mint a fresh Personal Access Token → https://supabase.com/dashboard/account/tokens, put it in `.mcp.json` (`SUPABASE_ACCESS_TOKEN`) and `supabase login`.
-2. `supabase link --project-ref pzepodsppqtvptzmwxzs`
-3. **`supabase db pull`** to capture the *actual* live schema, then diff it against these files and reconcile any drift (the live DB wins).
-4. Or, to seed a fresh DB / verify locally: install Docker (e.g. `brew install colima docker && colima start`), then `supabase start` and `supabase db reset` to apply + test these migrations.
+Linking the CLI (`supabase link --project-ref pzepodsppqtvptzmwxzs`) asks for the database password;
+the owner types it.
 
-Known reconstruction fixes already applied during review: `toggle_like` uses delete-then-insert (not the invalid `ON CONFLICT DO DELETE`); `messages.conversation_id` has `ON DELETE CASCADE` and `conversations` has a participant `DELETE` policy (needed by the deny-request flow).
+The build plan is [docs/tag-loop-plan.md](../docs/tag-loop-plan.md).
 
 ## Edge Functions (`functions/`)
 
@@ -29,4 +37,10 @@ Known reconstruction fixes already applied during review: `toggle_like` uses del
 | `send-otp` | Generates a code **server-side**, stores `sha256(code)` + expiry in `otp_codes`, emails via Resend. Never returns the code. |
 | `complete-signup` | Verifies the code server-side (hash, expiry, attempts) **before** creating the auth user, then deletes the OTP row. Closes the email-verification bypass. |
 
-Required function secrets: `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`. Deploy with `supabase functions deploy` (all functions run `verify_jwt: false` — they are pre-auth flows).
+Required function secrets: `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`. All functions run
+`verify_jwt: false` (pre-auth flows).
+
+⚠ **Not live yet (checked 2026-09-17).** Production runs older versions of `send-otp` (v15, Apr 2026)
+and `complete-signup` (v4, Feb 2026), plus a `check-email` function that is not in this repo. The
+`otp_codes` table these versions need does not exist in production. Before deploying them: add
+`otp_codes` (and its block-all RLS) in a migration, and confirm which app builds call which flow.

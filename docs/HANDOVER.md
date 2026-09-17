@@ -19,7 +19,7 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
 
 **Done this cycle (all flip-tested, `tsc` + tests green):**
 - **Hardening:** typed fail-fast `src/lib/env.ts` (no more raw `process.env`); `ErrorBoundary` around the tree; `socialStore` reset on sign-out (cross-account leak fixed); auth `.catch` + single `hydrateForUser`; `blockStore` sync guard; dead code removed; **typecheck CI** (`.github/workflows/ci.yml`).
-- **Backend in version control** (`supabase/migrations/` + `functions/`): schema, RLS, RPCs, triggers, storage, realtime — **reconstructed; must be reconciled via `supabase db pull` before pushing** (see [supabase/README.md](../supabase/README.md)).
+- **Backend in version control** (`supabase/migrations/` + `functions/`): schema, RLS, RPCs, triggers, storage, realtime — production's own migration history, reconciled on 2026-09-17 (see [supabase/README.md](../supabase/README.md)).
 - **Server-authoritative OTP** (`send-otp` / `complete-signup` edge functions + client rewrite): the email-verification bypass is closed; the client never sees or verifies the code.
 - **Types** patched (`user_blocks`, `user_reports`, `is_banned`, `otp_codes`); **toasts** for mutation failures; **jest+ts-jest** harness; **eslint+prettier**; `socialStore` comment-count corruption fixed.
 
