@@ -79,6 +79,14 @@ create function net.http_post(
 
 create publication supabase_realtime;
 
+-- migration history (rollback scripts delete their own row)
+create schema supabase_migrations;
+create table supabase_migrations.schema_migrations (
+  version text primary key,
+  name text,
+  statements text[]
+);
+
 -- Supabase's default grants
 grant usage on schema public, auth, storage, extensions, vault to anon, authenticated, service_role;
 grant all on all tables in schema storage to authenticated, service_role;
