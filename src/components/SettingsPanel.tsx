@@ -287,7 +287,7 @@ export default function SettingsPanel({
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   panel: {
     position: 'absolute',

@@ -19,15 +19,11 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  // Type-only imports (e.g. `import type { Database }`) are erased and we
+  // don't want full type-checking to slow the suite or fail on unrelated app
+  // type issues: ts-jest transpiles per-file because tsconfig.json sets
+  // `isolatedModules: true`.
   transform: {
-    '^.+\\.ts$': [
-      'ts-jest',
-      {
-        // Type-only imports (e.g. `import type { Database }`) are erased and
-        // we don't want full type-checking to slow the suite or fail on
-        // unrelated app type issues.
-        isolatedModules: true,
-      },
-    ],
+    '^.+\\.ts$': 'ts-jest',
   },
 };

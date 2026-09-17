@@ -1,0 +1,23 @@
+# pnpm 11+ reads project settings from here instead of .npmrc.
+# Expo / React Native tooling expects a flat node_modules layout.
+nodeLinker: hoisted
+
+# pnpm 11+ fails installs on unreviewed dependency build scripts. Each of these
+# ships its native binary through optional platform packages, so the
+# postinstall is not needed (pnpm 10 was already skipping them).
+allowBuilds:
+  '@parcel/watcher': false
+  '@sentry/cli': false
+  unrs-resolver: false
+
+# Optional peer of @react-native/community-cli-plugin. pnpm auto-installs the
+# newest release, which runs ahead of React Native; keep it on the RN version.
+overrides:
+  '@react-native/metro-config': 0.86.3
+
+# These plugins (bundled by eslint-config-expo) have not widened their eslint
+# peer range yet; eslint.config.js runs them through @eslint/compat on ESLint 10.
+peerDependencyRules:
+  allowedVersions:
+    eslint-plugin-import>eslint: '10'
+    eslint-plugin-react>eslint: '10'

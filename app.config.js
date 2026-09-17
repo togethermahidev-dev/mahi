@@ -18,6 +18,15 @@ const config = {
     'expo-dev-client',
     'expo-updates',
     'expo-font',
+    'expo-status-bar',
+    [
+      'expo-build-properties',
+      {
+        // Apps built with the iOS 27 SDK must use the UIKit scene life cycle or
+        // they fail to launch on iOS 27. Opt-in on SDK 57, default from SDK 58.
+        ios: { enableSceneSupport: true },
+      },
+    ],
     '@react-native-community/datetimepicker',
     [
       'expo-image-picker',

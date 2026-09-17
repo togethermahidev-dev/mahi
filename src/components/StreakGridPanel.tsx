@@ -409,11 +409,11 @@ export default function StreakGridPanel({
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   panel: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 600,
   },
   topBar: {

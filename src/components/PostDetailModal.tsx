@@ -164,7 +164,7 @@ export default function PostDetailModal({
           <Reanimated.View style={[styles.pip, pipAnimStyle]}>
             <Image
               source={{ uri: pipUrl }}
-              style={[StyleSheet.absoluteFillObject, { borderRadius: 10 }]}
+              style={[StyleSheet.absoluteFill, { borderRadius: 10 }]}
               resizeMode="cover"
             />
           </Reanimated.View>
@@ -176,7 +176,7 @@ export default function PostDetailModal({
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 520,
     backgroundColor: '#000',
   },

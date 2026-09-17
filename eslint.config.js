@@ -2,11 +2,15 @@
 // Kept intentionally minimal and lenient: Expo's shared config provides the
 // React Native rule baseline, eslint-config-prettier turns off any formatting
 // rules so Prettier is the single source of truth for style.
+const { fixupConfigRules } = require('@eslint/compat');
 const expoConfig = require('eslint-config-expo/flat');
 const prettierConfig = require('eslint-config-prettier');
 
 module.exports = [
-  ...expoConfig,
+  // eslint-plugin-react and eslint-plugin-import (bundled by eslint-config-expo)
+  // still call rule-context APIs that ESLint 10 removed; the official compat
+  // shim restores them.
+  ...fixupConfigRules(expoConfig),
   prettierConfig,
   {
     ignores: [

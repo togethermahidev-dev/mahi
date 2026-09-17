@@ -548,7 +548,7 @@ export default function UserProfileScreen({
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 510,
     flex: 1,
     alignItems: 'center',

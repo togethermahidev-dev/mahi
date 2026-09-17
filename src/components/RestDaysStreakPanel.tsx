@@ -483,11 +483,11 @@ const PILL_SIZE = (SCREEN_WIDTH - 48 - 6 * 8) / 7; // 24px padding each side, 8p
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   panel: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 600,
   },
   topBar: {

@@ -524,10 +524,10 @@ function DualPhotoPreview({
             zoomed, double-tap to reset. Lives behind the PIP/pills. */}
           {primaryUri && (
             <GestureDetector gesture={primaryGesture}>
-              <Reanimated.View style={[StyleSheet.absoluteFillObject, primaryAnimStyle]}>
+              <Reanimated.View style={[StyleSheet.absoluteFill, primaryAnimStyle]}>
                 <Image
                   source={{ uri: primaryUri }}
-                  style={StyleSheet.absoluteFillObject}
+                  style={StyleSheet.absoluteFill}
                   resizeMode="cover"
                 />
               </Reanimated.View>
@@ -546,7 +546,7 @@ function DualPhotoPreview({
               <Reanimated.View style={[styles.pip, { height: pipH }, pipAnimStyle]}>
                 <Image
                   source={{ uri: pipUri }}
-                  style={[StyleSheet.absoluteFillObject, { borderRadius: 12 }]}
+                  style={[StyleSheet.absoluteFill, { borderRadius: 12 }]}
                   resizeMode="cover"
                 />
               </Reanimated.View>
@@ -1656,7 +1656,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   postedOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
@@ -1839,7 +1839,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheetScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
   sheetPanel: {

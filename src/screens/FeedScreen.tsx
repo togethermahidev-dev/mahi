@@ -402,7 +402,7 @@ function PostItem({
             <Reanimated.View style={[styles.feedPip, pipAnimStyle]}>
               <Image
                 source={{ uri: pipUrl }}
-                style={[StyleSheet.absoluteFillObject, { borderRadius: 10 }]}
+                style={[StyleSheet.absoluteFill, { borderRadius: 10 }]}
                 resizeMode="cover"
               />
             </Reanimated.View>
@@ -937,7 +937,7 @@ const styles = StyleSheet.create({
   },
   // ── Comment sheet (bottom-sheet overlay)
   sheetBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   sheetContainer: {

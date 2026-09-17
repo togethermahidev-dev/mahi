@@ -312,7 +312,7 @@ export default function GlobalSearchOverlay({
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 500,
   },
   content: {
