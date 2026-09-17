@@ -39,6 +39,11 @@ test('production database pushes need a fresh backup', () => {
   fs.writeFileSync(path.join(cwd, 'supabase/backups/1_data.sql'), '');
   assert.strictEqual(verdict(bash('supabase db push', { cwd, now })), 'ask');
   assert.strictEqual(verdict(bash('supabase db push', { cwd, now: now + 61 * 60 * 1000 })), 'deny');
+  assert.strictEqual(verdict(bash('scripts/db.sh push', { cwd, now: now + 61 * 60 * 1000 })), 'deny');
+  assert.strictEqual(verdict(bash('scripts/db.sh push --dry-run', { cwd, now })), 'ask');
+  assert.strictEqual(verdict(bash('scripts/db.sh backup', { cwd, now })), 'allow');
+  assert.strictEqual(verdict(bash('supabase db push --help')), 'allow');
+  assert.strictEqual(verdict(bash('supabase db push --help && supabase db push')), 'deny');
 });
 
 test('other production commands', () => {

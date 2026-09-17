@@ -43,6 +43,7 @@ function hasFreshBackup(cwd, now) {
 }
 
 function checkBash(cmd, cwd, now) {
+  if (/^\s*\S+(\s+\S+){0,3}\s+(--help|-h)\s*$/.test(cmd)) return null;
   if (/\bgit\s+add\s+(-A\b|--all\b|-u\b|--update\b|\.(\s|$))/.test(cmd))
     return deny('Stage files by name. Never git add -A / . / -u.');
   if (/\bgit\s+commit\b[^|;&]*\s-(?!-)[a-zA-Z]*a/.test(cmd))
@@ -54,10 +55,10 @@ function checkBash(cmd, cwd, now) {
   if (/\beas\b/.test(cmd) && config.prodMarkers.some((m) => m.startsWith('--') && cmd.includes(m)))
     return deny('Production EAS builds and updates are owner-only.');
 
-  if (/\bsupabase\s+(db\s+push|migration\s+up)\b/.test(cmd)) {
+  if (/\bsupabase\s+(db\s+push|migration\s+up)\b|\bdb\.sh\s+push\b/.test(cmd)) {
     if (!hasFreshBackup(cwd, now))
       return deny(
-        `Take a backup first: supabase db dump --linked -f ${config.backupDir}/<ts>_schema.sql and --data-only -f ${config.backupDir}/<ts>_data.sql (must be under ${config.backupMaxAgeMinutes} min old).`
+        `Take a backup first with scripts/db.sh backup (writes ${config.backupDir}/<ts>_schema.sql and _data.sql; must be under ${config.backupMaxAgeMinutes} min old).`
       );
     return ask('This pushes migrations to production. Confirm the owner said go in this session.');
   }

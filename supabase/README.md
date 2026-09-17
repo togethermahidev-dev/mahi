@@ -18,15 +18,14 @@ Rules (enforced by `.claude/hooks/guard.cjs`):
   Never edit a migration once it has been pushed; add a new one.
 - Each migration has an undo script in `rollbacks/<same name>.rollback.sql` and a pgTAP test in
   `tests/`.
-- Production changes only through the CLI push command, after a fresh backup (the free plan has no
-  automatic backups):
-  - `supabase db dump --linked -f supabase/backups/<ts>_schema.sql`
-  - `supabase db dump --linked --data-only -f supabase/backups/<ts>_data.sql`
-  - `backups/` is gitignored — it holds user data.
-- Tests: `supabase test db --linked`. Every test file runs inside `begin; … rollback;`.
-
-Linking the CLI (`supabase link --project-ref pzepodsppqtvptzmwxzs`) asks for the database password;
-the owner types it.
+- Production changes only through `scripts/db.sh` (no Docker needed; the free plan has no automatic
+  backups):
+  - `scripts/db.sh backup` — schema + data dump into `backups/` (gitignored — it holds user data).
+    The guard refuses a push without a backup under 60 minutes old.
+  - `scripts/db.sh push --dry-run`, then `scripts/db.sh push`.
+  - `scripts/db.sh test` — runs `tests/*.sql` with `psql`; every file is `begin; … rollback;`.
+- The script reads the database password from `~/.pgpass` (the owner adds it; never committed):
+  `aws-1-eu-west-2.pooler.supabase.com:5432:postgres:postgres.pzepodsppqtvptzmwxzs:<password>`
 
 The build plan is [docs/tag-loop-plan.md](../docs/tag-loop-plan.md).
 
