@@ -22,6 +22,9 @@ Rules (enforced by `.claude/hooks/guard.cjs`):
   backups):
   - `scripts/db.sh backup` — schema + data dump into `backups/` (gitignored — it holds user data).
     The guard refuses a push without a backup under 60 minutes old.
+  - `scripts/db.sh local` — first check, no password needed: replays every migration on a
+    throwaway local Postgres 17 (Supabase stand-ins in `tests/local/stubs.sql`; needs
+    `brew install postgresql@17` and pgTAP built against it) and runs all tests.
   - `scripts/db.sh try <migration.sql> <test.sql>` — dry run: applies the migration and runs its
     test in one transaction on production, then rolls everything back. Do this before every push.
   - `scripts/db.sh push --dry-run`, then `scripts/db.sh push`.
