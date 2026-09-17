@@ -1262,6 +1262,8 @@ export default function CameraScreen(): React.JSX.Element {
       latitude: null,
       longitude: null,
       created_at: new Date().toISOString(),
+      // Placeholder until the server's row (dated in the user's time zone) replaces it.
+      post_date: today,
       like_count: 0,
       comment_count: 0,
       liked_by_me: false,

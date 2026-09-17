@@ -61,6 +61,15 @@ export async function updateAvatarUrl(userId: string, avatarUrl: string) {
     .single();
 }
 
+/** Save the phone's time zone (IANA name). The server dates every post in this zone. */
+export async function updateTimezone(
+  userId: string,
+  timezone: string
+): Promise<{ error: Error | null }> {
+  const { error } = await supabase.from('profiles').update({ timezone }).eq('id', userId);
+  return { error: error ? new Error(error.message) : null };
+}
+
 /** Update a user's training-day routine (comma-separated full day names). */
 export async function updateFitnessRoutine(userId: string, routine: string | null) {
   return supabase

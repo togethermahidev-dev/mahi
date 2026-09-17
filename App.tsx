@@ -24,7 +24,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useNotificationsStore, useProfilePostsStore, useFollowStore, useSuggestStore, useBlockStore, useSocialStore } from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { getProfile, signOut } from '@/api';
+import { getProfile, signOut, updateTimezone } from '@/api';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -32,6 +32,19 @@ import { ToastHost } from '@/components/ToastHost';
 
 // Prevent the native OS splash from auto-hiding before our custom one is drawn.
 SplashScreen.preventAutoHideAsync();
+
+/**
+ * Keep the profile's time zone in step with the phone's, so the server dates
+ * posts in the user's local day. Fire-and-forget: a failure only means the
+ * server keeps using the previous zone.
+ */
+function syncTimezone(userId: string, current: string): void {
+  const deviceTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (!deviceTz || deviceTz === current) return;
+  updateTimezone(userId, deviceTz).then(({ error }) => {
+    if (error) Sentry.captureException(error, { tags: { flow: 'auth', action: 'updateTimezone' } });
+  });
+}
 
 /**
  * Hydrate all per-user state after a session is established. Shared by the
@@ -46,6 +59,7 @@ async function hydrateForUser(userId: string): Promise<void> {
     if (data) {
       if (data.is_banned) { signOut().catch(() => {}); return; }
       useUserStore.getState().setProfile(data);
+      syncTimezone(userId, data.timezone);
     }
   } catch (err) {
     // Never let the profile fetch reject silently (e.g. revoked/expired session).

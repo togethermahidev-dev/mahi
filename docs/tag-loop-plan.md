@@ -91,7 +91,7 @@ INSERT/UPDATE/DELETE policy — only `SECURITY DEFINER` functions write.
 
 | Object | Kind | Key columns / constraints | Client access | Migration |
 | --- | --- | --- | --- | --- |
-| `app_config` | table, 1 row | `tag_window interval` 48 h, `unlock_window` 24 h, `answer_grace` 10 min, `daily_point_cap` 3, `quiet_start` 22:00, `quiet_end` 07:00, `feed_lock_enabled bool`, `invite_ttl` 7 days | read | `timezone_postdate` |
+| `app_config` | table, 1 row | `tag_window interval` 48 h, `unlock_window` 24 h, `answer_grace` 10 min, `daily_point_cap` 3, `quiet_start` 22:00, `quiet_end` 07:00, `feed_lock_enabled bool`, `invite_ttl` 7 days | read | `push` |
 | `profiles` | +cols | `timezone text not null default 'Europe/London'`, `points int not null default 0`, `visits int not null default 0`, `streak_weeks int`, `last_post_week date` | read; timezone via RPC | `timezone_postdate`, `points_streak` |
 | `posts` | +cols | `client_id uuid unique`, `post_date date not null` (server local date), `image_path text`, `pov_image_path text`; unique `(user_id, post_date)` replaces the UTC index | read via RPC | `timezone_postdate`, `tag_challenges`, `feed_lock` |
 | `push_tokens` | table | `token text pk`, `user_id`, `platform`, `updated_at` | own rows via RPC | `push` |
@@ -134,48 +134,44 @@ day-boundary bug fixed.
    (`.claude/hooks/guard.test.cjs`). Flip-test: attempt a blocked call → hook refuses (red) →
    read-only call passes (green).
 2. **Working on production safely** (decision #13: free plan, no preview branches, no automatic
-   backups):
-   - Before every `supabase db push`: `supabase db dump --linked -f supabase/backups/<ts>_schema.sql`
-     and `supabase db dump --linked --data-only -f supabase/backups/<ts>_data.sql`.
-     `supabase/backups/` is added to `.gitignore` (it holds real user data).
-   - Every migration has its rollback file (item 5) written and read over before it is pushed.
+   backups). One helper, `scripts/db.sh`, needs no Docker; it reads the password from `~/.pgpass`:
+   - `scripts/db.sh backup` — schema + data dump into `supabase/backups/` (gitignored). The guard
+     refuses any push unless both files are under 60 minutes old.
+   - `scripts/db.sh test` — runs every `supabase/tests/*.sql` with `psql`; each file is
+     `begin; … rollback;`, so tests leave no rows behind.
+   - `scripts/db.sh push [--dry-run]` — the Supabase CLI push, with the connection built from
+     `~/.pgpass`.
+   - Every migration has its rollback file written and read over before it is pushed.
    - Migrations are expand-only until the version gate (Phase 3), so old app versions never break.
-   - pgTAP tests run inside a transaction that is rolled back, so they leave no rows behind.
-     Concurrency checks use two dedicated test accounts and delete what they create.
-   - Push, deploy and `db push` still happen only when the owner says so in that session.
-3. **Make the repo match production** — the live history is the record, so the repo adopts it:
-   - `supabase link --project-ref pzepodsppqtvptzmwxzs`, then `supabase migration fetch` downloads
-     the 31 applied migrations into `supabase/migrations/` under their real timestamped names
-     (read-only against production).
-   - Delete the reconstructed `0001–0006` files (git history keeps them). Update
-     `supabase/README.md` and the `docs/architecture.md` schema notes to point at the real files.
-   - `supabase db diff --linked` must come back empty; if it doesn't, the drift (dashboard edits)
-     becomes one `…_reconcile_drift.sql` that the owner marks applied with
-     `supabase migration repair --status applied`.
-   - From here on every migration is made with `supabase migration new <name>` (timestamp prefix),
-     so local and live history can never disagree.
-4. **Day-boundary fix** — ships in this phase because Phase 2 depends on it.
-   - `timezone_postdate` migration: add `profiles.timezone`, `posts.post_date`, backfill
-     `post_date` from `created_at at time zone 'Europe/London'`, add unique `(user_id, post_date)`,
-     drop `posts_user_day_unique`, replace the posts INSERT RLS same-day check to use `post_date`.
-     Add `app_config` and seed its row.
-   - RPC `set_timezone(p_tz text)`: validates against `pg_timezone_names`, updates own profile.
-   - Client: `src/api/profile.ts` (*edit*) `setTimezone()`; `App.tsx` (*edit*) calls it in
-     `hydrateForUser` with `Intl.DateTimeFormat().resolvedOptions().timeZone`.
-5. **Rollbacks and production deploys** — every migration gets a matching
-   `supabase/rollbacks/<name>.rollback.sql`, written with it. Add
-   `.github/workflows/db-deploy.yml`: manual trigger only, the owner must type `DEPLOY-TO-PROD`,
-   GitHub environment approval, then `supabase db push`, `supabase functions deploy`, and a type
-   regeneration check. This is the owner's one button for every "Owner-only: apply …" step below.
-6. **Test harness** — `supabase/tests/*.sql` (pgTAP; the `pgtap` extension is added by the
-   `timezone_postdate` migration), run with `supabase test db --linked`. Each file wraps itself in
-   `begin; … rollback;`.
+   - Push and deploy happen only when the owner says so in that session.
+3. **Make the repo match production** — *done 2026-09-17*: the 31 live migrations were downloaded
+   from `supabase_migrations.schema_migrations` (read-only) under their real names; the
+   reconstructed `0001–0006` files were deleted. Every live table, column, function, trigger,
+   policy, index and bucket was checked against the files; the only gap (the `avatars` bucket and
+   its 3 policies, made in the dashboard) is recorded in `20260917105120_reconcile_drift.sql`, which
+   is idempotent. New migrations are always named `<timestamp>_<name>.sql`, newest last.
+4. **Day-boundary fix** — `20260917105829_timezone_postdate.sql`:
+   - `profiles.timezone` (default `Europe/London`), checked against `pg_timezone_names` by a trigger
+     (no extra RPC: the app updates its own profile row, which RLS already allows).
+   - `posts.post_date`, backfilled in each user's zone (no duplicate days found in live data);
+     a trigger sets `created_at` and `post_date` on insert and freezes both on update.
+   - Unique `(user_id, post_date)` replaces the UTC-day index; the racy same-day check in the
+     `posts_insert` policy is dropped because the index enforces it.
+   - App: `updateTimezone()` in `src/api/profile.ts`; `App.tsx` `hydrateForUser` sends the phone's
+     zone when it differs. Works with current app builds unchanged.
+   - `app_config` moves to Phase 1, where its first setting (quiet hours) is used.
+5. **Rollbacks** — `supabase/rollbacks/<same name>.rollback.sql` for every migration. (A GitHub
+   deploy workflow was dropped: with decision #13, `scripts/db.sh` is the single path.)
+6. **Test harness** — `20260917105328_pgtap.sql` adds pgTAP; tests live in `supabase/tests/`.
 
-**Verify:** pgTAP — insert two posts for one user at 23:30 and 00:30 London time on the same UTC day →
-both succeed (red before `timezone_postdate`, green after); two at 09:00 and 18:00 local → second fails.
+**Verify:** `supabase/tests/timezone_postdate_test.sql` — the server sets the local date; a second
+post the same local day is refused; yesterday's local post on the same UTC day doesn't block today's;
+posts can't be re-dated; invalid zones are refused; the UTC index is gone. Red: run after the `pgtap`
+push and before `timezone_postdate`. Green: after.
 
-**Owner says go:** `supabase link` (needs the database password) + `supabase migration fetch`;
-`supabase migration repair` only if drift was found; backup, then push `timezone_postdate`.
+**Owner says go:** add the database password to `~/.pgpass`; then backup → push `reconcile_drift`
+and `pgtap` → test (red) → backup → push `timezone_postdate` → test (green); release an app build
+with the time-zone sync.
 
 ---
 

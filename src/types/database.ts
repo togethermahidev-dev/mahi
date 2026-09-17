@@ -339,6 +339,7 @@ export type Database = {
           image_url: string;
           latitude: number | null;
           longitude: number | null;
+          post_date: string;
           pov_image_url: string | null;
           streak_day: number;
           user_id: string;
@@ -350,6 +351,7 @@ export type Database = {
           image_url: string;
           latitude?: number | null;
           longitude?: number | null;
+          post_date?: string;
           pov_image_url?: string | null;
           streak_day: number;
           user_id: string;
@@ -361,6 +363,7 @@ export type Database = {
           image_url?: string;
           latitude?: number | null;
           longitude?: number | null;
+          post_date?: string;
           pov_image_url?: string | null;
           streak_day?: number;
           user_id?: string;
@@ -392,6 +395,7 @@ export type Database = {
           streak_highest: number;
           streak_last_upload_date: string | null;
           streak_lowest: number | null;
+          timezone: string;
           updated_at: string;
           username: string;
         };
@@ -411,6 +415,7 @@ export type Database = {
           streak_highest?: number;
           streak_last_upload_date?: string | null;
           streak_lowest?: number | null;
+          timezone?: string;
           updated_at?: string;
           username: string;
         };
@@ -430,6 +435,7 @@ export type Database = {
           streak_highest?: number;
           streak_last_upload_date?: string | null;
           streak_lowest?: number | null;
+          timezone?: string;
           updated_at?: string;
           username?: string;
         };
