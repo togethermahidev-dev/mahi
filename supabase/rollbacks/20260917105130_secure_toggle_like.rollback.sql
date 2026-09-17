@@ -1,4 +1,4 @@
--- Undo 20260917114635_secure_toggle_like. Restores the unchecked version (re-opens the hole).
+-- Undo 20260917105130_secure_toggle_like. Restores the unchecked version (re-opens the hole).
 begin;
 
 create or replace function public.toggle_like(p_post_id uuid, p_user_id uuid)
@@ -22,6 +22,6 @@ end;
 $$;
 grant execute on function public.toggle_like(uuid, uuid) to public, anon;
 
-delete from supabase_migrations.schema_migrations where version = '20260917114635';
+delete from supabase_migrations.schema_migrations where version = '20260917105130';
 
 commit;

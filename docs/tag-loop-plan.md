@@ -412,7 +412,7 @@ Differences from the design below:
   revoking `get_feed_posts`, is parked in `supabase/deferred/private_bucket.sql` (applies cleanly on
   top of everything in the local replay).
 - Found and fixed on the way: the live `toggle_like` never checked the caller, so anyone could like
-  or unlike as another user — `20260917114635_secure_toggle_like.sql` (+ test, red on the live
+  or unlike as another user — `20260917105130_secure_toggle_like.sql` (+ test, red on the live
   schema, green after). Safe to ship ahead of everything else.
 - The reconcile migration also records that the `posts` bucket was made public in the dashboard.
 - **App:** `getFeed` / `getUserPosts` (RPC + one `createSignedUrls` batch per page, 1-hour links);

@@ -43,7 +43,7 @@ create policy comments_insert on public.post_comments
   with check (auth.uid() = user_id and public.can_view_post_id(post_id));
 
 -- toggle_like runs as its owner, so it checks the rule itself: re-create
--- 20260917114635_secure_toggle_like's function with this line after the caller check:
+-- 20260917105130_secure_toggle_like's function with this line after the caller check:
 --   if not public.can_view_post_id(p_post_id) then
 --     raise exception 'not allowed' using errcode = '42501';
 --   end if;
