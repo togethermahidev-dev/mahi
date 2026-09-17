@@ -21,9 +21,10 @@ import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
 import HorizontalNavigator from '@/screens/HorizontalNavigator';
 import { supabase } from '@/lib/supabase';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useConversationStore, useNotificationsStore, useProfilePostsStore, useFollowStore, useSuggestStore, useBlockStore, useSocialStore, usePushStore, useTagStore } from '@/store';
+import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useConversationStore, useNotificationsStore, useProfilePostsStore, useFollowStore, useSuggestStore, useBlockStore, useSocialStore, usePushStore, useTagStore, useInviteStore } from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useInviteLink } from '@/hooks/useInviteLink';
 import { getMinAppVersion, getProfile, signOut, updateTimezone } from '@/api';
 import Constants from 'expo-constants';
 import { isBelowVersion } from '@/lib/appVersion';
@@ -89,6 +90,10 @@ export default function App(): React.JSX.Element {
   });
 
   const { session, isLoading, setSession, setIsLoading } = useAuthStore();
+
+  // Invite links: one that opened the app, one that arrives while it's running, and the
+  // claim once there's an account to claim it for.
+  useInviteLink();
   const [minVersion, setMinVersion] = useState<string | null>(null);
   const { colorScheme } = useAppTheme();
 
@@ -131,6 +136,7 @@ export default function App(): React.JSX.Element {
         useSocialStore.getState().reset();
         usePushStore.getState().reset();
         useTagStore.getState().reset();
+        useInviteStore.getState().reset();
         Sentry.setUser(null);
         posthog.reset();
       }

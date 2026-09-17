@@ -19,7 +19,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabase';
 import { sendOTP, clearOTP } from '@/lib/otp';
 import { completeSignup } from '@/api/auth';
-import { useSignUpStore } from '@/store';
+import { useSignUpStore, useInviteStore } from '@/store';
+import { normaliseInviteCode } from '@/lib/inviteLink';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { env } from '@/lib/env';
@@ -83,6 +84,10 @@ export default function CreateAccountSheet({
 
   // ── UI state (local) ───────────────────────────────────────────────────────
   const [step, setStep] = useState(1);
+  // An invite the app was opened with, or one typed in below. Claimed after sign-up.
+  const invitePreview = useInviteStore((s) => s.preview);
+  const pendingInvite = useInviteStore((s) => s.pendingToken);
+  const [codeInput, setCodeInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -457,6 +462,45 @@ export default function CreateAccountSheet({
             {step === 1 && (
               <View style={styles.step}>
                 <Text style={[styles.title, { color: text }]}>Create account</Text>
+
+                {/* Invite — who sent it, or a place to type its code */}
+                {invitePreview ? (
+                  <View style={[styles.inviteCard, { backgroundColor: inputBg }]}>
+                    <Text style={[styles.inviteWho, { color: text }]}>
+                      @{invitePreview.username} invited you
+                    </Text>
+                    <Text style={[styles.inviteWhat, { color: muted }]}>
+                      {invitePreview.open
+                        ? 'Their tag starts when you join — you\'ll have 48 hours to post back.'
+                        : 'That invite has already been used, but you can still sign up.'}
+                    </Text>
+                  </View>
+                ) : pendingInvite ? null : (
+                  <>
+                    <Text style={[styles.label, { color: muted }]}>Got an invite code?</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        styles.inviteCodeInput,
+                        { backgroundColor: inputBg, color: text },
+                        focusBorder('inviteCode'),
+                      ]}
+                      value={codeInput}
+                      onChangeText={(v) => {
+                        setCodeInput(v.toUpperCase());
+                        const code = normaliseInviteCode(v);
+                        if (code) useInviteStore.getState().setPending(code);
+                      }}
+                      onFocus={() => setFocusedField('inviteCode')}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder="6 characters, optional"
+                      placeholderTextColor={muted}
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                      maxLength={8}
+                    />
+                  </>
+                )}
 
                 {/* Email */}
                 <Text style={[styles.label, { color: muted }]}>Email</Text>
@@ -951,6 +995,11 @@ const styles = StyleSheet.create({
     fontFamily: 'JosefinSans_700Bold',
     borderWidth: 1.5,
   },
+
+  inviteCard: { borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
+  inviteWho: { fontSize: 15, fontFamily: 'JosefinSans_700Bold', letterSpacing: 1 },
+  inviteWhat: { fontSize: 13, fontFamily: 'JosefinSans_400Regular_Italic', lineHeight: 18 },
+  inviteCodeInput: { letterSpacing: 4 },
 
   fieldNote: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', marginTop: -4 },
   errorText: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', marginTop: 4 },

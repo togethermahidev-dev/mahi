@@ -15,6 +15,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
   FlatList,
+  Share,
 } from 'react-native';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Reanimated, {
@@ -49,6 +50,7 @@ import {
   type TaggedUser,
   type FeedPost,
   type TaggableFriend,
+  type PostInvite,
 } from '@/api';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import OpenTagsBanner from '@/components/OpenTagsBanner';
@@ -227,6 +229,9 @@ interface DualPhotoPreviewProps {
   onCaptionChange: (v: string) => void;
   taggedUsers: TaggedUser[];
   onTaggedUsersChange: (users: TaggedUser[]) => void;
+  /** Slots filled by an invite link for someone not on Mahi. */
+  inviteCount: number;
+  onInviteCountChange: (n: number) => void;
   /** Tags this post needs before POST unlocks (server enforces the same rule). */
   requiredTags: number;
   /** Per-post location toggle. Default OFF — explicit opt-in, never silent. */
@@ -247,12 +252,15 @@ function DualPhotoPreview({
   onCaptionChange,
   taggedUsers,
   onTaggedUsersChange,
+  inviteCount,
+  onInviteCountChange,
   requiredTags,
   locationEnabled,
   onToggleLocation,
 }: DualPhotoPreviewProps) {
   const maxTags = useTagStore((s) => s.maxTags);
-  const tagsMissing = Math.max(0, requiredTags - taggedUsers.length);
+  // An invite fills a slot just as a friend does.
+  const tagsMissing = Math.max(0, requiredTags - taggedUsers.length - inviteCount);
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -705,6 +713,7 @@ function DualPhotoPreview({
         <TagSheet
           visible={activeSheet === 'tag'}
           initialSelected={taggedUsers}
+          initialInvites={inviteCount}
           singleShot={captionAtIndex !== null}
           onCancel={() => {
             // If we came from the caption `@` bridge, return to the caption
@@ -716,7 +725,7 @@ function DualPhotoPreview({
               setActiveSheet('none');
             }
           }}
-          onCommit={(users) => {
+          onCommit={(users, invites) => {
             if (captionAtIndex !== null && users.length > 0) {
               // `@` bridge commit: splice `username ` right after the `@`
               // at captionAtIndex, add the user to the taggedUsers list
@@ -731,7 +740,7 @@ function DualPhotoPreview({
 
               const already = taggedUsers.some((u) => u.user_id === picked.user_id);
               if (!already) {
-                if (taggedUsers.length >= maxTags) {
+                if (taggedUsers.length + inviteCount >= maxTags) {
                   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                 } else {
                   onTaggedUsersChange([...taggedUsers, picked]);
@@ -742,6 +751,7 @@ function DualPhotoPreview({
               setActiveSheet('caption');
             } else {
               onTaggedUsersChange(users);
+              onInviteCountChange(invites);
               setActiveSheet('none');
             }
           }}
@@ -873,8 +883,10 @@ function TagUserRow({
 interface TagSheetProps {
   visible: boolean;
   initialSelected: TaggedUser[];
+  /** Slots already set aside for people who aren't on Mahi. */
+  initialInvites: number;
   onCancel: () => void;
-  onCommit: (users: TaggedUser[]) => void;
+  onCommit: (users: TaggedUser[], invites: number) => void;
   /**
    * When true, tapping a user immediately commits just that one user and
    * closes the sheet — used by the caption `@` bridge where picking is a
@@ -883,18 +895,29 @@ interface TagSheetProps {
   singleShot?: boolean;
 }
 
-function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: TagSheetProps) {
+function TagSheet({
+  visible,
+  initialSelected,
+  initialInvites,
+  onCancel,
+  onCommit,
+  singleShot,
+}: TagSheetProps) {
   const [selected, setSelected] = useState<TaggedUser[]>(initialSelected);
+  const [invites, setInvites] = useState(initialInvites);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<TaggableFriend[]>([]);
   const maxTags = useTagStore((s) => s.maxTags);
+  const canInvite = useFeatureFlag('invite-links');
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const filled = selected.length + invites;
 
   // Reseed when the sheet re-opens; ignore changes to initialSelected while open.
   useEffect(() => {
     if (visible) {
       setSelected(initialSelected);
+      setInvites(initialInvites);
       setQuery('');
       setResults([]);
     }
@@ -934,7 +957,7 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
 
     // Single-shot mode: tap to immediately commit just this one user.
     if (singleShot) {
-      onCommit([asTagged]);
+      onCommit([asTagged], invites);
       return;
     }
 
@@ -943,7 +966,7 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
       setSelected((prev) => prev.filter((s) => s.user_id !== u.id));
       return;
     }
-    if (selected.length >= maxTags) {
+    if (filled >= maxTags) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
@@ -974,7 +997,7 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
             <Text style={styles.sheetLabel}>TAG PEOPLE</Text>
             {singleShot ? null : (
               <Text style={styles.sheetCounter}>
-                {selected.length}/{maxTags}
+                {filled}/{maxTags}
               </Text>
             )}
           </View>
@@ -1014,11 +1037,40 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
             )}
           />
 
+          {singleShot || !canInvite ? null : (
+            <View style={styles.inviteRow}>
+              <Text style={styles.inviteLabel}>
+                {invites > 0
+                  ? `${invites} to invite — you'll get ${invites > 1 ? 'links' : 'a link'} to share after posting`
+                  : 'Not on Mahi yet? Invite them instead.'}
+              </Text>
+              <View style={styles.inviteSteppers}>
+                {invites > 0 ? (
+                  <TouchableOpacity
+                    style={styles.inviteStep}
+                    activeOpacity={0.7}
+                    onPress={() => setInvites((n) => Math.max(0, n - 1))}
+                  >
+                    <Text style={styles.inviteStepText}>−</Text>
+                  </TouchableOpacity>
+                ) : null}
+                <TouchableOpacity
+                  style={[styles.inviteStep, { opacity: filled >= maxTags ? 0.3 : 1 }]}
+                  activeOpacity={0.7}
+                  disabled={filled >= maxTags}
+                  onPress={() => setInvites((n) => n + 1)}
+                >
+                  <Text style={styles.inviteStepText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
           {singleShot ? null : (
             <TouchableOpacity
               style={styles.sheetDone}
               activeOpacity={0.85}
-              onPress={() => onCommit(selected)}
+              onPress={() => onCommit(selected, invites)}
             >
               <Text style={styles.sheetDoneText}>DONE</Text>
             </TouchableOpacity>
@@ -1027,6 +1079,26 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
       </KeyboardAvoidingView>
     </Modal>
   );
+}
+
+/**
+ * Hand over one invite link at a time: each is for one person and works once, so they can't
+ * go out in a single message. The share sheet resolves when it closes, so the next one waits
+ * its turn. A link the user skips stays on the server but the app has no way back to it.
+ */
+async function shareInvites(invites: PostInvite[]): Promise<void> {
+  for (const invite of invites) {
+    try {
+      await Share.share({
+        message:
+          `I tagged you on Mahi — you've got 48 hours to post back.\n${invite.url}\n` +
+          `Already have Mahi? Use code ${invite.code}.`,
+      });
+    } catch {
+      // A share sheet that won't open shouldn't undo a post that already landed.
+      return;
+    }
+  }
 }
 
 // ─── CameraScreen ─────────────────────────────────────────────────────────────
@@ -1062,6 +1134,8 @@ export default function CameraScreen(): React.JSX.Element {
   const [rearPhoto, setRearPhoto] = useState<CapturedPhoto | null>(null);
   const [caption, setCaption] = useState<string>('');
   const [taggedUsers, setTaggedUsers] = useState<TaggedUser[]>([]);
+  // Slots kept for people not on Mahi — the server turns each into a link to share.
+  const [inviteCount, setInviteCount] = useState(0);
   // Per-post location opt-in. Default OFF — we NEVER attach coordinates unless
   // the user explicitly turns this on for the current post. Reset after each
   // post / discard so location never silently carries over.
@@ -1282,6 +1356,7 @@ export default function CameraScreen(): React.JSX.Element {
     const optimisticStreakDay = profile.streak_current + 1;
     const captionValue = caption || null;
     const taggedUsersSnapshot = taggedUsers;
+    const inviteCountSnapshot = inviteCount;
     // Snapshot the location opt-in for THIS post before we reset UI state below.
     const locationEnabledSnapshot = locationEnabled;
 
@@ -1325,6 +1400,7 @@ export default function CameraScreen(): React.JSX.Element {
     setRearPhoto(null);
     setCaption('');
     setTaggedUsers([]);
+    setInviteCount(0);
     setLocationEnabled(false);
     setIsUploading(false);
 
@@ -1358,6 +1434,7 @@ export default function CameraScreen(): React.JSX.Element {
         povImagePath: paths.frontPath,
         caption: captionValue,
         taggedUserIds: taggedUsersSnapshot.map((u) => u.user_id),
+        inviteCount: inviteCountSnapshot,
         latitude: coords?.latitude,
         longitude: coords?.longitude,
       });
@@ -1406,6 +1483,7 @@ export default function CameraScreen(): React.JSX.Element {
           .show(`Answered @${firstAnswered.username}${more} in ${formatWait(firstAnswered.seconds)}`);
       }
       useTagStore.getState().syncOpenTags();
+      await shareInvites(result.invites);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error('[uploadPhotos] upload failed', err);
@@ -1441,6 +1519,7 @@ export default function CameraScreen(): React.JSX.Element {
     setRearPhoto(null);
     setCaption('');
     setTaggedUsers([]);
+    setInviteCount(0);
     setLocationEnabled(false);
   };
 
@@ -1638,6 +1717,8 @@ export default function CameraScreen(): React.JSX.Element {
           onCaptionChange={setCaption}
           taggedUsers={taggedUsers}
           onTaggedUsersChange={setTaggedUsers}
+          inviteCount={inviteCount}
+          onInviteCountChange={setInviteCount}
           requiredTags={requiredTags}
           locationEnabled={locationEnabled}
           onToggleLocation={handleToggleLocation}
@@ -1932,6 +2013,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.15)',
+  },
+  inviteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(232,232,227,0.12)',
+  },
+  inviteLabel: {
+    flex: 1,
+    color: 'rgba(232,232,227,0.6)',
+    fontSize: 12,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+  },
+  inviteSteppers: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  inviteStep: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(232,232,227,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inviteStepText: {
+    color: '#E8E8E3',
+    fontSize: 18,
+    fontFamily: 'JosefinSans_600SemiBold',
+    lineHeight: 20,
   },
   sheetDone: {
     backgroundColor: '#59c2d7',

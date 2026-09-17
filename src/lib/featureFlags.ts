@@ -41,6 +41,7 @@ export const FEATURE_FLAGS = [
   'push-core', // P1 push permission prompt (server keeps queueing when off)
   'tag-challenges', // P2 open-tags banner (the 3-tag rule is switched in app_config)
   'mahi-points', // P5 points badges and profile stat
+  'invite-links', // P7 invite a slot from the tag sheet, share links after posting
 ] as const;
 
 /** A known PostHog feature flag key. */

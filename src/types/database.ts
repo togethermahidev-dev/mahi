@@ -24,6 +24,9 @@ export type Database = {
           answer_grace: string;
           tags_required: boolean;
           unlock_window: string;
+          invite_ttl: string;
+          invite_base_url: string;
+          invite_links_enabled: boolean;
         };
         Insert: never;
         Update: never;
@@ -680,11 +683,20 @@ export type Database = {
           p_caption?: string | null;
           p_client_id: string;
           p_image_path: string;
+          p_invite_count?: number;
           p_latitude?: number | null;
           p_longitude?: number | null;
           p_pov_image_path?: string | null;
           p_tagged_ids?: string[];
         };
+        Returns: Json;
+      };
+      claim_invite: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      get_invite_preview: {
+        Args: { p_token: string };
         Returns: Json;
       };
       get_open_tags: {

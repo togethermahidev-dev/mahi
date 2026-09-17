@@ -8,6 +8,7 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types';
 import type { StreakResult } from './streaks';
+import type { PostInvite } from './invites';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
@@ -204,6 +205,8 @@ export type CreatePostResult = {
   streak: StreakResult;
   /** Tags this post answered, oldest first. */
   answered: AnsweredTag[];
+  /** A link per slot filled by an invite, to share. Same links on a retry. */
+  invites: PostInvite[];
   /** True when the same clientId had already been posted (a retry). */
   replayed: boolean;
 };
@@ -251,12 +254,15 @@ export async function createPost(opts: {
   taggedUserIds?: string[];
   latitude?: number | null;
   longitude?: number | null;
+  /** Slots filled by an invite link instead of a friend already on Mahi. */
+  inviteCount?: number;
 }): Promise<{ data: CreatePostResult | null; error: Error | null }> {
   const { data, error } = await supabase.rpc('create_post', {
     p_client_id: opts.clientId,
     p_image_path: opts.imagePath,
     p_pov_image_path: opts.povImagePath ?? null,
     p_caption: opts.caption ?? null,
+    p_invite_count: opts.inviteCount ?? 0,
     p_tagged_ids: opts.taggedUserIds ?? [],
     p_latitude: opts.latitude ?? null,
     p_longitude: opts.longitude ?? null,

@@ -71,6 +71,9 @@ const config = {
     supportsTablet: true,
     bundleIdentifier: 'com.mahi.app',
     buildNumber: '10',
+    // Invite links: https://togethermahi.com/i/<token> opens the app when it's installed.
+    // Needs apple-app-site-association served from that domain.
+    associatedDomains: ['applinks:togethermahi.com', 'applinks:www.togethermahi.com'],
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription: 'Mahi uses the camera to power your fitness accountability features.',
@@ -95,6 +98,18 @@ const config = {
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
+    // The Android half of the same invite links. Needs assetlinks.json on the domain.
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: true,
+        data: [
+          { scheme: 'https', host: 'togethermahi.com', pathPrefix: '/i' },
+          { scheme: 'https', host: 'www.togethermahi.com', pathPrefix: '/i' },
+        ],
+        category: ['BROWSABLE', 'DEFAULT'],
+      },
+    ],
   },
   web: {
     favicon: './assets/favicon.png',

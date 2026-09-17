@@ -10,4 +10,5 @@ export * from './follows';
 export * from './moderation';
 export * from './push';
 export * from './tags';
+export * from './invites';
 export * from './appStatus';
