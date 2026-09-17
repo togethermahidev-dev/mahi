@@ -83,6 +83,54 @@ function CommentRow({ comment, dark }: { comment: CommentWithProfile; dark: bool
   );
 }
 
+// ─── LockedPostItem ──────────────────────────────────────────────────────────
+
+/** A friend's post while the viewer hasn't posted: who and when, no photo or caption. */
+function LockedPostItem({
+  item,
+  onAvatarPress,
+  onUnlockPress,
+}: {
+  item: FeedPost;
+  onAvatarPress: (userId: string) => void;
+  onUnlockPress: () => void;
+}) {
+  const { colors } = useAppTheme();
+  const name = item.profiles.display_name ?? item.profiles.username;
+  const initials = (item.profiles.username ?? '?')[0].toUpperCase();
+  return (
+    <View style={[styles.lockedCard, { backgroundColor: colors.offBlack }]}>
+      <TouchableOpacity
+        style={styles.lockedWho}
+        onPress={() => onAvatarPress(item.profiles.id)}
+        activeOpacity={0.75}
+      >
+        {item.profiles.avatar_url ? (
+          <Image source={{ uri: item.profiles.avatar_url }} style={styles.lockedAvatar} />
+        ) : (
+          <View style={[styles.lockedAvatar, styles.avatarFallback, { borderColor: colors.accent }]}>
+            <Text style={[styles.avatarInitial, { color: colors.offWhite }]}>{initials}</Text>
+          </View>
+        )}
+        <Text style={[styles.lockedName, { color: colors.offWhite }]}>{name}</Text>
+        <Text style={[styles.lockedTime, { color: colors.offWhite }]}>
+          posted {relativeTime(item.created_at)} · DAY {item.streak_day}
+        </Text>
+      </TouchableOpacity>
+      <Text style={[styles.lockedHint, { color: colors.offWhite }]}>
+        Post your workout to see it
+      </Text>
+      <TouchableOpacity
+        style={[styles.lockedButton, { backgroundColor: colors.accent }]}
+        onPress={onUnlockPress}
+        activeOpacity={0.85}
+      >
+        <Text style={[styles.lockedButtonText, { color: colors.offBlack }]}>POST TO UNLOCK</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 // ─── PostItem ────────────────────────────────────────────────────────────────
 
 function PostItem({
@@ -576,12 +624,15 @@ function CommentSheet({
 // ─── FeedScreen ──────────────────────────────────────────────────────────────
 
 interface FeedScreenProps {
+  /** Take the user to the camera (used by locked posts). */
+  onGoToCamera?: () => void;
   onScrollTopChange?: (atTop: boolean) => void;
   headerAnim?: Animated.Value;
   onOverlayChange?: (active: boolean) => void;
 }
 
 export default function FeedScreen({
+  onGoToCamera,
   onScrollTopChange,
   headerAnim,
   onOverlayChange,
@@ -668,15 +719,24 @@ export default function FeedScreen({
       <FlashList
         data={posts}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <PostItem
-            item={item}
-            dark={dark}
-            width={screenWidth}
-            onAvatarPress={handleAvatarPress}
-            onCommentPress={setCommentPostId}
-          />
-        )}
+        renderItem={({ item }) =>
+          item.locked ? (
+            <LockedPostItem
+              item={item}
+              onAvatarPress={handleAvatarPress}
+              onUnlockPress={() => onGoToCamera?.()}
+            />
+          ) : (
+            <PostItem
+              item={item}
+              dark={dark}
+              width={screenWidth}
+              onAvatarPress={handleAvatarPress}
+              onCommentPress={setCommentPostId}
+            />
+          )
+        }
+        getItemType={(item) => (item.locked ? 'locked' : 'post')}
         snapToInterval={CARD_HEIGHT}
         snapToAlignment="start"
         decelerationRate="fast"
@@ -988,6 +1048,48 @@ const styles = StyleSheet.create({
     fontFamily: 'JosefinSans_400Regular_Italic',
   },
   // ── Empty / error
+  lockedCard: {
+    height: CARD_HEIGHT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 16,
+  },
+  lockedWho: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  lockedAvatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 2,
+  },
+  lockedName: {
+    fontSize: 20,
+    fontFamily: 'JosefinSans_700Bold',
+  },
+  lockedTime: {
+    fontSize: 13,
+    fontFamily: 'JosefinSans_600SemiBold',
+    letterSpacing: 1,
+    opacity: 0.7,
+  },
+  lockedHint: {
+    fontSize: 15,
+    fontFamily: 'JosefinSans_400Regular_Italic',
+    textAlign: 'center',
+  },
+  lockedButton: {
+    borderRadius: 50,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+  },
+  lockedButtonText: {
+    fontSize: 14,
+    fontFamily: 'JosefinSans_700Bold',
+    letterSpacing: 3,
+  },
   empty: {
     alignItems: 'center',
     paddingTop: 80,

@@ -120,8 +120,8 @@ select is((select count(*)::int from public.push_outbox
   'answering removes the unsent reminders');
 select is((select body from public.push_outbox where kind = 'tag_answered'), '@tag_b posted 3h after your tag',
   'A is told how fast B answered');
-select is((select seconds from public.get_post_responses(array[(pg_temp.challenge('tag_a', 'tag_b')).answered_post_id])),
-  10800, 'the post shows the response time');
+select is((public.answered_by_post((pg_temp.challenge('tag_a', 'tag_b')).answered_post_id) -> 0 ->> 'seconds')::int,
+  10800, 'the post records the response time');
 
 -- 3. C posts with no tags while A is available: refused.
 select pg_temp.as_user('00000000-0000-0000-0000-00000000c00c');

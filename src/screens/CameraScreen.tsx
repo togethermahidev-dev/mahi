@@ -1303,6 +1303,7 @@ export default function CameraScreen(): React.JSX.Element {
       client_id: null,
       image_path: null,
       pov_image_path: null,
+      locked: false,
       like_count: 0,
       comment_count: 0,
       liked_by_me: false,
@@ -1370,8 +1371,16 @@ export default function CameraScreen(): React.JSX.Element {
           avatar_url: profile.avatar_url,
         },
         tagged_users: taggedUsersSnapshot,
+        // The photos on screen are the local captures; the next feed read signs the server copies.
+        image_url: rear.uri,
+        pov_image_url: front.uri,
+        locked: false,
       } satisfies FeedPost);
-      useProfilePostsStore.getState().addPost(result.post);
+      // Posting unlocks the feed: read it again so friends' posts appear.
+      useFeedStore.getState().sync(true);
+      useProfilePostsStore
+        .getState()
+        .addPost({ ...result.post, image_url: rear.uri, pov_image_url: front.uri });
 
       const current = useUserStore.getState().profile;
       if (current) {

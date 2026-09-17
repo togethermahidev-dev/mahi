@@ -495,22 +495,6 @@ as $$
   order by c.expires_at;
 $$;
 
--- For feed cards: how fast each post answered its oldest tag.
-create function public.get_post_responses(p_post_ids uuid[])
-returns table (post_id uuid, tagger_username text, seconds int)
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select distinct on (c.answered_post_id)
-         c.answered_post_id, p.username, extract(epoch from c.answered_at - c.created_at)::int
-  from public.tag_challenges c
-  join public.profiles p on p.id = c.tagger_id
-  where c.answered_post_id = any(p_post_ids)
-  order by c.answered_post_id, c.created_at;
-$$;
-
 -- 13. Deadlines that passed: mark missed and tell both people. Correctness never waits on this
 --     job (every check compares expires_at with now()); it only announces.
 create function public.mark_missed_tags()
@@ -554,15 +538,13 @@ revoke execute on function
   public.create_post(uuid, text, text, text, uuid[], double precision, double precision),
   public.answered_by_post(uuid),
   public.get_open_tags(),
-  public.get_post_responses(uuid[]),
   public.mark_missed_tags()
 from public, anon, authenticated;
 
 grant execute on function
   public.get_taggable_friends(text, int),
   public.create_post(uuid, text, text, text, uuid[], double precision, double precision),
-  public.get_open_tags(),
-  public.get_post_responses(uuid[])
+  public.get_open_tags()
 to authenticated;
 
 notify pgrst, 'reload schema';

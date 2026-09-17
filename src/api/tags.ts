@@ -26,8 +26,6 @@ export type OpenTag = {
 
 export type TagRules = { tagCount: number; tagsRequired: boolean };
 
-export type PostResponse = { post_id: string; tagger_username: string; seconds: number };
-
 /** People you may tag (they follow you back), filtered by `query`. */
 export async function getTaggableFriends(
   query = '',
@@ -56,14 +54,4 @@ export async function getTagRules(): Promise<{ data: TagRules | null; error: Err
     .single();
   if (error) return { data: null, error: new Error(error.message) };
   return { data: { tagCount: data.tag_count, tagsRequired: data.tags_required }, error: null };
-}
-
-/** For feed cards: how fast each post answered its oldest tag. */
-export async function getPostResponses(
-  postIds: string[]
-): Promise<{ data: PostResponse[] | null; error: Error | null }> {
-  if (postIds.length === 0) return { data: [], error: null };
-  const { data, error } = await supabase.rpc('get_post_responses', { p_post_ids: postIds });
-  if (error) return { data: null, error: new Error(error.message) };
-  return { data: (data ?? []) as PostResponse[], error: null };
 }

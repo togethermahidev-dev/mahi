@@ -113,7 +113,12 @@ export default function ProfileMediaMap({
       contentContainerStyle={styles.grid}
       columnWrapperStyle={styles.row}
       renderItem={({ item }) => (
-        <GridCell post={item} dark={dark} onPress={() => onPostPress?.(item)} />
+        <GridCell
+          post={item}
+          dark={dark}
+          // Locked posts (no photo URL until the viewer posts) don't open.
+          onPress={() => item.image_url && onPostPress?.(item)}
+        />
       )}
       showsVerticalScrollIndicator={false}
       onEndReached={hasMore ? loadMore : undefined}

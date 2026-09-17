@@ -396,6 +396,35 @@ works.
 
 ### Phase 4 — Feed lock and private photos
 
+*Expand step built 2026-09-17, not live:* `supabase/migrations/20260917114517_feed_lock.sql`
+(+ rollback, `supabase/tests/feed_lock_test.sql`, 20 checks, flip-tested by disabling the lock rule).
+Differences from the design below:
+
+- `get_feed` / `get_user_posts` return `jsonb` built by one shared `feed_item(post, viewer, hide)`;
+  a hidden item keeps poster, time and streak day but has no photo paths, caption or location.
+  Response times come in the same read (`get_post_responses` was dropped).
+- Visibility lives in `viewer_is_locked` + `can_view_post`; `can_view_post_object` is ready for the
+  storage policy. Banned and blocked (both ways) are excluded; profiles of people you don't follow
+  are hidden too; your own posts never are.
+- Server switches: `app_config.unlock_window` (24 h), `feed_lock_enabled`.
+- The live photo read policy (`posts_storage_select`: any signed-in user) and the public bucket are
+  unchanged here, so older builds keep working. Their replacement, plus gating likes/comments and
+  revoking `get_feed_posts`, is parked in `supabase/deferred/private_bucket.sql` (applies cleanly on
+  top of everything in the local replay).
+- Found and fixed on the way: the live `toggle_like` never checked the caller, so anyone could like
+  or unlike as another user — `20260917114635_secure_toggle_like.sql` (+ test, red on the live
+  schema, green after). Safe to ship ahead of everything else.
+- The reconcile migration also records that the `posts` bucket was made public in the dashboard.
+- **App:** `getFeed` / `getUserPosts` (RPC + one `createSignedUrls` batch per page, 1-hour links);
+  `feedStore` holds `locked`, `unlockedUntil`, `serverOffsetMs`, drops stale responses with a
+  generation counter and duplicate ids on `loadMore`, and has a `loaded` flag so the screen shows a
+  loading state instead of last session's posts. `useFeed` re-reads on foreground and when the
+  unlock ends. `FeedScreen` renders `LockedPostItem` (who, when, "POST TO UNLOCK" → camera).
+  Posting re-reads the feed. Locked profile tiles show the placeholder and don't open.
+- Local checks: `scripts/db.sh local` replays all 39 migrations on Postgres 17 and runs 83 pgTAP
+  checks (all pass).
+
+
 **Goal:** you see friends' posts only if you posted in the last 24 hours, enforced by the server
 for both the post data and the image files.
 

@@ -61,18 +61,16 @@ const { posts, isLoading, hasMore, loadMore, refresh } = useProfilePosts(userId)
 
 ## `useFeed` — `src/hooks/useFeed.ts`
 
-Thin wrapper over `useFeedStore`. Merges `pending` + `posts` into a single ordered list. Triggers store sync on first mount if the store is empty.
-
 ```ts
-import { useFeed } from '@/hooks/useFeed';
-
-const { posts, isLoading, hasMore, loadMore, refresh } = useFeed();
+const { posts, isLoading, error, hasMore, locked, loadMore, refresh } = useFeed();
 ```
 
-**Return shape:**
+Reads `feedStore` (server-gated `get_feed`). Syncs once per session on mount, again whenever the app
+returns to the foreground, and when the 24-hour unlock ends (timer on the server clock).
+`isLoading` is true until this session's first page arrives, so last session's posts never flash.
+`locked` = friends' posts are hidden until the user posts; hidden items have `locked: true`.
 
-| Field | Type | Description |
-|---|---|---|
+---|---|---|
 | `posts` | `FeedPost[]` | `[...pending, ...confirmed]` — pending posts appear first |
 | `isLoading` | `boolean` | `true` only on true first-ever load (`isSyncing && posts.length === 0`) |
 | `hasMore` | `boolean` | `false` when last page had fewer rows than `PAGE_SIZE` |

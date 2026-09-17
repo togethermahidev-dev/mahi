@@ -8,7 +8,6 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types';
 import type { StreakResult } from './streaks';
-import { getPostResponses } from './tags';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
@@ -28,61 +27,115 @@ export type FeedPost = PostRow & {
   tagged_users: TaggedUser[];
   /** Set when this post answered a tag: whose, and how fast (oldest tag). */
   response?: { tagger_username: string; seconds: number } | null;
+  /** The server hid this post's photos and caption (viewer hasn't posted in 24 h). */
+  locked: boolean;
 };
 
 export type FeedCursor = { ts: string; id: string };
 
+export type FeedPage = {
+  posts: FeedPost[];
+  /** Friends' posts are hidden until the viewer posts. */
+  locked: boolean;
+  /** When the viewer's unlock ends (null = never posted). */
+  unlockedUntil: string | null;
+  /** server clock − device clock at read time. */
+  serverOffsetMs: number;
+};
+
+/** One post as get_feed / get_user_posts return it (public.feed_item). */
+type FeedItem = {
+  id: string;
+  user_id: string;
+  created_at: string;
+  post_date: string;
+  streak_day: number;
+  locked: boolean;
+  image_path: string | null;
+  pov_image_path: string | null;
+  caption: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  like_count: number;
+  comment_count: number;
+  liked_by_me: boolean;
+  tagged_users: TaggedUser[];
+  response: { tagger_username: string; seconds: number } | null;
+  profile: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
+};
+
+// Photo links last an hour; the feed re-reads before its unlock ends.
+const SIGNED_URL_SECONDS = 3600;
+
+/** Turn server items into posts with short-lived signed photo URLs ('' when hidden). */
+async function toPosts(items: FeedItem[]): Promise<FeedPost[]> {
+  const paths = items.flatMap((i) => [i.image_path, i.pov_image_path]).filter((p): p is string => !!p);
+  const urls = new Map<string, string>();
+  if (paths.length) {
+    const { data, error } = await supabase.storage
+      .from('posts')
+      .createSignedUrls(paths, SIGNED_URL_SECONDS);
+    if (error) throw new Error(error.message);
+    for (const d of data ?? []) if (d.path && d.signedUrl) urls.set(d.path, d.signedUrl);
+  }
+  return items.map((i) => ({
+    id: i.id,
+    user_id: i.user_id,
+    created_at: i.created_at,
+    post_date: i.post_date,
+    streak_day: i.streak_day,
+    caption: i.caption,
+    latitude: i.latitude,
+    longitude: i.longitude,
+    client_id: null,
+    image_path: i.image_path,
+    pov_image_path: i.pov_image_path,
+    image_url: (i.image_path && urls.get(i.image_path)) || '',
+    pov_image_url: (i.pov_image_path && urls.get(i.pov_image_path)) || null,
+    like_count: i.like_count,
+    comment_count: i.comment_count,
+    liked_by_me: i.liked_by_me,
+    tagged_users: i.tagged_users,
+    response: i.response,
+    locked: i.locked,
+    profiles: i.profile,
+  }));
+}
+
 /**
- * Fetch a page of feed posts, newest first.
- * Uses the get_feed_posts RPC which returns like_count, comment_count, and
- * liked_by_me (whether auth.uid() has liked each post) in a single query.
- * Pass `cursor` (from previous page's last item) for pagination.
+ * A page of the feed: your posts and those of people you follow, newest first. The server
+ * hides friends' photos and captions until you've posted in the last 24 hours.
  */
-export async function getFeedPosts(
+export async function getFeed(
   limit: number,
   cursor?: FeedCursor
-): Promise<{ data: FeedPost[] | null; error: Error | null }> {
-  const { data, error } = await supabase.rpc('get_feed_posts', {
+): Promise<{ data: FeedPage | null; error: Error | null }> {
+  const requestedAt = Date.now();
+  const { data, error } = await supabase.rpc('get_feed', {
     p_limit: limit,
     p_cursor_ts: cursor?.ts ?? null,
     p_cursor_id: cursor?.id ?? null,
   });
-
   if (error) return { data: null, error: new Error(error.message) };
-  if (!data) return { data: [], error: null };
-
-  // RPC returns flat rows; reshape into FeedPost (nested profiles object)
-  const mapped: FeedPost[] = (data as NonNullable<typeof data>).map(
-    (row: Database['public']['Functions']['get_feed_posts']['Returns'][number]) => ({
-      id: row.id,
-      user_id: row.user_id,
-      image_url: row.image_url,
-      pov_image_url: row.pov_image_url,
-      caption: row.caption,
-      streak_day: row.streak_day,
-      created_at: row.created_at,
-      like_count: row.like_count ?? 0,
-      comment_count: row.comment_count ?? 0,
-      liked_by_me: row.liked_by_me ?? false,
-      tagged_users: row.tagged_users,
-      profiles: {
-        id: row.profile_id,
-        username: row.username,
-        display_name: row.display_name,
-        avatar_url: row.avatar_url,
+  const page = data as unknown as {
+    locked: boolean;
+    unlocked_until: string | null;
+    server_now: string;
+    items: FeedItem[];
+  };
+  try {
+    return {
+      data: {
+        posts: await toPosts(page.items),
+        locked: page.locked,
+        unlockedUntil: page.unlocked_until,
+        serverOffsetMs: new Date(page.server_now).getTime() - requestedAt,
       },
-    })
-  );
-
-  // Response times are extra detail: a failure here must not hide the feed.
-  const { data: responses } = await getPostResponses(mapped.map((p) => p.id));
-  const byPost = new Map((responses ?? []).map((r) => [r.post_id, r]));
-  for (const post of mapped) {
-    const r = byPost.get(post.id);
-    post.response = r ? { tagger_username: r.tagger_username, seconds: r.seconds } : null;
+      error: null,
+    };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e : new Error(String(e)) };
   }
-
-  return { data: mapped, error: null };
 }
 
 /**
@@ -121,31 +174,27 @@ export async function getPostDates(
 export type ProfilePostCursor = { ts: string; id: string };
 
 /**
- * Fetch a page of posts for a specific user, newest first.
- * Used by the profile media canvas — no profiles join needed.
+ * A page of one person's posts, newest first, under the feed rule: another person's photos
+ * come back with an empty `image_url` while the viewer is locked. Your own always show.
  */
 export async function getUserPosts(
   userId: string,
   limit = 30,
   cursor?: ProfilePostCursor
-): Promise<{ data: PostRow[] | null; error: Error | null }> {
-  let query = supabase
-    .from('posts')
-    .select('id, user_id, image_url, pov_image_url, caption, streak_day, created_at')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: false })
-    .limit(limit);
-
-  if (cursor) {
-    query = query.or(
-      `created_at.lt.${cursor.ts},and(created_at.eq.${cursor.ts},id.lt.${cursor.id})`
-    );
-  }
-
-  const { data, error } = await query;
+): Promise<{ data: FeedPost[] | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('get_user_posts', {
+    p_user: userId,
+    p_limit: limit,
+    p_cursor_ts: cursor?.ts ?? null,
+    p_cursor_id: cursor?.id ?? null,
+  });
   if (error) return { data: null, error: new Error(error.message) };
-  return { data: data as unknown as PostRow[], error: null };
+  try {
+    const page = data as unknown as { items: FeedItem[] };
+    return { data: await toPosts(page.items), error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e : new Error(String(e)) };
+  }
 }
 
 export type AnsweredTag = { tagger_id: string; username: string; seconds: number };

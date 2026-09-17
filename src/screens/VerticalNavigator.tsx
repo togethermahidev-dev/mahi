@@ -227,6 +227,7 @@ export default function VerticalNavigator({
               {isNearby ? (
                 key === 'feed' ? (
                   <FeedScreen
+                    onGoToCamera={() => navigateTo(0)}
                     onScrollTopChange={(atTop) => {
                       feedScrollAtTop.current = atTop;
                     }}

@@ -13,6 +13,7 @@ export type Database = {
     Tables: {
       app_config: {
         Row: {
+          feed_lock_enabled: boolean;
           id: boolean;
           min_app_version: string;
           quiet_end: string;
@@ -22,6 +23,7 @@ export type Database = {
           tag_window: string;
           answer_grace: string;
           tags_required: boolean;
+          unlock_window: string;
         };
         Insert: never;
         Update: never;
@@ -662,9 +664,18 @@ export type Database = {
           username: string;
         }[];
       };
-      get_post_responses: {
-        Args: { p_post_ids: string[] };
-        Returns: { post_id: string; seconds: number; tagger_username: string }[];
+      get_feed: {
+        Args: { p_cursor_id?: string | null; p_cursor_ts?: string | null; p_limit?: number };
+        Returns: Json;
+      };
+      get_user_posts: {
+        Args: {
+          p_cursor_id?: string | null;
+          p_cursor_ts?: string | null;
+          p_limit?: number;
+          p_user: string;
+        };
+        Returns: Json;
       };
       get_taggable_friends: {
         Args: { p_limit?: number; p_query?: string };

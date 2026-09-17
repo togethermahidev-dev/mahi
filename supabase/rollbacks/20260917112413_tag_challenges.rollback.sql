@@ -9,7 +9,6 @@ drop trigger if exists cancel_tags_on_post_delete on public.posts;
 drop trigger if exists answer_tags_on_post on public.posts;
 
 drop function if exists public.mark_missed_tags();
-drop function if exists public.get_post_responses(uuid[]);
 drop function if exists public.get_open_tags();
 drop function if exists public.create_post(uuid, text, text, text, uuid[], double precision, double precision);
 drop function if exists public.answered_by_post(uuid);
