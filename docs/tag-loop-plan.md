@@ -541,6 +541,29 @@ correct for `Europe/London` and `America/New_York`.
 
 ### Phase 6 — Messages hardening
 
+*Built 2026-09-17, not live.* `supabase/migrations/20260917120414_messages.sql` (+ rollback,
+`supabase/deferred/contract_messages.sql`; `supabase/tests/messages_test.sql`, 21 checks, red before
+the migration, green after). Differences from the design below:
+
+- **A live bug fixed on the way:** blocking someone you had messaged failed outright — the block
+  trigger writes `status = 'blocked'` but the CHECK only allowed `requested` and `active`.
+  (Checked against prod: 13 conversations, 0 blocks — nobody had hit it yet.) The same migration
+  makes a block hold: it stops `send_message` and the old direct `INSERT` alike.
+- **Only the receiver can accept a request.** The live `conversations_update` policy ended in a
+  catch-all `OR (participant_one = auth.uid() OR ...)`, so a requester could accept their own.
+  `update_convo_updated_at` became `SECURITY DEFINER` so the tighter policy can't break an old
+  build's direct insert.
+- **One inbox function, two lists:** `get_inbox(p_status)` serves both the inbox and the request
+  list, and replaces the two-query merge in `src/api/messages.ts`.
+- **No `message` notification type.** `send_message` enqueues the push itself, so chat never fills
+  the in-app notifications list. Dedupe is per sender per conversation per minute.
+- **App:** `conversationStore` (messages per conversation, `loadOlder`, optimistic send keyed by
+  `client_id`, re-reads the newest page on realtime reconnect and on foreground);
+  `useConversation` is now a thin wrapper with no `supabase`/`api` imports; unread dots on
+  `MessagesScreen` in the accent token; a failed send puts the text back in the box.
+  `src/store/__tests__/conversationStore.test.ts` (4 checks) covers the message-swap bug —
+  flip-tested by keying the merge on `id` again (2 red).
+
 **Goal:** chat is paginated, idempotent, pushes on new messages, and has server-side unread counts.
 
 **Migration `messages`**
