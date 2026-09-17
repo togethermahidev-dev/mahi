@@ -11,6 +11,8 @@ import FeedScreen from '@/screens/FeedScreen';
 import NotificationsScreen from '@/screens/NotificationsScreen';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { useNotificationsStore } from '@/store';
+import { usePushRegistration } from '@/hooks/usePushRegistration';
+import { usePushRouting } from '@/hooks/usePushRouting';
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
 // PEEK_HEIGHT: strip of the next screen visible at the bottom of each screen.
@@ -66,6 +68,15 @@ export default function VerticalNavigator({
   const [searchVisible, setSearchVisible] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+
+  usePushRegistration();
+  usePushRouting({
+    openProfile: (uid) => {
+      setNotifOpen(false);
+      setProfileUserId(uid);
+    },
+    openNotifications: () => setNotifOpen(true),
+  });
 
   // Track child overlay state (e.g. FeedScreen profile overlay)
   const feedOverlayRef = useRef(false);

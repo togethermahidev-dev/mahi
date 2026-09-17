@@ -12,3 +12,4 @@ export { useSocialStore } from './socialStore';
 export { useFollowStore } from './followStore';
 export { useSuggestStore } from './suggestStore';
 export { useBlockStore } from './blockStore';
+export { usePushStore } from './pushStore';

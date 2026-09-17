@@ -28,6 +28,7 @@ const config = {
       },
     ],
     '@react-native-community/datetimepicker',
+    ['expo-notifications', { color: '#59c2d7', defaultChannel: 'default' }],
     [
       'expo-image-picker',
       {

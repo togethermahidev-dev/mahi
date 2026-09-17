@@ -39,6 +39,10 @@ if (!showSuggestions) return null;
 `feed-core` · `messaging-core` · `camera-capture` · `follows-core` · `notifications-core` ·
 `moderation-core` · `streaks-core` · `auth-otp-signup`
 
+**Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
+are switched in the `app_config` table):
+`push-core` (P1, the one-time "turn on notifications" prompt)
+
 ## Creating / managing flags
 
 Flags are managed through the project-scoped **PostHog MCP** (`.mcp.json`, see below). Create a flag at 100% for

@@ -612,6 +612,14 @@ export type Database = {
           username: string;
         }[];
       };
+      register_push_token: {
+        Args: { p_platform: string; p_token: string };
+        Returns: undefined;
+      };
+      unregister_push_token: {
+        Args: { p_token: string };
+        Returns: undefined;
+      };
       record_upload_streak: {
         Args: { p_upload_date?: string; p_user_id: string };
         Returns: Json;

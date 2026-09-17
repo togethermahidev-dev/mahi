@@ -9,6 +9,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
+import { unregisterPushToken } from './push';
 
 const SUPABASE_URL = env.supabaseUrl;
 
@@ -17,6 +18,8 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signOut() {
+  // Must run while still signed in; a failure must not block signing out.
+  await unregisterPushToken().catch(() => {});
   return supabase.auth.signOut();
 }
 

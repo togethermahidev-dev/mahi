@@ -179,61 +179,65 @@ with the time-zone sync.
 
 **Goal:** the server can reach any user, reliably, once, and never at night.
 
-**Migration `push`**
-- `push_tokens`, `push_outbox` (see §3); index `push_outbox (send_after) where sent_at is null`.
-- `register_push_token(p_token, p_platform)` — upsert on `token`, moving it to the caller if another
-  account owned it (shared device).
-- `unregister_push_token(p_token)` — called on sign-out.
-- `enqueue_push(p_user, p_kind, p_payload, p_send_after, p_dedupe_key)` — internal, not granted to
-  clients. Shifts `send_after` out of the recipient's quiet hours (their `profiles.timezone`).
-  `ON CONFLICT (dedupe_key) DO NOTHING`.
-- `claim_push_batch(p_limit)` — service role only:
-  `UPDATE … SET claimed_at = now() WHERE id IN (SELECT id … WHERE sent_at IS NULL AND send_after <= now()
-  AND (claimed_at IS NULL OR claimed_at < now() - interval '5 min') ORDER BY send_after
-  FOR UPDATE SKIP LOCKED LIMIT p_limit) RETURNING …`. Stale claims are retried.
-- `create extension if not exists pg_cron; create extension if not exists pg_net;` (neither is
-  installed live).
-- `pg_cron` job every minute: `pg_net.http_post` to the `send-push` Edge Function. The URL and a
-  shared secret come from `vault.decrypted_secrets`; the function checks the
-  `X-Internal-Secret` header with a constant-time compare.
-- `enqueue_push` skips: the recipient is the actor, the pair is blocked either way, or either user
-  is banned.
-- Trigger on `notifications` INSERT → `enqueue_push` for like/comment/follow, so existing activity
-  also pushes (one path for every push).
+*Built 2026-09-17, not live.* Files: `supabase/migrations/20260917111346_push.sql` (+ rollback),
+`supabase/tests/push_test.sql`, `supabase/functions/send-push/index.ts`.
 
-**Edge Function `supabase/functions/send-push/index.ts`**
-- Auth: the shared `X-Internal-Secret` only (`verify_jwt: false`, matching the project rule in
-  `RULES.md`); any other caller gets 401.
-- Claims a batch, groups rows by user and minute ("@joe and 2 others tagged you"), sends to the Expo
-  Push API in chunks of 100, writes `sent_at` + `ticket_id`, deletes tokens that return
-  `DeviceNotRegistered`.
-- Receipts: a second cron (every 15 min) calls the same function with `?receipts=1` to check
-  tickets older than 15 min and prune bad tokens.
+**Migration `push`**
+- Enables `pg_net` and `pg_cron` (neither was installed).
+- `app_config` (one row) is created here with its first settings, `quiet_start` 22:00 and
+  `quiet_end` 07:00. Later phases add their own columns.
+- `push_tokens` (one owner per token) and `push_outbox` (`dedupe_key` unique, `claimed_at`,
+  `sent_at`, `tickets jsonb` = `[{ticket, token}]`, `receipts_checked_at`). No client access at all:
+  privileges revoked, RPCs only.
+- `push_send_time(at, tz)` moves a send inside quiet hours to their end, in the recipient's zone.
+- `enqueue_push(user, actor, kind, body, data, send_after, dedupe_key)` — internal only. Skips
+  self-actions, blocked pairs (either way) and banned users; `ON CONFLICT (dedupe_key) DO NOTHING`.
+  The server writes the push text.
+- `register_push_token(token, platform)` (validates the Expo token format; a token re-registered
+  on a shared phone moves to the new account) and `unregister_push_token(token)` — `authenticated`.
+- Worker RPCs, `service_role` only: `claim_push_batch(limit)` (`FOR UPDATE SKIP LOCKED`, stale
+  claims retried after 5 min, returns each row with the user's tokens), `complete_push(results)`,
+  `remove_push_tokens(tokens)`, `pending_push_receipts(limit)` (tickets 15 min–24 h old),
+  `mark_push_receipts_checked(ids)`.
+- Trigger `push_on_notification` on `notifications` INSERT → `enqueue_push` with dedupe key
+  `notification:<id>`, so likes, comments, follows and tags push through the same path.
+- `invoke_send_push(mode)` + two cron jobs (`send-push` every minute, `push-receipts` every 15
+  minutes). It skips the HTTP call when nothing is due, and does nothing until the Vault secrets
+  `send_push_url` and `send_push_secret` exist.
+
+**Edge Function `send-push`**
+- Accepts only POST with a matching `X-Internal-Secret` (function secret `SEND_PUSH_SECRET`,
+  constant-time compare); `verify_jwt: false` like every function here.
+- `{"mode":"send"}`: claims up to 500 rows, groups them per user into one message ("… (+N more)"),
+  sends to Expo in chunks of 100, records tickets/errors, removes `DeviceNotRegistered` tokens. A
+  failed Expo call leaves its rows claimed-but-unsent, so they are retried after the claim expires.
+- `{"mode":"receipts"}`: checks receipts in chunks of 1000 and removes dead tokens.
+- Type-checked with `deno check`.
 
 **Client**
-- Deps: `expo-notifications` (Expo SDK-matched version via `npx expo install`).
-- `app.config.js` (*edit*): `expo-notifications` plugin, notification icon/colour.
-- `src/lib/push.ts`: `getPushPermission()`, `requestPushPermission()`, `getExpoPushToken()` (uses the
-  EAS project id from `env`), `onNotificationOpened(cb)` — no store, no React.
-- `src/api/push.ts`: `registerPushToken()`, `unregisterPushToken()`; barrel-export in
-  `src/api/index.ts` (*edit*).
-- `src/hooks/usePushRegistration.ts`: `[userId]`-keyed effect — if permission is granted, get the token
-  and register it; on token refresh, re-register. No state.
-- `src/hooks/useNotificationRouting.ts`: maps a tapped push (`payload.route`) to the navigator
-  (camera for tags, conversation for messages, post detail for likes/comments).
-- `App.tsx` (*edit*): mount both hooks once signed in; sign-out branch calls `unregisterPushToken`
-  before `supabase.auth.signOut`.
-- Sign-up (`src/components/CreateAccountSheet.tsx`, *edit*): a step explaining "friends will tag you"
-  then `requestPushPermission()`. Existing users: a one-time prompt on the camera screen.
-- Flag: `push-core` in `src/lib/featureFlags.ts` (*edit*) hides the prompts only; the server keeps
-  queueing.
+- `expo-notifications ~57.0.19`; `app.config.js` plugin (`color`, `defaultChannel: 'default'`).
+- `src/lib/push.ts` — permission, Expo token (Android channel set first), token-rotation and
+  tap listeners (includes the push that launched the app), the once-per-device explainer flag.
+- `src/api/push.ts` — `registerPushToken()`, `unregisterPushToken()`.
+- `src/store/pushStore.ts` — `register()`, `requestAndRegister()`, `reset()` (wired into sign-out).
+- `src/hooks/usePushRegistration.ts` and `src/hooks/usePushRouting.ts`, both mounted in
+  `VerticalNavigator`. A tapped push marks its notification read and opens the actor's profile
+  (follows) or the notifications list (everything else).
+- `src/api/auth.ts` `signOut()` unregisters the token first, while still signed in.
+- Permission is asked with a one-time explainer alert for new and existing users alike, instead of a
+  new sign-up step (keeps `CreateAccountSheet.tsx` untouched).
+- Flag `push-core` hides that prompt only; the server keeps queueing.
 
-**Verify:** pgTAP — enqueue at 23:00 London → `send_after` = 07:00 next day; duplicate `dedupe_key`
-→ one row; two concurrent `claim_push_batch` calls → disjoint rows. Device — like a post from a second
-account → push arrives once; sign out → no more pushes to that device.
+**Verify:** `supabase/tests/push_test.sql` (19 checks) — quiet-hours times for London and New York;
+no push for self, blocked or banned; dedupe; a follow queues a push with the right text; token
+format, ownership move and client lockout; claim-once; completion; dead-token removal. True
+concurrency of two workers is covered by `SKIP LOCKED` and is not testable in one transaction.
+Device: like a post from a second account → one push; sign out → no more pushes to that device.
 
-**Owner says go:** APNs key + FCM credentials in EAS; the `send-push` URL and shared secret in Vault and
-as a function secret; deploy `send-push`; apply `push`; a new development build (native module added).
+**Owner says go:** APNs key + FCM credentials in EAS; set function secret `SEND_PUSH_SECRET`; add
+Vault secrets `send_push_url` (the function URL) and `send_push_secret` (same value); deploy
+`send-push`; backup → push the `push` migration → run `push_test.sql`; a new development build
+(native module added).
 
 ---
 
@@ -271,6 +275,8 @@ deadlines and their pushes, and answers any tags the poster holds.
   8. Create `p_invite_count` invite challenges (Phase 5 fills in tokens; until then the argument
      must be 0).
   9. Return `{ post, streak, answered: [{tagger, seconds}], invites: [] }`.
+- Tag pushes: `create_post` queues its own 48-hour tag pushes, so `push_on_notification` must skip
+  `type = 'tag'` from this migration on (otherwise a tag pushes twice).
 - `get_open_tags()` — caller's open tags: tagger profile, `expires_at`, plus `server_now` so the
   phone's countdown doesn't trust the device clock.
 - `get_post_response(p_post_ids uuid[])` — for feed cards: the oldest answered tag per post
@@ -582,8 +588,8 @@ tested with `supabase test db --linked`. Regenerate `src/types/database.ts` afte
 
 | Hook | Phase | Kind | Wraps |
 | --- | --- | --- | --- |
-| `usePushRegistration` | P1 | effect only | `lib/push` + `api/push` |
-| `useNotificationRouting` | P1 | effect only | `lib/push` → navigator |
+| `usePushRegistration` | P1 | effect only | `lib/push` + `pushStore` |
+| `usePushRouting` | P1 | effect only | `lib/push` → navigator |
 | `useOpenTags` | P2 | sync on mount/foreground | `tagStore` |
 | `useFeed` (*edit*) | P4 | sync + unlock timer | `feedStore` |
 | `useProfilePosts` (*edit*) | P4 | sync | `profilePostsStore` |

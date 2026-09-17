@@ -157,6 +157,27 @@ const supabase = useSupabase();
 
 ---
 
+## `usePushRegistration` — `src/hooks/usePushRegistration.ts`
+
+Mounted once in `VerticalNavigator`. When signed in: registers this device's push token through
+`usePushStore.register()` if permission is already granted; otherwise, once per device and only while
+the `push-core` flag is on, shows an explainer alert and then the OS prompt
+(`usePushStore.requestAndRegister()`). Re-registers when the OS rotates the token. Sign-out
+unregisters the token in `api/auth.ts signOut()` before the session ends.
+
+---
+
+## `usePushRouting` — `src/hooks/usePushRouting.ts`
+
+```ts
+usePushRouting({ openProfile: (userId) => …, openNotifications: () => … });
+```
+
+Handles a tapped push (including the one that launched the app): marks its notification read, then
+opens the actor's profile for follows or the notifications list for everything else.
+
+---
+
 ## Conventions
 
 - Hooks are named `use<Feature>` and live in `src/hooks/`

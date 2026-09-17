@@ -36,6 +36,9 @@ export const FEATURE_FLAGS = [
   'moderation-core', // block / report
   'streaks-core', // streak tracking / grid / rest days
   'auth-otp-signup', // OTP email signup flow
+
+  // Tag loop (see docs/tag-loop-plan.md)
+  'push-core', // P1 push permission prompt (server keeps queueing when off)
 ] as const;
 
 /** A known PostHog feature flag key. */
