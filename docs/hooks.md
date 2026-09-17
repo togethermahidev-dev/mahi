@@ -178,6 +178,18 @@ opens the actor's profile for follows or the notifications list for everything e
 
 ---
 
+## `useOpenTags` — `src/hooks/useOpenTags.ts`
+
+```ts
+const { openTags, serverOffsetMs, isLoading, refresh } = useOpenTags();
+```
+
+Tags waiting for the user's post (`get_open_tags`), kept in `tagStore` memory only (they expire).
+Syncs on mount and whenever the app returns to the foreground. `serverOffsetMs` lets countdowns
+(`src/lib/countdown.ts`) run on the server's clock. Used by `CameraScreen` for `OpenTagsBanner`.
+
+---
+
 ## Conventions
 
 - Hooks are named `use<Feature>` and live in `src/hooks/`

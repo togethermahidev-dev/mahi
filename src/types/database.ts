@@ -11,6 +11,21 @@ export type Database = {
   };
   public: {
     Tables: {
+      app_config: {
+        Row: {
+          id: boolean;
+          quiet_end: string;
+          quiet_start: string;
+          storage_public_url: string;
+          tag_count: number;
+          tag_window: string;
+          answer_grace: string;
+          tags_required: boolean;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       conversations: {
         Row: {
           created_at: string;
@@ -334,36 +349,45 @@ export type Database = {
       posts: {
         Row: {
           caption: string | null;
+          client_id: string | null;
           created_at: string;
           id: string;
+          image_path: string | null;
           image_url: string;
           latitude: number | null;
           longitude: number | null;
           post_date: string;
+          pov_image_path: string | null;
           pov_image_url: string | null;
           streak_day: number;
           user_id: string;
         };
         Insert: {
           caption?: string | null;
+          client_id?: string | null;
           created_at?: string;
           id?: string;
+          image_path?: string | null;
           image_url: string;
           latitude?: number | null;
           longitude?: number | null;
           post_date?: string;
+          pov_image_path?: string | null;
           pov_image_url?: string | null;
           streak_day: number;
           user_id: string;
         };
         Update: {
           caption?: string | null;
+          client_id?: string | null;
           created_at?: string;
           id?: string;
+          image_path?: string | null;
           image_url?: string;
           latitude?: number | null;
           longitude?: number | null;
           post_date?: string;
+          pov_image_path?: string | null;
           pov_image_url?: string | null;
           streak_day?: number;
           user_id?: string;
@@ -609,6 +633,45 @@ export type Database = {
           display_name: string;
           id: string;
           mutual_count: number;
+          username: string;
+        }[];
+      };
+      create_post: {
+        Args: {
+          p_caption?: string | null;
+          p_client_id: string;
+          p_image_path: string;
+          p_latitude?: number | null;
+          p_longitude?: number | null;
+          p_pov_image_path?: string | null;
+          p_tagged_ids?: string[];
+        };
+        Returns: Json;
+      };
+      get_open_tags: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          avatar_url: string | null;
+          challenge_id: string;
+          created_at: string;
+          display_name: string | null;
+          expires_at: string;
+          server_now: string;
+          tagger_id: string;
+          username: string;
+        }[];
+      };
+      get_post_responses: {
+        Args: { p_post_ids: string[] };
+        Returns: { post_id: string; seconds: number; tagger_username: string }[];
+      };
+      get_taggable_friends: {
+        Args: { p_limit?: number; p_query?: string };
+        Returns: {
+          avatar_url: string | null;
+          display_name: string | null;
+          has_open_tag: boolean;
+          id: string;
           username: string;
         }[];
       };

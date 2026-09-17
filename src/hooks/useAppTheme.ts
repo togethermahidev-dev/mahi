@@ -14,6 +14,8 @@ export interface AppTheme {
     text: string;
     offWhite: string;
     offBlack: string;
+    /** Brand cyan used for streaks, shutter and highlights. */
+    accent: string;
   };
 }
 
@@ -38,6 +40,7 @@ export function useAppTheme(): AppTheme {
       text: dark ? '#E8E8E3' : '#1A1A17',
       offWhite: '#E8E8E3',
       offBlack: '#1A1A17',
+      accent: '#59c2d7',
     },
   };
 }

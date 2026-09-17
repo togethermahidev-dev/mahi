@@ -5,6 +5,7 @@ import { useNotificationsStore } from '@/store';
 export interface PushRoutes {
   openProfile: (userId: string) => void;
   openNotifications: () => void;
+  openCamera: () => void;
 }
 
 /** Sends a tapped push to the screen it is about, and marks its notification read. */
@@ -21,6 +22,7 @@ export function usePushRouting(routes: PushRoutes): void {
           useNotificationsStore.getState().markRead(data.notification_id);
         }
         if (data.route === 'profile' && data.user_id) routesRef.current.openProfile(data.user_id);
+        else if (data.route === 'camera') routesRef.current.openCamera();
         else routesRef.current.openNotifications();
       }),
     []

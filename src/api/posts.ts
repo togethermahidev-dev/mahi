@@ -7,6 +7,8 @@
 
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types';
+import type { StreakResult } from './streaks';
+import { getPostResponses } from './tags';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
@@ -24,6 +26,8 @@ export type FeedPost = PostRow & {
   comment_count: number;
   liked_by_me: boolean;
   tagged_users: TaggedUser[];
+  /** Set when this post answered a tag: whose, and how fast (oldest tag). */
+  response?: { tagger_username: string; seconds: number } | null;
 };
 
 export type FeedCursor = { ts: string; id: string };
@@ -69,6 +73,14 @@ export async function getFeedPosts(
       },
     })
   );
+
+  // Response times are extra detail: a failure here must not hide the feed.
+  const { data: responses } = await getPostResponses(mapped.map((p) => p.id));
+  const byPost = new Map((responses ?? []).map((r) => [r.post_id, r]));
+  for (const post of mapped) {
+    const r = byPost.get(post.id);
+    post.response = r ? { tagger_username: r.tagger_username, seconds: r.seconds } : null;
+  }
 
   return { data: mapped, error: null };
 }
@@ -136,57 +148,70 @@ export async function getUserPosts(
   return { data: data as unknown as PostRow[], error: null };
 }
 
+export type AnsweredTag = { tagger_id: string; username: string; seconds: number };
+
+export type CreatePostResult = {
+  post: PostRow;
+  streak: StreakResult;
+  /** Tags this post answered, oldest first. */
+  answered: AnsweredTag[];
+  /** True when the same clientId had already been posted (a retry). */
+  replayed: boolean;
+};
+
 /**
- * Insert a new post record after a successful camera upload.
- * If `taggedUserIds` is provided, inserts corresponding rows into `post_tags`
- * after the post is created. RLS on `post_tags` verifies caller owns the post.
+ * Upload the two photos for a post to `posts/{userId}/{clientId}_*.jpg`.
+ * `upsert` makes a retry with the same clientId overwrite instead of duplicating.
+ */
+export async function uploadPostPhotos(opts: {
+  userId: string;
+  clientId: string;
+  rear: ArrayBuffer;
+  front: ArrayBuffer;
+}): Promise<{ data: { rearPath: string; frontPath: string } | null; error: Error | null }> {
+  const rearPath = `${opts.userId}/${opts.clientId}_rear.jpg`;
+  const frontPath = `${opts.userId}/${opts.clientId}_pov.jpg`;
+  const bucket = supabase.storage.from('posts');
+  const [rear, front] = await Promise.all([
+    bucket.upload(rearPath, opts.rear, { contentType: 'image/jpeg', upsert: true }),
+    bucket.upload(frontPath, opts.front, { contentType: 'image/jpeg', upsert: true }),
+  ]);
+  const err = rear.error ?? front.error;
+  if (err) return { data: null, error: new Error(err.message) };
+  return { data: { rearPath, frontPath }, error: null };
+}
+
+/** Remove uploaded photos after a post failed. Best effort. */
+export async function removePostPhotos(paths: string[]): Promise<void> {
+  if (paths.length) await supabase.storage.from('posts').remove(paths);
+}
+
+/**
+ * Create a post in ONE server call: the server dates it, records the streak, saves the
+ * tags with their 48-hour deadlines, queues the pushes, and answers any tags waiting for
+ * this user. Retrying with the same `clientId` returns the same post.
  *
- * `latitude`/`longitude` are optional per-post coordinates (explicit opt-in in
- * the camera flow). They are only set when both are provided; otherwise the
- * columns are left null so location-less posts stay valid. Coordinates are
- * already rounded to ~city-block precision by `src/lib/location.ts` before they
- * reach this layer — do NOT round again here. Anyone who can read the post can
- * read its coordinates (they inherit the post's existing public read RLS).
+ * Errors: "already posted today"; "tag N friends" (not enough tags); "cannot tag that
+ * person"; "photo not found".
  */
 export async function createPost(opts: {
-  userId: string;
-  imageUrl: string;
-  streakDay: number;
-  caption?: string;
-  povImageUrl?: string;
+  clientId: string;
+  imagePath: string;
+  povImagePath?: string | null;
+  caption?: string | null;
   taggedUserIds?: string[];
   latitude?: number | null;
   longitude?: number | null;
-}): Promise<{ data: PostRow | null; error: Error | null }> {
-  const { userId, imageUrl, streakDay, caption, povImageUrl, taggedUserIds, latitude, longitude } =
-    opts;
-  // Only attach coordinates when BOTH are present — a half-set fix is dropped to
-  // null so we never persist a lone lat or lng. `?? null` normalises undefined.
-  const hasCoords = latitude != null && longitude != null;
-  const { data, error } = await supabase
-    .from('posts')
-    .insert({
-      user_id: userId,
-      image_url: imageUrl,
-      streak_day: streakDay,
-      caption,
-      pov_image_url: povImageUrl ?? null,
-      latitude: hasCoords ? latitude : null,
-      longitude: hasCoords ? longitude : null,
-    })
-    .select()
-    .single();
-
+}): Promise<{ data: CreatePostResult | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('create_post', {
+    p_client_id: opts.clientId,
+    p_image_path: opts.imagePath,
+    p_pov_image_path: opts.povImagePath ?? null,
+    p_caption: opts.caption ?? null,
+    p_tagged_ids: opts.taggedUserIds ?? [],
+    p_latitude: opts.latitude ?? null,
+    p_longitude: opts.longitude ?? null,
+  });
   if (error) return { data: null, error: new Error(error.message) };
-
-  if (data && taggedUserIds && taggedUserIds.length > 0) {
-    const uniqueIds = Array.from(new Set(taggedUserIds));
-    const rows = uniqueIds.map((uid) => ({ post_id: data.id, user_id: uid }));
-    const { error: tagErr } = await supabase.from('post_tags').insert(rows);
-    if (tagErr) {
-      return { data, error: new Error(`post created but tag insert failed: ${tagErr.message}`) };
-    }
-  }
-
-  return { data, error: null };
+  return { data: data as unknown as CreatePostResult, error: null };
 }

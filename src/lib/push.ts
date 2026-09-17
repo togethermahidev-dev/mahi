@@ -8,7 +8,7 @@ import { Platform } from 'react-native';
 
 /** What the server puts in a push's `data`. */
 export type PushData = {
-  route?: 'post' | 'profile';
+  route?: 'post' | 'profile' | 'camera';
   post_id?: string | null;
   user_id?: string;
   notification_id?: string;

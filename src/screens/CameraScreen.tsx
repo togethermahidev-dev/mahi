@@ -31,19 +31,30 @@ import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { Accelerometer } from 'expo-sensors';
 import Svg, { Path } from 'react-native-svg';
 import { decode } from 'base64-arraybuffer';
-import { useAuthStore, useUserStore, useFeedStore, useProfilePostsStore } from '@/store';
+import {
+  useAuthStore,
+  useUserStore,
+  useFeedStore,
+  useProfilePostsStore,
+  useTagStore,
+} from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { supabase } from '@/lib/supabase';
+import { randomUUID } from 'expo-crypto';
 import {
   createPost,
-  recordUpload,
-  searchProfiles,
+  getTaggableFriends,
+  removePostPhotos,
+  uploadPostPhotos,
   type TaggedUser,
   type FeedPost,
-  type ProfileSearchResult,
+  type TaggableFriend,
 } from '@/api';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
+import OpenTagsBanner from '@/components/OpenTagsBanner';
+import { useOpenTags } from '@/hooks/useOpenTags';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { formatWait } from '@/lib/countdown';
 import { Sentry } from '@/lib/sentry';
 import { requestLocationPermission, getCurrentLocation } from '@/lib/location';
 
@@ -215,6 +226,8 @@ interface DualPhotoPreviewProps {
   onCaptionChange: (v: string) => void;
   taggedUsers: TaggedUser[];
   onTaggedUsersChange: (users: TaggedUser[]) => void;
+  /** Tags this post needs before POST unlocks (server enforces the same rule). */
+  requiredTags: number;
   /** Per-post location toggle. Default OFF — explicit opt-in, never silent. */
   locationEnabled: boolean;
   /** Toggle the per-post location pill. On the first enable this triggers the
@@ -233,9 +246,12 @@ function DualPhotoPreview({
   onCaptionChange,
   taggedUsers,
   onTaggedUsersChange,
+  requiredTags,
   locationEnabled,
   onToggleLocation,
 }: DualPhotoPreviewProps) {
+  const maxTags = useTagStore((s) => s.maxTags);
+  const tagsMissing = Math.max(0, requiredTags - taggedUsers.length);
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -648,16 +664,23 @@ function DualPhotoPreview({
             </View>
 
             <TouchableOpacity
-              style={[styles.postButton, isUploading && { opacity: 0.5 }]}
+              style={[styles.postButton, (isUploading || tagsMissing > 0) && { opacity: 0.5 }]}
               activeOpacity={0.82}
               disabled={isUploading}
               onPress={() => {
+                if (tagsMissing > 0) {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                  setActiveSheet('tag');
+                  return;
+                }
                 if (frozenFront.current && frozenRear.current) {
                   onPost(frozenFront.current, frozenRear.current);
                 }
               }}
             >
-              <Text style={styles.postButtonText}>POST</Text>
+              <Text style={styles.postButtonText}>
+                {tagsMissing > 0 ? `TAG ${tagsMissing} MORE` : 'POST'}
+              </Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -707,7 +730,7 @@ function DualPhotoPreview({
 
               const already = taggedUsers.some((u) => u.user_id === picked.user_id);
               if (!already) {
-                if (taggedUsers.length >= MAX_TAGS) {
+                if (taggedUsers.length >= maxTags) {
                   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                 } else {
                   onTaggedUsersChange([...taggedUsers, picked]);
@@ -806,23 +829,22 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
 
 // ─── Tag Sheet ────────────────────────────────────────────────────────────────
 
-const MAX_TAGS = 10;
-
 function TagUserRow({
   item,
   selected,
   onPress,
 }: {
-  item: ProfileSearchResult;
+  item: TaggableFriend;
   selected: boolean;
   onPress: () => void;
 }) {
-  const display = item.display_name ?? item.first_name ?? item.username;
+  const display = item.display_name ?? item.username;
   const initial = display[0].toUpperCase();
   return (
     <TouchableOpacity
-      style={[styles.tagRow, selected && styles.tagRowSelected]}
+      style={[styles.tagRow, selected && styles.tagRowSelected, item.has_open_tag && { opacity: 0.4 }]}
       activeOpacity={0.7}
+      disabled={item.has_open_tag}
       onPress={onPress}
     >
       {item.avatar_url ? (
@@ -834,7 +856,10 @@ function TagUserRow({
       )}
       <View style={{ flex: 1 }}>
         <Text style={styles.tagRowName}>{display}</Text>
-        <Text style={styles.tagRowHandle}>@{item.username}</Text>
+        <Text style={styles.tagRowHandle}>
+          @{item.username}
+          {item.has_open_tag ? ' · waiting on your last tag' : ''}
+        </Text>
       </View>
       {selected ? <Text style={styles.tagRowCheck}>✓</Text> : null}
     </TouchableOpacity>
@@ -857,7 +882,8 @@ interface TagSheetProps {
 function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: TagSheetProps) {
   const [selected, setSelected] = useState<TaggedUser[]>(initialSelected);
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<ProfileSearchResult[]>([]);
+  const [results, setResults] = useState<TaggableFriend[]>([]);
+  const maxTags = useTagStore((s) => s.maxTags);
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -871,27 +897,30 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  // Debounced search — mirrors GlobalSearchOverlay's 350ms pattern.
+  // Friends who follow back, filtered as you type (350ms debounce). An empty
+  // query lists them all, so the sheet opens with the people you can tag.
   useEffect(() => {
+    if (!visible) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const q = query.trim();
-    if (!q) {
-      setResults([]);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
-    debounceRef.current = setTimeout(async () => {
-      const { data } = await searchProfiles(q, 20);
-      setResults(data ?? []);
-      setLoading(false);
-    }, 350);
+    let stale = false;
+    debounceRef.current = setTimeout(
+      async () => {
+        const { data } = await getTaggableFriends(q, 50);
+        if (stale) return;
+        setResults(data ?? []);
+        setLoading(false);
+      },
+      q ? 350 : 0
+    );
     return () => {
+      stale = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query]);
+  }, [query, visible]);
 
-  const toggle = (u: ProfileSearchResult) => {
+  const toggle = (u: TaggableFriend) => {
     const asTagged: TaggedUser = {
       user_id: u.id,
       username: u.username,
@@ -910,7 +939,7 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
       setSelected((prev) => prev.filter((s) => s.user_id !== u.id));
       return;
     }
-    if (selected.length >= MAX_TAGS) {
+    if (selected.length >= maxTags) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
@@ -941,7 +970,7 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
             <Text style={styles.sheetLabel}>TAG PEOPLE</Text>
             {singleShot ? null : (
               <Text style={styles.sheetCounter}>
-                {selected.length}/{MAX_TAGS}
+                {selected.length}/{maxTags}
               </Text>
             )}
           </View>
@@ -950,7 +979,7 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
             style={styles.tagSearchInput}
             value={query}
             onChangeText={setQuery}
-            placeholder="Search for someone to tag"
+            placeholder="Search friends who follow you back"
             placeholderTextColor="rgba(232,232,227,0.45)"
             autoFocus
             autoCapitalize="none"
@@ -964,9 +993,13 @@ function TagSheet({ visible, initialSelected, onCancel, onCommit, singleShot }: 
             keyboardShouldPersistTaps="handled"
             style={styles.tagResultsList}
             ListEmptyComponent={
-              query.trim() && !loading ? (
-                <Text style={styles.tagEmptyText}>No users found.</Text>
-              ) : null
+              loading ? null : (
+                <Text style={styles.tagEmptyText}>
+                  {query.trim()
+                    ? 'No friends found.'
+                    : 'Only friends who follow you back can be tagged.'}
+                </Text>
+              )
             }
             renderItem={({ item }) => (
               <TagUserRow
@@ -1033,6 +1066,9 @@ export default function CameraScreen(): React.JSX.Element {
   const userId = useAuthStore((s) => s.user?.id);
   const profile = useUserStore((s) => s.profile);
   const setProfile = useUserStore((s) => s.setProfile);
+  const requiredTags = useTagStore((s) => s.requiredTags);
+  const { openTags, serverOffsetMs } = useOpenTags();
+  const showTagBanner = useFeatureFlag('tag-challenges');
 
   const streakCount = profile?.streak_current ?? 0;
 
@@ -1264,6 +1300,9 @@ export default function CameraScreen(): React.JSX.Element {
       created_at: new Date().toISOString(),
       // Placeholder until the server's row (dated in the user's time zone) replaces it.
       post_date: today,
+      client_id: null,
+      image_path: null,
+      pov_image_path: null,
       like_count: 0,
       comment_count: 0,
       liked_by_me: false,
@@ -1284,37 +1323,18 @@ export default function CameraScreen(): React.JSX.Element {
     setLocationEnabled(false);
     setIsUploading(false);
 
-    let rearStoragePath: string | null = null;
-    let frontStoragePath: string | null = null;
+    const clientId = randomUUID();
+    let uploadedPaths: string[] = [];
 
     try {
-      const rearBuffer = decode(rear.base64);
-      const frontBuffer = decode(front.base64);
-      const timestamp = Date.now();
-      rearStoragePath = `${userId}/${timestamp}_${Math.random().toString(36).slice(2)}.jpg`;
-      frontStoragePath = `${userId}/${timestamp}_${Math.random().toString(36).slice(2)}_pov.jpg`;
-
-      // Upload both in parallel
-      const [rearUpload, frontUpload] = await Promise.all([
-        supabase.storage
-          .from('posts')
-          .upload(rearStoragePath, rearBuffer, { contentType: 'image/jpeg', upsert: false }),
-        supabase.storage
-          .from('posts')
-          .upload(frontStoragePath, frontBuffer, { contentType: 'image/jpeg', upsert: false }),
-      ]);
-      if (rearUpload.error) throw new Error(rearUpload.error.message);
-      if (frontUpload.error) throw new Error(frontUpload.error.message);
-
-      const rearUrl = supabase.storage.from('posts').getPublicUrl(rearUpload.data.path)
-        .data.publicUrl;
-      const frontUrl = supabase.storage.from('posts').getPublicUrl(frontUpload.data.path)
-        .data.publicUrl;
-
-      const { data: streakResult, error: streakErr } = await recordUpload(userId, today);
-      if (streakErr) throw streakErr;
-
-      const confirmedStreakDay = streakResult?.streak_current ?? optimisticStreakDay;
+      const { data: paths, error: uploadErr } = await uploadPostPhotos({
+        userId,
+        clientId,
+        rear: decode(rear.base64),
+        front: decode(front.base64),
+      });
+      if (uploadErr || !paths) throw uploadErr ?? new Error('upload failed');
+      uploadedPaths = [paths.rearPath, paths.frontPath];
 
       // Per-post location: ONLY when the user opted in for this post. getCurrentLocation
       // returns null on denial, a too-coarse fix, or any error — and it already
@@ -1326,75 +1346,81 @@ export default function CameraScreen(): React.JSX.Element {
         console.log('[CameraScreen] location for post', coords ? 'attached' : 'unavailable');
       }
 
-      const { data: postData, error: postErr } = await createPost({
-        userId,
-        imageUrl: rearUrl,
-        povImageUrl: frontUrl,
-        streakDay: confirmedStreakDay,
-        caption: captionValue ?? undefined,
+      // One server call: post, streak, tags, deadlines and pushes, all or nothing.
+      const { data: result, error: postErr } = await createPost({
+        clientId,
+        imagePath: paths.rearPath,
+        povImagePath: paths.frontPath,
+        caption: captionValue,
         taggedUserIds: taggedUsersSnapshot.map((u) => u.user_id),
         latitude: coords?.latitude,
         longitude: coords?.longitude,
       });
-      // createPost returns (data, error) where a non-null error with non-null
-      // data means "post created but tag insert failed". In that case we still
-      // want to confirm the post in the feed; just log the tag-insert failure.
-      if (postErr && !postData) throw postErr;
-      if (postErr && postData) {
-        Sentry.captureException(postErr, {
-          tags: { flow: 'camera', action: 'post_tags_insert' },
-          extra: { userId, postId: postData.id },
+      if (postErr || !result) throw postErr ?? new Error('post failed');
+
+      useFeedStore.getState().confirmPending(tempId, {
+        ...result.post,
+        like_count: 0,
+        comment_count: 0,
+        liked_by_me: false,
+        profiles: {
+          id: userId,
+          username: profile.username,
+          display_name: profile.display_name,
+          avatar_url: profile.avatar_url,
+        },
+        tagged_users: taggedUsersSnapshot,
+      } satisfies FeedPost);
+      useProfilePostsStore.getState().addPost(result.post);
+
+      const current = useUserStore.getState().profile;
+      if (current) {
+        setProfile({
+          ...current,
+          streak_current: result.streak.streak_current,
+          streak_highest: result.streak.streak_highest,
+          streak_lowest: result.streak.streak_lowest,
+          streak_last_upload_date: result.post.post_date,
         });
       }
 
-      if (postData) {
-        useFeedStore.getState().confirmPending(tempId, {
-          ...postData,
-          profiles: {
-            id: userId,
-            username: profile.username,
-            display_name: profile.display_name,
-            avatar_url: profile.avatar_url,
-          },
-          tagged_users: taggedUsersSnapshot,
-        } as FeedPost);
-
-        useProfilePostsStore.getState().addPost(postData);
+      const firstAnswered = result.answered[0];
+      if (firstAnswered) {
+        const more = result.answered.length > 1 ? ` +${result.answered.length - 1}` : '';
+        useToastStore
+          .getState()
+          .show(`Answered @${firstAnswered.username}${more} in ${formatWait(firstAnswered.seconds)}`);
       }
-
-      if (streakResult) {
-        const current = useUserStore.getState().profile;
-        if (current) {
-          setProfile({
-            ...current,
-            streak_current: streakResult.streak_current,
-            streak_highest: streakResult.streak_highest,
-            streak_lowest: streakResult.streak_lowest,
-            streak_last_upload_date: today,
-          });
-        }
-      }
+      useTagStore.getState().syncOpenTags();
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       console.error('[uploadPhotos] upload failed', err);
-      Sentry.captureException(err, {
-        tags: { flow: 'camera', action: 'upload' },
-        extra: { userId },
-      });
       useFeedStore.getState().removePending(tempId);
-      useToastStore.getState().show("Couldn't post — please try again");
       const current = useUserStore.getState().profile;
       if (current) setProfile({ ...current, streak_current: profile.streak_current });
-      // Clean up any orphaned storage objects
-      const toRemove = [rearStoragePath, frontStoragePath].filter(Boolean) as string[];
-      if (toRemove.length)
-        supabase.storage
-          .from('posts')
-          .remove(toRemove)
-          .catch(() => {});
+      removePostPhotos(uploadedPaths).catch(() => {});
+
+      if (message.includes('already posted today')) {
+        useToastStore.getState().show("You've already posted today");
+      } else if (message.includes('tag')) {
+        useToastStore.getState().show('Your tags changed — pick your friends again');
+        useTagStore.getState().loadRequirement();
+      } else {
+        Sentry.captureException(err, {
+          tags: { flow: 'camera', action: 'upload' },
+          extra: { userId },
+        });
+        useToastStore.getState().show("Couldn't post — please try again");
+      }
     } finally {
       uploadingRef.current = false;
     }
   };
+
+  const hasPreview = frontPhoto !== null && rearPhoto !== null;
+  useEffect(() => {
+    if (hasPreview) useTagStore.getState().loadRequirement();
+  }, [hasPreview]);
 
   const handleDiscard = () => {
     setFrontPhoto(null);
@@ -1497,6 +1523,10 @@ export default function CameraScreen(): React.JSX.Element {
 
         <StreakBadge count={streakCount} />
 
+        {showTagBanner && !hasPostedToday && (
+          <OpenTagsBanner openTags={openTags} serverOffsetMs={serverOffsetMs} />
+        )}
+
         {isRestDay && !hasPostedToday && <Text style={styles.restDayLabel}>REST DAY</Text>}
 
         {/* Capture progress overlay */}
@@ -1594,6 +1624,7 @@ export default function CameraScreen(): React.JSX.Element {
           onCaptionChange={setCaption}
           taggedUsers={taggedUsers}
           onTaggedUsersChange={setTaggedUsers}
+          requiredTags={requiredTags}
           locationEnabled={locationEnabled}
           onToggleLocation={handleToggleLocation}
         />

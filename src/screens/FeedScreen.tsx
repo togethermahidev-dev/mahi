@@ -31,6 +31,7 @@ import { LikeIcon, HeartIcon, CommentIcon } from '@/components/ScreenIcons';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import CaptionText from '@/components/CaptionText';
+import { formatWait } from '@/lib/countdown';
 import type { FeedPost } from '@/api';
 import type { CommentWithProfile } from '@/api/social';
 
@@ -335,6 +336,11 @@ function PostItem({
               />
               <View style={styles.streakBadge}>
                 <Text style={styles.streakText}>DAY {item.streak_day}</Text>
+                {item.response ? (
+                  <Text style={styles.responseText}>
+                    ANSWERED @{item.response.tagger_username} IN {formatWait(item.response.seconds).toUpperCase()}
+                  </Text>
+                ) : null}
               </View>
             </LinearGradient>
             {/* Bottom gradient — profile row + caption */}
@@ -796,6 +802,13 @@ const styles = StyleSheet.create({
     fontFamily: 'JosefinSans_600SemiBold',
     letterSpacing: 2,
     color: '#FFFFFF',
+  },
+  responseText: {
+    fontSize: 10,
+    fontFamily: 'JosefinSans_600SemiBold',
+    letterSpacing: 1,
+    color: '#FFFFFF',
+    marginTop: 2,
   },
   imageContainer: {
     position: 'relative',

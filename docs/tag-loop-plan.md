@@ -246,6 +246,35 @@ Vault secrets `send_push_url` (the function URL) and `send_push_secret` (same va
 
 ### Phase 2 — Tag challenges (the core loop)
 
+*Built 2026-09-17, not live.* Files: `supabase/migrations/20260917112413_tag_challenges.sql`
+(+ rollback), `supabase/tests/tag_challenges_test.sql` (28 checks). Differences from the design below:
+
+- **Answering is a trigger** (`answer_tags_on_post`, AFTER INSERT on `posts`), not a step inside
+  `create_post`, so a post from an older app build also answers tags.
+- **Tag pushes reuse the existing path:** `create_post` inserts `post_tags`; the live `notify_on_tag`
+  trigger makes the notification; `push_on_notification` sees the challenge and writes
+  "@x tagged you. You have 48 hours to post." (route `camera`). No double push. `create_post` only
+  queues the 24 h and 2 h reminders (dropped if quiet hours would push them past the deadline).
+- **Outbox rows and notifications carry `challenge_id`** (cascade), so answering, cancelling or
+  deleting a challenge removes its unsent pushes in the same transaction.
+- **Expired tags** get `missed_at` (from `mark_missed_tags` every 5 min, or from `create_post` for the
+  caller's own pairs) so the one-open-tag-per-pair index frees up.
+- **Server switches:** `app_config.tag_count` (3), `tags_required`, `tag_window` (48 h),
+  `answer_grace` (10 min). `create_post` builds `image_url` from `app_config.storage_public_url`
+  until Phase 4 moves to paths.
+- **Locks:** only the caller's profile row is locked; answer/cancel races are settled by row locks on
+  `tag_challenges` (the loser's `UPDATE … WHERE answered_at IS NULL AND cancelled_at IS NULL` matches
+  nothing). Phase 5 adds the tagger lock for points.
+- **App:** `src/api/tags.ts` (`getTaggableFriends`, `getOpenTags`, `getTagRules`, `getPostResponses`),
+  `src/api/posts.ts` (`uploadPostPhotos`, `removePostPhotos`, `createPost` → RPC; `recordUpload`
+  removed), `src/store/tagStore.ts` (+ sign-out reset), `src/hooks/useOpenTags.ts`,
+  `src/components/OpenTagsBanner.tsx`, `src/lib/countdown.ts` (+ unit test, flip-tested).
+  `CameraScreen`: `expo-crypto` client ids, tag sheet lists friends who follow back (max 3, already-
+  tagged greyed out), POST reads "TAG N MORE" until the requirement is met, answered-tag toast, open-
+  tags banner (flag `tag-challenges`). Feed cards show "ANSWERED @x IN 3H" (`getFeedPosts` merges
+  `get_post_responses`). A tapped tag push opens the camera.
+
+
 **Goal:** posting is one atomic server call that records the post, the streak, the 3 tags, their
 deadlines and their pushes, and answers any tags the poster holds.
 

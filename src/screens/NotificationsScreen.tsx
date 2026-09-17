@@ -107,6 +107,12 @@ export default function NotificationsScreen({
                 case 'tag':
                   caption = `@${item.actor.username} tagged you in a post`;
                   break;
+                case 'tag_answered':
+                  caption = `@${item.actor.username} answered your tag`;
+                  break;
+                case 'tag_missed':
+                  caption = `The tag between you and @${item.actor.username} ran out`;
+                  break;
                 default:
                   caption = `@${item.actor.username}`;
               }

@@ -76,6 +76,11 @@ export default function VerticalNavigator({
       setProfileUserId(uid);
     },
     openNotifications: () => setNotifOpen(true),
+    openCamera: () => {
+      setNotifOpen(false);
+      setProfileUserId(null);
+      navigateTo(0);
+    },
   });
 
   // Track child overlay state (e.g. FeedScreen profile overlay)
