@@ -37,7 +37,8 @@ export default function ConversationScreen({
   const ownBubble = dark ? 'rgba(232,232,227,0.15)' : 'rgba(26,26,23,0.1)';
   const otherBubble = dark ? 'rgba(232,232,227,0.07)' : 'rgba(26,26,23,0.05)';
 
-  const { messages, isLoading, send } = useConversation(conversation.id);
+  const { messages, isLoading, isLoadingOlder, hasMore, send, loadOlder, markRead } =
+    useConversation(conversation.id);
   const { accept, deny } = useMessages();
 
   const [inputText, setInputText] = useState('');
@@ -57,7 +58,9 @@ export default function ConversationScreen({
     if (!content || sending) return;
     setSending(true);
     setInputText('');
-    await send(content);
+    const sent = await send(content);
+    // Put the text back rather than losing it — the send is safe to try again.
+    if (!sent) setInputText(content);
     setSending(false);
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
@@ -68,6 +71,13 @@ export default function ConversationScreen({
     });
     return () => sub.remove();
   }, []);
+
+  // Read on open, and again as each message arrives while the screen is up.
+  const newest = messages[messages.length - 1]?.id;
+  useEffect(() => {
+    if (!isLoading) markRead();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversation.id, isLoading, newest]);
 
   const handleAccept = async () => {
     await accept(conversation.id);
@@ -138,6 +148,15 @@ export default function ConversationScreen({
             keyExtractor={(item) => (item.type === 'header' ? item.id : item.msg.id)}
             inverted
             contentContainerStyle={styles.listContent}
+            onEndReached={hasMore ? loadOlder : undefined}
+            onEndReachedThreshold={0.4}
+            ListFooterComponent={
+              isLoadingOlder ? (
+                <View style={styles.olderWrap}>
+                  <ActivityIndicator color={muted} size="small" />
+                </View>
+              ) : null
+            }
             renderItem={({ item }) => {
               if (item.type === 'header') {
                 return (
@@ -280,6 +299,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  olderWrap: {
+    paddingVertical: 12,
+    alignItems: 'center',
   },
   listContent: {
     paddingHorizontal: 16,

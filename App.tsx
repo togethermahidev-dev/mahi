@@ -21,7 +21,7 @@ import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
 import HorizontalNavigator from '@/screens/HorizontalNavigator';
 import { supabase } from '@/lib/supabase';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useNotificationsStore, useProfilePostsStore, useFollowStore, useSuggestStore, useBlockStore, useSocialStore, usePushStore, useTagStore } from '@/store';
+import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useConversationStore, useNotificationsStore, useProfilePostsStore, useFollowStore, useSuggestStore, useBlockStore, useSocialStore, usePushStore, useTagStore } from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { getMinAppVersion, getProfile, signOut, updateTimezone } from '@/api';
@@ -74,7 +74,7 @@ async function hydrateForUser(userId: string): Promise<void> {
 
   // Background-hydrate stores (non-blocking). Each guards against duplicate work.
   useFeedStore.getState().sync();
-  useMessagesStore.getState().sync(userId);
+  useMessagesStore.getState().sync();
   useNotificationsStore.getState().sync(userId);
   useBlockStore.getState().sync(userId);
 }
@@ -122,6 +122,7 @@ export default function App(): React.JSX.Element {
         useUserStore.getState().reset();
         useFeedStore.getState().reset();
         useMessagesStore.getState().reset();
+        useConversationStore.getState().reset();
         useNotificationsStore.getState().reset();
         useProfilePostsStore.getState().reset();
         useFollowStore.getState().reset();

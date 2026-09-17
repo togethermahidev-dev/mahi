@@ -27,6 +27,7 @@ function ConvoRow({
   text,
   muted,
   border,
+  accent,
 }: {
   item: ConversationPreview;
   onPress: () => void;
@@ -34,6 +35,7 @@ function ConvoRow({
   text: string;
   muted: string;
   border: string;
+  accent: string;
 }) {
   const name = item.other_profile.display_name ?? item.other_profile.username;
   const initials = (item.other_profile.username ?? '?')[0].toUpperCase();
@@ -42,6 +44,7 @@ function ConvoRow({
       ? item.last_message.content.slice(0, 40) + '…'
       : item.last_message.content
     : '';
+  const unread = item.unread_count > 0;
 
   // Avatar and body are SIBLINGS (not nested pressables) so the touch targets
   // don't overlap: tapping the avatar opens the profile, tapping the rest of
@@ -72,10 +75,15 @@ function ConvoRow({
       >
         <View style={styles.convoInfo}>
           <Text style={[styles.convoName, { color: text }]}>{name}</Text>
-          {preview ? <Text style={[styles.convoPreview, { color: muted }]}>{preview}</Text> : null}
+          {preview ? (
+            <Text style={[styles.convoPreview, { color: unread ? text : muted }]}>{preview}</Text>
+          ) : null}
         </View>
 
-        <Text style={[styles.convoTime, { color: muted }]}>{relativeTime(item.updated_at)}</Text>
+        <View style={styles.convoMeta}>
+          <Text style={[styles.convoTime, { color: muted }]}>{relativeTime(item.updated_at)}</Text>
+          {unread ? <View style={[styles.unreadDot, { backgroundColor: accent }]} /> : null}
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -86,11 +94,12 @@ interface MessagesScreenProps {
 }
 
 export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): React.JSX.Element {
-  const { dark } = useAppTheme();
+  const { dark, colors } = useAppTheme();
   const bg = dark ? '#1C1C19' : '#FFFFFF';
   const text = dark ? '#E8E8E3' : '#1A1A17';
   const muted = dark ? 'rgba(232,232,227,0.4)' : 'rgba(26,26,23,0.4)';
   const border = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.12)';
+  const accent = colors.accent;
 
   const [openConvo, setOpenConvo] = useState<ConversationPreview | null>(null);
   const [showRequests, setShowRequests] = useState(false);
@@ -172,6 +181,7 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
             text={text}
             muted={muted}
             border={border}
+            accent={accent}
           />
         )}
         refreshing={isLoading}
@@ -337,6 +347,15 @@ const styles = StyleSheet.create({
   convoTime: {
     fontSize: 11,
     fontFamily: 'JosefinSans_400Regular_Italic',
+  },
+  convoMeta: {
+    alignItems: 'flex-end',
+    gap: 5,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   placeholder: {
     flex: 1,

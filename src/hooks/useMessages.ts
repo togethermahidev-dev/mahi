@@ -1,9 +1,6 @@
 import { useEffect } from 'react';
-import { sendMessage, createOrGetConversation, type ConversationPreview } from '@/api';
-import { useAuthStore, useMessagesStore } from '@/store';
-import type { Database } from '@/types';
-
-type MsgRow = Database['public']['Tables']['messages']['Row'];
+import { createOrGetConversation, type ConversationPreview } from '@/api';
+import { useAuthStore, useConversationStore, useMessagesStore } from '@/store';
 
 export interface UseMessagesResult {
   inbox: ConversationPreview[];
@@ -12,7 +9,7 @@ export interface UseMessagesResult {
   refresh: () => void;
   accept: (conversationId: string) => Promise<void>;
   deny: (conversationId: string) => Promise<void>;
-  send: (conversationId: string, content: string) => Promise<MsgRow | null>;
+  send: (conversationId: string, content: string) => Promise<boolean>;
   /** Find or create a conversation with another user, returns the preview or null on error. */
   startConversation: (otherUserId: string) => Promise<ConversationPreview | null>;
 }
@@ -26,7 +23,7 @@ export function useMessages(): UseMessagesResult {
   useEffect(() => {
     if (!userId) return;
     if (inbox.length === 0 && requests.length === 0 && !isSyncing) {
-      useMessagesStore.getState().sync(userId);
+      useMessagesStore.getState().sync();
     }
     useMessagesStore.getState().subscribeToInbox(userId);
     return () => {
@@ -40,14 +37,13 @@ export function useMessages(): UseMessagesResult {
     requests,
     isLoading: isSyncing && inbox.length === 0 && requests.length === 0,
     refresh: () => {
-      if (userId) useMessagesStore.getState().sync(userId);
+      if (userId) useMessagesStore.getState().sync();
     },
     accept: (id) => useMessagesStore.getState().accept(id),
     deny: (id) => useMessagesStore.getState().deny(id),
     send: async (conversationId, content) => {
-      if (!userId) return null;
-      const { data, error } = await sendMessage(conversationId, userId, content);
-      return error ? null : data;
+      if (!userId) return false;
+      return useConversationStore.getState().send(conversationId, userId, content);
     },
     startConversation: async (otherUserId) => {
       if (!userId) return null;

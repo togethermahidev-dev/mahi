@@ -13,6 +13,7 @@ function msg(partial: Partial<MsgRow> & { created_at: string }): MsgRow {
     content: partial.content ?? 'hi',
     conversation_id: partial.conversation_id ?? 'c1',
     sender_id: partial.sender_id ?? 'a',
+    client_id: partial.client_id ?? null,
     created_at: partial.created_at,
   };
 }

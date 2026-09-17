@@ -6,7 +6,7 @@ import {
   acceptRequest,
   deleteConversation,
   type ConversationPreview,
-  type MsgRow,
+  type Message,
 } from '@/api';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -18,15 +18,17 @@ interface MessagesState {
   requests: ConversationPreview[];
   isSyncing: boolean;
 
-  sync: (userId: string) => Promise<void>;
+  sync: () => Promise<void>;
   accept: (conversationId: string) => Promise<void>;
   /** Optimistic delete from requests (DENY flow). */
   deny: (conversationId: string) => Promise<void>;
   /** Update the last_message preview for a conversation — called from real-time handlers. */
   patchConversationLastMessage: (
     conversationId: string,
-    msg: Pick<MsgRow, 'id' | 'content' | 'sender_id' | 'created_at'>
+    msg: Pick<Message, 'id' | 'content' | 'sender_id' | 'created_at'>
   ) => void;
+  /** The conversation has been read up to now — clears its unread dot. */
+  clearUnread: (conversationId: string) => void;
   /** Subscribe to new conversations/requests arriving in real-time. */
   subscribeToInbox: (userId: string) => void;
   /** Tear down the inbox subscription. */
@@ -39,14 +41,11 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
   requests: [],
   isSyncing: false,
 
-  sync: async (userId: string) => {
+  sync: async () => {
     if (get().isSyncing) return;
     set({ isSyncing: true });
 
-    const [inboxResult, requestsResult] = await Promise.all([
-      getInbox(userId),
-      getRequests(userId),
-    ]);
+    const [inboxResult, requestsResult] = await Promise.all([getInbox(), getRequests()]);
 
     if (inboxResult.data) set({ inbox: inboxResult.data });
     if (requestsResult.data) set({ requests: requestsResult.data });
@@ -94,12 +93,29 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
   },
 
   patchConversationLastMessage: (conversationId, msg) => {
+    const patch = (c: ConversationPreview): ConversationPreview =>
+      c.id === conversationId
+        ? {
+            ...c,
+            last_message: msg,
+            updated_at: msg.created_at,
+            // Only the other person's messages are unread, and only while the screen is shut —
+            // ConversationScreen marks the conversation read as each one lands.
+            unread_count:
+              msg.sender_id === c.other_profile.id ? c.unread_count + 1 : c.unread_count,
+          }
+        : c;
     set((state) => ({
-      inbox: state.inbox.map((c) =>
-        c.id === conversationId ? { ...c, last_message: msg, updated_at: msg.created_at } : c
-      ),
+      inbox: state.inbox.map(patch),
+      requests: state.requests.map(patch),
+    }));
+  },
+
+  clearUnread: (conversationId) => {
+    set((state) => ({
+      inbox: state.inbox.map((c) => (c.id === conversationId ? { ...c, unread_count: 0 } : c)),
       requests: state.requests.map((c) =>
-        c.id === conversationId ? { ...c, last_message: msg, updated_at: msg.created_at } : c
+        c.id === conversationId ? { ...c, unread_count: 0 } : c
       ),
     }));
   },
@@ -117,7 +133,7 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
 
     const handleInsert = (_payload: ConvPayload) => {
       // New conversation where this user is a participant — re-sync for full preview
-      get().sync(userId);
+      get().sync();
     };
 
     const handleUpdate = (payload: ConvPayload) => {

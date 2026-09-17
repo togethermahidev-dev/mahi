@@ -29,6 +29,39 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      conversation_reads: {
+        Row: {
+          conversation_id: string;
+          last_read_at: string;
+          user_id: string;
+        };
+        Insert: {
+          conversation_id: string;
+          last_read_at?: string;
+          user_id: string;
+        };
+        Update: {
+          conversation_id?: string;
+          last_read_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'conversation_reads_conversation_id_fkey';
+            columns: ['conversation_id'];
+            isOneToOne: false;
+            referencedRelation: 'conversations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'conversation_reads_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       conversations: {
         Row: {
           created_at: string;
@@ -119,6 +152,7 @@ export type Database = {
       };
       messages: {
         Row: {
+          client_id: string | null;
           content: string;
           conversation_id: string;
           created_at: string;
@@ -126,6 +160,7 @@ export type Database = {
           sender_id: string;
         };
         Insert: {
+          client_id?: string | null;
           content: string;
           conversation_id: string;
           created_at?: string;
@@ -133,6 +168,7 @@ export type Database = {
           sender_id: string;
         };
         Update: {
+          client_id?: string | null;
           content?: string;
           conversation_id?: string;
           created_at?: string;
@@ -685,6 +721,42 @@ export type Database = {
           has_open_tag: boolean;
           id: string;
           username: string;
+        }[];
+      };
+      send_message: {
+        Args: { p_client_id: string; p_content: string; p_conversation_id: string };
+        Returns: Json;
+      };
+      get_messages: {
+        Args: {
+          p_before?: string | null;
+          p_before_id?: string | null;
+          p_conversation_id: string;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
+      mark_conversation_read: {
+        Args: { p_conversation_id: string };
+        Returns: undefined;
+      };
+      get_inbox: {
+        Args: { p_status?: string };
+        Returns: {
+          id: string;
+          status: string;
+          initiated_by: string;
+          is_requester: boolean;
+          updated_at: string;
+          other_id: string;
+          other_username: string;
+          other_display_name: string | null;
+          other_avatar_url: string | null;
+          last_message_id: string | null;
+          last_message: string | null;
+          last_message_sender: string | null;
+          last_message_at: string | null;
+          unread_count: number;
         }[];
       };
       register_push_token: {

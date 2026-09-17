@@ -71,7 +71,7 @@ export const useBlockStore = create<BlockState>((set, get) => ({
     // Refresh dependent stores — the DB trigger already removed follows + hid conversations,
     // and the updated RPC now excludes blocked users from the feed.
     useFeedStore.getState().sync(true);
-    useMessagesStore.getState().sync(currentUserId);
+    useMessagesStore.getState().sync();
     // Clear local follow state for the blocked user
     useFollowStore.setState((s) => ({
       followingByMe: { ...s.followingByMe, [targetUserId]: false },
@@ -107,7 +107,7 @@ export const useBlockStore = create<BlockState>((set, get) => ({
 
     // Refresh feed + messages — unblocked user's posts/conversations reappear
     useFeedStore.getState().sync(true);
-    useMessagesStore.getState().sync(currentUserId);
+    useMessagesStore.getState().sync();
 
     return { error: null };
   },

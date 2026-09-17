@@ -6,6 +6,8 @@ export type { ThemeMode } from './themeStore';
 export { useFeedStore } from './feedStore';
 export type { PendingPost } from './feedStore';
 export { useMessagesStore } from './messagesStore';
+export { useConversationStore } from './conversationStore';
+export type { Thread } from './conversationStore';
 export { useNotificationsStore } from './notificationsStore';
 export { useProfilePostsStore } from './profilePostsStore';
 export { useSocialStore } from './socialStore';
