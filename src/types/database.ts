@@ -14,6 +14,7 @@ export type Database = {
       app_config: {
         Row: {
           id: boolean;
+          min_app_version: string;
           quiet_end: string;
           quiet_start: string;
           storage_public_url: string;

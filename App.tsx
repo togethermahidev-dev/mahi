@@ -24,11 +24,16 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useNotificationsStore, useProfilePostsStore, useFollowStore, useSuggestStore, useBlockStore, useSocialStore, usePushStore, useTagStore } from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { getProfile, signOut, updateTimezone } from '@/api';
+import { getMinAppVersion, getProfile, signOut, updateTimezone } from '@/api';
+import Constants from 'expo-constants';
+import { isBelowVersion } from '@/lib/appVersion';
+import UpdateRequiredScreen from '@/components/UpdateRequiredScreen';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastHost } from '@/components/ToastHost';
+
+const APP_VERSION = Constants.expoConfig?.version ?? '';
 
 // Prevent the native OS splash from auto-hiding before our custom one is drawn.
 SplashScreen.preventAutoHideAsync();
@@ -84,6 +89,7 @@ export default function App(): React.JSX.Element {
   });
 
   const { session, isLoading, setSession, setIsLoading } = useAuthStore();
+  const [minVersion, setMinVersion] = useState<string | null>(null);
   const { colorScheme } = useAppTheme();
 
   // Restore persisted session on cold start + handle all auth events (sign in,
@@ -132,6 +138,14 @@ export default function App(): React.JSX.Element {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Forced-update gate: checked once per sign-in. A failed check never blocks.
+  useEffect(() => {
+    if (!session) return;
+    getMinAppVersion().then(({ data }) => {
+      if (data && isBelowVersion(APP_VERSION, data)) setMinVersion(data);
+    });
+  }, [session]);
+
   // Reset camera gate on sign-out so returning users always see the animation
   useEffect(() => {
     if (!session) setShowCamera(false);
@@ -149,6 +163,13 @@ export default function App(): React.JSX.Element {
       <>
         <SplashScreenComponent onLayout={onSplashLayout} />
         <StatusBar style="light" />
+      </>
+    );
+  } else if (session && minVersion) {
+    content = (
+      <>
+        <UpdateRequiredScreen current={APP_VERSION} minimum={minVersion} />
+        <StatusBar style="auto" />
       </>
     );
   } else if (session && !showCamera) {

@@ -366,6 +366,19 @@ deadlines and their pushes, and answers any tags the poster holds.
 
 ### Phase 3 — Contract the old posting path
 
+*Expand step built 2026-09-17, not live:* `supabase/migrations/20260917113302_app_version_gate.sql`
+(+ rollback, `supabase/tests/app_version_gate_test.sql`) adds `app_config.min_app_version`
+(default `0.0.0`, x.y.z only). The app reads it once per sign-in and shows
+`src/components/UpdateRequiredScreen.tsx` when `isBelowVersion(app version, minimum)`
+(`src/lib/appVersion.ts`, unit-tested, flip-tested); a failed check never blocks. No separate
+`get_app_status()` RPC — `app_config` is already readable.
+
+*Contract step parked:* `supabase/deferred/contract_posting.sql` sits outside `migrations/` so a push
+can't apply it early. It becomes a migration only after the create_post build is in both stores and
+`min_app_version` is raised to that build's `version` (bump `version` in `app.config.js` for that
+release — it is still `0.1.0`).
+
+
 **Goal:** once the Phase 2 build is the minimum supported version, nothing can post around the rules.
 
 **Migration `contract_posting`**
