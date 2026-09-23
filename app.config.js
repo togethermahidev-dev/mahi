@@ -70,6 +70,8 @@ const config = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.mahi.app',
+    // One build number for every lane (eas.json appVersionSource "local"). Moved only by
+    // `pnpm release:prepare`, never by hand or by EAS.
     buildNumber: '10',
     // Invite links: https://togethermahi.com/i/<token> opens the app when it's installed.
     // Needs apple-app-site-association served from that domain.
@@ -92,8 +94,11 @@ const config = {
     fallbackToCacheTimeout: 30000,
     enableBsdiffPatchSupport: true,
   },
-  runtimeVersion: '0.1.0',
+  // Follows `version`, so an OTA reaches exactly the builds of that version. Never set by hand.
+  runtimeVersion: { policy: 'appVersion' },
   android: {
+    // Same number as ios.buildNumber, every lane. Moved only by `pnpm release:prepare`.
+    versionCode: 10,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#59c2d7',

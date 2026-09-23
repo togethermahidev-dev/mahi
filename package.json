@@ -11,6 +11,8 @@
     "test": "jest",
     "test:scripts": "node --test scripts/*.test.cjs .claude/hooks/*.test.cjs",
     "release:check": "node scripts/release-check.cjs",
+    "release:prepare": "node scripts/release-check.cjs && node scripts/bump-build.cjs && node scripts/release-check.cjs --release",
+    "ota:bump": "node scripts/bump-build.cjs --ota",
     "lint": "eslint src",
     "format": "prettier --write \"src/**/*.{ts,tsx}\""
   },
