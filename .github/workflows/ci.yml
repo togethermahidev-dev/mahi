@@ -72,6 +72,15 @@ jobs:
       - name: Jest
         run: pnpm exec jest --ci --maxWorkers=2
 
+      # The guard hook's own tests and the release preflight's. Plain node, no dependencies.
+      - name: Script tests
+        run: pnpm test:scripts
+
+      # Refuses a minimum app version higher than the version this build ships, which would
+      # lock every user out behind an update screen with no update to install.
+      - name: Release preflight
+        run: pnpm release:check
+
   database:
     name: Database checks
     runs-on: ubuntu-latest

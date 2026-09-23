@@ -9,6 +9,8 @@
     "web": "expo start --web",
     "typecheck": "node node_modules/@typescript/native/bin/tsc --noEmit",
     "test": "jest",
+    "test:scripts": "node --test scripts/*.test.cjs .claude/hooks/*.test.cjs",
+    "release:check": "node scripts/release-check.cjs",
     "lint": "eslint src",
     "format": "prettier --write \"src/**/*.{ts,tsx}\""
   },
