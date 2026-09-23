@@ -21,7 +21,9 @@ export type TaggedUser = {
 };
 
 export type FeedPost = PostRow & {
-  profiles: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'> & { points?: number };
+  profiles: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'> & {
+    points?: number;
+  };
   like_count: number;
   comment_count: number;
   liked_by_me: boolean;
@@ -70,7 +72,9 @@ const SIGNED_URL_SECONDS = 3600;
 
 /** Turn server items into posts with short-lived signed photo URLs ('' when hidden). */
 async function toPosts(items: FeedItem[]): Promise<FeedPost[]> {
-  const paths = items.flatMap((i) => [i.image_path, i.pov_image_path]).filter((p): p is string => !!p);
+  const paths = items
+    .flatMap((i) => [i.image_path, i.pov_image_path])
+    .filter((p): p is string => !!p);
   const urls = new Map<string, string>();
   if (paths.length) {
     const { data, error } = await supabase.storage

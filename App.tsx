@@ -3,10 +3,7 @@ import { LogBox } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 // Suppress known harmless development warnings
-LogBox.ignoreLogs([
-  'Tried to register two views with the same name',
-  'RNDateTimePicker',
-]);
+LogBox.ignoreLogs(['Tried to register two views with the same name', 'RNDateTimePicker']);
 import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
@@ -21,7 +18,22 @@ import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
 import HorizontalNavigator from '@/screens/HorizontalNavigator';
 import { supabase } from '@/lib/supabase';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useAuthStore, useUserStore, useFeedStore, useMessagesStore, useConversationStore, useNotificationsStore, useProfilePostsStore, useFollowStore, useSuggestStore, useBlockStore, useSocialStore, usePushStore, useTagStore, useInviteStore } from '@/store';
+import {
+  useAuthStore,
+  useUserStore,
+  useFeedStore,
+  useMessagesStore,
+  useConversationStore,
+  useNotificationsStore,
+  useProfilePostsStore,
+  useFollowStore,
+  useSuggestStore,
+  useBlockStore,
+  useSocialStore,
+  usePushStore,
+  useTagStore,
+  useInviteStore,
+} from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useInviteLink } from '@/hooks/useInviteLink';
@@ -63,7 +75,10 @@ async function hydrateForUser(userId: string): Promise<void> {
   try {
     const { data } = await getProfile(userId);
     if (data) {
-      if (data.is_banned) { signOut().catch(() => {}); return; }
+      if (data.is_banned) {
+        signOut().catch(() => {});
+        return;
+      }
       useUserStore.getState().setProfile(data);
       syncTimezone(userId, data.timezone);
     }

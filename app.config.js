@@ -76,9 +76,11 @@ const config = {
     associatedDomains: ['applinks:togethermahi.com', 'applinks:www.togethermahi.com'],
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
-      NSCameraUsageDescription: 'Mahi uses the camera to power your fitness accountability features.',
+      NSCameraUsageDescription:
+        'Mahi uses the camera to power your fitness accountability features.',
       NSMicrophoneUsageDescription: 'Mahi uses the microphone to record your workout sessions.',
-      NSPhotoLibraryUsageDescription: 'Mahi uses your photo library to let you share workout photos.',
+      NSPhotoLibraryUsageDescription:
+        'Mahi uses your photo library to let you share workout photos.',
       NSLocationWhenInUseUsageDescription:
         'Mahi uses your location to optionally tag where a post was taken.',
       NSUserTrackingUsageDescription: 'Mahi uses analytics to improve your fitness experience.',

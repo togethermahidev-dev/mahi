@@ -471,7 +471,7 @@ export default function CreateAccountSheet({
                     </Text>
                     <Text style={[styles.inviteWhat, { color: muted }]}>
                       {invitePreview.open
-                        ? 'Their tag starts when you join — you\'ll have 48 hours to post back.'
+                        ? "Their tag starts when you join — you'll have 48 hours to post back."
                         : 'That invite has already been used, but you can still sign up.'}
                     </Text>
                   </View>

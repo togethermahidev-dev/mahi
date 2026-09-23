@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { track } from '@/lib/analytics';
 import { getFeed, type FeedPost, type FeedCursor } from '@/api';
 
 const PAGE_SIZE = 20;
@@ -46,7 +47,9 @@ const initial = {
 };
 
 const cursorOf = (posts: FeedPost[]): FeedCursor | undefined =>
-  posts.length ? { ts: posts[posts.length - 1].created_at, id: posts[posts.length - 1].id } : undefined;
+  posts.length
+    ? { ts: posts[posts.length - 1].created_at, id: posts[posts.length - 1].id }
+    : undefined;
 
 export const useFeedStore = create<FeedState>((set, get) => ({
   ...initial,
@@ -59,6 +62,9 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     const { data, error } = await getFeed(PAGE_SIZE);
     if (gen !== generation) return;
     if (data) {
+      // The moment a post opens the feed up. `loaded` keeps the first read of a session,
+      // which starts from locked: false, from counting as an unlock.
+      if (get().loaded && get().locked && !data.locked) track('feed_unlocked', {});
       set({
         posts: data.posts,
         cursor: cursorOf(data.posts),

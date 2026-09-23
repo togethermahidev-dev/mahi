@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { claimInvite, getInvitePreview, type InvitePreview } from '@/api';
 import { useTagStore } from './tagStore';
 import { useToastStore } from './toastStore';
+import { track } from '@/lib/analytics';
 
 interface InviteState {
   /**
@@ -54,6 +55,7 @@ export const useInviteStore = create<InviteState>((set, get) => ({
     }
 
     set({ pendingToken: null, preview: null });
+    track('invite_claimed', { inviter_id: data.inviter.id });
     // The tag is live from this moment, so the camera's countdown should show it.
     useTagStore.getState().syncOpenTags();
     useToastStore

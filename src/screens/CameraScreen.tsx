@@ -42,6 +42,7 @@ import {
 import { useToastStore } from '@/store/toastStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { randomUUID } from 'expo-crypto';
+import { track } from '@/lib/analytics';
 import {
   createPost,
   getTaggableFriends,
@@ -461,7 +462,7 @@ function DualPhotoPreview({
       'worklet';
       const next = Math.max(
         PRIMARY_MIN_SCALE,
-        Math.min(primaryStartScale.value * e.scale, PRIMARY_MAX_SCALE),
+        Math.min(primaryStartScale.value * e.scale, PRIMARY_MAX_SCALE)
       );
       primaryScale.value = next;
       // Re-clamp pan against the new scale so shrinking re-centers the edges.
@@ -491,7 +492,7 @@ function DualPhotoPreview({
       const c = clampPrimaryPan(
         primaryStartTransX.value + e.translationX,
         primaryStartTransY.value + e.translationY,
-        primaryScale.value,
+        primaryScale.value
       );
       primaryTransX.value = c.x;
       primaryTransY.value = c.y;
@@ -513,7 +514,7 @@ function DualPhotoPreview({
   // background route here — the two never compete for the same touch.
   const primaryGesture = Gesture.Exclusive(
     primaryDoubleTapGesture,
-    Gesture.Simultaneous(primaryPinchGesture, primaryPanGesture),
+    Gesture.Simultaneous(primaryPinchGesture, primaryPanGesture)
   );
 
   const primaryAnimStyle = useAnimatedStyle(() => ({
@@ -853,7 +854,11 @@ function TagUserRow({
   const initial = display[0].toUpperCase();
   return (
     <TouchableOpacity
-      style={[styles.tagRow, selected && styles.tagRowSelected, item.has_open_tag && { opacity: 0.4 }]}
+      style={[
+        styles.tagRow,
+        selected && styles.tagRowSelected,
+        item.has_open_tag && { opacity: 0.4 },
+      ]}
       activeOpacity={0.7}
       disabled={item.has_open_tag}
       onPress={onPress}
@@ -867,8 +872,7 @@ function TagUserRow({
       )}
       <View style={{ flex: 1 }}>
         <Text style={styles.tagRowName}>
-          {display}{' '}
-          <PointsBadge points={item.points} style={styles.tagRowHandle} />
+          {display} <PointsBadge points={item.points} style={styles.tagRowHandle} />
         </Text>
         <Text style={styles.tagRowHandle}>
           @{item.username}
@@ -1089,11 +1093,13 @@ function TagSheet({
 async function shareInvites(invites: PostInvite[]): Promise<void> {
   for (const invite of invites) {
     try {
-      await Share.share({
+      const result = await Share.share({
         message:
           `I tagged you on Mahi — you've got 48 hours to post back.\n${invite.url}\n` +
           `Already have Mahi? Use code ${invite.code}.`,
       });
+      // Only a link that actually went somewhere counts as shared.
+      if (result.action === Share.sharedAction) track('invite_shared', {});
     } catch {
       // A share sheet that won't open shouldn't undo a post that already landed.
       return;
@@ -1104,11 +1110,7 @@ async function shareInvites(invites: PostInvite[]): Promise<void> {
 // ─── CameraScreen ─────────────────────────────────────────────────────────────
 
 type CaptureState =
-  | 'idle'
-  | 'capturing-first'
-  | 'switching'
-  | 'awaiting-second'
-  | 'capturing-second';
+  'idle' | 'capturing-first' | 'switching' | 'awaiting-second' | 'capturing-second';
 
 export default function CameraScreen(): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -1474,13 +1476,24 @@ export default function CameraScreen(): React.JSX.Element {
         });
       }
 
+      track('tag_sent', {
+        post_id: result.post.id,
+        tag_count: taggedUsersSnapshot.length,
+        invite_count: inviteCountSnapshot,
+      });
+      for (const answered of result.answered) {
+        track('tag_answered', { tagger_id: answered.tagger_id, seconds: answered.seconds });
+      }
+
       const firstAnswered = result.answered[0];
       if (firstAnswered) {
         useUserStore.getState().refresh(userId);
         const more = result.answered.length > 1 ? ` +${result.answered.length - 1}` : '';
         useToastStore
           .getState()
-          .show(`Answered @${firstAnswered.username}${more} in ${formatWait(firstAnswered.seconds)}`);
+          .show(
+            `Answered @${firstAnswered.username}${more} in ${formatWait(firstAnswered.seconds)}`
+          );
       }
       useTagStore.getState().syncOpenTags();
       await shareInvites(result.invites);

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { onPushOpened, type PushData } from '@/lib/push';
 import { useNotificationsStore } from '@/store';
+import { track } from '@/lib/analytics';
 
 export interface PushRoutes {
   openProfile: (userId: string) => void;
@@ -18,6 +19,7 @@ export function usePushRouting(routes: PushRoutes): void {
   useEffect(
     () =>
       onPushOpened((data: PushData) => {
+        track('push_opened', { route: data.route ?? 'post' });
         if (data.notification_id) {
           useNotificationsStore.getState().markRead(data.notification_id);
         }

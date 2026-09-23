@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { track } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 import {
   getNotifications,
@@ -100,6 +101,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       actor_id: string;
       type: string;
       post_id: string | null;
+      challenge_id: string | null;
       comment_id: string | null;
       is_read: boolean;
       created_at: string;
@@ -121,6 +123,12 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       if (!actor) return;
 
       const notification = { ...payload.new, actor } as NotificationWithActor;
+
+      // A deadline the server has just declared missed. Counted here because it arrives
+      // exactly once per notification; the stats views are the number of record.
+      if (payload.new.type === 'tag_missed') {
+        track('tag_missed', { challenge_id: payload.new.challenge_id ?? null });
+      }
 
       set((state) => ({
         items: [notification, ...state.items],
