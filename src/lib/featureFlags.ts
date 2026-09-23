@@ -42,6 +42,10 @@ export const FEATURE_FLAGS = [
   'tag-challenges', // P2 open-tags banner (the 3-tag rule is switched in app_config)
   'mahi-points', // P5 points badges and profile stat
   'invite-links', // P7 invite a slot from the tag sheet, share links after posting
+
+  // Sign-in placeholders — pills on the welcome screen with nothing behind them yet.
+  'auth-apple-signin',
+  'auth-google-signin',
 ] as const;
 
 /** A known PostHog feature flag key. */

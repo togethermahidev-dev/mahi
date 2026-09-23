@@ -9,6 +9,7 @@ import {
   Image,
 } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import LoginSheet from '@/components/LoginSheet';
 import CreateAccountSheet from '@/components/CreateAccountSheet';
 
@@ -29,6 +30,9 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
 
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  // Placeholders until Apple / Google sign-in is built; each pill is hidden by its own flag.
+  const showApple = useFeatureFlag('auth-apple-signin');
+  const showGoogle = useFeatureFlag('auth-google-signin');
 
   const handleAuthComplete = () => {
     setShowLogin(false);
@@ -53,13 +57,22 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
             The fitness accountability app
           </Text>
         </View>
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: sheetText }]}
-          activeOpacity={0.8}
-          onPress={() => setShowSignup(true)}
-        >
-          <Text style={[styles.buttonText, { color: sheetBg }]}>Create an account</Text>
-        </TouchableOpacity>
+        <View style={styles.buttons}>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: sheetText }]}
+            activeOpacity={0.8}
+            onPress={() => setShowSignup(true)}
+          >
+            <Text style={[styles.buttonText, { color: sheetBg }]}>Create an account</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, styles.buttonOutline, { borderColor: sheetText }]}
+            activeOpacity={0.8}
+            onPress={() => setShowLogin(true)}
+          >
+            <Text style={[styles.buttonText, { color: sheetText }]}>Login</Text>
+          </TouchableOpacity>
+        </View>
       </Animated.View>
 
       <View style={styles.gap} />
@@ -75,13 +88,28 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
           style={styles.topSheetBg}
           resizeMode="contain"
         />
-        <TouchableOpacity
-          style={[styles.button, styles.buttonOutline, { borderColor: sheetText }]}
-          activeOpacity={0.8}
-          onPress={() => setShowLogin(true)}
-        >
-          <Text style={[styles.buttonText, { color: sheetText }]}>Login</Text>
-        </TouchableOpacity>
+        {showApple || showGoogle ? (
+          <View style={styles.buttons}>
+            {showApple ? (
+              <TouchableOpacity
+                style={[styles.button, styles.buttonOutline, { borderColor: sheetText }]}
+                activeOpacity={0.8}
+                onPress={() => {}}
+              >
+                <Text style={[styles.buttonText, { color: sheetText }]}>Continue with Apple</Text>
+              </TouchableOpacity>
+            ) : null}
+            {showGoogle ? (
+              <TouchableOpacity
+                style={[styles.button, styles.buttonOutline, { borderColor: sheetText }]}
+                activeOpacity={0.8}
+                onPress={() => {}}
+              >
+                <Text style={[styles.buttonText, { color: sheetText }]}>Continue with Google</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        ) : null}
       </Animated.View>
 
       <LoginSheet
@@ -135,6 +163,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  buttons: { width: '100%', gap: 12 },
   button: {
     width: '72%',
     alignSelf: 'center',

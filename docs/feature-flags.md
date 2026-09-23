@@ -43,6 +43,10 @@ if (!showSuggestions) return null;
 are switched in the `app_config` table):
 `push-core` (P1, the one-time "turn on notifications" prompt) · `tag-challenges` (P2, the open-tags banner) · `mahi-points` (P5, points badges)
 
+**Sign-in placeholders** (pills on the welcome screen with no sign-in behind them yet — keep these
+**off** in PostHog until the real sign-in ships; flags default on when unset):
+`auth-apple-signin` · `auth-google-signin`
+
 ## Creating / managing flags
 
 Flags are managed through the project-scoped **PostHog MCP** (`.mcp.json`, see below). Create a flag at 100% for
