@@ -59,3 +59,6 @@ graphify-out/
 
 # database backups hold real user data
 supabase/backups/
+
+# local planning notes, not for the repo
+docs/next-features-plan.md
