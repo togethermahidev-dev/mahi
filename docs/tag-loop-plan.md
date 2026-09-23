@@ -676,6 +676,26 @@ Device — share link → install → sign up with code → tag appears with 48 
 
 ### Phase 8 — Beta
 
+*Measurement built 2026-09-23, not live. The beta itself waits on everything shipping and on
+decision #12.* `supabase/migrations/20260923101500_stats_views.sql` (+ rollback;
+`supabase/tests/stats_test.sql`, 19 checks, red before the migration, green after),
+`src/lib/analytics.ts`.
+
+- **The numbers of record** are five views in their own `stats` schema, so PostgREST never
+  exposes them and the app never reads them — the owner reads them in the SQL editor.
+  `stats.tags_daily` (sent, answered, missed, still open, waiting on an invite, answered %,
+  median answer seconds), `stats.posts_daily` (posts, posters, how many answered a tag),
+  `stats.invites_daily` (sent, claimed, expired, claimed %), `stats.points_daily`,
+  `stats.users_weekly` (accounts vs who posted). Between them they answer all four starter
+  targets in decision #12.
+- **Seven PostHog events**, each sent only after the server confirms, through one typed map in
+  `src/lib/analytics.ts` so the names can't drift: `tag_sent` (one per post, with the tag and
+  invite counts), `tag_answered`, `tag_missed`, `invite_shared`, `invite_claimed`,
+  `feed_unlocked`, `push_opened`. `tag_missed` fires on the notification, so it counts twice per
+  missed tag — one per person — and `stats.tags_daily` holds the true count.
+- **Still to do:** decision #12's targets, then the inner circle runs the loop for 2 weeks and
+  the views get compared against them.
+
 - PostHog events (client, after the server confirms): `tag_sent`, `tag_answered` (with seconds),
   `tag_missed`, `invite_shared`, `invite_claimed`, `feed_unlocked`, `push_opened`.
   Server-truth dashboard from SQL views (`tag_challenges`, `point_events`) — the numbers of record.
