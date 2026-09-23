@@ -42,7 +42,8 @@ function findGates(files) {
     // The column's type and constraints can sit between the name and its default
     // (`min_app_version text not null default '0.0.0'`), so allow anything but a quote or a
     // semicolon in between — that keeps the match inside one statement and out of other strings.
-    const re = /min_app_version\b[^;']*?(?:=|\bdefault\b)\s*'(\d+\.\d+\.\d+)'/gi;
+    const re =
+      /min_(?:app_version|version_ios|version_android)\b[^;']*?(?:=|\bdefault\b)\s*'(\d+\.\d+\.\d+)'/gi;
     let m;
     while ((m = re.exec(sql)) !== null) found.push({ file: name, version: m[1] });
   }
@@ -80,6 +81,36 @@ function problems({ version, runtimeVersion, gates }) {
   return out;
 }
 
+/**
+ * The build-number rules (pingmee-v2): one number in app.config.js for every lane, iOS and Android
+ * equal, the runtime following the version, and — for a release build — an OTA counter that
+ * release:prepare has reset, which proves the build number was raised.
+ */
+function numberProblems(n, { release = false } = {}) {
+  const out = [];
+  if (n.appVersionSource !== 'local')
+    out.push(
+      `eas.json appVersionSource is "${n.appVersionSource}". It must be "local" so every lane ` +
+        `uses the one build number in app.config.js.`
+    );
+  if (n.autoIncrement)
+    out.push('eas.json sets autoIncrement. Remove it; the build number moves only by release:prepare.');
+  if (String(n.iosBuild) !== String(n.androidBuild))
+    out.push(
+      `iOS build ${n.iosBuild} and Android build ${n.androidBuild} must be the same build number.`
+    );
+  if (!n.runtimeVersion || n.runtimeVersion.policy !== 'appVersion')
+    out.push(
+      `app.config.js runtimeVersion must be { policy: 'appVersion' } so updates follow the version.`
+    );
+  if (release && n.otaNumber !== 0)
+    out.push(
+      `OTA counter is ${n.otaNumber}. Run pnpm release:prepare once before a native build ` +
+        `(it raises the build number and resets the counter).`
+    );
+  return out;
+}
+
 function main() {
   const config = require(path.join(ROOT, 'app.config.js'));
   const files = fs
@@ -95,10 +126,30 @@ function main() {
     gates,
   });
 
+  const eas = JSON.parse(fs.readFileSync(path.join(ROOT, 'eas.json'), 'utf8'));
+  const otaMatch = /OTA_NUMBER\s*=\s*(\d+);/.exec(
+    fs.readFileSync(path.join(ROOT, 'src', 'constants', 'ota.ts'), 'utf8')
+  );
+  found.push(
+    ...numberProblems(
+      {
+        appVersionSource: eas.cli?.appVersionSource,
+        autoIncrement: Object.values(eas.build ?? {}).some((p) => p.autoIncrement),
+        runtimeVersion: config.runtimeVersion,
+        iosBuild: config.ios?.buildNumber,
+        androidBuild: config.android?.versionCode,
+        otaNumber: otaMatch ? Number(otaMatch[1]) : null,
+      },
+      { release: process.argv.includes('--release') }
+    )
+  );
+
   const highest = gates.reduce((a, b) => (compare(b.version, a) > 0 ? b.version : a), '0.0.0');
   console.log(`app version ........ ${config.version}`);
   console.log(`runtime version .... ${JSON.stringify(config.runtimeVersion)}`);
   console.log(`minimum version .... ${highest} (highest set by any migration)`);
+  console.log(`build number ....... iOS ${config.ios?.buildNumber} · Android ${config.android?.versionCode}`);
+  console.log(`OTA counter ........ ${otaMatch ? otaMatch[1] : '?'}`);
 
   if (found.length === 0) {
     console.log('\nNothing blocking a release.');
@@ -109,6 +160,6 @@ function main() {
   process.exitCode = 1;
 }
 
-module.exports = { parse, compare, findGates, problems };
+module.exports = { parse, compare, findGates, problems, numberProblems };
 
 if (require.main === module) main();

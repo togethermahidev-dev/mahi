@@ -85,3 +85,13 @@ test('migration files', () => {
     'deny'
   );
 });
+
+test('build numbers live in app.config.js, never in EAS', () => {
+  assert.strictEqual(verdict(bash('npx eas build:version:set --platform ios')), 'deny');
+  assert.notStrictEqual(verdict(bash('eas build:version:get --platform all --profile preview')), 'deny');
+  const write = (content) =>
+    decide({ tool_name: 'Write', tool_input: { file_path: 'eas.json', content } }, { cwd: tmpProject() });
+  assert.strictEqual(verdict(write('{"build":{"preview":{"autoIncrement":true}}}')), 'deny');
+  assert.strictEqual(verdict(write('{"cli":{"appVersionSource":"remote"}}')), 'deny');
+  assert.strictEqual(verdict(write('{"cli":{"appVersionSource":"local"}}')), 'allow');
+});

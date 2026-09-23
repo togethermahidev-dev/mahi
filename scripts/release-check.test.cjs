@@ -82,3 +82,49 @@ test('comparison is numeric, not alphabetical', () => {
     1
   );
 });
+
+// ── One build number for every lane (the pingmee-v2 rule) ──
+const { numberProblems } = require('./release-check.cjs');
+const good = {
+  appVersionSource: 'local',
+  autoIncrement: false,
+  runtimeVersion: { policy: 'appVersion' },
+  iosBuild: '11',
+  androidBuild: 11,
+  otaNumber: 0,
+};
+
+test('a prepared release has nothing wrong with its numbers', () => {
+  assert.deepStrictEqual(numberProblems(good, { release: true }), []);
+});
+
+test('EAS must use the build number in app.config.js', () => {
+  const found = numberProblems({ ...good, appVersionSource: 'remote' });
+  assert.strictEqual(found.length, 1);
+  assert.match(found[0], /appVersionSource/);
+});
+
+test('autoIncrement is never allowed', () => {
+  assert.match(numberProblems({ ...good, autoIncrement: true })[0], /autoIncrement/);
+});
+
+test('iOS and Android carry the same build number', () => {
+  assert.match(numberProblems({ ...good, androidBuild: 12 })[0], /same build number/);
+});
+
+test('the runtime follows the version', () => {
+  assert.match(numberProblems({ ...good, runtimeVersion: '0.1.0' })[0], /policy/);
+});
+
+test('a release build needs the OTA counter reset by release:prepare', () => {
+  assert.deepStrictEqual(numberProblems({ ...good, otaNumber: 9 }), []);
+  assert.match(numberProblems({ ...good, otaNumber: 9 }, { release: true })[0], /release:prepare/);
+});
+
+test('per-platform gates are found too', () => {
+  const found = findGates([
+    sql('v.sql', "add column min_version_ios text not null default '0.0.0'"),
+    sql('w.sql', "update public.app_config set min_version_android = '0.2.0';"),
+  ]);
+  assert.deepStrictEqual(found.map((g) => g.version), ['0.0.0', '0.2.0']);
+});

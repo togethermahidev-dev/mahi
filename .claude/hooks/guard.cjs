@@ -51,6 +51,8 @@ function checkBash(cmd, cwd, now) {
   if (/\b(git\s+(commit|tag)|gh\s+(pr|release))\b/.test(cmd) && AI_ATTRIBUTION.test(cmd))
     return deny('No AI attribution in commits, tags, PRs or releases.');
 
+  if (/\beas(-cli(@\S+)?)?\s+build:version:set\b/.test(cmd))
+    return deny('Never set EAS build numbers. The one build number lives in app.config.js; use pnpm release:prepare.');
   if (/\beas\s+submit\b/.test(cmd)) return deny('Store submission is owner-only.');
   if (/\beas\b/.test(cmd) && config.prodMarkers.some((m) => m.startsWith('--') && cmd.includes(m)))
     return deny('Production EAS builds and updates are owner-only.');
@@ -87,6 +89,12 @@ function checkMcp(server, tool, input) {
 function checkFileWrite(filePath, content, cwd) {
   if (content && /co-authored-by:|generated with claude|🤖 generated/i.test(content))
     return deny('No AI attribution in code, comments or docs.');
+  if (path.basename(filePath) === 'eas.json' && content) {
+    if (/"autoIncrement"\s*:\s*true/.test(content))
+      return deny('No autoIncrement in eas.json. The build number moves only by pnpm release:prepare.');
+    if (/"appVersionSource"\s*:\s*"(?!local")/.test(content))
+      return deny('eas.json appVersionSource must stay "local" (one build number in app.config.js).');
+  }
   const rel = path.relative(cwd, path.resolve(cwd, filePath));
   if (path.dirname(rel) !== path.normalize(config.migrationsDir)) return null;
   const name = path.basename(rel);
