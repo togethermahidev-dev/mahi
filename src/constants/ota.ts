@@ -9,4 +9,4 @@
  * History (newest first):
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 9;
+export const OTA_NUMBER = 10;
