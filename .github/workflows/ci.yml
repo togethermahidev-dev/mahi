@@ -1,10 +1,17 @@
 name: CI
 
+# Every check that can run without touching production, on every push and every PR into main.
+# The database job is the important one: it replays all migrations onto a throwaway Postgres and
+# runs the pgTAP suite, which is the only thing that proves an unshipped migration is correct.
 on:
+  push:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
+  workflow_dispatch:
+
+# Least privilege: these jobs only read the repo. Nothing here writes anywhere.
+permissions:
+  contents: read
 
 jobs:
   typecheck:
@@ -18,7 +25,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: pnpm
 
       - name: Install dependencies
@@ -26,3 +33,64 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+  test:
+    name: App tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Jest
+        run: pnpm exec jest --ci --maxWorkers=2
+
+  database:
+    name: Database checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The runner ships Postgres 16; the migrations and pgTAP tests need 17.
+      - name: Install PostgreSQL 17 and pgTAP
+        run: |
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-17 postgresql-17-pgtap
+
+      # Replays every migration onto a throwaway cluster, then runs the pgTAP suite.
+      # Never reaches Supabase — scripts/db.sh local has no network path to it.
+      - name: Replay migrations and run the pgTAP suite
+        env:
+          PGBIN: /usr/lib/postgresql/17/bin
+        run: ./scripts/db.sh local

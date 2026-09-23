@@ -46,10 +46,16 @@ case "${1:-}" in
     # Replay every migration on a throwaway local Postgres 17 (with Supabase stand-ins from
     # supabase/tests/local/stubs.sql), then run the pgTAP tests. Never touches Supabase.
     shift
-    PGBIN=/opt/homebrew/opt/postgresql@17/bin
+    # Homebrew's path by default; CI (and anyone on Linux) sets PGBIN to its own.
+    PGBIN="${PGBIN:-/opt/homebrew/opt/postgresql@17/bin}"
     DATA="${TMPDIR:-/tmp}/mahi-local-pg"
     LPORT=54329
-    [ -x "$PGBIN/postgres" ] || { echo "Needs: brew install postgresql@17 (and pgTAP)" >&2; exit 1; }
+    [ -x "$PGBIN/postgres" ] || {
+      echo "No Postgres 17 at $PGBIN." >&2
+      echo "  macOS: brew install postgresql@17 pgtap" >&2
+      echo "  elsewhere: set PGBIN to the bin directory of a Postgres 17 with pgTAP" >&2
+      exit 1
+    }
     [ -d "$DATA" ] || "$PGBIN/initdb" -D "$DATA" -A trust -U postgres >/dev/null
     "$PGBIN/pg_ctl" -D "$DATA" -o "-p $LPORT -k $DATA" -l "$DATA/log" -w start >/dev/null
     trap '"$PGBIN/pg_ctl" -D "$DATA" -m fast stop >/dev/null' EXIT
