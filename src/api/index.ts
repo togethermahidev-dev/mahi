@@ -1,5 +1,4 @@
 export * from './auth';
-export * from './email';
 export * from './messages';
 export * from './notifications';
 export * from './posts';

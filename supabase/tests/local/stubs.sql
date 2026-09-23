@@ -9,6 +9,11 @@ begin
   create role service_role nologin bypassrls;
 exception when duplicate_object then null;
 end $$;
+do $$
+begin
+  create role supabase_auth_admin nologin;
+exception when duplicate_object then null;
+end $$;
 
 create schema extensions;
 create schema auth;

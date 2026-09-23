@@ -119,8 +119,9 @@ All Edge Functions are deployed with `verify_jwt: false` (pre-auth flows).
 
 | Function | Purpose |
 |---|---|
-| `send-otp` | Receives `{ email, code }`, sends OTP email via Resend |
-| `complete-signup` | Creates Supabase auth user via admin API (`email_confirm: true`) |
+| `send-otp` | Receives `{ email }`, makes and stores a hashed 6-digit code, emails it via Resend |
+| `verify-otp` | Receives `{ email, code }`, checks it server-side and marks it verified |
+| `complete-signup` | Receives `{ email, password, code }`, creates the auth user (`email_confirm: true`) only for a verified code |
 
 ### Realtime
 
@@ -230,6 +231,8 @@ Product analytics via `posthog-react-native`. Singleton client created with `EXP
 | `login_success` | `LoginSheet.tsx` | Successful sign-in |
 | `login_failed` | `LoginSheet.tsx` | Sign-in error |
 | `signup_otp_sent` | `CreateAccountSheet.tsx` | OTP email dispatched |
+| `signup_otp_verified` | `CreateAccountSheet.tsx` | Server accepted the typed code |
+| `signup_otp_rejected` | `CreateAccountSheet.tsx` | Server refused the typed code |
 | `signup_completed` | `CreateAccountSheet.tsx` | Account created (includes `training_days`, `fitness_goals`) |
 
 **Required env vars:**
