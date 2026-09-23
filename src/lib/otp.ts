@@ -3,6 +3,7 @@ import { env } from '@/lib/env';
 
 const OTP_KEY = '@mahi:otp_state';
 const RESEND_COOLDOWN_MS = 60 * 1000; // 1 minute between resends
+export const OTP_LENGTH = 6; // must match send-otp / verify-otp
 
 const SUPABASE_URL = env.supabaseUrl;
 
@@ -44,6 +45,23 @@ export async function sendOTP(email: string): Promise<void> {
     sentAt: Date.now(),
   };
   await AsyncStorage.setItem(OTP_KEY, JSON.stringify(state));
+}
+
+/**
+ * Check a typed code on the server (verify-otp). Throws with the server's
+ * message when the code is wrong or expired; 5 wrong tries spend the code.
+ */
+export async function verifyOTP(email: string, code: string): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email.toLowerCase().trim(), code }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? 'Could not check the code.');
+  }
 }
 
 /**

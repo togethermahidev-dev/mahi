@@ -13,11 +13,13 @@
 - This is the project-wide rule for all Edge Functions going forward
 
 ## Email / OTP
-- OTP is generated client-side (`src/lib/otp.ts`), stored in AsyncStorage
-- `send-otp` Edge Function receives `{ email, code }` — it only sends the email via Resend
-- Verification is done entirely client-side by comparing against the stored OTPState
-- Resend sender address: `onboarding@resend.dev`
-  - TODO: change to `noreply@togethermahi.com` once SMTP is configured in Resend
+- The server makes, stores (SHA-256 hash only) and checks every sign-up code; the app never sees
+  the code except as the user types it. Same design as Pingmee.
+  - `send-otp` `{ email }` → emails a 6-digit code, 10-minute expiry, send limits per email and per network address
+  - `verify-otp` `{ email, code }` → checks it (5 tries), stamps `otp_codes.verified_at`
+  - `complete-signup` `{ email, password, code }` → creates the account only for a code verified in the last 30 minutes
+  - Auth hook `hook_require_verified_signup` (Before User Created) refuses email accounts without that stamp
+- Resend sender address: `noreply@mahitechnology.com`
 - App Store review: provide Apple a **real seeded account** (created via the normal OTP flow) or a
   TestFlight build — there is **no hardcoded bypass** in the client. (The previous
   `appreview@togethermahi.com` / `1234` backdoor was removed; it shipped a working credential in the
@@ -51,7 +53,7 @@
 ## State Management
 - Zustand stores: `useAuthStore`, `useUserStore`, `useSignUpStore`, `useFeedStore`, `useMessagesStore`, `useProfilePostsStore`, `useFollowStore`, `useSocialStore` — all exported from `src/store/index.ts`
 - Sign-up form state lives in `useSignUpStore` (persists across app backgrounding mid-flow)
-- OTP state (sensitive) lives in AsyncStorage only, managed via `src/lib/otp.ts`
+- Only the resend cooldown timestamp is kept on the device (`src/lib/otp.ts`); codes are server-only
 - When writing back to profile after async work, always read from `useUserStore.getState().profile` — never spread a closure snapshot
 
 ## Rest Days / Training Days

@@ -38,13 +38,15 @@ The build plan is [docs/tag-loop-plan.md](../docs/tag-loop-plan.md).
 
 | Function | Purpose |
 |---|---|
-| `send-otp` | Generates a code **server-side**, stores `sha256(code)` + expiry in `otp_codes`, emails via Resend. Never returns the code. |
-| `complete-signup` | Verifies the code server-side (hash, expiry, attempts) **before** creating the auth user, then deletes the OTP row. Closes the email-verification bypass. |
+| `send-otp` | Makes a 6-digit code **server-side**, stores `sha256(code)` + expiry in `otp_codes`, emails it via Resend from `noreply@mahitechnology.com`. Limits: 1/min and 5/hour per email, 5/min and 30/hour per network address (`auth_rate_limits`). |
+| `verify-otp` | Checks a typed code (5 tries, one atomic update per try) and stamps `verified_at` on a match. |
+| `complete-signup` | Creates the confirmed auth user only for a code `verify-otp` accepted in the last 30 minutes. |
+| `send-push` | Push outbox sender, called by pg_cron. |
+
+Shared code lives in `functions/_shared/otp.ts` (`deno test functions/_shared/otp_test.ts`). The
+Before User Created auth hook `hook_require_verified_signup` (migration `20260923230000_signup_codes`)
+refuses email sign-ups without a fresh `verified_at`, which closes the public sign-up endpoint. It is
+switched on in the Dashboard (Authentication → Hooks), not by the migration.
 
 Required function secrets: `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`. All functions run
-`verify_jwt: false` (pre-auth flows).
-
-⚠ **Not live yet (checked 2026-09-17).** Production runs older versions of `send-otp` (v15, Apr 2026)
-and `complete-signup` (v4, Feb 2026), plus a `check-email` function that is not in this repo. The
-`otp_codes` table these versions need does not exist in production. Before deploying them: add
-`otp_codes` (and its block-all RLS) in a migration, and confirm which app builds call which flow.
+`verify_jwt: false` (pre-auth flows). `check-email` is live but not in this repo.

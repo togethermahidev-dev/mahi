@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabase';
-import { sendOTP, clearOTP } from '@/lib/otp';
+import { sendOTP, verifyOTP, clearOTP, OTP_LENGTH } from '@/lib/otp';
 import { completeSignup } from '@/api/auth';
 import { useSignUpStore, useInviteStore } from '@/store';
 import { normaliseInviteCode } from '@/lib/inviteLink';
@@ -92,11 +92,11 @@ export default function CreateAccountSheet({
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Step 2 — OTP boxes (4 digits, single entry)
-  const [otp, setOtp] = useState(['', '', '', '']);
-  // Code the user entered in step 2 — verified server-side at complete-signup.
+  // Step 2 — OTP boxes (one digit each)
+  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
+  // Code verified in step 2 — complete-signup checks it again before creating the account.
   const [enteredCode, setEnteredCode] = useState('');
-  const otpRefs = useRef<(RNTextInput | null)[]>(Array(4).fill(null));
+  const otpRefs = useRef<(RNTextInput | null)[]>(Array(OTP_LENGTH).fill(null));
   const [focusedOtp, setFocusedOtp] = useState<number | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
@@ -219,9 +219,9 @@ export default function CreateAccountSheet({
     const next = [...arr];
     next[i] = val.slice(-1);
     setArr(next);
-    if (val && i < 3) refs.current[i + 1]?.focus();
+    if (val && i < OTP_LENGTH - 1) refs.current[i + 1]?.focus();
     // Auto-advance when last digit is entered (pass code directly to avoid stale state)
-    if (val && i === 3) handleStep2Next(next.join(''));
+    if (val && i === OTP_LENGTH - 1) handleStep2Next(next.join(''));
   };
 
   const handleOtpKeyPress = (
@@ -241,7 +241,7 @@ export default function CreateAccountSheet({
     setError('');
     setLoading(false);
     setShowPassword(false);
-    setOtp(Array(4).fill(''));
+    setOtp(Array(OTP_LENGTH).fill(''));
     setEnteredCode('');
     setUsernameStatus('idle');
     setEmailExists(false);
@@ -288,20 +288,32 @@ export default function CreateAccountSheet({
     }
   };
 
-  // Step 2 → 3: carry the entered code forward (verification is now
-  // server-authoritative — complete-signup verifies it on the final step).
+  // Step 2 → 3: the server checks the code now (verify-otp); complete-signup
+  // checks it again on the final step before creating the account.
   // codeOverride used by auto-advance (avoids stale otp state after setOtp).
-  const handleStep2Next = (codeOverride?: string) => {
+  const handleStep2Next = async (codeOverride?: string) => {
     const code = codeOverride ?? otp.join('');
-    if (code.length < 4) {
-      setError('Enter the 4-digit code.');
+    if (code.length < OTP_LENGTH) {
+      setError(`Enter the ${OTP_LENGTH}-digit code.`);
       return;
     }
+    if (loading) return;
     setError('');
-    setEnteredCode(code);
-    Sentry.addBreadcrumb({ category: 'signup', message: 'OTP entered', level: 'info' });
-    posthog.capture('signup_otp_entered');
-    setStep(3);
+    setLoading(true);
+    try {
+      await verifyOTP(email, code);
+      setEnteredCode(code);
+      Sentry.addBreadcrumb({ category: 'signup', message: 'OTP verified', level: 'info' });
+      posthog.capture('signup_otp_verified');
+      setStep(3);
+    } catch (e: any) {
+      posthog.capture('signup_otp_rejected');
+      setError(e.message ?? 'Could not check the code.');
+      setOtp(Array(OTP_LENGTH).fill(''));
+      otpRefs.current[0]?.focus();
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Resend OTP
@@ -311,7 +323,7 @@ export default function CreateAccountSheet({
     setLoading(true);
     try {
       await sendOTP(email.trim());
-      setOtp(Array(4).fill(''));
+      setOtp(Array(OTP_LENGTH).fill(''));
       setEnteredCode('');
       setResendReady(false);
       setSecondsLeft(600);
@@ -359,16 +371,16 @@ export default function CreateAccountSheet({
       setError('Select at least one fitness goal.');
       return;
     }
-    if (enteredCode.length < 4) {
+    if (enteredCode.length < OTP_LENGTH) {
       setError('Verification code missing — please go back and re-enter it.');
       return;
     }
     setError('');
     setLoading(true);
     try {
-      // 1. Verify the OTP and create the confirmed auth user server-side.
-      //    complete-signup checks the code against the server-stored OTP; an
-      //    invalid/expired code surfaces here as the thrown error message.
+      // 1. Create the confirmed auth user server-side. complete-signup only
+      //    does so for a code verify-otp accepted in the last 30 minutes; an
+      //    expired one surfaces here as the thrown error message.
       await completeSignup(email.trim().toLowerCase(), password, enteredCode);
 
       // 2. Sign in to obtain a session
@@ -634,7 +646,7 @@ export default function CreateAccountSheet({
                       keyboardType="number-pad"
                       maxLength={1}
                       textAlign="center"
-                      textContentType={i === 3 ? 'oneTimeCode' : 'none'}
+                      textContentType={i === OTP_LENGTH - 1 ? 'oneTimeCode' : 'none'}
                     />
                   ))}
                 </View>
@@ -986,12 +998,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  otpRow: { flexDirection: 'row', gap: 14, justifyContent: 'center' },
+  otpRow: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
   otpBox: {
-    width: 64,
-    height: 72,
-    borderRadius: 14,
-    fontSize: 28,
+    width: 46,
+    height: 60,
+    borderRadius: 12,
+    fontSize: 24,
     fontFamily: 'JosefinSans_700Bold',
     borderWidth: 1.5,
   },

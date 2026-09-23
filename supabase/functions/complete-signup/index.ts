@@ -1,144 +1,47 @@
-import { createClient } from "npm:@supabase/supabase-js@2.116.0";
-
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-
-// Initialize Supabase client with service role (can create auth users, read/write otp_codes)
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-// SHA256 hash helper using Web Crypto API
-async function sha256(input: string): Promise<string> {
-  const buffer = new TextEncoder().encode(input);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-  return hashHex;
-}
+// complete-signup — creates the account once the email's code has been verified.
+//
+// Body: { email, password, code }. The account is created only if verify-otp stamped a code for
+// this email in the last 30 minutes AND the code sent here is that same code, so knowing someone's
+// email is not enough to take the account in that window. The account is created already
+// confirmed; hook_require_verified_signup applies the same 30-minute check inside Supabase Auth.
+import { admin, INVALID_CODE, isValidEmail, json, normalizeEmail, sha256, VERIFIED_WINDOW_MS } from "../_shared/otp.ts";
 
 Deno.serve(async (req: Request) => {
-  // Only POST allowed
-  if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Method not allowed" }),
-      { status: 405, headers: { "Content-Type": "application/json" } },
-    );
-  }
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
-    const body = await req.json();
-    const { email, password, code } = body;
+    const { email: rawEmail, password, code } = await req.json().catch(() => ({}));
+    if (!isValidEmail(rawEmail)) return json({ error: "Valid email required" }, 400);
+    if (typeof password !== "string" || password.length < 8) {
+      return json({ error: "Password must be at least 8 characters" }, 400);
+    }
+    if (typeof code !== "string" || !/^\d{6}$/.test(code)) return json({ error: INVALID_CODE }, 400);
+    const email = normalizeEmail(rawEmail);
+    const db = admin();
 
-    // Validate inputs
-    if (!email || typeof email !== "string" || !email.includes("@")) {
-      return new Response(
-        JSON.stringify({ error: "Valid email required" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+    const { data: rows, error: lookupError } = await db.from("otp_codes")
+      .select("code_hash")
+      .eq("email", email)
+      .gt("verified_at", new Date(Date.now() - VERIFIED_WINDOW_MS).toISOString())
+      .order("verified_at", { ascending: false })
+      .limit(1);
+    if (lookupError) console.error("[complete-signup] lookup failed:", lookupError);
+    if (!rows?.[0] || rows[0].code_hash !== (await sha256(code))) {
+      return json({ error: "Your code has expired. Go back and ask for a new one." }, 400);
     }
 
-    if (!password || typeof password !== "string" || password.length < 8) {
-      return new Response(
-        JSON.stringify({ error: "Password must be at least 8 characters" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+    const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true });
+    if (error || !data.user) {
+      if (error?.code === "email_exists") {
+        return json({ error: "This email already has an account. Log in instead." }, 409);
+      }
+      console.error("[complete-signup] createUser failed:", error);
+      return json({ error: "Failed to create account. Please try again." }, 500);
     }
 
-    // 4-digit code to match the app's 4-box OTP UI
-    if (!code || typeof code !== "string" || code.length !== 4 || !/^\d+$/.test(code)) {
-      return new Response(
-        JSON.stringify({ error: "Valid 4-digit code required" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
-    const codeHash = await sha256(code);
-    const now = new Date();
-
-    // ===== STEP 1: Verify the OTP code =====
-    const { data: otpRecord, error: otpError } = await supabase
-      .from("otp_codes")
-      .select("code_hash, expires_at, attempts")
-      .eq("email", normalizedEmail)
-      .single();
-
-    if (otpError || !otpRecord) {
-      return new Response(
-        JSON.stringify({ error: "Invalid or expired verification code" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
-    }
-
-    // Check if code has expired
-    if (new Date(otpRecord.expires_at) < now) {
-      // Clean up expired record
-      await supabase.from("otp_codes").delete().eq("email", normalizedEmail);
-      return new Response(
-        JSON.stringify({ error: "Verification code has expired" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
-    }
-
-    // Check if too many failed attempts
-    if (otpRecord.attempts >= 5) {
-      // Clean up after too many attempts
-      await supabase.from("otp_codes").delete().eq("email", normalizedEmail);
-      return new Response(
-        JSON.stringify({ error: "Too many failed attempts. Please request a new code." }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
-    }
-
-    // Check if code matches (compare hashes)
-    if (otpRecord.code_hash !== codeHash) {
-      // Increment attempts and return error
-      const newAttempts = otpRecord.attempts + 1;
-      await supabase
-        .from("otp_codes")
-        .update({ attempts: newAttempts })
-        .eq("email", normalizedEmail);
-      return new Response(
-        JSON.stringify({ error: "Incorrect verification code" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
-    }
-
-    // ===== STEP 2: Create auth user with email confirmed =====
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser(
-      {
-        email: normalizedEmail,
-        password: password,
-        email_confirm: true, // Mark email as confirmed immediately
-      },
-    );
-
-    if (authError || !authData.user) {
-      console.error("Auth error:", authError);
-      return new Response(
-        JSON.stringify({ error: authError?.message || "Failed to create account" }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
-      );
-    }
-
-    // ===== STEP 3: Delete OTP record (cleanup) =====
-    await supabase.from("otp_codes").delete().eq("email", normalizedEmail);
-
-    // ===== STEP 4: Return success with user info =====
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        user: {
-          id: authData.user.id,
-          email: authData.user.email,
-        },
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
-    );
-  } catch (error: any) {
-    console.error("Error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
+    return json({ ok: true, user: { id: data.user.id, email: data.user.email } });
+  } catch (err) {
+    console.error("[complete-signup] error:", err);
+    return json({ error: "Something went wrong. Please try again." }, 500);
   }
 });
