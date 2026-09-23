@@ -150,7 +150,15 @@ The database is ready and the app is not. In order:
    sending function.
 2. **A new app build** — it adds native modules, so this can't be an over-the-air update. Test it
    on a device before any store release.
-3. **Store release**, then raise the minimum version.
+3. **Store release**, then raise the minimum version. Before any build, run:
+
+   ```bash
+   pnpm release:check
+   ```
+
+   It refuses if a migration would set the minimum app version higher than the version you're
+   shipping — which would put every user behind an update screen with no update to install.
+   CI runs it too.
 4. **The held-back steps** in `supabase/deferred/` — only once that build is in both stores.
 
 Do not release an app build before Step 3 above. The new app posts and reads through functions
