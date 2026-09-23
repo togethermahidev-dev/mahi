@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
-import { useAuthStore, useUserStore, useFollowStore } from '@/store';
+import { useAuthStore, useUserStore } from '@/store';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
@@ -28,8 +28,7 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
   const { dark } = useAppTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [restDaysStreakOpen, setRestDaysStreakOpen] = useState(false);
-  const [followListOpen, setFollowListOpen] = useState(false);
-  const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
+  const [friendsOpen, setFriendsOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<PostRow | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const bg = dark ? '#1C1C19' : '#FFFFFF';
@@ -48,17 +47,6 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
   // re-sync when this panel becomes active and the store is empty/stale.
   // The grid (ProfileMediaMap) reads the same singleton store, so it re-renders.
   useProfilePosts(userId ?? '', isActive && !!userId);
-
-  const followerCount = useFollowStore((s) => s.counts[userId ?? '']?.follower_count ?? 0);
-  const followingCount = useFollowStore((s) => s.counts[userId ?? '']?.following_count ?? 0);
-  const loadFollowData = useFollowStore((s) => s.loadFollowData);
-  const subscribeToFollows = useFollowStore((s) => s.subscribeToFollows);
-
-  useEffect(() => {
-    if (!userId) return;
-    loadFollowData(userId, userId);
-    return subscribeToFollows(userId, userId);
-  }, [userId, loadFollowData, subscribeToFollows]);
 
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
 
@@ -108,32 +96,14 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
           <Text style={styles.restDaysStreakChevron}>{'▲'}</Text>
         </TouchableOpacity>
 
-        {/* Follow counts */}
-        <View style={styles.statsRow}>
-          <TouchableOpacity
-            style={styles.stat}
-            activeOpacity={0.7}
-            onPress={() => {
-              setFollowListType('followers');
-              setFollowListOpen(true);
-            }}
-          >
-            <Text style={[styles.statValue, { color: text }]}>{followerCount}</Text>
-            <Text style={[styles.statLabel, { color: muted }]}>FOLLOWERS</Text>
-          </TouchableOpacity>
-          <View style={[styles.statDivider, { backgroundColor: muted }]} />
-          <TouchableOpacity
-            style={styles.stat}
-            activeOpacity={0.7}
-            onPress={() => {
-              setFollowListType('following');
-              setFollowListOpen(true);
-            }}
-          >
-            <Text style={[styles.statValue, { color: text }]}>{followingCount}</Text>
-            <Text style={[styles.statLabel, { color: muted }]}>FOLLOWING</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Friends — a list, never a number */}
+        <TouchableOpacity
+          style={styles.statsRow}
+          activeOpacity={0.7}
+          onPress={() => setFriendsOpen(true)}
+        >
+          <Text style={[styles.statLabel, { color: muted }]}>FRIENDS ›</Text>
+        </TouchableOpacity>
 
         {/* Streak stats */}
         <View style={[styles.statsRow, { marginTop: 16 }]}>
@@ -187,12 +157,12 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
         dark={dark}
       />
 
-      {/* Followers / following list */}
+      {/* Friends list */}
       <FollowListModal
-        visible={followListOpen}
-        onClose={() => setFollowListOpen(false)}
+        visible={friendsOpen}
+        onClose={() => setFriendsOpen(false)}
         userId={userId ?? ''}
-        type={followListType}
+        type="friends"
         dark={dark}
       />
 

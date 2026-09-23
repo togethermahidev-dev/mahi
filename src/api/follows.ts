@@ -78,6 +78,21 @@ export async function getFollowList(
   return { data: users, error: null };
 }
 
+/** People who follow `userId` and are followed back. Blocked and banned users are left out. */
+export async function getFriends(
+  userId: string,
+  limit = 100,
+  offset = 0
+): Promise<{ data: FollowListUser[] | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('get_friends', {
+    p_user: userId,
+    p_limit: limit,
+    p_offset: offset,
+  });
+  if (error) return { data: null, error: new Error(error.message) };
+  return { data: (data ?? []) as FollowListUser[], error: null };
+}
+
 /** Fetch follow status + counts in a single RPC call. */
 export async function getFollowData(
   currentUserId: string,

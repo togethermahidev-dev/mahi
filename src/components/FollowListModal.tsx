@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { getFollowList, type FollowListUser } from '@/api';
+import { getFollowList, getFriends, type FollowListUser } from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 
@@ -18,7 +18,7 @@ interface FollowListModalProps {
   visible: boolean;
   onClose: () => void;
   userId: string;
-  type: 'followers' | 'following';
+  type: 'followers' | 'following' | 'friends';
   dark: boolean;
 }
 
@@ -44,7 +44,8 @@ export default function FollowListModal({
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const fetchList = useCallback(async () => {
-    const { data } = await getFollowList(userId, type);
+    const { data } =
+      type === 'friends' ? await getFriends(userId) : await getFollowList(userId, type);
     const filtered = (data ?? []).filter((u) => !useBlockStore.getState().isBlocked(u.id));
     setUsers(filtered);
     setLoading(false);
@@ -81,8 +82,12 @@ export default function FollowListModal({
     [currentUserId, toggleFollow, fetchList]
   );
 
-  const title = type === 'followers' ? 'FOLLOWERS' : 'FOLLOWING';
-  const emptyMessage = type === 'followers' ? 'No followers yet' : 'Not following anyone yet';
+  const title = { followers: 'FOLLOWERS', following: 'FOLLOWING', friends: 'FRIENDS' }[type];
+  const emptyMessage = {
+    followers: 'No followers yet',
+    following: 'Not following anyone yet',
+    friends: 'No friends yet — friends are people who follow each other',
+  }[type];
 
   // Show unfollow button only on the current user's own "following" list
   const showUnfollow = type === 'following' && userId === currentUserId;

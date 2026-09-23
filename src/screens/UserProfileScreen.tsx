@@ -54,8 +54,6 @@ export default function UserProfileScreen({
   const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
 
   const isFollowing = useFollowStore((s) => s.followingByMe[userId] ?? false);
-  const followerCount = useFollowStore((s) => s.counts[userId]?.follower_count ?? 0);
-  const followingCount = useFollowStore((s) => s.counts[userId]?.following_count ?? 0);
   const loadFollowData = useFollowStore((s) => s.loadFollowData);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
 
@@ -104,8 +102,7 @@ export default function UserProfileScreen({
   const [loading, setLoading] = useState(true);
   const [messaging, setMessaging] = useState(false);
   const [streakGridOpen, setStreakGridOpen] = useState(false);
-  const [followListOpen, setFollowListOpen] = useState(false);
-  const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
+  const [friendsOpen, setFriendsOpen] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [activeConvo, setActiveConvo] = useState<ConversationPreview | null>(null);
   const [selectedPost, setSelectedPost] = useState<
@@ -400,32 +397,14 @@ export default function UserProfileScreen({
               <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
             ) : null}
 
-            {/* Follow counts */}
-            <View style={styles.statsRow}>
-              <TouchableOpacity
-                style={styles.stat}
-                activeOpacity={0.7}
-                onPress={() => {
-                  setFollowListType('followers');
-                  setFollowListOpen(true);
-                }}
-              >
-                <Text style={[styles.statValue, { color: text }]}>{followerCount}</Text>
-                <Text style={[styles.statLabel, { color: muted }]}>FOLLOWERS</Text>
-              </TouchableOpacity>
-              <View style={[styles.statDivider, { backgroundColor: muted }]} />
-              <TouchableOpacity
-                style={styles.stat}
-                activeOpacity={0.7}
-                onPress={() => {
-                  setFollowListType('following');
-                  setFollowListOpen(true);
-                }}
-              >
-                <Text style={[styles.statValue, { color: text }]}>{followingCount}</Text>
-                <Text style={[styles.statLabel, { color: muted }]}>FOLLOWING</Text>
-              </TouchableOpacity>
-            </View>
+            {/* Friends — a list, never a number */}
+            <TouchableOpacity
+              style={styles.statsRow}
+              activeOpacity={0.7}
+              onPress={() => setFriendsOpen(true)}
+            >
+              <Text style={[styles.statLabel, { color: muted }]}>FRIENDS ›</Text>
+            </TouchableOpacity>
 
             {/* Streak stats */}
             <View style={[styles.statsRow, { marginTop: 16 }]}>
@@ -521,12 +500,12 @@ export default function UserProfileScreen({
         />
       ) : null}
 
-      {/* Followers / following list */}
+      {/* Friends list */}
       <FollowListModal
-        visible={followListOpen}
-        onClose={() => setFollowListOpen(false)}
+        visible={friendsOpen}
+        onClose={() => setFriendsOpen(false)}
         userId={userId}
-        type={followListType}
+        type="friends"
         dark={dark}
       />
 

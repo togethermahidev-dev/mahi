@@ -27,6 +27,7 @@ export type Database = {
           invite_ttl: string;
           invite_base_url: string;
           invite_links_enabled: boolean;
+          nudge_days: number;
         };
         Insert: never;
         Update: never;
@@ -732,6 +733,19 @@ export type Database = {
           display_name: string | null;
           has_open_tag: boolean;
           id: string;
+          last_tagged_at: string | null;
+          points: number;
+          username: string;
+        }[];
+      };
+      get_friends: {
+        Args: { p_limit?: number; p_offset?: number; p_user: string };
+        Returns: {
+          avatar_url: string | null;
+          display_name: string | null;
+          first_name: string | null;
+          id: string;
+          last_name: string | null;
           username: string;
         }[];
       };
