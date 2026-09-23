@@ -89,6 +89,8 @@ export default function LoginSheet({
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
           <Text style={[styles.title, { color: text }]}>Login</Text>

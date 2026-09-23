@@ -150,6 +150,9 @@ export default function BlockedUsersSheet({
             keyExtractor={(item) => item.blocked_id}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            automaticallyAdjustKeyboardInsets
             ItemSeparatorComponent={() => (
               <View style={[styles.separator, { backgroundColor: border }]} />
             )}
