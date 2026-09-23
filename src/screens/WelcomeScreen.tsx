@@ -6,15 +6,13 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  Image,
 } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import LoginSheet from '@/components/LoginSheet';
 import CreateAccountSheet from '@/components/CreateAccountSheet';
 
-const { height, width } = Dimensions.get('window');
-const SHEET_HEIGHT = (height - 55) / 2;
+const { height } = Dimensions.get('window');
 
 interface Props {
   onAuthComplete: () => void;
@@ -83,11 +81,6 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
           { backgroundColor: sheetBg, transform: [{ translateY: botY }] },
         ]}
       >
-        <Image
-          source={require('../../assets/mahibw.png')}
-          style={styles.topSheetBg}
-          resizeMode="contain"
-        />
         {showApple || showGoogle ? (
           <View style={styles.buttons}>
             {showApple ? (
@@ -128,14 +121,6 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#111111' },
-  topSheetBg: {
-    position: 'absolute',
-    top: -(SHEET_HEIGHT * 0.2),
-    left: -(width * 0.2),
-    width: width * 1.4,
-    height: SHEET_HEIGHT * 1.4,
-    opacity: 0.25,
-  },
   topSheet: {
     flex: 1,
     paddingHorizontal: 24,
