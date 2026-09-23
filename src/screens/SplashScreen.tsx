@@ -1,16 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Constants from 'expo-constants';
+import { VERSION_LINE } from '@/lib/appBuild';
 
 const BG = '#59c2d7';
 const TEXT_COLOR = '#FFFFFF';
 const ECHO_COLOR = 'rgba(255,255,255,0.3)';
-
-// Read once at module level — these never change at runtime
-const version = Constants.expoConfig?.version ?? '';
-const buildNumber =
-  (Constants.expoConfig?.extra as { buildNumber?: string } | null)?.buildNumber ?? '';
-const VERSION_STRING = `V.${version} ${buildNumber}`;
 
 interface Props {
   onLayout: () => void;
@@ -23,7 +17,7 @@ export default function SplashScreen({ onLayout }: Props): React.JSX.Element {
         <Text style={[styles.title, styles.titleEcho]}>MAHI</Text>
         <Text style={styles.title}>MAHI</Text>
       </View>
-      <Text style={styles.version}>{VERSION_STRING}</Text>
+      <Text style={styles.version}>{VERSION_LINE}</Text>
     </View>
   );
 }

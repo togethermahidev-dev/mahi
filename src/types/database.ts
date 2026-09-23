@@ -28,6 +28,14 @@ export type Database = {
           invite_base_url: string;
           invite_links_enabled: boolean;
           nudge_days: number;
+          gate_enabled: boolean;
+          min_version_ios: string;
+          min_version_android: string;
+          min_build_ios: number | null;
+          min_build_android: number | null;
+          store_url_ios: string | null;
+          store_url_android: string | null;
+          gate_message: string | null;
         };
         Insert: never;
         Update: never;
@@ -737,6 +745,10 @@ export type Database = {
           points: number;
           username: string;
         }[];
+      };
+      get_app_gate: {
+        Args: { p_platform: string };
+        Returns: Json;
       };
       get_friends: {
         Args: { p_limit?: number; p_offset?: number; p_user: string };

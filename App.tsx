@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { LogBox } from 'react-native';
+import { LogBox, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 // Suppress known harmless development warnings
@@ -37,16 +37,14 @@ import {
 import { rehydrateTheme } from '@/store/themeStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useInviteLink } from '@/hooks/useInviteLink';
-import { getMinAppVersion, getProfile, signOut, updateTimezone } from '@/api';
-import Constants from 'expo-constants';
-import { isBelowVersion } from '@/lib/appVersion';
+import { getAppGate, getProfile, signOut, updateTimezone } from '@/api';
+import { gateVerdict, type AppGate } from '@/lib/versionGate';
+import { APP_BUILD, APP_VERSION } from '@/lib/appBuild';
 import UpdateRequiredScreen from '@/components/UpdateRequiredScreen';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastHost } from '@/components/ToastHost';
-
-const APP_VERSION = Constants.expoConfig?.version ?? '';
 
 // Prevent the native OS splash from auto-hiding before our custom one is drawn.
 SplashScreen.preventAutoHideAsync();
@@ -109,7 +107,7 @@ export default function App(): React.JSX.Element {
   // Invite links: one that opened the app, one that arrives while it's running, and the
   // claim once there's an account to claim it for.
   useInviteLink();
-  const [minVersion, setMinVersion] = useState<string | null>(null);
+  const [blockingGate, setBlockingGate] = useState<AppGate | null>(null);
   const { colorScheme } = useAppTheme();
 
   // Restore persisted session on cold start + handle all auth events (sign in,
@@ -160,13 +158,15 @@ export default function App(): React.JSX.Element {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Forced-update gate: checked once per sign-in. A failed check never blocks.
+  // Update gate: checked on every launch, signed in or not. A failed or slow check never
+  // blocks, and the gate stays switched off on the server until the owner turns it on.
   useEffect(() => {
-    if (!session) return;
-    getMinAppVersion().then(({ data }) => {
-      if (data && isBelowVersion(APP_VERSION, data)) setMinVersion(data);
+    if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
+    getAppGate(Platform.OS).then(({ data }) => {
+      if (gateVerdict({ version: APP_VERSION, build: APP_BUILD }, data) === 'blocked')
+        setBlockingGate(data);
     });
-  }, [session]);
+  }, []);
 
   // Reset camera gate on sign-out so returning users always see the animation
   useEffect(() => {
@@ -187,10 +187,14 @@ export default function App(): React.JSX.Element {
         <StatusBar style="light" />
       </>
     );
-  } else if (session && minVersion) {
+  } else if (blockingGate) {
     content = (
       <>
-        <UpdateRequiredScreen current={APP_VERSION} minimum={minVersion} />
+        <UpdateRequiredScreen
+          minimum={blockingGate.min_version}
+          storeUrl={blockingGate.store_url}
+          message={blockingGate.message}
+        />
         <StatusBar style="auto" />
       </>
     );

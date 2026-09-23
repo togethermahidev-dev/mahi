@@ -11,18 +11,11 @@ import {
   View,
 } from 'react-native';
 import { signOut } from '@/api/auth';
-import Constants from 'expo-constants';
+import { VERSION_LINE } from '@/lib/appBuild';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// ── Version string pieces ──
-// version  → app version from app.config.js (e.g. "0.1.0")
-// build    → iOS buildNumber / Android versionCode from app.config.js (e.g. "9")
-// OTA_NUMBER → over-the-air update number, bump this after each EAS Update push
-const APP_VERSION = Constants.expoConfig?.version ?? '0.0.0';
-const BUILD_NUMBER = Constants.expoConfig?.ios?.buildNumber ?? '0';
-const OTA_NUMBER = '09'; // ← bump after each OTA update
 const PANEL_WIDTH = SCREEN_WIDTH * 0.82;
 
 interface SettingsPanelProps {
@@ -268,10 +261,8 @@ export default function SettingsPanel({
             <Text style={[styles.logoutText, { color: muted }]}>LOG OUT</Text>
           </TouchableOpacity>
 
-          {/* Developer version label: v{version}b{buildNumber}.{OTANumber} */}
-          <Text style={[styles.versionText, { color: muted }]}>
-            v{APP_VERSION}b{BUILD_NUMBER}.{OTA_NUMBER}
-          </Text>
+          {/* Version line: v{runtime} {build}.{OTA} — see the version-control skill */}
+          <Text style={[styles.versionText, { color: muted }]}>{VERSION_LINE}</Text>
         </ScrollView>
       </Animated.View>
 
