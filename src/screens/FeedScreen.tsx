@@ -11,7 +11,6 @@ import {
   useWindowDimensions,
   Dimensions,
   TextInput,
-  KeyboardAvoidingView,
   Keyboard,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
@@ -33,6 +32,7 @@ import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import CaptionText from '@/components/CaptionText';
 import { formatWait } from '@/lib/countdown';
 import PointsBadge from '@/components/PointsBadge';
+import KeyboardInset from '@/components/KeyboardInset';
 import type { FeedPost } from '@/api';
 import type { CommentWithProfile } from '@/api/social';
 
@@ -109,7 +109,9 @@ function LockedPostItem({
         {item.profiles.avatar_url ? (
           <Image source={{ uri: item.profiles.avatar_url }} style={styles.lockedAvatar} />
         ) : (
-          <View style={[styles.lockedAvatar, styles.avatarFallback, { borderColor: colors.accent }]}>
+          <View
+            style={[styles.lockedAvatar, styles.avatarFallback, { borderColor: colors.accent }]}
+          >
             <Text style={[styles.avatarInitial, { color: colors.offWhite }]}>{initials}</Text>
           </View>
         )}
@@ -387,7 +389,8 @@ function PostItem({
                 <Text style={styles.streakText}>DAY {item.streak_day}</Text>
                 {item.response ? (
                   <Text style={styles.responseText}>
-                    ANSWERED @{item.response.tagger_username} IN {formatWait(item.response.seconds).toUpperCase()}
+                    ANSWERED @{item.response.tagger_username} IN{' '}
+                    {formatWait(item.response.seconds).toUpperCase()}
                   </Text>
                 ) : null}
               </View>
@@ -598,28 +601,27 @@ function CommentSheet({
           )}
         </View>
 
-        {/* Comment input */}
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={[styles.commentInputRow, { borderTopColor: border }]}>
-            <TextInput
-              style={[styles.commentInput, { color: text, borderColor: border }]}
-              placeholder="Add a comment…"
-              placeholderTextColor={muted}
-              value={commentText}
-              onChangeText={setCommentText}
-              returnKeyType="send"
-              onSubmitEditing={handleSubmitComment}
-              autoFocus
-            />
-            <TouchableOpacity
-              style={[styles.commentSubmit, { backgroundColor: '#59c2d7' }]}
-              onPress={handleSubmitComment}
-              activeOpacity={0.75}
-            >
-              <Text style={styles.commentSubmitText}>SEND</Text>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
+        {/* Comment input — KeyboardInset below keeps it just above the keyboard */}
+        <View style={[styles.commentInputRow, { borderTopColor: border }]}>
+          <TextInput
+            style={[styles.commentInput, { color: text, borderColor: border }]}
+            placeholder="Add a comment…"
+            placeholderTextColor={muted}
+            value={commentText}
+            onChangeText={setCommentText}
+            returnKeyType="send"
+            onSubmitEditing={handleSubmitComment}
+            autoFocus
+          />
+          <TouchableOpacity
+            style={[styles.commentSubmit, { backgroundColor: '#59c2d7' }]}
+            onPress={handleSubmitComment}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.commentSubmitText}>SEND</Text>
+          </TouchableOpacity>
+        </View>
+        <KeyboardInset />
       </Animated.View>
     </View>
   );
