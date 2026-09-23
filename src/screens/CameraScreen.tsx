@@ -59,6 +59,7 @@ import PointsBadge from '@/components/PointsBadge';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { formatWait } from '@/lib/countdown';
+import { nudgeLabel } from '@/lib/tagNudge';
 import { Sentry } from '@/lib/sentry';
 import { requestLocationPermission, getCurrentLocation } from '@/lib/location';
 
@@ -852,6 +853,9 @@ function TagUserRow({
 }) {
   const display = item.display_name ?? item.username;
   const initial = display[0].toUpperCase();
+  const nudgeDays = useTagStore((s) => s.nudgeDays);
+  const { accent } = useAppTheme().colors;
+  const nudge = nudgeLabel(item.last_tagged_at, item.has_open_tag, nudgeDays);
   return (
     <TouchableOpacity
       style={[
@@ -878,6 +882,7 @@ function TagUserRow({
           @{item.username}
           {item.has_open_tag ? ' · waiting on your last tag' : ''}
         </Text>
+        {nudge ? <Text style={[styles.tagRowNudge, { color: accent }]}>{nudge}</Text> : null}
       </View>
       {selected ? <Text style={styles.tagRowCheck}>✓</Text> : null}
     </TouchableOpacity>
@@ -2145,6 +2150,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'JosefinSans_400Regular_Italic',
     marginTop: 1,
+  },
+  tagRowNudge: {
+    fontSize: 11,
+    fontFamily: 'JosefinSans_600SemiBold',
+    letterSpacing: 1,
+    marginTop: 2,
   },
   tagRowCheck: {
     color: '#59c2d7',

@@ -9,13 +9,22 @@ interface TagState {
   /** Tags the next post must carry (the server enforces the same rule). */
   requiredTags: number;
   maxTags: number;
+  /** Flag friends nobody has tagged for this many days (server setting). */
+  nudgeDays: number;
   isSyncing: boolean;
   syncOpenTags: () => Promise<void>;
   loadRequirement: () => Promise<void>;
   reset: () => void;
 }
 
-const initial = { openTags: [], serverOffsetMs: 0, requiredTags: 0, maxTags: 3, isSyncing: false };
+const initial = {
+  openTags: [],
+  serverOffsetMs: 0,
+  requiredTags: 0,
+  maxTags: 3,
+  nudgeDays: 7,
+  isSyncing: false,
+};
 
 export const useTagStore = create<TagState>((set, get) => ({
   ...initial,
@@ -40,12 +49,16 @@ export const useTagStore = create<TagState>((set, get) => ({
   loadRequirement: async () => {
     const [rules, friends] = await Promise.all([getTagRules(), getTaggableFriends('', 100)]);
     if (rules.error || friends.error || !rules.data || !friends.data) {
-      console.log('[tagStore] loadRequirement failed', rules.error?.message ?? friends.error?.message);
+      console.log(
+        '[tagStore] loadRequirement failed',
+        rules.error?.message ?? friends.error?.message
+      );
       return;
     }
     const available = friends.data.filter((f) => !f.has_open_tag).length;
     set({
       maxTags: Math.max(rules.data.tagCount, 1),
+      nudgeDays: rules.data.nudgeDays,
       requiredTags: rules.data.tagsRequired ? Math.min(rules.data.tagCount, available) : 0,
     });
   },

@@ -11,6 +11,8 @@ export type TaggableFriend = {
   /** You already tagged them and they haven't answered yet. */
   has_open_tag: boolean;
   points: number;
+  /** When anyone last tagged them; null if never. */
+  last_tagged_at: string | null;
 };
 
 export type OpenTag = {
@@ -25,7 +27,7 @@ export type OpenTag = {
   server_now: string;
 };
 
-export type TagRules = { tagCount: number; tagsRequired: boolean };
+export type TagRules = { tagCount: number; tagsRequired: boolean; nudgeDays: number };
 
 /** People you may tag (they follow you back), filtered by `query`. */
 export async function getTaggableFriends(
@@ -51,8 +53,15 @@ export async function getOpenTags(): Promise<{ data: OpenTag[] | null; error: Er
 export async function getTagRules(): Promise<{ data: TagRules | null; error: Error | null }> {
   const { data, error } = await supabase
     .from('app_config')
-    .select('tag_count, tags_required')
+    .select('tag_count, tags_required, nudge_days')
     .single();
   if (error) return { data: null, error: new Error(error.message) };
-  return { data: { tagCount: data.tag_count, tagsRequired: data.tags_required }, error: null };
+  return {
+    data: {
+      tagCount: data.tag_count,
+      tagsRequired: data.tags_required,
+      nudgeDays: data.nudge_days,
+    },
+    error: null,
+  };
 }
