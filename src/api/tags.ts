@@ -29,7 +29,12 @@ export type OpenTag = {
   server_now: string;
 };
 
-export type TagRules = { tagCount: number; tagsRequired: boolean; nudgeDays: number };
+export type TagRules = {
+  tagCount: number;
+  tagsRequired: boolean;
+  nudgeDays: number;
+  inviteLinksEnabled: boolean;
+};
 
 /** People you may tag (they follow you back), filtered by `query`. */
 export async function getTaggableFriends(
@@ -55,7 +60,7 @@ export async function getOpenTags(): Promise<{ data: OpenTag[] | null; error: Er
 export async function getTagRules(): Promise<{ data: TagRules | null; error: Error | null }> {
   const { data, error } = await supabase
     .from('app_config')
-    .select('tag_count, tags_required, nudge_days')
+    .select('tag_count, tags_required, nudge_days, invite_links_enabled')
     .single();
   if (error) return { data: null, error: new Error(error.message) };
   return {
@@ -63,6 +68,7 @@ export async function getTagRules(): Promise<{ data: TagRules | null; error: Err
       tagCount: data.tag_count,
       tagsRequired: data.tags_required,
       nudgeDays: data.nudge_days,
+      inviteLinksEnabled: data.invite_links_enabled,
     },
     error: null,
   };
