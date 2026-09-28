@@ -2,6 +2,9 @@
 begin;
 select plan(28);
 
+-- Invite links off unless a section turns them on: fewer friends excuses the difference.
+update public.app_config set invite_links_enabled = false;
+
 -- A, B, C, D follow each other with A. E follows A but A doesn't follow back.
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000c00a', 'tag-a@example.invalid'),
