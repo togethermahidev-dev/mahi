@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getOpenTags, getTagRules, getTaggableFriends, type OpenTag } from '@/api';
+import { requiredTagCount } from '@/lib/tagRules';
 
 interface TagState {
   /** Tags waiting for this user's post. In memory only — they expire. */
@@ -59,7 +60,7 @@ export const useTagStore = create<TagState>((set, get) => ({
     set({
       maxTags: Math.max(rules.data.tagCount, 1),
       nudgeDays: rules.data.nudgeDays,
-      requiredTags: rules.data.tagsRequired ? Math.min(rules.data.tagCount, available) : 0,
+      requiredTags: requiredTagCount(rules.data, available),
     });
   },
 
