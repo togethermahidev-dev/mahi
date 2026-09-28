@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
@@ -13,6 +14,8 @@ interface AppHeaderProps {
   onMessagesPress: () => void;
   unreadNotifications: number;
   onNotificationsPress: () => void;
+  /** Profile and Messages pills; hidden when the glass rail carries them. */
+  showNavPills?: boolean;
 }
 
 export default function AppHeader({
@@ -21,8 +24,10 @@ export default function AppHeader({
   onMessagesPress,
   unreadNotifications,
   onNotificationsPress,
+  showNavPills = true,
 }: AppHeaderProps): React.JSX.Element {
   const { dark: systemDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
   // Reference pattern: gate a feature in one line with useFeatureFlag. The
   // 'notifications-core' flag is at 100% (default-on), so the bell shows
   // normally; flip it off in PostHog to hide the entry point.
@@ -42,7 +47,7 @@ export default function AppHeader({
     // pointerEvents="box-none" lets touches pass through the transparent header
     // area to the screen beneath (camera feed, etc.) while still receiving
     // touches on the profile pill and messages icon.
-    <View style={styles.root} pointerEvents="box-none">
+    <View style={[styles.root, { paddingTop: insets.top }]} pointerEvents="box-none">
       <LinearGradient
         colors={gradientColors}
         style={StyleSheet.absoluteFill}
@@ -50,13 +55,15 @@ export default function AppHeader({
       />
       <View style={styles.inner}>
         {/* Profile pill — navigates to Profile screen (horizontal left) */}
-        <TouchableOpacity
-          style={[styles.profilePill, { backgroundColor: pillBg }]}
-          onPress={onProfilePress}
-          activeOpacity={0.75}
-        >
-          <ProfileIcon size={16} color={pillIcon} />
-        </TouchableOpacity>
+        {showNavPills && (
+          <TouchableOpacity
+            style={[styles.profilePill, { backgroundColor: pillBg }]}
+            onPress={onProfilePress}
+            activeOpacity={0.75}
+          >
+            <ProfileIcon size={16} color={pillIcon} />
+          </TouchableOpacity>
+        )}
 
         {/* MAHI branding — centered, with offset colour echo behind */}
         <View style={styles.titleWrapper}>
@@ -71,7 +78,7 @@ export default function AppHeader({
             hiding it leaves the other pills undisturbed). */}
         {showNotifications && (
           <TouchableOpacity
-            style={[styles.bellPill, { backgroundColor: pillBg }]}
+            style={[styles.bellPill, { backgroundColor: pillBg }, !showNavPills && { right: 0 }]}
             onPress={onNotificationsPress}
             activeOpacity={0.75}
           >
@@ -81,13 +88,15 @@ export default function AppHeader({
         )}
 
         {/* Messages pill — navigates to Messages screen (horizontal right) */}
-        <TouchableOpacity
-          style={styles.messagesPill}
-          onPress={onMessagesPress}
-          activeOpacity={0.75}
-        >
-          <MessagesIcon size={16} color={pillIcon} />
-        </TouchableOpacity>
+        {showNavPills && (
+          <TouchableOpacity
+            style={styles.messagesPill}
+            onPress={onMessagesPress}
+            activeOpacity={0.75}
+          >
+            <MessagesIcon size={16} color={pillIcon} />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -95,7 +104,6 @@ export default function AppHeader({
 
 const styles = StyleSheet.create({
   root: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 32,
     paddingHorizontal: 24,
     paddingBottom: 12,
   },
