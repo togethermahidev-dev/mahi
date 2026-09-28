@@ -1,5 +1,6 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { Animated, Dimensions, Platform, PanResponder, StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Dimensions, PanResponder, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import NavigationDots from '@/components/NavigationDots';
@@ -13,6 +14,7 @@ import UserProfileScreen from '@/screens/UserProfileScreen';
 import { useNotificationsStore } from '@/store';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
+import { verticalSwipe } from '@/lib/swipeRules';
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
 // PEEK_HEIGHT: strip of the next screen visible at the bottom of each screen.
@@ -21,7 +23,6 @@ import { usePushRouting } from '@/hooks/usePushRouting';
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 export const PEEK_HEIGHT = 0;
 const SLOT_HEIGHT = SCREEN_HEIGHT - PEEK_HEIGHT;
-const APP_HEADER_H = Platform.OS === 'ios' ? 108 : 80;
 
 // ─── Gesture thresholds ────────────────────────────────────────────────────────
 const SWIPE_PX = 60; // min drag distance to trigger navigation
@@ -48,7 +49,14 @@ const SCREEN_BG_LIGHT = ['#111111', '#FFFFFF'] as const;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
+/** Lets the right-hand rail move this tape. */
+export type VerticalControl = { navigateTo: (index: number) => void };
+
 interface VerticalNavigatorProps {
+  controlRef?: React.RefObject<VerticalControl | null>;
+  /** The glass rail is showing: hide the side dots and the header's Profile/Messages pills. */
+  railShown?: boolean;
+  onIndexChange?: (index: number) => void;
   onNavigateLeft: () => void; // tap profile pill or swipe right → Profile screen
   onNavigateRight: () => void; // tap messages icon or swipe left → Messages screen
   onOverlayChange?: (active: boolean) => void; // true when a fullscreen overlay is open
@@ -57,11 +65,19 @@ interface VerticalNavigatorProps {
 // ─── VerticalNavigator ────────────────────────────────────────────────────────
 
 export default function VerticalNavigator({
+  controlRef,
+  railShown = false,
+  onIndexChange,
   onNavigateLeft,
   onNavigateRight,
   onOverlayChange,
 }: VerticalNavigatorProps): React.JSX.Element {
   const { dark } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const insetsRef = useRef(insets);
+  insetsRef.current = insets;
+  // AppHeader's height: top inset + 36 pill + 12 padding. Used to slide it away on scroll.
+  const appHeaderH = insets.top + 48;
   const unreadNotifications = useNotificationsStore((s) => s.unreadCount);
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -83,16 +99,16 @@ export default function VerticalNavigator({
     },
   });
 
-  // Track child overlay state (e.g. FeedScreen profile overlay)
-  const feedOverlayRef = useRef(false);
+  // Child overlay state (e.g. FeedScreen profile overlay) — state, so it always re-renders.
+  const [feedOverlay, setFeedOverlay] = useState(false);
 
-  // Notify parent whenever a fullscreen overlay opens or closes
-  const overlayActive = searchVisible || notifOpen || !!profileUserId || feedOverlayRef.current;
-  const prevOverlay = useRef(false);
-  if (overlayActive !== prevOverlay.current) {
-    prevOverlay.current = overlayActive;
+  // Tell the parent whenever a fullscreen overlay opens or closes; swipes stay off while one is.
+  const overlayActive = searchVisible || notifOpen || !!profileUserId || feedOverlay;
+  const overlayRef = useRef(false);
+  overlayRef.current = overlayActive;
+  useEffect(() => {
     onOverlayChange?.(overlayActive);
-  }
+  }, [overlayActive]);
   const activeIndexRef = useRef(0);
   const baseOffsetRef = useRef(0);
   const feedScrollAtTop = useRef(true);
@@ -103,6 +119,7 @@ export default function VerticalNavigator({
   const navigateTo = (index: number) => {
     setActiveIndex(index);
     activeIndexRef.current = index;
+    onIndexChange?.(index);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Animated.spring(tapeAnim, {
       toValue: -(index * SLOT_HEIGHT),
@@ -117,16 +134,26 @@ export default function VerticalNavigator({
     }
   };
 
+  if (controlRef) controlRef.current = { navigateTo };
+
   const panResponder = useRef(
     PanResponder.create({
-      // Claim vertical swipes; let horizontal gestures pass to HorizontalNavigator.
-      // On the feed screen (index 1), only claim a downward swipe (back to camera)
-      // when the feed scroll is at the top — otherwise let the FlashList scroll.
-      onMoveShouldSetPanResponder: (_e, { dx, dy }) => {
-        if (Math.abs(dy) <= Math.abs(dx) || Math.abs(dy) <= 20) return false;
-        if (activeIndexRef.current === 1 && dy > 0 && !feedScrollAtTop.current) return false;
-        return true;
-      },
+      // Claim clear vertical swipes (see swipeRules); horizontal ones pass to HorizontalNavigator.
+      // On Feed only a pull down from the top of the list goes back to Camera.
+      // x0/y0 aren't set until the grant, so the start point is where the finger is minus how far it moved.
+      onMoveShouldSetPanResponder: (_e, { moveX, moveY, dx, dy }) =>
+        verticalSwipe({
+          startX: moveX - dx,
+          startY: moveY - dy,
+          dx,
+          dy,
+          width: SCREEN_WIDTH,
+          height: SCREEN_HEIGHT,
+          insets: insetsRef.current,
+          blocked: overlayRef.current,
+          onFeed: activeIndexRef.current === 1,
+          feedAtTop: feedScrollAtTop.current,
+        }) === 'activate',
 
       onPanResponderGrant: (evt) => {
         tapeAnim.stopAnimation();
@@ -168,6 +195,9 @@ export default function VerticalNavigator({
 
         navigateTo(next);
       },
+
+      // Snap back if the system takes the touch mid-swipe.
+      onPanResponderTerminate: () => navigateTo(activeIndexRef.current),
     })
   ).current;
 
@@ -232,10 +262,7 @@ export default function VerticalNavigator({
                       feedScrollAtTop.current = atTop;
                     }}
                     headerAnim={headerAnim}
-                    onOverlayChange={(active) => {
-                      feedOverlayRef.current = active;
-                      onOverlayChange?.(searchVisible || notifOpen || !!profileUserId || active);
-                    }}
+                    onOverlayChange={setFeedOverlay}
                   />
                 ) : (
                   <Component />
@@ -261,8 +288,8 @@ export default function VerticalNavigator({
           transform: [
             {
               translateY: headerAnim.interpolate({
-                inputRange: [0, APP_HEADER_H],
-                outputRange: [0, -APP_HEADER_H],
+                inputRange: [0, appHeaderH],
+                outputRange: [0, -appHeaderH],
                 extrapolate: 'clamp',
               }),
             },
@@ -274,6 +301,7 @@ export default function VerticalNavigator({
           isDark={activeIndex === 0}
           onProfilePress={onNavigateLeft}
           onMessagesPress={onNavigateRight}
+          showNavPills={!railShown}
           unreadNotifications={unreadNotifications}
           onNotificationsPress={() => setNotifOpen(true)}
         />
@@ -307,13 +335,15 @@ export default function VerticalNavigator({
       {/* Navigation dots — vertical pill dots on the right edge.
           Camera screen always has a dark background, so always use white dots
           there. Other screens follow the current theme. */}
-      <NavigationDots
-        count={SCREENS.length}
-        activeIndex={activeIndex}
-        dark={activeIndex === 0 ? true : dark}
-        icons={SCREEN_ICONS}
-        onDotPress={navigateTo}
-      />
+      {railShown ? null : (
+        <NavigationDots
+          count={SCREENS.length}
+          activeIndex={activeIndex}
+          dark={activeIndex === 0 ? true : dark}
+          icons={SCREEN_ICONS}
+          onDotPress={navigateTo}
+        />
+      )}
 
       {/* Global search overlay — triggered by pull-down from Camera screen */}
       <GlobalSearchOverlay

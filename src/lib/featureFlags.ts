@@ -43,6 +43,9 @@ export const FEATURE_FLAGS = [
   'mahi-points', // P5 points badges and profile stat
   'invite-links', // P7 invite a slot from the tag sheet, share links after posting
 
+  // Navigation
+  'nav-glass-rail', // floating glass rail on the right: Camera, Feed, Messages, Profile
+
   // Sign-in placeholders — pills on the welcome screen with nothing behind them yet.
   'auth-apple-signin',
   'auth-google-signin',

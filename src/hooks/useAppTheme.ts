@@ -16,6 +16,18 @@ export interface AppTheme {
     offBlack: string;
     /** Brand cyan used for streaks, shutter and highlights. */
     accent: string;
+    /** Frosted fill behind floating glass where real glass/blur isn't available. */
+    glassOnDark: string;
+    glassOnLight: string;
+  };
+  /** Floating right-hand nav rail. */
+  navRail: {
+    /** Rail width; also the button size. */
+    width: number;
+    /** Gap from the screen's right safe edge. */
+    edgeGap: number;
+    /** Space between buttons. */
+    gap: number;
   };
 }
 
@@ -41,6 +53,9 @@ export function useAppTheme(): AppTheme {
       offWhite: '#E8E8E3',
       offBlack: '#1A1A17',
       accent: '#59c2d7',
+      glassOnDark: 'rgba(28,28,25,0.72)',
+      glassOnLight: 'rgba(255,255,255,0.72)',
     },
+    navRail: { width: 52, edgeGap: 10, gap: 6 },
   };
 }
