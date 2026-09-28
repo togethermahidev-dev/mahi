@@ -97,16 +97,16 @@ select is((select count(*)::int from public.push_outbox where kind = 'tag' and b
   'each friend gets one tag push with the deadline');
 select ok((select count(*) from public.push_outbox where kind = 'tag_reminder') >= 3, 'reminders are queued');
 
--- 2. B answers A's tag (3 hours later). B has only A to tag, so one tag is enough.
+-- 2. B answers A's tag (3 hours later). B's only friend is A, who can't be tagged back,
+--    so no tags are needed.
 update public.tag_challenges set created_at = now() - interval '3 hours'
 where id = (pg_temp.challenge('tag_a', 'tag_b')).id;
 select pg_temp.as_user('00000000-0000-0000-0000-00000000c00b');
 select is((select count(*)::int from public.get_open_tags()), 1, 'B sees one open tag');
 select lives_ok(
   $$select public.create_post('11111111-0000-0000-0000-0000000000b1',
-    '00000000-0000-0000-0000-00000000c00b/b1.jpg', null, null,
-    array['00000000-0000-0000-0000-00000000c00a']::uuid[])$$,
-  'B posts, tagging A (the only friend available)'
+    '00000000-0000-0000-0000-00000000c00b/b1.jpg', null, null, '{}')$$,
+  'B posts with no tags: the only friend is the one who tagged them'
 );
 select is((select count(*)::int from public.get_open_tags()), 0, 'B has no open tags left');
 select throws_ok($$insert into public.tag_challenges (tagger_id, tagged_id, expires_at)
@@ -123,12 +123,13 @@ select is((select body from public.push_outbox where kind = 'tag_answered'), '@t
 select is((public.answered_by_post((pg_temp.challenge('tag_a', 'tag_b')).answered_post_id) -> 0 ->> 'seconds')::int,
   10800, 'the post records the response time');
 
--- 3. C posts with no tags while A is available: refused.
+-- 3. C can't tag back A, whose tag C's post would answer.
 select pg_temp.as_user('00000000-0000-0000-0000-00000000c00c');
 select throws_ok(
   $$select public.create_post('11111111-0000-0000-0000-0000000000c1',
-    '00000000-0000-0000-0000-00000000c00c/c1.jpg', null, null, '{}')$$,
-  '22023', null, 'a post must tag the friends available'
+    '00000000-0000-0000-0000-00000000c00c/c1.jpg', null, null,
+    array['00000000-0000-0000-0000-00000000c00a']::uuid[])$$,
+  '22023', null, 'you cannot tag back someone whose tag you are answering'
 );
 reset role;
 

@@ -1,6 +1,6 @@
 -- Invite links: a tag slot filled by someone not on Mahi, and what happens when they join.
 begin;
-select plan(27);
+select plan(30);
 
 -- Quiet hours off, so a reminder's send time is never moved and the counts below are exact.
 update public.app_config set quiet_start = '00:00', quiet_end = '00:00';
@@ -154,8 +154,7 @@ select lives_ok($$select public.claim_invite(pg_temp.open_code())$$,
 -- 5. A link nobody used.
 select pg_temp.as_user('00000000-0000-0000-0000-00000000d00b');
 select public.create_post('22222222-0000-0000-0000-0000000000b1',
-  '00000000-0000-0000-0000-00000000d00b/b1.jpg', null, null,
-  array['00000000-0000-0000-0000-00000000d00a']::uuid[], null, null, 1);
+  '00000000-0000-0000-0000-00000000d00b/b1.jpg', null, null, '{}'::uuid[], null, null, 1);
 reset role;
 update public.invites set expires_at = now() - interval '1 day' where claimed_at is null;
 select pg_temp.as_user('00000000-0000-0000-0000-00000000d00e');
@@ -169,20 +168,34 @@ select is(
   'an expired link takes its waiting tag with it'
 );
 
--- 6. Once invite links are switched on, every slot must be filled.
+-- 6. Once invite links are switched on, every slot must be filled. N's only friend is A, whose
+--    tag N is answering, so A can't be tagged back: all three slots are invites.
 update public.app_config set invite_links_enabled = true;
 select pg_temp.as_user('00000000-0000-0000-0000-00000000d00c');
+select is(
+  (select has_open_tag and tagged_you from public.get_taggable_friends()
+   where id = '00000000-0000-0000-0000-00000000d00a'),
+  true, 'the picker shows the person who tagged you as unavailable, and why'
+);
 select throws_ok(
   $$select public.create_post('22222222-0000-0000-0000-0000000000c1',
     '00000000-0000-0000-0000-00000000d00c/n1.jpg', null, null,
-    array['00000000-0000-0000-0000-00000000d00a']::uuid[])$$,
-  '22023', null, 'with invite links on, one friend is no longer enough'
+    array['00000000-0000-0000-0000-00000000d00a']::uuid[], null, null, 2)$$,
+  '22023', null, 'you cannot tag back someone whose tag you are answering'
+);
+select throws_ok(
+  $$select public.create_post('22222222-0000-0000-0000-0000000000c1',
+    '00000000-0000-0000-0000-00000000d00c/n1.jpg', null, null, '{}'::uuid[], null, null, 2)$$,
+  '22023', null, 'with invite links on, the empty slot still has to be filled'
 );
 select lives_ok(
   $$select public.create_post('22222222-0000-0000-0000-0000000000c1',
-    '00000000-0000-0000-0000-00000000d00c/n1.jpg', null, null,
-    array['00000000-0000-0000-0000-00000000d00a']::uuid[], null, null, 2)$$,
-  'invites fill the rest of the slots'
+    '00000000-0000-0000-0000-00000000d00c/n1.jpg', null, null, '{}'::uuid[], null, null, 3)$$,
+  'invites fill every slot'
+);
+select is(
+  (select has_open_tag from public.get_taggable_friends() where id = '00000000-0000-0000-0000-00000000d00a'),
+  false, 'once answered, they can be tagged again next time'
 );
 
 select * from finish();
