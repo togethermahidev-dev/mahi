@@ -8,8 +8,10 @@ export type TaggableFriend = {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
-  /** You already tagged them and they haven't answered yet. */
+  /** Can't be tagged now: you tagged them and they haven't answered, or they tagged you. */
   has_open_tag: boolean;
+  /** They tagged you and your post answers it, so you can't tag them back. */
+  tagged_you?: boolean;
   points: number;
   /** When anyone last tagged them; null if never. */
   last_tagged_at: string | null;

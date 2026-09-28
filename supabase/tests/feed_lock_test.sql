@@ -1,6 +1,7 @@
--- Feed lock: people you follow, hidden until you've posted in the last 24 hours.
+-- Feed lock: people you follow, hidden until you post; each post opens it for 24 hours, and after
+-- that it stays open until someone tags you.
 begin;
-select plan(20);
+select plan(22);
 
 -- A follows B, C and E (banned); B follows A back; D is not followed.
 insert into auth.users (id, email) values
@@ -84,13 +85,37 @@ select is(
   (public.get_feed(5, '2000-01-01'::timestamptz, '00000000-0000-0000-0000-000000000000') -> 'items'),
   '[]'::jsonb, 'cursor filters older posts');
 
--- 4. The unlock runs out.
+-- 4. After the 24 hours: open until someone tags you, locked once they have.
 reset role;
 set local session_replication_role = replica;  -- posts can't be re-dated through the trigger
 update public.posts set created_at = now() - interval '25 hours' where id = '00000000-0000-0000-0000-0000000d0a01';
 set local session_replication_role = origin;
+-- A tag from before the post was answered by it: it doesn't count.
+insert into public.tag_challenges (tagger_id, tagged_id, created_at, expires_at, answered_at) values
+  ('00000000-0000-0000-0000-00000000d00b', '00000000-0000-0000-0000-00000000d00a',
+   now() - interval '26 hours', now() + interval '22 hours', now() - interval '25 hours');
 set local role authenticated;
-select is((pg_temp.feed() ->> 'locked')::boolean, true, 'a post over 24 hours old no longer unlocks');
+select is((pg_temp.feed() ->> 'locked')::boolean, false, 'untagged since your last post: the feed stays open');
+
+reset role;
+insert into public.tag_challenges (tagger_id, tagged_id, created_at, expires_at) values
+  ('00000000-0000-0000-0000-00000000d00b', '00000000-0000-0000-0000-00000000d00a',
+   now() - interval '10 hours', now() + interval '38 hours');
+set local role authenticated;
+select is((pg_temp.feed() ->> 'locked')::boolean, true, 'tagged since your last post: locked once the 24 hours end');
+
+reset role;
+set local session_replication_role = replica;
+update public.posts set created_at = now() - interval '1 hour' where id = '00000000-0000-0000-0000-0000000d0a01';
+set local session_replication_role = origin;
+set local role authenticated;
+select is((pg_temp.feed() ->> 'locked')::boolean, false, 'posting again opens it for a fresh 24 hours');
+
+reset role;
+set local session_replication_role = replica;
+update public.posts set created_at = now() - interval '25 hours' where id = '00000000-0000-0000-0000-0000000d0a01';
+set local session_replication_role = origin;
+set local role authenticated;
 
 -- 5. Profiles follow the same rule; your own never locks.
 select is((public.get_user_posts('00000000-0000-0000-0000-00000000d00b', 10) -> 'items' -> 0 ->> 'image_path'), null,

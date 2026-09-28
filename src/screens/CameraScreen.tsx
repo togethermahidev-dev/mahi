@@ -880,7 +880,11 @@ function TagUserRow({
         </Text>
         <Text style={styles.tagRowHandle}>
           @{item.username}
-          {item.has_open_tag ? ' · waiting on your last tag' : ''}
+          {item.tagged_you
+            ? ' · tagged you, can’t tag back'
+            : item.has_open_tag
+              ? ' · waiting on your last tag'
+              : ''}
         </Text>
         {nudge ? <Text style={[styles.tagRowNudge, { color: accent }]}>{nudge}</Text> : null}
       </View>

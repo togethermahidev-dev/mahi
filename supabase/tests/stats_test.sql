@@ -76,15 +76,14 @@ select is((pg_temp.posts_today()).posts - (select posts from pg_temp.base), 1,
 select is((pg_temp.posts_today()).answering_a_tag - (select answering from pg_temp.base), 0,
   'it answered nobody');
 
--- 3. B answers — and B's own post tags A, so a third real tag exists from here on.
+-- 3. B answers. B's only friend is A, who tagged B, so B's post tags nobody.
 select pg_temp.as_user('00000000-0000-0000-0000-00000000e00b');
 select public.create_post('33333333-0000-0000-0000-0000000000b1',
-  '00000000-0000-0000-0000-00000000e00b/b1.jpg', null, null,
-  array['00000000-0000-0000-0000-00000000e00a']::uuid[]);
+  '00000000-0000-0000-0000-00000000e00b/b1.jpg', null, null, '{}'::uuid[]);
 reset role;
 select is((select answered from stats.tags_daily), 1, 'one tag came back');
-select is((select answered_pct from stats.tags_daily), 33.3,
-  'one of the three tags with someone in them was answered');
+select is((select answered_pct from stats.tags_daily), 50.0,
+  'one of the two tags with someone in them was answered');
 select ok((select median_answer_seconds from stats.tags_daily) >= 0,
   'the median answer time is counted');
 select is((pg_temp.posts_today()).answering_a_tag - (select answering from pg_temp.base), 1,
