@@ -2,6 +2,9 @@
 begin;
 select plan(30);
 
+-- Invite links off unless a section turns them on: fewer friends excuses the difference.
+update public.app_config set invite_links_enabled = false;
+
 -- Quiet hours off, so a reminder's send time is never moved and the counts below are exact.
 update public.app_config set quiet_start = '00:00', quiet_end = '00:00';
 

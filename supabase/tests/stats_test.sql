@@ -2,6 +2,9 @@
 begin;
 select plan(20);
 
+-- Invite links off unless a section turns them on: fewer friends excuses the difference.
+update public.app_config set invite_links_enabled = false;
+
 update public.app_config set quiet_start = '00:00', quiet_end = '00:00';
 
 -- Four people who all follow each other with A, plus N who joins from an invite.
