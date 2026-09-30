@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, Dimensions } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import LoginSheet from '@/components/LoginSheet';
@@ -60,20 +60,29 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
           </Text>
         </View>
         <View style={styles.buttons}>
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: sheetText }]}
-            activeOpacity={0.8}
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.button,
+              { backgroundColor: sheetText },
+              pressed && { opacity: 0.8 },
+            ]}
             onPress={() => setShowSignup(true)}
           >
             <Text style={[styles.buttonText, { color: sheetBg }]}>Create an account</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.button, styles.buttonOutline, { borderColor: sheetText }]}
-            activeOpacity={0.8}
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.button,
+              styles.buttonOutline,
+              { borderColor: sheetText },
+              pressed && { opacity: 0.8 },
+            ]}
             onPress={() => setShowLogin(true)}
           >
             <Text style={[styles.buttonText, { color: sheetText }]}>Login</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </Animated.View>
 
@@ -88,22 +97,32 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
         {showApple || showGoogle ? (
           <View style={styles.buttons}>
             {showApple ? (
-              <TouchableOpacity
-                style={[styles.button, styles.buttonOutline, { borderColor: sheetText }]}
-                activeOpacity={0.8}
+              <Pressable
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.button,
+                  styles.buttonOutline,
+                  { borderColor: sheetText },
+                  pressed && { opacity: 0.8 },
+                ]}
                 onPress={() => {}}
               >
                 <Text style={[styles.buttonText, { color: sheetText }]}>Continue with Apple</Text>
-              </TouchableOpacity>
+              </Pressable>
             ) : null}
             {showGoogle ? (
-              <TouchableOpacity
-                style={[styles.button, styles.buttonOutline, { borderColor: sheetText }]}
-                activeOpacity={0.8}
+              <Pressable
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.button,
+                  styles.buttonOutline,
+                  { borderColor: sheetText },
+                  pressed && { opacity: 0.8 },
+                ]}
                 onPress={() => {}}
               >
                 <Text style={[styles.buttonText, { color: sheetText }]}>Continue with Google</Text>
-              </TouchableOpacity>
+              </Pressable>
             ) : null}
           </View>
         ) : null}
