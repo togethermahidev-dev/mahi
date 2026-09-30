@@ -5,12 +5,12 @@ import {
   Image,
   Modal,
   StyleSheet,
-  TouchableOpacity,
-  Platform,
+  Pressable,
   ActivityIndicator,
   Alert,
   TextInput,
 } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import { getBlockedUsers, type BlockedUser } from '@/api';
 import { useAuthStore, useBlockStore } from '@/store';
@@ -26,11 +26,31 @@ interface BlockedUsersSheetProps {
   dark: boolean;
 }
 
+/** Blocked users, in a native page sheet (swipe down or Android back to close). */
 export default function BlockedUsersSheet({
   visible,
   onClose,
   dark,
 }: BlockedUsersSheetProps): React.JSX.Element {
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      {/* Its own provider: the sheet's insets differ from the screen behind it. The sheet
+          mounts on open, so the list, search and open profile start fresh each time. */}
+      <SafeAreaProvider style={{ backgroundColor: bg }}>
+        <Sheet onClose={onClose} dark={dark} />
+      </SafeAreaProvider>
+    </Modal>
+  );
+}
+
+function Sheet({ onClose, dark }: Omit<BlockedUsersSheetProps, 'visible'>) {
+  const insets = useSafeAreaInsets();
   const currentUserId = useAuthStore((s) => s.user?.id);
   const unblockAction = useBlockStore((s) => s.unblock);
 
@@ -54,16 +74,8 @@ export default function BlockedUsersSheet({
   }, [currentUserId]);
 
   useEffect(() => {
-    if (!visible) {
-      setUsers([]);
-      setLoading(true);
-      setQuery('');
-      setProfileUserId(null);
-      return;
-    }
-    setLoading(true);
     fetchList();
-  }, [visible, fetchList]);
+  }, [fetchList]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return users;
@@ -109,18 +121,24 @@ export default function BlockedUsersSheet({
   );
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+    <>
       <View style={[styles.root, { backgroundColor: bg }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: border }]}>
-          <TouchableOpacity
+        <View style={[styles.header, { borderBottomColor: border, paddingTop: insets.top + SPACE.s16 }]}>
+          <Pressable
             onPress={onClose}
-            style={[styles.backBtn, { borderColor: border }]}
-            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            style={({ pressed }) => [styles.backBtn, { borderColor: border }, pressed && styles.pressed]}
+            hitSlop={OFFSET.o8}
           >
             <Text style={[styles.backArrow, { color: text }]}>{'\u2039'}</Text>
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: text }]} numberOfLines={1}>
+          </Pressable>
+          <Text
+            style={[styles.headerTitle, { color: text }]}
+            numberOfLines={1}
+            accessibilityRole="header"
+          >
             BLOCKED USERS
           </Text>
           {/* Spacer to keep title centred */}
@@ -138,6 +156,8 @@ export default function BlockedUsersSheet({
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="search"
+            clearButtonMode="while-editing"
+            accessibilityLabel="Search blocked users"
           />
         </View>
 
@@ -164,10 +184,12 @@ export default function BlockedUsersSheet({
 
               return (
                 <View style={styles.row}>
-                  <TouchableOpacity
-                    style={styles.rowTappable}
-                    activeOpacity={0.7}
+                  <Pressable
+                    style={({ pressed }) => [styles.rowTappable, pressed && styles.pressed]}
                     onPress={() => setProfileUserId(item.blocked_id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${displayName}, @${item.username}`}
+                    accessibilityHint="Opens their profile"
                   >
                     {item.avatar_url ? (
                       <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
@@ -186,14 +208,19 @@ export default function BlockedUsersSheet({
                       <Text style={[styles.name, { color: text }]}>{displayName}</Text>
                       <Text style={[styles.handle, { color: muted }]}>@{item.username}</Text>
                     </View>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.unblockBtn, { borderColor: text }]}
-                    activeOpacity={0.75}
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.unblockBtn,
+                      { borderColor: text },
+                      pressed && styles.pressed,
+                    ]}
                     onPress={() => handleUnblock(item)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Unblock @${item.username}`}
                   >
                     <Text style={[styles.unblockBtnText, { color: text }]}>UNBLOCK</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               );
             }}
@@ -219,7 +246,7 @@ export default function BlockedUsersSheet({
           dark={dark}
         />
       ) : null}
-    </Modal>
+    </>
   );
 }
 
@@ -230,7 +257,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
     paddingBottom: SPACE.s16,
     paddingHorizontal: SPACE.s16,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -242,6 +268,9 @@ const styles = StyleSheet.create({
     borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  pressed: {
+    opacity: 0.7,
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
