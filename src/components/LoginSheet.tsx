@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Modal,
   View,
   Text,
   TextInput,
+  Pressable,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   useColorScheme,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
@@ -42,8 +43,10 @@ export default function LoginSheet({
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const passwordRef = useRef<TextInput>(null);
 
   const handleLogin = async () => {
+    if (loading) return;
     if (!email.trim() || !password.trim()) {
       setError('Enter your email and password.');
       return;
@@ -106,22 +109,32 @@ export default function LoginSheet({
             placeholder="your@email.com"
             placeholderTextColor={muted}
             keyboardType="email-address"
+            textContentType="username"
+            autoComplete="email"
             autoCapitalize="none"
             autoCorrect={false}
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => passwordRef.current?.focus()}
           />
 
           {/* Email domain pills */}
           {showPills && (
             <View style={styles.pillRow}>
               {DOMAINS.map((domain) => (
-                <TouchableOpacity
+                <Pressable
                   key={domain}
-                  style={[styles.pill, { borderColor: text }]}
+                  style={({ pressed }) => [
+                    styles.pill,
+                    { borderColor: text },
+                    pressed && styles.pressed,
+                  ]}
                   onPress={() => setEmail(localPart + domain)}
-                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use @${domain}`}
                 >
                   <Text style={[styles.pillText, { color: text }]}>@{domain}</Text>
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </View>
           )}
@@ -130,38 +143,53 @@ export default function LoginSheet({
           <Text style={[styles.label, { color: muted }]}>Password</Text>
           <View style={[styles.inputRow, { backgroundColor: inputBg }]}>
             <TextInput
+              ref={passwordRef}
               style={[styles.inputInner, { color: text }]}
               value={password}
               onChangeText={setPassword}
               placeholder="••••••••"
               placeholderTextColor={muted}
               secureTextEntry={!showPassword}
+              textContentType="password"
+              autoComplete="current-password"
               autoCapitalize="none"
               autoCorrect={false}
+              returnKeyType="go"
+              onSubmitEditing={handleLogin}
             />
-            <TouchableOpacity onPress={() => setShowPassword((p) => !p)} activeOpacity={0.7}>
+            <Pressable
+              onPress={() => setShowPassword((p) => !p)}
+              style={({ pressed }) => pressed && styles.pressed}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+            >
               <Text style={[styles.toggle, { color: muted }]}>
                 {showPassword ? 'Hide' : 'Show'}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           {/* Inline error */}
           {error !== '' && <Text style={[styles.errorText, { color: red }]}>{error}</Text>}
 
           {/* Login button */}
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: text, opacity: loading ? 0.6 : 1 }]}
-            activeOpacity={0.8}
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              { backgroundColor: text, opacity: loading ? 0.6 : 1 },
+              pressed && styles.pressedStrong,
+            ]}
             onPress={handleLogin}
             disabled={loading}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: loading, busy: loading }}
           >
             {loading ? (
               <ActivityIndicator color={bg} />
             ) : (
               <Text style={[styles.buttonText, { color: bg }]}>Login</Text>
             )}
-          </TouchableOpacity>
+          </Pressable>
 
           {/* Forgot password */}
           <TouchableOpacity onPress={() => {}} activeOpacity={0.7}>
@@ -231,4 +259,7 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s4,
   },
   errorText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
+  // Pressed feedback, matching the old TouchableOpacity activeOpacity values.
+  pressed: { opacity: 0.7 },
+  pressedStrong: { opacity: 0.8 },
 });
