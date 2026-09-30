@@ -15,6 +15,7 @@ import FollowListModal from '@/components/FollowListModal';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import type { Database } from '@/types';
+import { FONTS } from '@/constants/fonts';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 
@@ -208,14 +209,14 @@ const styles = StyleSheet.create({
   },
   displayName: {
     fontSize: 22,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 4,
     marginBottom: 6,
     textAlign: 'center',
   },
   handle: {
     fontSize: 14,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     marginBottom: 16,
   },
   restDaysStreakPill: {
@@ -229,7 +230,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   restDaysStreakPillText: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 10,
     letterSpacing: 2,
     color: '#59c2d7',
@@ -249,12 +250,12 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 28,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     lineHeight: 28,
   },
   statLabel: {
     fontSize: 10,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 3,
   },
   statDivider: {

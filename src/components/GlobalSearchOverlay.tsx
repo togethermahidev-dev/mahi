@@ -21,6 +21,7 @@ import PointsBadge from '@/components/PointsBadge';
 import { useAuthStore, useBlockStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { Sentry } from '@/lib/sentry';
+import { FONTS } from '@/constants/fonts';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -345,7 +346,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     fontSize: 15,
   },
   cancelBtn: {
@@ -353,7 +354,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   cancelText: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 11,
     letterSpacing: 2,
   },
@@ -373,11 +374,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   emptyText: {
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     fontSize: 15,
   },
   hintText: {
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     fontSize: 14,
     letterSpacing: 0.5,
   },
@@ -398,23 +399,23 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     fontSize: 18,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
   },
   rowText: {
     flex: 1,
     gap: 2,
   },
   name: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 15,
     letterSpacing: 1,
   },
   handle: {
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     fontSize: 13,
   },
   streakText: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 13,
   },
   separator: {

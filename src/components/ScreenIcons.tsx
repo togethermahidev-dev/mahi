@@ -1,5 +1,6 @@
 import React from 'react';
 import Svg, { Path, Circle, Line, G, Text as SvgText, Rect } from 'react-native-svg';
+import { FONTS } from '@/constants/fonts';
 
 export interface IconProps {
   size: number;
@@ -141,7 +142,7 @@ export function LikeIcon({
         fontSize={fontSize}
         fontWeight="bold"
         fill={textColor}
-        fontFamily="JosefinSans_700Bold"
+        fontFamily={FONTS.bold}
       >
         {countStr}
       </SvgText>

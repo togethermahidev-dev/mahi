@@ -7,10 +7,11 @@ LogBox.ignoreLogs(['Tried to register two views with the same name', 'RNDateTime
 import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
-  JosefinSans_400Regular_Italic,
-  JosefinSans_600SemiBold,
-  JosefinSans_700Bold,
-} from '@expo-google-fonts/josefin-sans';
+  Inter_400Regular,
+  Inter_400Regular_Italic,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
 
 import SplashScreenComponent from '@/screens/SplashScreen';
 import WelcomeScreen from '@/screens/WelcomeScreen';
@@ -98,9 +99,10 @@ export default function App(): React.JSX.Element {
   const [splashDone, setSplashDone] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [fontsLoaded] = useFonts({
-    JosefinSans_400Regular_Italic,
-    JosefinSans_600SemiBold,
-    JosefinSans_700Bold,
+    Inter_400Regular,
+    Inter_400Regular_Italic,
+    Inter_600SemiBold,
+    Inter_700Bold,
   });
 
   const { session, isLoading, setSession, setIsLoading } = useAuthStore();

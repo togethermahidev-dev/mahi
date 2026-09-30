@@ -13,6 +13,7 @@ import {
 import { signOut } from '@/api/auth';
 import { VERSION_LINE } from '@/lib/appBuild';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
+import { FONTS } from '@/constants/fonts';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -302,7 +303,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   panelTitle: {
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     fontSize: 13,
     letterSpacing: 5,
   },
@@ -332,7 +333,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   sectionLabel: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 11,
     letterSpacing: 3,
   },
@@ -343,7 +344,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   subLabel: {
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     fontSize: 14,
   },
   spacer: {
@@ -359,12 +360,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoutText: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 11,
     letterSpacing: 3,
   },
   versionText: {
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     fontSize: 10,
     textAlign: 'center',
     marginTop: 12,

@@ -9,6 +9,7 @@ import UserProfileScreen from '@/screens/UserProfileScreen';
 import GlobalSearchOverlay from '@/components/GlobalSearchOverlay';
 import { SearchIcon } from '@/components/ScreenIcons';
 import type { ConversationPreview } from '@/api';
+import { FONTS } from '@/constants/fonts';
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -250,13 +251,13 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: 20,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     lineHeight: 22,
   },
   headerTitle: {
     flex: 1,
     fontSize: 24,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 8,
     textAlign: 'center',
   },
@@ -276,7 +277,7 @@ const styles = StyleSheet.create({
   },
   requestsLabel: {
     fontSize: 12,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 3,
   },
   requestsRight: {
@@ -296,12 +297,12 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#FFFFFF',
     fontSize: 11,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     lineHeight: 14,
   },
   chevron: {
     fontSize: 22,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     lineHeight: 22,
   },
   convoRow: {
@@ -329,7 +330,7 @@ const styles = StyleSheet.create({
   },
   convoInitial: {
     fontSize: 16,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
   },
   convoInfo: {
     flex: 1,
@@ -337,16 +338,16 @@ const styles = StyleSheet.create({
   },
   convoName: {
     fontSize: 13,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 1.5,
   },
   convoPreview: {
     fontSize: 12,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
   convoTime: {
     fontSize: 11,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
   convoMeta: {
     alignItems: 'flex-end',
@@ -366,11 +367,11 @@ const styles = StyleSheet.create({
   },
   placeholderTitle: {
     fontSize: 20,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 6,
   },
   placeholderSub: {
     fontSize: 13,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
 });

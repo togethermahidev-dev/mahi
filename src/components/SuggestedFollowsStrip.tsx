@@ -4,6 +4,7 @@ import { FlashList } from '@shopify/flash-list';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSuggestedFollows } from '@/hooks/useSuggestedFollows';
 import type { SuggestedUser } from '@/api';
+import { FONTS } from '@/constants/fonts';
 
 const ACCENT = '#59c2d7';
 
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: 10,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 3,
     paddingHorizontal: 24,
     marginBottom: 12,
@@ -136,17 +137,17 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     fontSize: 22,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
   },
   name: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 13,
     letterSpacing: 1,
     textAlign: 'center',
     maxWidth: '100%',
   },
   handle: {
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     fontSize: 12,
     marginTop: 2,
     marginBottom: 12,
@@ -159,7 +160,7 @@ const styles = StyleSheet.create({
   },
   followBtnText: {
     fontSize: 10,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 2,
     color: '#FFFFFF',
   },

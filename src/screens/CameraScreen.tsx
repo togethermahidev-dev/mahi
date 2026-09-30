@@ -62,6 +62,7 @@ import { formatWait } from '@/lib/countdown';
 import { nudgeLabel } from '@/lib/tagNudge';
 import { Sentry } from '@/lib/sentry';
 import { requestLocationPermission, getCurrentLocation } from '@/lib/location';
+import { FONTS } from '@/constants/fonts';
 
 // Must match PEEK_HEIGHT in VerticalNavigator.tsx
 const PEEK_HEIGHT = 0;
@@ -1764,13 +1765,13 @@ const styles = StyleSheet.create({
   streakNumber: {
     color: '#FFFFFF',
     fontSize: 38,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     lineHeight: 38,
   },
   streakLabel: {
     color: '#E8E8E3',
     fontSize: 8,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 2.5,
     textAlign: 'center',
     opacity: 0.65,
@@ -1783,7 +1784,7 @@ const styles = StyleSheet.create({
     right: 24,
     color: '#E8E8E3',
     fontSize: 10,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     letterSpacing: 2,
     opacity: 0.5,
     textAlign: 'center',
@@ -1801,7 +1802,7 @@ const styles = StyleSheet.create({
   captureLabel: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 4,
     opacity: 0.9,
   },
@@ -1814,21 +1815,21 @@ const styles = StyleSheet.create({
   postedTitle: {
     color: '#FFFFFF',
     fontSize: 22,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 4,
     textAlign: 'center',
   },
   countdownTimer: {
     color: '#FFFFFF',
     fontSize: 48,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 6,
     textAlign: 'center',
   },
   postedSub: {
     color: '#E8E8E3',
     fontSize: 12,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     textAlign: 'center',
     opacity: 0.55,
     letterSpacing: 1,
@@ -1896,7 +1897,7 @@ const styles = StyleSheet.create({
   lensOptionText: {
     color: 'rgba(255,255,255,0.7)',
     fontSize: 13,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 1,
   },
   lensOptionTextActive: {
@@ -1939,7 +1940,7 @@ const styles = StyleSheet.create({
   discardX: {
     color: '#111111',
     fontSize: 14,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     lineHeight: 16,
   },
   postButtonFloat: {
@@ -1958,7 +1959,7 @@ const styles = StyleSheet.create({
   postButtonText: {
     color: '#111111',
     fontSize: 16,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 2,
   },
   captionPill: {
@@ -1975,7 +1976,7 @@ const styles = StyleSheet.create({
   captionPillText: {
     color: 'rgba(255,255,255,0.75)',
     fontSize: 13,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
   // Location pill in its opted-in (ON) state — fills with the accent so the
   // explicit opt-in reads at a glance. Mirrors lensOptionActive's accent fill.
@@ -2017,20 +2018,20 @@ const styles = StyleSheet.create({
   sheetLabel: {
     color: '#E8E8E3',
     fontSize: 11,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 2,
   },
   sheetCounter: {
     color: 'rgba(232,232,227,0.45)',
     fontSize: 12,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
   sheetInput: {
     minHeight: 96,
     maxHeight: 160,
     color: '#E8E8E3',
     fontSize: 15,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     paddingVertical: 8,
     paddingHorizontal: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -2049,7 +2050,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: 'rgba(232,232,227,0.6)',
     fontSize: 12,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
   inviteSteppers: {
     flexDirection: 'row',
@@ -2067,7 +2068,7 @@ const styles = StyleSheet.create({
   inviteStepText: {
     color: '#E8E8E3',
     fontSize: 18,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     lineHeight: 20,
   },
   sheetDone: {
@@ -2080,7 +2081,7 @@ const styles = StyleSheet.create({
   sheetDoneText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 2,
   },
   // ── Tag sheet (search + user rows)
@@ -2097,13 +2098,13 @@ const styles = StyleSheet.create({
   sheetCloseXText: {
     color: 'rgba(232,232,227,0.6)',
     fontSize: 18,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
   },
   tagSearchInput: {
     height: 44,
     color: '#E8E8E3',
     fontSize: 15,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     paddingHorizontal: 14,
     borderRadius: 50,
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -2114,7 +2115,7 @@ const styles = StyleSheet.create({
   tagEmptyText: {
     color: 'rgba(232,232,227,0.45)',
     fontSize: 13,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     textAlign: 'center',
     paddingVertical: 16,
   },
@@ -2142,29 +2143,29 @@ const styles = StyleSheet.create({
   tagAvatarInitial: {
     color: '#E8E8E3',
     fontSize: 15,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
   },
   tagRowName: {
     color: '#E8E8E3',
     fontSize: 14,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
   },
   tagRowHandle: {
     color: 'rgba(232,232,227,0.45)',
     fontSize: 12,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     marginTop: 1,
   },
   tagRowNudge: {
     fontSize: 11,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 1,
     marginTop: 2,
   },
   tagRowCheck: {
     color: '#59c2d7',
     fontSize: 18,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
   },
   // ── Permissions ───────────────────────────────────────────────────────────
   permissionCenter: {
@@ -2176,7 +2177,7 @@ const styles = StyleSheet.create({
   deniedMessage: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     textAlign: 'center',
     opacity: 0.8,
     paddingHorizontal: 32,
@@ -2190,6 +2191,6 @@ const styles = StyleSheet.create({
   permissionButtonText: {
     color: '#111111',
     fontSize: 16,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
   },
 });

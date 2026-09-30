@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, type StyleProp, type TextStyle } from 'react-native';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { FONTS } from '@/constants/fonts';
 
 /** "🔥 12" — a person's Mahi points. Hidden when the `mahi-points` flag is off or points are unknown. */
 export default function PointsBadge({
@@ -17,7 +18,7 @@ export default function PointsBadge({
 
 const styles = StyleSheet.create({
   text: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 13,
   },
 });

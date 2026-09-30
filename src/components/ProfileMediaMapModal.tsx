@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAuthStore, useUserStore } from '@/store';
+import { FONTS } from '@/constants/fonts';
 
 interface Props {
   visible: boolean;
@@ -69,7 +70,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   title: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 16,
     letterSpacing: 4,
   },
@@ -81,7 +82,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   closeX: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 16,
     lineHeight: 18,
   },

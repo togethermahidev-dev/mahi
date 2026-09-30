@@ -14,6 +14,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
+import { FONTS } from '@/constants/fonts';
 
 const DOMAINS = ['gmail.com', 'icloud.com', 'outlook.com', 'yahoo.com'];
 
@@ -174,10 +175,10 @@ export default function LoginSheet({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { padding: 32, gap: 12 },
-  title: { fontSize: 32, fontFamily: 'JosefinSans_700Bold', letterSpacing: 4, marginBottom: 16 },
+  title: { fontSize: 32, fontFamily: FONTS.bold, letterSpacing: 4, marginBottom: 16 },
   label: {
     fontSize: 13,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 1,
     marginBottom: -4,
   },
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
   },
   inputRow: {
     borderRadius: 14,
@@ -198,10 +199,10 @@ const styles = StyleSheet.create({
   inputInner: {
     flex: 1,
     fontSize: 16,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     paddingVertical: 10,
   },
-  toggle: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', paddingHorizontal: 4 },
+  toggle: { fontSize: 13, fontFamily: FONTS.semiBold, paddingHorizontal: 4 },
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: {
     borderWidth: 1.5,
@@ -209,19 +210,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
-  pillText: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold' },
+  pillText: { fontSize: 13, fontFamily: FONTS.semiBold },
   button: {
     borderRadius: 50,
     paddingVertical: 20,
     alignItems: 'center',
     marginTop: 8,
   },
-  buttonText: { fontSize: 18, fontFamily: 'JosefinSans_600SemiBold' },
+  buttonText: { fontSize: 18, fontFamily: FONTS.semiBold },
   forgot: {
     fontSize: 14,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     textAlign: 'center',
     marginTop: 4,
   },
-  errorText: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold' },
+  errorText: { fontSize: 13, fontFamily: FONTS.semiBold },
 });

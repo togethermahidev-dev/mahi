@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import CaptionText from '@/components/CaptionText';
 import type { Database } from '@/types';
+import { FONTS } from '@/constants/fonts';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
   },
   closeX: {
     fontSize: 16,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     lineHeight: 18,
     color: '#FFFFFF',
   },
@@ -214,7 +215,7 @@ const styles = StyleSheet.create({
   },
   streakText: {
     fontSize: 12,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 2,
     color: '#FFFFFF',
   },
@@ -230,7 +231,7 @@ const styles = StyleSheet.create({
   },
   captionText: {
     fontSize: 15,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     color: '#FFFFFF',
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 1 },
@@ -238,7 +239,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 12,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     letterSpacing: 1,
     color: 'rgba(255,255,255,0.6)',
   },

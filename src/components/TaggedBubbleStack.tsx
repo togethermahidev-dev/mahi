@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import type { TaggedUser } from '@/api';
+import { FONTS } from '@/constants/fonts';
 
 const MAX_VISIBLE = 3;
 
@@ -72,6 +73,6 @@ const styles = StyleSheet.create({
   bubbleText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
 });

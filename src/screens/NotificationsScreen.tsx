@@ -14,6 +14,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useBlockStore } from '@/store';
 import type { NotificationWithActor } from '@/api';
+import { FONTS } from '@/constants/fonts';
 
 interface NotificationsScreenProps {
   visible: boolean;
@@ -210,14 +211,14 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: 20,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     lineHeight: 22,
   },
   headerName: {
     flex: 1,
     textAlign: 'center',
     fontSize: 16,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   loadingWrap: {
@@ -249,7 +250,7 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontSize: 14,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
   },
   rowText: {
     flex: 1,
@@ -257,12 +258,12 @@ const styles = StyleSheet.create({
   },
   rowCaption: {
     fontSize: 13,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     lineHeight: 18,
   },
   rowTime: {
     fontSize: 10,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
   unreadDot: {
     width: 8,
@@ -279,6 +280,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 13,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
 });

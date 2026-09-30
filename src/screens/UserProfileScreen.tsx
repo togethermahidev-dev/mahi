@@ -31,6 +31,7 @@ import PostDetailModal from '@/components/PostDetailModal';
 import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview } from '@/api';
 import type { Database } from '@/types';
+import { FONTS } from '@/constants/fonts';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
@@ -559,7 +560,7 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: 20,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     lineHeight: 22,
   },
   ellipsisBtn: {
@@ -576,7 +577,7 @@ const styles = StyleSheet.create({
   },
   ellipsisText: {
     fontSize: 16,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     lineHeight: 18,
     marginTop: -4,
   },
@@ -602,18 +603,18 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     fontSize: 28,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
   },
   displayName: {
     fontSize: 22,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 4,
     marginBottom: 6,
     textAlign: 'center',
   },
   handle: {
     fontSize: 14,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     marginBottom: 16,
   },
   statsRow: {
@@ -627,12 +628,12 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 28,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     lineHeight: 28,
   },
   statLabel: {
     fontSize: 10,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 3,
   },
   statDivider: {
@@ -650,7 +651,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   streakTrackerText: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 10,
     letterSpacing: 2,
     color: '#59c2d7',
@@ -667,7 +668,7 @@ const styles = StyleSheet.create({
   },
   followBtnText: {
     fontSize: 11,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   messageBtn: {
@@ -678,7 +679,7 @@ const styles = StyleSheet.create({
   },
   messageBtnText: {
     fontSize: 11,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   blockedWrap: {
@@ -688,12 +689,12 @@ const styles = StyleSheet.create({
   },
   blockedTitle: {
     fontSize: 16,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   blockedSubtitle: {
     fontSize: 13,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     textAlign: 'center',
     paddingHorizontal: 16,
   },
@@ -706,7 +707,7 @@ const styles = StyleSheet.create({
   },
   unblockBtnText: {
     fontSize: 11,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   mapShadow: {

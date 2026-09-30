@@ -17,6 +17,7 @@ import { useAuthStore, useBlockStore } from '@/store';
 import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
 import UserProfileScreen from '@/screens/UserProfileScreen';
+import { FONTS } from '@/constants/fonts';
 
 interface BlockedUsersSheetProps {
   visible: boolean;
@@ -243,14 +244,14 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: 20,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     lineHeight: 22,
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     fontSize: 16,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   searchWrap: {
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     paddingHorizontal: 16,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     fontSize: 14,
   },
   loadingWrap: {
@@ -297,19 +298,19 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     fontSize: 18,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
   },
   rowText: {
     flex: 1,
     gap: 2,
   },
   name: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 15,
     letterSpacing: 1,
   },
   handle: {
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     fontSize: 13,
   },
   unblockBtn: {
@@ -320,7 +321,7 @@ const styles = StyleSheet.create({
   },
   unblockBtnText: {
     fontSize: 10,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 2,
   },
   separator: {
@@ -334,6 +335,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 13,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
 });

@@ -24,6 +24,7 @@ import { normaliseInviteCode } from '@/lib/inviteLink';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { env } from '@/lib/env';
+import { FONTS } from '@/constants/fonts';
 
 const SUPABASE_URL = env.supabaseUrl;
 
@@ -712,7 +713,7 @@ export default function CreateAccountSheet({
                     style={{
                       color: dobDD && dobMM && dobYYYY ? text : muted,
                       fontSize: 16,
-                      fontFamily: 'JosefinSans_600SemiBold',
+                      fontFamily: FONTS.semiBold,
                     }}
                   >
                     {dobDD && dobMM && dobYYYY ? `${dobDD}/${dobMM}/${dobYYYY}` : 'DD/MM/YYYY'}
@@ -946,16 +947,16 @@ const styles = StyleSheet.create({
   content: { padding: 32, gap: 12 },
   step: { gap: 12 },
 
-  title: { fontSize: 32, fontFamily: 'JosefinSans_700Bold', letterSpacing: 2, marginBottom: 8 },
+  title: { fontSize: 32, fontFamily: FONTS.bold, letterSpacing: 2, marginBottom: 8 },
   subtitle: {
     fontSize: 14,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     marginTop: -4,
     marginBottom: 4,
   },
   label: {
     fontSize: 13,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 1,
     marginBottom: -4,
   },
@@ -965,7 +966,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
   },
   inputRow: {
     borderRadius: 14,
@@ -974,26 +975,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  inputInner: { flex: 1, fontSize: 16, fontFamily: 'JosefinSans_600SemiBold', paddingVertical: 10 },
-  toggle: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', paddingHorizontal: 4 },
+  inputInner: { flex: 1, fontSize: 16, fontFamily: FONTS.semiBold, paddingVertical: 10 },
+  toggle: { fontSize: 13, fontFamily: FONTS.semiBold, paddingHorizontal: 4 },
 
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   pill: { borderWidth: 1.5, borderRadius: 50, paddingHorizontal: 14, paddingVertical: 8 },
-  pillText: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold' },
+  pillText: { fontSize: 13, fontFamily: FONTS.semiBold },
 
   strengthRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -4 },
   strengthSegment: { flex: 1, height: 4, borderRadius: 2 },
-  strengthLabel: { fontSize: 12, fontFamily: 'JosefinSans_600SemiBold', marginLeft: 4 },
+  strengthLabel: { fontSize: 12, fontFamily: FONTS.semiBold, marginLeft: 4 },
 
   countdown: {
     fontSize: 13,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     textAlign: 'center',
     marginBottom: 4,
   },
   resendText: {
     fontSize: 14,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     textAlign: 'center',
     marginTop: 4,
   },
@@ -1004,33 +1005,33 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 12,
     fontSize: 24,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     borderWidth: 1.5,
   },
 
   inviteCard: { borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
-  inviteWho: { fontSize: 15, fontFamily: 'JosefinSans_700Bold', letterSpacing: 1 },
-  inviteWhat: { fontSize: 13, fontFamily: 'JosefinSans_400Regular_Italic', lineHeight: 18 },
+  inviteWho: { fontSize: 15, fontFamily: FONTS.bold, letterSpacing: 1 },
+  inviteWhat: { fontSize: 13, fontFamily: FONTS.italic, lineHeight: 18 },
   inviteCodeInput: { letterSpacing: 4 },
 
-  fieldNote: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', marginTop: -4 },
-  errorText: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', marginTop: 4 },
+  fieldNote: { fontSize: 13, fontFamily: FONTS.semiBold, marginTop: -4 },
+  errorText: { fontSize: 13, fontFamily: FONTS.semiBold, marginTop: 4 },
 
-  atSign: { fontSize: 16, fontFamily: 'JosefinSans_600SemiBold', paddingRight: 2 },
-  optionalTag: { fontSize: 11, fontFamily: 'JosefinSans_400Regular_Italic' },
+  atSign: { fontSize: 16, fontFamily: FONTS.semiBold, paddingRight: 2 },
+  optionalTag: { fontSize: 11, fontFamily: FONTS.italic },
 
   goalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
   goalPill: { borderRadius: 50, paddingHorizontal: 18, paddingVertical: 12 },
-  goalText: { fontSize: 14, fontFamily: 'JosefinSans_600SemiBold' },
+  goalText: { fontSize: 14, fontFamily: FONTS.semiBold },
 
   daysRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
   dayPill: { flex: 1, borderRadius: 50, paddingVertical: 12, alignItems: 'center' },
-  dayText: { fontSize: 12, fontFamily: 'JosefinSans_600SemiBold' },
+  dayText: { fontSize: 12, fontFamily: FONTS.semiBold },
 
   navRow: { flexDirection: 'row', gap: 12, marginTop: 16 },
   navBtn: { borderRadius: 50, paddingVertical: 20, alignItems: 'center' },
   navBtnOutline: { backgroundColor: 'transparent', borderWidth: 1.5 },
-  navBtnText: { fontSize: 18, fontFamily: 'JosefinSans_600SemiBold' },
+  navBtnText: { fontSize: 18, fontFamily: FONTS.semiBold },
 
   datePickerOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   datePickerToolbar: {
@@ -1039,5 +1040,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
-  datePickerDone: { fontSize: 17, fontFamily: 'JosefinSans_600SemiBold', color: '#007AFF' },
+  datePickerDone: { fontSize: 17, fontFamily: FONTS.semiBold, color: '#007AFF' },
 });

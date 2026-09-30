@@ -17,6 +17,7 @@ import { useConversation } from '@/hooks/useConversation';
 import { useMessages } from '@/hooks/useMessages';
 import { groupMessagesByDate, type GroupedRow } from '@/lib/groupMessages';
 import type { ConversationPreview } from '@/api';
+import { FONTS } from '@/constants/fonts';
 
 interface ConversationScreenProps {
   conversation: ConversationPreview;
@@ -252,14 +253,14 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: 20,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     lineHeight: 22,
   },
   headerName: {
     flex: 1,
     textAlign: 'center',
     fontSize: 16,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   requestBanner: {
@@ -270,7 +271,7 @@ const styles = StyleSheet.create({
   },
   requestText: {
     fontSize: 12,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     textAlign: 'center',
   },
   requestActions: {
@@ -289,7 +290,7 @@ const styles = StyleSheet.create({
   },
   requestBtnText: {
     fontSize: 10,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 2,
   },
   denyText: {
@@ -329,12 +330,12 @@ const styles = StyleSheet.create({
   },
   bubbleText: {
     fontSize: 14,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     lineHeight: 20,
   },
   bubbleTime: {
     fontSize: 10,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     paddingHorizontal: 4,
   },
   dayHeader: {
@@ -344,7 +345,7 @@ const styles = StyleSheet.create({
   },
   dayHeaderText: {
     fontSize: 11,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     letterSpacing: 1,
   },
   emptyWrap: {
@@ -355,7 +356,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 13,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
   inputBar: {
     flexDirection: 'row',
@@ -375,7 +376,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     fontSize: 14,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     maxHeight: 100,
   },
   sendBtn: {
@@ -383,7 +384,7 @@ const styles = StyleSheet.create({
   },
   sendText: {
     fontSize: 11,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 2,
   },
 });
