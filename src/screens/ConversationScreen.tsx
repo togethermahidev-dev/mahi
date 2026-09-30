@@ -7,11 +7,12 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
-  KeyboardAvoidingView,
   Keyboard,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import KeyboardInset from '@/components/KeyboardInset';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useConversation } from '@/hooks/useConversation';
 import { useMessages } from '@/hooks/useMessages';
@@ -49,6 +50,22 @@ export default function ConversationScreen({
   const [accepted, setAccepted] = useState(conversation.status === 'active');
 
   const flatListRef = useRef<FlatList>(null);
+  const insets = useSafeAreaInsets();
+  // The keyboard covers the home-indicator strip, so that inset only applies while it is closed.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    const ios = Platform.OS === 'ios';
+    const show = Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', () =>
+      setKeyboardOpen(true)
+    );
+    const hide = Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', () =>
+      setKeyboardOpen(false)
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   const otherName = conversation.other_profile.display_name ?? conversation.other_profile.username;
 
@@ -66,13 +83,6 @@ export default function ConversationScreen({
     setSending(false);
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
-
-  useEffect(() => {
-    const sub = Keyboard.addListener('keyboardDidShow', () => {
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    });
-    return () => sub.remove();
-  }, []);
 
   // Read on open, and again as each message arrives while the screen is up.
   const newest = messages[messages.length - 1]?.id;
@@ -98,7 +108,12 @@ export default function ConversationScreen({
     <Modal visible animationType="slide" transparent={false} onRequestClose={onBack}>
       <View style={[styles.root, { backgroundColor: bg }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: border }]}>
+        <View
+          style={[
+            styles.header,
+            { borderBottomColor: border, paddingTop: insets.top + SPACE.s8 },
+          ]}
+        >
           <TouchableOpacity
             onPress={onBack}
             style={[styles.backBtn, { borderColor: border }]}
@@ -200,12 +215,17 @@ export default function ConversationScreen({
           />
         )}
 
-        {/* Input bar */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
-        >
-          <View style={[styles.inputBar, { borderTopColor: border, backgroundColor: bg }]}>
+        {/* Input bar — the inset below it grows with the keyboard, so the bar rides on top. */}
+        <View style={{ backgroundColor: bg }}>
+          <View
+            style={[
+              styles.inputBar,
+              {
+                borderTopColor: border,
+                paddingBottom: keyboardOpen ? SPACE.s10 : Math.max(insets.bottom, SPACE.s10),
+              },
+            ]}
+          >
             <TextInput
               style={[styles.input, { color: text, borderColor: border }]}
               placeholder="Message…"
@@ -213,8 +233,11 @@ export default function ConversationScreen({
               value={inputText}
               onChangeText={setInputText}
               multiline
+              // Return sends; long messages still wrap and grow the field.
+              submitBehavior="submit"
               maxLength={1000}
               returnKeyType="send"
+              enablesReturnKeyAutomatically
               onSubmitEditing={handleSend}
             />
             <TouchableOpacity
@@ -226,7 +249,8 @@ export default function ConversationScreen({
               <Text style={[styles.sendText, { color: text }]}>SEND</Text>
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
+          <KeyboardInset />
+        </View>
       </View>
     </Modal>
   );
@@ -239,7 +263,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
     paddingBottom: SPACE.s16,
     paddingHorizontal: SPACE.s16,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -364,9 +387,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: SPACE.s16,
     paddingTop: SPACE.s10,
-    // Extra bottom padding on iOS to clear the home-indicator area —
-    // without a SafeAreaView the input bar was sitting under the indicator.
-    paddingBottom: Platform.OS === 'ios' ? SPACE.s34 : SPACE.s10,
     borderTopWidth: StyleSheet.hairlineWidth,
     gap: SPACE.s10,
   },
