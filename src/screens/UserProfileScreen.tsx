@@ -11,8 +11,8 @@ import {
   Platform,
   TouchableOpacity,
   ActivityIndicator,
-  PanResponder,
 } from 'react-native';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import {
   getProfile,
   createOrGetConversation,
@@ -33,11 +33,28 @@ import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview } from '@/api';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, BORDER_WIDTH, SIZE, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  OFFSET,
+  BORDER_WIDTH,
+  SIZE,
+  LINE_HEIGHT,
+  TRACKING,
+} from '@/constants/tokens';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+
+/** How far the finger moves sideways before the swipe takes over (up/down that far cancels it). */
+const SWIPE_SLOP = 20;
+/** A swipe closes the profile past this distance (px) or speed (px/s). */
+const SWIPE_CLOSE_PX = 60;
+const SWIPE_CLOSE_VX = 400;
 
 interface UserProfileScreenProps {
   userId: string;
@@ -65,8 +82,8 @@ export default function UserProfileScreen({
   const blockAction = useBlockStore((s) => s.block);
   const unblockAction = useBlockStore((s) => s.unblock);
 
-  // Keep a stable ref to onBack so the PanResponder closure always calls the
-  // latest callback even if the parent re-renders with a new function identity.
+  // Keep a stable ref to onBack so the swipe always calls the latest callback
+  // even if the parent re-renders with a new function identity.
   const onBackRef = useRef(onBack);
   onBackRef.current = onBack;
 
@@ -74,31 +91,6 @@ export default function UserProfileScreen({
   // on mount so every caller (notifications, feed, search) gets the same motion
   // for free. Same spring params as HorizontalNavigator page changes.
   const translateX = useRef(new Animated.Value(SCREEN_WIDTH)).current;
-
-  // Block all gestures from leaking to HorizontalNavigator behind this screen.
-  // A horizontal swipe dismisses the profile instead of navigating underneath.
-  const gestureBlocker = useRef(
-    PanResponder.create({
-      // Claim touch on start to block HorizontalNavigator behind this screen.
-      onStartShouldSetPanResponder: () => true,
-      // Only escalate to a move-claim for clear horizontal swipes (dismiss gesture).
-      // The old () => true was stealing sloppy taps from child buttons.
-      onMoveShouldSetPanResponder: (_e, { dx, dy }) =>
-        Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 20,
-      // Race guard: if a dismiss swipe starts while the entrance spring is still
-      // running, freeze translateX at its current value so the overlay doesn't jump.
-      onPanResponderGrant: () => {
-        translateX.stopAnimation();
-      },
-      onPanResponderRelease: (_e, { dx, vx }) => {
-        if (Math.abs(dx) > 60 || Math.abs(vx) > 0.4) {
-          onBackRef.current();
-        }
-      },
-      // Allow child TouchableOpacity elements to reclaim the touch.
-      onPanResponderTerminationRequest: () => true,
-    })
-  ).current;
 
   const [profile, setProfile] = useState<(ProfileRow & { points?: number }) | null>(null);
   const showPoints = useFeatureFlag('mahi-points');
@@ -112,6 +104,22 @@ export default function UserProfileScreen({
     Database['public']['Tables']['posts']['Row'] | null
   >(null);
   const [suggestedUserId, setSuggestedUserId] = useState<string | null>(null);
+
+  // Swipe sideways to close. The pan only takes over once the finger has clearly moved
+  // sideways, so taps and up/down scrolls stay with the buttons and lists inside. Off while a
+  // screen opened from here is on top, so a swipe there closes that one only.
+  const swipeBack = Gesture.Pan()
+    .runOnJS(true)
+    .enabled(!suggestedUserId && !activeConvo)
+    .activeOffsetX([-SWIPE_SLOP, SWIPE_SLOP])
+    .failOffsetY([-SWIPE_SLOP, SWIPE_SLOP])
+    // A swipe during the entrance spring freezes it where it is, so the screen doesn't jump.
+    .onStart(() => translateX.stopAnimation())
+    .onEnd((e) => {
+      if (Math.abs(e.translationX) > SWIPE_CLOSE_PX || Math.abs(e.velocityX) > SWIPE_CLOSE_VX) {
+        onBackRef.current();
+      }
+    });
 
   useEffect(() => {
     Animated.spring(translateX, {
@@ -359,209 +367,214 @@ export default function UserProfileScreen({
   };
 
   return (
-    <Animated.View
-      style={[styles.root, { backgroundColor: bg, transform: [{ translateX }] }]}
-      {...gestureBlocker.panHandlers}
-    >
-      {/* Back button — top-left */}
-      <TouchableOpacity
-        onPress={onBack}
-        style={[styles.backBtn, { borderColor: muted }]}
-        hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
-      >
-        <Text style={[styles.backArrow, { color: muted }]}>‹</Text>
-      </TouchableOpacity>
-
-      {/* Ellipsis menu — top-right (only for other users) */}
-      {!isSelf && !loading ? (
+    <GestureDetector gesture={swipeBack}>
+      <Animated.View style={[styles.root, { backgroundColor: bg, transform: [{ translateX }] }]}>
+        {/* Back button — top-left */}
         <TouchableOpacity
-          onPress={handleEllipsis}
-          style={[styles.ellipsisBtn, { borderColor: muted }]}
+          onPress={onBack}
+          style={[styles.backBtn, { borderColor: muted }]}
           hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
-          <Text style={[styles.ellipsisText, { color: muted }]}>...</Text>
+          <Text style={[styles.backArrow, { color: muted }]}>‹</Text>
         </TouchableOpacity>
-      ) : null}
 
-      {loading ? (
-        <ActivityIndicator color={muted} style={styles.loader} />
-      ) : isBlocked ? (
-        <View style={styles.blockedWrap}>
-          <Text style={[styles.blockedTitle, { color: text }]}>User Unavailable</Text>
-          <Text style={[styles.blockedSubtitle, { color: muted }]}>
-            {isBlockedByMe ? 'You have blocked this user.' : 'This content is not available.'}
-          </Text>
-          {isBlockedByMe ? (
-            <TouchableOpacity
-              style={[styles.unblockBtn, { borderColor: text }]}
-              onPress={handleUnblock}
-              activeOpacity={0.75}
-            >
-              <Text style={[styles.unblockBtnText, { color: text }]}>UNBLOCK</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      ) : (
-        <>
-          {/* Profile header */}
-          <View style={styles.header}>
-            {/* Avatar */}
-            <View style={styles.avatarWrap}>
-              {profile?.avatar_url ? (
-                <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
-              ) : (
-                <View
-                  style={[
-                    styles.avatar,
-                    styles.avatarFallback,
-                    { backgroundColor: dark ? COLORS.borderDark : COLORS.offWhite },
-                  ]}
-                >
-                  <Text style={[styles.avatarInitial, { color: bg }]}>{initials}</Text>
-                </View>
-              )}
-            </View>
+        {/* Ellipsis menu — top-right (only for other users) */}
+        {!isSelf && !loading ? (
+          <TouchableOpacity
+            onPress={handleEllipsis}
+            style={[styles.ellipsisBtn, { borderColor: muted }]}
+            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+          >
+            <Text style={[styles.ellipsisText, { color: muted }]}>...</Text>
+          </TouchableOpacity>
+        ) : null}
 
-            {/* Name + handle */}
-            <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
-            {profile?.username ? (
-              <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
+        {loading ? (
+          <ActivityIndicator color={muted} style={styles.loader} />
+        ) : isBlocked ? (
+          <View style={styles.blockedWrap}>
+            <Text style={[styles.blockedTitle, { color: text }]}>User Unavailable</Text>
+            <Text style={[styles.blockedSubtitle, { color: muted }]}>
+              {isBlockedByMe ? 'You have blocked this user.' : 'This content is not available.'}
+            </Text>
+            {isBlockedByMe ? (
+              <TouchableOpacity
+                style={[styles.unblockBtn, { borderColor: text }]}
+                onPress={handleUnblock}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.unblockBtnText, { color: text }]}>UNBLOCK</Text>
+              </TouchableOpacity>
             ) : null}
-
-            {/* Friends — a list, never a number */}
-            <TouchableOpacity
-              style={styles.statsRow}
-              activeOpacity={0.7}
-              onPress={() => setFriendsOpen(true)}
-            >
-              <Text style={[styles.statLabel, { color: muted }]}>FRIENDS ›</Text>
-            </TouchableOpacity>
-
-            {/* Streak stats */}
-            <View style={[styles.statsRow, { marginTop: SPACE.s16 }]}>
-              <View style={styles.stat}>
-                <Text style={[styles.statValue, { color: text }]}>
-                  {profile?.streak_current ?? 0}
-                </Text>
-                <Text style={[styles.statLabel, { color: muted }]}>STREAK</Text>
-              </View>
-              <View style={[styles.statDivider, { backgroundColor: muted }]} />
-              <View style={styles.stat}>
-                <Text style={[styles.statValue, { color: text }]}>
-                  {profile?.streak_highest ?? 0}
-                </Text>
-                <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
-              </View>
-              {showPoints ? (
-                <>
-                  <View style={[styles.statDivider, { backgroundColor: muted }]} />
-                  <View style={styles.stat}>
-                    <Text style={[styles.statValue, { color: text }]}>{profile?.points ?? 0}</Text>
-                    <Text style={[styles.statLabel, { color: muted }]}>🔥 POINTS</Text>
-                  </View>
-                </>
-              ) : null}
-            </View>
-
-            {/* Streak grid pill */}
-            <TouchableOpacity
-              onPress={() => setStreakGridOpen(true)}
-              activeOpacity={0.75}
-              style={[styles.streakTrackerPill, { borderColor: COLORS.accent }]}
-            >
-              <Text style={styles.streakTrackerText}>STREAK TRACKER</Text>
-            </TouchableOpacity>
-
-            {/* Follow / Message actions */}
-            {!isSelf ? (
-              <View style={styles.actionRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.followBtn,
-                    isFollowing
-                      ? { borderColor: text, borderWidth: BORDER_WIDTH.w1 }
-                      : { backgroundColor: COLORS.accent },
-                  ]}
-                  onPress={handleFollow}
-                  activeOpacity={0.75}
-                >
-                  <Text style={[styles.followBtnText, { color: isFollowing ? text : COLORS.white }]}>
-                    {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.messageBtn, { borderColor: text, opacity: messaging ? 0.5 : 1 }]}
-                  onPress={handleMessage}
-                  activeOpacity={0.75}
-                  disabled={messaging}
-                >
-                  <Text style={[styles.messageBtnText, { color: text }]}>
-                    {messaging ? '…' : 'MESSAGE'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-
-            {/* Suggested follows — syncs on mount, renders null when empty.
-                Excludes the profile being viewed so we never suggest this page. */}
-            <SuggestedFollowsStrip onPressUser={setSuggestedUserId} excludeUserId={userId} />
           </View>
+        ) : (
+          <>
+            {/* Profile header */}
+            <View style={styles.header}>
+              {/* Avatar */}
+              <View style={styles.avatarWrap}>
+                {profile?.avatar_url ? (
+                  <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+                ) : (
+                  <View
+                    style={[
+                      styles.avatar,
+                      styles.avatarFallback,
+                      { backgroundColor: dark ? COLORS.borderDark : COLORS.offWhite },
+                    ]}
+                  >
+                    <Text style={[styles.avatarInitial, { color: bg }]}>{initials}</Text>
+                  </View>
+                )}
+              </View>
 
-          {/* Media grid */}
-          {profile ? (
-            <View style={[styles.mapShadow, { shadowColor: dark ? COLORS.black : COLORS.offBlack }]}>
-              <ProfileMediaMap userId={profile.id} isSelf={false} onPostPress={setSelectedPost} />
+              {/* Name + handle */}
+              <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
+              {profile?.username ? (
+                <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
+              ) : null}
+
+              {/* Friends — a list, never a number */}
+              <TouchableOpacity
+                style={styles.statsRow}
+                activeOpacity={0.7}
+                onPress={() => setFriendsOpen(true)}
+              >
+                <Text style={[styles.statLabel, { color: muted }]}>FRIENDS ›</Text>
+              </TouchableOpacity>
+
+              {/* Streak stats */}
+              <View style={[styles.statsRow, { marginTop: SPACE.s16 }]}>
+                <View style={styles.stat}>
+                  <Text style={[styles.statValue, { color: text }]}>
+                    {profile?.streak_current ?? 0}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: muted }]}>STREAK</Text>
+                </View>
+                <View style={[styles.statDivider, { backgroundColor: muted }]} />
+                <View style={styles.stat}>
+                  <Text style={[styles.statValue, { color: text }]}>
+                    {profile?.streak_highest ?? 0}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
+                </View>
+                {showPoints ? (
+                  <>
+                    <View style={[styles.statDivider, { backgroundColor: muted }]} />
+                    <View style={styles.stat}>
+                      <Text style={[styles.statValue, { color: text }]}>
+                        {profile?.points ?? 0}
+                      </Text>
+                      <Text style={[styles.statLabel, { color: muted }]}>🔥 POINTS</Text>
+                    </View>
+                  </>
+                ) : null}
+              </View>
+
+              {/* Streak grid pill */}
+              <TouchableOpacity
+                onPress={() => setStreakGridOpen(true)}
+                activeOpacity={0.75}
+                style={[styles.streakTrackerPill, { borderColor: COLORS.accent }]}
+              >
+                <Text style={styles.streakTrackerText}>STREAK TRACKER</Text>
+              </TouchableOpacity>
+
+              {/* Follow / Message actions */}
+              {!isSelf ? (
+                <View style={styles.actionRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.followBtn,
+                      isFollowing
+                        ? { borderColor: text, borderWidth: BORDER_WIDTH.w1 }
+                        : { backgroundColor: COLORS.accent },
+                    ]}
+                    onPress={handleFollow}
+                    activeOpacity={0.75}
+                  >
+                    <Text
+                      style={[styles.followBtnText, { color: isFollowing ? text : COLORS.white }]}
+                    >
+                      {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.messageBtn, { borderColor: text, opacity: messaging ? 0.5 : 1 }]}
+                    onPress={handleMessage}
+                    activeOpacity={0.75}
+                    disabled={messaging}
+                  >
+                    <Text style={[styles.messageBtnText, { color: text }]}>
+                      {messaging ? '…' : 'MESSAGE'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+
+              {/* Suggested follows — syncs on mount, renders null when empty.
+                Excludes the profile being viewed so we never suggest this page. */}
+              <SuggestedFollowsStrip onPressUser={setSuggestedUserId} excludeUserId={userId} />
             </View>
-          ) : null}
-        </>
-      )}
 
-      {/* Streak accountability grid */}
-      {profile ? (
-        <StreakGridPanel
-          visible={streakGridOpen}
-          onClose={() => setStreakGridOpen(false)}
+            {/* Media grid */}
+            {profile ? (
+              <View
+                style={[styles.mapShadow, { shadowColor: dark ? COLORS.black : COLORS.offBlack }]}
+              >
+                <ProfileMediaMap userId={profile.id} isSelf={false} onPostPress={setSelectedPost} />
+              </View>
+            ) : null}
+          </>
+        )}
+
+        {/* Streak accountability grid */}
+        {profile ? (
+          <StreakGridPanel
+            visible={streakGridOpen}
+            onClose={() => setStreakGridOpen(false)}
+            userId={userId}
+            streakCurrent={profile.streak_current ?? 0}
+            streakHighest={profile.streak_highest ?? 0}
+            streakLastUploadDate={profile.streak_last_upload_date ?? null}
+            fitnessRoutine={profile.fitness_routine ?? null}
+            dark={dark}
+          />
+        ) : null}
+
+        {/* Friends list */}
+        <FollowListModal
+          visible={friendsOpen}
+          onClose={() => setFriendsOpen(false)}
           userId={userId}
-          streakCurrent={profile.streak_current ?? 0}
-          streakHighest={profile.streak_highest ?? 0}
-          streakLastUploadDate={profile.streak_last_upload_date ?? null}
-          fitnessRoutine={profile.fitness_routine ?? null}
+          type="friends"
           dark={dark}
         />
-      ) : null}
 
-      {/* Friends list */}
-      <FollowListModal
-        visible={friendsOpen}
-        onClose={() => setFriendsOpen(false)}
-        userId={userId}
-        type="friends"
-        dark={dark}
-      />
+        {/* Conversation screen — opened from MESSAGE button */}
+        {activeConvo && currentUserId ? (
+          <ConversationScreen
+            conversation={activeConvo}
+            currentUserId={currentUserId}
+            onBack={() => setActiveConvo(null)}
+          />
+        ) : null}
 
-      {/* Conversation screen — opened from MESSAGE button */}
-      {activeConvo && currentUserId ? (
-        <ConversationScreen
-          conversation={activeConvo}
-          currentUserId={currentUserId}
-          onBack={() => setActiveConvo(null)}
-        />
-      ) : null}
+        {/* Post detail — opened when a grid cell is tapped */}
+        <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />
 
-      {/* Post detail — opened when a grid cell is tapped */}
-      <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />
-
-      {/* Suggested user's profile — opened from a suggestion card */}
-      {suggestedUserId ? (
-        <UserProfileScreen
-          key={suggestedUserId}
-          userId={suggestedUserId}
-          onBack={() => setSuggestedUserId(null)}
-          dark={dark}
-        />
-      ) : null}
-    </Animated.View>
+        {/* Suggested user's profile — opened from a suggestion card */}
+        {suggestedUserId ? (
+          <UserProfileScreen
+            key={suggestedUserId}
+            userId={suggestedUserId}
+            onBack={() => setSuggestedUserId(null)}
+            dark={dark}
+          />
+        ) : null}
+      </Animated.View>
+    </GestureDetector>
   );
 }
 
