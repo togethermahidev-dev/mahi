@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Animated, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useToastStore } from '@/store/toastStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { COLORS, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE, SHADOW_BLUR } from '@/constants/tokens';
@@ -14,12 +15,16 @@ export function ToastHost(): React.JSX.Element | null {
   const durationMs = useToastStore((s) => s.durationMs);
   const hide = useToastStore((s) => s.hide);
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(12)).current;
 
   useEffect(() => {
     if (message == null) return;
+
+    // VoiceOver / TalkBack read the toast out, since it never takes focus.
+    AccessibilityInfo.announceForAccessibility(message);
 
     Animated.parallel([
       Animated.timing(opacity, {
@@ -57,7 +62,7 @@ export function ToastHost(): React.JSX.Element | null {
   if (message == null) return null;
 
   return (
-    <View pointerEvents="none" style={styles.container}>
+    <View pointerEvents="none" style={[styles.container, { bottom: insets.bottom + OFFSET.o14 }]}>
       <Animated.View
         style={[
           styles.toast,
@@ -81,7 +86,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: OFFSET.o48,
     alignItems: 'center',
     paddingHorizontal: SPACE.s24,
   },
