@@ -4,7 +4,6 @@ import {
   Text,
   Image,
   StyleSheet,
-  TouchableOpacity,
   Linking,
   Platform,
   Animated,
@@ -598,14 +597,13 @@ function DualPhotoPreview({
           )}
 
           {/* Discard — top right */}
-          <TouchableOpacity
-            style={styles.discardButton}
-            activeOpacity={0.8}
+          <Pressable
+            style={({ pressed }) => [styles.discardButton, pressed && { opacity: 0.8 }]}
             onPress={handleDiscard}
             disabled={isUploading}
           >
             <Text style={styles.discardX}>✕</Text>
-          </TouchableOpacity>
+          </Pressable>
 
           {/* Post — bottom center */}
           <View style={styles.postButtonFloat}>
@@ -619,11 +617,13 @@ function DualPhotoPreview({
                 width: pillRowW,
               }}
             >
-              <TouchableOpacity
-                activeOpacity={0.85}
+              <Pressable
                 disabled={isUploading}
                 onPress={() => setActiveSheet('tag')}
-                style={{ flex: 1, marginRight: pillGap / 2 }}
+                style={({ pressed }) => [
+                  { flex: 1, marginRight: pillGap / 2 },
+                  pressed && { opacity: 0.85 },
+                ]}
               >
                 <BlurView intensity={40} tint="dark" style={styles.captionPill}>
                   <Text
@@ -637,13 +637,15 @@ function DualPhotoPreview({
                     {tagPillLabel(taggedUsers)}
                   </Text>
                 </BlurView>
-              </TouchableOpacity>
+              </Pressable>
 
-              <TouchableOpacity
-                activeOpacity={0.85}
+              <Pressable
                 disabled={isUploading}
                 onPress={() => setActiveSheet('caption')}
-                style={{ flex: 1, marginLeft: pillGap / 2 }}
+                style={({ pressed }) => [
+                  { flex: 1, marginLeft: pillGap / 2 },
+                  pressed && { opacity: 0.85 },
+                ]}
               >
                 <BlurView intensity={40} tint="dark" style={styles.captionPill}>
                   <Text
@@ -654,7 +656,7 @@ function DualPhotoPreview({
                     {caption.trim() || '＋ Add a caption'}
                   </Text>
                 </BlurView>
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             {/* Per-post location pill — default OFF (explicit opt-in). First tap
@@ -672,11 +674,10 @@ function DualPhotoPreview({
                 width: pillRowW,
               }}
             >
-              <TouchableOpacity
-                activeOpacity={0.85}
+              <Pressable
                 disabled={isUploading}
                 onPress={onToggleLocation}
-                style={{ flex: 1 }}
+                style={({ pressed }) => [{ flex: 1 }, pressed && { opacity: 0.85 }]}
               >
                 <BlurView
                   intensity={40}
@@ -691,12 +692,15 @@ function DualPhotoPreview({
                     {locationEnabled ? '📍 Location on' : '📍 Add location'}
                   </Text>
                 </BlurView>
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
-            <TouchableOpacity
-              style={[styles.postButton, (isUploading || tagsMissing > 0) && { opacity: 0.5 }]}
-              activeOpacity={0.82}
+            <Pressable
+              style={({ pressed }) => [
+                styles.postButton,
+                (isUploading || tagsMissing > 0) && { opacity: 0.5 },
+                pressed && { opacity: 0.82 },
+              ]}
               disabled={isUploading}
               onPress={() => {
                 if (tagsMissing > 0) {
@@ -712,7 +716,7 @@ function DualPhotoPreview({
               <Text style={styles.postButtonText}>
                 {tagsMissing > 0 ? `TAG ${tagsMissing} MORE` : 'POST'}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </Animated.View>
 
@@ -848,9 +852,12 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
             autoFocus
             textAlignVertical="top"
           />
-          <TouchableOpacity style={styles.sheetDone} activeOpacity={0.85} onPress={commit}>
+          <Pressable
+            style={({ pressed }) => [styles.sheetDone, pressed && { opacity: 0.85 }]}
+            onPress={commit}
+          >
             <Text style={styles.sheetDoneText}>DONE</Text>
-          </TouchableOpacity>
+          </Pressable>
           <KeyboardInset />
         </View>
       </View>
@@ -875,13 +882,13 @@ function TagUserRow({
   const { accent } = useAppTheme().colors;
   const nudge = nudgeLabel(item.last_tagged_at, item.has_open_tag, nudgeDays);
   return (
-    <TouchableOpacity
-      style={[
+    <Pressable
+      style={({ pressed }) => [
         styles.tagRow,
         selected && styles.tagRowSelected,
         item.has_open_tag && { opacity: 0.4 },
+        pressed && { opacity: 0.7 },
       ]}
-      activeOpacity={0.7}
       disabled={item.has_open_tag}
       onPress={onPress}
     >
@@ -907,7 +914,7 @@ function TagUserRow({
         {nudge ? <Text style={[styles.tagRowNudge, { color: accent }]}>{nudge}</Text> : null}
       </View>
       {selected ? <Text style={styles.tagRowCheck}>✓</Text> : null}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -1021,9 +1028,12 @@ function TagSheet({
                 {filled}/{maxTags}
               </Text>
             )}
-            <TouchableOpacity style={styles.sheetCloseX} onPress={onCancel} activeOpacity={0.7}>
+            <Pressable
+              style={({ pressed }) => [styles.sheetCloseX, pressed && { opacity: 0.7 }]}
+              onPress={onCancel}
+            >
               <Text style={styles.sheetCloseXText}>✕</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
 
@@ -1071,34 +1081,35 @@ function TagSheet({
             </Text>
             <View style={styles.inviteSteppers}>
               {invites > 0 ? (
-                <TouchableOpacity
-                  style={styles.inviteStep}
-                  activeOpacity={0.7}
+                <Pressable
+                  style={({ pressed }) => [styles.inviteStep, pressed && { opacity: 0.7 }]}
                   onPress={() => setInvites((n) => Math.max(0, n - 1))}
                 >
                   <Text style={styles.inviteStepText}>−</Text>
-                </TouchableOpacity>
+                </Pressable>
               ) : null}
-              <TouchableOpacity
-                style={[styles.inviteStep, { opacity: filled >= maxTags ? 0.3 : 1 }]}
-                activeOpacity={0.7}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.inviteStep,
+                  { opacity: filled >= maxTags ? 0.3 : 1 },
+                  pressed && { opacity: 0.7 },
+                ]}
                 disabled={filled >= maxTags}
                 onPress={() => setInvites((n) => n + 1)}
               >
                 <Text style={styles.inviteStepText}>+</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         )}
 
         {singleShot ? null : (
-          <TouchableOpacity
-            style={styles.sheetDone}
-            activeOpacity={0.85}
+          <Pressable
+            style={({ pressed }) => [styles.sheetDone, pressed && { opacity: 0.85 }]}
             onPress={() => onCommit(selected, invites)}
           >
             <Text style={styles.sheetDoneText}>DONE</Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
         <KeyboardInset />
       </View>
@@ -1594,13 +1605,12 @@ export default function CameraScreen(): React.JSX.Element {
         <View style={styles.permissionCenter}>
           <Text style={styles.deniedMessage}>{message}</Text>
           {!canAskAny && (
-            <TouchableOpacity
-              style={styles.permissionButton}
-              activeOpacity={0.8}
+            <Pressable
+              style={({ pressed }) => [styles.permissionButton, pressed && { opacity: 0.8 }]}
               onPress={() => Linking.openSettings()}
             >
               <Text style={styles.permissionButtonText}>Open Settings</Text>
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
       </View>
@@ -1681,9 +1691,12 @@ export default function CameraScreen(): React.JSX.Element {
         {facing === 'back' && ultraWideLens && !hasPostedToday && (
           <View style={styles.lensToggleWrap} pointerEvents="box-none">
             <View style={styles.lensToggle}>
-              <TouchableOpacity
-                style={[styles.lensOption, !useUltraWide && styles.lensOptionActive]}
-                activeOpacity={0.8}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.lensOption,
+                  !useUltraWide && styles.lensOptionActive,
+                  pressed && { opacity: 0.8 },
+                ]}
                 disabled={isCapturing}
                 onPress={() => {
                   if (!useUltraWide) return;
@@ -1694,10 +1707,13 @@ export default function CameraScreen(): React.JSX.Element {
                 <Text style={[styles.lensOptionText, !useUltraWide && styles.lensOptionTextActive]}>
                   1×
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.lensOption, useUltraWide && styles.lensOptionActive]}
-                activeOpacity={0.8}
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.lensOption,
+                  useUltraWide && styles.lensOptionActive,
+                  pressed && { opacity: 0.8 },
+                ]}
                 disabled={isCapturing}
                 onPress={() => {
                   if (useUltraWide) return;
@@ -1708,15 +1724,18 @@ export default function CameraScreen(): React.JSX.Element {
                 <Text style={[styles.lensOptionText, useUltraWide && styles.lensOptionTextActive]}>
                   0.5×
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         )}
 
         <View style={styles.controlsRow}>
-          <TouchableOpacity
-            style={[styles.flipButton, { opacity: captureState !== 'idle' ? 0.3 : 1 }]}
-            activeOpacity={0.7}
+          <Pressable
+            style={({ pressed }) => [
+              styles.flipButton,
+              { opacity: captureState !== 'idle' ? 0.3 : 1 },
+              pressed && { opacity: 0.7 },
+            ]}
             disabled={captureState !== 'idle'}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1724,23 +1743,23 @@ export default function CameraScreen(): React.JSX.Element {
             }}
           >
             <FlipIcon color={flipColor} />
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity
-            style={[
+          <Pressable
+            style={({ pressed }) => [
               styles.shutterOuter,
               {
                 borderColor: shutterRing,
                 shadowColor: dark ? COLORS.black : COLORS.offBlack,
                 opacity: shutterDisabled ? 0.3 : 1,
               },
+              pressed && { opacity: 0.82 },
             ]}
-            activeOpacity={0.82}
             disabled={shutterDisabled}
             onPress={handleShutterPress}
           >
             <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
-          </TouchableOpacity>
+          </Pressable>
 
           {/* Spacer */}
           <View style={styles.flipButton} />
