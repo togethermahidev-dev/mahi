@@ -1,5 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Pressable,
+  FlatList,
+  Image,
+  Platform,
+  Alert,
+} from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMessages } from '@/hooks/useMessages';
 import { useAuthStore } from '@/store';
@@ -45,49 +55,69 @@ function RequestRow({
       : item.last_message.content
     : '';
 
+  const time = <Text style={[styles.convoTime, { color: muted }]}>{relativeTime(item.updated_at)}</Text>;
+
+  // The row and the Accept / Deny buttons are SIBLINGS (not nested pressables), so a tap on a
+  // button never also opens the conversation. Same pattern as MessagesScreen's ConvoRow.
   return (
-    <TouchableOpacity
-      style={[styles.convoRow, { borderBottomColor: border }]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      {item.other_profile.avatar_url ? (
-        <Image source={{ uri: item.other_profile.avatar_url }} style={styles.convoAvatar} />
-      ) : (
-        <View style={[styles.convoAvatar, styles.convoAvatarFallback, { backgroundColor: muted }]}>
-          <Text style={[styles.convoInitial, { color: text }]}>{initials}</Text>
+    <View style={[styles.convoRow, { borderBottomColor: border }]}>
+      <Pressable
+        style={({ pressed }) => [styles.convoBody, pressed && styles.pressed]}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`Message request from ${name}`}
+      >
+        {item.other_profile.avatar_url ? (
+          <Image source={{ uri: item.other_profile.avatar_url }} style={styles.convoAvatar} />
+        ) : (
+          <View
+            style={[styles.convoAvatar, styles.convoAvatarFallback, { backgroundColor: muted }]}
+          >
+            <Text style={[styles.convoInitial, { color: text }]}>{initials}</Text>
+          </View>
+        )}
+
+        <View style={styles.convoInfo}>
+          <Text style={[styles.convoName, { color: text }]}>{name}</Text>
+          {preview ? <Text style={[styles.convoPreview, { color: muted }]}>{preview}</Text> : null}
         </View>
-      )}
 
-      <View style={styles.convoInfo}>
-        <Text style={[styles.convoName, { color: text }]}>{name}</Text>
-        {preview ? <Text style={[styles.convoPreview, { color: muted }]}>{preview}</Text> : null}
-      </View>
+        {showAccept ? null : (
+          <View style={styles.convoRight}>
+            {time}
+            <Text style={[styles.pendingLabel, { color: muted }]}>PENDING</Text>
+          </View>
+        )}
+      </Pressable>
 
-      <View style={styles.convoRight}>
-        <Text style={[styles.convoTime, { color: muted }]}>{relativeTime(item.updated_at)}</Text>
-        {showAccept ? (
+      {showAccept ? (
+        <View style={styles.convoRight}>
+          {time}
           <View style={styles.actionBtns}>
-            <TouchableOpacity
-              style={[styles.actionBtn, { borderColor: text }]}
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionBtn,
+                { borderColor: text },
+                pressed && styles.pressed,
+              ]}
               onPress={onAccept}
-              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Accept request from ${name}`}
             >
               <Text style={[styles.actionBtnText, { color: text }]}>ACCEPT</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.denyBtn]}
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.actionBtn, styles.denyBtn, pressed && styles.pressed]}
               onPress={onDeny}
-              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Deny request from ${name}`}
             >
               <Text style={[styles.actionBtnText, styles.denyText]}>DENY</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
-        ) : (
-          <Text style={[styles.pendingLabel, { color: muted }]}>PENDING</Text>
-        )}
-      </View>
-    </TouchableOpacity>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -135,7 +165,16 @@ export default function MessageRequestsScreen({
               showAccept={isReceiver}
               onPress={() => setOpenConvo(item)}
               onAccept={() => accept(item.id)}
-              onDeny={() => deny(item.id)}
+              onDeny={() =>
+                Alert.alert(
+                  'Deny request?',
+                  `The request from @${item.other_profile.username} and its messages will be deleted.`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Deny', style: 'destructive', onPress: () => deny(item.id) },
+                  ]
+                )
+              }
               text={text}
               muted={muted}
               border={border}
@@ -209,6 +248,15 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     gap: SPACE.s12,
+  },
+  convoBody: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s12,
+  },
+  pressed: {
+    opacity: 0.7,
   },
   convoAvatar: {
     width: SIZE.z44,
