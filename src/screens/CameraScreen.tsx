@@ -13,7 +13,6 @@ import {
   Modal,
   TextInput,
   Pressable,
-  KeyboardAvoidingView,
   FlatList,
   Share,
 } from 'react-native';
@@ -56,6 +55,7 @@ import {
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import OpenTagsBanner from '@/components/OpenTagsBanner';
 import PointsBadge from '@/components/PointsBadge';
+import KeyboardInset from '@/components/KeyboardInset';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { formatWait } from '@/lib/countdown';
@@ -826,10 +826,7 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
       statusBarTranslucent
       onRequestClose={commit}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.sheetFlex}
-      >
+      <View style={styles.sheetFlex}>
         <Pressable style={styles.sheetScrim} onPress={commit} />
         <View style={styles.sheetPanel}>
           <View style={styles.sheetHandle} />
@@ -854,8 +851,9 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
           <TouchableOpacity style={styles.sheetDone} activeOpacity={0.85} onPress={commit}>
             <Text style={styles.sheetDoneText}>DONE</Text>
           </TouchableOpacity>
+          <KeyboardInset />
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -1007,109 +1005,103 @@ function TagSheet({
   };
 
   return (
+    // The system page sheet: swipe down (or ✕) cancels; onRequestClose fires for both.
     <Modal
       visible={visible}
-      transparent
       animationType="slide"
-      statusBarTranslucent
+      presentationStyle="pageSheet"
       onRequestClose={onCancel}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.sheetFlex}
-      >
-        <Pressable style={styles.sheetScrim} onPress={onCancel} />
-        <View style={styles.sheetPanel}>
-          <TouchableOpacity style={styles.sheetCloseX} onPress={onCancel} activeOpacity={0.7}>
-            <Text style={styles.sheetCloseXText}>✕</Text>
-          </TouchableOpacity>
-
-          <View style={styles.sheetHandle} />
-
-          <View style={styles.sheetLabelRow}>
-            <Text style={styles.sheetLabel}>TAG PEOPLE</Text>
+      <View style={styles.tagSheetPanel}>
+        <View style={styles.sheetLabelRow}>
+          <Text style={styles.sheetLabel}>TAG PEOPLE</Text>
+          <View style={styles.sheetHeaderEnd}>
             {singleShot ? null : (
               <Text style={styles.sheetCounter}>
                 {filled}/{maxTags}
               </Text>
             )}
-          </View>
-
-          <TextInput
-            style={styles.tagSearchInput}
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search friends who follow you back"
-            placeholderTextColor={withAlpha(COLORS.offWhite, 0.45)}
-            autoFocus
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-          />
-
-          <FlatList
-            data={results}
-            keyExtractor={(item) => item.id}
-            keyboardShouldPersistTaps="handled"
-            style={styles.tagResultsList}
-            ListEmptyComponent={
-              loading ? null : (
-                <Text style={styles.tagEmptyText}>
-                  {query.trim()
-                    ? 'No friends found.'
-                    : 'Only friends who follow you back can be tagged.'}
-                </Text>
-              )
-            }
-            renderItem={({ item }) => (
-              <TagUserRow
-                item={item}
-                selected={selected.some((s) => s.user_id === item.id)}
-                onPress={() => toggle(item)}
-              />
-            )}
-          />
-
-          {singleShot || !canInvite ? null : (
-            <View style={styles.inviteRow}>
-              <Text style={styles.inviteLabel}>
-                {invites > 0
-                  ? `${invites} to invite — you'll get ${invites > 1 ? 'links' : 'a link'} to share after posting`
-                  : 'Not on Mahi yet? Invite them instead.'}
-              </Text>
-              <View style={styles.inviteSteppers}>
-                {invites > 0 ? (
-                  <TouchableOpacity
-                    style={styles.inviteStep}
-                    activeOpacity={0.7}
-                    onPress={() => setInvites((n) => Math.max(0, n - 1))}
-                  >
-                    <Text style={styles.inviteStepText}>−</Text>
-                  </TouchableOpacity>
-                ) : null}
-                <TouchableOpacity
-                  style={[styles.inviteStep, { opacity: filled >= maxTags ? 0.3 : 1 }]}
-                  activeOpacity={0.7}
-                  disabled={filled >= maxTags}
-                  onPress={() => setInvites((n) => n + 1)}
-                >
-                  <Text style={styles.inviteStepText}>+</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {singleShot ? null : (
-            <TouchableOpacity
-              style={styles.sheetDone}
-              activeOpacity={0.85}
-              onPress={() => onCommit(selected, invites)}
-            >
-              <Text style={styles.sheetDoneText}>DONE</Text>
+            <TouchableOpacity style={styles.sheetCloseX} onPress={onCancel} activeOpacity={0.7}>
+              <Text style={styles.sheetCloseXText}>✕</Text>
             </TouchableOpacity>
-          )}
+          </View>
         </View>
-      </KeyboardAvoidingView>
+
+        <TextInput
+          style={styles.tagSearchInput}
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search friends who follow you back"
+          placeholderTextColor={withAlpha(COLORS.offWhite, 0.45)}
+          autoFocus
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+        />
+
+        <FlatList
+          data={results}
+          keyExtractor={(item) => item.id}
+          keyboardShouldPersistTaps="handled"
+          style={styles.tagResultsList}
+          ListEmptyComponent={
+            loading ? null : (
+              <Text style={styles.tagEmptyText}>
+                {query.trim()
+                  ? 'No friends found.'
+                  : 'Only friends who follow you back can be tagged.'}
+              </Text>
+            )
+          }
+          renderItem={({ item }) => (
+            <TagUserRow
+              item={item}
+              selected={selected.some((s) => s.user_id === item.id)}
+              onPress={() => toggle(item)}
+            />
+          )}
+        />
+
+        {singleShot || !canInvite ? null : (
+          <View style={styles.inviteRow}>
+            <Text style={styles.inviteLabel}>
+              {invites > 0
+                ? `${invites} to invite — you'll get ${invites > 1 ? 'links' : 'a link'} to share after posting`
+                : 'Not on Mahi yet? Invite them instead.'}
+            </Text>
+            <View style={styles.inviteSteppers}>
+              {invites > 0 ? (
+                <TouchableOpacity
+                  style={styles.inviteStep}
+                  activeOpacity={0.7}
+                  onPress={() => setInvites((n) => Math.max(0, n - 1))}
+                >
+                  <Text style={styles.inviteStepText}>−</Text>
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                style={[styles.inviteStep, { opacity: filled >= maxTags ? 0.3 : 1 }]}
+                activeOpacity={0.7}
+                disabled={filled >= maxTags}
+                onPress={() => setInvites((n) => n + 1)}
+              >
+                <Text style={styles.inviteStepText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {singleShot ? null : (
+          <TouchableOpacity
+            style={styles.sheetDone}
+            activeOpacity={0.85}
+            onPress={() => onCommit(selected, invites)}
+          >
+            <Text style={styles.sheetDoneText}>DONE</Text>
+          </TouchableOpacity>
+        )}
+        <KeyboardInset />
+      </View>
     </Modal>
   );
 }
@@ -2018,8 +2010,23 @@ const styles = StyleSheet.create({
     borderTopRightRadius: RADIUS.r24,
     paddingHorizontal: SPACE.s20,
     paddingTop: SPACE.s12,
-    paddingBottom: SPACE.s24,
+    // The closing KeyboardInset adds one more gap, so 12 here keeps 24 below DONE.
+    paddingBottom: SPACE.s12,
     gap: SPACE.s12,
+  },
+  // Tag sheet: fills the system page sheet; the results list takes the spare height.
+  tagSheetPanel: {
+    flex: 1,
+    backgroundColor: COLORS.bgDark,
+    paddingHorizontal: SPACE.s20,
+    paddingTop: SPACE.s20,
+    paddingBottom: SPACE.s12,
+    gap: SPACE.s12,
+  },
+  sheetHeaderEnd: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s8,
   },
   sheetHandle: {
     width: SIZE.z40,
@@ -2105,14 +2112,10 @@ const styles = StyleSheet.create({
   },
   // ── Tag sheet (search + user rows)
   sheetCloseX: {
-    position: 'absolute',
-    top: OFFSET.o10,
-    right: OFFSET.o14,
     width: SIZE.z28,
     height: SIZE.z28,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 2,
   },
   sheetCloseXText: {
     color: withAlpha(COLORS.offWhite, 0.6),
@@ -2129,7 +2132,7 @@ const styles = StyleSheet.create({
     backgroundColor: withAlpha(COLORS.white, 0.08),
   },
   tagResultsList: {
-    maxHeight: SCREEN_HEIGHT * 0.45,
+    flex: 1,
   },
   tagEmptyText: {
     color: withAlpha(COLORS.offWhite, 0.45),
