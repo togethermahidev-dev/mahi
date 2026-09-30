@@ -18,6 +18,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabase';
 import { sendOTP, verifyOTP, clearOTP, OTP_LENGTH } from '@/lib/otp';
+import { sanitiseOtp } from '@/lib/otpCode';
 import { completeSignup } from '@/api/auth';
 import { useSignUpStore, useInviteStore } from '@/store';
 import { normaliseInviteCode } from '@/lib/inviteLink';
@@ -86,13 +87,13 @@ export default function CreateAccountSheet({
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Step 2 — OTP boxes (one digit each)
-  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
+  // Step 2 — the code, in one field; the boxes are drawn from it
+  const [otp, setOtp] = useState('');
   // Code verified in step 2 — complete-signup checks it again before creating the account.
   const [enteredCode, setEnteredCode] = useState('');
   const passwordRef = useRef<RNTextInput>(null);
-  const otpRefs = useRef<(RNTextInput | null)[]>(Array(OTP_LENGTH).fill(null));
-  const [focusedOtp, setFocusedOtp] = useState<number | null>(null);
+  const otpRef = useRef<RNTextInput>(null);
+  const [otpFocused, setOtpFocused] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const focusBorder = (field: string) => ({
@@ -204,30 +205,12 @@ export default function CreateAccountSheet({
   }, [email]);
 
   // ── OTP input handler ──────────────────────────────────────────────────────
-  const handleOtpChange = (
-    val: string,
-    i: number,
-    arr: string[],
-    setArr: (a: string[]) => void,
-    refs: React.MutableRefObject<(RNTextInput | null)[]>
-  ) => {
-    const next = [...arr];
-    next[i] = val.slice(-1);
-    setArr(next);
-    if (val && i < OTP_LENGTH - 1) refs.current[i + 1]?.focus();
-    // Auto-advance when last digit is entered (pass code directly to avoid stale state)
-    if (val && i === OTP_LENGTH - 1) handleStep2Next(next.join(''));
-  };
-
-  const handleOtpKeyPress = (
-    e: { nativeEvent: { key: string } },
-    i: number,
-    arr: string[],
-    refs: React.MutableRefObject<(RNTextInput | null)[]>
-  ) => {
-    if (e.nativeEvent.key === 'Backspace' && arr[i] === '' && i > 0) {
-      refs.current[i - 1]?.focus();
-    }
+  // Typed, pasted or autofilled: once the whole code is in, check it (pass the
+  // code directly to avoid stale state).
+  const handleOtpChange = (raw: string) => {
+    const code = sanitiseOtp(raw, OTP_LENGTH);
+    setOtp(code);
+    if (code.length === OTP_LENGTH) handleStep2Next(code);
   };
 
   // ── Reset everything on close ──────────────────────────────────────────────
@@ -236,7 +219,7 @@ export default function CreateAccountSheet({
     setError('');
     setLoading(false);
     setShowPassword(false);
-    setOtp(Array(OTP_LENGTH).fill(''));
+    setOtp('');
     setEnteredCode('');
     setUsernameStatus('idle');
     setEmailExists(false);
@@ -288,7 +271,7 @@ export default function CreateAccountSheet({
   // checks it again on the final step before creating the account.
   // codeOverride used by auto-advance (avoids stale otp state after setOtp).
   const handleStep2Next = async (codeOverride?: string) => {
-    const code = codeOverride ?? otp.join('');
+    const code = codeOverride ?? otp;
     if (code.length < OTP_LENGTH) {
       setError(`Enter the ${OTP_LENGTH}-digit code.`);
       return;
@@ -305,8 +288,8 @@ export default function CreateAccountSheet({
     } catch (e: any) {
       posthog.capture('signup_otp_rejected');
       setError(e.message ?? 'Could not check the code.');
-      setOtp(Array(OTP_LENGTH).fill(''));
-      otpRefs.current[0]?.focus();
+      setOtp('');
+      otpRef.current?.focus();
     } finally {
       setLoading(false);
     }
@@ -319,7 +302,7 @@ export default function CreateAccountSheet({
     setLoading(true);
     try {
       await sendOTP(email.trim());
-      setOtp(Array(OTP_LENGTH).fill(''));
+      setOtp('');
       setEnteredCode('');
       setResendReady(false);
       setSecondsLeft(600);
@@ -629,33 +612,51 @@ export default function CreateAccountSheet({
                 </Text>
 
                 <Text style={[styles.label, { color: muted }]}>Code</Text>
-                <View style={styles.otpRow}>
-                  {otp.map((val, i) => (
-                    <TextInput
-                      key={i}
-                      ref={(r) => {
-                        otpRefs.current[i] = r;
-                      }}
-                      style={[
-                        styles.otpBox,
-                        {
-                          backgroundColor: inputBg,
-                          color: text,
-                          borderColor: focusedOtp === i ? COLORS.accent : val ? text : 'transparent',
-                          borderWidth: focusedOtp === i ? BORDER_WIDTH.w2 : BORDER_WIDTH.w1_5,
-                        },
-                      ]}
-                      value={val}
-                      onChangeText={(v) => handleOtpChange(v, i, otp, setOtp, otpRefs)}
-                      onKeyPress={(e) => handleOtpKeyPress(e, i, otp, otpRefs)}
-                      onFocus={() => setFocusedOtp(i)}
-                      onBlur={() => setFocusedOtp(null)}
-                      keyboardType="number-pad"
-                      maxLength={1}
-                      textAlign="center"
-                      textContentType={i === OTP_LENGTH - 1 ? 'oneTimeCode' : 'none'}
-                    />
-                  ))}
+                {/* One real field (iOS offers the emailed code above the keyboard). The
+                    boxes are drawn from its value; the field lies invisibly on top of
+                    them, so tapping any box focuses it and long-press pastes. */}
+                <View>
+                  <View
+                    style={styles.otpRow}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                  >
+                    {Array.from({ length: OTP_LENGTH }, (_, i) => {
+                      const digit = otp[i] ?? '';
+                      const current =
+                        otpFocused && i === Math.min(otp.length, OTP_LENGTH - 1);
+                      return (
+                        <View
+                          key={i}
+                          style={[
+                            styles.otpBox,
+                            {
+                              backgroundColor: inputBg,
+                              borderColor: current ? COLORS.accent : digit ? text : 'transparent',
+                              borderWidth: current ? BORDER_WIDTH.w2 : BORDER_WIDTH.w1_5,
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.otpDigit, { color: text }]}>{digit}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                  <TextInput
+                    ref={otpRef}
+                    style={styles.otpInput}
+                    value={otp}
+                    onChangeText={handleOtpChange}
+                    onFocus={() => setOtpFocused(true)}
+                    onBlur={() => setOtpFocused(false)}
+                    keyboardType="number-pad"
+                    textContentType="oneTimeCode"
+                    autoComplete="one-time-code"
+                    maxLength={OTP_LENGTH}
+                    caretHidden
+                    autoFocus
+                    accessibilityLabel="Verification code"
+                  />
                 </View>
 
                 {/* Resend */}
@@ -1021,10 +1022,13 @@ const styles = StyleSheet.create({
     width: SIZE.z46,
     height: SIZE.z60,
     borderRadius: RADIUS.r12,
-    fontSize: FONT_SIZE.f24,
-    fontFamily: FONTS.bold,
     borderWidth: BORDER_WIDTH.w1_5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  otpDigit: { fontSize: FONT_SIZE.f24, fontFamily: FONTS.bold },
+  // Near-zero (not zero) opacity keeps the field tappable and open to autofill.
+  otpInput: { ...StyleSheet.absoluteFill, opacity: 0.01 },
 
   inviteCard: { borderRadius: RADIUS.r14, paddingHorizontal: SPACE.s16, paddingVertical: SPACE.s14, gap: SPACE.s4 },
   inviteWho: { fontSize: FONT_SIZE.f15, fontFamily: FONTS.bold, letterSpacing: TRACKING.t1 },
