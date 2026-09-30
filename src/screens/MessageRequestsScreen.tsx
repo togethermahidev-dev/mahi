@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Pressable,
-  Image,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, Alert } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -16,7 +8,18 @@ import { useAuthStore } from '@/store';
 import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview } from '@/api';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE, BORDER_WIDTH, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  OFFSET,
+  SIZE,
+  BORDER_WIDTH,
+  LINE_HEIGHT,
+  TRACKING,
+} from '@/constants/tokens';
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -55,7 +58,9 @@ function RequestRow({
       : item.last_message.content
     : '';
 
-  const time = <Text style={[styles.convoTime, { color: muted }]}>{relativeTime(item.updated_at)}</Text>;
+  const time = (
+    <Text style={[styles.convoTime, { color: muted }]}>{relativeTime(item.updated_at)}</Text>
+  );
 
   // The row and the Accept / Deny buttons are SIBLINGS (not nested pressables), so a tap on a
   // button never also opens the conversation. Same pattern as MessagesScreen's ConvoRow.
@@ -143,13 +148,19 @@ export default function MessageRequestsScreen({
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
       <View style={[styles.header, { borderBottomColor: border }]}>
-        <TouchableOpacity
+        <Pressable
+          style={({ pressed }) => [
+            styles.backBtn,
+            { borderColor: muted },
+            pressed && styles.pressed,
+          ]}
           onPress={onBack}
-          style={[styles.backBtn, { borderColor: muted }]}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
           hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
           <Text style={[styles.backArrow, { color: text }]}>‹</Text>
-        </TouchableOpacity>
+        </Pressable>
         <Text style={[styles.headerTitle, { color: text }]}>REQUESTS</Text>
         <View style={styles.backSpacer} />
       </View>
