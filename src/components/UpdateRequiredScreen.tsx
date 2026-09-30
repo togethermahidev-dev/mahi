@@ -2,6 +2,7 @@ import React from 'react';
 import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { VERSION_LINE } from '@/lib/appBuild';
+import { FONTS } from '@/constants/fonts';
 
 /** Shown instead of the app when this build is older than the server's minimum version. */
 export default function UpdateRequiredScreen({
@@ -45,12 +46,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   title: {
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     fontSize: 28,
     marginBottom: 16,
   },
   body: {
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 24,
@@ -62,11 +63,11 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
   buttonText: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 16,
   },
   version: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 13,
     marginTop: 24,
   },

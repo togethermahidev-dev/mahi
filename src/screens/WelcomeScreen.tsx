@@ -11,6 +11,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import LoginSheet from '@/components/LoginSheet';
 import CreateAccountSheet from '@/components/CreateAccountSheet';
+import { FONTS } from '@/constants/fonts';
 
 const { height } = Dimensions.get('window');
 
@@ -133,9 +134,9 @@ const styles = StyleSheet.create({
   },
   titles: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   titleWrapper: { position: 'relative', marginBottom: 12 },
-  title: { fontSize: 56, fontFamily: 'JosefinSans_700Bold', letterSpacing: 10 },
+  title: { fontSize: 56, fontFamily: FONTS.bold, letterSpacing: 10 },
   titleEcho: { position: 'absolute', color: '#59c2d7', top: 4, left: 4 },
-  subtitle: { fontSize: 16, fontFamily: 'JosefinSans_400Regular_Italic', opacity: 0.7 },
+  subtitle: { fontSize: 16, fontFamily: FONTS.italic, opacity: 0.7 },
   gap: { height: 55 },
   bottomSheet: {
     flex: 1,
@@ -157,5 +158,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonOutline: { backgroundColor: 'transparent', borderWidth: 1.5 },
-  buttonText: { fontSize: 18, fontFamily: 'JosefinSans_600SemiBold' },
+  buttonText: { fontSize: 18, fontFamily: FONTS.semiBold },
 });

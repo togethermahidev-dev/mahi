@@ -13,6 +13,7 @@ import {
 import { useAuthStore, useUserStore } from '@/store';
 import { updateFitnessRoutine } from '@/api';
 import { Sentry } from '@/lib/sentry';
+import { FONTS } from '@/constants/fonts';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -229,12 +230,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backText: {
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     fontSize: 20,
     lineHeight: 22,
   },
   title: {
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     fontSize: 13,
     letterSpacing: 5,
     textAlign: 'center',
@@ -244,7 +245,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   saveText: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 15,
   },
   content: {
@@ -253,7 +254,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   subtitle: {
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 32,
@@ -272,7 +273,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayText: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 11,
   },
 });

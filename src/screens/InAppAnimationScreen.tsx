@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions, useColorScheme } from 'react-native';
+import { FONTS } from '@/constants/fonts';
 
 const { height } = Dimensions.get('window');
 
@@ -94,12 +95,12 @@ const styles = StyleSheet.create({
   titleEcho: { position: 'absolute', color: '#59c2d7', top: 4, left: 4 },
   title: {
     fontSize: 56,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 10,
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     opacity: 0.7,
   },
   gap: { height: 55 },

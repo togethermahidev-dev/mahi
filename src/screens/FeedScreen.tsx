@@ -35,6 +35,7 @@ import PointsBadge from '@/components/PointsBadge';
 import KeyboardInset from '@/components/KeyboardInset';
 import type { FeedPost } from '@/api';
 import type { CommentWithProfile } from '@/api/social';
+import { FONTS } from '@/constants/fonts';
 
 // AppHeader: paddingTop (60 ios / 32 android) + inner row (~36px) + paddingBottom (12)
 const APP_HEADER_H = Platform.OS === 'ios' ? 108 : 80;
@@ -840,7 +841,7 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     fontSize: 16,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     color: '#FFFFFF',
   },
   userInfo: {
@@ -848,13 +849,13 @@ const styles = StyleSheet.create({
   },
   usernameOverlay: {
     fontSize: 15,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 1.5,
     color: '#FFFFFF',
   },
   timeOverlay: {
     fontSize: 12,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     color: 'rgba(255,255,255,0.75)',
   },
   streakBadge: {
@@ -865,13 +866,13 @@ const styles = StyleSheet.create({
   },
   streakText: {
     fontSize: 12,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 2,
     color: '#FFFFFF',
   },
   responseText: {
     fontSize: 10,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 1,
     color: '#FFFFFF',
     marginTop: 2,
@@ -918,7 +919,7 @@ const styles = StyleSheet.create({
   },
   captionText: {
     fontSize: 15,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     color: '#FFFFFF',
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 1 },
@@ -944,7 +945,7 @@ const styles = StyleSheet.create({
   },
   sideActionCount: {
     fontSize: 12,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     color: '#FFFFFF',
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowOffset: { width: 0, height: 1 },
@@ -965,7 +966,7 @@ const styles = StyleSheet.create({
   },
   commentAvatarInitial: {
     fontSize: 10,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
   },
   commentBody: {
     flex: 1,
@@ -973,16 +974,16 @@ const styles = StyleSheet.create({
   },
   commentUsername: {
     fontSize: 11,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 1,
   },
   commentText: {
     fontSize: 13,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
   commentTime: {
     fontSize: 10,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     paddingTop: 2,
   },
   commentInputRow: {
@@ -1001,7 +1002,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 0,
     fontSize: 13,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
   commentSubmit: {
     borderRadius: 50,
@@ -1010,7 +1011,7 @@ const styles = StyleSheet.create({
   },
   commentSubmitText: {
     fontSize: 11,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 2,
     color: '#FFFFFF',
   },
@@ -1041,7 +1042,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: 12,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 2,
   },
   sheetEmpty: {
@@ -1051,7 +1052,7 @@ const styles = StyleSheet.create({
   },
   sheetEmptyText: {
     fontSize: 13,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
   // ── Empty / error
   nameRow: {
@@ -1081,17 +1082,17 @@ const styles = StyleSheet.create({
   },
   lockedName: {
     fontSize: 20,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
   },
   lockedTime: {
     fontSize: 13,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 1,
     opacity: 0.7,
   },
   lockedHint: {
     fontSize: 15,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     textAlign: 'center',
   },
   lockedButton: {
@@ -1101,7 +1102,7 @@ const styles = StyleSheet.create({
   },
   lockedButtonText: {
     fontSize: 14,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   empty: {
@@ -1111,12 +1112,12 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 6,
   },
   emptySub: {
     fontSize: 13,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     textAlign: 'center',
     paddingHorizontal: 32,
   },
@@ -1124,6 +1125,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 16,
     fontSize: 13,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
   },
 });

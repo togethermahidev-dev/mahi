@@ -53,6 +53,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 import { updateAvatarUrl } from '@/api/profile';
+import { FONTS } from '@/constants/fonts';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -390,7 +391,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 18,
     color: '#1A1A17',
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
   },
 
   // ── Lightbox ──
@@ -424,6 +425,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 20,
     color: '#FFFFFF',
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
   },
 });

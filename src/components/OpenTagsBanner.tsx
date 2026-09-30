@@ -4,6 +4,7 @@ import { BlurView } from 'expo-blur';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { formatHms, msLeft } from '@/lib/countdown';
 import type { OpenTag } from '@/api';
+import { FONTS } from '@/constants/fonts';
 
 /**
  * Camera overlay: who tagged you and how long is left on the soonest deadline.
@@ -61,10 +62,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   text: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 14,
   },
   time: {
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
   },
 });

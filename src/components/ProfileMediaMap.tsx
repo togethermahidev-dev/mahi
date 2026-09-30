@@ -13,6 +13,7 @@ import Svg, { Path } from 'react-native-svg';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import type { Database } from '@/types';
+import { FONTS } from '@/constants/fonts';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PLACEHOLDER_IMG = require('../../assets/jogger.png') as number;
@@ -161,18 +162,18 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 10,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 1,
   },
   emptyTitle: {
     fontSize: 18,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 3,
     textAlign: 'center',
   },
   emptySubtitle: {
     fontSize: 14,
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     textAlign: 'center',
   },
 });

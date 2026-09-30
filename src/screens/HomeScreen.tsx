@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { FONTS } from '@/constants/fonts';
 
 export default function HomeScreen(): React.JSX.Element {
   const { dark } = useAppTheme();
@@ -22,7 +23,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 24,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     letterSpacing: 8,
   },
 });

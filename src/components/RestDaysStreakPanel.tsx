@@ -14,6 +14,7 @@ import {
 import { useAuthStore, useUserStore } from '@/store';
 import { getPostDates, updateFitnessRoutine } from '@/api';
 import { Sentry } from '@/lib/sentry';
+import { FONTS } from '@/constants/fonts';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -499,7 +500,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   title: {
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     fontSize: 13,
     letterSpacing: 5,
   },
@@ -534,7 +535,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     fontSize: 13,
     letterSpacing: 5,
   },
@@ -543,11 +544,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   saveText: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 15,
   },
   subtitle: {
-    fontFamily: 'JosefinSans_400Regular_Italic',
+    fontFamily: FONTS.italic,
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 24,
@@ -566,7 +567,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayText: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 11,
   },
   // ─── Divider between sections ──
@@ -580,7 +581,7 @@ const styles = StyleSheet.create({
   },
   // ─── Streak grid section ──
   statusText: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 13,
     letterSpacing: 2,
     textAlign: 'center',
@@ -599,12 +600,12 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 28,
-    fontFamily: 'JosefinSans_700Bold',
+    fontFamily: FONTS.bold,
     lineHeight: 28,
   },
   statLabel: {
     fontSize: 10,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     letterSpacing: 3,
   },
   statDivider: {
@@ -633,7 +634,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   legendText: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 10,
     letterSpacing: 1,
   },
@@ -654,7 +655,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   weekdayText: {
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 10,
     letterSpacing: 1,
   },
@@ -665,7 +666,7 @@ const styles = StyleSheet.create({
   },
   monthLabel: {
     width: MONTH_LABEL_W,
-    fontFamily: 'JosefinSans_600SemiBold',
+    fontFamily: FONTS.semiBold,
     fontSize: 12,
     lineHeight: CELL_SIZE,
   },
