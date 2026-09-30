@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  Platform,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useBlockStore } from '@/store';
@@ -48,7 +48,17 @@ export default function NotificationsScreen({
   const border = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.12);
   const avatarBg = dark ? withAlpha(COLORS.offWhite, 0.1) : withAlpha(COLORS.offBlack, 0.08);
 
-  const { items, isLoading, markRead, markAllRead } = useNotifications();
+  const { items, isLoading, refresh, markRead, markAllRead } = useNotifications();
+  const insets = useSafeAreaInsets();
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const blockedSet = useBlockStore((s) => s.blockedSet);
   const filteredItems = useMemo(
     () => items.filter((n) => !blockedSet.has(n.actor_id)),
@@ -61,7 +71,13 @@ export default function NotificationsScreen({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={handleClose}>
+    // Page sheet: slides up, and a swipe down closes it (which calls onRequestClose).
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={handleClose}
+    >
       <View style={[styles.root, { backgroundColor: bg }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: border }]}>
@@ -88,7 +104,9 @@ export default function NotificationsScreen({
           <FlatList
             data={filteredItems}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + SPACE.s12 }]}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
             renderItem={({ item }: { item: NotificationWithActor }) => {
               const name = item.actor.display_name ?? item.actor.username;
               const initials = name[0].toUpperCase();
@@ -197,7 +215,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
+    // Shown in a page sheet, which already starts below the status bar.
+    paddingTop: SPACE.s16,
     paddingBottom: SPACE.s16,
     paddingHorizontal: SPACE.s16,
     borderBottomWidth: StyleSheet.hairlineWidth,
