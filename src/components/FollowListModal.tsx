@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import { getFollowList, getFriends, type FollowListUser } from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
@@ -113,104 +114,107 @@ export default function FollowListModal({
       onRequestClose={onClose}
     >
       {/* A Modal is its own native window: gesture-handler needs its own root here
-          (the profile opened from a row swipes closed with a pan). */}
+          (the profile opened from a row swipes closed with a pan), and the safe area is
+          the sheet's, which starts below the status bar. */}
       <GestureHandlerRootView style={styles.root}>
-        <View style={[styles.root, { backgroundColor: bg }]}>
-          {/* Header */}
-          <View style={[styles.header, { borderBottomColor: border }]}>
-            <TouchableOpacity
-              onPress={onClose}
-              style={[styles.backBtn, { borderColor: border }]}
-              hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
-            >
-              <Text style={[styles.backArrow, { color: text }]}>{'\u2039'}</Text>
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: text }]} numberOfLines={1}>
-              {title}
-            </Text>
-            {/* Spacer to keep title centred */}
-            <View style={styles.backBtn} />
+        <SafeAreaProvider>
+          <View style={[styles.root, { backgroundColor: bg }]}>
+            {/* Header */}
+            <View style={[styles.header, { borderBottomColor: border }]}>
+              <TouchableOpacity
+                onPress={onClose}
+                style={[styles.backBtn, { borderColor: border }]}
+                hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+              >
+                <Text style={[styles.backArrow, { color: text }]}>{'\u2039'}</Text>
+              </TouchableOpacity>
+              <Text style={[styles.headerTitle, { color: text }]} numberOfLines={1}>
+                {title}
+              </Text>
+              {/* Spacer to keep title centred */}
+              <View style={styles.backBtn} />
+            </View>
+
+            {/* Content */}
+            {loading ? (
+              <View style={styles.loadingWrap}>
+                <ActivityIndicator color={muted} />
+              </View>
+            ) : (
+              <FlashList
+                data={users}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                ItemSeparatorComponent={() => (
+                  <View style={[styles.separator, { backgroundColor: border }]} />
+                )}
+                renderItem={({ item }) => {
+                  const displayName =
+                    item.display_name ?? item.first_name ?? item.username ?? '\u2014';
+                  const initials = displayName[0]?.toUpperCase() ?? '?';
+
+                  return (
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        if (item.id === currentUserId) return;
+                        setProfileUserId(item.id);
+                      }}
+                      style={styles.row}
+                    >
+                      {item.avatar_url ? (
+                        <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+                      ) : (
+                        <View
+                          style={[
+                            styles.avatar,
+                            styles.avatarFallback,
+                            { backgroundColor: avatarBg },
+                          ]}
+                        >
+                          <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
+                        </View>
+                      )}
+                      <View style={styles.rowText}>
+                        <Text style={[styles.name, { color: text }]}>{displayName}</Text>
+                        {item.username ? (
+                          <Text style={[styles.handle, { color: muted }]}>@{item.username}</Text>
+                        ) : null}
+                      </View>
+                      {showUnfollow ? (
+                        <TouchableOpacity
+                          style={[styles.unfollowBtn, { borderColor: text }]}
+                          activeOpacity={0.75}
+                          onPress={() => handleUnfollow(item.id)}
+                        >
+                          <Text style={[styles.unfollowBtnText, { color: text }]}>FOLLOWING</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                }}
+                ListEmptyComponent={
+                  !loading ? (
+                    <View style={styles.emptyWrap}>
+                      <Text style={[styles.emptyText, { color: muted }]}>{emptyMessage}</Text>
+                    </View>
+                  ) : null
+                }
+              />
+            )}
           </View>
 
-          {/* Content */}
-          {loading ? (
-            <View style={styles.loadingWrap}>
-              <ActivityIndicator color={muted} />
-            </View>
-          ) : (
-            <FlashList
-              data={users}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-              ItemSeparatorComponent={() => (
-                <View style={[styles.separator, { backgroundColor: border }]} />
-              )}
-              renderItem={({ item }) => {
-                const displayName =
-                  item.display_name ?? item.first_name ?? item.username ?? '\u2014';
-                const initials = displayName[0]?.toUpperCase() ?? '?';
-
-                return (
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={() => {
-                      if (item.id === currentUserId) return;
-                      setProfileUserId(item.id);
-                    }}
-                    style={styles.row}
-                  >
-                    {item.avatar_url ? (
-                      <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-                    ) : (
-                      <View
-                        style={[
-                          styles.avatar,
-                          styles.avatarFallback,
-                          { backgroundColor: avatarBg },
-                        ]}
-                      >
-                        <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
-                      </View>
-                    )}
-                    <View style={styles.rowText}>
-                      <Text style={[styles.name, { color: text }]}>{displayName}</Text>
-                      {item.username ? (
-                        <Text style={[styles.handle, { color: muted }]}>@{item.username}</Text>
-                      ) : null}
-                    </View>
-                    {showUnfollow ? (
-                      <TouchableOpacity
-                        style={[styles.unfollowBtn, { borderColor: text }]}
-                        activeOpacity={0.75}
-                        onPress={() => handleUnfollow(item.id)}
-                      >
-                        <Text style={[styles.unfollowBtnText, { color: text }]}>FOLLOWING</Text>
-                      </TouchableOpacity>
-                    ) : null}
-                  </TouchableOpacity>
-                );
-              }}
-              ListEmptyComponent={
-                !loading ? (
-                  <View style={styles.emptyWrap}>
-                    <Text style={[styles.emptyText, { color: muted }]}>{emptyMessage}</Text>
-                  </View>
-                ) : null
-              }
+          {/* Full-screen profile — shown when a row is tapped */}
+          {profileUserId ? (
+            <UserProfileScreen
+              key={profileUserId}
+              userId={profileUserId}
+              onBack={() => setProfileUserId(null)}
+              dark={dark}
             />
-          )}
-        </View>
-
-        {/* Full-screen profile — shown when a row is tapped */}
-        {profileUserId ? (
-          <UserProfileScreen
-            key={profileUserId}
-            userId={profileUserId}
-            onBack={() => setProfileUserId(null)}
-            dark={dark}
-          />
-        ) : null}
+          ) : null}
+        </SafeAreaProvider>
       </GestureHandlerRootView>
     </Modal>
   );
