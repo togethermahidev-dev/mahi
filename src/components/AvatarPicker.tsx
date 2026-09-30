@@ -276,7 +276,12 @@ export default function AvatarPicker({
           Tapping a real image opens the full-screen lightbox; the silhouette
           fallback has nothing meaningful to enlarge, so its tap is disabled. */}
       {displayUri ? (
-        <Pressable onPress={openLightbox} style={({ pressed }) => pressed && { opacity: 0.9 }}>
+        <Pressable
+          accessibilityRole="imagebutton"
+          accessibilityLabel="Enlarge profile photo"
+          onPress={openLightbox}
+          style={({ pressed }) => pressed && { opacity: 0.9 }}
+        >
           <Image source={{ uri: displayUri }} style={styles.avatar} />
         </Pressable>
       ) : (
@@ -309,6 +314,8 @@ export default function AvatarPicker({
           by the avatar's enlarge tap. */}
       {isSelf && !uploading && (
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Change profile photo"
           style={({ pressed }) => [styles.editButton, pressed && { opacity: 0.8 }]}
           onPress={handleEditPress}
           hitSlop={{ top: OFFSET.o6, bottom: OFFSET.o6, left: OFFSET.o6, right: OFFSET.o6 }}
@@ -331,6 +338,8 @@ export default function AvatarPicker({
             <Image source={{ uri: displayUri }} style={styles.lightboxImage} resizeMode="contain" />
             {/* Circular ✕ — independent dismiss affordance. */}
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close photo"
               style={({ pressed }) => [styles.lightboxClose, pressed && { opacity: 0.8 }]}
               onPress={closeLightbox}
               hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
