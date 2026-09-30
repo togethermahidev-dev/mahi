@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -58,17 +58,18 @@ export default function AppHeader({
       <View style={styles.inner}>
         {/* Profile pill — navigates to Profile screen (horizontal left) */}
         {showNavPills && (
-          <TouchableOpacity
-            style={[styles.profilePill, { backgroundColor: pillBg }]}
+          <Pressable
+            style={({ pressed }) => [styles.profilePill, { backgroundColor: pillBg }, pressed && styles.pressed]}
             onPress={onProfilePress}
-            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Profile"
           >
             <ProfileIcon size={ICON_SIZE.i16} color={pillIcon} />
-          </TouchableOpacity>
+          </Pressable>
         )}
 
         {/* MAHI branding — centered, with offset colour echo behind */}
-        <View style={styles.titleWrapper}>
+        <View style={styles.titleWrapper} accessible accessibilityRole="header" accessibilityLabel="Mahi">
           {/* Back layer: accent colour, offset slightly */}
           <Text style={[styles.title, styles.titleEcho]}>MAHI</Text>
           {/* Front layer: main colour */}
@@ -79,25 +80,36 @@ export default function AppHeader({
             Gated by the 'notifications-core' flag (absolutely positioned, so
             hiding it leaves the other pills undisturbed). */}
         {showNotifications && (
-          <TouchableOpacity
-            style={[styles.bellPill, { backgroundColor: pillBg }, !showNavPills && { right: 0 }]}
+          <Pressable
+            style={({ pressed }) => [
+              styles.bellPill,
+              { backgroundColor: pillBg },
+              !showNavPills && { right: 0 },
+              pressed && styles.pressed,
+            ]}
             onPress={onNotificationsPress}
-            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={
+              unreadNotifications > 0
+                ? `Notifications, ${unreadNotifications} unread`
+                : 'Notifications'
+            }
           >
             <NotificationsIcon size={ICON_SIZE.i16} color={pillIcon} />
             {unreadNotifications > 0 && <View style={styles.bellDot} />}
-          </TouchableOpacity>
+          </Pressable>
         )}
 
         {/* Messages pill — navigates to Messages screen (horizontal right) */}
         {showNavPills && (
-          <TouchableOpacity
-            style={styles.messagesPill}
+          <Pressable
+            style={({ pressed }) => [styles.messagesPill, pressed && styles.pressed]}
             onPress={onMessagesPress}
-            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Messages"
           >
             <MessagesIcon size={ICON_SIZE.i16} color={pillIcon} />
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
     </View>
@@ -113,6 +125,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  pressed: {
+    opacity: 0.75,
   },
   profilePill: {
     width: SIZE.z36,

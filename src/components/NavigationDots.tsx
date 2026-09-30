@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { IconProps } from '@/components/ScreenIcons';
 import { COLORS, SPACE, ICON_SIZE, OFFSET } from '@/constants/tokens';
 
@@ -44,7 +44,7 @@ export default function NavigationDots({
   const iconColor = dark ? COLORS.offBlack : COLORS.white; // icon contrasts against the filled dot bg
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} accessibilityRole="tablist">
       {dotAnims.map((anim, i) => {
         const size = anim.interpolate({
           inputRange: [0, 1],
@@ -67,7 +67,14 @@ export default function NavigationDots({
         const Icon = icons[i];
 
         return (
-          <TouchableOpacity key={i} activeOpacity={0.7} onPress={() => onDotPress?.(i)}>
+          <Pressable
+            key={i}
+            onPress={() => onDotPress?.(i)}
+            accessibilityRole="tab"
+            accessibilityLabel={`Page ${i + 1} of ${count}`}
+            accessibilityState={{ selected: i === activeIndex }}
+            style={({ pressed }) => pressed && styles.pressed}
+          >
             <Animated.View
               style={[
                 styles.dot,
@@ -85,7 +92,7 @@ export default function NavigationDots({
                 <Icon size={ICON_SIZE.i14} color={iconColor} />
               </Animated.View>
             </Animated.View>
-          </TouchableOpacity>
+          </Pressable>
         );
       })}
     </View>
@@ -101,6 +108,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 100,
+  },
+  pressed: {
+    opacity: 0.7,
   },
   dot: {
     marginVertical: SPACE.s4,

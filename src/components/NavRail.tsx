@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -16,11 +16,11 @@ import { SPACE, RADIUS, ICON_SIZE, SIZE } from '@/constants/tokens';
 
 export type RailTab = 'camera' | 'feed' | 'messages' | 'profile';
 
-const TABS: { key: RailTab; Icon: React.ComponentType<IconProps> }[] = [
-  { key: 'camera', Icon: CameraIcon },
-  { key: 'feed', Icon: FeedIcon },
-  { key: 'messages', Icon: MessagesIcon },
-  { key: 'profile', Icon: ProfileIcon },
+const TABS: { key: RailTab; label: string; Icon: React.ComponentType<IconProps> }[] = [
+  { key: 'camera', label: 'Camera', Icon: CameraIcon },
+  { key: 'feed', label: 'Feed', Icon: FeedIcon },
+  { key: 'messages', label: 'Messages', Icon: MessagesIcon },
+  { key: 'profile', label: 'Profile', Icon: ProfileIcon },
 ];
 
 interface NavRailProps {
@@ -42,28 +42,28 @@ export default function NavRail({ active, onSelect, onDark, blurTarget }: NavRai
   const scheme = onDark ? 'dark' : 'light';
   const iconColor = onDark ? colors.offWhite : colors.offBlack;
 
-  const buttons = TABS.map(({ key, Icon }) => {
+  const buttons = TABS.map(({ key, label, Icon }) => {
     const selected = key === active;
     return (
-      <TouchableOpacity
+      <Pressable
         key={key}
-        accessibilityRole="button"
-        accessibilityLabel={key}
+        accessibilityRole="tab"
+        accessibilityLabel={label}
         accessibilityState={{ selected }}
-        activeOpacity={0.7}
         onPress={() => {
           if (selected) return;
           Haptics.selectionAsync();
           onSelect(key);
         }}
-        style={[
+        style={({ pressed }) => [
           styles.button,
           { width: navRail.width - SIZE.z8, height: navRail.width - SIZE.z8, marginVertical: navRail.gap / 2 },
           selected && { backgroundColor: colors.accent },
+          pressed && styles.pressed,
         ]}
       >
         <Icon size={ICON_SIZE.i20} color={selected ? colors.offBlack : iconColor} />
-      </TouchableOpacity>
+      </Pressable>
     );
   });
 
@@ -99,6 +99,7 @@ export default function NavRail({ active, onSelect, onDark, blurTarget }: NavRai
   return (
     <View
       pointerEvents="box-none"
+      accessibilityRole="tablist"
       style={[
         styles.anchor,
         {
@@ -125,6 +126,9 @@ const styles = StyleSheet.create({
   },
   clip: {
     overflow: 'hidden',
+  },
+  pressed: {
+    opacity: 0.7,
   },
   button: {
     borderRadius: RADIUS.pill,
