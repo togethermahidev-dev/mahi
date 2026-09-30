@@ -1344,8 +1344,10 @@ export default function CameraScreen(): React.JSX.Element {
 
   const handleShutterPress = () => {
     if (captureState === 'idle') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       captureFirst();
     } else if (captureState === 'awaiting-second') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       captureSecond();
     }
   };
@@ -1716,7 +1718,10 @@ export default function CameraScreen(): React.JSX.Element {
             style={[styles.flipButton, { opacity: captureState !== 'idle' ? 0.3 : 1 }]}
             activeOpacity={0.7}
             disabled={captureState !== 'idle'}
-            onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setFacing((f) => (f === 'back' ? 'front' : 'back'));
+            }}
           >
             <FlipIcon color={flipColor} />
           </TouchableOpacity>
