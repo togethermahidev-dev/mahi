@@ -1,39 +1,11 @@
 import React from 'react';
-import Svg, { Path, Circle, Line, G, Text as SvgText, Rect } from 'react-native-svg';
+import Svg, { Path, Circle, Line, G, Text as SvgText } from 'react-native-svg';
 import { FONTS } from '@/constants/fonts';
 import { COLORS } from '@/constants/tokens';
 
 export interface IconProps {
   size: number;
   color: string;
-}
-
-export function HomeIcon({ size, color }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M3 12L12 3L21 12V21H15V15H9V21H3V12Z"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </Svg>
-  );
-}
-
-export function ProIcon({ size, color }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </Svg>
-  );
 }
 
 export function SearchIcon({ size, color }: IconProps) {
@@ -195,26 +167,6 @@ export function StreakIcon({ size, color }: IconProps) {
         strokeLinejoin="round"
         strokeLinecap="round"
       />
-    </Svg>
-  );
-}
-
-export function CalendarIcon({ size, color }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect
-        x="3"
-        y="4"
-        width="18"
-        height="18"
-        rx="2"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinejoin="round"
-      />
-      <Line x1="16" y1="2" x2="16" y2="6" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-      <Line x1="8" y1="2" x2="8" y2="6" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-      <Line x1="3" y1="10" x2="21" y2="10" stroke={color} strokeWidth={1.8} />
     </Svg>
   );
 }
