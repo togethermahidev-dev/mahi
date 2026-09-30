@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Image,
   Text,
-  FlatList,
   StyleSheet,
-  Dimensions,
   ActivityIndicator,
   TouchableOpacity,
+  useWindowDimensions,
 } from 'react-native';
+import { FlashList, useRecyclingState } from '@shopify/flash-list';
 import Svg, { Path } from 'react-native-svg';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
@@ -31,8 +31,7 @@ const PLACEHOLDER_IMG = require('../../assets/jogger.png') as number;
 type PostRow = Database['public']['Tables']['posts']['Row'];
 
 const COLS = 3;
-const GAP = 2;
-const CELL_SIZE = (Dimensions.get('window').width - GAP * (COLS - 1)) / COLS;
+const GAP = SPACE.s2;
 
 function CameraIcon({ color }: { color: string }) {
   return (
@@ -55,16 +54,35 @@ function CameraIcon({ color }: { color: string }) {
   );
 }
 
-function GridCell({ post, dark, onPress }: { post: PostRow; dark: boolean; onPress: () => void }) {
-  const [imgError, setImgError] = useState(false);
+function GridCell({
+  post,
+  dark,
+  size,
+  column,
+  onPress,
+}: {
+  post: PostRow;
+  dark: boolean;
+  size: number;
+  column: number;
+  onPress: () => void;
+}) {
+  // FlashList reuses cells: forget a previous post's failed image when the post changes.
+  const [imgError, setImgError] = useRecyclingState(false, [post.id]);
   const badgeBg = dark ? withAlpha(COLORS.offBlack, 0.75) : withAlpha(COLORS.offWhite, 0.75);
   const badgeText = dark ? COLORS.offWhite : COLORS.offBlack;
 
   return (
-    <TouchableOpacity style={styles.cell} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity
+      // FlashList gives each column an equal third of the width; nudging each cell right by a
+      // share of the gap keeps the photos equal with GAP between them.
+      style={[styles.cell, { width: size, height: size, marginLeft: (column * GAP) / COLS }]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
       <Image
         source={imgError || !post.image_url ? PLACEHOLDER_IMG : { uri: post.image_url }}
-        style={styles.cellImage}
+        style={{ width: size, height: size }}
         resizeMode="cover"
         onError={() => setImgError(true)}
       />
@@ -92,6 +110,8 @@ export default function ProfileMediaMap({
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
 
   const { posts, isLoading, hasMore, loadMore } = useProfilePosts(userId);
+  const { width } = useWindowDimensions();
+  const cellSize = (width - GAP * (COLS - 1)) / COLS;
 
   if (isLoading) {
     return (
@@ -116,17 +136,17 @@ export default function ProfileMediaMap({
   }
 
   return (
-    <FlatList
+    <FlashList
       data={posts}
       keyExtractor={(item) => item.id}
       numColumns={COLS}
       style={{ backgroundColor: bg }}
-      contentContainerStyle={styles.grid}
-      columnWrapperStyle={styles.row}
-      renderItem={({ item }) => (
+      renderItem={({ item, index }) => (
         <GridCell
           post={item}
           dark={dark}
+          size={cellSize}
+          column={index % COLS}
           // Locked posts (no photo URL until the viewer posts) don't open.
           onPress={() => item.image_url && onPostPress?.(item)}
         />
@@ -148,19 +168,8 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
     paddingHorizontal: SPACE.s32,
   },
-  grid: {
-    gap: GAP,
-  },
-  row: {
-    gap: GAP,
-  },
   cell: {
-    width: CELL_SIZE,
-    height: CELL_SIZE,
-  },
-  cellImage: {
-    width: CELL_SIZE,
-    height: CELL_SIZE,
+    marginBottom: GAP,
   },
   badge: {
     position: 'absolute',
