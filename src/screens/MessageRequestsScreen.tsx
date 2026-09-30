@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store';
 import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview } from '@/api';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE, BORDER_WIDTH, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -115,7 +115,7 @@ export default function MessageRequestsScreen({
         <TouchableOpacity
           onPress={onBack}
           style={[styles.backBtn, { borderColor: muted }]}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
           <Text style={[styles.backArrow, { color: text }]}>‹</Text>
         </TouchableOpacity>
@@ -178,10 +178,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: SPACE.s12,
@@ -189,17 +189,17 @@ const styles = StyleSheet.create({
   backArrow: {
     fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.italic,
-    lineHeight: 22,
+    lineHeight: LINE_HEIGHT.l22,
   },
   headerTitle: {
     flex: 1,
     fontSize: FONT_SIZE.f24,
     fontFamily: FONTS.bold,
-    letterSpacing: 8,
+    letterSpacing: TRACKING.t8,
     textAlign: 'center',
   },
   backSpacer: {
-    width: 36,
+    width: SIZE.z36,
     marginLeft: SPACE.s12,
   },
   convoRow: {
@@ -211,8 +211,8 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
   },
   convoAvatar: {
-    width: 44,
-    height: 44,
+    width: SIZE.z44,
+    height: SIZE.z44,
     borderRadius: RADIUS.r22,
   },
   convoAvatarFallback: {
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   convoName: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 1.5,
+    letterSpacing: TRACKING.t1_5,
   },
   convoPreview: {
     fontSize: FONT_SIZE.f12,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     gap: SPACE.s5,
   },
   actionBtn: {
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s12,
     paddingVertical: SPACE.s4,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   actionBtnText: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
   },
   denyText: {
     color: COLORS.danger,
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   pendingLabel: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
   },
   placeholder: {
     flex: 1,
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   placeholderTitle: {
     fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.bold,
-    letterSpacing: 6,
+    letterSpacing: TRACKING.t6,
   },
   placeholderSub: {
     fontSize: FONT_SIZE.f13,

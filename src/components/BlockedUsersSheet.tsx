@@ -18,7 +18,7 @@ import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE, BORDER_WIDTH, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
 
 interface BlockedUsersSheetProps {
   visible: boolean;
@@ -116,7 +116,7 @@ export default function BlockedUsersSheet({
           <TouchableOpacity
             onPress={onClose}
             style={[styles.backBtn, { borderColor: border }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
           >
             <Text style={[styles.backArrow, { color: text }]}>{'\u2039'}</Text>
           </TouchableOpacity>
@@ -236,24 +236,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.italic,
-    lineHeight: 22,
+    lineHeight: LINE_HEIGHT.l22,
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
   },
   searchWrap: {
     paddingHorizontal: SPACE.s20,
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   searchInput: {
-    height: 40,
+    height: SIZE.z40,
     borderRadius: RADIUS.r20,
     paddingHorizontal: SPACE.s16,
     fontFamily: FONTS.italic,
@@ -289,8 +289,8 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
   },
   avatar: {
-    width: 44,
-    height: 44,
+    width: SIZE.z44,
+    height: SIZE.z44,
     borderRadius: RADIUS.r22,
   },
   avatarFallback: {
@@ -308,14 +308,14 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f15,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
   },
   handle: {
     fontFamily: FONTS.italic,
     fontSize: FONT_SIZE.f13,
   },
   unblockBtn: {
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s14,
     paddingVertical: SPACE.s6,
@@ -323,10 +323,10 @@ const styles = StyleSheet.create({
   unblockBtnText: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.bold,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
   },
   separator: {
-    height: 1,
+    height: SIZE.z1,
   },
   emptyWrap: {
     flex: 1,

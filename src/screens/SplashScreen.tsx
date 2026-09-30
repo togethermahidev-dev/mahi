@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { VERSION_LINE } from '@/lib/appBuild';
-import { COLORS, withAlpha, FONT_SIZE } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, OFFSET, TRACKING } from '@/constants/tokens';
 
 const BG = COLORS.accent;
 const TEXT_COLOR = COLORS.white;
@@ -26,7 +26,12 @@ export default function SplashScreen({ onLayout }: Props): React.JSX.Element {
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: BG },
   titleWrapper: { position: 'relative' },
-  titleEcho: { position: 'absolute', color: ECHO_COLOR, top: 3, left: 3 },
-  title: { color: TEXT_COLOR, fontSize: FONT_SIZE.f48, fontWeight: '700', letterSpacing: 8 },
-  version: { color: TEXT_COLOR, fontSize: FONT_SIZE.f11, position: 'absolute', bottom: 40 },
+  titleEcho: { position: 'absolute', color: ECHO_COLOR, top: OFFSET.o3, left: OFFSET.o3 },
+  title: {
+    color: TEXT_COLOR,
+    fontSize: FONT_SIZE.f48,
+    fontWeight: '700',
+    letterSpacing: TRACKING.t8,
+  },
+  version: { color: TEXT_COLOR, fontSize: FONT_SIZE.f11, position: 'absolute', bottom: OFFSET.o40 },
 });

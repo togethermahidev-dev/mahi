@@ -14,7 +14,7 @@ import { signOut } from '@/api/auth';
 import { VERSION_LINE } from '@/lib/appBuild';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SHADOW_BLUR, SIZE, OFFSET, TRACKING, BORDER_WIDTH } from '@/constants/tokens';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -169,7 +169,7 @@ export default function SettingsPanel({
           <TouchableOpacity
             onPress={onClose}
             style={[styles.closeBtn, { borderColor: muted }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
           >
             <Text style={[styles.closeBtnText, { color: muted }]}>✕</Text>
           </TouchableOpacity>
@@ -290,9 +290,9 @@ const styles = StyleSheet.create({
     height: SCREEN_HEIGHT,
     zIndex: 400,
     shadowColor: COLORS.black,
-    shadowOffset: { width: 4, height: 0 },
+    shadowOffset: { width: SIZE.z4, height: 0 },
     shadowOpacity: 0.2,
-    shadowRadius: 12,
+    shadowRadius: SHADOW_BLUR.b12,
     elevation: 12,
   },
   closeRow: {
@@ -306,13 +306,13 @@ const styles = StyleSheet.create({
   panelTitle: {
     fontFamily: FONTS.bold,
     fontSize: FONT_SIZE.f13,
-    letterSpacing: 5,
+    letterSpacing: TRACKING.t5,
   },
   closeBtn: {
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f11,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
   },
   subRow: {
     paddingVertical: SPACE.s15,
@@ -350,20 +350,20 @@ const styles = StyleSheet.create({
   },
   spacer: {
     flex: 1,
-    minHeight: 48,
+    minHeight: SIZE.z48,
   },
   logoutBtn: {
     marginHorizontal: SPACE.s24,
     marginBottom: SPACE.s16,
     paddingVertical: SPACE.s14,
     borderRadius: RADIUS.r50,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
   },
   logoutText: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f11,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
   },
   versionText: {
     fontFamily: FONTS.italic,
@@ -371,6 +371,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: SPACE.s12,
     marginBottom: SPACE.s24,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
   },
 });

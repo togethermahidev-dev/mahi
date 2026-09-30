@@ -5,7 +5,17 @@ import ProfileMediaMap from '@/components/ProfileMediaMap';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAuthStore, useUserStore } from '@/store';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  LINE_HEIGHT,
+  OFFSET,
+  SIZE,
+  TRACKING,
+} from '@/constants/tokens';
 
 interface Props {
   visible: boolean;
@@ -44,7 +54,7 @@ export default function ProfileMediaMapModal({
             <TouchableOpacity
               onPress={onClose}
               style={[styles.closeCircle, { backgroundColor: btnBg }]}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
             >
               <Text style={[styles.closeX, { color: text }]}>✕</Text>
             </TouchableOpacity>
@@ -73,11 +83,11 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f16,
-    letterSpacing: 4,
+    letterSpacing: TRACKING.t4,
   },
   closeCircle: {
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
     alignItems: 'center',
     justifyContent: 'center',
@@ -85,7 +95,7 @@ const styles = StyleSheet.create({
   closeX: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f16,
-    lineHeight: 18,
+    lineHeight: LINE_HEIGHT.l18,
   },
   canvas: {
     flex: 1,

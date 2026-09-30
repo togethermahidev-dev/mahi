@@ -12,7 +12,7 @@ import {
   ProfileIcon,
   type IconProps,
 } from '@/components/ScreenIcons';
-import { SPACE, RADIUS } from '@/constants/tokens';
+import { SPACE, RADIUS, ICON_SIZE, SIZE } from '@/constants/tokens';
 
 export type RailTab = 'camera' | 'feed' | 'messages' | 'profile';
 
@@ -58,11 +58,11 @@ export default function NavRail({ active, onSelect, onDark, blurTarget }: NavRai
         }}
         style={[
           styles.button,
-          { width: navRail.width - 8, height: navRail.width - 8, marginVertical: navRail.gap / 2 },
+          { width: navRail.width - SIZE.z8, height: navRail.width - SIZE.z8, marginVertical: navRail.gap / 2 },
           selected && { backgroundColor: colors.accent },
         ]}
       >
-        <Icon size={20} color={selected ? colors.offBlack : iconColor} />
+        <Icon size={ICON_SIZE.i20} color={selected ? colors.offBlack : iconColor} />
       </TouchableOpacity>
     );
   });

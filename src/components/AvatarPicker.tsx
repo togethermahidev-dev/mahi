@@ -54,7 +54,7 @@ import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 import { updateAvatarUrl } from '@/api/profile';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SIZE, OFFSET, SHADOW_BLUR, LINE_HEIGHT } from '@/constants/tokens';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -271,7 +271,7 @@ export default function AvatarPicker({
         </TouchableOpacity>
       ) : (
         <View style={[styles.avatar, styles.fallback, { backgroundColor: colors.muted }]}>
-          <Svg width={48} height={48} viewBox="0 0 24 24" fill="none">
+          <Svg width={SIZE.z48} height={SIZE.z48} viewBox="0 0 24 24" fill="none">
             <Path
               d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12Z"
               fill={colors.bg}
@@ -302,7 +302,7 @@ export default function AvatarPicker({
           style={styles.editButton}
           activeOpacity={0.8}
           onPress={handleEditPress}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          hitSlop={{ top: OFFSET.o6, bottom: OFFSET.o6, left: OFFSET.o6, right: OFFSET.o6 }}
         >
           <Text style={styles.editPlus}>+</Text>
         </TouchableOpacity>
@@ -333,7 +333,7 @@ export default function AvatarPicker({
               style={styles.lightboxClose}
               activeOpacity={0.8}
               onPress={closeLightbox}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
             >
               <Text style={styles.lightboxCloseX}>✕</Text>
             </TouchableOpacity>
@@ -352,8 +352,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.s20,
   },
   avatar: {
-    width: 96,
-    height: 96,
+    width: SIZE.z96,
+    height: SIZE.z96,
     borderRadius: RADIUS.r48,
   },
   fallback: {
@@ -376,8 +376,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 24,
-    height: 24,
+    width: SIZE.z24,
+    height: SIZE.z24,
     borderRadius: RADIUS.r12,
     backgroundColor: COLORS.white,
     alignItems: 'center',
@@ -385,12 +385,12 @@ const styles = StyleSheet.create({
     elevation: 3,
     shadowColor: COLORS.black,
     shadowOpacity: 0.25,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: SHADOW_BLUR.b3,
+    shadowOffset: { width: 0, height: SIZE.z1 },
   },
   editPlus: {
     fontSize: FONT_SIZE.f16,
-    lineHeight: 18,
+    lineHeight: LINE_HEIGHT.l18,
     color: COLORS.offBlack,
     fontFamily: FONTS.semiBold,
   },
@@ -413,10 +413,10 @@ const styles = StyleSheet.create({
   },
   lightboxClose: {
     position: 'absolute',
-    top: 56,
-    right: 24,
-    width: 36,
-    height: 36,
+    top: OFFSET.o56,
+    right: OFFSET.o24,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
     backgroundColor: withAlpha(COLORS.white, 0.15),
     alignItems: 'center',
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   },
   lightboxCloseX: {
     fontSize: FONT_SIZE.f18,
-    lineHeight: 20,
+    lineHeight: LINE_HEIGHT.l20,
     color: COLORS.white,
     fontFamily: FONTS.semiBold,
   },

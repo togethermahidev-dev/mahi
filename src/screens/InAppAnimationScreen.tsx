@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions, useColorScheme } from 'react-native';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, FONT_SIZE, SPACE, RADIUS, OFFSET, TRACKING, SIZE } from '@/constants/tokens';
 
 const { height } = Dimensions.get('window');
 
@@ -93,18 +93,18 @@ const styles = StyleSheet.create({
   },
   titles: { alignItems: 'center' },
   titleWrapper: { position: 'relative', marginBottom: SPACE.s12 },
-  titleEcho: { position: 'absolute', color: COLORS.accent, top: 4, left: 4 },
+  titleEcho: { position: 'absolute', color: COLORS.accent, top: OFFSET.o4, left: OFFSET.o4 },
   title: {
     fontSize: FONT_SIZE.f56,
     fontFamily: FONTS.bold,
-    letterSpacing: 10,
+    letterSpacing: TRACKING.t10,
   },
   subtitle: {
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.italic,
     opacity: 0.7,
   },
-  gap: { height: 55 },
+  gap: { height: SIZE.z55 },
   bottomSheet: {
     flex: 1,
     borderTopLeftRadius: RADIUS.r40,

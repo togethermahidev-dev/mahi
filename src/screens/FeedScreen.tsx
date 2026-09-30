@@ -36,7 +36,19 @@ import KeyboardInset from '@/components/KeyboardInset';
 import type { FeedPost } from '@/api';
 import type { CommentWithProfile } from '@/api/social';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  BORDER_WIDTH,
+  ICON_SIZE,
+  OFFSET,
+  SHADOW_BLUR,
+  SIZE,
+  TRACKING,
+} from '@/constants/tokens';
 
 // AppHeader: paddingTop (60 ios / 32 android) + inner row (~36px) + paddingBottom (12)
 const APP_HEADER_H = Platform.OS === 'ios' ? 108 : 80;
@@ -196,7 +208,7 @@ function PostItem({
   // Bottom: from the bottom up — paddingBottom(80) + avatar(42) + gap(10)
   //         + caption(~40) + buffer(16) = ~188px of content, so PiP top
   //         must be at most containerH - 188 - FEED_PIP_H
-  // Right:  side action column sits at right:12, icons ~44px wide + padding
+  // Right:  side action column sits at right OFFSET.o12, icons ~44px wide + padding
   // Left:   small margin
   const BOTTOM_CONTENT_H = 200; // avatar + caption + paddingBottom + buffer
   const PIP_SAFE_TOP = APP_HEADER_H + 120;
@@ -446,14 +458,14 @@ function PostItem({
                 style={[
                   styles.medalBurst,
                   {
-                    left: medalPos.x - 40,
-                    top: medalPos.y - 40,
+                    left: medalPos.x - OFFSET.o40,
+                    top: medalPos.y - OFFSET.o40,
                     transform: [{ scale: medalScale }],
                     opacity: medalOpacity,
                   },
                 ]}
               >
-                <HeartIcon size={80} color={COLORS.white} filled />
+                <HeartIcon size={ICON_SIZE.i80} color={COLORS.white} filled />
               </Animated.View>
             )}
           </View>
@@ -475,9 +487,9 @@ function PostItem({
         {/* ── Right-side action column (Reels / TikTok style) ── */}
         {/* Icon SIZE is decoupled from HIT TARGET: glyphs stay small (~32px)
             while each button is a ≥48×48 tappable area + generous hitSlop so
-            near-miss taps still register. Column raised (bottom:140) so the
+            near-miss taps still register. Column raised (bottom OFFSET.o140) so the
             buttons sit higher and clear of the caption row.
-            hitSlop is asymmetric (left:4) on purpose: the left edge faces the
+            hitSlop is asymmetric (left OFFSET.o4) on purpose: the left edge faces the
             draggable PiP's bottom-right snap zone, so we don't extend the hit
             area that way — it grows up/down/right instead. */}
         <View style={styles.sideActions} pointerEvents="box-none">
@@ -485,18 +497,18 @@ function PostItem({
             style={styles.sideActionBtn}
             onPress={handleLike}
             activeOpacity={0.7}
-            hitSlop={{ top: 20, bottom: 20, left: 4, right: 20 }}
+            hitSlop={{ top: OFFSET.o20, bottom: OFFSET.o20, left: OFFSET.o4, right: OFFSET.o20 }}
           >
-            <HeartIcon size={32} color={COLORS.white} filled={likedByMe} />
+            <HeartIcon size={ICON_SIZE.i32} color={COLORS.white} filled={likedByMe} />
             <Text style={styles.sideActionCount}>{likeCount}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.sideActionBtn}
             onPress={handleCommentPress}
             activeOpacity={0.7}
-            hitSlop={{ top: 20, bottom: 20, left: 4, right: 20 }}
+            hitSlop={{ top: OFFSET.o20, bottom: OFFSET.o20, left: OFFSET.o4, right: OFFSET.o20 }}
           >
-            <CommentIcon size={32} color={COLORS.white} />
+            <CommentIcon size={ICON_SIZE.i32} color={COLORS.white} />
             <Text style={styles.sideActionCount}>{commentCount}</Text>
           </TouchableOpacity>
         </View>
@@ -832,8 +844,8 @@ const styles = StyleSheet.create({
     gap: SPACE.s10,
   },
   avatar: {
-    width: 42,
-    height: 42,
+    width: SIZE.z42,
+    height: SIZE.z42,
     borderRadius: RADIUS.r21,
   },
   avatarFallback: {
@@ -851,7 +863,7 @@ const styles = StyleSheet.create({
   usernameOverlay: {
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 1.5,
+    letterSpacing: TRACKING.t1_5,
     color: COLORS.white,
   },
   timeOverlay: {
@@ -868,13 +880,13 @@ const styles = StyleSheet.create({
   streakText: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
     color: COLORS.white,
   },
   responseText: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
     color: COLORS.white,
     marginTop: SPACE.s2,
   },
@@ -894,25 +906,25 @@ const styles = StyleSheet.create({
     height: FEED_PIP_H,
     borderRadius: RADIUS.r10,
     overflow: 'hidden',
-    borderWidth: 2,
+    borderWidth: BORDER_WIDTH.w2,
     borderColor: withAlpha(COLORS.white, 0.6),
     shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: SIZE.z3 },
     shadowOpacity: 0.35,
-    shadowRadius: 6,
+    shadowRadius: SHADOW_BLUR.b6,
     elevation: 6,
   },
   medalBurst: {
     position: 'absolute',
-    width: 80,
-    height: 80,
+    width: SIZE.z80,
+    height: SIZE.z80,
   },
   // ── Caption overlay (on image)
   captionOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
-    right: 70,
+    right: OFFSET.o70,
     paddingHorizontal: SPACE.s14,
     paddingTop: SPACE.s50,
     paddingBottom: SPACE.s80,
@@ -923,14 +935,14 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.italic,
     color: COLORS.white,
     textShadowColor: withAlpha(COLORS.black, 0.5),
-    textShadowOffset: { width: 0, height: 1 },
+    textShadowOffset: { width: 0, height: SIZE.z1 },
     textShadowRadius: 3,
   },
   // ── Right-side action column (Reels / TikTok style)
   sideActions: {
     position: 'absolute',
-    right: 12,
-    bottom: 140,
+    right: OFFSET.o12,
+    bottom: OFFSET.o140,
     alignItems: 'center',
     gap: SPACE.s20,
   },
@@ -938,8 +950,8 @@ const styles = StyleSheet.create({
     // Hit target ≥48×48 (icon glyph stays ~32px, centered) so taps that
     // land just outside the glyph still register. hitSlop adds up to 20px more
     // on top/bottom/right (left kept tight to avoid the PiP snap zone).
-    minWidth: 48,
-    minHeight: 48,
+    minWidth: SIZE.z48,
+    minHeight: SIZE.z48,
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACE.s4,
@@ -949,7 +961,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
     color: COLORS.white,
     textShadowColor: withAlpha(COLORS.black, 0.6),
-    textShadowOffset: { width: 0, height: 1 },
+    textShadowOffset: { width: 0, height: SIZE.z1 },
     textShadowRadius: 3,
   },
   // ── Comment rows (shared by CommentSheet)
@@ -961,8 +973,8 @@ const styles = StyleSheet.create({
     gap: SPACE.s8,
   },
   commentAvatar: {
-    width: 26,
-    height: 26,
+    width: SIZE.z26,
+    height: SIZE.z26,
     borderRadius: RADIUS.r13,
   },
   commentAvatarInitial: {
@@ -976,7 +988,7 @@ const styles = StyleSheet.create({
   commentUsername: {
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
   },
   commentText: {
     fontSize: FONT_SIZE.f13,
@@ -997,9 +1009,9 @@ const styles = StyleSheet.create({
   },
   commentInput: {
     flex: 1,
-    height: 36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r50,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     paddingHorizontal: SPACE.s14,
     paddingVertical: 0,
     fontSize: FONT_SIZE.f13,
@@ -1013,7 +1025,7 @@ const styles = StyleSheet.create({
   commentSubmitText: {
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
     color: COLORS.white,
   },
   // ── Comment sheet (bottom-sheet overlay)
@@ -1037,14 +1049,14 @@ const styles = StyleSheet.create({
     gap: SPACE.s8,
   },
   sheetHandleBar: {
-    width: 36,
-    height: 4,
+    width: SIZE.z36,
+    height: SIZE.z4,
     borderRadius: RADIUS.r2,
   },
   sheetTitle: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
   },
   sheetEmpty: {
     flex: 1,
@@ -1076,10 +1088,10 @@ const styles = StyleSheet.create({
     gap: SPACE.s8,
   },
   lockedAvatar: {
-    width: 88,
-    height: 88,
+    width: SIZE.z88,
+    height: SIZE.z88,
     borderRadius: RADIUS.r44,
-    borderWidth: 2,
+    borderWidth: BORDER_WIDTH.w2,
   },
   lockedName: {
     fontSize: FONT_SIZE.f20,
@@ -1088,7 +1100,7 @@ const styles = StyleSheet.create({
   lockedTime: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
     opacity: 0.7,
   },
   lockedHint: {
@@ -1104,7 +1116,7 @@ const styles = StyleSheet.create({
   lockedButtonText: {
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
   },
   empty: {
     alignItems: 'center',
@@ -1114,7 +1126,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.bold,
-    letterSpacing: 6,
+    letterSpacing: TRACKING.t6,
   },
   emptySub: {
     fontSize: FONT_SIZE.f13,

@@ -15,7 +15,7 @@ import Reanimated, { useAnimatedStyle, useSharedValue } from 'react-native-reani
 import { getPostDates } from '@/api';
 import { Sentry } from '@/lib/sentry';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SIZE, OFFSET, TRACKING, LINE_HEIGHT, BORDER_WIDTH } from '@/constants/tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -301,7 +301,7 @@ export default function StreakGridPanel({
           <TouchableOpacity
             onPress={onClose}
             style={[styles.closeBtn, { borderColor: muted }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
           >
             <Text style={[styles.closeBtnText, { color: muted }]}>{'\u2715'}</Text>
           </TouchableOpacity>
@@ -343,7 +343,7 @@ export default function StreakGridPanel({
             <View
               style={[
                 styles.legendDot,
-                { backgroundColor: 'transparent', borderWidth: 1, borderColor: cellToday },
+                { backgroundColor: 'transparent', borderWidth: BORDER_WIDTH.w1, borderColor: cellToday },
               ]}
             />
             <Text style={[styles.legendText, { color: muted }]}>Today</Text>
@@ -390,7 +390,7 @@ export default function StreakGridPanel({
                               style={[
                                 styles.cell,
                                 { backgroundColor: getCellColor(dateStr, weekdayIndex) },
-                                isToday && { borderWidth: 1, borderColor: cellToday },
+                                isToday && { borderWidth: BORDER_WIDTH.w1, borderColor: cellToday },
                               ]}
                             />
                           );
@@ -429,13 +429,13 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: FONTS.bold,
     fontSize: FONT_SIZE.f13,
-    letterSpacing: 5,
+    letterSpacing: TRACKING.t5,
   },
   closeBtn: {
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f13,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
     textAlign: 'center',
     paddingVertical: SPACE.s20,
   },
@@ -463,16 +463,16 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: FONT_SIZE.f28,
     fontFamily: FONTS.bold,
-    lineHeight: 28,
+    lineHeight: LINE_HEIGHT.l28,
   },
   statLabel: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
   },
   statDivider: {
-    width: 1,
-    height: 40,
+    width: SIZE.z1,
+    height: SIZE.z40,
     opacity: 0.3,
   },
   loader: {
@@ -491,20 +491,20 @@ const styles = StyleSheet.create({
     gap: SPACE.s6,
   },
   legendDot: {
-    width: 10,
-    height: 10,
+    width: SIZE.z10,
+    height: SIZE.z10,
     borderRadius: RADIUS.r2,
   },
   legendText: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f10,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
   },
   gridFrame: {
     flex: 1,
     marginHorizontal: SPACE.s16,
     marginBottom: SPACE.s24,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r16,
     padding: SPACE.s12,
   },
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
   weekdayText: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f10,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
   },
   viewport: {
     flex: 1,

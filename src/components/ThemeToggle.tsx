@@ -14,7 +14,7 @@ import { TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import Svg, { Path, Circle, G } from 'react-native-svg';
 import { useThemeStore } from '@/store';
 import type { ThemeMode } from '@/store/themeStore';
-import { COLORS } from '@/constants/tokens';
+import { COLORS, OFFSET, ICON_SIZE } from '@/constants/tokens';
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 
@@ -83,7 +83,7 @@ interface ThemeToggleProps {
 
 export default function ThemeToggle({
   color = COLORS.white,
-  size = 22,
+  size = ICON_SIZE.i22,
 }: ThemeToggleProps): React.JSX.Element {
   const mode = useThemeStore((s) => s.mode);
   const cycleMode = useThemeStore((s) => s.cycleMode);
@@ -116,7 +116,7 @@ export default function ThemeToggle({
     <TouchableOpacity
       onPress={handlePress}
       activeOpacity={1}
-      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+      hitSlop={{ top: OFFSET.o12, bottom: OFFSET.o12, left: OFFSET.o12, right: OFFSET.o12 }}
       style={styles.button}
     >
       <Animated.View style={{ transform: [{ scale }] }}>

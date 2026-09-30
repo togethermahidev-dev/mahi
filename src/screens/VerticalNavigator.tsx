@@ -15,7 +15,7 @@ import { useNotificationsStore } from '@/store';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
 import { verticalSwipe } from '@/lib/swipeRules';
-import { COLORS } from '@/constants/tokens';
+import { COLORS, SIZE } from '@/constants/tokens';
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
 // PEEK_HEIGHT: strip of the next screen visible at the bottom of each screen.
@@ -77,8 +77,8 @@ export default function VerticalNavigator({
   const insets = useSafeAreaInsets();
   const insetsRef = useRef(insets);
   insetsRef.current = insets;
-  // AppHeader's height: top inset + 36 pill + 12 padding. Used to slide it away on scroll.
-  const appHeaderH = insets.top + 48;
+  // AppHeader height = top inset + 36 pill + 12 padding. Used to slide it away on scroll.
+  const appHeaderH = insets.top + SIZE.z48;
   const unreadNotifications = useNotificationsStore((s) => s.unreadCount);
 
   const [activeIndex, setActiveIndex] = useState(0);

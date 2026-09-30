@@ -14,7 +14,7 @@ import { getFollowList, getFriends, type FollowListUser } from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE, BORDER_WIDTH, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
 
 interface FollowListModalProps {
   visible: boolean;
@@ -102,7 +102,7 @@ export default function FollowListModal({
           <TouchableOpacity
             onPress={onClose}
             style={[styles.backBtn, { borderColor: border }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
           >
             <Text style={[styles.backArrow, { color: text }]}>{'\u2039'}</Text>
           </TouchableOpacity>
@@ -204,24 +204,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.italic,
-    lineHeight: 22,
+    lineHeight: LINE_HEIGHT.l22,
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
   },
   loadingWrap: {
     flex: 1,
@@ -239,8 +239,8 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
   },
   avatar: {
-    width: 44,
-    height: 44,
+    width: SIZE.z44,
+    height: SIZE.z44,
     borderRadius: RADIUS.r22,
   },
   avatarFallback: {
@@ -258,14 +258,14 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f15,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
   },
   handle: {
     fontFamily: FONTS.italic,
     fontSize: FONT_SIZE.f13,
   },
   unfollowBtn: {
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s14,
     paddingVertical: SPACE.s6,
@@ -273,10 +273,10 @@ const styles = StyleSheet.create({
   unfollowBtnText: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.bold,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
   },
   separator: {
-    height: 1,
+    height: SIZE.z1,
   },
   emptyWrap: {
     flex: 1,

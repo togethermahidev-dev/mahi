@@ -18,7 +18,7 @@ import { useMessages } from '@/hooks/useMessages';
 import { groupMessagesByDate, type GroupedRow } from '@/lib/groupMessages';
 import type { ConversationPreview } from '@/api';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE, BORDER_WIDTH, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
 
 interface ConversationScreenProps {
   conversation: ConversationPreview;
@@ -102,7 +102,7 @@ export default function ConversationScreen({
           <TouchableOpacity
             onPress={onBack}
             style={[styles.backBtn, { borderColor: border }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
           >
             <Text style={[styles.backArrow, { color: text }]}>‹</Text>
           </TouchableOpacity>
@@ -245,24 +245,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.italic,
-    lineHeight: 22,
+    lineHeight: LINE_HEIGHT.l22,
   },
   headerName: {
     flex: 1,
     textAlign: 'center',
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
   },
   requestBanner: {
     paddingHorizontal: SPACE.s24,
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
   },
   requestBtn: {
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s20,
     paddingVertical: SPACE.s6,
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   requestBtnText: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
   },
   denyText: {
     color: COLORS.danger,
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   bubbleText: {
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.italic,
-    lineHeight: 20,
+    lineHeight: LINE_HEIGHT.l20,
   },
   bubbleTime: {
     fontSize: FONT_SIZE.f10,
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   dayHeaderText: {
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.italic,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
   },
   emptyWrap: {
     flex: 1,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s8,
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.italic,
-    maxHeight: 100,
+    maxHeight: SIZE.z100,
   },
   sendBtn: {
     paddingBottom: SPACE.s8,
@@ -386,6 +386,6 @@ const styles = StyleSheet.create({
   sendText: {
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.bold,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
   },
 });

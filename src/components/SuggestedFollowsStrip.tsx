@@ -5,7 +5,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSuggestedFollows } from '@/hooks/useSuggestedFollows';
 import type { SuggestedUser } from '@/api';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SIZE, TRACKING } from '@/constants/tokens';
 
 const ACCENT = COLORS.accent;
 
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   header: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
     paddingHorizontal: SPACE.s24,
     marginBottom: SPACE.s12,
   },
@@ -127,8 +127,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatar: {
-    width: 56,
-    height: 56,
+    width: SIZE.z56,
+    height: SIZE.z56,
     borderRadius: RADIUS.r28,
     marginBottom: SPACE.s10,
   },
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f13,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
     textAlign: 'center',
     maxWidth: '100%',
   },
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   followBtnText: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.bold,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
     color: COLORS.white,
   },
 });

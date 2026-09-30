@@ -5,7 +5,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { formatHms, msLeft } from '@/lib/countdown';
 import type { OpenTag } from '@/api';
 import { FONTS } from '@/constants/fonts';
-import { FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { FONT_SIZE, SPACE, RADIUS, BORDER_WIDTH, OFFSET, SIZE } from '@/constants/tokens';
 
 /**
  * Camera overlay: who tagged you and how long is left on the soonest deadline.
@@ -38,8 +38,8 @@ export default function OpenTagsBanner({
     <View style={styles.wrap} pointerEvents="none">
       <BlurView intensity={40} tint="dark" style={[styles.pill, { borderColor: colors.accent }]}>
         <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={1}>
-          {who} tagged you ·{' '}
-          <Text style={[styles.time, { color: colors.accent }]}>{left}</Text> left
+          {who} tagged you · <Text style={[styles.time, { color: colors.accent }]}>{left}</Text>{' '}
+          left
         </Text>
       </BlurView>
     </View>
@@ -49,15 +49,15 @@ export default function OpenTagsBanner({
 const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
-    top: 120,
+    top: OFFSET.o120,
     left: 0,
     right: 0,
     alignItems: 'center',
   },
   pill: {
-    height: 36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     paddingHorizontal: SPACE.s16,
     justifyContent: 'center',
     overflow: 'hidden',

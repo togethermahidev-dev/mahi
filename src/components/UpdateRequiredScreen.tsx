@@ -3,7 +3,7 @@ import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { VERSION_LINE } from '@/lib/appBuild';
 import { FONTS } from '@/constants/fonts';
-import { FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { FONT_SIZE, SPACE, RADIUS, LINE_HEIGHT } from '@/constants/tokens';
 
 /** Shown instead of the app when this build is older than the server's minimum version. */
 export default function UpdateRequiredScreen({
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.italic,
     fontSize: FONT_SIZE.f16,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: LINE_HEIGHT.l24,
   },
   button: {
     marginTop: SPACE.s28,
