@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Sentry } from '@/lib/sentry';
+import { FONTS } from '@/constants/fonts';
 import { COLORS, FONT_SIZE, SPACE, RADIUS, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
 
 interface Props {
@@ -70,13 +71,14 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.offWhite,
     fontSize: FONT_SIZE.f22,
-    fontWeight: '700',
+    fontFamily: FONTS.bold,
     marginBottom: SPACE.s12,
     textAlign: 'center',
   },
   body: {
     color: COLORS.offWhite,
     opacity: 0.7,
+    fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f15,
     lineHeight: LINE_HEIGHT.l22,
     textAlign: 'center',
@@ -91,7 +93,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: COLORS.offBlack,
     fontSize: FONT_SIZE.f15,
-    fontWeight: '700',
+    fontFamily: FONTS.bold,
     letterSpacing: TRACKING.t1,
   },
 });
