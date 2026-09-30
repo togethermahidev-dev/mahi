@@ -10,7 +10,7 @@
  */
 
 import React, { useRef } from 'react';
-import { TouchableOpacity, Animated, StyleSheet } from 'react-native';
+import { Pressable, Animated, StyleSheet } from 'react-native';
 import Svg, { Path, Circle, G } from 'react-native-svg';
 import { useThemeStore } from '@/store';
 import type { ThemeMode } from '@/store/themeStore';
@@ -113,16 +113,18 @@ export default function ThemeToggle({
   };
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={handlePress}
-      activeOpacity={1}
-      hitSlop={{ top: OFFSET.o12, bottom: OFFSET.o12, left: OFFSET.o12, right: OFFSET.o12 }}
+      accessibilityRole="switch"
+      accessibilityLabel="Dark mode"
+      accessibilityState={{ checked: mode === 'dark' }}
+      hitSlop={OFFSET.o12}
       style={styles.button}
     >
       <Animated.View style={{ transform: [{ scale }] }}>
         <Icon color={color} size={size} />
       </Animated.View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
