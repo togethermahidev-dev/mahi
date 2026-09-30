@@ -1,5 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Image,
+  Platform,
+  Modal,
+} from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMessages } from '@/hooks/useMessages';
 import { useAuthStore } from '@/store';
@@ -119,10 +128,6 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
     [requests]
   );
 
-  if (showRequests) {
-    return <MessageRequestsScreen onBack={() => setShowRequests(false)} />;
-  }
-
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
       {/* Header */}
@@ -197,6 +202,16 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
           ) : null
         }
       />
+
+      {/* Requests slide up as a sheet over the inbox; swipe down or tap back to close. */}
+      <Modal
+        visible={showRequests}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowRequests(false)}
+      >
+        <MessageRequestsScreen onBack={() => setShowRequests(false)} />
+      </Modal>
 
       {/* ConversationScreen overlay */}
       {openConvo && userId ? (
