@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { useAuthStore, useUserStore } from '@/store';
@@ -16,7 +17,19 @@ import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SIZE, OFFSET, ICON_SIZE, TRACKING, LINE_HEIGHT, BORDER_WIDTH } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  SIZE,
+  OFFSET,
+  ICON_SIZE,
+  TRACKING,
+  LINE_HEIGHT,
+  BORDER_WIDTH,
+} from '@/constants/tokens';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 
@@ -28,6 +41,7 @@ interface ProfileScreenProps {
 
 export default function ProfileScreen({ isActive = true }: ProfileScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
+  const top = useSafeAreaInsets().top;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [restDaysStreakOpen, setRestDaysStreakOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
@@ -53,9 +67,9 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
 
   return (
-    <View style={[styles.root, { backgroundColor: bg }]}>
+    <View style={[styles.root, { backgroundColor: bg, paddingTop: top }]}>
       {/* Settings icon — top-left */}
-      <View style={styles.headerLeft}>
+      <View style={[styles.headerLeft, { top }]}>
         <TouchableOpacity
           onPress={() => setSettingsOpen(true)}
           hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
@@ -65,7 +79,7 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
       </View>
 
       {/* Theme toggle — top-right */}
-      <View style={styles.headerRight}>
+      <View style={[styles.headerRight, { top }]}>
         <ThemeToggle color={toggleColor} size={ICON_SIZE.i22} />
       </View>
 
@@ -189,16 +203,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
   },
   headerLeft: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? OFFSET.o60 : OFFSET.o32,
     left: OFFSET.o24,
   },
   headerRight: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? OFFSET.o60 : OFFSET.o32,
     right: OFFSET.o24,
   },
   header: {

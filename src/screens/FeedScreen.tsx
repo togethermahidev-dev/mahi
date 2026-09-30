@@ -3,7 +3,6 @@ import {
   View,
   Text,
   Image,
-  Platform,
   RefreshControl,
   StyleSheet,
   Animated,
@@ -14,6 +13,7 @@ import {
   Modal,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -28,7 +28,7 @@ import { formatWait } from '@/lib/countdown';
 import PointsBadge from '@/components/PointsBadge';
 import KeyboardInset from '@/components/KeyboardInset';
 import DraggablePip from '@/components/DraggablePip';
-import { pipZone } from '@/lib/pip';
+import { appHeaderHeight, pipZone } from '@/lib/pip';
 import type { FeedPost } from '@/api';
 import type { CommentWithProfile } from '@/api/social';
 import { FONTS } from '@/constants/fonts';
@@ -44,9 +44,6 @@ import {
   SIZE,
   TRACKING,
 } from '@/constants/tokens';
-
-// AppHeader: paddingTop (60 ios / 32 android) + inner row (~36px) + paddingBottom (12)
-const APP_HEADER_H = Platform.OS === 'ios' ? 108 : 80;
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -159,6 +156,8 @@ function PostItem({
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
   const border = dark ? withAlpha(COLORS.offWhite, 0.1) : withAlpha(COLORS.offBlack, 0.1);
+  // The app header floats over the card; its height follows the status bar / notch.
+  const headerH = appHeaderHeight(useSafeAreaInsets().top);
   const cardBg = dark ? COLORS.surfaceDark2 : COLORS.surfaceLight;
 
   const name = item.profiles.display_name ?? item.profiles.username;
@@ -192,7 +191,7 @@ function PostItem({
   const pipUrl = hasDual && !rearIsPrimary ? item.image_url : item.pov_image_url;
 
   // ── Draggable PiP (FaceTime-style) — safe zone clears the header + tagged pills ──
-  const pipSafeZone = pipZone({ width, height }, APP_HEADER_H + OFFSET.o120);
+  const pipSafeZone = pipZone({ width, height }, headerH + OFFSET.o120);
 
   // ── Double-tap medal burst animation ─────────────────────────────────────
   const medalScale = useRef(new Animated.Value(0)).current;
@@ -307,7 +306,7 @@ function PostItem({
             {/* Top gradient — tagged pills + streak badge inline */}
             <LinearGradient
               colors={[withAlpha(COLORS.black, 0.6), 'transparent']}
-              style={styles.postOverlay}
+              style={[styles.postOverlay, { paddingTop: headerH + SPACE.s4 }]}
               pointerEvents="box-none"
             >
               <TaggedBubbleStack
@@ -559,6 +558,7 @@ export default function FeedScreen({
   onOverlayChange,
 }: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
+  const headerH = appHeaderHeight(useSafeAreaInsets().top);
   // TikTok-style snap: each card fills the full screen height.
   const { width: screenWidth, height: cardHeight } = useWindowDimensions();
   const bg = dark ? COLORS.bgDark : COLORS.white;
@@ -628,7 +628,7 @@ export default function FeedScreen({
     }
 
     // Show header on first card, hide on all others
-    const target = isAtTop ? 0 : APP_HEADER_H;
+    const target = isAtTop ? 0 : headerH;
     Animated.timing(headerOffset, {
       toValue: target,
       duration: 150,
@@ -728,7 +728,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: SPACE.s12,
-    paddingTop: APP_HEADER_H + SPACE.s4,
     paddingBottom: SPACE.s32,
   },
   topTaggedPills: {

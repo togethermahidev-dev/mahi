@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   getProfile,
   createOrGetConversation,
@@ -68,6 +69,7 @@ export default function UserProfileScreen({
   dark,
 }: UserProfileScreenProps): React.JSX.Element {
   const currentUserId = useAuthStore((s) => s.user?.id);
+  const top = useSafeAreaInsets().top;
 
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
@@ -368,11 +370,13 @@ export default function UserProfileScreen({
 
   return (
     <GestureDetector gesture={swipeBack}>
-      <Animated.View style={[styles.root, { backgroundColor: bg, transform: [{ translateX }] }]}>
+      <Animated.View
+        style={[styles.root, { backgroundColor: bg, paddingTop: top, transform: [{ translateX }] }]}
+      >
         {/* Back button — top-left */}
         <TouchableOpacity
           onPress={onBack}
-          style={[styles.backBtn, { borderColor: muted }]}
+          style={[styles.backBtn, { top, borderColor: muted }]}
           hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
           <Text style={[styles.backArrow, { color: muted }]}>‹</Text>
@@ -382,7 +386,7 @@ export default function UserProfileScreen({
         {!isSelf && !loading ? (
           <TouchableOpacity
             onPress={handleEllipsis}
-            style={[styles.ellipsisBtn, { borderColor: muted }]}
+            style={[styles.ellipsisBtn, { top, borderColor: muted }]}
             hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
           >
             <Text style={[styles.ellipsisText, { color: muted }]}>...</Text>
@@ -585,11 +589,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
   },
   backBtn: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? OFFSET.o60 : OFFSET.o32,
     left: OFFSET.o24,
     zIndex: 1,
     width: SIZE.z36,
@@ -606,7 +608,6 @@ const styles = StyleSheet.create({
   },
   ellipsisBtn: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? OFFSET.o60 : OFFSET.o32,
     right: OFFSET.o24,
     zIndex: 1,
     width: SIZE.z36,

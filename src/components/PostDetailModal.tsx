@@ -6,14 +6,14 @@ import {
   Modal,
   StyleSheet,
   TouchableOpacity,
-  Platform,
   useWindowDimensions,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import CaptionText from '@/components/CaptionText';
 import DraggablePip from '@/components/DraggablePip';
-import { pipZone } from '@/lib/pip';
+import { appHeaderHeight, pipZone } from '@/lib/pip';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -29,8 +29,6 @@ import {
 } from '@/constants/tokens';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
-
-const APP_HEADER_H = Platform.OS === 'ios' ? 108 : 80;
 
 interface PostDetailModalProps {
   /** The post to show; null keeps the modal closed. */
@@ -72,7 +70,8 @@ function PostDetail({ post, onClose }: { post: PostRow; onClose: () => void }): 
 
   // ── Draggable PiP (same safe zone as the feed, a little higher: no tagged pills here) ──
   const screen = useWindowDimensions();
-  const pipSafeZone = pipZone(screen, APP_HEADER_H + OFFSET.o60);
+  const insets = useSafeAreaInsets();
+  const pipSafeZone = pipZone(screen, appHeaderHeight(insets.top) + OFFSET.o60);
 
   // ── Date string ───────────────────────────────────────────────────────────
   const dateStr = new Date(post.created_at).toLocaleDateString('en-US', {
@@ -93,7 +92,7 @@ function PostDetail({ post, onClose }: { post: PostRow; onClose: () => void }): 
       {/* Top gradient — close button + streak badge */}
       <LinearGradient
         colors={[withAlpha(COLORS.black, 0.6), 'transparent']}
-        style={styles.topOverlay}
+        style={[styles.topOverlay, { paddingTop: insets.top }]}
       >
         <TouchableOpacity
           onPress={onClose}
@@ -126,11 +125,7 @@ function PostDetail({ post, onClose }: { post: PostRow; onClose: () => void }): 
 
       {/* Draggable PiP */}
       {hasDual && pipUrl && (
-        <DraggablePip
-          uri={pipUrl}
-          zone={pipSafeZone}
-          onTap={() => setRearIsPrimary((p) => !p)}
-        />
+        <DraggablePip uri={pipUrl} zone={pipSafeZone} onTap={() => setRearIsPrimary((p) => !p)} />
       )}
     </>
   );
@@ -150,7 +145,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACE.s16,
-    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
     paddingBottom: SPACE.s32,
   },
   closeBtn: {

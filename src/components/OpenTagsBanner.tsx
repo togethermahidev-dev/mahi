@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { formatHms, msLeft } from '@/lib/countdown';
+import { appHeaderHeight } from '@/lib/pip';
 import type { OpenTag } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import { FONT_SIZE, SPACE, RADIUS, BORDER_WIDTH, OFFSET, SIZE } from '@/constants/tokens';
@@ -19,6 +21,8 @@ export default function OpenTagsBanner({
   serverOffsetMs: number;
 }): React.JSX.Element | null {
   const { colors } = useAppTheme();
+  // Just under the app header, whose height follows the status bar / notch.
+  const top = appHeaderHeight(useSafeAreaInsets().top) + OFFSET.o12;
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -35,7 +39,7 @@ export default function OpenTagsBanner({
   const left = formatHms(msLeft(first.expires_at, serverOffsetMs));
 
   return (
-    <View style={styles.wrap} pointerEvents="none">
+    <View style={[styles.wrap, { top }]} pointerEvents="none">
       <BlurView intensity={40} tint="dark" style={[styles.pill, { borderColor: colors.accent }]}>
         <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={1}>
           {who} tagged you · <Text style={[styles.time, { color: colors.accent }]}>{left}</Text>{' '}
@@ -49,7 +53,6 @@ export default function OpenTagsBanner({
 const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
-    top: OFFSET.o120,
     left: 0,
     right: 0,
     alignItems: 'center',
