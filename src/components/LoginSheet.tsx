@@ -15,6 +15,7 @@ import { supabase } from '@/lib/supabase';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 const DOMAINS = ['gmail.com', 'icloud.com', 'outlook.com', 'yahoo.com'];
 
@@ -30,11 +31,11 @@ export default function LoginSheet({
   onAuthComplete,
 }: Props): React.JSX.Element {
   const dark = useColorScheme() === 'dark';
-  const bg = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#FFFFFF' : '#0F0F0D';
-  const inputBg = dark ? '#2A2A27' : '#F5F5F0';
-  const muted = dark ? '#888' : '#999';
-  const red = dark ? '#E06060' : '#C03030';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.white : COLORS.inkDeep;
+  const inputBg = dark ? COLORS.surfaceDark : COLORS.surfaceLight;
+  const muted = dark ? COLORS.grey888 : COLORS.grey999;
+  const red = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -174,55 +175,55 @@ export default function LoginSheet({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { padding: 32, gap: 12 },
-  title: { fontSize: 32, fontFamily: FONTS.bold, letterSpacing: 4, marginBottom: 16 },
+  content: { padding: SPACE.s32, gap: SPACE.s12 },
+  title: { fontSize: FONT_SIZE.f32, fontFamily: FONTS.bold, letterSpacing: 4, marginBottom: SPACE.s16 },
   label: {
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
     letterSpacing: 1,
-    marginBottom: -4,
+    marginBottom: -SPACE.s4,
   },
   input: {
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
+    borderRadius: RADIUS.r14,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s14,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.semiBold,
   },
   inputRow: {
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    borderRadius: RADIUS.r14,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s4,
     flexDirection: 'row',
     alignItems: 'center',
   },
   inputInner: {
     flex: 1,
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.semiBold,
-    paddingVertical: 10,
+    paddingVertical: SPACE.s10,
   },
-  toggle: { fontSize: 13, fontFamily: FONTS.semiBold, paddingHorizontal: 4 },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  toggle: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, paddingHorizontal: SPACE.s4 },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s8 },
   pill: {
     borderWidth: 1.5,
-    borderRadius: 50,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s14,
+    paddingVertical: SPACE.s8,
   },
-  pillText: { fontSize: 13, fontFamily: FONTS.semiBold },
+  pillText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
   button: {
-    borderRadius: 50,
-    paddingVertical: 20,
+    borderRadius: RADIUS.r50,
+    paddingVertical: SPACE.s20,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: SPACE.s8,
   },
-  buttonText: { fontSize: 18, fontFamily: FONTS.semiBold },
+  buttonText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
   forgot: {
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.italic,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: SPACE.s4,
   },
-  errorText: { fontSize: 13, fontFamily: FONTS.semiBold },
+  errorText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
 });

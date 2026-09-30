@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions, useColorScheme } from 'react-native';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 const { height } = Dimensions.get('window');
 
@@ -10,8 +11,8 @@ interface Props {
 
 export default function InAppAnimationScreen({ onComplete }: Props): React.JSX.Element {
   const dark = useColorScheme() === 'dark';
-  const sheetBg = dark ? '#1C1C19' : '#FFFFFF';
-  const sheetText = dark ? '#FFFFFF' : '#0F0F0D';
+  const sheetBg = dark ? COLORS.bgDark : COLORS.white;
+  const sheetText = dark ? COLORS.white : COLORS.inkDeep;
 
   // Both values double as entry and exit: -height→0 (in), 0→-height (out top) / height→0 (in), 0→height (out bottom)
   const topAnim = useRef(new Animated.Value(-height)).current;
@@ -79,34 +80,34 @@ export default function InAppAnimationScreen({ onComplete }: Props): React.JSX.E
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#111111' },
+  root: { flex: 1, backgroundColor: COLORS.ink },
   topSheet: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 80,
-    paddingBottom: 40,
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+    paddingHorizontal: SPACE.s24,
+    paddingTop: SPACE.s80,
+    paddingBottom: SPACE.s40,
+    borderBottomLeftRadius: RADIUS.r40,
+    borderBottomRightRadius: RADIUS.r40,
     alignItems: 'center',
     justifyContent: 'center',
   },
   titles: { alignItems: 'center' },
-  titleWrapper: { position: 'relative', marginBottom: 12 },
-  titleEcho: { position: 'absolute', color: '#59c2d7', top: 4, left: 4 },
+  titleWrapper: { position: 'relative', marginBottom: SPACE.s12 },
+  titleEcho: { position: 'absolute', color: COLORS.accent, top: 4, left: 4 },
   title: {
-    fontSize: 56,
+    fontSize: FONT_SIZE.f56,
     fontFamily: FONTS.bold,
     letterSpacing: 10,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.italic,
     opacity: 0.7,
   },
   gap: { height: 55 },
   bottomSheet: {
     flex: 1,
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
+    borderTopLeftRadius: RADIUS.r40,
+    borderTopRightRadius: RADIUS.r40,
   },
 });

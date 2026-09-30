@@ -14,6 +14,7 @@ import { TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import Svg, { Path, Circle, G } from 'react-native-svg';
 import { useThemeStore } from '@/store';
 import type { ThemeMode } from '@/store/themeStore';
+import { COLORS } from '@/constants/tokens';
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 
@@ -24,16 +25,16 @@ interface IconProps {
 
 /** Blue Cloud with Sun peeking — Light mode. */
 function CloudSunIcon({ size }: IconProps) {
-  const blue = '#4FA8FF';
+  const blue = COLORS.info;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       {/* Sun peeking behind the cloud — top-right */}
       <G>
-        <Circle cx="17" cy="8" r="2.4" fill="#FFC93B" stroke="#FFC93B" strokeWidth={1.2} />
+        <Circle cx="17" cy="8" r="2.4" fill={COLORS.gold} stroke={COLORS.gold} strokeWidth={1.2} />
         {/* Sun rays */}
         <Path
           d="M17 3.5v1.4 M17 11.1v1.4 M21.5 8h-1.4 M13.9 8h-1.4 M20.18 4.82l-0.99 0.99 M14.82 11.19l-0.99 0.99 M20.18 11.18l-0.99 -0.99 M14.82 4.81l-0.99 -0.99"
-          stroke="#FFC93B"
+          stroke={COLORS.gold}
           strokeWidth={1.4}
           strokeLinecap="round"
         />
@@ -81,7 +82,7 @@ interface ThemeToggleProps {
 }
 
 export default function ThemeToggle({
-  color = '#FFFFFF',
+  color = COLORS.white,
   size = 22,
 }: ThemeToggleProps): React.JSX.Element {
   const mode = useThemeStore((s) => s.mode);

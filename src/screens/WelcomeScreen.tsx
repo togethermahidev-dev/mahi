@@ -12,6 +12,7 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import LoginSheet from '@/components/LoginSheet';
 import CreateAccountSheet from '@/components/CreateAccountSheet';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 const { height } = Dimensions.get('window');
 
@@ -21,8 +22,8 @@ interface Props {
 
 export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Element {
   const { dark } = useAppTheme();
-  const sheetBg = dark ? '#1C1C19' : '#FFFFFF';
-  const sheetText = dark ? '#FFFFFF' : '#0F0F0D';
+  const sheetBg = dark ? COLORS.bgDark : COLORS.white;
+  const sheetText = dark ? COLORS.white : COLORS.inkDeep;
 
   const topY = useRef(new Animated.Value(0)).current;
   const botY = useRef(new Animated.Value(0)).current;
@@ -121,42 +122,42 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#111111' },
+  root: { flex: 1, backgroundColor: COLORS.ink },
   topSheet: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 80,
-    paddingBottom: 40,
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+    paddingHorizontal: SPACE.s24,
+    paddingTop: SPACE.s80,
+    paddingBottom: SPACE.s40,
+    borderBottomLeftRadius: RADIUS.r40,
+    borderBottomRightRadius: RADIUS.r40,
     justifyContent: 'space-between',
     overflow: 'hidden',
   },
   titles: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  titleWrapper: { position: 'relative', marginBottom: 12 },
-  title: { fontSize: 56, fontFamily: FONTS.bold, letterSpacing: 10 },
-  titleEcho: { position: 'absolute', color: '#59c2d7', top: 4, left: 4 },
-  subtitle: { fontSize: 16, fontFamily: FONTS.italic, opacity: 0.7 },
+  titleWrapper: { position: 'relative', marginBottom: SPACE.s12 },
+  title: { fontSize: FONT_SIZE.f56, fontFamily: FONTS.bold, letterSpacing: 10 },
+  titleEcho: { position: 'absolute', color: COLORS.accent, top: 4, left: 4 },
+  subtitle: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.italic, opacity: 0.7 },
   gap: { height: 55 },
   bottomSheet: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 60,
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
+    paddingHorizontal: SPACE.s24,
+    paddingTop: SPACE.s40,
+    paddingBottom: SPACE.s60,
+    borderTopLeftRadius: RADIUS.r40,
+    borderTopRightRadius: RADIUS.r40,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  buttons: { width: '100%', gap: 12 },
+  buttons: { width: '100%', gap: SPACE.s12 },
   button: {
     width: '72%',
     alignSelf: 'center',
-    paddingVertical: 20,
-    borderRadius: 50,
+    paddingVertical: SPACE.s20,
+    borderRadius: RADIUS.r50,
     alignItems: 'center',
   },
   buttonOutline: { backgroundColor: 'transparent', borderWidth: 1.5 },
-  buttonText: { fontSize: 18, fontFamily: FONTS.semiBold },
+  buttonText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
 });

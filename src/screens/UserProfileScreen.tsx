@@ -32,6 +32,7 @@ import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview } from '@/api';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
@@ -50,9 +51,9 @@ export default function UserProfileScreen({
 }: UserProfileScreenProps): React.JSX.Element {
   const currentUserId = useAuthStore((s) => s.user?.id);
 
-  const bg = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
 
   const isFollowing = useFollowStore((s) => s.followingByMe[userId] ?? false);
   const loadFollowData = useFollowStore((s) => s.loadFollowData);
@@ -384,7 +385,7 @@ export default function UserProfileScreen({
                   style={[
                     styles.avatar,
                     styles.avatarFallback,
-                    { backgroundColor: dark ? '#3A3A37' : '#E8E8E3' },
+                    { backgroundColor: dark ? COLORS.borderDark : COLORS.offWhite },
                   ]}
                 >
                   <Text style={[styles.avatarInitial, { color: bg }]}>{initials}</Text>
@@ -408,7 +409,7 @@ export default function UserProfileScreen({
             </TouchableOpacity>
 
             {/* Streak stats */}
-            <View style={[styles.statsRow, { marginTop: 16 }]}>
+            <View style={[styles.statsRow, { marginTop: SPACE.s16 }]}>
               <View style={styles.stat}>
                 <Text style={[styles.statValue, { color: text }]}>
                   {profile?.streak_current ?? 0}
@@ -437,7 +438,7 @@ export default function UserProfileScreen({
             <TouchableOpacity
               onPress={() => setStreakGridOpen(true)}
               activeOpacity={0.75}
-              style={[styles.streakTrackerPill, { borderColor: '#59c2d7' }]}
+              style={[styles.streakTrackerPill, { borderColor: COLORS.accent }]}
             >
               <Text style={styles.streakTrackerText}>STREAK TRACKER</Text>
             </TouchableOpacity>
@@ -450,12 +451,12 @@ export default function UserProfileScreen({
                     styles.followBtn,
                     isFollowing
                       ? { borderColor: text, borderWidth: 1 }
-                      : { backgroundColor: '#59c2d7' },
+                      : { backgroundColor: COLORS.accent },
                   ]}
                   onPress={handleFollow}
                   activeOpacity={0.75}
                 >
-                  <Text style={[styles.followBtnText, { color: isFollowing ? text : '#FFFFFF' }]}>
+                  <Text style={[styles.followBtnText, { color: isFollowing ? text : COLORS.white }]}>
                     {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
                   </Text>
                 </TouchableOpacity>
@@ -480,7 +481,7 @@ export default function UserProfileScreen({
 
           {/* Media grid */}
           {profile ? (
-            <View style={[styles.mapShadow, { shadowColor: dark ? '#000' : '#1A1A17' }]}>
+            <View style={[styles.mapShadow, { shadowColor: dark ? COLORS.black : COLORS.offBlack }]}>
               <ProfileMediaMap userId={profile.id} isSelf={false} onPostPress={setSelectedPost} />
             </View>
           ) : null}
@@ -544,7 +545,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: Platform.OS === 'ios' ? 60 : 32,
+    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
   },
   backBtn: {
     position: 'absolute',
@@ -553,13 +554,13 @@ const styles = StyleSheet.create({
     zIndex: 1,
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: RADIUS.r18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backArrow: {
-    fontSize: 20,
+    fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.italic,
     lineHeight: 22,
   },
@@ -570,69 +571,69 @@ const styles = StyleSheet.create({
     zIndex: 1,
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: RADIUS.r18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ellipsisText: {
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
     lineHeight: 18,
-    marginTop: -4,
+    marginTop: -SPACE.s4,
   },
   loader: {
-    marginTop: 120,
+    marginTop: SPACE.s120,
   },
   header: {
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: SPACE.s32,
     width: '100%',
   },
   avatarWrap: {
-    marginBottom: 12,
+    marginBottom: SPACE.s12,
   },
   avatar: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: RADIUS.r40,
   },
   avatarFallback: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: 28,
+    fontSize: FONT_SIZE.f28,
     fontFamily: FONTS.bold,
   },
   displayName: {
-    fontSize: 22,
+    fontSize: FONT_SIZE.f22,
     fontFamily: FONTS.bold,
     letterSpacing: 4,
-    marginBottom: 6,
+    marginBottom: SPACE.s6,
     textAlign: 'center',
   },
   handle: {
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.italic,
-    marginBottom: 16,
+    marginBottom: SPACE.s16,
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 32,
+    gap: SPACE.s32,
   },
   stat: {
     alignItems: 'center',
-    gap: 4,
+    gap: SPACE.s4,
   },
   statValue: {
-    fontSize: 28,
+    fontSize: FONT_SIZE.f28,
     fontFamily: FONTS.bold,
     lineHeight: 28,
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
     letterSpacing: 3,
   },
@@ -643,76 +644,76 @@ const styles = StyleSheet.create({
   },
   streakTrackerPill: {
     borderWidth: 1,
-    borderRadius: 50,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    marginTop: 16,
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s6,
+    marginTop: SPACE.s16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   streakTrackerText: {
     fontFamily: FONTS.semiBold,
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     letterSpacing: 2,
-    color: '#59c2d7',
+    color: COLORS.accent,
   },
   actionRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 20,
+    gap: SPACE.s12,
+    marginTop: SPACE.s20,
   },
   followBtn: {
-    borderRadius: 50,
-    paddingHorizontal: 28,
-    paddingVertical: 9,
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s28,
+    paddingVertical: SPACE.s9,
   },
   followBtnText: {
-    fontSize: 11,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   messageBtn: {
     borderWidth: 1,
-    borderRadius: 50,
-    paddingHorizontal: 28,
-    paddingVertical: 9,
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s28,
+    paddingVertical: SPACE.s9,
   },
   messageBtnText: {
-    fontSize: 11,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   blockedWrap: {
     alignItems: 'center',
-    paddingVertical: 120,
-    gap: 12,
+    paddingVertical: SPACE.s120,
+    gap: SPACE.s12,
   },
   blockedTitle: {
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   blockedSubtitle: {
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
     textAlign: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACE.s16,
   },
   unblockBtn: {
     borderWidth: 1,
-    borderRadius: 50,
-    paddingHorizontal: 28,
-    paddingVertical: 9,
-    marginTop: 8,
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s28,
+    paddingVertical: SPACE.s9,
+    marginTop: SPACE.s8,
   },
   unblockBtnText: {
-    fontSize: 11,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   mapShadow: {
     flex: 1,
     width: '100%',
-    marginTop: 96,
+    marginTop: SPACE.s96,
   },
 });

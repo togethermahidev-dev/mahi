@@ -21,6 +21,7 @@ import * as Haptics from 'expo-haptics';
 import CaptionText from '@/components/CaptionText';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 
@@ -129,7 +130,7 @@ export default function PostDetailModal({
       />
 
       {/* Top gradient — close button + streak badge */}
-      <LinearGradient colors={['rgba(0,0,0,0.6)', 'transparent']} style={styles.topOverlay}>
+      <LinearGradient colors={[withAlpha(COLORS.black, 0.6), 'transparent']} style={styles.topOverlay}>
         <TouchableOpacity
           onPress={handleClose}
           style={styles.closeBtn}
@@ -144,7 +145,7 @@ export default function PostDetailModal({
 
       {/* Bottom gradient — caption + date */}
       <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.7)']}
+        colors={['transparent', withAlpha(COLORS.black, 0.7)]}
         style={styles.bottomOverlay}
         pointerEvents="box-none"
       >
@@ -165,7 +166,7 @@ export default function PostDetailModal({
           <Reanimated.View style={[styles.pip, pipAnimStyle]}>
             <Image
               source={{ uri: pipUrl }}
-              style={[StyleSheet.absoluteFill, { borderRadius: 10 }]}
+              style={[StyleSheet.absoluteFill, { borderRadius: RADIUS.r10 }]}
               resizeMode="cover"
             />
           </Reanimated.View>
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFill,
     zIndex: 520,
-    backgroundColor: '#000',
+    backgroundColor: COLORS.black,
   },
   topOverlay: {
     position: 'absolute',
@@ -189,59 +190,59 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 60 : 32,
-    paddingBottom: 32,
+    paddingHorizontal: SPACE.s16,
+    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
+    paddingBottom: SPACE.s32,
   },
   closeBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: RADIUS.r18,
+    backgroundColor: withAlpha(COLORS.black, 0.4),
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeX: {
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.semiBold,
     lineHeight: 18,
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
   streakBadge: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: SPACE.s14,
+    paddingVertical: SPACE.s6,
+    borderRadius: RADIUS.r50,
+    backgroundColor: withAlpha(COLORS.white, 0.2),
   },
   streakText: {
-    fontSize: 12,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
     letterSpacing: 2,
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
   bottomOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 50,
-    gap: 8,
+    paddingHorizontal: SPACE.s16,
+    paddingTop: SPACE.s50,
+    paddingBottom: SPACE.s50,
+    gap: SPACE.s8,
   },
   captionText: {
-    fontSize: 15,
+    fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.italic,
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.5)',
+    color: COLORS.white,
+    textShadowColor: withAlpha(COLORS.black, 0.5),
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   dateText: {
-    fontSize: 12,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.italic,
     letterSpacing: 1,
-    color: 'rgba(255,255,255,0.6)',
+    color: withAlpha(COLORS.white, 0.6),
   },
   pip: {
     position: 'absolute',
@@ -249,11 +250,11 @@ const styles = StyleSheet.create({
     left: 0,
     width: PIP_W,
     height: PIP_H,
-    borderRadius: 10,
+    borderRadius: RADIUS.r10,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.6)',
-    shadowColor: '#000',
+    borderColor: withAlpha(COLORS.white, 0.6),
+    shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.35,
     shadowRadius: 6,

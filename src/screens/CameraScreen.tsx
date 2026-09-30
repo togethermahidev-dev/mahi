@@ -63,6 +63,7 @@ import { nudgeLabel } from '@/lib/tagNudge';
 import { Sentry } from '@/lib/sentry';
 import { requestLocationPermission, getCurrentLocation } from '@/lib/location';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 // Must match PEEK_HEIGHT in VerticalNavigator.tsx
 const PEEK_HEIGHT = 0;
@@ -574,7 +575,7 @@ function DualPhotoPreview({
               <Reanimated.View style={[styles.pip, { height: pipH }, pipAnimStyle]}>
                 <Image
                   source={{ uri: pipUri }}
-                  style={[StyleSheet.absoluteFill, { borderRadius: 12 }]}
+                  style={[StyleSheet.absoluteFill, { borderRadius: RADIUS.r12 }]}
                   resizeMode="cover"
                 />
               </Reanimated.View>
@@ -611,7 +612,7 @@ function DualPhotoPreview({
               >
                 <BlurView intensity={40} tint="dark" style={styles.captionPill}>
                   <Text
-                    style={[styles.captionPillText, taggedUsers.length > 0 && { color: '#FFFFFF' }]}
+                    style={[styles.captionPillText, taggedUsers.length > 0 && { color: COLORS.white }]}
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
@@ -628,7 +629,7 @@ function DualPhotoPreview({
               >
                 <BlurView intensity={40} tint="dark" style={styles.captionPill}>
                   <Text
-                    style={[styles.captionPillText, caption.trim() && { color: '#FFFFFF' }]}
+                    style={[styles.captionPillText, caption.trim() && { color: COLORS.white }]}
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
@@ -665,7 +666,7 @@ function DualPhotoPreview({
                   style={[styles.captionPill, locationEnabled && styles.locationPillActive]}
                 >
                   <Text
-                    style={[styles.captionPillText, locationEnabled && { color: '#FFFFFF' }]}
+                    style={[styles.captionPillText, locationEnabled && { color: COLORS.white }]}
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
@@ -826,7 +827,7 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
               cursorRef.current = e.nativeEvent.selection.end;
             }}
             placeholder="What's the story?"
-            placeholderTextColor="rgba(232,232,227,0.45)"
+            placeholderTextColor={withAlpha(COLORS.offWhite, 0.45)}
             multiline
             maxLength={200}
             autoFocus
@@ -1021,7 +1022,7 @@ function TagSheet({
             value={query}
             onChangeText={setQuery}
             placeholder="Search friends who follow you back"
-            placeholderTextColor="rgba(232,232,227,0.45)"
+            placeholderTextColor={withAlpha(COLORS.offWhite, 0.45)}
             autoFocus
             autoCapitalize="none"
             autoCorrect={false}
@@ -1552,9 +1553,9 @@ export default function CameraScreen(): React.JSX.Element {
 
   const cameraGranted = cameraPermission.granted;
   const micGranted = micPermission.granted;
-  const shutterRing = '#59c2d7';
-  const shutterFill = '#59c2d7';
-  const flipColor = '#FFFFFF';
+  const shutterRing = COLORS.accent;
+  const shutterFill = COLORS.accent;
+  const flipColor = COLORS.white;
 
   const isCapturing = captureState !== 'idle';
   // The shutter is tappable in 'idle' (start) and 'awaiting-second' (take second shot).
@@ -1715,7 +1716,7 @@ export default function CameraScreen(): React.JSX.Element {
               styles.shutterOuter,
               {
                 borderColor: shutterRing,
-                shadowColor: dark ? '#000000' : '#1A1A17',
+                shadowColor: dark ? COLORS.black : COLORS.offBlack,
                 opacity: shutterDisabled ? 0.3 : 1,
               },
             ]}
@@ -1754,7 +1755,7 @@ export default function CameraScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#111111',
+    backgroundColor: COLORS.ink,
   },
   streakBadge: {
     position: 'absolute',
@@ -1763,27 +1764,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   streakNumber: {
-    color: '#FFFFFF',
-    fontSize: 38,
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f38,
     fontFamily: FONTS.bold,
     lineHeight: 38,
   },
   streakLabel: {
-    color: '#E8E8E3',
-    fontSize: 8,
+    color: COLORS.offWhite,
+    fontSize: FONT_SIZE.f8,
     fontFamily: FONTS.semiBold,
     letterSpacing: 2.5,
     textAlign: 'center',
     opacity: 0.65,
-    marginTop: 3,
+    marginTop: SPACE.s3,
     lineHeight: 11,
   },
   restDayLabel: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 170 : 142,
     right: 24,
-    color: '#E8E8E3',
-    fontSize: 10,
+    color: COLORS.offWhite,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.italic,
     letterSpacing: 2,
     opacity: 0.5,
@@ -1800,8 +1801,8 @@ const styles = StyleSheet.create({
     pointerEvents: 'none',
   },
   captureLabel: {
-    color: '#FFFFFF',
-    fontSize: 18,
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.bold,
     letterSpacing: 4,
     opacity: 0.9,
@@ -1810,25 +1811,25 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: SPACE.s12,
   },
   postedTitle: {
-    color: '#FFFFFF',
-    fontSize: 22,
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f22,
     fontFamily: FONTS.bold,
     letterSpacing: 4,
     textAlign: 'center',
   },
   countdownTimer: {
-    color: '#FFFFFF',
-    fontSize: 48,
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f48,
     fontFamily: FONTS.bold,
     letterSpacing: 6,
     textAlign: 'center',
   },
   postedSub: {
-    color: '#E8E8E3',
-    fontSize: 12,
+    color: COLORS.offWhite,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.italic,
     textAlign: 'center',
     opacity: 0.55,
@@ -1842,7 +1843,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 48,
+    paddingHorizontal: SPACE.s48,
   },
   flipButton: {
     width: 44,
@@ -1853,7 +1854,7 @@ const styles = StyleSheet.create({
   shutterOuter: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: RADIUS.r36,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1865,7 +1866,7 @@ const styles = StyleSheet.create({
   shutterInner: {
     width: 58,
     height: 58,
-    borderRadius: 29,
+    borderRadius: RADIUS.r29,
   },
   // ── 0.5× / 1× lens toggle ──────────────────────────────────────────────────
   lensToggleWrap: {
@@ -1877,31 +1878,31 @@ const styles = StyleSheet.create({
   },
   lensToggle: {
     flexDirection: 'row',
-    borderRadius: 20,
-    padding: 3,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: RADIUS.r20,
+    padding: SPACE.s3,
+    backgroundColor: withAlpha(COLORS.black, 0.35),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderColor: withAlpha(COLORS.white, 0.18),
   },
   lensOption: {
     minWidth: 44,
     height: 30,
-    paddingHorizontal: 12,
-    borderRadius: 17,
+    paddingHorizontal: SPACE.s12,
+    borderRadius: RADIUS.r17,
     alignItems: 'center',
     justifyContent: 'center',
   },
   lensOptionActive: {
-    backgroundColor: '#59c2d7',
+    backgroundColor: COLORS.accent,
   },
   lensOptionText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 13,
+    color: withAlpha(COLORS.white, 0.7),
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
     letterSpacing: 1,
   },
   lensOptionTextActive: {
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
   // ── Preview panel ─────────────────────────────────────────────────────────
   previewPanel: {
@@ -1910,17 +1911,17 @@ const styles = StyleSheet.create({
     left: 0,
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
-    backgroundColor: '#111111',
+    backgroundColor: COLORS.ink,
   },
   pip: {
     position: 'absolute',
     width: PIP_W,
     height: PIP_H,
-    borderRadius: 12,
+    borderRadius: RADIUS.r12,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.6)',
-    shadowColor: '#000',
+    borderColor: withAlpha(COLORS.white, 0.6),
+    shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -1932,14 +1933,14 @@ const styles = StyleSheet.create({
     right: 24,
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: RADIUS.r18,
+    backgroundColor: withAlpha(COLORS.white, 0.9),
     alignItems: 'center',
     justifyContent: 'center',
   },
   discardX: {
-    color: '#111111',
-    fontSize: 14,
+    color: COLORS.ink,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.semiBold,
     lineHeight: 16,
   },
@@ -1951,38 +1952,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   postButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 50,
-    paddingVertical: 20,
-    paddingHorizontal: 56,
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.r50,
+    paddingVertical: SPACE.s20,
+    paddingHorizontal: SPACE.s56,
   },
   postButtonText: {
-    color: '#111111',
-    fontSize: 16,
+    color: COLORS.ink,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.semiBold,
     letterSpacing: 2,
   },
   captionPill: {
     height: 36,
-    borderRadius: 18,
-    paddingHorizontal: 18,
+    borderRadius: RADIUS.r18,
+    paddingHorizontal: SPACE.s18,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.18)',
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderColor: withAlpha(COLORS.white, 0.18),
+    backgroundColor: withAlpha(COLORS.black, 0.35),
   },
   captionPillText: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 13,
+    color: withAlpha(COLORS.white, 0.75),
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
   },
   // Location pill in its opted-in (ON) state — fills with the accent so the
   // explicit opt-in reads at a glance. Mirrors lensOptionActive's accent fill.
   locationPillActive: {
-    backgroundColor: '#59c2d7',
-    borderColor: '#59c2d7',
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
   },
   // ── Caption bottom sheet
   sheetFlex: {
@@ -1991,24 +1992,24 @@ const styles = StyleSheet.create({
   },
   sheetScrim: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: withAlpha(COLORS.black, 0.55),
   },
   sheetPanel: {
-    backgroundColor: '#1C1C19',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 24,
-    gap: 12,
+    backgroundColor: COLORS.bgDark,
+    borderTopLeftRadius: RADIUS.r24,
+    borderTopRightRadius: RADIUS.r24,
+    paddingHorizontal: SPACE.s20,
+    paddingTop: SPACE.s12,
+    paddingBottom: SPACE.s24,
+    gap: SPACE.s12,
   },
   sheetHandle: {
     width: 40,
     height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: RADIUS.r2,
+    backgroundColor: withAlpha(COLORS.white, 0.25),
     alignSelf: 'center',
-    marginBottom: 4,
+    marginBottom: SPACE.s4,
   },
   sheetLabelRow: {
     flexDirection: 'row',
@@ -2016,71 +2017,71 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sheetLabel: {
-    color: '#E8E8E3',
-    fontSize: 11,
+    color: COLORS.offWhite,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
     letterSpacing: 2,
   },
   sheetCounter: {
-    color: 'rgba(232,232,227,0.45)',
-    fontSize: 12,
+    color: withAlpha(COLORS.offWhite, 0.45),
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.italic,
   },
   sheetInput: {
     minHeight: 96,
     maxHeight: 160,
-    color: '#E8E8E3',
-    fontSize: 15,
+    color: COLORS.offWhite,
+    fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.italic,
-    paddingVertical: 8,
+    paddingVertical: SPACE.s8,
     paddingHorizontal: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.15)',
+    borderBottomColor: withAlpha(COLORS.white, 0.15),
   },
   inviteRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    gap: SPACE.s12,
+    paddingHorizontal: SPACE.s20,
+    paddingVertical: SPACE.s12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(232,232,227,0.12)',
+    borderTopColor: withAlpha(COLORS.offWhite, 0.12),
   },
   inviteLabel: {
     flex: 1,
-    color: 'rgba(232,232,227,0.6)',
-    fontSize: 12,
+    color: withAlpha(COLORS.offWhite, 0.6),
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.italic,
   },
   inviteSteppers: {
     flexDirection: 'row',
-    gap: 8,
+    gap: SPACE.s8,
   },
   inviteStep: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: RADIUS.r16,
     borderWidth: 1,
-    borderColor: 'rgba(232,232,227,0.4)',
+    borderColor: withAlpha(COLORS.offWhite, 0.4),
     alignItems: 'center',
     justifyContent: 'center',
   },
   inviteStepText: {
-    color: '#E8E8E3',
-    fontSize: 18,
+    color: COLORS.offWhite,
+    fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.semiBold,
     lineHeight: 20,
   },
   sheetDone: {
-    backgroundColor: '#59c2d7',
-    borderRadius: 50,
-    paddingVertical: 16,
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.r50,
+    paddingVertical: SPACE.s16,
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: SPACE.s4,
   },
   sheetDoneText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.semiBold,
     letterSpacing: 2,
   },
@@ -2096,75 +2097,75 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   sheetCloseXText: {
-    color: 'rgba(232,232,227,0.6)',
-    fontSize: 18,
+    color: withAlpha(COLORS.offWhite, 0.6),
+    fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.semiBold,
   },
   tagSearchInput: {
     height: 44,
-    color: '#E8E8E3',
-    fontSize: 15,
+    color: COLORS.offWhite,
+    fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.italic,
-    paddingHorizontal: 14,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: SPACE.s14,
+    borderRadius: RADIUS.r50,
+    backgroundColor: withAlpha(COLORS.white, 0.08),
   },
   tagResultsList: {
     maxHeight: SCREEN_HEIGHT * 0.45,
   },
   tagEmptyText: {
-    color: 'rgba(232,232,227,0.45)',
-    fontSize: 13,
+    color: withAlpha(COLORS.offWhite, 0.45),
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
     textAlign: 'center',
-    paddingVertical: 16,
+    paddingVertical: SPACE.s16,
   },
   tagRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 4,
-    paddingVertical: 10,
-    gap: 12,
+    paddingHorizontal: SPACE.s4,
+    paddingVertical: SPACE.s10,
+    gap: SPACE.s12,
   },
   tagRowSelected: {
-    backgroundColor: 'rgba(89,194,215,0.08)',
-    borderRadius: 8,
+    backgroundColor: withAlpha(COLORS.accent, 0.08),
+    borderRadius: RADIUS.r8,
   },
   tagAvatar: {
     width: 38,
     height: 38,
-    borderRadius: 19,
+    borderRadius: RADIUS.r19,
   },
   tagAvatarFallback: {
-    backgroundColor: '#2A2A27',
+    backgroundColor: COLORS.surfaceDark,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tagAvatarInitial: {
-    color: '#E8E8E3',
-    fontSize: 15,
+    color: COLORS.offWhite,
+    fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.semiBold,
   },
   tagRowName: {
-    color: '#E8E8E3',
-    fontSize: 14,
+    color: COLORS.offWhite,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.semiBold,
   },
   tagRowHandle: {
-    color: 'rgba(232,232,227,0.45)',
-    fontSize: 12,
+    color: withAlpha(COLORS.offWhite, 0.45),
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.italic,
-    marginTop: 1,
+    marginTop: SPACE.s1,
   },
   tagRowNudge: {
-    fontSize: 11,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
     letterSpacing: 1,
-    marginTop: 2,
+    marginTop: SPACE.s2,
   },
   tagRowCheck: {
-    color: '#59c2d7',
-    fontSize: 18,
+    color: COLORS.accent,
+    fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.semiBold,
   },
   // ── Permissions ───────────────────────────────────────────────────────────
@@ -2172,25 +2173,25 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 24,
+    gap: SPACE.s24,
   },
   deniedMessage: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.italic,
     textAlign: 'center',
     opacity: 0.8,
-    paddingHorizontal: 32,
+    paddingHorizontal: SPACE.s32,
   },
   permissionButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 50,
-    paddingVertical: 20,
-    paddingHorizontal: 40,
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.r50,
+    paddingVertical: SPACE.s20,
+    paddingHorizontal: SPACE.s40,
   },
   permissionButtonText: {
-    color: '#111111',
-    fontSize: 16,
+    color: COLORS.ink,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.semiBold,
   },
 });

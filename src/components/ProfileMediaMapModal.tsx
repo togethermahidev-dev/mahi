@@ -5,6 +5,7 @@ import ProfileMediaMap from '@/components/ProfileMediaMap';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAuthStore, useUserStore } from '@/store';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 interface Props {
   visible: boolean;
@@ -16,9 +17,9 @@ export default function ProfileMediaMapModal({
   onClose,
 }: Props): React.JSX.Element | null {
   const { dark } = useAppTheme();
-  const bg = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const btnBg = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.08)';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const btnBg = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.08);
 
   const userId = useAuthStore((s) => s.user?.id);
   const profile = useUserStore((s) => s.profile);
@@ -66,31 +67,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingHorizontal: SPACE.s24,
+    paddingVertical: SPACE.s16,
   },
   title: {
     fontFamily: FONTS.semiBold,
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
     letterSpacing: 4,
   },
   closeCircle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: RADIUS.r18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeX: {
     fontFamily: FONTS.semiBold,
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
     lineHeight: 18,
   },
   canvas: {
     flex: 1,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 20,
+    marginHorizontal: SPACE.s16,
+    marginBottom: SPACE.s16,
+    borderRadius: RADIUS.r20,
     overflow: 'hidden',
   },
 });

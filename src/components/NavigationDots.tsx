@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { IconProps } from '@/components/ScreenIcons';
+import { COLORS, SPACE } from '@/constants/tokens';
 
 interface NavigationDotsProps {
   count: number;
@@ -39,8 +40,8 @@ export default function NavigationDots({
     Animated.parallel(animations).start();
   }, [activeIndex]);
 
-  const dotColor = dark ? '#FFFFFF' : '#1A1A17';
-  const iconColor = dark ? '#1A1A17' : '#FFFFFF'; // icon contrasts against the filled dot bg
+  const dotColor = dark ? COLORS.white : COLORS.offBlack;
+  const iconColor = dark ? COLORS.offBlack : COLORS.white; // icon contrasts against the filled dot bg
 
   return (
     <View style={styles.container}>
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   dot: {
-    marginVertical: 4,
+    marginVertical: SPACE.s4,
     alignItems: 'center',
     justifyContent: 'center',
   },

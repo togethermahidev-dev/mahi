@@ -15,6 +15,7 @@ import Reanimated, { useAnimatedStyle, useSharedValue } from 'react-native-reani
 import { getPostDates } from '@/api';
 import { Sentry } from '@/lib/sentry';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -118,15 +119,15 @@ export default function StreakGridPanel({
   fitnessRoutine,
   dark,
 }: StreakGridPanelProps): React.JSX.Element | null {
-  const bg = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const border = dark ? 'rgba(232,232,227,0.08)' : 'rgba(26,26,23,0.06)';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const border = dark ? withAlpha(COLORS.offWhite, 0.08) : withAlpha(COLORS.offBlack, 0.06);
 
-  const cellPosted = '#59c2d7';
-  const cellMissed = dark ? 'rgba(89,194,215,0.55)' : 'rgba(89,194,215,0.50)';
-  const cellRest = dark ? 'rgba(89,194,215,0.22)' : 'rgba(89,194,215,0.18)';
-  const cellToday = '#59c2d7';
+  const cellPosted = COLORS.accent;
+  const cellMissed = dark ? withAlpha(COLORS.accent, 0.55) : withAlpha(COLORS.accent, 0.50);
+  const cellRest = dark ? withAlpha(COLORS.accent, 0.22) : withAlpha(COLORS.accent, 0.18);
+  const cellToday = COLORS.accent;
 
   // Panel slide-in (kept on legacy RN Animated — different view from the pan canvas)
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
@@ -293,7 +294,7 @@ export default function StreakGridPanel({
         <View
           style={[
             styles.topBar,
-            { borderBottomColor: border, paddingTop: Platform.OS === 'ios' ? 60 : 32 },
+            { borderBottomColor: border, paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32 },
           ]}
         >
           <Text style={[styles.title, { color: text }]}>STREAK</Text>
@@ -307,7 +308,7 @@ export default function StreakGridPanel({
         </View>
 
         {/* Status indicator */}
-        <Text style={[styles.statusText, { color: isOnStreak ? '#59c2d7' : muted }]}>
+        <Text style={[styles.statusText, { color: isOnStreak ? COLORS.accent : muted }]}>
           {isOnStreak ? `On a ${streakCurrent}-day streak` : 'Streak tracker'}
         </Text>
 
@@ -411,7 +412,7 @@ export default function StreakGridPanel({
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: withAlpha(COLORS.black, 0.5),
   },
   panel: {
     ...StyleSheet.absoluteFill,
@@ -421,51 +422,51 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingBottom: 16,
+    paddingHorizontal: SPACE.s24,
+    paddingBottom: SPACE.s16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   title: {
     fontFamily: FONTS.bold,
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     letterSpacing: 5,
   },
   closeBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: RADIUS.r18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeBtnText: {
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
   },
   statusText: {
     fontFamily: FONTS.semiBold,
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     letterSpacing: 2,
     textAlign: 'center',
-    paddingVertical: 20,
+    paddingVertical: SPACE.s20,
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 32,
-    marginBottom: 24,
+    gap: SPACE.s32,
+    marginBottom: SPACE.s24,
   },
   stat: {
     alignItems: 'center',
-    gap: 4,
+    gap: SPACE.s4,
   },
   statValue: {
-    fontSize: 28,
+    fontSize: FONT_SIZE.f28,
     fontFamily: FONTS.bold,
     lineHeight: 28,
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
     letterSpacing: 3,
   },
@@ -475,42 +476,42 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   loader: {
-    marginTop: 60,
+    marginTop: SPACE.s60,
   },
   legendRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 20,
-    marginBottom: 16,
-    paddingHorizontal: 16,
+    gap: SPACE.s20,
+    marginBottom: SPACE.s16,
+    paddingHorizontal: SPACE.s16,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: SPACE.s6,
   },
   legendDot: {
     width: 10,
     height: 10,
-    borderRadius: 2,
+    borderRadius: RADIUS.r2,
   },
   legendText: {
     fontFamily: FONTS.semiBold,
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     letterSpacing: 1,
   },
   gridFrame: {
     flex: 1,
-    marginHorizontal: 16,
-    marginBottom: 24,
+    marginHorizontal: SPACE.s16,
+    marginBottom: SPACE.s24,
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: RADIUS.r16,
+    padding: SPACE.s12,
   },
   weekdayHeader: {
     flexDirection: 'row',
     marginLeft: MONTH_LABEL_W,
-    marginBottom: 8,
+    marginBottom: SPACE.s8,
   },
   weekdayCell: {
     width: CELL_SIZE,
@@ -518,7 +519,7 @@ const styles = StyleSheet.create({
   },
   weekdayText: {
     fontFamily: FONTS.semiBold,
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     letterSpacing: 1,
   },
   viewport: {
@@ -533,7 +534,7 @@ const styles = StyleSheet.create({
   monthLabel: {
     width: MONTH_LABEL_W,
     fontFamily: FONTS.semiBold,
-    fontSize: 12,
+    fontSize: FONT_SIZE.f12,
     lineHeight: CELL_SIZE,
   },
   daysBlock: {
@@ -549,6 +550,6 @@ const styles = StyleSheet.create({
   cell: {
     width: CELL_SIZE,
     height: CELL_SIZE,
-    borderRadius: 4,
+    borderRadius: RADIUS.r4,
   },
 });

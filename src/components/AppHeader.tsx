@@ -6,6 +6,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { ProfileIcon, MessagesIcon, NotificationsIcon } from '@/components/ScreenIcons';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 interface AppHeaderProps {
   // true on Camera screen (always dark bg) → white text/icons
@@ -35,14 +36,14 @@ export default function AppHeader({
   const showNotifications = useFeatureFlag('notifications-core');
   // isDark = camera screen (always dark bg); systemDark = OS-level dark mode
   const onDark = isDark || systemDark;
-  const mahiColor = onDark ? '#FFFFFF' : '#1A1A17';
-  const pillBg = isDark ? '#FFFFFF' : systemDark ? '#E8E8E3' : '#1A1A17';
-  const pillIcon = isDark ? '#1A1A17' : systemDark ? '#1A1A17' : '#FFFFFF';
+  const mahiColor = onDark ? COLORS.white : COLORS.offBlack;
+  const pillBg = isDark ? COLORS.white : systemDark ? COLORS.offWhite : COLORS.offBlack;
+  const pillIcon = isDark ? COLORS.offBlack : systemDark ? COLORS.offBlack : COLORS.white;
 
   // Gradient: dark screens (camera/dark mode) → dark-to-clear; light mode → white-to-clear
   const gradientColors: [string, string] = onDark
-    ? ['rgba(17,17,17,0.88)', 'rgba(17,17,17,0)']
-    : ['rgba(255,255,255,0.92)', 'rgba(255,255,255,0)'];
+    ? [withAlpha(COLORS.ink, 0.88), withAlpha(COLORS.ink, 0)]
+    : [withAlpha(COLORS.white, 0.92), withAlpha(COLORS.white, 0)];
 
   return (
     // pointerEvents="box-none" lets touches pass through the transparent header
@@ -105,8 +106,8 @@ export default function AppHeader({
 
 const styles = StyleSheet.create({
   root: {
-    paddingHorizontal: 24,
-    paddingBottom: 12,
+    paddingHorizontal: SPACE.s24,
+    paddingBottom: SPACE.s12,
   },
   inner: {
     flexDirection: 'row',
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
   profilePill: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: RADIUS.r18,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',
@@ -127,22 +128,22 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   title: {
-    fontSize: 24,
+    fontSize: FONT_SIZE.f24,
     fontFamily: FONTS.bold,
     letterSpacing: 8,
   },
   titleEcho: {
     // accent colour echo — adjust top/left to taste
     position: 'absolute',
-    color: '#59c2d7',
+    color: COLORS.accent,
     top: 3,
     left: 3,
   },
   messagesPill: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#59c2d7',
+    borderRadius: RADIUS.r18,
+    backgroundColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
   bellPill: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: RADIUS.r18,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',
@@ -163,7 +164,7 @@ const styles = StyleSheet.create({
     right: 4,
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: '#59c2d7',
+    borderRadius: RADIUS.r4,
+    backgroundColor: COLORS.accent,
   },
 });

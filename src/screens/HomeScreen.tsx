@@ -2,11 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, FONT_SIZE } from '@/constants/tokens';
 
 export default function HomeScreen(): React.JSX.Element {
   const { dark } = useAppTheme();
-  const bg = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#E8E8E3' : '#1A1A17';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
@@ -22,7 +23,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    fontSize: 24,
+    fontSize: FONT_SIZE.f24,
     fontFamily: FONTS.bold,
     letterSpacing: 8,
   },

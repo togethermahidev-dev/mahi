@@ -5,8 +5,9 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSuggestedFollows } from '@/hooks/useSuggestedFollows';
 import type { SuggestedUser } from '@/api';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
-const ACCENT = '#59c2d7';
+const ACCENT = COLORS.accent;
 
 interface SuggestedFollowsStripProps {
   /**
@@ -37,9 +38,9 @@ export default function SuggestedFollowsStrip({
   // Surfaces follow the established translucent offWhite/offBlack convention
   // (same tokens StreakGridPanel/RestDaysStreakPanel use for borders/fills)
   // rather than introducing new opaque hex.
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const cardBg = dark ? 'rgba(232,232,227,0.06)' : 'rgba(26,26,23,0.04)';
-  const avatarBg = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.08)';
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const cardBg = dark ? withAlpha(COLORS.offWhite, 0.06) : withAlpha(COLORS.offBlack, 0.04);
+  const avatarBg = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.08);
 
   const data = useMemo(
     () => (excludeUserId ? suggestions.filter((u) => u.id !== excludeUserId) : suggestions),
@@ -105,63 +106,63 @@ const CARD_WIDTH = 132;
 const styles = StyleSheet.create({
   root: {
     width: '100%',
-    marginTop: 24,
+    marginTop: SPACE.s24,
   },
   header: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
     letterSpacing: 3,
-    paddingHorizontal: 24,
-    marginBottom: 12,
+    paddingHorizontal: SPACE.s24,
+    marginBottom: SPACE.s12,
   },
   listContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: SPACE.s24,
   },
   card: {
     width: CARD_WIDTH,
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    marginRight: 12,
+    borderRadius: RADIUS.r16,
+    paddingVertical: SPACE.s16,
+    paddingHorizontal: SPACE.s12,
+    marginRight: SPACE.s12,
     alignItems: 'center',
   },
   avatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    marginBottom: 10,
+    borderRadius: RADIUS.r28,
+    marginBottom: SPACE.s10,
   },
   avatarFallback: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: 22,
+    fontSize: FONT_SIZE.f22,
     fontFamily: FONTS.bold,
   },
   name: {
     fontFamily: FONTS.semiBold,
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     letterSpacing: 1,
     textAlign: 'center',
     maxWidth: '100%',
   },
   handle: {
     fontFamily: FONTS.italic,
-    fontSize: 12,
-    marginTop: 2,
-    marginBottom: 12,
+    fontSize: FONT_SIZE.f12,
+    marginTop: SPACE.s2,
+    marginBottom: SPACE.s12,
     maxWidth: '100%',
   },
   followBtn: {
-    borderRadius: 50,
-    paddingHorizontal: 22,
-    paddingVertical: 7,
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s22,
+    paddingVertical: SPACE.s7,
   },
   followBtnText: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.bold,
     letterSpacing: 2,
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
 });

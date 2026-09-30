@@ -54,6 +54,7 @@ import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 import { updateAvatarUrl } from '@/api/profile';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -288,7 +289,7 @@ export default function AvatarPicker({
       {/* Upload spinner overlay */}
       {uploading && (
         <View style={styles.uploadOverlay}>
-          <ActivityIndicator color="#FFFFFF" />
+          <ActivityIndicator color={COLORS.white} />
         </View>
       )}
 
@@ -348,12 +349,12 @@ export default function AvatarPicker({
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
-    marginBottom: 20,
+    marginBottom: SPACE.s20,
   },
   avatar: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: RADIUS.r48,
   },
   fallback: {
     alignItems: 'center',
@@ -366,8 +367,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 48,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: RADIUS.r48,
+    backgroundColor: withAlpha(COLORS.black, 0.45),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -377,20 +378,20 @@ const styles = StyleSheet.create({
     right: 0,
     width: 24,
     height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    borderRadius: RADIUS.r12,
+    backgroundColor: COLORS.white,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: COLORS.black,
     shadowOpacity: 0.25,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
   },
   editPlus: {
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
     lineHeight: 18,
-    color: '#1A1A17',
+    color: COLORS.offBlack,
     fontFamily: FONTS.semiBold,
   },
 
@@ -398,9 +399,9 @@ const styles = StyleSheet.create({
   lightboxScrim: {
     flex: 1,
     // Dim scrim, consistent with other backdrops in the app (e.g.
-    // RestDaysStreakPanel/StreakGridPanel use rgba(0,0,0,0.5)); darker here
+    // RestDaysStreakPanel/StreakGridPanel use black at 0.5); darker here
     // so the enlarged avatar reads as a focused lightbox.
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    backgroundColor: withAlpha(COLORS.black, 0.85),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -408,7 +409,7 @@ const styles = StyleSheet.create({
     width: '85%',
     // Avatars are square (1:1) — keep the aspect so the enlarge stays circular-source.
     aspectRatio: 1,
-    borderRadius: 16,
+    borderRadius: RADIUS.r16,
   },
   lightboxClose: {
     position: 'absolute',
@@ -416,15 +417,15 @@ const styles = StyleSheet.create({
     right: 24,
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: RADIUS.r18,
+    backgroundColor: withAlpha(COLORS.white, 0.15),
     alignItems: 'center',
     justifyContent: 'center',
   },
   lightboxCloseX: {
-    fontSize: 18,
+    fontSize: FONT_SIZE.f18,
     lineHeight: 20,
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontFamily: FONTS.semiBold,
   },
 });

@@ -15,6 +15,7 @@ import { useNotificationsStore } from '@/store';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
 import { verticalSwipe } from '@/lib/swipeRules';
+import { COLORS } from '@/constants/tokens';
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
 // PEEK_HEIGHT: strip of the next screen visible at the bottom of each screen.
@@ -44,8 +45,8 @@ const SCREEN_ICONS = SCREENS.map((s) => s.Icon);
 
 // Background colours per screen in each theme mode. Used for off-screen
 // placeholder views so the peek strip colour is always correct.
-const SCREEN_BG_DARK = ['#111111', '#1C1C19'] as const;
-const SCREEN_BG_LIGHT = ['#111111', '#FFFFFF'] as const;
+const SCREEN_BG_DARK = [COLORS.ink, COLORS.bgDark] as const;
+const SCREEN_BG_LIGHT = [COLORS.ink, COLORS.white] as const;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -359,7 +360,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     overflow: 'hidden',
-    backgroundColor: '#111111',
+    backgroundColor: COLORS.ink,
   },
   tape: {
     // Total tape height: N screens each at SLOT_HEIGHT, plus one PEEK_HEIGHT

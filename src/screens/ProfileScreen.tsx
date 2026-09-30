@@ -16,6 +16,7 @@ import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 
@@ -32,10 +33,10 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<PostRow | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
-  const bg = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const toggleColor = dark ? '#E8E8E3' : '#1A1A17';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const toggleColor = dark ? COLORS.offWhite : COLORS.offBlack;
 
   const profile = useUserStore((s) => s.profile);
   const setProfile = useUserStore((s) => s.setProfile);
@@ -91,7 +92,7 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
           onPress={() => setRestDaysStreakOpen(true)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           activeOpacity={0.75}
-          style={[styles.restDaysStreakPill, { borderColor: '#59c2d7' }]}
+          style={[styles.restDaysStreakPill, { borderColor: COLORS.accent }]}
         >
           <Text style={styles.restDaysStreakPillText}>REST DAYS & STREAK</Text>
           <Text style={styles.restDaysStreakChevron}>{'▲'}</Text>
@@ -107,7 +108,7 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
         </TouchableOpacity>
 
         {/* Streak stats */}
-        <View style={[styles.statsRow, { marginTop: 16 }]}>
+        <View style={[styles.statsRow, { marginTop: SPACE.s16 }]}>
           <View style={styles.stat}>
             <Text style={[styles.statValue, { color: text }]}>{profile?.streak_current ?? 0}</Text>
             <Text style={[styles.statLabel, { color: muted }]}>STREAK</Text>
@@ -134,7 +135,7 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
 
       {/* Personal streak photo grid */}
       {profile && userId ? (
-        <View style={[styles.mapShadow, { shadowColor: dark ? '#000' : '#1A1A17' }]}>
+        <View style={[styles.mapShadow, { shadowColor: dark ? COLORS.black : COLORS.offBlack }]}>
           <ProfileMediaMap
             userId={profile.id}
             isSelf={userId === profile.id}
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: Platform.OS === 'ios' ? 60 : 32,
+    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
   },
   headerLeft: {
     position: 'absolute',
@@ -204,57 +205,57 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: SPACE.s32,
     width: '100%',
   },
   displayName: {
-    fontSize: 22,
+    fontSize: FONT_SIZE.f22,
     fontFamily: FONTS.bold,
     letterSpacing: 4,
-    marginBottom: 6,
+    marginBottom: SPACE.s6,
     textAlign: 'center',
   },
   handle: {
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.italic,
-    marginBottom: 16,
+    marginBottom: SPACE.s16,
   },
   restDaysStreakPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: SPACE.s8,
     borderWidth: 1,
-    borderRadius: 50,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    marginBottom: 24,
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s6,
+    marginBottom: SPACE.s24,
   },
   restDaysStreakPillText: {
     fontFamily: FONTS.semiBold,
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     letterSpacing: 2,
-    color: '#59c2d7',
+    color: COLORS.accent,
   },
   restDaysStreakChevron: {
-    fontSize: 8,
-    color: '#59c2d7',
+    fontSize: FONT_SIZE.f8,
+    color: COLORS.accent,
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 32,
+    gap: SPACE.s32,
   },
   stat: {
     alignItems: 'center',
-    gap: 4,
+    gap: SPACE.s4,
   },
   statValue: {
-    fontSize: 28,
+    fontSize: FONT_SIZE.f28,
     fontFamily: FONTS.bold,
     lineHeight: 28,
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
     letterSpacing: 3,
   },
@@ -266,6 +267,6 @@ const styles = StyleSheet.create({
   mapShadow: {
     flex: 1,
     width: '100%',
-    marginTop: 96,
+    marginTop: SPACE.s96,
   },
 });

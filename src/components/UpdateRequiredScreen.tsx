@@ -3,6 +3,7 @@ import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { VERSION_LINE } from '@/lib/appBuild';
 import { FONTS } from '@/constants/fonts';
+import { FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 /** Shown instead of the app when this build is older than the server's minimum version. */
 export default function UpdateRequiredScreen({
@@ -43,32 +44,32 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: SPACE.s32,
   },
   title: {
     fontFamily: FONTS.bold,
-    fontSize: 28,
-    marginBottom: 16,
+    fontSize: FONT_SIZE.f28,
+    marginBottom: SPACE.s16,
   },
   body: {
     fontFamily: FONTS.italic,
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
     textAlign: 'center',
     lineHeight: 24,
   },
   button: {
-    marginTop: 28,
-    paddingVertical: 16,
-    paddingHorizontal: 40,
-    borderRadius: 50,
+    marginTop: SPACE.s28,
+    paddingVertical: SPACE.s16,
+    paddingHorizontal: SPACE.s40,
+    borderRadius: RADIUS.r50,
   },
   buttonText: {
     fontFamily: FONTS.semiBold,
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
   },
   version: {
     fontFamily: FONTS.semiBold,
-    fontSize: 13,
-    marginTop: 24,
+    fontSize: FONT_SIZE.f13,
+    marginTop: SPACE.s24,
   },
 });
