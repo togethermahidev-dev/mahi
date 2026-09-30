@@ -12,6 +12,7 @@ import {
   ProfileIcon,
   type IconProps,
 } from '@/components/ScreenIcons';
+import { SPACE, RADIUS } from '@/constants/tokens';
 
 export type RailTab = 'camera' | 'feed' | 'messages' | 'profile';
 
@@ -120,13 +121,13 @@ const styles = StyleSheet.create({
   },
   rail: {
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: SPACE.s4,
   },
   clip: {
     overflow: 'hidden',
   },
   button: {
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },

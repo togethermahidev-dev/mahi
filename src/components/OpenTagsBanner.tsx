@@ -5,6 +5,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { formatHms, msLeft } from '@/lib/countdown';
 import type { OpenTag } from '@/api';
 import { FONTS } from '@/constants/fonts';
+import { FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 /**
  * Camera overlay: who tagged you and how long is left on the soonest deadline.
@@ -55,15 +56,15 @@ const styles = StyleSheet.create({
   },
   pill: {
     height: 36,
-    borderRadius: 18,
+    borderRadius: RADIUS.r18,
     borderWidth: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACE.s16,
     justifyContent: 'center',
     overflow: 'hidden',
   },
   text: {
     fontFamily: FONTS.semiBold,
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
   },
   time: {
     fontFamily: FONTS.bold,

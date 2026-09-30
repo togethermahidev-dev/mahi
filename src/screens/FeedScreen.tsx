@@ -36,6 +36,7 @@ import KeyboardInset from '@/components/KeyboardInset';
 import type { FeedPost } from '@/api';
 import type { CommentWithProfile } from '@/api/social';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 // AppHeader: paddingTop (60 ios / 32 android) + inner row (~36px) + paddingBottom (12)
 const APP_HEADER_H = Platform.OS === 'ios' ? 108 : 80;
@@ -62,8 +63,8 @@ function relativeTime(iso: string): string {
 // ─── CommentRow ──────────────────────────────────────────────────────────────
 
 function CommentRow({ comment, dark }: { comment: CommentWithProfile; dark: boolean }) {
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
   const name = comment.profiles.display_name ?? comment.profiles.username;
   const initials = (comment.profiles.username ?? '?')[0].toUpperCase();
 
@@ -150,10 +151,10 @@ function PostItem({
   onAvatarPress: (userId: string) => void;
   onCommentPress: (postId: string) => void;
 }) {
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const border = dark ? 'rgba(232,232,227,0.1)' : 'rgba(26,26,23,0.1)';
-  const cardBg = dark ? '#252521' : '#F5F5F0';
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const border = dark ? withAlpha(COLORS.offWhite, 0.1) : withAlpha(COLORS.offBlack, 0.1);
+  const cardBg = dark ? COLORS.surfaceDark2 : COLORS.surfaceLight;
 
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
@@ -377,7 +378,7 @@ function PostItem({
             />
             {/* Top gradient — tagged pills + streak badge inline */}
             <LinearGradient
-              colors={['rgba(0,0,0,0.6)', 'transparent']}
+              colors={[withAlpha(COLORS.black, 0.6), 'transparent']}
               style={styles.postOverlay}
               pointerEvents="box-none"
             >
@@ -398,7 +399,7 @@ function PostItem({
             </LinearGradient>
             {/* Bottom gradient — profile row + caption */}
             <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.7)']}
+              colors={['transparent', withAlpha(COLORS.black, 0.7)]}
               style={styles.captionOverlay}
               pointerEvents="box-none"
             >
@@ -414,7 +415,7 @@ function PostItem({
                     style={[
                       styles.avatar,
                       styles.avatarFallback,
-                      { backgroundColor: 'rgba(255,255,255,0.3)' },
+                      { backgroundColor: withAlpha(COLORS.white, 0.3) },
                     ]}
                   >
                     <Text style={styles.avatarInitial}>{initials}</Text>
@@ -452,7 +453,7 @@ function PostItem({
                   },
                 ]}
               >
-                <HeartIcon size={80} color="#FFFFFF" filled />
+                <HeartIcon size={80} color={COLORS.white} filled />
               </Animated.View>
             )}
           </View>
@@ -464,7 +465,7 @@ function PostItem({
             <Reanimated.View style={[styles.feedPip, pipAnimStyle]}>
               <Image
                 source={{ uri: pipUrl }}
-                style={[StyleSheet.absoluteFill, { borderRadius: 10 }]}
+                style={[StyleSheet.absoluteFill, { borderRadius: RADIUS.r10 }]}
                 resizeMode="cover"
               />
             </Reanimated.View>
@@ -486,7 +487,7 @@ function PostItem({
             activeOpacity={0.7}
             hitSlop={{ top: 20, bottom: 20, left: 4, right: 20 }}
           >
-            <HeartIcon size={32} color="#FFFFFF" filled={likedByMe} />
+            <HeartIcon size={32} color={COLORS.white} filled={likedByMe} />
             <Text style={styles.sideActionCount}>{likeCount}</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -495,7 +496,7 @@ function PostItem({
             activeOpacity={0.7}
             hitSlop={{ top: 20, bottom: 20, left: 4, right: 20 }}
           >
-            <CommentIcon size={32} color="#FFFFFF" />
+            <CommentIcon size={32} color={COLORS.white} />
             <Text style={styles.sideActionCount}>{commentCount}</Text>
           </TouchableOpacity>
         </View>
@@ -517,10 +518,10 @@ function CommentSheet({
   dark: boolean;
   onClose: () => void;
 }) {
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const border = dark ? 'rgba(232,232,227,0.1)' : 'rgba(26,26,23,0.1)';
-  const sheetBg = dark ? '#252521' : '#F5F5F0';
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const border = dark ? withAlpha(COLORS.offWhite, 0.1) : withAlpha(COLORS.offBlack, 0.1);
+  const sheetBg = dark ? COLORS.surfaceDark2 : COLORS.surfaceLight;
 
   const [commentText, setCommentText] = useState('');
   const currentUser = useUserStore((s) => s.profile);
@@ -615,7 +616,7 @@ function CommentSheet({
             autoFocus
           />
           <TouchableOpacity
-            style={[styles.commentSubmit, { backgroundColor: '#59c2d7' }]}
+            style={[styles.commentSubmit, { backgroundColor: COLORS.accent }]}
             onPress={handleSubmitComment}
             activeOpacity={0.75}
           >
@@ -646,9 +647,9 @@ export default function FeedScreen({
 }: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
   const { width: screenWidth } = useWindowDimensions();
-  const bg = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
 
   const { posts, isLoading, error, hasMore, loadMore, refresh } = useFeed();
 
@@ -812,9 +813,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingTop: APP_HEADER_H + 4,
-    paddingBottom: 32,
+    paddingHorizontal: SPACE.s12,
+    paddingTop: APP_HEADER_H + SPACE.s4,
+    paddingBottom: SPACE.s32,
   },
   topTaggedPills: {
     position: 'relative',
@@ -823,59 +824,59 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     flex: 1,
-    gap: 6,
+    gap: SPACE.s6,
   },
   avatarRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: SPACE.s10,
   },
   avatar: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: RADIUS.r21,
   },
   avatarFallback: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
   userInfo: {
-    gap: 2,
+    gap: SPACE.s2,
   },
   usernameOverlay: {
-    fontSize: 15,
+    fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.semiBold,
     letterSpacing: 1.5,
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
   timeOverlay: {
-    fontSize: 12,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.italic,
-    color: 'rgba(255,255,255,0.75)',
+    color: withAlpha(COLORS.white, 0.75),
   },
   streakBadge: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: SPACE.s14,
+    paddingVertical: SPACE.s6,
+    borderRadius: RADIUS.r50,
+    backgroundColor: withAlpha(COLORS.white, 0.2),
   },
   streakText: {
-    fontSize: 12,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
     letterSpacing: 2,
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
   responseText: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
     letterSpacing: 1,
-    color: '#FFFFFF',
-    marginTop: 2,
+    color: COLORS.white,
+    marginTop: SPACE.s2,
   },
   imageContainer: {
     position: 'relative',
@@ -883,7 +884,7 @@ const styles = StyleSheet.create({
   // Black bars behind a letterboxed (contain) landscape photo — standard
   // photo-letterbox color, not a theme surface.
   letterbox: {
-    backgroundColor: '#000',
+    backgroundColor: COLORS.black,
   },
   feedPip: {
     position: 'absolute',
@@ -891,11 +892,11 @@ const styles = StyleSheet.create({
     left: 0,
     width: FEED_PIP_W,
     height: FEED_PIP_H,
-    borderRadius: 10,
+    borderRadius: RADIUS.r10,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.6)',
-    shadowColor: '#000',
+    borderColor: withAlpha(COLORS.white, 0.6),
+    shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.35,
     shadowRadius: 6,
@@ -912,16 +913,16 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 70,
-    paddingHorizontal: 14,
-    paddingTop: 50,
-    paddingBottom: 80,
-    gap: 10,
+    paddingHorizontal: SPACE.s14,
+    paddingTop: SPACE.s50,
+    paddingBottom: SPACE.s80,
+    gap: SPACE.s10,
   },
   captionText: {
-    fontSize: 15,
+    fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.italic,
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.5)',
+    color: COLORS.white,
+    textShadowColor: withAlpha(COLORS.black, 0.5),
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
@@ -931,7 +932,7 @@ const styles = StyleSheet.create({
     right: 12,
     bottom: 140,
     alignItems: 'center',
-    gap: 20,
+    gap: SPACE.s20,
   },
   sideActionBtn: {
     // Hit target ≥48×48 (icon glyph stays ~32px, centered) so taps that
@@ -941,13 +942,13 @@ const styles = StyleSheet.create({
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: SPACE.s4,
   },
   sideActionCount: {
-    fontSize: 12,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.6)',
+    color: COLORS.white,
+    textShadowColor: withAlpha(COLORS.black, 0.6),
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
@@ -955,93 +956,93 @@ const styles = StyleSheet.create({
   commentRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
+    paddingHorizontal: SPACE.s12,
+    paddingVertical: SPACE.s8,
+    gap: SPACE.s8,
   },
   commentAvatar: {
     width: 26,
     height: 26,
-    borderRadius: 13,
+    borderRadius: RADIUS.r13,
   },
   commentAvatarInitial: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.bold,
   },
   commentBody: {
     flex: 1,
-    gap: 2,
+    gap: SPACE.s2,
   },
   commentUsername: {
-    fontSize: 11,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
     letterSpacing: 1,
   },
   commentText: {
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
   },
   commentTime: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.italic,
-    paddingTop: 2,
+    paddingTop: SPACE.s2,
   },
   commentInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
+    paddingHorizontal: SPACE.s12,
+    paddingVertical: SPACE.s10,
+    gap: SPACE.s8,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   commentInput: {
     flex: 1,
     height: 36,
-    borderRadius: 50,
+    borderRadius: RADIUS.r50,
     borderWidth: 1,
-    paddingHorizontal: 14,
+    paddingHorizontal: SPACE.s14,
     paddingVertical: 0,
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
   },
   commentSubmit: {
-    borderRadius: 50,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s14,
+    paddingVertical: SPACE.s7,
   },
   commentSubmitText: {
-    fontSize: 11,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
     letterSpacing: 2,
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
   // ── Comment sheet (bottom-sheet overlay)
   sheetBackdrop: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: withAlpha(COLORS.black, 0.5),
   },
   sheetContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: RADIUS.r16,
+    borderTopRightRadius: RADIUS.r16,
     overflow: 'hidden',
   },
   sheetHandle: {
     alignItems: 'center',
-    paddingTop: 10,
-    paddingBottom: 12,
-    gap: 8,
+    paddingTop: SPACE.s10,
+    paddingBottom: SPACE.s12,
+    gap: SPACE.s8,
   },
   sheetHandleBar: {
     width: 36,
     height: 4,
-    borderRadius: 2,
+    borderRadius: RADIUS.r2,
   },
   sheetTitle: {
-    fontSize: 12,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
     letterSpacing: 2,
   },
@@ -1051,80 +1052,80 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sheetEmptyText: {
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
   },
   // ── Empty / error
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: SPACE.s8,
   },
   pointsOverlay: {
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
   lockedCard: {
     height: CARD_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    gap: 16,
+    paddingHorizontal: SPACE.s32,
+    gap: SPACE.s16,
   },
   lockedWho: {
     alignItems: 'center',
-    gap: 8,
+    gap: SPACE.s8,
   },
   lockedAvatar: {
     width: 88,
     height: 88,
-    borderRadius: 44,
+    borderRadius: RADIUS.r44,
     borderWidth: 2,
   },
   lockedName: {
-    fontSize: 20,
+    fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.bold,
   },
   lockedTime: {
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
     letterSpacing: 1,
     opacity: 0.7,
   },
   lockedHint: {
-    fontSize: 15,
+    fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.italic,
     textAlign: 'center',
   },
   lockedButton: {
-    borderRadius: 50,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
+    borderRadius: RADIUS.r50,
+    paddingVertical: SPACE.s14,
+    paddingHorizontal: SPACE.s32,
   },
   lockedButtonText: {
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   empty: {
     alignItems: 'center',
-    paddingTop: 80,
-    gap: 8,
+    paddingTop: SPACE.s80,
+    gap: SPACE.s8,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.bold,
     letterSpacing: 6,
   },
   emptySub: {
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
     textAlign: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: SPACE.s32,
   },
   errorText: {
     textAlign: 'center',
-    padding: 16,
-    fontSize: 13,
+    padding: SPACE.s16,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
   },
 });

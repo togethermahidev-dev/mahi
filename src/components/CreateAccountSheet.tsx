@@ -25,6 +25,7 @@ import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { env } from '@/lib/env';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 const SUPABASE_URL = env.supabaseUrl;
 
@@ -75,13 +76,13 @@ export default function CreateAccountSheet({
   onAuthComplete,
 }: Props): React.JSX.Element {
   const dark = useColorScheme() === 'dark';
-  const bg = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#FFFFFF' : '#0F0F0D';
-  const inputBg = dark ? '#2A2A27' : '#F5F5F0';
-  const muted = dark ? '#888' : '#999';
-  const green = dark ? '#5DB075' : '#2D7A4F';
-  const red = dark ? '#E06060' : '#C03030';
-  const amber = dark ? '#D4963A' : '#B07020';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.white : COLORS.inkDeep;
+  const inputBg = dark ? COLORS.surfaceDark : COLORS.surfaceLight;
+  const muted = dark ? COLORS.grey888 : COLORS.grey999;
+  const green = dark ? COLORS.success : COLORS.successDeep;
+  const red = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
+  const amber = dark ? COLORS.amber : COLORS.amberDeep;
 
   // ── UI state (local) ───────────────────────────────────────────────────────
   const [step, setStep] = useState(1);
@@ -103,8 +104,8 @@ export default function CreateAccountSheet({
 
   const focusBorder = (field: string) => ({
     borderWidth: focusedField === field ? 2 : 0,
-    borderColor: focusedField === field ? '#59c2d7' : 'transparent',
-    backgroundColor: focusedField === field ? (dark ? '#3A3A37' : '#FFFFFF') : inputBg,
+    borderColor: focusedField === field ? COLORS.accent : 'transparent',
+    backgroundColor: focusedField === field ? (dark ? COLORS.borderDark : COLORS.white) : inputBg,
   });
 
   // Step 2 — countdown timer & resend cooldown
@@ -635,7 +636,7 @@ export default function CreateAccountSheet({
                         {
                           backgroundColor: inputBg,
                           color: text,
-                          borderColor: focusedOtp === i ? '#59c2d7' : val ? text : 'transparent',
+                          borderColor: focusedOtp === i ? COLORS.accent : val ? text : 'transparent',
                           borderWidth: focusedOtp === i ? 2 : 1.5,
                         },
                       ]}
@@ -712,7 +713,7 @@ export default function CreateAccountSheet({
                   <Text
                     style={{
                       color: dobDD && dobMM && dobYYYY ? text : muted,
-                      fontSize: 16,
+                      fontSize: FONT_SIZE.f16,
                       fontFamily: FONTS.semiBold,
                     }}
                   >
@@ -902,7 +903,7 @@ export default function CreateAccountSheet({
         {step === 3 && showDatePicker && (
           <View style={styles.datePickerOverlay}>
             <View
-              style={[styles.datePickerToolbar, { backgroundColor: dark ? '#3A3A3C' : '#E5E5EA' }]}
+              style={[styles.datePickerToolbar, { backgroundColor: dark ? COLORS.iosGreyDark : COLORS.iosSeparator }]}
             >
               <TouchableOpacity onPress={() => setShowDatePicker(false)} activeOpacity={0.7}>
                 <Text style={styles.datePickerDone}>Done</Text>
@@ -939,106 +940,106 @@ const styles = StyleSheet.create({
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
-    paddingTop: 20,
-    paddingBottom: 4,
+    gap: SPACE.s8,
+    paddingTop: SPACE.s20,
+    paddingBottom: SPACE.s4,
   },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  content: { padding: 32, gap: 12 },
-  step: { gap: 12 },
+  dot: { width: 8, height: 8, borderRadius: RADIUS.r4 },
+  content: { padding: SPACE.s32, gap: SPACE.s12 },
+  step: { gap: SPACE.s12 },
 
-  title: { fontSize: 32, fontFamily: FONTS.bold, letterSpacing: 2, marginBottom: 8 },
+  title: { fontSize: FONT_SIZE.f32, fontFamily: FONTS.bold, letterSpacing: 2, marginBottom: SPACE.s8 },
   subtitle: {
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.italic,
-    marginTop: -4,
-    marginBottom: 4,
+    marginTop: -SPACE.s4,
+    marginBottom: SPACE.s4,
   },
   label: {
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
     letterSpacing: 1,
-    marginBottom: -4,
+    marginBottom: -SPACE.s4,
   },
 
   input: {
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
+    borderRadius: RADIUS.r14,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s14,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.semiBold,
   },
   inputRow: {
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    borderRadius: RADIUS.r14,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s4,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  inputInner: { flex: 1, fontSize: 16, fontFamily: FONTS.semiBold, paddingVertical: 10 },
-  toggle: { fontSize: 13, fontFamily: FONTS.semiBold, paddingHorizontal: 4 },
+  inputInner: { flex: 1, fontSize: FONT_SIZE.f16, fontFamily: FONTS.semiBold, paddingVertical: SPACE.s10 },
+  toggle: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, paddingHorizontal: SPACE.s4 },
 
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  pill: { borderWidth: 1.5, borderRadius: 50, paddingHorizontal: 14, paddingVertical: 8 },
-  pillText: { fontSize: 13, fontFamily: FONTS.semiBold },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s8, marginTop: SPACE.s4 },
+  pill: { borderWidth: 1.5, borderRadius: RADIUS.r50, paddingHorizontal: SPACE.s14, paddingVertical: SPACE.s8 },
+  pillText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
 
-  strengthRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -4 },
-  strengthSegment: { flex: 1, height: 4, borderRadius: 2 },
-  strengthLabel: { fontSize: 12, fontFamily: FONTS.semiBold, marginLeft: 4 },
+  strengthRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s6, marginTop: -SPACE.s4 },
+  strengthSegment: { flex: 1, height: 4, borderRadius: RADIUS.r2 },
+  strengthLabel: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.semiBold, marginLeft: SPACE.s4 },
 
   countdown: {
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: SPACE.s4,
   },
   resendText: {
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.italic,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: SPACE.s4,
   },
 
-  otpRow: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
+  otpRow: { flexDirection: 'row', gap: SPACE.s8, justifyContent: 'center' },
   otpBox: {
     width: 46,
     height: 60,
-    borderRadius: 12,
-    fontSize: 24,
+    borderRadius: RADIUS.r12,
+    fontSize: FONT_SIZE.f24,
     fontFamily: FONTS.bold,
     borderWidth: 1.5,
   },
 
-  inviteCard: { borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
-  inviteWho: { fontSize: 15, fontFamily: FONTS.bold, letterSpacing: 1 },
-  inviteWhat: { fontSize: 13, fontFamily: FONTS.italic, lineHeight: 18 },
+  inviteCard: { borderRadius: RADIUS.r14, paddingHorizontal: SPACE.s16, paddingVertical: SPACE.s14, gap: SPACE.s4 },
+  inviteWho: { fontSize: FONT_SIZE.f15, fontFamily: FONTS.bold, letterSpacing: 1 },
+  inviteWhat: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.italic, lineHeight: 18 },
   inviteCodeInput: { letterSpacing: 4 },
 
-  fieldNote: { fontSize: 13, fontFamily: FONTS.semiBold, marginTop: -4 },
-  errorText: { fontSize: 13, fontFamily: FONTS.semiBold, marginTop: 4 },
+  fieldNote: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, marginTop: -SPACE.s4 },
+  errorText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, marginTop: SPACE.s4 },
 
-  atSign: { fontSize: 16, fontFamily: FONTS.semiBold, paddingRight: 2 },
-  optionalTag: { fontSize: 11, fontFamily: FONTS.italic },
+  atSign: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.semiBold, paddingRight: SPACE.s2 },
+  optionalTag: { fontSize: FONT_SIZE.f11, fontFamily: FONTS.italic },
 
-  goalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
-  goalPill: { borderRadius: 50, paddingHorizontal: 18, paddingVertical: 12 },
-  goalText: { fontSize: 14, fontFamily: FONTS.semiBold },
+  goalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s10, marginTop: SPACE.s4 },
+  goalPill: { borderRadius: RADIUS.r50, paddingHorizontal: SPACE.s18, paddingVertical: SPACE.s12 },
+  goalText: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.semiBold },
 
-  daysRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  dayPill: { flex: 1, borderRadius: 50, paddingVertical: 12, alignItems: 'center' },
-  dayText: { fontSize: 12, fontFamily: FONTS.semiBold },
+  daysRow: { flexDirection: 'row', gap: SPACE.s8, marginTop: SPACE.s4 },
+  dayPill: { flex: 1, borderRadius: RADIUS.r50, paddingVertical: SPACE.s12, alignItems: 'center' },
+  dayText: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.semiBold },
 
-  navRow: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  navBtn: { borderRadius: 50, paddingVertical: 20, alignItems: 'center' },
+  navRow: { flexDirection: 'row', gap: SPACE.s12, marginTop: SPACE.s16 },
+  navBtn: { borderRadius: RADIUS.r50, paddingVertical: SPACE.s20, alignItems: 'center' },
   navBtnOutline: { backgroundColor: 'transparent', borderWidth: 1.5 },
-  navBtnText: { fontSize: 18, fontFamily: FONTS.semiBold },
+  navBtnText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
 
   datePickerOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   datePickerToolbar: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: SPACE.s20,
+    paddingVertical: SPACE.s10,
   },
-  datePickerDone: { fontSize: 17, fontFamily: FONTS.semiBold, color: '#007AFF' },
+  datePickerDone: { fontSize: FONT_SIZE.f17, fontFamily: FONTS.semiBold, color: COLORS.iosBlue },
 });

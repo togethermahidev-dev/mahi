@@ -1,4 +1,5 @@
 import { useThemeStore } from '@/store';
+import { COLORS, SPACE, withAlpha } from '@/constants/tokens';
 
 export type EffectiveColorScheme = 'light' | 'dark';
 
@@ -48,14 +49,14 @@ export function useAppTheme(): AppTheme {
     colorScheme,
     dark,
     colors: {
-      bg: dark ? '#1C1C19' : '#FFFFFF',
-      text: dark ? '#E8E8E3' : '#1A1A17',
-      offWhite: '#E8E8E3',
-      offBlack: '#1A1A17',
-      accent: '#59c2d7',
-      glassOnDark: 'rgba(28,28,25,0.72)',
-      glassOnLight: 'rgba(255,255,255,0.72)',
+      bg: dark ? COLORS.bgDark : COLORS.white,
+      text: dark ? COLORS.offWhite : COLORS.offBlack,
+      offWhite: COLORS.offWhite,
+      offBlack: COLORS.offBlack,
+      accent: COLORS.accent,
+      glassOnDark: withAlpha(COLORS.bgDark, 0.72),
+      glassOnLight: withAlpha(COLORS.white, 0.72),
     },
-    navRail: { width: 52, edgeGap: 10, gap: 6 },
+    navRail: { width: 52, edgeGap: SPACE.s10, gap: SPACE.s6 },
   };
 }

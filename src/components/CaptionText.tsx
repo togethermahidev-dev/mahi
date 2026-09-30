@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, type TextStyle, type StyleProp } from 'react-native';
 import type { TaggedUser } from '@/api';
+import { COLORS } from '@/constants/tokens';
 
 interface Props {
   caption: string;
@@ -38,7 +39,7 @@ export default function CaptionText({ caption, tagged, style, onPressUser, numbe
     parts.push(
       <Text
         key={`${start}-${m[1]}`}
-        style={{ color: '#59c2d7' }}
+        style={{ color: COLORS.accent }}
         onPress={user && onPressUser ? () => onPressUser(user) : undefined}
       >
         {m[0]}

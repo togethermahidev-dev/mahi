@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { VERSION_LINE } from '@/lib/appBuild';
+import { COLORS, withAlpha, FONT_SIZE } from '@/constants/tokens';
 
-const BG = '#59c2d7';
-const TEXT_COLOR = '#FFFFFF';
-const ECHO_COLOR = 'rgba(255,255,255,0.3)';
+const BG = COLORS.accent;
+const TEXT_COLOR = COLORS.white;
+const ECHO_COLOR = withAlpha(COLORS.white, 0.3);
 
 interface Props {
   onLayout: () => void;
@@ -26,6 +27,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: BG },
   titleWrapper: { position: 'relative' },
   titleEcho: { position: 'absolute', color: ECHO_COLOR, top: 3, left: 3 },
-  title: { color: TEXT_COLOR, fontSize: 48, fontWeight: '700', letterSpacing: 8 },
-  version: { color: TEXT_COLOR, fontSize: 11, position: 'absolute', bottom: 40 },
+  title: { color: TEXT_COLOR, fontSize: FONT_SIZE.f48, fontWeight: '700', letterSpacing: 8 },
+  version: { color: TEXT_COLOR, fontSize: FONT_SIZE.f11, position: 'absolute', bottom: 40 },
 });

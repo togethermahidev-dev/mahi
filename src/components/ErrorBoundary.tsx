@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Sentry } from '@/lib/sentry';
+import { COLORS, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 interface Props {
   children: React.ReactNode;
@@ -63,33 +64,33 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    backgroundColor: '#1C1C19',
+    paddingHorizontal: SPACE.s32,
+    backgroundColor: COLORS.bgDark,
   },
   title: {
-    color: '#E8E8E3',
-    fontSize: 22,
+    color: COLORS.offWhite,
+    fontSize: FONT_SIZE.f22,
     fontWeight: '700',
-    marginBottom: 12,
+    marginBottom: SPACE.s12,
     textAlign: 'center',
   },
   body: {
-    color: '#E8E8E3',
+    color: COLORS.offWhite,
     opacity: 0.7,
-    fontSize: 15,
+    fontSize: FONT_SIZE.f15,
     lineHeight: 22,
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: SPACE.s32,
   },
   button: {
-    backgroundColor: '#59c2d7',
-    borderRadius: 50,
-    paddingVertical: 14,
-    paddingHorizontal: 48,
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.r50,
+    paddingVertical: SPACE.s14,
+    paddingHorizontal: SPACE.s48,
   },
   buttonText: {
-    color: '#1A1A17',
-    fontSize: 15,
+    color: COLORS.offBlack,
+    fontSize: FONT_SIZE.f15,
     fontWeight: '700',
     letterSpacing: 1,
   },

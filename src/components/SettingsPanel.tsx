@@ -14,6 +14,7 @@ import { signOut } from '@/api/auth';
 import { VERSION_LINE } from '@/lib/appBuild';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -31,7 +32,7 @@ function ChevronIcon({ open, color }: { open: Animated.Value; color: string }) {
     outputRange: ['0deg', '180deg'],
   });
   return (
-    <Animated.Text style={[{ color, fontSize: 12, transform: [{ rotate }] }]}>▼</Animated.Text>
+    <Animated.Text style={[{ color, fontSize: FONT_SIZE.f12, transform: [{ rotate }] }]}>▼</Animated.Text>
   );
 }
 
@@ -40,11 +41,11 @@ export default function SettingsPanel({
   onClose,
   dark,
 }: SettingsPanelProps): React.JSX.Element | null {
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const border = dark ? 'rgba(232,232,227,0.08)' : 'rgba(26,26,23,0.06)';
-  const panelBg = dark ? '#1C1C19' : '#FFFFFF';
-  const backdropColor = dark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.4)';
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const border = dark ? withAlpha(COLORS.offWhite, 0.08) : withAlpha(COLORS.offBlack, 0.06);
+  const panelBg = dark ? COLORS.bgDark : COLORS.white;
+  const backdropColor = dark ? withAlpha(COLORS.black, 0.6) : withAlpha(COLORS.black, 0.4);
 
   const slideAnim = useRef(new Animated.Value(-PANEL_WIDTH)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -161,7 +162,7 @@ export default function SettingsPanel({
         <View
           style={[
             styles.closeRow,
-            { borderBottomColor: border, paddingTop: Platform.OS === 'ios' ? 60 : 32 },
+            { borderBottomColor: border, paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32 },
           ]}
         >
           <Text style={[styles.panelTitle, { color: text }]}>SETTINGS</Text>
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
     width: PANEL_WIDTH,
     height: SCREEN_HEIGHT,
     zIndex: 400,
-    shadowColor: '#000',
+    shadowColor: COLORS.black,
     shadowOffset: { width: 4, height: 0 },
     shadowOpacity: 0.2,
     shadowRadius: 12,
@@ -298,78 +299,78 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingBottom: 16,
+    paddingHorizontal: SPACE.s24,
+    paddingBottom: SPACE.s16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   panelTitle: {
     fontFamily: FONTS.bold,
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     letterSpacing: 5,
   },
   closeBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: RADIUS.r18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeBtnText: {
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: SPACE.s40,
   },
   sectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 18,
-    paddingHorizontal: 24,
+    paddingVertical: SPACE.s18,
+    paddingHorizontal: SPACE.s24,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   sectionLabel: {
     fontFamily: FONTS.semiBold,
-    fontSize: 11,
+    fontSize: FONT_SIZE.f11,
     letterSpacing: 3,
   },
   subRow: {
-    paddingVertical: 15,
-    paddingLeft: 40,
-    paddingRight: 24,
+    paddingVertical: SPACE.s15,
+    paddingLeft: SPACE.s40,
+    paddingRight: SPACE.s24,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   subLabel: {
     fontFamily: FONTS.italic,
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
   },
   spacer: {
     flex: 1,
     minHeight: 48,
   },
   logoutBtn: {
-    marginHorizontal: 24,
-    marginBottom: 16,
-    paddingVertical: 14,
-    borderRadius: 50,
+    marginHorizontal: SPACE.s24,
+    marginBottom: SPACE.s16,
+    paddingVertical: SPACE.s14,
+    borderRadius: RADIUS.r50,
     borderWidth: 1,
     alignItems: 'center',
   },
   logoutText: {
     fontFamily: FONTS.semiBold,
-    fontSize: 11,
+    fontSize: FONT_SIZE.f11,
     letterSpacing: 3,
   },
   versionText: {
     fontFamily: FONTS.italic,
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     textAlign: 'center',
-    marginTop: 12,
-    marginBottom: 24,
+    marginTop: SPACE.s12,
+    marginBottom: SPACE.s24,
     letterSpacing: 1,
   },
 });

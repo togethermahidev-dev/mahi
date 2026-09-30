@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useToastStore } from '@/store/toastStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { COLORS, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 /**
  * Single, app-wide toast sink. Subscribes to toastStore and renders a small
@@ -82,22 +83,22 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 48,
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: SPACE.s24,
   },
   toast: {
     maxWidth: 420,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 12,
+    paddingVertical: SPACE.s12,
+    paddingHorizontal: SPACE.s18,
+    borderRadius: RADIUS.r12,
     // Minimal shadow scrim — allowed hardcoded value.
-    shadowColor: '#000000',
+    shadowColor: COLORS.black,
     shadowOpacity: 0.25,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
   },
   text: {
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
     fontWeight: '600',
     textAlign: 'center',
   },

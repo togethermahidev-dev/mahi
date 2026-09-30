@@ -18,6 +18,7 @@ import { useMessages } from '@/hooks/useMessages';
 import { groupMessagesByDate, type GroupedRow } from '@/lib/groupMessages';
 import type { ConversationPreview } from '@/api';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 interface ConversationScreenProps {
   conversation: ConversationPreview;
@@ -31,12 +32,12 @@ export default function ConversationScreen({
   onBack,
 }: ConversationScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
-  const bg = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.4)' : 'rgba(26,26,23,0.4)';
-  const border = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.12)';
-  const ownBubble = dark ? 'rgba(232,232,227,0.15)' : 'rgba(26,26,23,0.1)';
-  const otherBubble = dark ? 'rgba(232,232,227,0.07)' : 'rgba(26,26,23,0.05)';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.4) : withAlpha(COLORS.offBlack, 0.4);
+  const border = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.12);
+  const ownBubble = dark ? withAlpha(COLORS.offWhite, 0.15) : withAlpha(COLORS.offBlack, 0.1);
+  const otherBubble = dark ? withAlpha(COLORS.offWhite, 0.07) : withAlpha(COLORS.offBlack, 0.05);
 
   const { messages, isLoading, isLoadingOlder, hasMore, send, loadOlder, markRead } =
     useConversation(conversation.id);
@@ -238,63 +239,63 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 60 : 32,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
+    paddingBottom: SPACE.s16,
+    paddingHorizontal: SPACE.s16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: RADIUS.r18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backArrow: {
-    fontSize: 20,
+    fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.italic,
     lineHeight: 22,
   },
   headerName: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   requestBanner: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingHorizontal: SPACE.s24,
+    paddingVertical: SPACE.s12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 10,
+    gap: SPACE.s10,
   },
   requestText: {
-    fontSize: 12,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.italic,
     textAlign: 'center',
   },
   requestActions: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
+    gap: SPACE.s12,
   },
   requestBtn: {
     borderWidth: 1,
-    borderRadius: 50,
-    paddingHorizontal: 20,
-    paddingVertical: 6,
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s20,
+    paddingVertical: SPACE.s6,
   },
   denyBtn: {
-    borderColor: '#FF6B6B',
+    borderColor: COLORS.danger,
   },
   requestBtnText: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
     letterSpacing: 2,
   },
   denyText: {
-    color: '#FF6B6B',
+    color: COLORS.danger,
   },
   loadingWrap: {
     flex: 1,
@@ -302,18 +303,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   olderWrap: {
-    paddingVertical: 12,
+    paddingVertical: SPACE.s12,
     alignItems: 'center',
   },
   listContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s12,
     flexGrow: 1,
   },
   bubbleWrap: {
-    marginVertical: 4,
+    marginVertical: SPACE.s4,
     maxWidth: '75%',
-    gap: 3,
+    gap: SPACE.s3,
   },
   bubbleWrapOwn: {
     alignSelf: 'flex-end',
@@ -324,27 +325,27 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   bubble: {
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    borderRadius: RADIUS.r16,
+    paddingHorizontal: SPACE.s14,
+    paddingVertical: SPACE.s8,
   },
   bubbleText: {
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.italic,
     lineHeight: 20,
   },
   bubbleTime: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.italic,
-    paddingHorizontal: 4,
+    paddingHorizontal: SPACE.s4,
   },
   dayHeader: {
     alignItems: 'center',
-    paddingVertical: 8,
-    marginTop: 4,
+    paddingVertical: SPACE.s8,
+    marginTop: SPACE.s4,
   },
   dayHeaderText: {
-    fontSize: 11,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.italic,
     letterSpacing: 1,
   },
@@ -352,38 +353,38 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 60,
+    paddingTop: SPACE.s60,
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
   },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingHorizontal: SPACE.s16,
+    paddingTop: SPACE.s10,
     // Extra bottom padding on iOS to clear the home-indicator area —
     // without a SafeAreaView the input bar was sitting under the indicator.
-    paddingBottom: Platform.OS === 'ios' ? 34 : 10,
+    paddingBottom: Platform.OS === 'ios' ? SPACE.s34 : SPACE.s10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 10,
+    gap: SPACE.s10,
   },
   input: {
     flex: 1,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    fontSize: 14,
+    borderRadius: RADIUS.r20,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s8,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.italic,
     maxHeight: 100,
   },
   sendBtn: {
-    paddingBottom: 8,
+    paddingBottom: SPACE.s8,
   },
   sendText: {
-    fontSize: 11,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.bold,
     letterSpacing: 2,
   },

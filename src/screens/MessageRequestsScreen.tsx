@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store';
 import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview } from '@/api';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -98,10 +99,10 @@ export default function MessageRequestsScreen({
   onBack,
 }: MessageRequestsScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
-  const bg = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.4)' : 'rgba(26,26,23,0.4)';
-  const border = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.12)';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.4) : withAlpha(COLORS.offBlack, 0.4);
+  const border = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.12);
 
   const { requests, isLoading, refresh, accept, deny } = useMessages();
   const userId = useAuthStore((s) => s.user?.id);
@@ -171,100 +172,100 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 60 : 32,
-    paddingHorizontal: 24,
-    paddingBottom: 16,
+    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
+    paddingHorizontal: SPACE.s24,
+    paddingBottom: SPACE.s16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: RADIUS.r18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: SPACE.s12,
   },
   backArrow: {
-    fontSize: 20,
+    fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.italic,
     lineHeight: 22,
   },
   headerTitle: {
     flex: 1,
-    fontSize: 24,
+    fontSize: FONT_SIZE.f24,
     fontFamily: FONTS.bold,
     letterSpacing: 8,
     textAlign: 'center',
   },
   backSpacer: {
     width: 36,
-    marginLeft: 12,
+    marginLeft: SPACE.s12,
   },
   convoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
+    paddingHorizontal: SPACE.s24,
+    paddingVertical: SPACE.s14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 12,
+    gap: SPACE.s12,
   },
   convoAvatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: RADIUS.r22,
   },
   convoAvatarFallback: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   convoInitial: {
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
   },
   convoInfo: {
     flex: 1,
-    gap: 3,
+    gap: SPACE.s3,
   },
   convoName: {
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
     letterSpacing: 1.5,
   },
   convoPreview: {
-    fontSize: 12,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.italic,
   },
   convoRight: {
     alignItems: 'flex-end',
-    gap: 6,
+    gap: SPACE.s6,
   },
   convoTime: {
-    fontSize: 11,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.italic,
   },
   actionBtns: {
-    gap: 5,
+    gap: SPACE.s5,
   },
   actionBtn: {
     borderWidth: 1,
-    borderRadius: 50,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s12,
+    paddingVertical: SPACE.s4,
   },
   denyBtn: {
-    borderColor: '#FF6B6B',
+    borderColor: COLORS.danger,
   },
   actionBtnText: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
     letterSpacing: 2,
   },
   denyText: {
-    color: '#FF6B6B',
+    color: COLORS.danger,
   },
   pendingLabel: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
     letterSpacing: 2,
   },
@@ -272,16 +273,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 60,
-    gap: 8,
+    paddingTop: SPACE.s60,
+    gap: SPACE.s8,
   },
   placeholderTitle: {
-    fontSize: 20,
+    fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.bold,
     letterSpacing: 6,
   },
   placeholderSub: {
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
   },
 });

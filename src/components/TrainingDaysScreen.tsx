@@ -14,6 +14,7 @@ import { useAuthStore, useUserStore } from '@/store';
 import { updateFitnessRoutine } from '@/api';
 import { Sentry } from '@/lib/sentry';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -38,9 +39,9 @@ export default function TrainingDaysScreen({
   onClose,
   dark,
 }: TrainingDaysScreenProps): React.JSX.Element | null {
-  const bg = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
 
   const profile = useUserStore((s) => s.profile);
   const setProfile = useUserStore((s) => s.setProfile);
@@ -206,7 +207,7 @@ const PILL_SIZE = (SCREEN_WIDTH - 48 - 6 * 8) / 7; // 24px padding each side, 8p
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: withAlpha(COLORS.black, 0.5),
   },
   panel: {
     ...StyleSheet.absoluteFill,
@@ -216,27 +217,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    paddingTop: Platform.OS === 'ios' ? 60 : 32,
+    paddingHorizontal: SPACE.s20,
+    paddingBottom: SPACE.s16,
+    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: RADIUS.r18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backText: {
     fontFamily: FONTS.italic,
-    fontSize: 20,
+    fontSize: FONT_SIZE.f20,
     lineHeight: 22,
   },
   title: {
     fontFamily: FONTS.bold,
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     letterSpacing: 5,
     textAlign: 'center',
   },
@@ -246,23 +247,23 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontFamily: FONTS.semiBold,
-    fontSize: 15,
+    fontSize: FONT_SIZE.f15,
   },
   content: {
-    paddingHorizontal: 24,
-    paddingTop: 40,
+    paddingHorizontal: SPACE.s24,
+    paddingTop: SPACE.s40,
     alignItems: 'center',
   },
   subtitle: {
     fontFamily: FONTS.italic,
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: SPACE.s32,
     lineHeight: 22,
   },
   daysRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: SPACE.s8,
     justifyContent: 'center',
   },
   dayPill: {
@@ -274,6 +275,6 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontFamily: FONTS.semiBold,
-    fontSize: 11,
+    fontSize: FONT_SIZE.f11,
   },
 });

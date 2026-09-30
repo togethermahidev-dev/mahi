@@ -18,6 +18,7 @@ import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 interface BlockedUsersSheetProps {
   visible: boolean;
@@ -33,12 +34,12 @@ export default function BlockedUsersSheet({
   const currentUserId = useAuthStore((s) => s.user?.id);
   const unblockAction = useBlockStore((s) => s.unblock);
 
-  const bg = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const border = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.12)';
-  const avatarBg = dark ? '#2A2A27' : '#E8E8E3';
-  const inputBg = dark ? '#2A2A27' : '#F0F0ED';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const border = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.12);
+  const avatarBg = dark ? COLORS.surfaceDark : COLORS.offWhite;
+  const inputBg = dark ? COLORS.surfaceDark : COLORS.surfaceLight2;
 
   const [users, setUsers] = useState<BlockedUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -229,42 +230,42 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 60 : 32,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
+    paddingBottom: SPACE.s16,
+    paddingHorizontal: SPACE.s16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: RADIUS.r18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backArrow: {
-    fontSize: 20,
+    fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.italic,
     lineHeight: 22,
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
   searchWrap: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: SPACE.s20,
+    paddingVertical: SPACE.s12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   searchInput: {
     height: 40,
-    borderRadius: 20,
-    paddingHorizontal: 16,
+    borderRadius: RADIUS.r20,
+    paddingHorizontal: SPACE.s16,
     fontFamily: FONTS.italic,
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
   },
   loadingWrap: {
     flex: 1,
@@ -272,55 +273,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   listContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: SPACE.s20,
+    paddingVertical: SPACE.s12,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    gap: 12,
+    paddingVertical: SPACE.s12,
+    gap: SPACE.s12,
   },
   rowTappable: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    gap: 12,
+    gap: SPACE.s12,
   },
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: RADIUS.r22,
   },
   avatarFallback: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: 18,
+    fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.bold,
   },
   rowText: {
     flex: 1,
-    gap: 2,
+    gap: SPACE.s2,
   },
   name: {
     fontFamily: FONTS.semiBold,
-    fontSize: 15,
+    fontSize: FONT_SIZE.f15,
     letterSpacing: 1,
   },
   handle: {
     fontFamily: FONTS.italic,
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
   },
   unblockBtn: {
     borderWidth: 1,
-    borderRadius: 50,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s14,
+    paddingVertical: SPACE.s6,
   },
   unblockBtnText: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.bold,
     letterSpacing: 2,
   },
@@ -331,10 +332,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 60,
+    paddingTop: SPACE.s60,
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
   },
 });

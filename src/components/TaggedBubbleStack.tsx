@@ -10,6 +10,7 @@ import {
 import { BlurView } from 'expo-blur';
 import type { TaggedUser } from '@/api';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 const MAX_VISIBLE = 3;
 
@@ -55,24 +56,24 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     bottom: 16,
-    gap: 6,
+    gap: SPACE.s6,
     alignItems: 'flex-start',
   },
   bubble: {
     height: 32,
-    borderRadius: 16,
-    paddingHorizontal: 14,
+    borderRadius: RADIUS.r16,
+    paddingHorizontal: SPACE.s14,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.18)',
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderColor: withAlpha(COLORS.white, 0.18),
+    backgroundColor: withAlpha(COLORS.black, 0.45),
     maxWidth: 180,
   },
   bubbleText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
   },
 });

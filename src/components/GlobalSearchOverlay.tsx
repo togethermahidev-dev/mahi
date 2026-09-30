@@ -22,6 +22,7 @@ import { useAuthStore, useBlockStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { Sentry } from '@/lib/sentry';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -34,9 +35,9 @@ function UserRow({
   dark: boolean;
   onPress: () => void;
 }) {
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const avatarBg = dark ? '#2A2A27' : '#E8E8E3';
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const avatarBg = dark ? COLORS.surfaceDark : COLORS.offWhite;
 
   const displayName = item.display_name ?? item.first_name ?? item.username ?? '—';
   const initials = displayName[0]?.toUpperCase() ?? '?';
@@ -76,9 +77,9 @@ export default function GlobalSearchOverlay({
   const slideAnim = useRef(new Animated.Value(-24)).current;
   const inputRef = useRef<TextInput>(null);
 
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
-  const inputBg = dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const inputBg = dark ? withAlpha(COLORS.white, 0.12) : withAlpha(COLORS.black, 0.08);
   const tint = dark ? 'dark' : 'light';
 
   const [query, setQuery] = useState('');
@@ -187,7 +188,7 @@ export default function GlobalSearchOverlay({
         style={[
           StyleSheet.absoluteFill,
           {
-            backgroundColor: dark ? 'rgba(18,18,16,0.25)' : 'rgba(250,250,248,0.25)',
+            backgroundColor: dark ? withAlpha(COLORS.inkSoft, 0.25) : withAlpha(COLORS.paper, 0.25),
           },
         ]}
         pointerEvents="none"
@@ -239,7 +240,7 @@ export default function GlobalSearchOverlay({
           <View
             style={[
               styles.divider,
-              { backgroundColor: dark ? 'rgba(232,232,227,0.1)' : 'rgba(26,26,23,0.08)' },
+              { backgroundColor: dark ? withAlpha(COLORS.offWhite, 0.1) : withAlpha(COLORS.offBlack, 0.08) },
             ]}
           />
 
@@ -284,7 +285,7 @@ export default function GlobalSearchOverlay({
                 <View
                   style={[
                     styles.separator,
-                    { backgroundColor: dark ? 'rgba(232,232,227,0.08)' : 'rgba(26,26,23,0.06)' },
+                    { backgroundColor: dark ? withAlpha(COLORS.offWhite, 0.08) : withAlpha(COLORS.offBlack, 0.06) },
                   ]}
                 />
               )}
@@ -320,103 +321,103 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   inner: {
-    paddingTop: Platform.OS === 'ios' ? 64 : 36,
+    paddingTop: Platform.OS === 'ios' ? SPACE.s64 : SPACE.s36,
   },
   barRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    gap: 10,
+    paddingHorizontal: SPACE.s16,
+    paddingBottom: SPACE.s14,
+    gap: SPACE.s10,
   },
   pill: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 50,
-    paddingHorizontal: 16,
-    paddingVertical: Platform.OS === 'ios' ? 12 : 9,
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: Platform.OS === 'ios' ? SPACE.s12 : SPACE.s9,
     // Subtle inner border for glass feel
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.25)',
+    borderColor: withAlpha(COLORS.white, 0.25),
   },
   magnify: {
-    fontSize: 20,
-    marginRight: 8,
+    fontSize: FONT_SIZE.f20,
+    marginRight: SPACE.s8,
   },
   input: {
     flex: 1,
     fontFamily: FONTS.italic,
-    fontSize: 15,
+    fontSize: FONT_SIZE.f15,
   },
   cancelBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 4,
+    paddingVertical: SPACE.s8,
+    paddingHorizontal: SPACE.s4,
   },
   cancelText: {
     fontFamily: FONTS.semiBold,
-    fontSize: 11,
+    fontSize: FONT_SIZE.f11,
     letterSpacing: 2,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    marginHorizontal: 16,
-    marginBottom: 4,
+    marginHorizontal: SPACE.s16,
+    marginBottom: SPACE.s4,
   },
   list: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 24,
+    paddingHorizontal: SPACE.s20,
+    paddingTop: SPACE.s8,
+    paddingBottom: SPACE.s24,
   },
   centered: {
     alignItems: 'center',
-    paddingTop: 48,
-    paddingHorizontal: 24,
+    paddingTop: SPACE.s48,
+    paddingHorizontal: SPACE.s24,
   },
   emptyText: {
     fontFamily: FONTS.italic,
-    fontSize: 15,
+    fontSize: FONT_SIZE.f15,
   },
   hintText: {
     fontFamily: FONTS.italic,
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
     letterSpacing: 0.5,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    gap: 12,
+    paddingVertical: SPACE.s12,
+    gap: SPACE.s12,
   },
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: RADIUS.r22,
   },
   avatarFallback: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: 18,
+    fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.bold,
   },
   rowText: {
     flex: 1,
-    gap: 2,
+    gap: SPACE.s2,
   },
   name: {
     fontFamily: FONTS.semiBold,
-    fontSize: 15,
+    fontSize: FONT_SIZE.f15,
     letterSpacing: 1,
   },
   handle: {
     fontFamily: FONTS.italic,
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
   },
   streakText: {
     fontFamily: FONTS.semiBold,
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
   },
   separator: {
     height: 1,

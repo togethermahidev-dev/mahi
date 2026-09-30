@@ -14,6 +14,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PLACEHOLDER_IMG = require('../../assets/jogger.png') as number;
@@ -47,8 +48,8 @@ function CameraIcon({ color }: { color: string }) {
 
 function GridCell({ post, dark, onPress }: { post: PostRow; dark: boolean; onPress: () => void }) {
   const [imgError, setImgError] = useState(false);
-  const badgeBg = dark ? 'rgba(26,26,23,0.75)' : 'rgba(232,232,227,0.75)';
-  const badgeText = dark ? '#E8E8E3' : '#1A1A17';
+  const badgeBg = dark ? withAlpha(COLORS.offBlack, 0.75) : withAlpha(COLORS.offWhite, 0.75);
+  const badgeText = dark ? COLORS.offWhite : COLORS.offBlack;
 
   return (
     <TouchableOpacity style={styles.cell} onPress={onPress} activeOpacity={0.8}>
@@ -77,9 +78,9 @@ export default function ProfileMediaMap({
   onPostPress,
 }: ProfileMediaMapProps): React.JSX.Element {
   const { dark } = useAppTheme();
-  const bg = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.45)' : 'rgba(26,26,23,0.45)';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
 
   const { posts, isLoading, hasMore, loadMore } = useProfilePosts(userId);
 
@@ -135,8 +136,8 @@ const styles = StyleSheet.create({
   centered: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    paddingHorizontal: 32,
+    gap: SPACE.s12,
+    paddingHorizontal: SPACE.s32,
   },
   grid: {
     gap: GAP,
@@ -156,23 +157,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 4,
     right: 4,
-    borderRadius: 50,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
+    borderRadius: RADIUS.r50,
+    paddingVertical: SPACE.s2,
+    paddingHorizontal: SPACE.s6,
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
     letterSpacing: 1,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.semiBold,
     letterSpacing: 3,
     textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.italic,
     textAlign: 'center',
   },

@@ -15,6 +15,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useBlockStore } from '@/store';
 import type { NotificationWithActor } from '@/api';
 import { FONTS } from '@/constants/fonts';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
 
 interface NotificationsScreenProps {
   visible: boolean;
@@ -41,11 +42,11 @@ export default function NotificationsScreen({
   onOpenProfile,
 }: NotificationsScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
-  const bg = dark ? '#1C1C19' : '#FFFFFF';
-  const text = dark ? '#E8E8E3' : '#1A1A17';
-  const muted = dark ? 'rgba(232,232,227,0.4)' : 'rgba(26,26,23,0.4)';
-  const border = dark ? 'rgba(232,232,227,0.12)' : 'rgba(26,26,23,0.12)';
-  const avatarBg = dark ? 'rgba(232,232,227,0.1)' : 'rgba(26,26,23,0.08)';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.4) : withAlpha(COLORS.offBlack, 0.4);
+  const border = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.12);
+  const avatarBg = dark ? withAlpha(COLORS.offWhite, 0.1) : withAlpha(COLORS.offBlack, 0.08);
 
   const { items, isLoading, markRead, markAllRead } = useNotifications();
   const blockedSet = useBlockStore((s) => s.blockedSet);
@@ -196,28 +197,28 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 60 : 32,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
+    paddingBottom: SPACE.s16,
+    paddingHorizontal: SPACE.s16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: RADIUS.r18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backArrow: {
-    fontSize: 20,
+    fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.italic,
     lineHeight: 22,
   },
   headerName: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
     letterSpacing: 3,
   },
@@ -227,59 +228,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   listContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s12,
     flexGrow: 1,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    gap: SPACE.s12,
+    paddingVertical: SPACE.s12,
+    paddingHorizontal: SPACE.s16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   avatar: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: RADIUS.r18,
   },
   avatarFallback: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitials: {
-    fontSize: 14,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
   },
   rowText: {
     flex: 1,
-    gap: 2,
+    gap: SPACE.s2,
   },
   rowCaption: {
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
     lineHeight: 18,
   },
   rowTime: {
-    fontSize: 10,
+    fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.italic,
   },
   unreadDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: '#59c2d7',
+    borderRadius: RADIUS.r4,
+    backgroundColor: COLORS.accent,
     marginLeft: 'auto',
   },
   emptyWrap: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 60,
+    paddingTop: SPACE.s60,
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
   },
 });
