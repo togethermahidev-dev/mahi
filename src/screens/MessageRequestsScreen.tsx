@@ -5,10 +5,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   Pressable,
-  FlatList,
   Image,
   Alert,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMessages } from '@/hooks/useMessages';
@@ -154,7 +154,7 @@ export default function MessageRequestsScreen({
         <View style={styles.backSpacer} />
       </View>
 
-      <FlatList
+      <FlashList
         data={requests}
         keyExtractor={(item) => item.id}
         // The sheet runs to the bottom edge; keep the last row clear of the home indicator.
