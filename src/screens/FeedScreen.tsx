@@ -15,12 +15,6 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Reanimated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  runOnJS,
-} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -33,6 +27,8 @@ import CaptionText from '@/components/CaptionText';
 import { formatWait } from '@/lib/countdown';
 import PointsBadge from '@/components/PointsBadge';
 import KeyboardInset from '@/components/KeyboardInset';
+import DraggablePip from '@/components/DraggablePip';
+import { pipZone } from '@/lib/pip';
 import type { FeedPost } from '@/api';
 import type { CommentWithProfile } from '@/api/social';
 import { FONTS } from '@/constants/fonts';
@@ -45,7 +41,6 @@ import {
   BORDER_WIDTH,
   ICON_SIZE,
   OFFSET,
-  SHADOW_BLUR,
   SIZE,
   TRACKING,
 } from '@/constants/tokens';
@@ -56,10 +51,6 @@ const APP_HEADER_H = Platform.OS === 'ios' ? 108 : 80;
 // TikTok-style snap: each card fills the full screen height
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_HEIGHT = SCREEN_HEIGHT;
-
-// Pip dimensions for the feed card
-const FEED_PIP_W = 90;
-const FEED_PIP_H = 120;
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -198,85 +189,8 @@ function PostItem({
   const primaryUrl = hasDual && !rearIsPrimary ? item.pov_image_url! : item.image_url;
   const pipUrl = hasDual && !rearIsPrimary ? item.image_url : item.pov_image_url;
 
-  // ── Draggable PIP (FaceTime-style) ──────────────────────────────────────
-  const containerH = CARD_HEIGHT;
-
-  // Safe zone: keep PiP clear of all overlay UI elements.
-  // These values define where the PiP's TOP-LEFT corner can be placed.
-  //
-  // Top:    app header (108) + tagged pills (~3×32 + gaps) + buffer
-  // Bottom: from the bottom up — paddingBottom(80) + avatar(42) + gap(10)
-  //         + caption(~40) + buffer(16) = ~188px of content, so PiP top
-  //         must be at most containerH - 188 - FEED_PIP_H
-  // Right:  side action column sits at right OFFSET.o12, icons ~44px wide + padding
-  // Left:   small margin
-  const BOTTOM_CONTENT_H = 200; // avatar + caption + paddingBottom + buffer
-  const PIP_SAFE_TOP = APP_HEADER_H + 120;
-  const PIP_SAFE_BOTTOM = containerH - BOTTOM_CONTENT_H - FEED_PIP_H;
-  const PIP_SAFE_LEFT = 8;
-  const PIP_SAFE_RIGHT = width - FEED_PIP_W - 70;
-
-  const initialPipX = PIP_SAFE_LEFT;
-  const initialPipY = PIP_SAFE_BOTTOM;
-  const pipTransX = useSharedValue(initialPipX);
-  const pipTransY = useSharedValue(initialPipY);
-  const pipStartX = useSharedValue(initialPipX);
-  const pipStartY = useSharedValue(initialPipY);
-  const pipScaleVal = useSharedValue(1);
-
-  // Reset PIP position when FlashList recycles this cell for a different post
-  useEffect(() => {
-    pipTransX.value = initialPipX;
-    pipTransY.value = initialPipY;
-    pipStartX.value = initialPipX;
-    pipStartY.value = initialPipY;
-    pipScaleVal.value = 1;
-  }, [item.id]);
-
-  const pipPanGesture = Gesture.Pan()
-    .activateAfterLongPress(150)
-    .onStart(() => {
-      'worklet';
-      pipStartX.value = pipTransX.value;
-      pipStartY.value = pipTransY.value;
-      pipScaleVal.value = withSpring(1.1, { damping: 12, stiffness: 200 });
-      runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
-    })
-    .onUpdate((e) => {
-      'worklet';
-      const rawX = pipStartX.value + e.translationX;
-      const rawY = pipStartY.value + e.translationY;
-      pipTransX.value = Math.max(PIP_SAFE_LEFT, Math.min(rawX, PIP_SAFE_RIGHT));
-      pipTransY.value = Math.max(PIP_SAFE_TOP, Math.min(rawY, PIP_SAFE_BOTTOM));
-    })
-    .onEnd(() => {
-      'worklet';
-      // Snap to nearest corner within the safe zone
-      const midX = (PIP_SAFE_LEFT + PIP_SAFE_RIGHT) / 2;
-      const midY = (PIP_SAFE_TOP + PIP_SAFE_BOTTOM) / 2;
-      const snapX = pipTransX.value < midX ? PIP_SAFE_LEFT : PIP_SAFE_RIGHT;
-      const snapY = pipTransY.value < midY ? PIP_SAFE_TOP : PIP_SAFE_BOTTOM;
-      pipTransX.value = withSpring(snapX, { damping: 16, stiffness: 140, overshootClamping: true });
-      pipTransY.value = withSpring(snapY, { damping: 16, stiffness: 140, overshootClamping: true });
-      pipScaleVal.value = withSpring(1, { damping: 12, stiffness: 200 });
-    });
-
-  const pipAnimStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: pipTransX.value },
-      { translateY: pipTransY.value },
-      { scale: pipScaleVal.value },
-    ],
-  }));
-
-  const pipTapGesture = Gesture.Tap()
-    .runOnJS(true)
-    .onEnd(() => {
-      console.log('[FeedScreen] PIP swap post', item.id);
-      setRearIsPrimary((p) => !p);
-    });
-
-  const pipGesture = Gesture.Race(pipPanGesture, pipTapGesture);
+  // ── Draggable PiP (FaceTime-style) — safe zone clears the header + tagged pills ──
+  const pipSafeZone = pipZone({ width, height: CARD_HEIGHT }, APP_HEADER_H + OFFSET.o120);
 
   // ── Double-tap medal burst animation ─────────────────────────────────────
   const medalScale = useRef(new Animated.Value(0)).current;
@@ -473,15 +387,12 @@ function PostItem({
         {/* (Tagged pills moved to top gradient row) */}
         {/* Draggable PIP — uses RNGH so it wins over scroll/navigation gestures */}
         {hasDual && pipUrl && (
-          <GestureDetector gesture={pipGesture}>
-            <Reanimated.View style={[styles.feedPip, pipAnimStyle]}>
-              <Image
-                source={{ uri: pipUrl }}
-                style={[StyleSheet.absoluteFill, { borderRadius: RADIUS.r10 }]}
-                resizeMode="cover"
-              />
-            </Reanimated.View>
-          </GestureDetector>
+          <DraggablePip
+            uri={pipUrl}
+            zone={pipSafeZone}
+            resetKey={item.id}
+            onTap={() => setRearIsPrimary((p) => !p)}
+          />
         )}
 
         {/* ── Right-side action column (Reels / TikTok style) ── */}
@@ -897,22 +808,6 @@ const styles = StyleSheet.create({
   // photo-letterbox color, not a theme surface.
   letterbox: {
     backgroundColor: COLORS.black,
-  },
-  feedPip: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: FEED_PIP_W,
-    height: FEED_PIP_H,
-    borderRadius: RADIUS.r10,
-    overflow: 'hidden',
-    borderWidth: BORDER_WIDTH.w2,
-    borderColor: withAlpha(COLORS.white, 0.6),
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: SIZE.z3 },
-    shadowOpacity: 0.35,
-    shadowRadius: SHADOW_BLUR.b6,
-    elevation: 6,
   },
   medalBurst: {
     position: 'absolute',
