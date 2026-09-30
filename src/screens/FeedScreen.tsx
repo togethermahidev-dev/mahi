@@ -9,7 +9,6 @@ import {
   Animated,
   TouchableOpacity,
   useWindowDimensions,
-  Dimensions,
   TextInput,
   Keyboard,
   Modal,
@@ -48,10 +47,6 @@ import {
 
 // AppHeader: paddingTop (60 ios / 32 android) + inner row (~36px) + paddingBottom (12)
 const APP_HEADER_H = Platform.OS === 'ios' ? 108 : 80;
-
-// TikTok-style snap: each card fills the full screen height
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const CARD_HEIGHT = SCREEN_HEIGHT;
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -95,10 +90,13 @@ function CommentRow({ comment, dark }: { comment: CommentWithProfile; dark: bool
 /** A friend's post while the viewer hasn't posted: who and when, no photo or caption. */
 function LockedPostItem({
   item,
+  height,
   onAvatarPress,
   onUnlockPress,
 }: {
   item: FeedPost;
+  /** Card height: one full screen (TikTok-style snap). */
+  height: number;
   onAvatarPress: (userId: string) => void;
   onUnlockPress: () => void;
 }) {
@@ -106,7 +104,7 @@ function LockedPostItem({
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
   return (
-    <View style={[styles.lockedCard, { backgroundColor: colors.offBlack }]}>
+    <View style={[styles.lockedCard, { backgroundColor: colors.offBlack, height }]}>
       <TouchableOpacity
         style={styles.lockedWho}
         onPress={() => onAvatarPress(item.profiles.id)}
@@ -146,12 +144,15 @@ function PostItem({
   item,
   dark,
   width,
+  height,
   onAvatarPress,
   onCommentPress,
 }: {
   item: FeedPost;
   dark: boolean;
   width: number;
+  /** Card height: one full screen (TikTok-style snap). */
+  height: number;
   onAvatarPress: (userId: string) => void;
   onCommentPress: (postId: string) => void;
 }) {
@@ -191,7 +192,7 @@ function PostItem({
   const pipUrl = hasDual && !rearIsPrimary ? item.image_url : item.pov_image_url;
 
   // ── Draggable PiP (FaceTime-style) — safe zone clears the header + tagged pills ──
-  const pipSafeZone = pipZone({ width, height: CARD_HEIGHT }, APP_HEADER_H + OFFSET.o120);
+  const pipSafeZone = pipZone({ width, height }, APP_HEADER_H + OFFSET.o120);
 
   // ── Double-tap medal burst animation ─────────────────────────────────────
   const medalScale = useRef(new Animated.Value(0)).current;
@@ -286,7 +287,7 @@ function PostItem({
   }, [item.id, onCommentPress]);
 
   return (
-    <View style={[styles.card, { backgroundColor: cardBg, height: CARD_HEIGHT }]}>
+    <View style={[styles.card, { backgroundColor: cardBg, height }]}>
       {/* Post image — double-tap to like */}
       <View style={[styles.imageContainer, { width, flex: 1 }]}>
         <GestureDetector gesture={doubleTap}>
@@ -558,7 +559,8 @@ export default function FeedScreen({
   onOverlayChange,
 }: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
-  const { width: screenWidth } = useWindowDimensions();
+  // TikTok-style snap: each card fills the full screen height.
+  const { width: screenWidth, height: cardHeight } = useWindowDimensions();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
@@ -643,6 +645,7 @@ export default function FeedScreen({
           item.locked ? (
             <LockedPostItem
               item={item}
+              height={cardHeight}
               onAvatarPress={handleAvatarPress}
               onUnlockPress={() => onGoToCamera?.()}
             />
@@ -651,13 +654,14 @@ export default function FeedScreen({
               item={item}
               dark={dark}
               width={screenWidth}
+              height={cardHeight}
               onAvatarPress={handleAvatarPress}
               onCommentPress={setCommentPostId}
             />
           )
         }
         getItemType={(item) => (item.locked ? 'locked' : 'post')}
-        snapToInterval={CARD_HEIGHT}
+        snapToInterval={cardHeight}
         snapToAlignment="start"
         decelerationRate="fast"
         onEndReached={hasMore ? loadMore : undefined}
@@ -944,7 +948,6 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   lockedCard: {
-    height: CARD_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACE.s32,
