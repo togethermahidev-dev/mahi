@@ -2,14 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
+  BackHandler,
   Dimensions,
-  Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { signOut } from '@/api/auth';
 import { VERSION_LINE } from '@/lib/appBuild';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
@@ -19,6 +21,9 @@ import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SHADOW_BLUR, SIZE, OFFSET,
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const PANEL_WIDTH = SCREEN_WIDTH * 0.82;
+// A left swipe past a third of the panel, or a quick flick, closes it.
+const SWIPE_CLOSE_DISTANCE = PANEL_WIDTH / 3;
+const SWIPE_CLOSE_VELOCITY = 500;
 
 interface SettingsPanelProps {
   visible: boolean;
@@ -57,6 +62,39 @@ export default function SettingsPanel({
 
   const [mounted, setMounted] = useState(false);
   const [blockedListOpen, setBlockedListOpen] = useState(false);
+  const insets = useSafeAreaInsets();
+
+  // Android back closes the drawer (the blocked-users sheet handles its own back press).
+  useEffect(() => {
+    if (!visible) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
+    return () => sub.remove();
+  }, [visible, onClose]);
+
+  // Swipe left to close: the panel follows the finger, then closes or springs back.
+  const swipeToClose = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX(-SPACE.s12)
+    .failOffsetY([-SPACE.s12, SPACE.s12])
+    .onUpdate((e) => {
+      slideAnim.setValue(Math.min(0, e.translationX));
+    })
+    .onEnd((e) => {
+      if (e.translationX < -SWIPE_CLOSE_DISTANCE || e.velocityX < -SWIPE_CLOSE_VELOCITY) {
+        onClose();
+        return;
+      }
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        damping: 22,
+        stiffness: 160,
+        mass: 0.9,
+        useNativeDriver: true,
+      }).start();
+    });
 
   useEffect(() => {
     if (visible) {
@@ -145,128 +183,152 @@ export default function SettingsPanel({
   const privacySubItems = ['T&Cs', 'Privacy Policy', 'Request My Personal Data'];
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View
+      style={StyleSheet.absoluteFill}
+      pointerEvents="box-none"
+      accessibilityViewIsModal={visible}
+      onAccessibilityEscape={onClose}
+    >
       {/* Backdrop */}
       <Animated.View
         style={[styles.backdrop, { backgroundColor: backdropColor, opacity: backdropAnim }]}
         pointerEvents={visible ? 'auto' : 'none'}
       >
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close settings"
+        />
       </Animated.View>
 
       {/* Panel */}
-      <Animated.View
-        style={[styles.panel, { backgroundColor: panelBg, transform: [{ translateX: slideAnim }] }]}
-      >
-        {/* Close button */}
-        <View
-          style={[
-            styles.closeRow,
-            { borderBottomColor: border, paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32 },
-          ]}
+      <GestureDetector gesture={swipeToClose}>
+        <Animated.View
+          style={[styles.panel, { backgroundColor: panelBg, transform: [{ translateX: slideAnim }] }]}
         >
-          <Text style={[styles.panelTitle, { color: text }]}>SETTINGS</Text>
-          <TouchableOpacity
-            onPress={onClose}
-            style={[styles.closeBtn, { borderColor: muted }]}
-            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+          {/* Close button */}
+          <View
+            style={[
+              styles.closeRow,
+              { borderBottomColor: border, paddingTop: insets.top + SPACE.s8 },
+            ]}
           >
-            <Text style={[styles.closeBtnText, { color: muted }]}>✕</Text>
-          </TouchableOpacity>
-        </View>
+            <Text style={[styles.panelTitle, { color: text }]} accessibilityRole="header">
+              SETTINGS
+            </Text>
+            <Pressable
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Close settings"
+              style={({ pressed }) => [styles.closeBtn, { borderColor: muted }, pressed && styles.pressed]}
+              hitSlop={OFFSET.o8}
+            >
+              <Text style={[styles.closeBtnText, { color: muted }]}>✕</Text>
+            </Pressable>
+          </View>
 
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* ── Account Settings accordion ── */}
-          <TouchableOpacity
-            style={[styles.sectionRow, { borderBottomColor: border }]}
-            onPress={() => toggleAccordion(accountOpen, setAccountOpen, accountAnim)}
-            activeOpacity={0.7}
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
           >
-            <Text style={[styles.sectionLabel, { color: text }]}>ACCOUNT SETTINGS</Text>
-            <ChevronIcon open={accountAnim} color={muted} />
-          </TouchableOpacity>
+            {/* ── Account Settings accordion ── */}
+            <Pressable
+              style={({ pressed }) => [styles.sectionRow, { borderBottomColor: border }, pressed && styles.pressed]}
+              onPress={() => toggleAccordion(accountOpen, setAccountOpen, accountAnim)}
+              accessibilityRole="button"
+              accessibilityLabel="Account settings"
+              accessibilityState={{ expanded: accountOpen }}
+            >
+              <Text style={[styles.sectionLabel, { color: text }]}>ACCOUNT SETTINGS</Text>
+              <ChevronIcon open={accountAnim} color={muted} />
+            </Pressable>
 
-          <Animated.View
-            style={{
-              maxHeight: accountAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, accountSubItems.length * 50],
-              }),
-              overflow: 'hidden',
-            }}
-          >
-            {accountSubItems.map((item) => (
-              <TouchableOpacity
-                key={item}
-                style={[styles.subRow, { borderBottomColor: border }]}
-                activeOpacity={0.7}
-                onPress={() => {
-                  if (item === 'User Controls') setBlockedListOpen(true);
-                }}
-              >
-                <Text style={[styles.subLabel, { color: muted }]}>{item}</Text>
-              </TouchableOpacity>
-            ))}
-          </Animated.View>
+            <Animated.View
+              style={{
+                maxHeight: accountAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, accountSubItems.length * 50],
+                }),
+                overflow: 'hidden',
+              }}
+            >
+              {accountSubItems.map((item) => (
+                <Pressable
+                  key={item}
+                  style={({ pressed }) => [styles.subRow, { borderBottomColor: border }, pressed && styles.pressed]}
+                  accessibilityRole="button"
+                  accessibilityLabel={item}
+                  onPress={() => {
+                    if (item === 'User Controls') setBlockedListOpen(true);
+                  }}
+                >
+                  <Text style={[styles.subLabel, { color: muted }]}>{item}</Text>
+                </Pressable>
+              ))}
+            </Animated.View>
 
-          {/* ── Help & FAQ ── */}
-          <TouchableOpacity
-            style={[styles.sectionRow, { borderBottomColor: border }]}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.sectionLabel, { color: text }]}>HELP & FAQ</Text>
-          </TouchableOpacity>
+            {/* ── Help & FAQ ── */}
+            <Pressable
+              style={({ pressed }) => [styles.sectionRow, { borderBottomColor: border }, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Help and FAQ"
+            >
+              <Text style={[styles.sectionLabel, { color: text }]}>HELP & FAQ</Text>
+            </Pressable>
 
-          {/* ── Privacy & Data accordion ── */}
-          <TouchableOpacity
-            style={[styles.sectionRow, { borderBottomColor: border }]}
-            onPress={() => toggleAccordion(privacyOpen, setPrivacyOpen, privacyAnim)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.sectionLabel, { color: text }]}>PRIVACY & DATA</Text>
-            <ChevronIcon open={privacyAnim} color={muted} />
-          </TouchableOpacity>
+            {/* ── Privacy & Data accordion ── */}
+            <Pressable
+              style={({ pressed }) => [styles.sectionRow, { borderBottomColor: border }, pressed && styles.pressed]}
+              onPress={() => toggleAccordion(privacyOpen, setPrivacyOpen, privacyAnim)}
+              accessibilityRole="button"
+              accessibilityLabel="Privacy and data"
+              accessibilityState={{ expanded: privacyOpen }}
+            >
+              <Text style={[styles.sectionLabel, { color: text }]}>PRIVACY & DATA</Text>
+              <ChevronIcon open={privacyAnim} color={muted} />
+            </Pressable>
 
-          <Animated.View
-            style={{
-              maxHeight: privacyAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, privacySubItems.length * 50],
-              }),
-              overflow: 'hidden',
-            }}
-          >
-            {privacySubItems.map((item) => (
-              <TouchableOpacity
-                key={item}
-                style={[styles.subRow, { borderBottomColor: border }]}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.subLabel, { color: muted }]}>{item}</Text>
-              </TouchableOpacity>
-            ))}
-          </Animated.View>
+            <Animated.View
+              style={{
+                maxHeight: privacyAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, privacySubItems.length * 50],
+                }),
+                overflow: 'hidden',
+              }}
+            >
+              {privacySubItems.map((item) => (
+                <Pressable
+                  key={item}
+                  style={({ pressed }) => [styles.subRow, { borderBottomColor: border }, pressed && styles.pressed]}
+                  accessibilityRole="button"
+                  accessibilityLabel={item}
+                >
+                  <Text style={[styles.subLabel, { color: muted }]}>{item}</Text>
+                </Pressable>
+              ))}
+            </Animated.View>
 
-          {/* Spacer */}
-          <View style={styles.spacer} />
+            {/* Spacer */}
+            <View style={styles.spacer} />
 
-          {/* Log Out */}
-          <TouchableOpacity
-            style={[styles.logoutBtn, { borderColor: muted }]}
-            onPress={handleLogout}
-            activeOpacity={0.6}
-          >
-            <Text style={[styles.logoutText, { color: muted }]}>LOG OUT</Text>
-          </TouchableOpacity>
+            {/* Log Out */}
+            <Pressable
+              style={({ pressed }) => [styles.logoutBtn, { borderColor: muted }, pressed && styles.pressedMore]}
+              onPress={handleLogout}
+              accessibilityRole="button"
+              accessibilityLabel="Log out"
+            >
+              <Text style={[styles.logoutText, { color: muted }]}>LOG OUT</Text>
+            </Pressable>
 
-          {/* Version line: v{runtime} {build}.{OTA} — see the version-control skill */}
-          <Text style={[styles.versionText, { color: muted }]}>{VERSION_LINE}</Text>
-        </ScrollView>
-      </Animated.View>
+            {/* Version line: v{runtime} {build}.{OTA} — see the version-control skill */}
+            <Text style={[styles.versionText, { color: muted }]}>{VERSION_LINE}</Text>
+          </ScrollView>
+        </Animated.View>
+      </GestureDetector>
 
       {/* Blocked users list — opened from User Controls */}
       <BlockedUsersSheet
@@ -315,6 +377,12 @@ const styles = StyleSheet.create({
     borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  pressedMore: {
+    opacity: 0.6,
   },
   closeBtnText: {
     fontSize: FONT_SIZE.f14,
