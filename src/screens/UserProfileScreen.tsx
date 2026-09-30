@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActionSheetIOS,
   Alert,
   Animated,
   Dimensions,
@@ -281,52 +282,80 @@ export default function UserProfileScreen({
       { label: 'Other', value: 'other' },
     ];
 
-    Alert.alert(`Report @${profile.username}?`, 'Select a reason:', [
-      ...reasons.map((r) => ({
-        text: r.label,
-        onPress: async () => {
-          posthog.capture('user_reported', {
-            reported_user_id: userId,
-            reason: r.value,
-            has_description: false,
-          });
-          Sentry.addBreadcrumb({
-            category: 'moderation',
-            message: `Reported: ${userId} reason: ${r.value}`,
-            level: 'info',
-          });
-          const { error } = await reportUser({
-            reporterId: currentUserId,
-            reportedUserId: userId,
-            reason: r.value,
-          });
-          setReporting(false);
-          if (error) {
-            Sentry.captureMessage(error.message, {
-              level: 'warning',
-              tags: { flow: 'moderation', step: 'report' },
-              extra: { userId, reason: r.value },
-            });
-          } else {
-            Alert.alert('Report Submitted', 'Thank you for helping keep the community safe.');
-          }
+    const submit = async (r: { label: string; value: ReportReason }) => {
+      posthog.capture('user_reported', {
+        reported_user_id: userId,
+        reason: r.value,
+        has_description: false,
+      });
+      Sentry.addBreadcrumb({
+        category: 'moderation',
+        message: `Reported: ${userId} reason: ${r.value}`,
+        level: 'info',
+      });
+      const { error } = await reportUser({
+        reporterId: currentUserId,
+        reportedUserId: userId,
+        reason: r.value,
+      });
+      setReporting(false);
+      if (error) {
+        Sentry.captureMessage(error.message, {
+          level: 'warning',
+          tags: { flow: 'moderation', step: 'report' },
+          extra: { userId, reason: r.value },
+        });
+      } else {
+        Alert.alert('Report Submitted', 'Thank you for helping keep the community safe.');
+      }
+    };
+
+    // Native action sheet on iOS; Android has none, so an Alert lists the reasons.
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: `Report @${profile.username}?`,
+          message: 'Select a reason:',
+          options: [...reasons.map((r) => r.label), 'Cancel'],
+          cancelButtonIndex: reasons.length,
         },
-      })),
-      { text: 'Cancel', style: 'cancel', onPress: () => setReporting(false) },
-    ]);
+        (i) => {
+          if (i < reasons.length) submit(reasons[i]);
+          else setReporting(false);
+        }
+      );
+    } else {
+      Alert.alert(`Report @${profile.username}?`, 'Select a reason:', [
+        ...reasons.map((r) => ({ text: r.label, onPress: () => submit(r) })),
+        { text: 'Cancel', style: 'cancel', onPress: () => setReporting(false) },
+      ]);
+    }
   };
 
   const handleEllipsis = () => {
     if (!profile) return;
-    Alert.alert(`@${profile.username}`, '', [
-      {
-        text: isBlockedByMe ? 'Unblock' : 'Block',
-        style: isBlockedByMe ? 'default' : 'destructive',
-        onPress: isBlockedByMe ? handleUnblock : handleBlock,
-      },
-      { text: 'Report', onPress: handleReport },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    const blockLabel = isBlockedByMe ? 'Unblock' : 'Block';
+    const onBlock = isBlockedByMe ? handleUnblock : handleBlock;
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: `@${profile.username}`,
+          options: [blockLabel, 'Report', 'Cancel'],
+          destructiveButtonIndex: isBlockedByMe ? undefined : 0,
+          cancelButtonIndex: 2,
+        },
+        (i) => {
+          if (i === 0) onBlock();
+          else if (i === 1) handleReport();
+        }
+      );
+    } else {
+      Alert.alert(`@${profile.username}`, '', [
+        { text: blockLabel, style: isBlockedByMe ? 'default' : 'destructive', onPress: onBlock },
+        { text: 'Report', onPress: handleReport },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
   };
 
   return (
