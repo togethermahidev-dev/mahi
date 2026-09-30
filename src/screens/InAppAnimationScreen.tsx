@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { FONTS } from '@/constants/fonts';
 import { COLORS, FONT_SIZE, SPACE, RADIUS, OFFSET, TRACKING, SIZE } from '@/constants/tokens';
 
@@ -10,7 +11,7 @@ interface Props {
 }
 
 export default function InAppAnimationScreen({ onComplete }: Props): React.JSX.Element {
-  const dark = useColorScheme() === 'dark';
+  const { dark } = useAppTheme();
   const sheetBg = dark ? COLORS.bgDark : COLORS.white;
   const sheetText = dark ? COLORS.white : COLORS.inkDeep;
 

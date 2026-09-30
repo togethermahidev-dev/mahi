@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { VERSION_LINE } from '@/lib/appBuild';
+import { FONTS } from '@/constants/fonts';
 import { COLORS, withAlpha, FONT_SIZE, OFFSET, TRACKING } from '@/constants/tokens';
 
 const BG = COLORS.accent;
@@ -30,7 +31,7 @@ const styles = StyleSheet.create({
   title: {
     color: TEXT_COLOR,
     fontSize: FONT_SIZE.f48,
-    fontWeight: '700',
+    fontFamily: FONTS.bold,
     letterSpacing: TRACKING.t8,
   },
   version: { color: TEXT_COLOR, fontSize: FONT_SIZE.f11, position: 'absolute', bottom: OFFSET.o40 },
