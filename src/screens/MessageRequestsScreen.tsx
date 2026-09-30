@@ -7,9 +7,9 @@ import {
   Pressable,
   FlatList,
   Image,
-  Platform,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMessages } from '@/hooks/useMessages';
 import { useAuthStore } from '@/store';
@@ -136,6 +136,7 @@ export default function MessageRequestsScreen({
 
   const { requests, isLoading, refresh, accept, deny } = useMessages();
   const userId = useAuthStore((s) => s.user?.id);
+  const insets = useSafeAreaInsets();
 
   const [openConvo, setOpenConvo] = React.useState<ConversationPreview | null>(null);
 
@@ -156,6 +157,8 @@ export default function MessageRequestsScreen({
       <FlatList
         data={requests}
         keyExtractor={(item) => item.id}
+        // The sheet runs to the bottom edge; keep the last row clear of the home indicator.
+        contentContainerStyle={{ paddingBottom: insets.bottom }}
         renderItem={({ item }) => {
           // Only receivers (not the original requester) see accept/deny controls.
           const isReceiver = !item.is_requester;
@@ -211,7 +214,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
+    // Shown in a page sheet, which already starts below the status bar.
+    paddingTop: SPACE.s16,
     paddingHorizontal: SPACE.s24,
     paddingBottom: SPACE.s16,
     borderBottomWidth: StyleSheet.hairlineWidth,
