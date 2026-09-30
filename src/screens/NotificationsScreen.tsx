@@ -1,13 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  Image,
-  Modal,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, Image, Modal, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -15,7 +7,18 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useBlockStore } from '@/store';
 import type { NotificationWithActor } from '@/api';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE, BORDER_WIDTH, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  OFFSET,
+  SIZE,
+  BORDER_WIDTH,
+  LINE_HEIGHT,
+  TRACKING,
+} from '@/constants/tokens';
 
 interface NotificationsScreenProps {
   visible: boolean;
@@ -81,13 +84,19 @@ export default function NotificationsScreen({
       <View style={[styles.root, { backgroundColor: bg }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: border }]}>
-          <TouchableOpacity
+          <Pressable
+            style={({ pressed }) => [
+              styles.backBtn,
+              { borderColor: border },
+              pressed && styles.pressed,
+            ]}
             onPress={handleClose}
-            style={[styles.backBtn, { borderColor: border }]}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
             hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
           >
             <Text style={[styles.backArrow, { color: text }]}>‹</Text>
-          </TouchableOpacity>
+          </Pressable>
           <Text style={[styles.headerName, { color: text }]} numberOfLines={1}>
             NOTIFICATIONS
           </Text>
@@ -104,7 +113,10 @@ export default function NotificationsScreen({
           <FlashList
             data={filteredItems}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + SPACE.s12 }]}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: insets.bottom + SPACE.s12 },
+            ]}
             refreshing={refreshing}
             onRefresh={handleRefresh}
             renderItem={({ item }: { item: NotificationWithActor }) => {
@@ -157,10 +169,17 @@ export default function NotificationsScreen({
 
               return (
                 <View style={[styles.row, { borderBottomColor: border }]}>
-                  <TouchableOpacity
-                    activeOpacity={0.7}
+                  <Pressable
+                    style={({ pressed }) => pressed && styles.pressed}
                     onPress={handleAvatarPress}
-                    hitSlop={{ top: OFFSET.o4, bottom: OFFSET.o4, left: OFFSET.o4, right: OFFSET.o4 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${name}'s profile`}
+                    hitSlop={{
+                      top: OFFSET.o4,
+                      bottom: OFFSET.o4,
+                      left: OFFSET.o4,
+                      right: OFFSET.o4,
+                    }}
                   >
                     {item.actor.avatar_url ? (
                       <Image source={{ uri: item.actor.avatar_url }} style={styles.avatar} />
@@ -175,12 +194,13 @@ export default function NotificationsScreen({
                         <Text style={[styles.avatarInitials, { color: text }]}>{initials}</Text>
                       </View>
                     )}
-                  </TouchableOpacity>
+                  </Pressable>
 
-                  <TouchableOpacity
-                    activeOpacity={0.7}
+                  <Pressable
+                    style={({ pressed }) => [styles.rowText, pressed && styles.pressed]}
                     onPress={handleContentPress}
-                    style={styles.rowText}
+                    accessibilityRole="button"
+                    accessibilityLabel={caption}
                   >
                     <Text style={[styles.rowCaption, { color: text }]} numberOfLines={2}>
                       {caption}
@@ -188,7 +208,7 @@ export default function NotificationsScreen({
                     <Text style={[styles.rowTime, { color: muted }]}>
                       {relativeTime(item.created_at)}
                     </Text>
-                  </TouchableOpacity>
+                  </Pressable>
 
                   {item.is_read === false ? <View style={styles.unreadDot} /> : null}
                 </View>
@@ -209,6 +229,9 @@ export default function NotificationsScreen({
 }
 
 const styles = StyleSheet.create({
+  pressed: {
+    opacity: 0.7,
+  },
   root: {
     flex: 1,
   },

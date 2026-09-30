@@ -6,7 +6,7 @@ import {
   TextInput,
   FlatList,
   Image,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Platform,
   ActivityIndicator,
@@ -52,7 +52,12 @@ function UserRow({
   const initials = displayName[0]?.toUpperCase() ?? '?';
 
   return (
-    <TouchableOpacity style={styles.row} activeOpacity={0.7} onPress={onPress}>
+    <Pressable
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={item.username ? `${displayName}, @${item.username}` : displayName}
+    >
       {item.avatar_url ? (
         <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
       ) : (
@@ -67,7 +72,7 @@ function UserRow({
         ) : null}
       </View>
       <PointsBadge points={item.points} style={[styles.streakText, { color: muted }]} />
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -205,10 +210,10 @@ export default function GlobalSearchOverlay({
         pointerEvents="none"
       />
 
-      {/* Tap backdrop to dismiss */}
-      <TouchableOpacity
+      {/* Tap backdrop to dismiss. Hidden from screen readers: the Cancel button does the same. */}
+      <Pressable
         style={StyleSheet.absoluteFill}
-        activeOpacity={1}
+        accessible={false}
         onPress={() => {
           Keyboard.dismiss();
           onClose();
@@ -240,13 +245,15 @@ export default function GlobalSearchOverlay({
                 accessibilityLabel="Search users"
               />
             </View>
-            <TouchableOpacity
+            <Pressable
+              style={({ pressed }) => [styles.cancelBtn, pressed && styles.pressed]}
               onPress={onClose}
-              style={styles.cancelBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel search"
               hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
             >
               <Text style={[styles.cancelText, { color: text }]}>CANCEL</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           {/* Divider */}
@@ -336,6 +343,9 @@ export default function GlobalSearchOverlay({
 }
 
 const styles = StyleSheet.create({
+  pressed: {
+    opacity: 0.7,
+  },
   root: {
     ...StyleSheet.absoluteFill,
     zIndex: 500,

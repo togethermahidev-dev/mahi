@@ -4,7 +4,7 @@ import {
   Text,
   Modal,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   FlatList,
   TextInput,
   Keyboard,
@@ -20,7 +20,18 @@ import { useMessages } from '@/hooks/useMessages';
 import { groupMessagesByDate, type GroupedRow } from '@/lib/groupMessages';
 import type { ConversationPreview } from '@/api';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE, BORDER_WIDTH, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  OFFSET,
+  SIZE,
+  BORDER_WIDTH,
+  LINE_HEIGHT,
+  TRACKING,
+} from '@/constants/tokens';
 
 interface ConversationScreenProps {
   conversation: ConversationPreview;
@@ -123,18 +134,21 @@ export default function ConversationScreen({
       <View style={[styles.root, { backgroundColor: bg }]}>
         {/* Header */}
         <View
-          style={[
-            styles.header,
-            { borderBottomColor: border, paddingTop: insets.top + SPACE.s8 },
-          ]}
+          style={[styles.header, { borderBottomColor: border, paddingTop: insets.top + SPACE.s8 }]}
         >
-          <TouchableOpacity
+          <Pressable
+            style={({ pressed }) => [
+              styles.backBtn,
+              { borderColor: border },
+              pressed && styles.pressed,
+            ]}
             onPress={onBack}
-            style={[styles.backBtn, { borderColor: border }]}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
             hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
           >
             <Text style={[styles.backArrow, { color: text }]}>‹</Text>
-          </TouchableOpacity>
+          </Pressable>
           <Text style={[styles.headerName, { color: text }]} numberOfLines={1}>
             {otherName}
           </Text>
@@ -149,20 +163,30 @@ export default function ConversationScreen({
               Message request from @{conversation.other_profile.username}
             </Text>
             <View style={styles.requestActions}>
-              <TouchableOpacity
-                style={[styles.requestBtn, { borderColor: text }]}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.requestBtn,
+                  { borderColor: text },
+                  pressed && styles.pressed,
+                ]}
                 onPress={handleAccept}
-                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Accept request"
               >
                 <Text style={[styles.requestBtnText, { color: text }]}>ACCEPT</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.requestBtn, styles.denyBtn]}
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.requestBtn,
+                  styles.denyBtn,
+                  pressed && styles.pressed,
+                ]}
                 onPress={handleDeny}
-                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Deny request"
               >
                 <Text style={[styles.requestBtnText, styles.denyText]}>DENY</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         ) : null}
@@ -254,14 +278,20 @@ export default function ConversationScreen({
               enablesReturnKeyAutomatically
               onSubmitEditing={handleSend}
             />
-            <TouchableOpacity
-              style={[styles.sendBtn, { opacity: inputText.trim() ? 1 : 0.35 }]}
+            <Pressable
+              style={({ pressed }) => [
+                styles.sendBtn,
+                { opacity: inputText.trim() ? 1 : 0.35 },
+                pressed && styles.pressed,
+              ]}
               onPress={handleSend}
-              activeOpacity={0.7}
               disabled={!inputText.trim() || sending}
+              accessibilityRole="button"
+              accessibilityLabel="Send"
+              accessibilityState={{ disabled: !inputText.trim() || sending }}
             >
               <Text style={[styles.sendText, { color: text }]}>SEND</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
           <KeyboardInset />
         </View>
@@ -271,6 +301,9 @@ export default function ConversationScreen({
 }
 
 const styles = StyleSheet.create({
+  pressed: {
+    opacity: 0.7,
+  },
   root: {
     flex: 1,
   },

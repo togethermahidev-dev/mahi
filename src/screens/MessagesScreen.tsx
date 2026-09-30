@@ -1,12 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  Modal,
-} from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, Modal } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -19,7 +12,19 @@ import GlobalSearchOverlay from '@/components/GlobalSearchOverlay';
 import { SearchIcon } from '@/components/ScreenIcons';
 import type { ConversationPreview } from '@/api';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, ICON_SIZE, SIZE, BORDER_WIDTH, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  OFFSET,
+  ICON_SIZE,
+  SIZE,
+  BORDER_WIDTH,
+  LINE_HEIGHT,
+  TRACKING,
+} from '@/constants/tokens';
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -62,9 +67,11 @@ function ConvoRow({
   // the row opens the conversation. No dead zone between them.
   return (
     <View style={[styles.convoRow, { borderBottomColor: border }]}>
-      <TouchableOpacity
+      <Pressable
+        style={({ pressed }) => pressed && styles.pressed}
         onPress={onAvatarPress}
-        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`${name}'s profile`}
         hitSlop={{ top: OFFSET.o14, bottom: OFFSET.o14, left: OFFSET.o8, right: OFFSET.o8 }}
       >
         {item.other_profile.avatar_url ? (
@@ -76,12 +83,13 @@ function ConvoRow({
             <Text style={[styles.convoInitial, { color: text }]}>{initials}</Text>
           </View>
         )}
-      </TouchableOpacity>
+      </Pressable>
 
-      <TouchableOpacity
-        style={styles.convoBody}
+      <Pressable
+        style={({ pressed }) => [styles.convoBody, pressed && styles.pressed]}
         onPress={onPress}
-        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`Conversation with ${name}${unread ? ', unread' : ''}`}
         hitSlop={{ top: OFFSET.o14, bottom: OFFSET.o14, right: OFFSET.o8 }}
       >
         <View style={styles.convoInfo}>
@@ -95,7 +103,7 @@ function ConvoRow({
           <Text style={[styles.convoTime, { color: muted }]}>{relativeTime(item.updated_at)}</Text>
           {unread ? <View style={[styles.unreadDot, { backgroundColor: accent }]} /> : null}
         </View>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
@@ -136,33 +144,49 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
         style={[styles.header, { borderBottomColor: border, paddingTop: insets.top + SPACE.s8 }]}
       >
         {onBack ? (
-          <TouchableOpacity
+          <Pressable
+            style={({ pressed }) => [
+              styles.backBtn,
+              { borderColor: muted },
+              pressed && styles.pressed,
+            ]}
             onPress={onBack}
-            style={[styles.backBtn, { borderColor: muted }]}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
             hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
           >
             <Text style={[styles.backArrow, { color: text }]}>‹</Text>
-          </TouchableOpacity>
+          </Pressable>
         ) : (
           // Spacer balances the right-side search icon so the title stays centred.
           <View style={styles.headerIconBtn} />
         )}
         <Text style={[styles.headerTitle, { color: text }]}>MESSAGES</Text>
-        <TouchableOpacity
+        <Pressable
+          style={({ pressed }) => [styles.headerIconBtn, pressed && styles.pressed]}
           onPress={() => setSearchVisible(true)}
-          style={styles.headerIconBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Search"
           hitSlop={{ top: OFFSET.o10, bottom: OFFSET.o10, left: OFFSET.o10, right: OFFSET.o10 }}
-          activeOpacity={0.7}
         >
           <SearchIcon size={ICON_SIZE.i22} color={text} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {/* Requests pill row — shows badge with count of incoming (non-self) requests */}
-      <TouchableOpacity
-        style={[styles.requestsPill, { borderBottomColor: border }]}
+      <Pressable
+        style={({ pressed }) => [
+          styles.requestsPill,
+          { borderBottomColor: border },
+          pressed && styles.pressed,
+        ]}
         onPress={() => setShowRequests(true)}
-        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={
+          incomingRequestCount > 0
+            ? `Message requests, ${incomingRequestCount} new`
+            : 'Message requests'
+        }
       >
         <Text style={[styles.requestsLabel, { color: text }]}>MESSAGE REQUESTS</Text>
         <View style={styles.requestsRight}>
@@ -173,7 +197,7 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
           ) : null}
           <Text style={[styles.chevron, { color: muted }]}>›</Text>
         </View>
-      </TouchableOpacity>
+      </Pressable>
 
       {/* Inbox list */}
       <FlashList
@@ -248,6 +272,9 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
 }
 
 const styles = StyleSheet.create({
+  pressed: {
+    opacity: 0.7,
+  },
   root: {
     flex: 1,
   },
