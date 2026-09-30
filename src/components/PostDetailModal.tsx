@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   Image,
+  Modal,
   StyleSheet,
   TouchableOpacity,
-  Animated,
-  Dimensions,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import CaptionText from '@/components/CaptionText';
 import DraggablePip from '@/components/DraggablePip';
@@ -29,30 +30,40 @@ import {
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const APP_HEADER_H = Platform.OS === 'ios' ? 108 : 80;
 
 interface PostDetailModalProps {
-  post: PostRow;
+  /** The post to show; null keeps the modal closed. */
+  post: PostRow | null;
   onClose: () => void;
 }
 
+/** A tapped grid post, full screen, fading in over whatever screen opened it. */
 export default function PostDetailModal({
   post,
   onClose,
 }: PostDetailModalProps): React.JSX.Element {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  // Keep showing the last post while the modal fades out after `post` goes null.
+  const [shown, setShown] = useState(post);
+  if (post && post !== shown) setShown(post);
 
-  useEffect(() => {
-    Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-  }, []);
+  return (
+    <Modal
+      visible={!!post}
+      animationType="fade"
+      transparent
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      {/* A Modal is its own native window: gesture-handler needs its own root here. */}
+      <GestureHandlerRootView style={styles.root}>
+        {shown ? <PostDetail key={shown.id} post={shown} onClose={onClose} /> : null}
+      </GestureHandlerRootView>
+    </Modal>
+  );
+}
 
-  const handleClose = () => {
-    Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() =>
-      onClose()
-    );
-  };
-
+function PostDetail({ post, onClose }: { post: PostRow; onClose: () => void }): React.JSX.Element {
   // ── Dual-camera PiP ──────────────────────────────────────────────────────
   const hasDual = !!post.pov_image_url;
   const [rearIsPrimary, setRearIsPrimary] = useState(true);
@@ -60,7 +71,8 @@ export default function PostDetailModal({
   const pipUrl = hasDual && !rearIsPrimary ? post.image_url : post.pov_image_url;
 
   // ── Draggable PiP (same safe zone as the feed, a little higher: no tagged pills here) ──
-  const pipSafeZone = pipZone({ width: SCREEN_W, height: SCREEN_H }, APP_HEADER_H + OFFSET.o60);
+  const screen = useWindowDimensions();
+  const pipSafeZone = pipZone(screen, APP_HEADER_H + OFFSET.o60);
 
   // ── Date string ───────────────────────────────────────────────────────────
   const dateStr = new Date(post.created_at).toLocaleDateString('en-US', {
@@ -70,7 +82,7 @@ export default function PostDetailModal({
   });
 
   return (
-    <Animated.View style={[styles.root, { opacity: fadeAnim }]}>
+    <>
       {/* Fullscreen image */}
       <Image
         source={{ uri: primaryUrl ?? undefined }}
@@ -84,7 +96,7 @@ export default function PostDetailModal({
         style={styles.topOverlay}
       >
         <TouchableOpacity
-          onPress={handleClose}
+          onPress={onClose}
           style={styles.closeBtn}
           hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
@@ -120,14 +132,13 @@ export default function PostDetailModal({
           onTap={() => setRearIsPrimary((p) => !p)}
         />
       )}
-    </Animated.View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFill,
-    zIndex: 520,
+    flex: 1,
     backgroundColor: COLORS.black,
   },
   topOverlay: {

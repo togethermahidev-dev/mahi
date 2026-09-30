@@ -169,9 +169,7 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
       />
 
       {/* Post detail — opened when a grid cell is tapped */}
-      {selectedPost ? (
-        <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />
-      ) : null}
+      <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />
 
       {/* Suggested user's profile — opened from a suggestion card */}
       {profileUserId ? (
