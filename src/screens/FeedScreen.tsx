@@ -12,6 +12,7 @@ import {
   Dimensions,
   TextInput,
   Keyboard,
+  Modal,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
@@ -428,23 +429,42 @@ function PostItem({
   );
 }
 
-// ─── CommentSheet (bottom-sheet overlay) ────────────────────────────────────
+// ─── CommentSheet (native page sheet) ───────────────────────────────────────
 
-const SHEET_HEIGHT = SCREEN_HEIGHT * 0.6;
-
+/** Comments for one post in a native iOS page sheet; swipe down or Android back closes it. */
 function CommentSheet({
   postId,
   dark,
   onClose,
 }: {
-  postId: string;
+  /** The post whose comments to show; null keeps the sheet closed. */
+  postId: string | null;
   dark: boolean;
   onClose: () => void;
 }) {
+  const sheetBg = dark ? COLORS.surfaceDark2 : COLORS.surfaceLight;
+  // Keep the last post's comments on screen while the sheet slides away.
+  const [shownId, setShownId] = useState(postId);
+  if (postId && postId !== shownId) setShownId(postId);
+
+  return (
+    <Modal
+      visible={!!postId}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <View style={[styles.sheet, { backgroundColor: sheetBg }]}>
+        {shownId ? <CommentThread key={shownId} postId={shownId} dark={dark} /> : null}
+      </View>
+    </Modal>
+  );
+}
+
+function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
   const border = dark ? withAlpha(COLORS.offWhite, 0.1) : withAlpha(COLORS.offBlack, 0.1);
-  const sheetBg = dark ? COLORS.surfaceDark2 : COLORS.surfaceLight;
 
   const [commentText, setCommentText] = useState('');
   const currentUser = useUserStore((s) => s.profile);
@@ -454,26 +474,9 @@ function CommentSheet({
     return p?.comment_count ?? 0;
   });
 
-  // Slide-up animation
-  const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
-
   useEffect(() => {
     useSocialStore.getState().loadComments(postId);
-    Animated.spring(slideAnim, {
-      toValue: 0,
-      damping: 22,
-      stiffness: 200,
-      useNativeDriver: true,
-    }).start();
   }, [postId]);
-
-  const dismiss = useCallback(() => {
-    Animated.timing(slideAnim, {
-      toValue: SHEET_HEIGHT,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => onClose());
-  }, [onClose, slideAnim]);
 
   const handleSubmitComment = useCallback(() => {
     const trimmed = commentText.trim();
@@ -489,66 +492,52 @@ function CommentSheet({
   }, [commentText, postId, currentUser]);
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {/* Backdrop */}
-      <TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={dismiss} />
-      {/* Sheet */}
-      <Animated.View
-        style={[
-          styles.sheetContainer,
-          {
-            height: SHEET_HEIGHT,
-            backgroundColor: sheetBg,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        {/* Handle */}
-        <View style={styles.sheetHandle}>
-          <View style={[styles.sheetHandleBar, { backgroundColor: muted }]} />
-          <Text style={[styles.sheetTitle, { color: text }]}>
-            {commentCount} {commentCount === 1 ? 'COMMENT' : 'COMMENTS'}
-          </Text>
-        </View>
+    <>
+      <Text style={[styles.sheetTitle, { color: text }]} accessibilityRole="header">
+        {commentCount} {commentCount === 1 ? 'COMMENT' : 'COMMENTS'}
+      </Text>
 
-        {/* Comment list */}
-        <View style={{ flex: 1 }}>
-          {comments && comments.length > 0 ? (
-            <FlashList
-              data={comments}
-              keyExtractor={(c) => c.id}
-              renderItem={({ item: comment }) => <CommentRow comment={comment} dark={dark} />}
-            />
-          ) : (
-            <View style={styles.sheetEmpty}>
-              <Text style={[styles.sheetEmptyText, { color: muted }]}>No comments yet</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Comment input — KeyboardInset below keeps it just above the keyboard */}
-        <View style={[styles.commentInputRow, { borderTopColor: border }]}>
-          <TextInput
-            style={[styles.commentInput, { color: text, borderColor: border }]}
-            placeholder="Add a comment…"
-            placeholderTextColor={muted}
-            value={commentText}
-            onChangeText={setCommentText}
-            returnKeyType="send"
-            onSubmitEditing={handleSubmitComment}
-            autoFocus
+      {/* Comment list */}
+      <View style={styles.sheetList}>
+        {comments && comments.length > 0 ? (
+          <FlashList
+            data={comments}
+            keyExtractor={(c) => c.id}
+            renderItem={({ item: comment }) => <CommentRow comment={comment} dark={dark} />}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
           />
-          <TouchableOpacity
-            style={[styles.commentSubmit, { backgroundColor: COLORS.accent }]}
-            onPress={handleSubmitComment}
-            activeOpacity={0.75}
-          >
-            <Text style={styles.commentSubmitText}>SEND</Text>
-          </TouchableOpacity>
-        </View>
-        <KeyboardInset />
-      </Animated.View>
-    </View>
+        ) : (
+          <View style={styles.sheetEmpty}>
+            <Text style={[styles.sheetEmptyText, { color: muted }]}>No comments yet</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Comment input — KeyboardInset below keeps it just above the keyboard */}
+      <View style={[styles.commentInputRow, { borderTopColor: border }]}>
+        <TextInput
+          style={[styles.commentInput, { color: text, borderColor: border }]}
+          placeholder="Add a comment…"
+          placeholderTextColor={muted}
+          value={commentText}
+          onChangeText={setCommentText}
+          returnKeyType="send"
+          onSubmitEditing={handleSubmitComment}
+          autoCapitalize="sentences"
+          enablesReturnKeyAutomatically
+          autoFocus
+        />
+        <TouchableOpacity
+          style={[styles.commentSubmit, { backgroundColor: COLORS.accent }]}
+          onPress={handleSubmitComment}
+          activeOpacity={0.75}
+        >
+          <Text style={styles.commentSubmitText}>SEND</Text>
+        </TouchableOpacity>
+      </View>
+      <KeyboardInset />
+    </>
   );
 }
 
@@ -713,9 +702,7 @@ export default function FeedScreen({
       ) : null}
 
       {/* Comment sheet — opened when comment button is tapped */}
-      {commentPostId ? (
-        <CommentSheet postId={commentPostId} dark={dark} onClose={() => setCommentPostId(null)} />
-      ) : null}
+      <CommentSheet postId={commentPostId} dark={dark} onClose={() => setCommentPostId(null)} />
     </View>
   );
 }
@@ -923,35 +910,20 @@ const styles = StyleSheet.create({
     letterSpacing: TRACKING.t2,
     color: COLORS.white,
   },
-  // ── Comment sheet (bottom-sheet overlay)
-  sheetBackdrop: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: withAlpha(COLORS.black, 0.5),
-  },
-  sheetContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopLeftRadius: RADIUS.r16,
-    borderTopRightRadius: RADIUS.r16,
-    overflow: 'hidden',
-  },
-  sheetHandle: {
-    alignItems: 'center',
-    paddingTop: SPACE.s10,
-    paddingBottom: SPACE.s12,
-    gap: SPACE.s8,
-  },
-  sheetHandleBar: {
-    width: SIZE.z36,
-    height: SIZE.z4,
-    borderRadius: RADIUS.r2,
+  // ── Comment sheet (native page sheet)
+  sheet: {
+    flex: 1,
   },
   sheetTitle: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
     letterSpacing: TRACKING.t2,
+    textAlign: 'center',
+    paddingTop: SPACE.s20,
+    paddingBottom: SPACE.s12,
+  },
+  sheetList: {
+    flex: 1,
   },
   sheetEmpty: {
     flex: 1,
