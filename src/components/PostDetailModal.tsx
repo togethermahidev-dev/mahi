@@ -9,16 +9,10 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Reanimated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  runOnJS,
-} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import CaptionText from '@/components/CaptionText';
+import DraggablePip from '@/components/DraggablePip';
+import { pipZone } from '@/lib/pip';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -27,10 +21,8 @@ import {
   FONT_SIZE,
   SPACE,
   RADIUS,
-  BORDER_WIDTH,
   LINE_HEIGHT,
   OFFSET,
-  SHADOW_BLUR,
   SIZE,
   TRACKING,
 } from '@/constants/tokens';
@@ -39,8 +31,6 @@ type PostRow = Database['public']['Tables']['posts']['Row'];
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const APP_HEADER_H = Platform.OS === 'ios' ? 108 : 80;
-const PIP_W = 90;
-const PIP_H = 120;
 
 interface PostDetailModalProps {
   post: PostRow;
@@ -69,61 +59,8 @@ export default function PostDetailModal({
   const primaryUrl = hasDual && !rearIsPrimary ? post.pov_image_url! : post.image_url;
   const pipUrl = hasDual && !rearIsPrimary ? post.image_url : post.pov_image_url;
 
-  // ── Draggable PiP (same safe-zone logic as FeedScreen) ────────────────
-  const BOTTOM_CONTENT_H = 200;
-  const PIP_SAFE_TOP = APP_HEADER_H + 60;
-  const PIP_SAFE_BOTTOM = SCREEN_H - BOTTOM_CONTENT_H - PIP_H;
-  const PIP_SAFE_LEFT = 8;
-  const PIP_SAFE_RIGHT = SCREEN_W - PIP_W - 70;
-
-  const initialPipX = PIP_SAFE_LEFT;
-  const initialPipY = PIP_SAFE_BOTTOM;
-  const pipTransX = useSharedValue(initialPipX);
-  const pipTransY = useSharedValue(initialPipY);
-  const pipStartX = useSharedValue(initialPipX);
-  const pipStartY = useSharedValue(initialPipY);
-  const pipScaleVal = useSharedValue(1);
-
-  const pipPanGesture = Gesture.Pan()
-    .activateAfterLongPress(150)
-    .onStart(() => {
-      'worklet';
-      pipStartX.value = pipTransX.value;
-      pipStartY.value = pipTransY.value;
-      pipScaleVal.value = withSpring(1.1, { damping: 12, stiffness: 200 });
-      runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
-    })
-    .onUpdate((e) => {
-      'worklet';
-      const rawX = pipStartX.value + e.translationX;
-      const rawY = pipStartY.value + e.translationY;
-      pipTransX.value = Math.max(PIP_SAFE_LEFT, Math.min(rawX, PIP_SAFE_RIGHT));
-      pipTransY.value = Math.max(PIP_SAFE_TOP, Math.min(rawY, PIP_SAFE_BOTTOM));
-    })
-    .onEnd(() => {
-      'worklet';
-      const midX = (PIP_SAFE_LEFT + PIP_SAFE_RIGHT) / 2;
-      const midY = (PIP_SAFE_TOP + PIP_SAFE_BOTTOM) / 2;
-      const snapX = pipTransX.value < midX ? PIP_SAFE_LEFT : PIP_SAFE_RIGHT;
-      const snapY = pipTransY.value < midY ? PIP_SAFE_TOP : PIP_SAFE_BOTTOM;
-      pipTransX.value = withSpring(snapX, { damping: 16, stiffness: 140, overshootClamping: true });
-      pipTransY.value = withSpring(snapY, { damping: 16, stiffness: 140, overshootClamping: true });
-      pipScaleVal.value = withSpring(1, { damping: 12, stiffness: 200 });
-    });
-
-  const pipAnimStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: pipTransX.value },
-      { translateY: pipTransY.value },
-      { scale: pipScaleVal.value },
-    ],
-  }));
-
-  const pipTapGesture = Gesture.Tap()
-    .runOnJS(true)
-    .onEnd(() => setRearIsPrimary((p) => !p));
-
-  const pipGesture = Gesture.Race(pipPanGesture, pipTapGesture);
+  // ── Draggable PiP (same safe zone as the feed, a little higher: no tagged pills here) ──
+  const pipSafeZone = pipZone({ width: SCREEN_W, height: SCREEN_H }, APP_HEADER_H + OFFSET.o60);
 
   // ── Date string ───────────────────────────────────────────────────────────
   const dateStr = new Date(post.created_at).toLocaleDateString('en-US', {
@@ -177,15 +114,11 @@ export default function PostDetailModal({
 
       {/* Draggable PiP */}
       {hasDual && pipUrl && (
-        <GestureDetector gesture={pipGesture}>
-          <Reanimated.View style={[styles.pip, pipAnimStyle]}>
-            <Image
-              source={{ uri: pipUrl }}
-              style={[StyleSheet.absoluteFill, { borderRadius: RADIUS.r10 }]}
-              resizeMode="cover"
-            />
-          </Reanimated.View>
-        </GestureDetector>
+        <DraggablePip
+          uri={pipUrl}
+          zone={pipSafeZone}
+          onTap={() => setRearIsPrimary((p) => !p)}
+        />
       )}
     </Animated.View>
   );
@@ -258,21 +191,5 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.italic,
     letterSpacing: TRACKING.t1,
     color: withAlpha(COLORS.white, 0.6),
-  },
-  pip: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: PIP_W,
-    height: PIP_H,
-    borderRadius: RADIUS.r10,
-    overflow: 'hidden',
-    borderWidth: BORDER_WIDTH.w2,
-    borderColor: withAlpha(COLORS.white, 0.6),
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: SIZE.z3 },
-    shadowOpacity: 0.35,
-    shadowRadius: SHADOW_BLUR.b6,
-    elevation: 6,
   },
 });
