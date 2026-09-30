@@ -5,10 +5,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Platform,
   Modal,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMessages } from '@/hooks/useMessages';
 import { useAuthStore } from '@/store';
@@ -111,6 +111,7 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
   const muted = dark ? withAlpha(COLORS.offWhite, 0.4) : withAlpha(COLORS.offBlack, 0.4);
   const border = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.12);
   const accent = colors.accent;
+  const insets = useSafeAreaInsets();
 
   const [openConvo, setOpenConvo] = useState<ConversationPreview | null>(null);
   const [showRequests, setShowRequests] = useState(false);
@@ -131,7 +132,9 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: border }]}>
+      <View
+        style={[styles.header, { borderBottomColor: border, paddingTop: insets.top + SPACE.s8 }]}
+      >
         {onBack ? (
           <TouchableOpacity
             onPress={onBack}
@@ -251,7 +254,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? SPACE.s60 : SPACE.s32,
     paddingHorizontal: SPACE.s24,
     paddingBottom: SPACE.s16,
     borderBottomWidth: StyleSheet.hairlineWidth,
