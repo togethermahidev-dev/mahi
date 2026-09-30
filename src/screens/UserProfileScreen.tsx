@@ -510,9 +510,15 @@ export default function UserProfileScreen({
                     activeOpacity={0.75}
                     disabled={messaging}
                   >
-                    <Text style={[styles.messageBtnText, { color: text }]}>
-                      {messaging ? '…' : 'MESSAGE'}
+                    {/* The label stays (hidden) while opening, so the button keeps its size. */}
+                    <Text
+                      style={[styles.messageBtnText, { color: text, opacity: messaging ? 0 : 1 }]}
+                    >
+                      MESSAGE
                     </Text>
+                    {messaging ? (
+                      <ActivityIndicator color={text} style={StyleSheet.absoluteFill} />
+                    ) : null}
                   </TouchableOpacity>
                 </View>
               ) : null}
