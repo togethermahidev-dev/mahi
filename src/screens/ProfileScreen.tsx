@@ -16,7 +16,7 @@ import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SIZE, OFFSET, ICON_SIZE, TRACKING, LINE_HEIGHT, BORDER_WIDTH } from '@/constants/tokens';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 
@@ -58,15 +58,15 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
       <View style={styles.headerLeft}>
         <TouchableOpacity
           onPress={() => setSettingsOpen(true)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
-          <SettingsIcon size={22} color={toggleColor} />
+          <SettingsIcon size={ICON_SIZE.i22} color={toggleColor} />
         </TouchableOpacity>
       </View>
 
       {/* Theme toggle — top-right */}
       <View style={styles.headerRight}>
-        <ThemeToggle color={toggleColor} size={22} />
+        <ThemeToggle color={toggleColor} size={ICON_SIZE.i22} />
       </View>
 
       {/* Profile header — avatar, name, stats */}
@@ -90,7 +90,7 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
         {/* Merged Rest Days & Streak panel trigger */}
         <TouchableOpacity
           onPress={() => setRestDaysStreakOpen(true)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
           activeOpacity={0.75}
           style={[styles.restDaysStreakPill, { borderColor: COLORS.accent }]}
         >
@@ -195,13 +195,13 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 32,
-    left: 24,
+    top: Platform.OS === 'ios' ? OFFSET.o60 : OFFSET.o32,
+    left: OFFSET.o24,
   },
   headerRight: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 32,
-    right: 24,
+    top: Platform.OS === 'ios' ? OFFSET.o60 : OFFSET.o32,
+    right: OFFSET.o24,
   },
   header: {
     alignItems: 'center',
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize: FONT_SIZE.f22,
     fontFamily: FONTS.bold,
-    letterSpacing: 4,
+    letterSpacing: TRACKING.t4,
     marginBottom: SPACE.s6,
     textAlign: 'center',
   },
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.s8,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s16,
     paddingVertical: SPACE.s6,
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   restDaysStreakPillText: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f10,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
     color: COLORS.accent,
   },
   restDaysStreakChevron: {
@@ -252,16 +252,16 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: FONT_SIZE.f28,
     fontFamily: FONTS.bold,
-    lineHeight: 28,
+    lineHeight: LINE_HEIGHT.l28,
   },
   statLabel: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
   },
   statDivider: {
-    width: 1,
-    height: 40,
+    width: SIZE.z1,
+    height: SIZE.z40,
     opacity: 0.3,
   },
   mapShadow: {

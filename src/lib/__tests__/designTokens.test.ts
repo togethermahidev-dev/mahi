@@ -42,6 +42,22 @@ describe('design tokens', () => {
     expect(offenders(/[bB]order[A-Za-z]*Radius:(?:\s*|[^,;\n{}]*?[:?(+-]\s*)[1-9]/)).toEqual([]);
   });
 
+  // A number typed straight after the key, or after ?, :, (, + or - further along the value.
+  const raw = (key: string) =>
+    new RegExp(`\\b(?:${key})(?:=\\{|:)(?:\\s*|[^,;\\n{}]*?[:?(+-]\\s*)-?[1-9]`);
+
+  it.each([
+    ['shadow blur', 'shadowRadius'],
+    ['size', 'width|height|minWidth|maxWidth|minHeight|maxHeight'],
+    ['position', 'top|left|right|bottom'],
+    ['icon size', 'size'],
+    ['letter spacing', 'letterSpacing'],
+    ['line height', 'lineHeight'],
+    ['border width', 'border[A-Za-z]*Width'],
+  ])('no %s is typed out by hand', (_kind, key) => {
+    expect(offenders(raw(key))).toEqual([]);
+  });
+
   it('withAlpha turns a token into an rgba colour', () => {
     expect(withAlpha(COLORS.offWhite, 0.45)).toBe('rgba(232,232,227,0.45)');
     expect(withAlpha(COLORS.accent, 0.5)).toBe('rgba(89,194,215,0.5)');

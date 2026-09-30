@@ -21,7 +21,19 @@ import * as Haptics from 'expo-haptics';
 import CaptionText from '@/components/CaptionText';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  BORDER_WIDTH,
+  LINE_HEIGHT,
+  OFFSET,
+  SHADOW_BLUR,
+  SIZE,
+  TRACKING,
+} from '@/constants/tokens';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 
@@ -130,11 +142,14 @@ export default function PostDetailModal({
       />
 
       {/* Top gradient — close button + streak badge */}
-      <LinearGradient colors={[withAlpha(COLORS.black, 0.6), 'transparent']} style={styles.topOverlay}>
+      <LinearGradient
+        colors={[withAlpha(COLORS.black, 0.6), 'transparent']}
+        style={styles.topOverlay}
+      >
         <TouchableOpacity
           onPress={handleClose}
           style={styles.closeBtn}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
           <Text style={styles.closeX}>✕</Text>
         </TouchableOpacity>
@@ -195,8 +210,8 @@ const styles = StyleSheet.create({
     paddingBottom: SPACE.s32,
   },
   closeBtn: {
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
     backgroundColor: withAlpha(COLORS.black, 0.4),
     alignItems: 'center',
@@ -205,7 +220,7 @@ const styles = StyleSheet.create({
   closeX: {
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.semiBold,
-    lineHeight: 18,
+    lineHeight: LINE_HEIGHT.l18,
     color: COLORS.white,
   },
   streakBadge: {
@@ -217,7 +232,7 @@ const styles = StyleSheet.create({
   streakText: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
     color: COLORS.white,
   },
   bottomOverlay: {
@@ -235,13 +250,13 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.italic,
     color: COLORS.white,
     textShadowColor: withAlpha(COLORS.black, 0.5),
-    textShadowOffset: { width: 0, height: 1 },
+    textShadowOffset: { width: 0, height: SIZE.z1 },
     textShadowRadius: 3,
   },
   dateText: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.italic,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
     color: withAlpha(COLORS.white, 0.6),
   },
   pip: {
@@ -252,12 +267,12 @@ const styles = StyleSheet.create({
     height: PIP_H,
     borderRadius: RADIUS.r10,
     overflow: 'hidden',
-    borderWidth: 2,
+    borderWidth: BORDER_WIDTH.w2,
     borderColor: withAlpha(COLORS.white, 0.6),
     shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: SIZE.z3 },
     shadowOpacity: 0.35,
-    shadowRadius: 6,
+    shadowRadius: SHADOW_BLUR.b6,
     elevation: 6,
   },
 });

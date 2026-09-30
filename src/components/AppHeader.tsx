@@ -6,7 +6,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { ProfileIcon, MessagesIcon, NotificationsIcon } from '@/components/ScreenIcons';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, ICON_SIZE, SIZE, TRACKING, OFFSET } from '@/constants/tokens';
 
 interface AppHeaderProps {
   // true on Camera screen (always dark bg) → white text/icons
@@ -63,7 +63,7 @@ export default function AppHeader({
             onPress={onProfilePress}
             activeOpacity={0.75}
           >
-            <ProfileIcon size={16} color={pillIcon} />
+            <ProfileIcon size={ICON_SIZE.i16} color={pillIcon} />
           </TouchableOpacity>
         )}
 
@@ -84,7 +84,7 @@ export default function AppHeader({
             onPress={onNotificationsPress}
             activeOpacity={0.75}
           >
-            <NotificationsIcon size={16} color={pillIcon} />
+            <NotificationsIcon size={ICON_SIZE.i16} color={pillIcon} />
             {unreadNotifications > 0 && <View style={styles.bellDot} />}
           </TouchableOpacity>
         )}
@@ -96,7 +96,7 @@ export default function AppHeader({
             onPress={onMessagesPress}
             activeOpacity={0.75}
           >
-            <MessagesIcon size={16} color={pillIcon} />
+            <MessagesIcon size={ICON_SIZE.i16} color={pillIcon} />
           </TouchableOpacity>
         )}
       </View>
@@ -115,8 +115,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   profilePill: {
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
     alignItems: 'center',
     justifyContent: 'center',
@@ -130,18 +130,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZE.f24,
     fontFamily: FONTS.bold,
-    letterSpacing: 8,
+    letterSpacing: TRACKING.t8,
   },
   titleEcho: {
     // accent colour echo — adjust top/left to taste
     position: 'absolute',
     color: COLORS.accent,
-    top: 3,
-    left: 3,
+    top: OFFSET.o3,
+    left: OFFSET.o3,
   },
   messagesPill: {
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
     backgroundColor: COLORS.accent,
     alignItems: 'center',
@@ -150,20 +150,20 @@ const styles = StyleSheet.create({
     right: 0,
   },
   bellPill: {
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',
-    right: 44,
+    right: OFFSET.o44,
   },
   bellDot: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 8,
-    height: 8,
+    top: OFFSET.o4,
+    right: OFFSET.o4,
+    width: SIZE.z8,
+    height: SIZE.z8,
     borderRadius: RADIUS.r4,
     backgroundColor: COLORS.accent,
   },

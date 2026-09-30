@@ -22,7 +22,16 @@ import { useAuthStore, useBlockStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { Sentry } from '@/lib/sentry';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  OFFSET,
+  SIZE,
+  TRACKING,
+} from '@/constants/tokens';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -230,7 +239,7 @@ export default function GlobalSearchOverlay({
             <TouchableOpacity
               onPress={onClose}
               style={styles.cancelBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
             >
               <Text style={[styles.cancelText, { color: text }]}>CANCEL</Text>
             </TouchableOpacity>
@@ -240,7 +249,11 @@ export default function GlobalSearchOverlay({
           <View
             style={[
               styles.divider,
-              { backgroundColor: dark ? withAlpha(COLORS.offWhite, 0.1) : withAlpha(COLORS.offBlack, 0.08) },
+              {
+                backgroundColor: dark
+                  ? withAlpha(COLORS.offWhite, 0.1)
+                  : withAlpha(COLORS.offBlack, 0.08),
+              },
             ]}
           />
 
@@ -285,7 +298,11 @@ export default function GlobalSearchOverlay({
                 <View
                   style={[
                     styles.separator,
-                    { backgroundColor: dark ? withAlpha(COLORS.offWhite, 0.08) : withAlpha(COLORS.offBlack, 0.06) },
+                    {
+                      backgroundColor: dark
+                        ? withAlpha(COLORS.offWhite, 0.08)
+                        : withAlpha(COLORS.offBlack, 0.06),
+                    },
                   ]}
                 />
               )}
@@ -357,7 +374,7 @@ const styles = StyleSheet.create({
   cancelText: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f11,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
@@ -381,7 +398,7 @@ const styles = StyleSheet.create({
   hintText: {
     fontFamily: FONTS.italic,
     fontSize: FONT_SIZE.f14,
-    letterSpacing: 0.5,
+    letterSpacing: TRACKING.t0_5,
   },
   row: {
     flexDirection: 'row',
@@ -390,8 +407,8 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
   },
   avatar: {
-    width: 44,
-    height: 44,
+    width: SIZE.z44,
+    height: SIZE.z44,
     borderRadius: RADIUS.r22,
   },
   avatarFallback: {
@@ -409,7 +426,7 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f15,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
   },
   handle: {
     fontFamily: FONTS.italic,
@@ -420,6 +437,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f13,
   },
   separator: {
-    height: 1,
+    height: SIZE.z1,
   },
 });

@@ -1,18 +1,20 @@
 import React, { useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Animated,
-  Dimensions,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import LoginSheet from '@/components/LoginSheet';
 import CreateAccountSheet from '@/components/CreateAccountSheet';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import {
+  COLORS,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  TRACKING,
+  OFFSET,
+  SIZE,
+  BORDER_WIDTH,
+} from '@/constants/tokens';
 
 const { height } = Dimensions.get('window');
 
@@ -135,10 +137,10 @@ const styles = StyleSheet.create({
   },
   titles: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   titleWrapper: { position: 'relative', marginBottom: SPACE.s12 },
-  title: { fontSize: FONT_SIZE.f56, fontFamily: FONTS.bold, letterSpacing: 10 },
-  titleEcho: { position: 'absolute', color: COLORS.accent, top: 4, left: 4 },
+  title: { fontSize: FONT_SIZE.f56, fontFamily: FONTS.bold, letterSpacing: TRACKING.t10 },
+  titleEcho: { position: 'absolute', color: COLORS.accent, top: OFFSET.o4, left: OFFSET.o4 },
   subtitle: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.italic, opacity: 0.7 },
-  gap: { height: 55 },
+  gap: { height: SIZE.z55 },
   bottomSheet: {
     flex: 1,
     paddingHorizontal: SPACE.s24,
@@ -158,6 +160,6 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r50,
     alignItems: 'center',
   },
-  buttonOutline: { backgroundColor: 'transparent', borderWidth: 1.5 },
+  buttonOutline: { backgroundColor: 'transparent', borderWidth: BORDER_WIDTH.w1_5 },
   buttonText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
 });

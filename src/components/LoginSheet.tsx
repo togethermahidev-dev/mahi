@@ -15,7 +15,7 @@ import { supabase } from '@/lib/supabase';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, FONT_SIZE, SPACE, RADIUS, TRACKING, BORDER_WIDTH } from '@/constants/tokens';
 
 const DOMAINS = ['gmail.com', 'icloud.com', 'outlook.com', 'yahoo.com'];
 
@@ -176,11 +176,16 @@ export default function LoginSheet({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { padding: SPACE.s32, gap: SPACE.s12 },
-  title: { fontSize: FONT_SIZE.f32, fontFamily: FONTS.bold, letterSpacing: 4, marginBottom: SPACE.s16 },
+  title: {
+    fontSize: FONT_SIZE.f32,
+    fontFamily: FONTS.bold,
+    letterSpacing: TRACKING.t4,
+    marginBottom: SPACE.s16,
+  },
   label: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
     marginBottom: -SPACE.s4,
   },
   input: {
@@ -206,7 +211,7 @@ const styles = StyleSheet.create({
   toggle: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, paddingHorizontal: SPACE.s4 },
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s8 },
   pill: {
-    borderWidth: 1.5,
+    borderWidth: BORDER_WIDTH.w1_5,
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s14,
     paddingVertical: SPACE.s8,

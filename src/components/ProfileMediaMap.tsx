@@ -14,7 +14,16 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  OFFSET,
+  SIZE,
+  TRACKING,
+} from '@/constants/tokens';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PLACEHOLDER_IMG = require('../../assets/jogger.png') as number;
@@ -27,7 +36,7 @@ const CELL_SIZE = (Dimensions.get('window').width - GAP * (COLS - 1)) / COLS;
 
 function CameraIcon({ color }: { color: string }) {
   return (
-    <Svg width={48} height={48} viewBox="0 0 48 48" fill="none">
+    <Svg width={SIZE.z48} height={SIZE.z48} viewBox="0 0 48 48" fill="none">
       <Path
         d="M24 30a6 6 0 1 0 0-12 6 6 0 0 0 0 12z"
         stroke={color}
@@ -155,8 +164,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
+    bottom: OFFSET.o4,
+    right: OFFSET.o4,
     borderRadius: RADIUS.r50,
     paddingVertical: SPACE.s2,
     paddingHorizontal: SPACE.s6,
@@ -164,12 +173,12 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
   },
   emptyTitle: {
     fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
     textAlign: 'center',
   },
   emptySubtitle: {

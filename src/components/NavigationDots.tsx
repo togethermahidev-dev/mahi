@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { IconProps } from '@/components/ScreenIcons';
-import { COLORS, SPACE } from '@/constants/tokens';
+import { COLORS, SPACE, ICON_SIZE, OFFSET } from '@/constants/tokens';
 
 interface NavigationDotsProps {
   count: number;
@@ -82,7 +82,7 @@ export default function NavigationDots({
             >
               {/* Icon fades in when dot becomes active */}
               <Animated.View style={{ opacity: iconOpacity }}>
-                <Icon size={14} color={iconColor} />
+                <Icon size={ICON_SIZE.i14} color={iconColor} />
               </Animated.View>
             </Animated.View>
           </TouchableOpacity>
@@ -95,7 +95,7 @@ export default function NavigationDots({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    right: 16,
+    right: OFFSET.o16,
     top: 0,
     bottom: 0,
     justifyContent: 'center',

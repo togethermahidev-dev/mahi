@@ -1,5 +1,5 @@
 import { useThemeStore } from '@/store';
-import { COLORS, SPACE, withAlpha } from '@/constants/tokens';
+import { COLORS, SIZE, SPACE, withAlpha } from '@/constants/tokens';
 
 export type EffectiveColorScheme = 'light' | 'dark';
 
@@ -57,6 +57,6 @@ export function useAppTheme(): AppTheme {
       glassOnDark: withAlpha(COLORS.bgDark, 0.72),
       glassOnLight: withAlpha(COLORS.white, 0.72),
     },
-    navRail: { width: 52, edgeGap: SPACE.s10, gap: SPACE.s6 },
+    navRail: { width: SIZE.z52, edgeGap: SPACE.s10, gap: SPACE.s6 },
   };
 }

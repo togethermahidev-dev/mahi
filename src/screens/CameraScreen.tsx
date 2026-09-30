@@ -63,7 +63,19 @@ import { nudgeLabel } from '@/lib/tagNudge';
 import { Sentry } from '@/lib/sentry';
 import { requestLocationPermission, getCurrentLocation } from '@/lib/location';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  SIZE,
+  OFFSET,
+  LINE_HEIGHT,
+  TRACKING,
+  BORDER_WIDTH,
+  SHADOW_BLUR,
+} from '@/constants/tokens';
 
 // Must match PEEK_HEIGHT in VerticalNavigator.tsx
 const PEEK_HEIGHT = 0;
@@ -146,7 +158,7 @@ function StreakBadge({ count }: { count: number }) {
 
 function FlipIcon({ color }: { color: string }) {
   return (
-    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Svg width={SIZE.z24} height={SIZE.z24} viewBox="0 0 24 24" fill="none">
       <Path
         d="M1 4v6h6"
         stroke={color}
@@ -565,7 +577,10 @@ function DualPhotoPreview({
 
           {/* Tagged bubbles — read-only preview, anchored above the pill column.
             Rendered BEFORE the PIP so the draggable PIP paints on top. */}
-          <TaggedBubbleStack users={taggedUsers} style={{ left: 16, bottom: bubbleStackBottom }} />
+          <TaggedBubbleStack
+            users={taggedUsers}
+            style={{ left: OFFSET.o16, bottom: bubbleStackBottom }}
+          />
 
           {/* Pip — draggable, tap to swap. Height tracks the pip photo's aspect
             (pipH) so a landscape shot shows wide-and-short, not cropped into a
@@ -612,7 +627,10 @@ function DualPhotoPreview({
               >
                 <BlurView intensity={40} tint="dark" style={styles.captionPill}>
                   <Text
-                    style={[styles.captionPillText, taggedUsers.length > 0 && { color: COLORS.white }]}
+                    style={[
+                      styles.captionPillText,
+                      taggedUsers.length > 0 && { color: COLORS.white },
+                    ]}
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
@@ -1759,34 +1777,34 @@ const styles = StyleSheet.create({
   },
   streakBadge: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 108 : 80,
-    right: 24,
+    top: Platform.OS === 'ios' ? OFFSET.o108 : OFFSET.o80,
+    right: OFFSET.o24,
     alignItems: 'center',
   },
   streakNumber: {
     color: COLORS.white,
     fontSize: FONT_SIZE.f38,
     fontFamily: FONTS.bold,
-    lineHeight: 38,
+    lineHeight: LINE_HEIGHT.l38,
   },
   streakLabel: {
     color: COLORS.offWhite,
     fontSize: FONT_SIZE.f8,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 2.5,
+    letterSpacing: TRACKING.t2_5,
     textAlign: 'center',
     opacity: 0.65,
     marginTop: SPACE.s3,
-    lineHeight: 11,
+    lineHeight: LINE_HEIGHT.l11,
   },
   restDayLabel: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 170 : 142,
-    right: 24,
+    top: Platform.OS === 'ios' ? OFFSET.o170 : OFFSET.o142,
+    right: OFFSET.o24,
     color: COLORS.offWhite,
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.italic,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
     opacity: 0.5,
     textAlign: 'center',
   },
@@ -1804,7 +1822,7 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.bold,
-    letterSpacing: 4,
+    letterSpacing: TRACKING.t4,
     opacity: 0.9,
   },
   postedOverlay: {
@@ -1817,14 +1835,14 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: FONT_SIZE.f22,
     fontFamily: FONTS.bold,
-    letterSpacing: 4,
+    letterSpacing: TRACKING.t4,
     textAlign: 'center',
   },
   countdownTimer: {
     color: COLORS.white,
     fontSize: FONT_SIZE.f48,
     fontFamily: FONTS.bold,
-    letterSpacing: 6,
+    letterSpacing: TRACKING.t6,
     textAlign: 'center',
   },
   postedSub: {
@@ -1833,11 +1851,11 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.italic,
     textAlign: 'center',
     opacity: 0.55,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
   },
   controlsRow: {
     position: 'absolute',
-    bottom: PEEK_HEIGHT + 32,
+    bottom: PEEK_HEIGHT + OFFSET.o32,
     left: 0,
     right: 0,
     flexDirection: 'row',
@@ -1846,32 +1864,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s48,
   },
   flipButton: {
-    width: 44,
-    height: 44,
+    width: SIZE.z44,
+    height: SIZE.z44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   shutterOuter: {
-    width: 72,
-    height: 72,
+    width: SIZE.z72,
+    height: SIZE.z72,
     borderRadius: RADIUS.r36,
-    borderWidth: 2,
+    borderWidth: BORDER_WIDTH.w2,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: SIZE.z4 },
     shadowOpacity: 0.25,
-    shadowRadius: 10,
+    shadowRadius: SHADOW_BLUR.b10,
     elevation: 8,
   },
   shutterInner: {
-    width: 58,
-    height: 58,
+    width: SIZE.z58,
+    height: SIZE.z58,
     borderRadius: RADIUS.r29,
   },
   // ── 0.5× / 1× lens toggle ──────────────────────────────────────────────────
   lensToggleWrap: {
     position: 'absolute',
-    bottom: PEEK_HEIGHT + 32 + 72 + 20, // above the shutter row (shutter is 72 tall)
+    bottom: PEEK_HEIGHT + OFFSET.o32 + OFFSET.o72 + OFFSET.o20, // above the shutter row (shutter is 72 tall)
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -1885,8 +1903,8 @@ const styles = StyleSheet.create({
     borderColor: withAlpha(COLORS.white, 0.18),
   },
   lensOption: {
-    minWidth: 44,
-    height: 30,
+    minWidth: SIZE.z44,
+    height: SIZE.z30,
     paddingHorizontal: SPACE.s12,
     borderRadius: RADIUS.r17,
     alignItems: 'center',
@@ -1899,7 +1917,7 @@ const styles = StyleSheet.create({
     color: withAlpha(COLORS.white, 0.7),
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
   },
   lensOptionTextActive: {
     color: COLORS.white,
@@ -1919,20 +1937,20 @@ const styles = StyleSheet.create({
     height: PIP_H,
     borderRadius: RADIUS.r12,
     overflow: 'hidden',
-    borderWidth: 2,
+    borderWidth: BORDER_WIDTH.w2,
     borderColor: withAlpha(COLORS.white, 0.6),
     shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: SIZE.z4 },
     shadowOpacity: 0.4,
-    shadowRadius: 8,
+    shadowRadius: SHADOW_BLUR.b8,
     elevation: 8,
   },
   discardButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 108 : 80,
-    right: 24,
-    width: 36,
-    height: 36,
+    top: Platform.OS === 'ios' ? OFFSET.o108 : OFFSET.o80,
+    right: OFFSET.o24,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
     backgroundColor: withAlpha(COLORS.white, 0.9),
     alignItems: 'center',
@@ -1942,11 +1960,11 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.semiBold,
-    lineHeight: 16,
+    lineHeight: LINE_HEIGHT.l16,
   },
   postButtonFloat: {
     position: 'absolute',
-    bottom: PEEK_HEIGHT + 32,
+    bottom: PEEK_HEIGHT + OFFSET.o32,
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -1961,10 +1979,10 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
   },
   captionPill: {
-    height: 36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
     paddingHorizontal: SPACE.s18,
     alignItems: 'center',
@@ -2004,8 +2022,8 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
   },
   sheetHandle: {
-    width: 40,
-    height: 4,
+    width: SIZE.z40,
+    height: SIZE.z4,
     borderRadius: RADIUS.r2,
     backgroundColor: withAlpha(COLORS.white, 0.25),
     alignSelf: 'center',
@@ -2020,7 +2038,7 @@ const styles = StyleSheet.create({
     color: COLORS.offWhite,
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
   },
   sheetCounter: {
     color: withAlpha(COLORS.offWhite, 0.45),
@@ -2028,8 +2046,8 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.italic,
   },
   sheetInput: {
-    minHeight: 96,
-    maxHeight: 160,
+    minHeight: SIZE.z96,
+    maxHeight: SIZE.z160,
     color: COLORS.offWhite,
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.italic,
@@ -2058,10 +2076,10 @@ const styles = StyleSheet.create({
     gap: SPACE.s8,
   },
   inviteStep: {
-    width: 32,
-    height: 32,
+    width: SIZE.z32,
+    height: SIZE.z32,
     borderRadius: RADIUS.r16,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     borderColor: withAlpha(COLORS.offWhite, 0.4),
     alignItems: 'center',
     justifyContent: 'center',
@@ -2070,7 +2088,7 @@ const styles = StyleSheet.create({
     color: COLORS.offWhite,
     fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.semiBold,
-    lineHeight: 20,
+    lineHeight: LINE_HEIGHT.l20,
   },
   sheetDone: {
     backgroundColor: COLORS.accent,
@@ -2083,15 +2101,15 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
   },
   // ── Tag sheet (search + user rows)
   sheetCloseX: {
     position: 'absolute',
-    top: 10,
-    right: 14,
-    width: 28,
-    height: 28,
+    top: OFFSET.o10,
+    right: OFFSET.o14,
+    width: SIZE.z28,
+    height: SIZE.z28,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
@@ -2102,7 +2120,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   tagSearchInput: {
-    height: 44,
+    height: SIZE.z44,
     color: COLORS.offWhite,
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.italic,
@@ -2132,8 +2150,8 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r8,
   },
   tagAvatar: {
-    width: 38,
-    height: 38,
+    width: SIZE.z38,
+    height: SIZE.z38,
     borderRadius: RADIUS.r19,
   },
   tagAvatarFallback: {
@@ -2160,7 +2178,7 @@ const styles = StyleSheet.create({
   tagRowNudge: {
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
     marginTop: SPACE.s2,
   },
   tagRowCheck: {

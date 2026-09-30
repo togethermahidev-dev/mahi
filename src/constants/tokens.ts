@@ -3,8 +3,9 @@
  * Every style reads from here (fonts: ./fonts.ts). Values match what the screens used before the
  * tokens existed, so moving to tokens changed nothing on screen.
  *
- * Guarded by src/lib/__tests__/designTokens.test.ts: a raw colour, fontSize, padding/margin/gap
- * or borderRadius anywhere else fails the tests. Need a new value? Add a token here first.
+ * Guarded by src/lib/__tests__/designTokens.test.ts: a raw colour, text size, spacing, radius,
+ * shadow blur, size, position, icon size, letter spacing, line height or border width anywhere
+ * else fails the tests. Need a new value? Add a token here first.
  */
 
 // ─── Colours ─────────────────────────────────────────────────────────────────
@@ -136,4 +137,127 @@ export const RADIUS = {
   r50: 50,
   /** Fully round ends, whatever the size. */
   pill: 999,
+} as const;
+
+// ─── Shadow blur (shadowRadius) ──────────────────────────────────────────────
+export const SHADOW_BLUR = {
+  b3: 3,
+  b6: 6,
+  b8: 8,
+  b10: 10,
+  b12: 12,
+} as const;
+
+// ─── Sizes (width, height, min/max) — negative use a minus: -SIZE.z8 ─────────
+export const SIZE = {
+  z1: 1,
+  z2: 2,
+  z3: 3,
+  z4: 4,
+  z8: 8,
+  z10: 10,
+  z20: 20,
+  z24: 24,
+  z26: 26,
+  z28: 28,
+  z30: 30,
+  z32: 32,
+  z36: 36,
+  z38: 38,
+  z40: 40,
+  z42: 42,
+  z44: 44,
+  z46: 46,
+  z48: 48,
+  z52: 52,
+  z55: 55,
+  z56: 56,
+  z58: 58,
+  z60: 60,
+  z70: 70,
+  z72: 72,
+  z80: 80,
+  z88: 88,
+  z96: 96,
+  z100: 100,
+  z160: 160,
+  z180: 180,
+  z400: 400,
+  z420: 420,
+  z800: 800,
+} as const;
+
+// ─── Position offsets (top, left, right, bottom) — negatives: -OFFSET.o4 ─────
+export const OFFSET = {
+  o3: 3,
+  o4: 4,
+  o6: 6,
+  o8: 8,
+  o10: 10,
+  o12: 12,
+  o14: 14,
+  o16: 16,
+  o20: 20,
+  o24: 24,
+  o32: 32,
+  o34: 34,
+  o40: 40,
+  o44: 44,
+  o48: 48,
+  o50: 50,
+  o56: 56,
+  o60: 60,
+  o70: 70,
+  o72: 72,
+  o80: 80,
+  o108: 108,
+  o120: 120,
+  o140: 140,
+  o142: 142,
+  o170: 170,
+} as const;
+
+// ─── Icon sizes (the size prop) ──────────────────────────────────────────────
+export const ICON_SIZE = {
+  i14: 14,
+  i16: 16,
+  i20: 20,
+  i22: 22,
+  i32: 32,
+  i80: 80,
+} as const;
+
+// ─── Letter spacing — negatives: -TRACKING.t1 ────────────────────────────────
+export const TRACKING = {
+  t0_5: 0.5,
+  t1: 1,
+  t1_5: 1.5,
+  t2: 2,
+  t2_5: 2.5,
+  t3: 3,
+  t4: 4,
+  t5: 5,
+  t6: 6,
+  t8: 8,
+  t10: 10,
+} as const;
+
+// ─── Line heights ────────────────────────────────────────────────────────────
+export const LINE_HEIGHT = {
+  l11: 11,
+  l14: 14,
+  l16: 16,
+  l18: 18,
+  l20: 20,
+  l22: 22,
+  l24: 24,
+  l28: 28,
+  l38: 38,
+} as const;
+
+// ─── Border widths (hairlines use StyleSheet.hairlineWidth) ──────────────────
+export const BORDER_WIDTH = {
+  w1: 1,
+  w1_5: 1.5,
+  w2: 2,
 } as const;

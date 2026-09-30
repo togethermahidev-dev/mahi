@@ -32,7 +32,7 @@ import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview } from '@/api';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, BORDER_WIDTH, SIZE, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
@@ -338,7 +338,7 @@ export default function UserProfileScreen({
       <TouchableOpacity
         onPress={onBack}
         style={[styles.backBtn, { borderColor: muted }]}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
       >
         <Text style={[styles.backArrow, { color: muted }]}>‹</Text>
       </TouchableOpacity>
@@ -348,7 +348,7 @@ export default function UserProfileScreen({
         <TouchableOpacity
           onPress={handleEllipsis}
           style={[styles.ellipsisBtn, { borderColor: muted }]}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
           <Text style={[styles.ellipsisText, { color: muted }]}>...</Text>
         </TouchableOpacity>
@@ -450,7 +450,7 @@ export default function UserProfileScreen({
                   style={[
                     styles.followBtn,
                     isFollowing
-                      ? { borderColor: text, borderWidth: 1 }
+                      ? { borderColor: text, borderWidth: BORDER_WIDTH.w1 }
                       : { backgroundColor: COLORS.accent },
                   ]}
                   onPress={handleFollow}
@@ -549,37 +549,37 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 32,
-    left: 24,
+    top: Platform.OS === 'ios' ? OFFSET.o60 : OFFSET.o32,
+    left: OFFSET.o24,
     zIndex: 1,
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.italic,
-    lineHeight: 22,
+    lineHeight: LINE_HEIGHT.l22,
   },
   ellipsisBtn: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 32,
-    right: 24,
+    top: Platform.OS === 'ios' ? OFFSET.o60 : OFFSET.o32,
+    right: OFFSET.o24,
     zIndex: 1,
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ellipsisText: {
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
-    lineHeight: 18,
+    lineHeight: LINE_HEIGHT.l18,
     marginTop: -SPACE.s4,
   },
   loader: {
@@ -594,8 +594,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.s12,
   },
   avatar: {
-    width: 80,
-    height: 80,
+    width: SIZE.z80,
+    height: SIZE.z80,
     borderRadius: RADIUS.r40,
   },
   avatarFallback: {
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize: FONT_SIZE.f22,
     fontFamily: FONTS.bold,
-    letterSpacing: 4,
+    letterSpacing: TRACKING.t4,
     marginBottom: SPACE.s6,
     textAlign: 'center',
   },
@@ -630,20 +630,20 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: FONT_SIZE.f28,
     fontFamily: FONTS.bold,
-    lineHeight: 28,
+    lineHeight: LINE_HEIGHT.l28,
   },
   statLabel: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
   },
   statDivider: {
-    width: 1,
-    height: 40,
+    width: SIZE.z1,
+    height: SIZE.z40,
     opacity: 0.3,
   },
   streakTrackerPill: {
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s16,
     paddingVertical: SPACE.s6,
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
   streakTrackerText: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f10,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.t2,
     color: COLORS.accent,
   },
   actionRow: {
@@ -670,10 +670,10 @@ const styles = StyleSheet.create({
   followBtnText: {
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.bold,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
   },
   messageBtn: {
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s28,
     paddingVertical: SPACE.s9,
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
   messageBtnText: {
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.bold,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
   },
   blockedWrap: {
     alignItems: 'center',
@@ -691,7 +691,7 @@ const styles = StyleSheet.create({
   blockedTitle: {
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
   },
   blockedSubtitle: {
     fontSize: FONT_SIZE.f13,
@@ -700,7 +700,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
   },
   unblockBtn: {
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s28,
     paddingVertical: SPACE.s9,
@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
   unblockBtnText: {
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.bold,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
   },
   mapShadow: {
     flex: 1,

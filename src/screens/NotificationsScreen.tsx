@@ -15,7 +15,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useBlockStore } from '@/store';
 import type { NotificationWithActor } from '@/api';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE, BORDER_WIDTH, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
 
 interface NotificationsScreenProps {
   visible: boolean;
@@ -68,7 +68,7 @@ export default function NotificationsScreen({
           <TouchableOpacity
             onPress={handleClose}
             style={[styles.backBtn, { borderColor: border }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
           >
             <Text style={[styles.backArrow, { color: text }]}>‹</Text>
           </TouchableOpacity>
@@ -142,7 +142,7 @@ export default function NotificationsScreen({
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={handleAvatarPress}
-                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                    hitSlop={{ top: OFFSET.o4, bottom: OFFSET.o4, left: OFFSET.o4, right: OFFSET.o4 }}
                   >
                     {item.actor.avatar_url ? (
                       <Image source={{ uri: item.actor.avatar_url }} style={styles.avatar} />
@@ -203,24 +203,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
-    borderWidth: 1,
+    borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.italic,
-    lineHeight: 22,
+    lineHeight: LINE_HEIGHT.l22,
   },
   headerName: {
     flex: 1,
     textAlign: 'center',
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.t3,
   },
   loadingWrap: {
     flex: 1,
@@ -241,8 +241,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   avatar: {
-    width: 36,
-    height: 36,
+    width: SIZE.z36,
+    height: SIZE.z36,
     borderRadius: RADIUS.r18,
   },
   avatarFallback: {
@@ -260,15 +260,15 @@ const styles = StyleSheet.create({
   rowCaption: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.italic,
-    lineHeight: 18,
+    lineHeight: LINE_HEIGHT.l18,
   },
   rowTime: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.italic,
   },
   unreadDot: {
-    width: 8,
-    height: 8,
+    width: SIZE.z8,
+    height: SIZE.z8,
     borderRadius: RADIUS.r4,
     backgroundColor: COLORS.accent,
     marginLeft: 'auto',

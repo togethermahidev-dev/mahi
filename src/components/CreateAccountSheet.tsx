@@ -25,7 +25,7 @@ import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { env } from '@/lib/env';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, FONT_SIZE, SPACE, RADIUS, BORDER_WIDTH, SIZE, TRACKING, LINE_HEIGHT } from '@/constants/tokens';
 
 const SUPABASE_URL = env.supabaseUrl;
 
@@ -103,7 +103,7 @@ export default function CreateAccountSheet({
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const focusBorder = (field: string) => ({
-    borderWidth: focusedField === field ? 2 : 0,
+    borderWidth: focusedField === field ? BORDER_WIDTH.w2 : 0,
     borderColor: focusedField === field ? COLORS.accent : 'transparent',
     backgroundColor: focusedField === field ? (dark ? COLORS.borderDark : COLORS.white) : inputBg,
   });
@@ -637,7 +637,7 @@ export default function CreateAccountSheet({
                           backgroundColor: inputBg,
                           color: text,
                           borderColor: focusedOtp === i ? COLORS.accent : val ? text : 'transparent',
-                          borderWidth: focusedOtp === i ? 2 : 1.5,
+                          borderWidth: focusedOtp === i ? BORDER_WIDTH.w2 : BORDER_WIDTH.w1_5,
                         },
                       ]}
                       value={val}
@@ -806,7 +806,7 @@ export default function CreateAccountSheet({
                             ? { backgroundColor: text }
                             : {
                                 backgroundColor: 'transparent',
-                                borderWidth: 1.5,
+                                borderWidth: BORDER_WIDTH.w1_5,
                                 borderColor: text,
                               },
                         ]}
@@ -835,7 +835,7 @@ export default function CreateAccountSheet({
                             ? { backgroundColor: text }
                             : {
                                 backgroundColor: 'transparent',
-                                borderWidth: 1.5,
+                                borderWidth: BORDER_WIDTH.w1_5,
                                 borderColor: text,
                               },
                         ]}
@@ -944,11 +944,11 @@ const styles = StyleSheet.create({
     paddingTop: SPACE.s20,
     paddingBottom: SPACE.s4,
   },
-  dot: { width: 8, height: 8, borderRadius: RADIUS.r4 },
+  dot: { width: SIZE.z8, height: SIZE.z8, borderRadius: RADIUS.r4 },
   content: { padding: SPACE.s32, gap: SPACE.s12 },
   step: { gap: SPACE.s12 },
 
-  title: { fontSize: FONT_SIZE.f32, fontFamily: FONTS.bold, letterSpacing: 2, marginBottom: SPACE.s8 },
+  title: { fontSize: FONT_SIZE.f32, fontFamily: FONTS.bold, letterSpacing: TRACKING.t2, marginBottom: SPACE.s8 },
   subtitle: {
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.italic,
@@ -958,7 +958,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
     marginBottom: -SPACE.s4,
   },
 
@@ -980,11 +980,11 @@ const styles = StyleSheet.create({
   toggle: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, paddingHorizontal: SPACE.s4 },
 
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s8, marginTop: SPACE.s4 },
-  pill: { borderWidth: 1.5, borderRadius: RADIUS.r50, paddingHorizontal: SPACE.s14, paddingVertical: SPACE.s8 },
+  pill: { borderWidth: BORDER_WIDTH.w1_5, borderRadius: RADIUS.r50, paddingHorizontal: SPACE.s14, paddingVertical: SPACE.s8 },
   pillText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
 
   strengthRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s6, marginTop: -SPACE.s4 },
-  strengthSegment: { flex: 1, height: 4, borderRadius: RADIUS.r2 },
+  strengthSegment: { flex: 1, height: SIZE.z4, borderRadius: RADIUS.r2 },
   strengthLabel: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.semiBold, marginLeft: SPACE.s4 },
 
   countdown: {
@@ -1002,18 +1002,18 @@ const styles = StyleSheet.create({
 
   otpRow: { flexDirection: 'row', gap: SPACE.s8, justifyContent: 'center' },
   otpBox: {
-    width: 46,
-    height: 60,
+    width: SIZE.z46,
+    height: SIZE.z60,
     borderRadius: RADIUS.r12,
     fontSize: FONT_SIZE.f24,
     fontFamily: FONTS.bold,
-    borderWidth: 1.5,
+    borderWidth: BORDER_WIDTH.w1_5,
   },
 
   inviteCard: { borderRadius: RADIUS.r14, paddingHorizontal: SPACE.s16, paddingVertical: SPACE.s14, gap: SPACE.s4 },
-  inviteWho: { fontSize: FONT_SIZE.f15, fontFamily: FONTS.bold, letterSpacing: 1 },
-  inviteWhat: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.italic, lineHeight: 18 },
-  inviteCodeInput: { letterSpacing: 4 },
+  inviteWho: { fontSize: FONT_SIZE.f15, fontFamily: FONTS.bold, letterSpacing: TRACKING.t1 },
+  inviteWhat: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.italic, lineHeight: LINE_HEIGHT.l18 },
+  inviteCodeInput: { letterSpacing: TRACKING.t4 },
 
   fieldNote: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, marginTop: -SPACE.s4 },
   errorText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, marginTop: SPACE.s4 },
@@ -1031,7 +1031,7 @@ const styles = StyleSheet.create({
 
   navRow: { flexDirection: 'row', gap: SPACE.s12, marginTop: SPACE.s16 },
   navBtn: { borderRadius: RADIUS.r50, paddingVertical: SPACE.s20, alignItems: 'center' },
-  navBtnOutline: { backgroundColor: 'transparent', borderWidth: 1.5 },
+  navBtnOutline: { backgroundColor: 'transparent', borderWidth: BORDER_WIDTH.w1_5 },
   navBtnText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
 
   datePickerOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0 },

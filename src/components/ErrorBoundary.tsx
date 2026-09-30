@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Sentry } from '@/lib/sentry';
-import { COLORS, FONT_SIZE, SPACE, RADIUS } from '@/constants/tokens';
+import { COLORS, FONT_SIZE, SPACE, RADIUS, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
 
 interface Props {
   children: React.ReactNode;
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     color: COLORS.offWhite,
     opacity: 0.7,
     fontSize: FONT_SIZE.f15,
-    lineHeight: 22,
+    lineHeight: LINE_HEIGHT.l22,
     textAlign: 'center',
     marginBottom: SPACE.s32,
   },
@@ -92,6 +92,6 @@ const styles = StyleSheet.create({
     color: COLORS.offBlack,
     fontSize: FONT_SIZE.f15,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: TRACKING.t1,
   },
 });

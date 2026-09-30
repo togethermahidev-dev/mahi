@@ -19,7 +19,7 @@ const H_SWIPE_PX = 60; // min drag distance to trigger navigation
 const H_SWIPE_VX = 0.4; // min release velocity to trigger navigation
 
 // ─── Panel registry ───────────────────────────────────────────────────────────
-// Left to right: Profile (0) ← VerticalNavigator (1, default) → Messages (2)
+// Panels, left to right — Profile (0) ← VerticalNavigator (1, default) → Messages (2)
 const PANEL_COUNT = 3;
 const DEFAULT_INDEX = 1; // VerticalNavigator is the entry panel
 
