@@ -44,7 +44,7 @@ import {
   Platform,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  Pressable,
   View,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -54,7 +54,17 @@ import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 import { updateAvatarUrl } from '@/api/profile';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SIZE, OFFSET, SHADOW_BLUR, LINE_HEIGHT } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  SIZE,
+  OFFSET,
+  SHADOW_BLUR,
+  LINE_HEIGHT,
+} from '@/constants/tokens';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -266,9 +276,9 @@ export default function AvatarPicker({
           Tapping a real image opens the full-screen lightbox; the silhouette
           fallback has nothing meaningful to enlarge, so its tap is disabled. */}
       {displayUri ? (
-        <TouchableOpacity activeOpacity={0.9} onPress={openLightbox}>
+        <Pressable onPress={openLightbox} style={({ pressed }) => pressed && { opacity: 0.9 }}>
           <Image source={{ uri: displayUri }} style={styles.avatar} />
-        </TouchableOpacity>
+        </Pressable>
       ) : (
         <View style={[styles.avatar, styles.fallback, { backgroundColor: colors.muted }]}>
           <Svg width={SIZE.z48} height={SIZE.z48} viewBox="0 0 24 24" fill="none">
@@ -294,18 +304,17 @@ export default function AvatarPicker({
       )}
 
       {/* Edit button — visible only to the profile owner, hidden while uploading.
-          Rendered as a sibling ON TOP of the avatar's TouchableOpacity (separate
+          Rendered as a sibling ON TOP of the avatar's Pressable (separate
           absolute hit area) so its "+" tap opens the picker and is NOT swallowed
           by the avatar's enlarge tap. */}
       {isSelf && !uploading && (
-        <TouchableOpacity
-          style={styles.editButton}
-          activeOpacity={0.8}
+        <Pressable
+          style={({ pressed }) => [styles.editButton, pressed && { opacity: 0.8 }]}
           onPress={handleEditPress}
           hitSlop={{ top: OFFSET.o6, bottom: OFFSET.o6, left: OFFSET.o6, right: OFFSET.o6 }}
         >
           <Text style={styles.editPlus}>+</Text>
-        </TouchableOpacity>
+        </Pressable>
       )}
 
       {/* Full-screen lightbox — enlarged avatar on a dim scrim.
@@ -318,26 +327,17 @@ export default function AvatarPicker({
           statusBarTranslucent
           onRequestClose={closeLightbox}
         >
-          <TouchableOpacity
-            style={styles.lightboxScrim}
-            activeOpacity={1}
-            onPress={closeLightbox}
-          >
-            <Image
-              source={{ uri: displayUri }}
-              style={styles.lightboxImage}
-              resizeMode="contain"
-            />
+          <Pressable style={styles.lightboxScrim} onPress={closeLightbox}>
+            <Image source={{ uri: displayUri }} style={styles.lightboxImage} resizeMode="contain" />
             {/* Circular ✕ — independent dismiss affordance. */}
-            <TouchableOpacity
-              style={styles.lightboxClose}
-              activeOpacity={0.8}
+            <Pressable
+              style={({ pressed }) => [styles.lightboxClose, pressed && { opacity: 0.8 }]}
               onPress={closeLightbox}
               hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
             >
               <Text style={styles.lightboxCloseX}>✕</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
+            </Pressable>
+          </Pressable>
         </Modal>
       )}
     </View>
