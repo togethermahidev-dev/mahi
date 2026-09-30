@@ -10,6 +10,7 @@ import {
   Keyboard,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import KeyboardInset from '@/components/KeyboardInset';
@@ -96,9 +97,22 @@ export default function ConversationScreen({
     setAccepted(true);
   };
 
-  const handleDeny = async () => {
-    await deny(conversation.id);
-    onBack();
+  const handleDeny = () => {
+    Alert.alert(
+      'Deny request?',
+      `The request from @${conversation.other_profile.username} and its messages will be deleted.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Deny',
+          style: 'destructive',
+          onPress: async () => {
+            await deny(conversation.id);
+            onBack();
+          },
+        },
+      ]
+    );
   };
 
   // FlatList renders newest at bottom — use inverted list with reversed grouped rows
