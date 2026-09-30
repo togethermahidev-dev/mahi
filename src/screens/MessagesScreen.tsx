@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
   Image,
   Platform,
   Modal,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMessages } from '@/hooks/useMessages';
 import { useAuthStore } from '@/store';
@@ -173,7 +173,7 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
       </TouchableOpacity>
 
       {/* Inbox list */}
-      <FlatList
+      <FlashList
         data={inbox}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (

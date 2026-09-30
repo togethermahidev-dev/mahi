@@ -6,9 +6,9 @@ import {
   Modal,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
   ActivityIndicator,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -101,7 +101,7 @@ export default function NotificationsScreen({
             <ActivityIndicator color={muted} />
           </View>
         ) : (
-          <FlatList
+          <FlashList
             data={filteredItems}
             keyExtractor={(item) => item.id}
             contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + SPACE.s12 }]}
