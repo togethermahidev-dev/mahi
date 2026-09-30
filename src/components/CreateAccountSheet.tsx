@@ -12,10 +12,9 @@ import {
   ActivityIndicator,
   TextInput as RNTextInput,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabase';
 import { sendOTP, verifyOTP, clearOTP, OTP_LENGTH } from '@/lib/otp';
 import { sanitiseOtp } from '@/lib/otpCode';
@@ -105,9 +104,6 @@ export default function CreateAccountSheet({
   // Step 2 — countdown timer & resend cooldown
   const [secondsLeft, setSecondsLeft] = useState(600);
   const [resendReady, setResendReady] = useState(false);
-
-  // Step 3 — native date picker
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Step 4 — username availability
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>(
@@ -418,6 +414,26 @@ export default function CreateAccountSheet({
   const showPills = atIndex !== -1 && email.slice(atIndex + 1).length <= 1;
   const localPart = atIndex !== -1 ? email.slice(0, atIndex + 1) : email + '@';
 
+  const dobSet = !!(dobDD && dobMM && dobYYYY);
+  const dobValue = dobSet
+    ? new Date(Number(dobYYYY), Number(dobMM) - 1, Number(dobDD))
+    : new Date(2000, 0, 1);
+  const setDob = (date: Date) => {
+    setField('dobDD', String(date.getDate()).padStart(2, '0'));
+    setField('dobMM', String(date.getMonth() + 1).padStart(2, '0'));
+    setField('dobYYYY', String(date.getFullYear()));
+  };
+  // Android: the system date dialog.
+  const openAndroidDob = () => {
+    Keyboard.dismiss();
+    DateTimePickerAndroid.open({
+      value: dobValue,
+      mode: 'date',
+      maximumDate: new Date(),
+      onValueChange: (_event, date) => setDob(date),
+    });
+  };
+
   const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
   const secs = String(secondsLeft % 60).padStart(2, '0');
 
@@ -440,512 +456,498 @@ export default function CreateAccountSheet({
           ))}
         </View>
 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
+          showsVerticalScrollIndicator={false}
         >
-          <ScrollView
-            contentContainerStyle={styles.content}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* ── View 1 — Email + Password ─────────────────────────────────── */}
-            {step === 1 && (
-              <View style={styles.step}>
-                <Text style={[styles.title, { color: text }]}>Create account</Text>
+          {/* ── View 1 — Email + Password ─────────────────────────────────── */}
+          {step === 1 && (
+            <View style={styles.step}>
+              <Text style={[styles.title, { color: text }]}>Create account</Text>
 
-                {/* Invite — who sent it, or a place to type its code */}
-                {invitePreview ? (
-                  <View style={[styles.inviteCard, { backgroundColor: inputBg }]}>
-                    <Text style={[styles.inviteWho, { color: text }]}>
-                      @{invitePreview.username} invited you
-                    </Text>
-                    <Text style={[styles.inviteWhat, { color: muted }]}>
-                      {invitePreview.open
-                        ? "Their tag starts when you join — you'll have 48 hours to post back."
-                        : 'That invite has already been used, but you can still sign up.'}
-                    </Text>
-                  </View>
-                ) : pendingInvite ? null : (
-                  <>
-                    <Text style={[styles.label, { color: muted }]}>Got an invite code?</Text>
-                    <TextInput
-                      style={[
-                        styles.input,
-                        styles.inviteCodeInput,
-                        { backgroundColor: inputBg, color: text },
-                        focusBorder('inviteCode'),
-                      ]}
-                      value={codeInput}
-                      onChangeText={(v) => {
-                        setCodeInput(v.toUpperCase());
-                        const code = normaliseInviteCode(v);
-                        if (code) useInviteStore.getState().setPending(code);
-                      }}
-                      onFocus={() => setFocusedField('inviteCode')}
-                      onBlur={() => setFocusedField(null)}
-                      placeholder="6 characters, optional"
-                      placeholderTextColor={muted}
-                      autoCapitalize="characters"
-                      autoCorrect={false}
-                      maxLength={8}
-                    />
-                  </>
-                )}
+              {/* Invite — who sent it, or a place to type its code */}
+              {invitePreview ? (
+                <View style={[styles.inviteCard, { backgroundColor: inputBg }]}>
+                  <Text style={[styles.inviteWho, { color: text }]}>
+                    @{invitePreview.username} invited you
+                  </Text>
+                  <Text style={[styles.inviteWhat, { color: muted }]}>
+                    {invitePreview.open
+                      ? "Their tag starts when you join — you'll have 48 hours to post back."
+                      : 'That invite has already been used, but you can still sign up.'}
+                  </Text>
+                </View>
+              ) : pendingInvite ? null : (
+                <>
+                  <Text style={[styles.label, { color: muted }]}>Got an invite code?</Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      styles.inviteCodeInput,
+                      { backgroundColor: inputBg, color: text },
+                      focusBorder('inviteCode'),
+                    ]}
+                    value={codeInput}
+                    onChangeText={(v) => {
+                      setCodeInput(v.toUpperCase());
+                      const code = normaliseInviteCode(v);
+                      if (code) useInviteStore.getState().setPending(code);
+                    }}
+                    onFocus={() => setFocusedField('inviteCode')}
+                    onBlur={() => setFocusedField(null)}
+                    placeholder="6 characters, optional"
+                    placeholderTextColor={muted}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    maxLength={8}
+                  />
+                </>
+              )}
 
-                {/* Email */}
-                <Text style={[styles.label, { color: muted }]}>Email</Text>
+              {/* Email */}
+              <Text style={[styles.label, { color: muted }]}>Email</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  { backgroundColor: inputBg, color: text },
+                  focusBorder('email'),
+                ]}
+                value={email}
+                onChangeText={(v) => {
+                  setField('email', v);
+                  setError('');
+                }}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
+                placeholder="your@email.com"
+                placeholderTextColor={muted}
+                keyboardType="email-address"
+                textContentType="username"
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={() => passwordRef.current?.focus()}
+              />
+
+              {/* Email domain suggestion pills */}
+              {showPills && (
+                <View style={styles.pillRow}>
+                  {DOMAINS.map((domain) => (
+                    <TouchableOpacity
+                      key={domain}
+                      style={[styles.pill, { borderColor: text }]}
+                      onPress={() => setField('email', localPart + domain)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.pillText, { color: text }]}>@{domain}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* Email-exists hint (non-blocking) */}
+              {emailExists && (
+                <Text style={[styles.fieldNote, { color: amber }]}>
+                  Looks like you have an account — try logging in.
+                </Text>
+              )}
+
+              {/* Password */}
+              <Text style={[styles.label, { color: muted }]}>Password</Text>
+              <View
+                style={[styles.inputRow, { backgroundColor: inputBg }, focusBorder('password')]}
+              >
                 <TextInput
-                  style={[
-                    styles.input,
-                    { backgroundColor: inputBg, color: text },
-                    focusBorder('email'),
-                  ]}
-                  value={email}
+                  ref={passwordRef}
+                  style={[styles.inputInner, { color: text }]}
+                  value={password}
                   onChangeText={(v) => {
-                    setField('email', v);
+                    setField('password', v);
                     setError('');
                   }}
-                  onFocus={() => setFocusedField('email')}
+                  onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="your@email.com"
+                  placeholder={`Min. ${MIN_PASSWORD_LENGTH} characters`}
                   placeholderTextColor={muted}
-                  keyboardType="email-address"
-                  textContentType="username"
-                  autoComplete="email"
+                  secureTextEntry={!showPassword}
+                  textContentType="newPassword"
+                  autoComplete="new-password"
+                  passwordRules={PASSWORD_RULES}
                   autoCapitalize="none"
                   autoCorrect={false}
                   returnKeyType="next"
-                  submitBehavior="submit"
-                  onSubmitEditing={() => passwordRef.current?.focus()}
+                  onSubmitEditing={handleStep1Next}
                 />
-
-                {/* Email domain suggestion pills */}
-                {showPills && (
-                  <View style={styles.pillRow}>
-                    {DOMAINS.map((domain) => (
-                      <TouchableOpacity
-                        key={domain}
-                        style={[styles.pill, { borderColor: text }]}
-                        onPress={() => setField('email', localPart + domain)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.pillText, { color: text }]}>@{domain}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-
-                {/* Email-exists hint (non-blocking) */}
-                {emailExists && (
-                  <Text style={[styles.fieldNote, { color: amber }]}>
-                    Looks like you have an account — try logging in.
-                  </Text>
-                )}
-
-                {/* Password */}
-                <Text style={[styles.label, { color: muted }]}>Password</Text>
-                <View
-                  style={[styles.inputRow, { backgroundColor: inputBg }, focusBorder('password')]}
-                >
-                  <TextInput
-                    ref={passwordRef}
-                    style={[styles.inputInner, { color: text }]}
-                    value={password}
-                    onChangeText={(v) => {
-                      setField('password', v);
-                      setError('');
-                    }}
-                    onFocus={() => setFocusedField('password')}
-                    onBlur={() => setFocusedField(null)}
-                    placeholder={`Min. ${MIN_PASSWORD_LENGTH} characters`}
-                    placeholderTextColor={muted}
-                    secureTextEntry={!showPassword}
-                    textContentType="newPassword"
-                    autoComplete="new-password"
-                    passwordRules={PASSWORD_RULES}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    returnKeyType="next"
-                    onSubmitEditing={handleStep1Next}
-                  />
-                  <TouchableOpacity onPress={() => setShowPassword((p) => !p)} activeOpacity={0.7}>
-                    <Text style={[styles.toggle, { color: muted }]}>
-                      {showPassword ? 'Hide' : 'Show'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Password strength bar */}
-                {password.length > 0 && (
-                  <View style={styles.strengthRow}>
-                    {(['low', 'medium', 'high'] as Strength[]).map((lvl, i) => {
-                      const levels: Record<Strength, number> = { low: 1, medium: 2, high: 3 };
-                      const active = levels[strength!] >= levels[lvl];
-                      return (
-                        <View
-                          key={lvl}
-                          style={[
-                            styles.strengthSegment,
-                            { backgroundColor: active ? strengthColour : inputBg },
-                          ]}
-                        />
-                      );
-                    })}
-                    <Text style={[styles.strengthLabel, { color: strengthColour }]}>
-                      {strengthLabel}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* ── View 2 — OTP verification ────────────────────────────────── */}
-            {step === 2 && (
-              <View style={styles.step}>
-                <Text style={[styles.title, { color: text }]}>Verify</Text>
-                <Text style={[styles.subtitle, { color: muted }]}>Code sent to {email}</Text>
-
-                {/* Countdown */}
-                <Text style={[styles.countdown, { color: secondsLeft < 60 ? red : muted }]}>
-                  {secondsLeft > 0 ? `Expires in ${mins}:${secs}` : 'Code expired — please resend'}
-                </Text>
-
-                <Text style={[styles.label, { color: muted }]}>Code</Text>
-                {/* One real field (iOS offers the emailed code above the keyboard). The
-                    boxes are drawn from its value; the field lies invisibly on top of
-                    them, so tapping any box focuses it and long-press pastes. */}
-                <View>
-                  <View
-                    style={styles.otpRow}
-                    accessibilityElementsHidden
-                    importantForAccessibility="no-hide-descendants"
-                  >
-                    {Array.from({ length: OTP_LENGTH }, (_, i) => {
-                      const digit = otp[i] ?? '';
-                      const current =
-                        otpFocused && i === Math.min(otp.length, OTP_LENGTH - 1);
-                      return (
-                        <View
-                          key={i}
-                          style={[
-                            styles.otpBox,
-                            {
-                              backgroundColor: inputBg,
-                              borderColor: current ? COLORS.accent : digit ? text : 'transparent',
-                              borderWidth: current ? BORDER_WIDTH.w2 : BORDER_WIDTH.w1_5,
-                            },
-                          ]}
-                        >
-                          <Text style={[styles.otpDigit, { color: text }]}>{digit}</Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                  <TextInput
-                    ref={otpRef}
-                    style={styles.otpInput}
-                    value={otp}
-                    onChangeText={handleOtpChange}
-                    onFocus={() => setOtpFocused(true)}
-                    onBlur={() => setOtpFocused(false)}
-                    keyboardType="number-pad"
-                    textContentType="oneTimeCode"
-                    autoComplete="one-time-code"
-                    maxLength={OTP_LENGTH}
-                    caretHidden
-                    autoFocus
-                    accessibilityLabel="Verification code"
-                  />
-                </View>
-
-                {/* Resend */}
-                <TouchableOpacity
-                  onPress={handleResend}
-                  disabled={!resendReady || loading}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.resendText, { color: resendReady ? text : muted }]}>
-                    {resendReady ? 'Resend code' : 'Resend available in 1 min'}
+                <TouchableOpacity onPress={() => setShowPassword((p) => !p)} activeOpacity={0.7}>
+                  <Text style={[styles.toggle, { color: muted }]}>
+                    {showPassword ? 'Hide' : 'Show'}
                   </Text>
                 </TouchableOpacity>
               </View>
-            )}
 
-            {/* ── View 3 — Personal details ─────────────────────────────────── */}
-            {step === 3 && (
-              <View style={styles.step}>
-                <Text style={[styles.title, { color: text }]}>Getting started</Text>
+              {/* Password strength bar */}
+              {password.length > 0 && (
+                <View style={styles.strengthRow}>
+                  {(['low', 'medium', 'high'] as Strength[]).map((lvl, i) => {
+                    const levels: Record<Strength, number> = { low: 1, medium: 2, high: 3 };
+                    const active = levels[strength!] >= levels[lvl];
+                    return (
+                      <View
+                        key={lvl}
+                        style={[
+                          styles.strengthSegment,
+                          { backgroundColor: active ? strengthColour : inputBg },
+                        ]}
+                      />
+                    );
+                  })}
+                  <Text style={[styles.strengthLabel, { color: strengthColour }]}>
+                    {strengthLabel}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
 
-                <Text style={[styles.label, { color: muted }]}>First name</Text>
+          {/* ── View 2 — OTP verification ────────────────────────────────── */}
+          {step === 2 && (
+            <View style={styles.step}>
+              <Text style={[styles.title, { color: text }]}>Verify</Text>
+              <Text style={[styles.subtitle, { color: muted }]}>Code sent to {email}</Text>
+
+              {/* Countdown */}
+              <Text style={[styles.countdown, { color: secondsLeft < 60 ? red : muted }]}>
+                {secondsLeft > 0 ? `Expires in ${mins}:${secs}` : 'Code expired — please resend'}
+              </Text>
+
+              <Text style={[styles.label, { color: muted }]}>Code</Text>
+              {/* One real field (iOS offers the emailed code above the keyboard). The
+                  boxes are drawn from its value; the field lies invisibly on top of
+                  them, so tapping any box focuses it and long-press pastes. */}
+              <View>
+                <View
+                  style={styles.otpRow}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                >
+                  {Array.from({ length: OTP_LENGTH }, (_, i) => {
+                    const digit = otp[i] ?? '';
+                    const current =
+                      otpFocused && i === Math.min(otp.length, OTP_LENGTH - 1);
+                    return (
+                      <View
+                        key={i}
+                        style={[
+                          styles.otpBox,
+                          {
+                            backgroundColor: inputBg,
+                            borderColor: current ? COLORS.accent : digit ? text : 'transparent',
+                            borderWidth: current ? BORDER_WIDTH.w2 : BORDER_WIDTH.w1_5,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.otpDigit, { color: text }]}>{digit}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
                 <TextInput
-                  style={[
-                    styles.input,
-                    { backgroundColor: inputBg, color: text },
-                    focusBorder('firstName'),
-                  ]}
-                  value={firstName}
-                  onChangeText={(v) => setField('firstName', v)}
-                  onFocus={() => setFocusedField('firstName')}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="Jane"
-                  placeholderTextColor={muted}
-                  textContentType="givenName"
-                  autoComplete="given-name"
-                  autoCapitalize="words"
+                  ref={otpRef}
+                  style={styles.otpInput}
+                  value={otp}
+                  onChangeText={handleOtpChange}
+                  onFocus={() => setOtpFocused(true)}
+                  onBlur={() => setOtpFocused(false)}
+                  keyboardType="number-pad"
+                  textContentType="oneTimeCode"
+                  autoComplete="one-time-code"
+                  maxLength={OTP_LENGTH}
+                  caretHidden
+                  autoFocus
+                  accessibilityLabel="Verification code"
                 />
+              </View>
 
-                <Text style={[styles.label, { color: muted }]}>Last name</Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { backgroundColor: inputBg, color: text },
-                    focusBorder('lastName'),
-                  ]}
-                  value={lastName}
-                  onChangeText={(v) => setField('lastName', v)}
-                  onFocus={() => setFocusedField('lastName')}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="Smith"
-                  placeholderTextColor={muted}
-                  textContentType="familyName"
-                  autoComplete="family-name"
-                  autoCapitalize="words"
-                />
+              {/* Resend */}
+              <TouchableOpacity
+                onPress={handleResend}
+                disabled={!resendReady || loading}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.resendText, { color: resendReady ? text : muted }]}>
+                  {resendReady ? 'Resend code' : 'Resend available in 1 min'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-                <Text style={[styles.label, { color: muted }]}>Date of birth</Text>
+          {/* ── View 3 — Personal details ─────────────────────────────────── */}
+          {step === 3 && (
+            <View style={styles.step}>
+              <Text style={[styles.title, { color: text }]}>Getting started</Text>
+
+              <Text style={[styles.label, { color: muted }]}>First name</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  { backgroundColor: inputBg, color: text },
+                  focusBorder('firstName'),
+                ]}
+                value={firstName}
+                onChangeText={(v) => setField('firstName', v)}
+                onFocus={() => setFocusedField('firstName')}
+                onBlur={() => setFocusedField(null)}
+                placeholder="Jane"
+                placeholderTextColor={muted}
+                textContentType="givenName"
+                autoComplete="given-name"
+                autoCapitalize="words"
+              />
+
+              <Text style={[styles.label, { color: muted }]}>Last name</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  { backgroundColor: inputBg, color: text },
+                  focusBorder('lastName'),
+                ]}
+                value={lastName}
+                onChangeText={(v) => setField('lastName', v)}
+                onFocus={() => setFocusedField('lastName')}
+                onBlur={() => setFocusedField(null)}
+                placeholder="Smith"
+                placeholderTextColor={muted}
+                textContentType="familyName"
+                autoComplete="family-name"
+                autoCapitalize="words"
+              />
+
+              <Text style={[styles.label, { color: muted }]}>Date of birth</Text>
+              {Platform.OS === 'ios' ? (
+                // iOS: the native date field; tapping it opens the system calendar popover.
+                <View
+                  style={[styles.input, styles.dobRow, { backgroundColor: inputBg }]}
+                  onTouchStart={() => Keyboard.dismiss()}
+                >
+                  <View style={!dobSet && styles.dobUnset}>
+                    <DateTimePicker
+                      value={dobValue}
+                      mode="date"
+                      display="compact"
+                      maximumDate={new Date()}
+                      themeVariant={dark ? 'dark' : 'light'}
+                      onValueChange={(_event, date) => setDob(date)}
+                      accessibilityLabel="Date of birth"
+                    />
+                  </View>
+                  {!dobSet && (
+                    <Text style={[styles.dobHint, { color: muted }]}>Tap to choose</Text>
+                  )}
+                </View>
+              ) : (
                 <TouchableOpacity
                   style={[styles.input, { backgroundColor: inputBg }]}
-                  onPress={() => {
-                    Keyboard.dismiss();
-                    setShowDatePicker(true);
-                  }}
+                  onPress={openAndroidDob}
                   activeOpacity={0.8}
                 >
                   <Text
                     style={{
-                      color: dobDD && dobMM && dobYYYY ? text : muted,
+                      color: dobSet ? text : muted,
                       fontSize: FONT_SIZE.f16,
                       fontFamily: FONTS.semiBold,
                     }}
                   >
-                    {dobDD && dobMM && dobYYYY ? `${dobDD}/${dobMM}/${dobYYYY}` : 'DD/MM/YYYY'}
+                    {dobSet ? `${dobDD}/${dobMM}/${dobYYYY}` : 'DD/MM/YYYY'}
                   </Text>
                 </TouchableOpacity>
-
-                <Text style={[styles.label, { color: muted }]}>Contact number</Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { backgroundColor: inputBg, color: text },
-                    focusBorder('contactNumber'),
-                  ]}
-                  value={contactNumber}
-                  onChangeText={(v) => setField('contactNumber', v)}
-                  onFocus={() => setFocusedField('contactNumber')}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="+44 7700 000000"
-                  placeholderTextColor={muted}
-                  keyboardType="phone-pad"
-                  textContentType="telephoneNumber"
-                  autoComplete="tel"
-                />
-              </View>
-            )}
-
-            {/* ── View 4 — Fitness profile ──────────────────────────────────── */}
-            {step === 4 && (
-              <View style={styles.step}>
-                <Text style={[styles.title, { color: text }]}>Your profile</Text>
-
-                <Text style={[styles.label, { color: muted }]}>Username</Text>
-                <View
-                  style={[styles.inputRow, { backgroundColor: inputBg }, focusBorder('username')]}
-                >
-                  <Text style={[styles.atSign, { color: username ? text : muted }]}>@</Text>
-                  <TextInput
-                    style={[styles.inputInner, { color: text }]}
-                    value={username}
-                    onChangeText={(v) => {
-                      setField('username', v.replace('@', ''));
-                      setUsernameStatus('idle');
-                    }}
-                    onFocus={() => setFocusedField('username')}
-                    onBlur={() => setFocusedField(null)}
-                    placeholder="janesmith"
-                    placeholderTextColor={muted}
-                    // The @handle is not the login, so keep iOS from offering saved passwords here.
-                    textContentType="none"
-                    autoComplete="off"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
-                {usernameStatus === 'checking' && (
-                  <Text style={[styles.fieldNote, { color: muted }]}>Checking…</Text>
-                )}
-                {usernameStatus === 'available' && (
-                  <Text style={[styles.fieldNote, { color: green }]}>✓ Available</Text>
-                )}
-                {usernameStatus === 'taken' && (
-                  <Text style={[styles.fieldNote, { color: red }]}>✗ Already taken</Text>
-                )}
-
-                <Text style={[styles.label, { color: muted }]}>
-                  Display name{' '}
-                  <Text style={[styles.optionalTag, { color: muted }]}>(optional)</Text>
-                </Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { backgroundColor: inputBg, color: text },
-                    focusBorder('displayName'),
-                  ]}
-                  value={displayName}
-                  onChangeText={(v) => setField('displayName', v)}
-                  onFocus={() => setFocusedField('displayName')}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="Jane Smith"
-                  placeholderTextColor={muted}
-                />
-
-                <Text style={[styles.label, { color: muted }]}>Fitness goals</Text>
-                <Text style={[styles.subtitle, { color: muted }]}>Select all that apply</Text>
-                <View style={styles.goalsGrid}>
-                  {GOALS.map((g) => {
-                    const selected = fitnessGoals.includes(g);
-                    return (
-                      <TouchableOpacity
-                        key={g}
-                        style={[
-                          styles.goalPill,
-                          selected
-                            ? { backgroundColor: text }
-                            : {
-                                backgroundColor: 'transparent',
-                                borderWidth: BORDER_WIDTH.w1_5,
-                                borderColor: text,
-                              },
-                        ]}
-                        onPress={() => toggleGoal(g)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.goalText, { color: selected ? bg : text }]}>{g}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                <Text style={[styles.label, { color: muted }]}>Training days</Text>
-                <Text style={[styles.subtitle, { color: muted }]}>
-                  Which days do you train?{'\n'}You can always change this later in your profile.
-                </Text>
-                <View style={styles.daysRow}>
-                  {DAYS.map(({ label, full }) => {
-                    const selected = fitnessRoutine.includes(full);
-                    return (
-                      <TouchableOpacity
-                        key={full}
-                        style={[
-                          styles.dayPill,
-                          selected
-                            ? { backgroundColor: text }
-                            : {
-                                backgroundColor: 'transparent',
-                                borderWidth: BORDER_WIDTH.w1_5,
-                                borderColor: text,
-                              },
-                        ]}
-                        onPress={() => toggleRoutineDay(full)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.dayText, { color: selected ? bg : text }]}>
-                          {label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            )}
-
-            {/* Inline error */}
-            {error !== '' && <Text style={[styles.errorText, { color: red }]}>{error}</Text>}
-
-            {/* Navigation */}
-            <View style={styles.navRow}>
-              {step > 1 && (
-                <TouchableOpacity
-                  style={[styles.navBtn, styles.navBtnOutline, { borderColor: text, flex: 1 }]}
-                  onPress={() => {
-                    setError('');
-                    setStep((s) => s - 1);
-                  }}
-                  activeOpacity={0.8}
-                  disabled={loading}
-                >
-                  <Text style={[styles.navBtnText, { color: text }]}>Back</Text>
-                </TouchableOpacity>
               )}
-              <TouchableOpacity
+
+              <Text style={[styles.label, { color: muted }]}>Contact number</Text>
+              <TextInput
                 style={[
-                  styles.navBtn,
-                  { backgroundColor: text, flex: step > 1 ? 2 : 1, opacity: loading ? 0.6 : 1 },
+                  styles.input,
+                  { backgroundColor: inputBg, color: text },
+                  focusBorder('contactNumber'),
                 ]}
-                onPress={
-                  step === 1
-                    ? handleStep1Next
-                    : step === 2
-                      ? () => handleStep2Next()
-                      : step === 3
-                        ? handleStep3Next
-                        : handleCreateAccount
-                }
+                value={contactNumber}
+                onChangeText={(v) => setField('contactNumber', v)}
+                onFocus={() => setFocusedField('contactNumber')}
+                onBlur={() => setFocusedField(null)}
+                placeholder="+44 7700 000000"
+                placeholderTextColor={muted}
+                keyboardType="phone-pad"
+                textContentType="telephoneNumber"
+                autoComplete="tel"
+              />
+            </View>
+          )}
+
+          {/* ── View 4 — Fitness profile ──────────────────────────────────── */}
+          {step === 4 && (
+            <View style={styles.step}>
+              <Text style={[styles.title, { color: text }]}>Your profile</Text>
+
+              <Text style={[styles.label, { color: muted }]}>Username</Text>
+              <View
+                style={[styles.inputRow, { backgroundColor: inputBg }, focusBorder('username')]}
+              >
+                <Text style={[styles.atSign, { color: username ? text : muted }]}>@</Text>
+                <TextInput
+                  style={[styles.inputInner, { color: text }]}
+                  value={username}
+                  onChangeText={(v) => {
+                    setField('username', v.replace('@', ''));
+                    setUsernameStatus('idle');
+                  }}
+                  onFocus={() => setFocusedField('username')}
+                  onBlur={() => setFocusedField(null)}
+                  placeholder="janesmith"
+                  placeholderTextColor={muted}
+                  // The @handle is not the login, so keep iOS from offering saved passwords here.
+                  textContentType="none"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+              {usernameStatus === 'checking' && (
+                <Text style={[styles.fieldNote, { color: muted }]}>Checking…</Text>
+              )}
+              {usernameStatus === 'available' && (
+                <Text style={[styles.fieldNote, { color: green }]}>✓ Available</Text>
+              )}
+              {usernameStatus === 'taken' && (
+                <Text style={[styles.fieldNote, { color: red }]}>✗ Already taken</Text>
+              )}
+
+              <Text style={[styles.label, { color: muted }]}>
+                Display name{' '}
+                <Text style={[styles.optionalTag, { color: muted }]}>(optional)</Text>
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  { backgroundColor: inputBg, color: text },
+                  focusBorder('displayName'),
+                ]}
+                value={displayName}
+                onChangeText={(v) => setField('displayName', v)}
+                onFocus={() => setFocusedField('displayName')}
+                onBlur={() => setFocusedField(null)}
+                placeholder="Jane Smith"
+                placeholderTextColor={muted}
+              />
+
+              <Text style={[styles.label, { color: muted }]}>Fitness goals</Text>
+              <Text style={[styles.subtitle, { color: muted }]}>Select all that apply</Text>
+              <View style={styles.goalsGrid}>
+                {GOALS.map((g) => {
+                  const selected = fitnessGoals.includes(g);
+                  return (
+                    <TouchableOpacity
+                      key={g}
+                      style={[
+                        styles.goalPill,
+                        selected
+                          ? { backgroundColor: text }
+                          : {
+                              backgroundColor: 'transparent',
+                              borderWidth: BORDER_WIDTH.w1_5,
+                              borderColor: text,
+                            },
+                      ]}
+                      onPress={() => toggleGoal(g)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.goalText, { color: selected ? bg : text }]}>{g}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={[styles.label, { color: muted }]}>Training days</Text>
+              <Text style={[styles.subtitle, { color: muted }]}>
+                Which days do you train?{'\n'}You can always change this later in your profile.
+              </Text>
+              <View style={styles.daysRow}>
+                {DAYS.map(({ label, full }) => {
+                  const selected = fitnessRoutine.includes(full);
+                  return (
+                    <TouchableOpacity
+                      key={full}
+                      style={[
+                        styles.dayPill,
+                        selected
+                          ? { backgroundColor: text }
+                          : {
+                              backgroundColor: 'transparent',
+                              borderWidth: BORDER_WIDTH.w1_5,
+                              borderColor: text,
+                            },
+                      ]}
+                      onPress={() => toggleRoutineDay(full)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.dayText, { color: selected ? bg : text }]}>
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Inline error */}
+          {error !== '' && <Text style={[styles.errorText, { color: red }]}>{error}</Text>}
+
+          {/* Navigation */}
+          <View style={styles.navRow}>
+            {step > 1 && (
+              <TouchableOpacity
+                style={[styles.navBtn, styles.navBtnOutline, { borderColor: text, flex: 1 }]}
+                onPress={() => {
+                  setError('');
+                  setStep((s) => s - 1);
+                }}
                 activeOpacity={0.8}
                 disabled={loading}
               >
-                {loading ? (
-                  <ActivityIndicator color={bg} />
-                ) : (
-                  <Text style={[styles.navBtnText, { color: bg }]}>
-                    {step === 4 ? 'Create account' : 'Next'}
-                  </Text>
-                )}
+                <Text style={[styles.navBtnText, { color: text }]}>Back</Text>
               </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-
-        {/* Native date picker — sits at the bottom like a keyboard */}
-        {step === 3 && showDatePicker && (
-          <View style={styles.datePickerOverlay}>
-            <View
-              style={[styles.datePickerToolbar, { backgroundColor: dark ? COLORS.iosGreyDark : COLORS.iosSeparator }]}
-            >
-              <TouchableOpacity onPress={() => setShowDatePicker(false)} activeOpacity={0.7}>
-                <Text style={styles.datePickerDone}>Done</Text>
-              </TouchableOpacity>
-            </View>
-            <DateTimePicker
-              value={
-                dobDD && dobMM && dobYYYY
-                  ? new Date(Number(dobYYYY), Number(dobMM) - 1, Number(dobDD))
-                  : new Date(2000, 0, 1)
+            )}
+            <TouchableOpacity
+              style={[
+                styles.navBtn,
+                { backgroundColor: text, flex: step > 1 ? 2 : 1, opacity: loading ? 0.6 : 1 },
+              ]}
+              onPress={
+                step === 1
+                  ? handleStep1Next
+                  : step === 2
+                    ? () => handleStep2Next()
+                    : step === 3
+                      ? handleStep3Next
+                      : handleCreateAccount
               }
-              mode="date"
-              display="spinner"
-              maximumDate={new Date()}
-              themeVariant={dark ? 'dark' : 'light'}
-              onChange={(_event, date) => {
-                if (date) {
-                  setField('dobDD', String(date.getDate()).padStart(2, '0'));
-                  setField('dobMM', String(date.getMonth() + 1).padStart(2, '0'));
-                  setField('dobYYYY', String(date.getFullYear()));
-                }
-              }}
-            />
+              activeOpacity={0.8}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={bg} />
+              ) : (
+                <Text style={[styles.navBtnText, { color: bg }]}>
+                  {step === 4 ? 'Create account' : 'Next'}
+                </Text>
+              )}
+            </TouchableOpacity>
           </View>
-        )}
+        </ScrollView>
       </SafeAreaView>
     </Modal>
   );
@@ -1054,12 +1056,13 @@ const styles = StyleSheet.create({
   navBtnOutline: { backgroundColor: 'transparent', borderWidth: BORDER_WIDTH.w1_5 },
   navBtnText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
 
-  datePickerOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0 },
-  datePickerToolbar: {
+  dobRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: SPACE.s20,
-    paddingVertical: SPACE.s10,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: SPACE.s8,
   },
-  datePickerDone: { fontSize: FONT_SIZE.f17, fontFamily: FONTS.semiBold, color: COLORS.iosBlue },
+  // Until a date is picked the field shows a placeholder date, so it is dimmed.
+  dobUnset: { opacity: 0.4 },
+  dobHint: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.italic },
 });
