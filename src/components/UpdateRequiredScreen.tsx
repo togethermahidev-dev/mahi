@@ -1,5 +1,5 @@
 import React from 'react';
-import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, StyleSheet, Text, Pressable, View } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { VERSION_LINE } from '@/lib/appBuild';
 import { FONTS } from '@/constants/fonts';
@@ -24,13 +24,17 @@ export default function UpdateRequiredScreen({
           'This version of Mahi is out of date. Update it from the App Store or Google Play to keep posting with your friends.'}
       </Text>
       {storeUrl ? (
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: colors.text }]}
-          activeOpacity={0.8}
+        <Pressable
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.button,
+            { backgroundColor: colors.text },
+            pressed && { opacity: 0.8 },
+          ]}
           onPress={() => Linking.openURL(storeUrl)}
         >
           <Text style={[styles.buttonText, { color: colors.bg }]}>Update now</Text>
-        </TouchableOpacity>
+        </Pressable>
       ) : null}
       <Text style={[styles.version, { color: colors.accent }]}>
         {VERSION_LINE} · needs {minimum}
