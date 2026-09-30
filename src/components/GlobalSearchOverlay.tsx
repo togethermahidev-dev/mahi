@@ -10,12 +10,13 @@ import {
   StyleSheet,
   Platform,
   ActivityIndicator,
-  Dimensions,
-  KeyboardAvoidingView,
+  useWindowDimensions,
   Keyboard,
   PanResponder,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SearchIcon } from '@/components/ScreenIcons';
 import { searchProfiles, type ProfileSearchResult } from '@/api';
 import PointsBadge from '@/components/PointsBadge';
 import { useAuthStore, useBlockStore } from '@/store';
@@ -30,10 +31,9 @@ import {
   RADIUS,
   OFFSET,
   SIZE,
+  ICON_SIZE,
   TRACKING,
 } from '@/constants/tokens';
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 function UserRow({
   item,
@@ -85,6 +85,8 @@ export default function GlobalSearchOverlay({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-24)).current;
   const inputRef = useRef<TextInput>(null);
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
 
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
@@ -213,16 +215,16 @@ export default function GlobalSearchOverlay({
         }}
       />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.content}
-        pointerEvents="box-none"
-      >
-        <Animated.View style={[styles.inner, { transform: [{ translateY: slideAnim }] }]}>
+      <View style={styles.content} pointerEvents="box-none">
+        <Animated.View
+          style={{ paddingTop: insets.top + SPACE.s8, transform: [{ translateY: slideAnim }] }}
+        >
           {/* Search bar row */}
           <View style={styles.barRow}>
             <View style={[styles.pill, { backgroundColor: inputBg }]}>
-              <Text style={[styles.magnify, { color: muted }]}>⌕</Text>
+              <View style={styles.magnify}>
+                <SearchIcon size={ICON_SIZE.i16} color={muted} />
+              </View>
               <TextInput
                 ref={inputRef}
                 style={[styles.input, { color: text }]}
@@ -233,7 +235,9 @@ export default function GlobalSearchOverlay({
                 autoCorrect={false}
                 autoCapitalize="none"
                 returnKeyType="search"
+                enablesReturnKeyAutomatically
                 clearButtonMode="while-editing"
+                accessibilityLabel="Search users"
               />
             </View>
             <TouchableOpacity
@@ -306,14 +310,17 @@ export default function GlobalSearchOverlay({
                   ]}
                 />
               )}
+              // Rows that run under the keyboard stay reachable by scrolling.
+              automaticallyAdjustKeyboardInsets
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.list}
-              style={{ maxHeight: SCREEN_HEIGHT * 0.55 }}
+              style={{ maxHeight: windowHeight * 0.55 }}
             />
           )}
         </Animated.View>
-      </KeyboardAvoidingView>
+      </View>
 
       {/* Full-screen profile — shown when a search result is tapped */}
       {profileUserId ? (
@@ -337,9 +344,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-start',
   },
-  inner: {
-    paddingTop: Platform.OS === 'ios' ? SPACE.s64 : SPACE.s36,
-  },
   barRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -359,7 +363,6 @@ const styles = StyleSheet.create({
     borderColor: withAlpha(COLORS.white, 0.25),
   },
   magnify: {
-    fontSize: FONT_SIZE.f20,
     marginRight: SPACE.s8,
   },
   input: {
