@@ -598,6 +598,8 @@ function DualPhotoPreview({
 
           {/* Discard — top right */}
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Discard photos"
             style={({ pressed }) => [styles.discardButton, pressed && { opacity: 0.8 }]}
             onPress={handleDiscard}
             disabled={isUploading}
@@ -675,6 +677,9 @@ function DualPhotoPreview({
               }}
             >
               <Pressable
+                accessibilityRole="switch"
+                accessibilityLabel="Add location"
+                accessibilityState={{ checked: locationEnabled }}
                 disabled={isUploading}
                 onPress={onToggleLocation}
                 style={({ pressed }) => [{ flex: 1 }, pressed && { opacity: 0.85 }]}
@@ -1029,6 +1034,8 @@ function TagSheet({
               </Text>
             )}
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close"
               style={({ pressed }) => [styles.sheetCloseX, pressed && { opacity: 0.7 }]}
               onPress={onCancel}
             >
@@ -1731,6 +1738,8 @@ export default function CameraScreen(): React.JSX.Element {
 
         <View style={styles.controlsRow}>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Switch camera"
             style={({ pressed }) => [
               styles.flipButton,
               { opacity: captureState !== 'idle' ? 0.3 : 1 },
@@ -1746,6 +1755,10 @@ export default function CameraScreen(): React.JSX.Element {
           </Pressable>
 
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              captureState === 'awaiting-second' ? 'Take second photo' : 'Take photo'
+            }
             style={({ pressed }) => [
               styles.shutterOuter,
               {
