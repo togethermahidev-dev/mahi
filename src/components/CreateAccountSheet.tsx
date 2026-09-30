@@ -4,9 +4,8 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   useColorScheme,
   ActivityIndicator,
@@ -14,6 +13,7 @@ import {
   Keyboard,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabase';
 import { sendOTP, verifyOTP, clearOTP, OTP_LENGTH } from '@/lib/otp';
@@ -538,14 +538,19 @@ export default function CreateAccountSheet({
               {showPills && (
                 <View style={styles.pillRow}>
                   {DOMAINS.map((domain) => (
-                    <TouchableOpacity
+                    <Pressable
                       key={domain}
-                      style={[styles.pill, { borderColor: text }]}
+                      style={({ pressed }) => [
+                        styles.pill,
+                        { borderColor: text },
+                        pressed && styles.pressed,
+                      ]}
                       onPress={() => setField('email', localPart + domain)}
-                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Use @${domain}`}
                     >
                       <Text style={[styles.pillText, { color: text }]}>@{domain}</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   ))}
                 </View>
               )}
@@ -583,11 +588,16 @@ export default function CreateAccountSheet({
                   returnKeyType="next"
                   onSubmitEditing={handleStep1Next}
                 />
-                <TouchableOpacity onPress={() => setShowPassword((p) => !p)} activeOpacity={0.7}>
+                <Pressable
+                  onPress={() => setShowPassword((p) => !p)}
+                  style={({ pressed }) => pressed && styles.pressed}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                >
                   <Text style={[styles.toggle, { color: muted }]}>
                     {showPassword ? 'Hide' : 'Show'}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
 
               {/* Password strength bar */}
@@ -674,15 +684,17 @@ export default function CreateAccountSheet({
               </View>
 
               {/* Resend */}
-              <TouchableOpacity
+              <Pressable
                 onPress={handleResend}
                 disabled={!resendReady || loading}
-                activeOpacity={0.7}
+                style={({ pressed }) => pressed && styles.pressed}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !resendReady || loading }}
               >
                 <Text style={[styles.resendText, { color: resendReady ? text : muted }]}>
                   {resendReady ? 'Resend code' : 'Resend available in 1 min'}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           )}
 
@@ -750,10 +762,15 @@ export default function CreateAccountSheet({
                   )}
                 </View>
               ) : (
-                <TouchableOpacity
-                  style={[styles.input, { backgroundColor: inputBg }]}
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.input,
+                    { backgroundColor: inputBg },
+                    pressed && styles.pressedStrong,
+                  ]}
                   onPress={openAndroidDob}
-                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Date of birth"
                 >
                   <Text
                     style={{
@@ -764,7 +781,7 @@ export default function CreateAccountSheet({
                   >
                     {dobSet ? `${dobDD}/${dobMM}/${dobYYYY}` : 'DD/MM/YYYY'}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               )}
 
               <Text style={[styles.label, { color: muted }]}>Contact number</Text>
@@ -849,9 +866,9 @@ export default function CreateAccountSheet({
                 {GOALS.map((g) => {
                   const selected = fitnessGoals.includes(g);
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={g}
-                      style={[
+                      style={({ pressed }) => [
                         styles.goalPill,
                         selected
                           ? { backgroundColor: text }
@@ -860,12 +877,14 @@ export default function CreateAccountSheet({
                               borderWidth: BORDER_WIDTH.w1_5,
                               borderColor: text,
                             },
+                        pressed && styles.pressed,
                       ]}
                       onPress={() => toggleGoal(g)}
-                      activeOpacity={0.7}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
                     >
                       <Text style={[styles.goalText, { color: selected ? bg : text }]}>{g}</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -878,9 +897,9 @@ export default function CreateAccountSheet({
                 {DAYS.map(({ label, full }) => {
                   const selected = fitnessRoutine.includes(full);
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={full}
-                      style={[
+                      style={({ pressed }) => [
                         styles.dayPill,
                         selected
                           ? { backgroundColor: text }
@@ -889,14 +908,17 @@ export default function CreateAccountSheet({
                               borderWidth: BORDER_WIDTH.w1_5,
                               borderColor: text,
                             },
+                        pressed && styles.pressed,
                       ]}
                       onPress={() => toggleRoutineDay(full)}
-                      activeOpacity={0.7}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
+                      accessibilityLabel={full}
                     >
                       <Text style={[styles.dayText, { color: selected ? bg : text }]}>
                         {label}
                       </Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -909,22 +931,29 @@ export default function CreateAccountSheet({
           {/* Navigation */}
           <View style={styles.navRow}>
             {step > 1 && (
-              <TouchableOpacity
-                style={[styles.navBtn, styles.navBtnOutline, { borderColor: text, flex: 1 }]}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.navBtn,
+                  styles.navBtnOutline,
+                  { borderColor: text, flex: 1 },
+                  pressed && styles.pressedStrong,
+                ]}
                 onPress={() => {
                   setError('');
                   setStep((s) => s - 1);
                 }}
-                activeOpacity={0.8}
                 disabled={loading}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: loading }}
               >
                 <Text style={[styles.navBtnText, { color: text }]}>Back</Text>
-              </TouchableOpacity>
+              </Pressable>
             )}
-            <TouchableOpacity
-              style={[
+            <Pressable
+              style={({ pressed }) => [
                 styles.navBtn,
                 { backgroundColor: text, flex: step > 1 ? 2 : 1, opacity: loading ? 0.6 : 1 },
+                pressed && styles.pressedStrong,
               ]}
               onPress={
                 step === 1
@@ -935,8 +964,9 @@ export default function CreateAccountSheet({
                       ? handleStep3Next
                       : handleCreateAccount
               }
-              activeOpacity={0.8}
               disabled={loading}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: loading, busy: loading }}
             >
               {loading ? (
                 <ActivityIndicator color={bg} />
@@ -945,7 +975,7 @@ export default function CreateAccountSheet({
                   {step === 4 ? 'Create account' : 'Next'}
                 </Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -1065,4 +1095,8 @@ const styles = StyleSheet.create({
   // Until a date is picked the field shows a placeholder date, so it is dimmed.
   dobUnset: { opacity: 0.4 },
   dobHint: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.italic },
+
+  // Pressed feedback, matching the old TouchableOpacity activeOpacity values.
+  pressed: { opacity: 0.7 },
+  pressedStrong: { opacity: 0.8 },
 });
