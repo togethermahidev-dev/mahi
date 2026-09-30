@@ -25,6 +25,7 @@ import Reanimated, {
 import * as Haptics from 'expo-haptics';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { BlurView } from 'expo-blur';
+import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import * as FileSystem from 'expo-file-system/legacy';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { Accelerometer } from 'expo-sensors';
@@ -227,6 +228,34 @@ interface CapturedPhoto {
 const PIP_W = 130;
 const PIP_H = 170;
 const PIP_MARGIN = 16;
+
+/**
+ * A preview pill on glass, with NavRail's fallbacks: Liquid Glass on iOS 26+, a frosted blur on
+ * older iPhones, a tinted fill on Android. `active` fills it with the accent (location on).
+ */
+function GlassPill({ active, children }: { active?: boolean; children: React.ReactNode }) {
+  if (isLiquidGlassAvailable()) {
+    return (
+      <GlassView
+        style={styles.captionPill}
+        glassEffectStyle="regular"
+        colorScheme="dark"
+        tintColor={active ? COLORS.accent : undefined}
+      >
+        {children}
+      </GlassView>
+    );
+  }
+  const fill = [styles.captionPill, styles.captionPillFill, active && styles.locationPillActive];
+  if (Platform.OS === 'ios') {
+    return (
+      <BlurView intensity={40} tint="dark" style={fill}>
+        {children}
+      </BlurView>
+    );
+  }
+  return <View style={fill}>{children}</View>;
+}
 
 function tagPillLabel(tagged: TaggedUser[]): string {
   if (tagged.length === 0) return '＋ Tag people';
@@ -627,7 +656,7 @@ function DualPhotoPreview({
                   pressed && { opacity: 0.85 },
                 ]}
               >
-                <BlurView intensity={40} tint="dark" style={styles.captionPill}>
+                <GlassPill>
                   <Text
                     style={[
                       styles.captionPillText,
@@ -638,7 +667,7 @@ function DualPhotoPreview({
                   >
                     {tagPillLabel(taggedUsers)}
                   </Text>
-                </BlurView>
+                </GlassPill>
               </Pressable>
 
               <Pressable
@@ -649,7 +678,7 @@ function DualPhotoPreview({
                   pressed && { opacity: 0.85 },
                 ]}
               >
-                <BlurView intensity={40} tint="dark" style={styles.captionPill}>
+                <GlassPill>
                   <Text
                     style={[styles.captionPillText, caption.trim() && { color: COLORS.white }]}
                     numberOfLines={1}
@@ -657,7 +686,7 @@ function DualPhotoPreview({
                   >
                     {caption.trim() || '＋ Add a caption'}
                   </Text>
-                </BlurView>
+                </GlassPill>
               </Pressable>
             </View>
 
@@ -684,11 +713,7 @@ function DualPhotoPreview({
                 onPress={onToggleLocation}
                 style={({ pressed }) => [{ flex: 1 }, pressed && { opacity: 0.85 }]}
               >
-                <BlurView
-                  intensity={40}
-                  tint="dark"
-                  style={[styles.captionPill, locationEnabled && styles.locationPillActive]}
-                >
+                <GlassPill active={locationEnabled}>
                   <Text
                     style={[styles.captionPillText, locationEnabled && { color: COLORS.white }]}
                     numberOfLines={1}
@@ -696,7 +721,7 @@ function DualPhotoPreview({
                   >
                     {locationEnabled ? '📍 Location on' : '📍 Add location'}
                   </Text>
-                </BlurView>
+                </GlassPill>
               </Pressable>
             </View>
 
@@ -2021,6 +2046,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+  },
+  // Without Liquid Glass: the hairline edge and dark wash that glass draws for itself.
+  captionPillFill: {
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: withAlpha(COLORS.white, 0.18),
     backgroundColor: withAlpha(COLORS.black, 0.35),
