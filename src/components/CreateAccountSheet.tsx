@@ -21,6 +21,12 @@ import { sendOTP, verifyOTP, clearOTP, OTP_LENGTH } from '@/lib/otp';
 import { completeSignup } from '@/api/auth';
 import { useSignUpStore, useInviteStore } from '@/store';
 import { normaliseInviteCode } from '@/lib/inviteLink';
+import {
+  getPasswordStrength,
+  MIN_PASSWORD_LENGTH,
+  PASSWORD_RULES,
+  type Strength,
+} from '@/lib/password';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { env } from '@/lib/env';
@@ -47,20 +53,6 @@ const DAYS = [
   { label: 'Sat', full: 'Saturday' },
   { label: 'Sun', full: 'Sunday' },
 ];
-
-// ─── Password strength ────────────────────────────────────────────────────────
-type Strength = 'low' | 'medium' | 'high';
-
-function getPasswordStrength(pw: string): Strength | null {
-  if (!pw) return null;
-  const hasUpper = /[A-Z]/.test(pw);
-  const hasNumber = /[0-9]/.test(pw);
-  const hasSpecial = /[!@#$%^&*()\-_=+\[\]{};:'",.<>/?\\|`~]/.test(pw);
-  const classes = [hasUpper, hasNumber, hasSpecial].filter(Boolean).length;
-  if (pw.length < 8 || classes <= 1) return 'low';
-  if (classes === 3) return 'high';
-  return 'medium';
-}
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 interface Props {
@@ -98,6 +90,7 @@ export default function CreateAccountSheet({
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   // Code verified in step 2 — complete-signup checks it again before creating the account.
   const [enteredCode, setEnteredCode] = useState('');
+  const passwordRef = useRef<RNTextInput>(null);
   const otpRefs = useRef<(RNTextInput | null)[]>(Array(OTP_LENGTH).fill(null));
   const [focusedOtp, setFocusedOtp] = useState<number | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -256,6 +249,7 @@ export default function CreateAccountSheet({
 
   // Step 1 → 2: send OTP
   const handleStep1Next = async () => {
+    if (loading) return;
     if (!email.trim()) {
       setError('Email is required.');
       return;
@@ -264,8 +258,8 @@ export default function CreateAccountSheet({
       setError('Password is required.');
       return;
     }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
       return;
     }
     if (getPasswordStrength(password) === 'low') {
@@ -534,8 +528,13 @@ export default function CreateAccountSheet({
                   placeholder="your@email.com"
                   placeholderTextColor={muted}
                   keyboardType="email-address"
+                  textContentType="username"
+                  autoComplete="email"
                   autoCapitalize="none"
                   autoCorrect={false}
+                  returnKeyType="next"
+                  submitBehavior="submit"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
                 />
 
                 {/* Email domain suggestion pills */}
@@ -567,6 +566,7 @@ export default function CreateAccountSheet({
                   style={[styles.inputRow, { backgroundColor: inputBg }, focusBorder('password')]}
                 >
                   <TextInput
+                    ref={passwordRef}
                     style={[styles.inputInner, { color: text }]}
                     value={password}
                     onChangeText={(v) => {
@@ -575,11 +575,16 @@ export default function CreateAccountSheet({
                     }}
                     onFocus={() => setFocusedField('password')}
                     onBlur={() => setFocusedField(null)}
-                    placeholder="Min. 8 characters"
+                    placeholder={`Min. ${MIN_PASSWORD_LENGTH} characters`}
                     placeholderTextColor={muted}
                     secureTextEntry={!showPassword}
+                    textContentType="newPassword"
+                    autoComplete="new-password"
+                    passwordRules={PASSWORD_RULES}
                     autoCapitalize="none"
                     autoCorrect={false}
+                    returnKeyType="next"
+                    onSubmitEditing={handleStep1Next}
                   />
                   <TouchableOpacity onPress={() => setShowPassword((p) => !p)} activeOpacity={0.7}>
                     <Text style={[styles.toggle, { color: muted }]}>
@@ -684,6 +689,9 @@ export default function CreateAccountSheet({
                   onBlur={() => setFocusedField(null)}
                   placeholder="Jane"
                   placeholderTextColor={muted}
+                  textContentType="givenName"
+                  autoComplete="given-name"
+                  autoCapitalize="words"
                 />
 
                 <Text style={[styles.label, { color: muted }]}>Last name</Text>
@@ -699,6 +707,9 @@ export default function CreateAccountSheet({
                   onBlur={() => setFocusedField(null)}
                   placeholder="Smith"
                   placeholderTextColor={muted}
+                  textContentType="familyName"
+                  autoComplete="family-name"
+                  autoCapitalize="words"
                 />
 
                 <Text style={[styles.label, { color: muted }]}>Date of birth</Text>
@@ -735,6 +746,8 @@ export default function CreateAccountSheet({
                   placeholder="+44 7700 000000"
                   placeholderTextColor={muted}
                   keyboardType="phone-pad"
+                  textContentType="telephoneNumber"
+                  autoComplete="tel"
                 />
               </View>
             )}
@@ -760,6 +773,9 @@ export default function CreateAccountSheet({
                     onBlur={() => setFocusedField(null)}
                     placeholder="janesmith"
                     placeholderTextColor={muted}
+                    // The @handle is not the login, so keep iOS from offering saved passwords here.
+                    textContentType="none"
+                    autoComplete="off"
                     autoCapitalize="none"
                     autoCorrect={false}
                   />
