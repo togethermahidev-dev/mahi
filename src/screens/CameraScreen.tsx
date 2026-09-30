@@ -855,6 +855,7 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
             multiline
             maxLength={200}
             autoFocus
+            keyboardAppearance="dark"
             textAlignVertical="top"
           />
           <Pressable
@@ -1053,7 +1054,10 @@ function TagSheet({
           autoFocus
           autoCapitalize="none"
           autoCorrect={false}
+          autoComplete="off"
           returnKeyType="search"
+          clearButtonMode="while-editing"
+          keyboardAppearance="dark"
         />
 
         <FlatList
