@@ -48,6 +48,7 @@ import {
   View,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
@@ -256,6 +257,7 @@ export default function AvatarPicker({
   onUpdate,
 }: AvatarPickerProps): React.JSX.Element {
   const { uploading, localUri, handleEditPress } = useAvatarUpload(userId, onUpdate);
+  const insets = useSafeAreaInsets();
 
   // Full-screen lightbox state — presentation only, so it stays in the component
   // rather than the upload hook. Only opens when there is a real image to enlarge.
@@ -340,7 +342,11 @@ export default function AvatarPicker({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close photo"
-              style={({ pressed }) => [styles.lightboxClose, pressed && { opacity: 0.8 }]}
+              style={({ pressed }) => [
+                styles.lightboxClose,
+                { top: insets.top + OFFSET.o8 },
+                pressed && { opacity: 0.8 },
+              ]}
               onPress={closeLightbox}
               hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
             >
@@ -422,7 +428,6 @@ const styles = StyleSheet.create({
   },
   lightboxClose: {
     position: 'absolute',
-    top: OFFSET.o56,
     right: OFFSET.o24,
     width: SIZE.z36,
     height: SIZE.z36,

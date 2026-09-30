@@ -16,6 +16,7 @@ import {
   Share,
 } from 'react-native';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Reanimated, {
   useSharedValue,
   useAnimatedStyle,
@@ -123,7 +124,13 @@ function MidnightCountdown({ onUnlock }: { onUnlock: () => void }) {
 
 // ─── Streak Badge ─────────────────────────────────────────────────────────────
 
+/** Top of the top-right corner items (streak badge, discard ✕): just below the status bar. */
+function topRightY(insetTop: number): number {
+  return insetTop + OFFSET.o48;
+}
+
 function StreakBadge({ count }: { count: number }) {
+  const insets = useSafeAreaInsets();
   const scaleAnim = useRef(new Animated.Value(4)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -146,7 +153,10 @@ function StreakBadge({ count }: { count: number }) {
 
   return (
     <Animated.View
-      style={[styles.streakBadge, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}
+      style={[
+        styles.streakBadge,
+        { top: topRightY(insets.top), transform: [{ scale: scaleAnim }], opacity: opacityAnim },
+      ]}
     >
       <Text style={styles.streakNumber}>{count}</Text>
       <Text style={styles.streakLabel}>DAY{'\n'}STREAK</Text>
@@ -303,6 +313,7 @@ function DualPhotoPreview({
   onToggleLocation,
 }: DualPhotoPreviewProps) {
   const maxTags = useTagStore((s) => s.maxTags);
+  const insets = useSafeAreaInsets();
   // An invite fills a slot just as a friend does.
   const tagsMissing = Math.max(0, requiredTags - taggedUsers.length - inviteCount);
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
@@ -629,7 +640,11 @@ function DualPhotoPreview({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Discard photos"
-            style={({ pressed }) => [styles.discardButton, pressed && { opacity: 0.8 }]}
+            style={({ pressed }) => [
+              styles.discardButton,
+              { top: topRightY(insets.top) },
+              pressed && { opacity: 0.8 },
+            ]}
             onPress={handleDiscard}
             disabled={isUploading}
           >
@@ -1185,6 +1200,7 @@ export default function CameraScreen(): React.JSX.Element {
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
   const cameraRef = useRef<CameraView>(null);
   const { dark } = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [captureState, setCaptureState] = useState<CaptureState>('idle');
@@ -1702,7 +1718,14 @@ export default function CameraScreen(): React.JSX.Element {
           <OpenTagsBanner openTags={openTags} serverOffsetMs={serverOffsetMs} />
         )}
 
-        {isRestDay && !hasPostedToday && <Text style={styles.restDayLabel}>REST DAY</Text>}
+        {isRestDay && !hasPostedToday && (
+          // 62pt under the streak badge's top: just below its two-line label.
+          <Text
+            style={[styles.restDayLabel, { top: topRightY(insets.top) + OFFSET.o56 + OFFSET.o6 }]}
+          >
+            REST DAY
+          </Text>
+        )}
 
         {/* Capture progress overlay */}
         {captureLabel && (
@@ -1835,7 +1858,6 @@ const styles = StyleSheet.create({
   },
   streakBadge: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? OFFSET.o108 : OFFSET.o80,
     right: OFFSET.o24,
     alignItems: 'center',
   },
@@ -1857,7 +1879,6 @@ const styles = StyleSheet.create({
   },
   restDayLabel: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? OFFSET.o170 : OFFSET.o142,
     right: OFFSET.o24,
     color: COLORS.offWhite,
     fontSize: FONT_SIZE.f10,
@@ -2005,7 +2026,6 @@ const styles = StyleSheet.create({
   },
   discardButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? OFFSET.o108 : OFFSET.o80,
     right: OFFSET.o24,
     width: SIZE.z36,
     height: SIZE.z36,
