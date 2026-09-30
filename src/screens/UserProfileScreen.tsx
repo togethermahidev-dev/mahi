@@ -521,9 +521,7 @@ export default function UserProfileScreen({
       ) : null}
 
       {/* Post detail — opened when a grid cell is tapped */}
-      {selectedPost ? (
-        <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />
-      ) : null}
+      <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />
 
       {/* Suggested user's profile — opened from a suggestion card */}
       {suggestedUserId ? (
