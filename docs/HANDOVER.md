@@ -44,7 +44,7 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
 - Parked decision: success targets (#12). (Streak rule #1, existing streaks #10 and rest days #27 were
   decided on 2026-10-01 with reactive posting.)
 - Reactive posting release, in this order (owner-only): push `20261001120000_reactive_posting` → publish
-  the OTA → push `20261001120100_drop_rest_days` only once every phone has the new app (old builds still
+  the OTA → turn `supabase/deferred/drop_rest_days.sql` into a migration and push it only once every phone has the new app (old builds still
   insert `fitness_routine` at sign-up and read the dropped columns).
 - Store release, then the `supabase/deferred/` contract steps.
 
