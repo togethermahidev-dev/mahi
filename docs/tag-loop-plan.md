@@ -6,6 +6,13 @@ Phases run in order; each one ships, is verified red→green, and is committed b
 Read first: [HANDOVER.md](./HANDOVER.md) (rules, goal loop), [architecture.md](./architecture.md#layering-contract)
 (layering contract), [adding-a-feature.md](./adding-a-feature.md) (copy-this recipe).
 
+> **Status (checked against prod 2026-10-01):** every migration below that has been written is live —
+> the twelve go-live changes on 2026-09-23, then `friends`, `tag_nudge`, `signup_codes`, `version_gate`,
+> `tag_lock_rules`, `contract_invites` (invite links on) and the 2026-10-01 reset/delete migrations.
+> Not done: `send-push` deployment and push credentials (Phase 1), the invite landing page (Phase 7), the
+> streak half of Phase 5 (parked), the store release and the `supabase/deferred/` contract steps
+> (Phases 3, 4, 6). The app is on the EAS preview lane only.
+
 > **Decisions:** [decisions.md](./decisions.md) records every choice, the options not taken, and where
 > this plan uses each one. Parked: #1 streak rule and #10 existing streaks (ask before Phase 5),
 > #12 success targets (ask before Phase 8). Numeric rules (48 h, 24 h, cap, quiet hours, grace) live
@@ -182,7 +189,8 @@ with the time-zone sync.
 
 **Goal:** the server can reach any user, reliably, once, and never at night.
 
-*Built 2026-09-17, not live.* Files: `supabase/migrations/20260917111346_push.sql` (+ rollback),
+*Built 2026-09-17; migration live 2026-09-23. `send-push` not deployed and no push credentials yet, so
+nothing sends; flag `push-core` is absent from PostHog (off).* Files: `supabase/migrations/20260917111346_push.sql` (+ rollback),
 `supabase/tests/push_test.sql`, `supabase/functions/send-push/index.ts`.
 
 **Migration `push`**
@@ -246,7 +254,7 @@ Vault secrets `send_push_url` (the function URL) and `send_push_secret` (same va
 
 ### Phase 2 — Tag challenges (the core loop)
 
-*Built 2026-09-17, not live.* Files: `supabase/migrations/20260917112413_tag_challenges.sql`
+*Built 2026-09-17; live 2026-09-23.* Files: `supabase/migrations/20260917112413_tag_challenges.sql`
 (+ rollback), `supabase/tests/tag_challenges_test.sql` (28 checks). Differences from the design below:
 
 - **Answering is a trigger** (`answer_tags_on_post`, AFTER INSERT on `posts`), not a step inside
@@ -366,7 +374,7 @@ deadlines and their pushes, and answers any tags the poster holds.
 
 ### Phase 3 — Contract the old posting path
 
-*Expand step built 2026-09-17, not live:* `supabase/migrations/20260917113302_app_version_gate.sql`
+*Expand step built 2026-09-17, live 2026-09-23 (`min_app_version` still `0.0.0`; contract step waits for a store build):* `supabase/migrations/20260917113302_app_version_gate.sql`
 (+ rollback, `supabase/tests/app_version_gate_test.sql`) adds `app_config.min_app_version`
 (default `0.0.0`, x.y.z only). The app reads it once per sign-in and shows
 `src/components/UpdateRequiredScreen.tsx` when `isBelowVersion(app version, minimum)`
@@ -396,7 +404,7 @@ works.
 
 ### Phase 4 — Feed lock and private photos
 
-*Expand step built 2026-09-17, not live:* `supabase/migrations/20260917114517_feed_lock.sql`
+*Expand step built 2026-09-17, live 2026-09-23; founder's lock and no-tag-back rules added by `20260928120000_tag_lock_rules` (live 2026-09-28); `private_bucket` still deferred:* `supabase/migrations/20260917114517_feed_lock.sql`
 (+ rollback, `supabase/tests/feed_lock_test.sql`, 20 checks, flip-tested by disabling the lock rule).
 Differences from the design below:
 
@@ -486,7 +494,7 @@ for both the post data and the image files.
 
 ### Phase 5 — Points and the new streak
 
-*Points built 2026-09-17, not live; the streak half waits for decisions #1 and #10.*
+*Points built 2026-09-17, live 2026-09-23; the streak half waits for decisions #1, #10 and #27.*
 `supabase/migrations/20260917115316_points.sql` (+ rollback, tested by applying it locally;
 `supabase/tests/points_test.sql`, 10 checks, flip-tested by removing the cap). Differences from the
 design below:
@@ -527,7 +535,7 @@ design below:
 - `src/components/PointsBadge.tsx` (fire icon + count, theme tokens) used on feed cards, profiles,
   search rows, tag sheet rows.
 - `src/components/RestDaysStreakPanel.tsx` (*edit*): remove rest-day toggles; grid shows posted days
-  and the week streak. `src/components/TrainingDaysScreen.tsx` and `updateFitnessRoutine` removed.
+  and the week streak. `updateFitnessRoutine` removed (`TrainingDaysScreen` is already gone, 2026-10-01).
 - `src/components/CreateAccountSheet.tsx` (*edit*): drop the training-days step.
 - Flag: `mahi-points`.
 
@@ -541,7 +549,7 @@ correct for `Europe/London` and `America/New_York`.
 
 ### Phase 6 — Messages hardening
 
-*Built 2026-09-17, not live.* `supabase/migrations/20260917120414_messages.sql` (+ rollback,
+*Built 2026-09-17; live 2026-09-23; contract step deferred.* `supabase/migrations/20260917120414_messages.sql` (+ rollback,
 `supabase/deferred/contract_messages.sql`; `supabase/tests/messages_test.sql`, 21 checks, red before
 the migration, green after). Differences from the design below:
 
@@ -602,9 +610,11 @@ their order and content.
 
 ### Phase 7 — Invite links
 
-*Built 2026-09-17, not live, and the landing page is not hosted.*
-`supabase/migrations/20260917121508_invites.sql` (+ rollback,
-`supabase/deferred/contract_invites.sql`; `supabase/tests/invites_test.sql`, 27 checks, red before
+*Built 2026-09-17; live 2026-09-23; switched on by `20260928130000_contract_invites` (live 2026-09-28).
+The landing page is not hosted and `togethermahi.com` doesn't resolve yet, so links open nothing; the
+6-character code works.*
+`supabase/migrations/20260917121508_invites.sql` (+ rollback; the contract step became migration
+`20260928130000_contract_invites`; `supabase/tests/invites_test.sql`, 27 checks, red before
 the migration, green after). Differences from the design below:
 
 - **`app_config.invite_links_enabled` gates decision #8** instead of a code change. While it is
@@ -627,8 +637,9 @@ the migration, green after). Differences from the design below:
   wired once in `App.tsx`. The tag sheet's slot counter counts invites; posting hands each link to
   the share sheet in turn, because a link is for one person and works once. Sign-up shows who
   invited you, or a code field when the app wasn't opened by the link. Flag `invite-links`.
-- **Not built:** a screen listing invites you've already sent. A link skipped in the share sheet
-  stays on the server with no way back to it from the app.
+- **Since built (flag `tags-invite-step`, 2026-10-01):** when friends can't fill the slots the tag sheet
+  leads with "Invite N friends to post", and after posting `InviteShareSheet` lists the post's invite
+  links as sent / not sent, with send again. Still no screen listing invites from earlier posts.
 
 **Goal:** tagging someone not on Mahi sends a link; when they sign up, their 48-hour tag starts.
 
@@ -676,7 +687,7 @@ Device — share link → install → sign up with code → tag appears with 48 
 
 ### Phase 8 — Beta
 
-*Measurement built 2026-09-23, not live. The beta itself waits on everything shipping and on
+*Measurement built 2026-09-23, live the same day. The beta itself waits on everything shipping and on
 decision #12.* `supabase/migrations/20260923101500_stats_views.sql` (+ rollback;
 `supabase/tests/stats_test.sql`, 19 checks, red before the migration, green after),
 `src/lib/analytics.ts`.
