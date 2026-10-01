@@ -12,6 +12,11 @@ The files are production's own migration history, downloaded from
 policies that had been created in the dashboard. Every live table, column, function, trigger, policy,
 index and bucket was checked against these files; nothing else was missing.
 
+Every later migration, through `20261001100100_account_delete_cascade`, has been pushed by the owner and
+is live (checked against prod 2026-10-01). Still held back: `deferred/contract_posting.sql`,
+`deferred/contract_messages.sql`, `deferred/private_bucket.sql` — they shut old paths and wait for a
+store build covered by the version gate.
+
 Rules (enforced by `.claude/hooks/guard.cjs`):
 
 - Create migrations with `supabase migration new <name>` (14-digit timestamp prefix, newest last).
@@ -38,10 +43,10 @@ The build plan is [docs/tag-loop-plan.md](../docs/tag-loop-plan.md).
 
 | Function | Purpose |
 |---|---|
-| `send-otp` | Makes a 6-digit code **server-side**, stores `sha256(code)` + expiry in `otp_codes`, emails it via Resend from `noreply@mahitechnology.com`. Limits: 1/min and 5/hour per email, 5/min and 30/hour per network address (`auth_rate_limits`). |
-| `verify-otp` | Checks a typed code (5 tries, one atomic update per try) and stamps `verified_at` on a match. |
-| `complete-signup` | Creates the confirmed auth user only for a code `verify-otp` accepted in the last 30 minutes. |
-| `send-push` | Push outbox sender, called by pg_cron. |
+| `send-otp` | Makes a 6-digit sign-up code (`purpose = 'signup'`) **server-side**, stores `sha256(code)` + expiry in `otp_codes`, emails it via Resend from `noreply@mahitechnology.com`. Limits: 1/min and 5/hour per email, 5/min and 30/hour per network address (`auth_rate_limits`). |
+| `verify-otp` | Checks a typed sign-up code (5 tries, one atomic update per try) and stamps `verified_at` on a match. |
+| `complete-signup` | Creates the confirmed auth user only for a sign-up code `verify-otp` accepted in the last 30 minutes. |
+| `send-push` | Push outbox sender, called by pg_cron. **Not deployed yet** — waits for push credentials (see `docs/go-live-runbook.md`). |
 | `send-reset-code` | Password reset: same as `send-otp` but stores the code with `purpose = 'reset'`. Answers and works the same whether or not the email has an account. |
 | `reset-password` | Checks a reset code (5 tries), then sets the new password with the admin API. Same password rule as sign-up. |
 | `delete-account` | Deletes the caller's photos (`posts/{id}/`, `avatars/{id}/`), then their auth user; every table cascades. Deployed **with** JWT verification. |
@@ -53,5 +58,8 @@ Before User Created auth hook `hook_require_verified_signup` (migration `2026092
 refuses email sign-ups without a fresh `verified_at`, which closes the public sign-up endpoint. It is
 switched on in the Dashboard (Authentication → Hooks), not by the migration.
 
-Required function secrets: `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`. All functions except `delete-account` run
-`verify_jwt: false` (pre-auth flows). `check-email` is live but not in this repo.
+Required function secrets: `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY` (`send-push` adds `SEND_PUSH_SECRET`).
+All functions except `delete-account` run `verify_jwt: false` (deploy with `--no-verify-jwt`); `delete-account`
+keeps JWT verification on. Deployed versions (checked against prod 2026-10-01): `send-otp` v18, `verify-otp` v2,
+`complete-signup` v7, `send-reset-code` v1, `reset-password` v1, `delete-account` v1. `check-email` is live but
+not in this repo. Deploys are the owner's; the CLI needs `SUPABASE_ACCESS_TOKEN` set to a Mahi token.
