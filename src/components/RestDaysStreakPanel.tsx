@@ -17,7 +17,7 @@ import { updateFitnessRoutine } from '@/api';
 import { Sentry } from '@/lib/sentry';
 import { WEEKDAY_NAMES } from '@/lib/streakGrid';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SIZE, OFFSET, TRACKING, LINE_HEIGHT, BORDER_WIDTH } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SIZE, OFFSET, LINE_HEIGHT, BORDER_WIDTH } from '@/constants/tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -115,7 +115,7 @@ function Sheet({ onClose, dark, ...grid }: Omit<RestDaysStreakPanelProps, 'visib
     <View style={styles.root}>
       <View style={[styles.topBar, { borderBottomColor: border, paddingTop: insets.top + SPACE.s20 }]}>
         <Text style={[styles.title, { color: text }]} accessibilityRole="header">
-          REST DAYS & STREAK
+          Rest days & streak
         </Text>
         <Pressable
           onPress={onClose}
@@ -137,7 +137,7 @@ function Sheet({ onClose, dark, ...grid }: Omit<RestDaysStreakPanelProps, 'visib
         <View style={styles.restSection}>
           <View style={styles.restHeaderRow}>
             <Text style={[styles.sectionTitle, { color: text }]} accessibilityRole="header">
-              REST DAYS
+              Rest days
             </Text>
             <Pressable
               onPress={handleSave}
@@ -193,7 +193,7 @@ function Sheet({ onClose, dark, ...grid }: Omit<RestDaysStreakPanelProps, 'visib
           style={[styles.sectionTitle, styles.streakSectionTitle, { color: text }]}
           accessibilityRole="header"
         >
-          STREAK
+          Streak
         </Text>
 
         <StreakCalendar {...grid} dark={dark} flow="rest_days_streak" />
@@ -219,8 +219,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f13,
-    letterSpacing: TRACKING.t5,
+    fontSize: FONT_SIZE.f16,
   },
   closeBtn: {
     width: SIZE.z36,
@@ -253,8 +252,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f13,
-    letterSpacing: TRACKING.t5,
+    fontSize: FONT_SIZE.f15,
   },
   saveBtn: {
     minWidth: SIZE.z70,

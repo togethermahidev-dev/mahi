@@ -14,16 +14,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
-import {
-  COLORS,
-  withAlpha,
-  FONT_SIZE,
-  SPACE,
-  RADIUS,
-  OFFSET,
-  SIZE,
-  TRACKING,
-} from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE } from '@/constants/tokens';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PLACEHOLDER_IMG = require('../../assets/jogger.png') as number;
@@ -92,7 +83,7 @@ function GridCell({
         onError={() => setImgError(true)}
       />
       <View style={[styles.badge, { backgroundColor: badgeBg }]}>
-        <Text style={[styles.badgeText, { color: badgeText }]}>DAY {post.streak_day}</Text>
+        <Text style={[styles.badgeText, { color: badgeText }]}>Day {post.streak_day}</Text>
       </View>
     </Pressable>
   );
@@ -131,7 +122,7 @@ export default function ProfileMediaMap({
       <View style={[styles.container, styles.centered, { backgroundColor: bg }]}>
         <CameraIcon color={muted} />
         <Text style={[styles.emptyTitle, { color: text }]}>
-          {isSelf ? 'UPLOAD YOUR FIRST WORKOUT' : 'NO POSTS YET'}
+          {isSelf ? 'Upload your first workout' : 'No posts yet'}
         </Text>
         <Text style={[styles.emptySubtitle, { color: muted }]}>
           {isSelf ? 'Snap a photo and it will appear here.' : "This user hasn't posted yet."}
@@ -187,12 +178,10 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t1,
   },
   emptyTitle: {
     fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t3,
     textAlign: 'center',
   },
   emptySubtitle: {

@@ -88,7 +88,7 @@ export default function FollowListModal({
     [currentUserId, toggleFollow, fetchList]
   );
 
-  const title = { followers: 'FOLLOWERS', following: 'FOLLOWING', friends: 'FRIENDS' }[type];
+  const title = { followers: 'Followers', following: 'Following', friends: 'Friends' }[type];
   const emptyMessage = {
     followers: 'No followers yet',
     following: 'Not following anyone yet',
@@ -192,7 +192,7 @@ export default function FollowListModal({
                           accessibilityRole="button"
                           accessibilityLabel={`Unfollow @${item.username ?? displayName}`}
                         >
-                          <Text style={[styles.unfollowBtnText, { color: text }]}>FOLLOWING</Text>
+                          <Text style={[styles.unfollowBtnText, { color: text }]}>Following</Text>
                         </Pressable>
                       ) : null}
                     </Pressable>
@@ -255,7 +255,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t3,
   },
   loadingWrap: {
     flex: 1,
@@ -305,9 +304,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s6,
   },
   unfollowBtnText: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t2,
   },
   separator: {
     height: SIZE.z1,
