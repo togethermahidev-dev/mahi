@@ -14,7 +14,10 @@
     "release:prepare": "node scripts/release-check.cjs && node scripts/bump-build.cjs && node scripts/release-check.cjs --release",
     "ota:bump": "node scripts/bump-build.cjs --ota",
     "lint": "eslint src",
-    "format": "prettier --write \"src/**/*.{ts,tsx}\""
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "dev:web": "pnpm --filter ./web dev",
+    "build:web": "pnpm --filter ./web build",
+    "lint:web": "pnpm --filter ./web lint"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
