@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { formatHms, msLeft } from '@/lib/countdown';
+import { openTagsBanner } from '@/lib/openTagsBanner';
 import { appHeaderHeight } from '@/lib/pip';
 import type { OpenTag } from '@/api';
 import { FONTS } from '@/constants/fonts';
@@ -25,25 +25,22 @@ export default function OpenTagsBanner({
   const top = appHeaderHeight(useSafeAreaInsets().top) + OFFSET.o12;
   const [, setTick] = useState(0);
 
+  // Hours and minutes only, so a refresh every 30 seconds keeps it right.
   useEffect(() => {
     if (openTags.length === 0) return;
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    const id = setInterval(() => setTick((t) => t + 1), 30 * 1000);
     return () => clearInterval(id);
   }, [openTags.length]);
 
-  const first = openTags[0];
-  if (!first) return null;
-
-  const others = openTags.length - 1;
-  const who = `@${first.username}${others > 0 ? ` +${others}` : ''}`;
-  const left = formatHms(msLeft(first.expires_at, serverOffsetMs));
+  const banner = openTagsBanner({ openTags, serverOffsetMs });
+  if (!banner) return null;
 
   return (
     <View style={[styles.wrap, { top }]} pointerEvents="none">
       <BlurView intensity={40} tint="dark" style={[styles.pill, { borderColor: colors.accent }]}>
         <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={1}>
-          {who} tagged you · <Text style={[styles.time, { color: colors.accent }]}>{left}</Text>{' '}
-          left
+          {banner.who} tagged you ·{' '}
+          <Text style={[styles.time, { color: colors.accent }]}>{banner.left}</Text>
         </Text>
       </BlurView>
     </View>
