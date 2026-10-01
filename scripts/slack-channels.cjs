@@ -10,8 +10,8 @@
 // People to invite into every channel: SLACK_INVITE=U0123,U0456 (Slack member IDs).
 // Re-running is safe: an existing channel keeps its history; only its purpose and the pinned
 // summary are brought up to date.
-const fs = require('node:fs');
-const path = require('node:path');
+const fs = require('fs');
+const path = require('path');
 
 const API = 'https://slack.com/api/';
 
