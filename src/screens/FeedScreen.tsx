@@ -11,9 +11,10 @@ import {
   TextInput,
   Keyboard,
   Modal,
+  Platform,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -463,9 +464,12 @@ function CommentSheet({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={[styles.sheet, { backgroundColor: sheetBg }]}>
-        {shownId ? <CommentThread key={shownId} postId={shownId} dark={dark} /> : null}
-      </View>
+      {/* Its own provider: the sheet's insets differ from the screen behind it. */}
+      <SafeAreaProvider>
+        <View style={[styles.sheet, { backgroundColor: sheetBg }]}>
+          {shownId ? <CommentThread key={shownId} postId={shownId} dark={dark} /> : null}
+        </View>
+      </SafeAreaProvider>
     </Modal>
   );
 }
@@ -476,6 +480,22 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
   const border = dark ? withAlpha(COLORS.offWhite, 0.1) : withAlpha(COLORS.offBlack, 0.1);
 
   const [commentText, setCommentText] = useState('');
+  const insets = useSafeAreaInsets();
+  // The keyboard covers the home-indicator strip, so that inset only applies while it is closed.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    const ios = Platform.OS === 'ios';
+    const show = Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', () =>
+      setKeyboardOpen(true)
+    );
+    const hide = Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', () =>
+      setKeyboardOpen(false)
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const currentUser = useUserStore((s) => s.profile);
   const comments = useSocialStore((s) => s.comments[postId]);
   const commentCount = useFeedStore((s) => {
@@ -524,7 +544,15 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
       </View>
 
       {/* Comment input — KeyboardInset below keeps it just above the keyboard */}
-      <View style={[styles.commentInputRow, { borderTopColor: border }]}>
+      <View
+        style={[
+          styles.commentInputRow,
+          {
+            borderTopColor: border,
+            paddingBottom: keyboardOpen ? SPACE.s10 : Math.max(insets.bottom, SPACE.s10),
+          },
+        ]}
+      >
         <TextInput
           style={[styles.commentInput, { color: text, borderColor: border }]}
           placeholder="Add a comment…"
