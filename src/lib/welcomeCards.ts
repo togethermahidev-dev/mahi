@@ -19,12 +19,12 @@ export const WELCOME_CARDS: readonly WelcomeCard[] = [
   {
     icon: 'people',
     title: 'Every post tags 3 friends.',
-    body: 'They have 48 hours to answer with a workout of their own.',
+    body: 'They have 48 hours to answer with a workout of their own. Friends are people who follow each other.',
   },
   {
     icon: 'feed',
     title: 'Post to open your feed.',
-    body: 'It opens for 24 hours. If a friend tags you, it locks until you post your answer.',
+    body: 'Posting opens your feed. It stays open until a friend tags you — then post your answer to open it again.',
   },
 ];
 
