@@ -1,9 +1,15 @@
 # Feature Flags (PostHog)
 
-Every feature — shipped or upcoming — is gated behind a PostHog feature flag. All flags are currently rolled
-out **100% to existing and new users** (default-on); they exist so we can flip a feature off (kill-switch) or
-do a gradual rollout later, and so each goal in the loop ([HANDOVER §4](./HANDOVER.md#4-the-goal-loop-goal-driven-development-process))
-ships behind a flag that's already live.
+Every feature — shipped or upcoming — is gated behind a PostHog feature flag. They exist so we can flip a
+feature off (kill-switch) or do a gradual rollout later, and so each goal in the loop
+([HANDOVER §4](./HANDOVER.md#4-the-goal-loop-goal-driven-development-process)) ships behind a flag that's already live.
+
+**State in PostHog (checked 2026-10-01):** 33 of the 34 keys exist, all active at **100% for everyone**.
+The seven added 2026-10-01 (`onboarding-welcome-cards`, `feed-lock-explainer`, `nav-rail-morph`,
+`camera-pip-guide`, `tags-invite-step`, `auth-password-reset`, `account-delete`) and four that had never
+been created (`nav-glass-rail`, `invite-links`, `tag-challenges`, `mahi-points`) were created that day.
+**`push-core` is deliberately not created**, so it reads as off, until push notifications are set up on
+the server (Apple/Google push credentials, `send-push` deployed — see [go-live-runbook.md](./go-live-runbook.md)).
 
 PostHog project: **EU region, `project_id=130791`**.
 
@@ -44,7 +50,9 @@ if (!showSuggestions) return null;
 
 **Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
 are switched in the `app_config` table):
-`push-core` (P1, the one-time "turn on notifications" prompt) · `tag-challenges` (P2, the open-tags banner) · `mahi-points` (P5, points badges)
+`push-core` (P1, the one-time "turn on notifications" prompt — **not in PostHog, so off**) · `tag-challenges` (P2, the open-tags banner) · `mahi-points` (P5, points badges) ·
+`invite-links` (P7, invite a slot from the tag sheet and share the links after posting; the 6-character
+code works, but links point at `togethermahi.com`, which doesn't resolve yet — see [tag-loop-plan.md](./tag-loop-plan.md) Phase 7)
 `feed-lock-explainer` (the locked feed names who tagged you and how long you have to answer; the open
 feed says how long it stays open. Off = the plain locked post cards.)
 `tags-invite-step` (when friends can't fill a post's tag slots, the tag sheet leads with "Invite N friends to post", a big invite button and a count of slots filled; after posting, a list of the invite links shows which are sent and lets each be sent again. Off = the small + stepper and share sheets one after another.)
@@ -69,9 +77,9 @@ functions and migration `20261001100000_password_reset_codes`. Off = no "Forgot 
 `account-delete` (Settings → "Delete account" asks once, plainly, then deletes the profile, posts,
 photos, messages and streak and logs out. Needs the `delete-account` function. Off = no row.)
 
-**Sign-in placeholders** (pills on the welcome screen with no sign-in behind them yet — keep these
-**off** in PostHog until the real sign-in ships; a missing flag reads as off once flags load):
-`auth-apple-signin` · `auth-google-signin`
+**Sign-in placeholders** (pills on the welcome screen with no sign-in behind them yet):
+`auth-apple-signin` · `auth-google-signin`. **Currently on at 100%** — the owner's choice on 2026-09-23 to
+preview the look; tapping them does nothing. Set both to 0% before real users see the welcome screen.
 
 ## Creating / managing flags
 
