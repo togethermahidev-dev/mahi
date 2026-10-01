@@ -9,6 +9,8 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+import { swipeLog } from '@/lib/swipeDebug';
+import SwipeDebugOverlay from '@/components/SwipeDebugOverlay';
 import { BlurTargetView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -103,6 +105,10 @@ export default function HorizontalNavigator(): React.JSX.Element {
         blocked: blockedSV.value,
         exclude: railRectSV.value,
       });
+      scheduleOnRN(
+        swipeLog,
+        `H down x${Math.round(t.absoluteX)} y${Math.round(t.absoluteY)} ${first}${blockedSV.value ? ' blocked' : ''}`
+      );
       if (first === 'fail') {
         decided.value = true;
         manager.fail();
@@ -124,11 +130,16 @@ export default function HorizontalNavigator(): React.JSX.Element {
       });
       if (decision === 'wait') return;
       decided.value = true;
+      scheduleOnRN(
+        swipeLog,
+        `H ${decision} dx${Math.round(t.absoluteX - startX.value)} dy${Math.round(t.absoluteY - startY.value)}`
+      );
       if (decision === 'activate') manager.activate();
       else manager.fail();
     })
     .onStart(() => {
       'worklet';
+      scheduleOnRN(swipeLog, 'H started (pages move)');
       cancelAnimation(page);
       base.value = indexSV.value;
     })
@@ -155,6 +166,10 @@ export default function HorizontalNavigator(): React.JSX.Element {
       indexSV.value = next;
       page.value = withSpring(next, SPRING);
       scheduleOnRN(settle, next);
+    })
+    .onFinalize((_e, success) => {
+      'worklet';
+      scheduleOnRN(swipeLog, `H end ${success ? 'ok' : 'cancelled/failed'}`);
     });
 
   const tapeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: -page.value * width }] }));
@@ -225,6 +240,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
             }
           />
         ) : null}
+        <SwipeDebugOverlay />
       </View>
     </GestureDetector>
   );
