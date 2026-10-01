@@ -65,3 +65,6 @@ docs/next-features-plan.md
 
 # web/ build copy made by web/scripts/netlify-build.sh
 /.web-deploy/
+
+# Slack bot token for scripts/slack-channels.cjs (owner-only, never committed)
+.slack-token

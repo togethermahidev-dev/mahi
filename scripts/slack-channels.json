@@ -1,0 +1,137 @@
+[
+  {
+    "name": "account-and-login",
+    "purpose": "Sign-up, log in, password reset, delete account and the update prompt",
+    "summary": "Sign-up is four short steps: email and password (with a strength meter), a six-digit code emailed to you that the phone fills in, then name, date of birth and phone number, then a username (checked live), an optional display name and your fitness goals. Coming from a friend's invite, the sign-up knows and their tag starts the moment you join.\n• Log in with email and password; the phone saves them. \"Forgot password?\" emails a code so you can set a new one and you're logged straight in.\n• Delete account lives in Settings: one clear warning, then profile, posts, photos, messages and streak go for good (Apple requires this).\n• The update prompt can ask people to update if an old version ever has to stop working. It's off until needed.\n• Not built yet: Apple and Google sign-in buttons (they show but do nothing), edit profile, and the help, privacy and legal pages."
+  },
+  {
+    "name": "welcome-cards",
+    "purpose": "The three one-time cards that explain how Mahi works after first sign-in",
+    "summary": "Three cards after your first sign-in, shown once per account per phone:\n• Post when a friend tags you. You have 48 hours to answer with a photo, front and back camera. Each answer adds one to your streak.\n• Every post tags 3 friends. They have 48 hours to answer with a workout of their own.\n• Post to open your feed. Posting your answer opens your feed for 24 hours. If a friend tags you, it locks until you answer.\nThe button says Next, then \"Start training\". There's no skip."
+  },
+  {
+    "name": "camera-and-posting",
+    "purpose": "When you can post, the two-photo camera, preview, caption and location",
+    "summary": "The camera is open when you have a tag to answer, or if you've never posted (your first post is free). Otherwise the shutter is replaced by \"No tags to answer. When a friend tags you, you'll have 48 hours to post.\" Your streak sits in the corner, and a pill shows who tagged you and how long is left.\n• Two taps: the first takes one side, the camera flips by itself, the second takes the other. A small window says what's next (\"Selfie next\"), then shows the first photo. Flip with a button or a double tap, a 0.5x wide lens where the phone has one, and hold the phone sideways for a wide photo.\n• Preview: your view fills the screen with the selfie in a small window. Tap to swap, drag the window to a corner, pinch to zoom. Closing asks before discarding.\n• Caption up to 200 characters; typing @ brings up your friends and tags the one you pick. Location is off unless you turn it on, saved to about the nearest street block.\n• Posting saves the post, its tags, deadlines, reminders and invites in one go, and the camera comes straight back. If the post answered a tag, a note says so (\"Answered @sam in 3h\")."
+  },
+  {
+    "name": "tagging",
+    "purpose": "Every post tags three friends: who can be tagged, who can't, and the nudges",
+    "summary": "Every post tags three friends, who then have 48 hours to answer. Friends are people who follow each other.\n• The list greys out anyone you can't tag and says why: \"tagged you, can't tag back\" (you're answering their tag) or \"waiting on your last tag\" (they still owe you one).\n• It nudges you towards friends nobody has tagged lately.\n• If you haven't got three friends to tag, invite links fill the empty slots (see #invites).\n• The rule that you can't tag straight back the person whose tag you're answering is what keeps the challenge reaching new people."
+  },
+  {
+    "name": "tags-and-48-hours",
+    "purpose": "The 48-hour window, reminders, missed tags and cancelled tags",
+    "summary": "A tagged friend has 48 hours to post. Any post they make in that time answers every open tag they hold.\n• Reminders arrive when 24 hours and 2 hours are left, never between 10pm and 7am (once push notifications are switched on).\n• Missed tags are checked every five minutes. The person who tagged hears \"@x missed your tag\"; the person who missed hears \"You missed @x's tag. Your streak is back to 0.\" Only the two of them see it.\n• Blocking someone, or an account being deleted, cancels any open tag between you along with its reminders. A cancelled tag never locks anyone's feed."
+  },
+  {
+    "name": "streak-and-points",
+    "purpose": "How the streak and points work, and where they show",
+    "summary": "Streak: every post that answers a tag adds one, however many tags it answers. Miss a tag's 48 hours and it goes back to nought. Your best streak never goes down and stays on your profile. Each post carries a \"Streak N\" badge.\n• There are no training days, rest days or calendars. The only thing that counts is answering the friend who called on you.\n• Points: when a post answers a tag, both people earn a point, up to three a day each. Points show on feed cards, the tag list, search results and profiles.\n• Only the server can change a streak, best or points; the app can't."
+  },
+  {
+    "name": "feed",
+    "purpose": "The feed of friends' workouts: what's in it and how the cards work",
+    "summary": "Your friends' workouts and your own, full screen, one at a time, newest first. Pull down to refresh, and it keeps loading as you go.\n• Each card shows the tagged friends' bubbles, the streak badge, who answered whom and how fast, the poster's points, the time and the caption with tagged names you can tap. The selfie window swaps and drags like it does in the camera.\n• Tapping any avatar opens that person's profile."
+  },
+  {
+    "name": "feed-lock",
+    "purpose": "When the feed is open, when it locks, and what it says",
+    "summary": "Posting opens your feed for 24 hours. If you're tagged in that time, the feed locks when the 24 hours end. If you're not, it stays open until someone tags you, and then it locks until you post your answer.\n• A new person starts locked. Miss a tag and it stays locked until a friend tags you again.\n• While locked, friends' photos and captions are hidden on the server, not just on the phone. Your own posts always show.\n• A locked feed says who tagged you and how long you've got, or that you can post again when a friend tags you. An open feed says how long it stays open, or warns \"locks in N hours unless you post your answer\"."
+  },
+  {
+    "name": "likes-and-comments",
+    "purpose": "Likes, double tap to like, and the comments sheet",
+    "summary": "Tap the heart or double tap the photo to like (double tap only likes, never unlikes). Counts update live; there's no list of who liked.\n• Comments open in a full-height sheet titled \"N comments\", oldest first, and update live. Comments can't be edited or deleted yet.\n• Post detail (from a profile grid) shows the full photo, selfie window, streak badge, caption and date, without likes or comments."
+  },
+  {
+    "name": "profiles",
+    "purpose": "Your profile, other people's profiles, and Settings",
+    "summary": "Your profile: your photo (tap to enlarge, + to change it), name and handle, your friends list, and three numbers: streak, best and points. Below that, \"Suggested for you\" folded away, and a grid of every post.\n• Other people: their photo, friends list, streak, best and points, a Follow button and a Message button. Their grid only opens if you follow them and your feed is open. A menu lets you block or report them.\n• Settings: blocked users (with unblock), delete account, log out and the version line. A light/dark switch sits on your profile; the camera is always dark.\n• Not built yet: edit profile, and changing your name or username after sign-up."
+  },
+  {
+    "name": "friends-and-suggestions",
+    "purpose": "Following, who counts as a friend, and \"Suggested for you\"",
+    "summary": "Follow anyone. Friends are people who follow each other, and only friends can be tagged. The friends list shows names, never numbers.\n• \"Suggested for you\" shows friends of friends, ranked by how many people you share. Someone new sees popular people instead. It skips people you already follow and anyone blocked either way."
+  },
+  {
+    "name": "search",
+    "purpose": "Finding people by name or username",
+    "summary": "Pull down on the camera, or tap the magnifier in Messages, to get a frosted full-screen search. It matches part of a username, display name, first name or last name, and shows points. Blocked people are hidden. Tapping a result opens their profile, where you can follow or message them."
+  },
+  {
+    "name": "messages",
+    "purpose": "Private chats and message requests",
+    "summary": "Private chats that update live, with day headers and older messages loading as you scroll up. Opening a chat marks it read; a failed send puts your text back in the box.\n• Every new chat starts as a request until the other person accepts it, even between friends. Turning one down asks first. Your own outgoing requests show as Pending.\n• Blocking stops all messages both ways."
+  },
+  {
+    "name": "notifications",
+    "purpose": "The bell and the notifications list",
+    "summary": "The bell lists likes, comments, follows, tags, answered tags, missed tags, lost streaks and friends who joined from your invite, with unread dots. Closing the list marks everything read; blocked people are filtered out.\n• Tapping the avatar opens their profile. Not built yet: tapping a post notice to open that post."
+  },
+  {
+    "name": "push-notifications",
+    "purpose": "Alerts on the phone: built, waiting to be switched on",
+    "summary": "Built for tags, the 24-hour and 2-hour reminders, answered and missed tags, lost streaks, likes, comments, follows, invites and new messages. Quiet hours are 10pm to 7am in each person's own time zone; anything due in that window waits until 7am, and several at once are grouped.\n• Tapping a push: a follow opens the profile, a tag opens the camera, everything else opens the notifications list.\n• Switched off until the sending service and the Apple and Google push credentials are set up. The \"turn on notifications\" prompt stays hidden until then."
+  },
+  {
+    "name": "moderation-safety",
+    "purpose": "Block, report and banned accounts",
+    "summary": "Block asks first, then removes follows both ways, hides each other's posts and profiles, cancels any open tag between you and freezes the chat. Unblocking restores the chat; you'd need to follow each other again.\n• Report: spam, harassment, inappropriate content, impersonation or other, once per person. There's no tool to review reports yet.\n• Banned accounts are set by hand on the server: they're signed out and disappear from feeds, friends lists, tagging and reminders."
+  },
+  {
+    "name": "invites",
+    "purpose": "Invite links and six-character codes for friends who aren't on Mahi yet",
+    "summary": "Each empty tag slot becomes a one-use link and a six-character code that last seven days. Whoever joins with it becomes your friend straight away, gets their 48 hours, and you hear they joined.\n• The share message reads \"I tagged you on Mahi — you've got 48 hours to post back\" plus the link. After posting, a list shows each invite and whether it's been sent.\n• Not working end to end yet: the invite website (togethermahi.com) isn't set up, and the code isn't shown anywhere yet, so until that page exists an invite can't be used."
+  },
+  {
+    "name": "navigation-and-design",
+    "purpose": "Swipes, the glass bar, sheets, fonts, colours and the design values",
+    "summary": "Mahi opens on the camera and everything else is one swipe away: up for the feed, left for your profile, right for messages, pull down to search. Pages snap into place with a light tap you can feel.\n• A floating glass bar on the right jumps to any of the four screens; hold and drag along it to switch. Sheets slide up and swipe down to close; menus and date pickers are the iPhone's own; passwords and codes fill themselves in.\n• Inter font throughout, all wording in sentence case. Calm off-white and off-black with a cyan accent for anything you can tap and gold for points, in light and dark mode. Every colour, size and spacing comes from one shared set of values, so the app and the website stay consistent.\n• Apple's own icons come with the next App Store build."
+  },
+  {
+    "name": "server-and-numbers",
+    "purpose": "Rules enforced on the server, time zones, and the figures only we can see",
+    "summary": "Who can post, the three tags, the 48 hours, the streak, the feed lock and the points are all enforced on the server, so an old or tampered app can't get round them. Posting is all or nothing, and a retry never makes a duplicate.\n• Every post is dated in the poster's own local day, and quiet hours follow their clock.\n• Our numbers, read only by us: tags sent, answered and missed with the typical answer time; posts and posters; invites sent and claimed; points; and how many accounts posted each week."
+  },
+  {
+    "name": "waitlist-website",
+    "purpose": "The one-page waitlist site and its sign-up form",
+    "summary": "One page: what Mahi is, how it works in three steps (post when a friend tags you, every post tags three friends, every answer adds to your streak and earns points), and a form for name, email, how you train and whether you'd test early versions. Sign-ups land in a list with an email alert each.\n• The site only rebuilds when we ask it to, by editing one file in the repo."
+  },
+  {
+    "name": "analytics-posthog",
+    "purpose": "What we measure in PostHog and the feature switches",
+    "summary": "Counted: sign-ups and log-ins, password resets, tags sent, answered, missed and lost streaks, invites shared and claimed, feed unlocks, pushes opened, blocks and reports.\n• Fifteen feature switches can turn a feature off from outside the app without an update, in case one misbehaves. Every switch in PostHog matches one the app reads; the unused ones were deleted on 1 October 2026.\n• Crashes go to Sentry, but only from builds marked production."
+  },
+  {
+    "name": "apple-ios-store",
+    "purpose": "App Store builds, TestFlight, review notes and what Apple requires",
+    "summary": "Nothing is in the App Store yet; updates go to our three registered test iPhones. Use this channel for App Store builds, review feedback and Apple's requirements (in-app delete account is already built for that)."
+  },
+  {
+    "name": "android-play-store",
+    "purpose": "Android builds and Play Store listing",
+    "summary": "Android has never been built yet; the app and the site say \"Coming to iPhone and Android\". Use this channel for the first Android build, device testing and the Play Store listing."
+  },
+  {
+    "name": "ota-updates",
+    "purpose": "Over-the-air updates: what went out, when, and how to check it on a phone",
+    "summary": "Most changes reach phones as an over-the-air update without an App Store release. The Settings version line shows the build and update number (for example 10.22). To check an update landed: force-quit and open the app twice.\n• Post each update here with its number and what changed."
+  },
+  {
+    "name": "maintenance",
+    "purpose": "Bugs, crashes, server upkeep and anything that needs fixing",
+    "summary": "Report anything broken here with the phone, the version line from Settings, and what you were doing. Server-side checks and database changes are recorded here too."
+  },
+  {
+    "name": "repo-structure",
+    "purpose": "How the code and the project are organised",
+    "summary": "One repository: the iPhone app, the website and the server rules together, with automated tests for all three (over 1,300 app checks and 300 database checks). The rules of the road for working in it live in the repo's own docs."
+  },
+  {
+    "name": "project-planning-strategy",
+    "purpose": "Product decisions, priorities and what's next",
+    "summary": "Decisions that shape the product live here. Decided so far: post only when tagged (never to show off), the tag streak with best streak always visible, no rest days or calendars, and the 24-hour feed rule. Open: what happens to a flagged post, the invite website, push notifications setup, Android."
+  }
+]
