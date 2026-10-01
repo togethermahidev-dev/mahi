@@ -1,4 +1,10 @@
-import { inviteList, inviteListSummary, inviteRow, markInvite } from '../inviteShare';
+import {
+  inviteList,
+  inviteListSummary,
+  inviteRow,
+  inviteShareMessage,
+  markInvite,
+} from '../inviteShare';
 
 const invite = (n: number, claimed = false) => ({
   token: `t${n}`,
@@ -67,5 +73,15 @@ describe('inviteListSummary', () => {
       unsent: 0,
       allSent: true,
     });
+  });
+});
+
+describe('inviteShareMessage', () => {
+  it('carries the link and the 48 hours, and no code (people already on Mahi cannot use one)', () => {
+    const message = inviteShareMessage('https://togethermahi.com/i/t1');
+    expect(message).toBe(
+      "I tagged you on Mahi — you've got 48 hours to post back.\nhttps://togethermahi.com/i/t1"
+    );
+    expect(message).not.toMatch(/code/i);
   });
 });

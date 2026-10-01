@@ -63,6 +63,7 @@ import { useOpenTags } from '@/hooks/useOpenTags';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { formatWait } from '@/lib/countdown';
 import { nudgeLabel } from '@/lib/tagNudge';
+import { inviteShareMessage } from '@/lib/inviteShare';
 import {
   captureLabel as captureLabelFor,
   pipGuide,
@@ -1181,11 +1182,7 @@ function TagSheet({
 async function shareInvites(invites: PostInvite[]): Promise<void> {
   for (const invite of invites) {
     try {
-      const result = await Share.share({
-        message:
-          `I tagged you on Mahi — you've got 48 hours to post back.\n${invite.url}\n` +
-          `Already have Mahi? Use code ${invite.code}.`,
-      });
+      const result = await Share.share({ message: inviteShareMessage(invite.url) });
       // Only a link that actually went somewhere counts as shared.
       if (result.action === Share.sharedAction) track('invite_shared', {});
     } catch {
