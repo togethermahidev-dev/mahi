@@ -1,6 +1,8 @@
 /**
  * When a page swipe may take a touch. Pure so it can be unit-tested; the navigators call these
- * from their gesture handlers on every move until one says 'activate' or 'fail'.
+ * from their gesture handlers on every move until one says 'activate'. The sideways swipe gives
+ * up on the first 'fail'; the up/down swipe asks again on the next move (the finger may still
+ * turn into an up/down swipe), unless the Feed list has taken the drag.
  *
  * - A swipe that starts in a strip the phone owns (status bar, home bar, and for sideways swipes
  *   the side edges where Android's back gesture lives) is left to the phone.
