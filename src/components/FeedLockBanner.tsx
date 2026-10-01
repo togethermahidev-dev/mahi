@@ -27,7 +27,11 @@ interface FeedLockBannerProps {
 
 export default function FeedLockBanner(props: FeedLockBannerProps): React.JSX.Element | null {
   return props.locked ? (
-    <LockedCard onPost={props.onPost} unlockedUntil={props.unlockedUntil} />
+    <LockedCard
+      onPost={props.onPost}
+      unlockedUntil={props.unlockedUntil}
+      serverOffsetMs={props.serverOffsetMs}
+    />
   ) : (
     <OpenTimer {...props} />
   );
@@ -35,13 +39,15 @@ export default function FeedLockBanner(props: FeedLockBannerProps): React.JSX.El
 
 function LockedCard({
   unlockedUntil,
+  serverOffsetMs,
   onPost,
 }: {
   unlockedUntil: string | null;
+  serverOffsetMs: number;
   onPost: () => void;
 }): React.JSX.Element | null {
   const { dark, colors } = useAppTheme();
-  const { openTags, serverOffsetMs, loaded } = useOpenTags();
+  const { openTags, loaded } = useOpenTags();
   const deviceNow = useMinuteTick();
   if (!loaded) return null;
 

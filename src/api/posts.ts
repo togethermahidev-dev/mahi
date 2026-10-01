@@ -7,7 +7,6 @@
 
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types';
-import type { StreakResult } from './streaks';
 import type { PostInvite } from './invites';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
@@ -143,15 +142,6 @@ export async function getFeed(
   }
 }
 
-/** Whether this user has ever posted (reactive posting: the first post needs no tag). */
-export async function hasEverPosted(
-  userId: string
-): Promise<{ data: boolean | null; error: Error | null }> {
-  const { data, error } = await supabase.from('posts').select('id').eq('user_id', userId).limit(1);
-  if (error) return { data: null, error: new Error(error.message) };
-  return { data: data.length > 0, error: null };
-}
-
 export type ProfilePostCursor = { ts: string; id: string };
 
 /**
@@ -179,6 +169,15 @@ export async function getUserPosts(
 }
 
 export type AnsweredTag = { tagger_id: string; username: string; seconds: number };
+
+/**
+ * The `streak` part of the `create_post` result: each post that answers a tag adds 1, missing
+ * a tag resets it to 0, and the best streak stays. Keep in sync with the DB function.
+ */
+export interface StreakResult {
+  streak_current: number;
+  streak_highest: number;
+}
 
 export type CreatePostResult = {
   post: PostRow;

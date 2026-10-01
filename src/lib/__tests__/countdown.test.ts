@@ -1,4 +1,4 @@
-import { formatHms, formatWait, msLeft } from '../countdown';
+import { formatWait, msLeft } from '../countdown';
 
 describe('msLeft', () => {
   const expires = '2026-09-17T12:00:00.000Z';
@@ -11,15 +11,6 @@ describe('msLeft', () => {
 
   it('never goes below zero', () => {
     expect(msLeft(expires, 2 * 3600 * 1000, deviceNow)).toBe(0);
-  });
-});
-
-describe('formatHms', () => {
-  it('shows hours past 24', () => {
-    expect(formatHms(47 * 3600 * 1000 + 59 * 60 * 1000 + 59 * 1000)).toBe('47:59:59');
-  });
-  it('pads small values', () => {
-    expect(formatHms(61 * 1000)).toBe('00:01:01');
   });
 });
 

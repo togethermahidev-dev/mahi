@@ -41,10 +41,13 @@ export const useTagStore = create<TagState>((set, get) => ({
     if (error) {
       console.log('[tagStore] syncOpenTags failed', error.message);
     } else if (data) {
+      // The server clock rides on each row, so a read with no tags keeps the last known offset.
       const serverNow = data[0]?.server_now;
       set({
         openTags: data,
-        serverOffsetMs: serverNow ? new Date(serverNow).getTime() - requestedAt : 0,
+        serverOffsetMs: serverNow
+          ? new Date(serverNow).getTime() - requestedAt
+          : get().serverOffsetMs,
         openTagsLoaded: true,
       });
     }
