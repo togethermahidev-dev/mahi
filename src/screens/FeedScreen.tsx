@@ -158,11 +158,7 @@ function LockedPostItem({
         accessibilityRole="button"
         accessibilityLabel="Post to unlock"
       >
-        <Text
-          style={[styles.lockedButtonText, { color: colors.offBlack }]}
-        >
-          Post to unlock
-        </Text>
+        <Text style={[styles.lockedButtonText, { color: colors.offBlack }]}>Post to unlock</Text>
       </Pressable>
     </View>
   );
@@ -354,8 +350,7 @@ function PostItem({
                 <Text style={styles.streakText}>Day {item.streak_day}</Text>
                 {item.response ? (
                   <Text style={styles.responseText}>
-                    Answered @{item.response.tagger_username} in{' '}
-                    {formatWait(item.response.seconds)}
+                    Answered @{item.response.tagger_username} in {formatWait(item.response.seconds)}
                   </Text>
                 ) : null}
               </View>
