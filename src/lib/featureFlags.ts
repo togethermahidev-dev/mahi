@@ -46,6 +46,7 @@ export const FEATURE_FLAGS = [
 
   // Navigation
   'nav-glass-rail', // floating glass rail on the right: Camera, Feed, Messages, Profile
+  'nav-rail-morph', // rail as one floating pill with a sliding selector; hold and drag to switch
 
   // Onboarding
   'onboarding-welcome-cards', // one-time 3-card carousel teaching the post / tag / feed loop
