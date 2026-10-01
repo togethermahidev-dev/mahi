@@ -16,6 +16,15 @@ describe('welcome cards', () => {
     ]);
   });
 
+  it('explains friends on card 2 and how the feed opens and locks on card 3', () => {
+    expect(WELCOME_CARDS[1].body).toBe(
+      'They have 48 hours to answer with a workout of their own. Friends are people who follow each other.'
+    );
+    expect(WELCOME_CARDS[2].body).toBe(
+      'Posting opens your feed. It stays open until a friend tags you — then post your answer to open it again.'
+    );
+  });
+
   it('remembers "seen" per account', () => {
     expect(welcomeSeenKey('user-a')).toBe('@mahi:welcome_cards_seen:user-a');
     expect(welcomeSeenKey('user-a')).not.toBe(welcomeSeenKey('user-b'));
