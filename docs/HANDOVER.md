@@ -43,8 +43,9 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
 - Next native build: remove the unused microphone text from `app.config.js`; add `expo-symbols` for Apple icons.
 - Parked decision: success targets (#12). (Streak rule #1, existing streaks #10 and rest days #27 were
   decided on 2026-10-01 with reactive posting.)
-- Reactive posting server change (`20261001120000_reactive_posting.sql`): apply to production when the owner
-  says go.
+- Reactive posting release, in this order (owner-only): push `20261001120000_reactive_posting` → publish
+  the OTA → push `20261001120100_drop_rest_days` only once every phone has the new app (old builds still
+  insert `fitness_routine` at sign-up and read the dropped columns).
 - Store release, then the `supabase/deferred/` contract steps.
 
 ---

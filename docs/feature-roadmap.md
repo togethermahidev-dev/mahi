@@ -50,26 +50,8 @@ Goal: make existing features findable and fix navigation feel. All UI-only, no b
 
 ## 1.1 — Unified "Rest Days + Streak" panel
 
-> **Retired 2026-10-01** by reactive posting: rest days, training days and the streak calendar are gone.
-> Kept below as history.
-
-**Problem:** *"Ppl struggle to find / don't know to press streak tracker / set rest days — put them on one page, rest days on top, streak tracker underneath."*
-
-**Current behavior:** `TrainingDaysScreen` ([src/components/TrainingDaysScreen.tsx](../src/components/TrainingDaysScreen.tsx#L35-L197)) and `StreakGridPanel` ([src/components/StreakGridPanel.tsx](../src/components/StreakGridPanel.tsx#L92-L381)) are two separate left-slide panels opened by two separate pills on `ProfileScreen` ([src/screens/ProfileScreen.tsx:84-90](../src/screens/ProfileScreen.tsx#L84-L90) and [:131-137](../src/screens/ProfileScreen.tsx#L131-L137)), gated by two booleans ([:21-22](../src/screens/ProfileScreen.tsx#L21-L22)). Both use identical spring params (`damping:22, stiffness:160, mass:0.9`).
-
-**Approach:** new `src/components/RestDaysStreakPanel.tsx` = one slide-in panel with a vertical `ScrollView`: rest-day toggles (top) → streak grid (bottom). Lift the two existing UIs into two sections of one panel; keep the slide/spring/backdrop. Collapse `ProfileScreen`'s two booleans into one `restDaysStreakOpen`. Add a small chevron/“▲” affordance on the entry pill so it reads as openable.
-
-**Layers touched** — DB: none · API: none · Store: none · Hook: none · UI: new `RestDaysStreakPanel.tsx`; edit `ProfileScreen.tsx` (state + render + pill affordance).
-
-**Security/Privacy:** none.
-
-**Risks:** the streak grid's Reanimated **pan gesture** ([StreakGridPanel.tsx:217-227](../src/components/StreakGridPanel.tsx#L217-L227)) must not fight the outer `ScrollView`. Mitigation: keep the grid at a fixed height (no inner pan) inside the scroll, **or** gate the scroll with `scrollEnabled` while the grid pan is active via `simultaneousHandlers`.
-
-**Verify (red→green):** RED — open the panel, confirm you currently must close one to see the other. GREEN — after merge, one open gesture shows rest-day toggles and the streak grid is reachable by scrolling; saving rest days still calls `updateFitnessRoutine` and the streak grid still renders post history.
-
-**Effort:** M.
-
-**Open decisions:** (a) keep both pills (both open the same panel) or one merged pill? (b) does panel Close auto-save rest days, or keep an explicit Save? **Recommend:** one merged pill labelled "REST DAYS & STREAK ▲"; explicit Save for rest days, Close for the panel.
+> **Retired 2026-10-01** by reactive posting: rest days, training days and the streak calendar are gone, and
+> so are the files this item built on (`RestDaysStreakPanel`, `StreakGridPanel`, `TrainingDaysScreen`).
 
 ## 1.2 — Search for users from the Messages page
 
