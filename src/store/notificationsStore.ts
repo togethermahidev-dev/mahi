@@ -126,8 +126,8 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
       // A deadline the server has just declared missed. Counted here because it arrives
       // exactly once per notification; the stats views are the number of record.
-      if (payload.new.type === 'tag_missed') {
-        track('tag_missed', { challenge_id: payload.new.challenge_id ?? null });
+      if (payload.new.type === 'tag_missed' || payload.new.type === 'streak_lost') {
+        track(payload.new.type, { challenge_id: payload.new.challenge_id ?? null });
       }
 
       set((state) => ({

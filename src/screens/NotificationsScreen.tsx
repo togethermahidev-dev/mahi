@@ -122,7 +122,7 @@ export default function NotificationsScreen({
               const name = item.actor.display_name ?? item.actor.username;
               const initials = name[0].toUpperCase();
 
-              // DB CHECK constraint guarantees one of the 4 types; default covers
+              // DB CHECK constraint guarantees one of the known types; default covers
               // the generated-type widening to `string` so `caption` is always set.
               let caption: string;
               switch (item.type) {
@@ -143,6 +143,9 @@ export default function NotificationsScreen({
                   break;
                 case 'tag_missed':
                   caption = `The tag between you and @${item.actor.username} ran out`;
+                  break;
+                case 'streak_lost':
+                  caption = `You missed @${item.actor.username}'s tag. Your streak is back to 0.`;
                   break;
                 default:
                   caption = `@${item.actor.username}`;

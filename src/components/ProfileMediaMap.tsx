@@ -12,6 +12,7 @@ import { FlashList, useRecyclingState } from '@shopify/flash-list';
 import Svg, { Path } from 'react-native-svg';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
+import { streakText } from '@/lib/streakText';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
 import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE } from '@/constants/tokens';
@@ -62,6 +63,7 @@ function GridCell({
   const [imgError, setImgError] = useRecyclingState(false, [post.id]);
   const badgeBg = dark ? withAlpha(COLORS.offBlack, 0.75) : withAlpha(COLORS.offWhite, 0.75);
   const badgeText = dark ? COLORS.offWhite : COLORS.offBlack;
+  const streak = streakText(post.streak_day);
 
   return (
     <Pressable
@@ -74,7 +76,7 @@ function GridCell({
       ]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Day ${post.streak_day} post`}
+      accessibilityLabel={streak ? `${streak} post` : 'Post'}
     >
       <Image
         source={imgError || !post.image_url ? PLACEHOLDER_IMG : { uri: post.image_url }}
@@ -82,9 +84,11 @@ function GridCell({
         resizeMode="cover"
         onError={() => setImgError(true)}
       />
-      <View style={[styles.badge, { backgroundColor: badgeBg }]}>
-        <Text style={[styles.badgeText, { color: badgeText }]}>Day {post.streak_day}</Text>
-      </View>
+      {streak ? (
+        <View style={[styles.badge, { backgroundColor: badgeBg }]}>
+          <Text style={[styles.badgeText, { color: badgeText }]}>{streak}</Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
