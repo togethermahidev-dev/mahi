@@ -413,9 +413,8 @@ const styles = StyleSheet.create({
   // ── Lightbox ──
   lightboxScrim: {
     flex: 1,
-    // Dim scrim, consistent with other backdrops in the app (e.g.
-    // RestDaysStreakPanel/StreakGridPanel use black at 0.5); darker here
-    // so the enlarged avatar reads as a focused lightbox.
+    // Dim scrim, darker than the app's usual backdrops (black at 0.5) so the
+    // enlarged avatar reads as a focused lightbox.
     backgroundColor: withAlpha(COLORS.black, 0.85),
     alignItems: 'center',
     justifyContent: 'center',

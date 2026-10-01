@@ -44,15 +44,6 @@ const GOALS = [
   'General fitness',
   'Sports performance',
 ];
-const DAYS = [
-  { label: 'Mon', full: 'Monday' },
-  { label: 'Tue', full: 'Tuesday' },
-  { label: 'Wed', full: 'Wednesday' },
-  { label: 'Thu', full: 'Thursday' },
-  { label: 'Fri', full: 'Friday' },
-  { label: 'Sat', full: 'Saturday' },
-  { label: 'Sun', full: 'Sunday' },
-];
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 interface Props {
@@ -129,10 +120,8 @@ export default function CreateAccountSheet({
     username,
     displayName,
     fitnessGoals,
-    fitnessRoutine,
     setField,
     toggleGoal,
-    toggleRoutineDay,
     reset: resetForm,
   } = useSignUpStore();
 
@@ -390,16 +379,13 @@ export default function CreateAccountSheet({
         date_of_birth: dob,
         contact_number: contactNumber.trim() || null,
         fitness_goals: fitnessGoals.length > 0 ? fitnessGoals : null,
-        fitness_routine: fitnessRoutine.length > 0 ? fitnessRoutine.join(',') : null,
       });
       if (profileError) throw new Error('Profile save failed: ' + profileError.message);
 
-      // 4. Track completed sign-up — fitness_goals and training_days arrays
-      //    are used in PostHog dashboards for popularity heatmaps.
+      // 4. Track completed sign-up — fitness_goals is used in PostHog dashboards.
       posthog.capture('signup_completed', {
         username: username.trim().toLowerCase(),
         fitness_goals: fitnessGoals,
-        training_days: fitnessRoutine,
       });
       Sentry.addBreadcrumb({ category: 'signup', message: 'Account created', level: 'info' });
       await clearOTP(); // the code is spent
@@ -901,40 +887,6 @@ export default function CreateAccountSheet({
                   );
                 })}
               </View>
-
-              <Text style={[styles.label, { color: muted }]}>Training days</Text>
-              <Text style={[styles.subtitle, { color: muted }]}>
-                Which days do you train?{'\n'}You can always change this later in your profile.
-              </Text>
-              <View style={styles.daysRow}>
-                {DAYS.map(({ label, full }) => {
-                  const selected = fitnessRoutine.includes(full);
-                  return (
-                    <Pressable
-                      key={full}
-                      style={({ pressed }) => [
-                        styles.dayPill,
-                        selected
-                          ? { backgroundColor: text }
-                          : {
-                              backgroundColor: 'transparent',
-                              borderWidth: BORDER_WIDTH.w1_5,
-                              borderColor: text,
-                            },
-                        pressed && styles.pressed,
-                      ]}
-                      onPress={() => toggleRoutineDay(full)}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: selected }}
-                      accessibilityLabel={full}
-                    >
-                      <Text style={[styles.dayText, { color: selected ? bg : text }]}>
-                        {label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
             </View>
           )}
 
@@ -1089,10 +1041,6 @@ const styles = StyleSheet.create({
   goalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s10, marginTop: SPACE.s4 },
   goalPill: { borderRadius: RADIUS.r50, paddingHorizontal: SPACE.s18, paddingVertical: SPACE.s12 },
   goalText: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.semiBold },
-
-  daysRow: { flexDirection: 'row', gap: SPACE.s8, marginTop: SPACE.s4 },
-  dayPill: { flex: 1, borderRadius: RADIUS.r50, paddingVertical: SPACE.s12, alignItems: 'center' },
-  dayText: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.semiBold },
 
   navRow: { flexDirection: 'row', gap: SPACE.s12, marginTop: SPACE.s16 },
   navBtn: { borderRadius: RADIUS.r50, paddingVertical: SPACE.s20, alignItems: 'center' },

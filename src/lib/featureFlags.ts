@@ -13,32 +13,12 @@
  */
 
 export const FEATURE_FLAGS = [
-  // Roadmap goals — Phases 1-5 (see docs/feature-roadmap.md)
-  'nav-rest-streak-unified', // 1.1 Unified Rest Days + Streak panel
-  'messaging-search-entry', // 1.2 Search users from Messages page
-  'messaging-row-split-taps', // 1.3 Split Messages row taps
-  'nav-profile-entry-animation', // 1.4 Animated profile-open / overlay entry
-  'feed-action-buttons-polish', // 2.1 Like/Comment buttons polish
-  'profile-avatar-lightbox', // 2.2 Tap profile picture to enlarge
-  'profile-posts-recovery-fix', // 2.3 Profile older-posts recovery fix
-  'camera-pinch-zoom', // 3.1 Pinch-to-zoom on photo preview
-  'camera-ultrawide-lens', // 3.2 0.5x ultra-wide lens
-  'camera-landscape', // 3.3 Landscape photos
-  'posts-location-tagging', // 4.1 Per-post location with consent cache
-  'follows-suggestions', // 5.1 Suggested follows
-
-  // Shipped-surface kill-switches
-  'feed-core', // feed / likes / comments / post detail
-  'messaging-core', // direct messaging / conversations / requests
-  'camera-capture', // camera capture / PiP / tagging / captions
+  // Kill-switches
   'camera-pip-guide', // live camera shows a small window: what comes second, then the first photo
-  'follows-core', // follow system
   'notifications-core', // notifications activity feed
-  'moderation-core', // block / report
-  'streaks-core', // streak tracking / grid / rest days
-  'auth-otp-signup', // OTP email signup flow
   'auth-password-reset', // "Forgot password?" emails a code, then sets a new password
   'account-delete', // Settings -> Delete account (Apple requires in-app deletion)
+  'follows-suggestions', // suggested follows
 
   // Tag loop (see docs/tag-loop-plan.md)
   'push-core', // P1 push permission prompt (server keeps queueing when off)

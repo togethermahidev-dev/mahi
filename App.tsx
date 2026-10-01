@@ -124,7 +124,7 @@ export default function App(): React.JSX.Element {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setIsLoading(false);
-      // Load profile (+ streak) and hydrate stores on cold-start restore
+      // Load the profile and hydrate stores on cold-start restore
       if (s?.user) hydrateForUser(s.user.id);
     });
 
