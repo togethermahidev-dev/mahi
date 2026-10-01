@@ -1,0 +1,775 @@
+/*
+ * GENERATED — DO NOT EDIT.
+ * Built by web/scripts/build-tokens.mjs from the app's src/constants/tokens.ts and
+ * src/constants/fonts.ts. Change a token there, then run `pnpm --filter ./web tokens`.
+ */
+
+:root {
+  /* COLORS */
+  --mahi-color-accent: #59C2D7;
+  --mahi-color-gold: #FFC93B;
+  --mahi-color-white: #FFFFFF;
+  --mahi-color-paper: #FAFAF8;
+  --mahi-color-surface-light: #F5F5F0;
+  --mahi-color-surface-light2: #F0F0ED;
+  --mahi-color-off-white: #E8E8E3;
+  --mahi-color-ios-separator: #E5E5EA;
+  --mahi-color-grey999: #999999;
+  --mahi-color-grey888: #888888;
+  --mahi-color-border-dark: #3A3A37;
+  --mahi-color-ios-grey-dark: #3A3A3C;
+  --mahi-color-surface-dark: #2A2A27;
+  --mahi-color-surface-dark2: #252521;
+  --mahi-color-bg-dark: #1C1C19;
+  --mahi-color-off-black: #1A1A17;
+  --mahi-color-ink-soft: #121210;
+  --mahi-color-ink: #111111;
+  --mahi-color-ink-deep: #0F0F0D;
+  --mahi-color-black: #000000;
+  --mahi-color-danger: #FF6B6B;
+  --mahi-color-danger-soft: #E06060;
+  --mahi-color-danger-alt: #E05A5A;
+  --mahi-color-danger-deep: #C03030;
+  --mahi-color-success: #5DB075;
+  --mahi-color-success-deep: #2D7A4F;
+  --mahi-color-info: #4FA8FF;
+  --mahi-color-ios-blue: #007AFF;
+  --mahi-color-amber: #D4963A;
+  --mahi-color-amber-deep: #B07020;
+  /* FONT_SIZE */
+  --mahi-font-size-f8: 0.5rem;
+  --mahi-font-size-f10: 0.625rem;
+  --mahi-font-size-f11: 0.6875rem;
+  --mahi-font-size-f12: 0.75rem;
+  --mahi-font-size-f13: 0.8125rem;
+  --mahi-font-size-f14: 0.875rem;
+  --mahi-font-size-f15: 0.9375rem;
+  --mahi-font-size-f16: 1rem;
+  --mahi-font-size-f17: 1.0625rem;
+  --mahi-font-size-f18: 1.125rem;
+  --mahi-font-size-f20: 1.25rem;
+  --mahi-font-size-f22: 1.375rem;
+  --mahi-font-size-f24: 1.5rem;
+  --mahi-font-size-f28: 1.75rem;
+  --mahi-font-size-f32: 2rem;
+  --mahi-font-size-f38: 2.375rem;
+  --mahi-font-size-f48: 3rem;
+  --mahi-font-size-f56: 3.5rem;
+  /* SPACE */
+  --mahi-space-s1: 0.0625rem;
+  --mahi-space-s2: 0.125rem;
+  --mahi-space-s3: 0.1875rem;
+  --mahi-space-s4: 0.25rem;
+  --mahi-space-s5: 0.3125rem;
+  --mahi-space-s6: 0.375rem;
+  --mahi-space-s7: 0.4375rem;
+  --mahi-space-s8: 0.5rem;
+  --mahi-space-s9: 0.5625rem;
+  --mahi-space-s10: 0.625rem;
+  --mahi-space-s12: 0.75rem;
+  --mahi-space-s14: 0.875rem;
+  --mahi-space-s15: 0.9375rem;
+  --mahi-space-s16: 1rem;
+  --mahi-space-s18: 1.125rem;
+  --mahi-space-s20: 1.25rem;
+  --mahi-space-s22: 1.375rem;
+  --mahi-space-s24: 1.5rem;
+  --mahi-space-s28: 1.75rem;
+  --mahi-space-s32: 2rem;
+  --mahi-space-s34: 2.125rem;
+  --mahi-space-s36: 2.25rem;
+  --mahi-space-s40: 2.5rem;
+  --mahi-space-s48: 3rem;
+  --mahi-space-s50: 3.125rem;
+  --mahi-space-s56: 3.5rem;
+  --mahi-space-s60: 3.75rem;
+  --mahi-space-s64: 4rem;
+  --mahi-space-s80: 5rem;
+  --mahi-space-s96: 6rem;
+  --mahi-space-s120: 7.5rem;
+  /* SIZE */
+  --mahi-size-z1: 0.0625rem;
+  --mahi-size-z2: 0.125rem;
+  --mahi-size-z3: 0.1875rem;
+  --mahi-size-z4: 0.25rem;
+  --mahi-size-z8: 0.5rem;
+  --mahi-size-z10: 0.625rem;
+  --mahi-size-z20: 1.25rem;
+  --mahi-size-z24: 1.5rem;
+  --mahi-size-z26: 1.625rem;
+  --mahi-size-z28: 1.75rem;
+  --mahi-size-z30: 1.875rem;
+  --mahi-size-z32: 2rem;
+  --mahi-size-z36: 2.25rem;
+  --mahi-size-z38: 2.375rem;
+  --mahi-size-z40: 2.5rem;
+  --mahi-size-z42: 2.625rem;
+  --mahi-size-z44: 2.75rem;
+  --mahi-size-z46: 2.875rem;
+  --mahi-size-z48: 3rem;
+  --mahi-size-z52: 3.25rem;
+  --mahi-size-z55: 3.4375rem;
+  --mahi-size-z56: 3.5rem;
+  --mahi-size-z58: 3.625rem;
+  --mahi-size-z60: 3.75rem;
+  --mahi-size-z70: 4.375rem;
+  --mahi-size-z72: 4.5rem;
+  --mahi-size-z80: 5rem;
+  --mahi-size-z88: 5.5rem;
+  --mahi-size-z96: 6rem;
+  --mahi-size-z100: 6.25rem;
+  --mahi-size-z160: 10rem;
+  --mahi-size-z180: 11.25rem;
+  --mahi-size-z400: 25rem;
+  --mahi-size-z420: 26.25rem;
+  --mahi-size-z800: 50rem;
+  /* OFFSET */
+  --mahi-offset-o3: 0.1875rem;
+  --mahi-offset-o4: 0.25rem;
+  --mahi-offset-o6: 0.375rem;
+  --mahi-offset-o8: 0.5rem;
+  --mahi-offset-o10: 0.625rem;
+  --mahi-offset-o12: 0.75rem;
+  --mahi-offset-o14: 0.875rem;
+  --mahi-offset-o16: 1rem;
+  --mahi-offset-o20: 1.25rem;
+  --mahi-offset-o24: 1.5rem;
+  --mahi-offset-o32: 2rem;
+  --mahi-offset-o34: 2.125rem;
+  --mahi-offset-o40: 2.5rem;
+  --mahi-offset-o44: 2.75rem;
+  --mahi-offset-o48: 3rem;
+  --mahi-offset-o50: 3.125rem;
+  --mahi-offset-o56: 3.5rem;
+  --mahi-offset-o60: 3.75rem;
+  --mahi-offset-o70: 4.375rem;
+  --mahi-offset-o72: 4.5rem;
+  --mahi-offset-o80: 5rem;
+  --mahi-offset-o108: 6.75rem;
+  --mahi-offset-o120: 7.5rem;
+  --mahi-offset-o140: 8.75rem;
+  --mahi-offset-o142: 8.875rem;
+  --mahi-offset-o170: 10.625rem;
+  /* ICON_SIZE */
+  --mahi-icon-size-i14: 0.875rem;
+  --mahi-icon-size-i16: 1rem;
+  --mahi-icon-size-i20: 1.25rem;
+  --mahi-icon-size-i22: 1.375rem;
+  --mahi-icon-size-i32: 2rem;
+  --mahi-icon-size-i80: 5rem;
+  /* RADIUS */
+  --mahi-radius-r2: 0.125rem;
+  --mahi-radius-r4: 0.25rem;
+  --mahi-radius-r8: 0.5rem;
+  --mahi-radius-r10: 0.625rem;
+  --mahi-radius-r12: 0.75rem;
+  --mahi-radius-r13: 0.8125rem;
+  --mahi-radius-r14: 0.875rem;
+  --mahi-radius-r16: 1rem;
+  --mahi-radius-r17: 1.0625rem;
+  --mahi-radius-r18: 1.125rem;
+  --mahi-radius-r19: 1.1875rem;
+  --mahi-radius-r20: 1.25rem;
+  --mahi-radius-r21: 1.3125rem;
+  --mahi-radius-r22: 1.375rem;
+  --mahi-radius-r24: 1.5rem;
+  --mahi-radius-r28: 1.75rem;
+  --mahi-radius-r29: 1.8125rem;
+  --mahi-radius-r36: 2.25rem;
+  --mahi-radius-r40: 2.5rem;
+  --mahi-radius-r44: 2.75rem;
+  --mahi-radius-r48: 3rem;
+  --mahi-radius-r50: 3.125rem;
+  --mahi-radius-pill: 62.4375rem;
+  /* TRACKING */
+  --mahi-tracking-t0_5: 0.0313rem;
+  --mahi-tracking-t1: 0.0625rem;
+  --mahi-tracking-t1_5: 0.0938rem;
+  --mahi-tracking-t2: 0.125rem;
+  --mahi-tracking-t2_5: 0.1563rem;
+  --mahi-tracking-t3: 0.1875rem;
+  --mahi-tracking-t4: 0.25rem;
+  --mahi-tracking-t5: 0.3125rem;
+  --mahi-tracking-t6: 0.375rem;
+  --mahi-tracking-t8: 0.5rem;
+  --mahi-tracking-t10: 0.625rem;
+  /* LINE_HEIGHT */
+  --mahi-line-height-l11: 0.6875rem;
+  --mahi-line-height-l14: 0.875rem;
+  --mahi-line-height-l16: 1rem;
+  --mahi-line-height-l18: 1.125rem;
+  --mahi-line-height-l20: 1.25rem;
+  --mahi-line-height-l22: 1.375rem;
+  --mahi-line-height-l24: 1.5rem;
+  --mahi-line-height-l28: 1.75rem;
+  --mahi-line-height-l38: 2.375rem;
+  /* SHADOW_BLUR */
+  --mahi-shadow-blur-b3: 3px;
+  --mahi-shadow-blur-b6: 6px;
+  --mahi-shadow-blur-b8: 8px;
+  --mahi-shadow-blur-b10: 10px;
+  --mahi-shadow-blur-b12: 12px;
+  /* BORDER_WIDTH */
+  --mahi-border-width-w1: 1px;
+  --mahi-border-width-w1_5: 1.5px;
+  --mahi-border-width-w2: 2px;
+  /* NAV_RAIL */
+  --mahi-nav-rail-outline-on-dark: 0.6;
+  --mahi-nav-rail-outline-on-light: 0.35;
+  --mahi-nav-rail-shadow-opacity: 0.22;
+  /* FONTS */
+  --mahi-font-weight-regular: 400;
+  --mahi-font-weight-italic: 400;
+  --mahi-font-style-italic: italic;
+  --mahi-font-weight-semi-bold: 600;
+  --mahi-font-weight-bold: 700;
+  /* Shadows (composed from SIZE, SHADOW_BLUR, COLORS and NAV_RAIL) */
+  --mahi-shadow-color: rgba(0,0,0,0.22);
+  --mahi-shadow-b3: 0 var(--mahi-size-z4) var(--mahi-shadow-blur-b3) var(--mahi-shadow-color);
+  --mahi-shadow-b6: 0 var(--mahi-size-z4) var(--mahi-shadow-blur-b6) var(--mahi-shadow-color);
+  --mahi-shadow-b8: 0 var(--mahi-size-z4) var(--mahi-shadow-blur-b8) var(--mahi-shadow-color);
+  --mahi-shadow-b10: 0 var(--mahi-size-z4) var(--mahi-shadow-blur-b10) var(--mahi-shadow-color);
+  --mahi-shadow-b12: 0 var(--mahi-size-z4) var(--mahi-shadow-blur-b12) var(--mahi-shadow-color);
+}
+
+@theme inline {
+  --color-*: initial;
+  --text-*: initial;
+  --spacing-*: initial;
+  --radius-*: initial;
+  --tracking-*: initial;
+  --leading-*: initial;
+  --shadow-*: initial;
+  --font-weight-*: initial;
+  --breakpoint-*: initial;
+  --container-*: initial;
+  --font-*: initial;
+  /* COLORS */
+  --color-accent: var(--mahi-color-accent);
+  --color-gold: var(--mahi-color-gold);
+  --color-white: var(--mahi-color-white);
+  --color-paper: var(--mahi-color-paper);
+  --color-surface-light: var(--mahi-color-surface-light);
+  --color-surface-light2: var(--mahi-color-surface-light2);
+  --color-off-white: var(--mahi-color-off-white);
+  --color-ios-separator: var(--mahi-color-ios-separator);
+  --color-grey999: var(--mahi-color-grey999);
+  --color-grey888: var(--mahi-color-grey888);
+  --color-border-dark: var(--mahi-color-border-dark);
+  --color-ios-grey-dark: var(--mahi-color-ios-grey-dark);
+  --color-surface-dark: var(--mahi-color-surface-dark);
+  --color-surface-dark2: var(--mahi-color-surface-dark2);
+  --color-bg-dark: var(--mahi-color-bg-dark);
+  --color-off-black: var(--mahi-color-off-black);
+  --color-ink-soft: var(--mahi-color-ink-soft);
+  --color-ink: var(--mahi-color-ink);
+  --color-ink-deep: var(--mahi-color-ink-deep);
+  --color-black: var(--mahi-color-black);
+  --color-danger: var(--mahi-color-danger);
+  --color-danger-soft: var(--mahi-color-danger-soft);
+  --color-danger-alt: var(--mahi-color-danger-alt);
+  --color-danger-deep: var(--mahi-color-danger-deep);
+  --color-success: var(--mahi-color-success);
+  --color-success-deep: var(--mahi-color-success-deep);
+  --color-info: var(--mahi-color-info);
+  --color-ios-blue: var(--mahi-color-ios-blue);
+  --color-amber: var(--mahi-color-amber);
+  --color-amber-deep: var(--mahi-color-amber-deep);
+  /* FONT_SIZE */
+  --text-f8: var(--mahi-font-size-f8);
+  --text-f10: var(--mahi-font-size-f10);
+  --text-f11: var(--mahi-font-size-f11);
+  --text-f12: var(--mahi-font-size-f12);
+  --text-f13: var(--mahi-font-size-f13);
+  --text-f14: var(--mahi-font-size-f14);
+  --text-f15: var(--mahi-font-size-f15);
+  --text-f16: var(--mahi-font-size-f16);
+  --text-f17: var(--mahi-font-size-f17);
+  --text-f18: var(--mahi-font-size-f18);
+  --text-f20: var(--mahi-font-size-f20);
+  --text-f22: var(--mahi-font-size-f22);
+  --text-f24: var(--mahi-font-size-f24);
+  --text-f28: var(--mahi-font-size-f28);
+  --text-f32: var(--mahi-font-size-f32);
+  --text-f38: var(--mahi-font-size-f38);
+  --text-f48: var(--mahi-font-size-f48);
+  --text-f56: var(--mahi-font-size-f56);
+  /* SPACE */
+  --spacing-s1: var(--mahi-space-s1);
+  --spacing-s2: var(--mahi-space-s2);
+  --spacing-s3: var(--mahi-space-s3);
+  --spacing-s4: var(--mahi-space-s4);
+  --spacing-s5: var(--mahi-space-s5);
+  --spacing-s6: var(--mahi-space-s6);
+  --spacing-s7: var(--mahi-space-s7);
+  --spacing-s8: var(--mahi-space-s8);
+  --spacing-s9: var(--mahi-space-s9);
+  --spacing-s10: var(--mahi-space-s10);
+  --spacing-s12: var(--mahi-space-s12);
+  --spacing-s14: var(--mahi-space-s14);
+  --spacing-s15: var(--mahi-space-s15);
+  --spacing-s16: var(--mahi-space-s16);
+  --spacing-s18: var(--mahi-space-s18);
+  --spacing-s20: var(--mahi-space-s20);
+  --spacing-s22: var(--mahi-space-s22);
+  --spacing-s24: var(--mahi-space-s24);
+  --spacing-s28: var(--mahi-space-s28);
+  --spacing-s32: var(--mahi-space-s32);
+  --spacing-s34: var(--mahi-space-s34);
+  --spacing-s36: var(--mahi-space-s36);
+  --spacing-s40: var(--mahi-space-s40);
+  --spacing-s48: var(--mahi-space-s48);
+  --spacing-s50: var(--mahi-space-s50);
+  --spacing-s56: var(--mahi-space-s56);
+  --spacing-s60: var(--mahi-space-s60);
+  --spacing-s64: var(--mahi-space-s64);
+  --spacing-s80: var(--mahi-space-s80);
+  --spacing-s96: var(--mahi-space-s96);
+  --spacing-s120: var(--mahi-space-s120);
+  /* SIZE */
+  --spacing-z1: var(--mahi-size-z1);
+  --spacing-z2: var(--mahi-size-z2);
+  --spacing-z3: var(--mahi-size-z3);
+  --spacing-z4: var(--mahi-size-z4);
+  --spacing-z8: var(--mahi-size-z8);
+  --spacing-z10: var(--mahi-size-z10);
+  --spacing-z20: var(--mahi-size-z20);
+  --spacing-z24: var(--mahi-size-z24);
+  --spacing-z26: var(--mahi-size-z26);
+  --spacing-z28: var(--mahi-size-z28);
+  --spacing-z30: var(--mahi-size-z30);
+  --spacing-z32: var(--mahi-size-z32);
+  --spacing-z36: var(--mahi-size-z36);
+  --spacing-z38: var(--mahi-size-z38);
+  --spacing-z40: var(--mahi-size-z40);
+  --spacing-z42: var(--mahi-size-z42);
+  --spacing-z44: var(--mahi-size-z44);
+  --spacing-z46: var(--mahi-size-z46);
+  --spacing-z48: var(--mahi-size-z48);
+  --spacing-z52: var(--mahi-size-z52);
+  --spacing-z55: var(--mahi-size-z55);
+  --spacing-z56: var(--mahi-size-z56);
+  --spacing-z58: var(--mahi-size-z58);
+  --spacing-z60: var(--mahi-size-z60);
+  --spacing-z70: var(--mahi-size-z70);
+  --spacing-z72: var(--mahi-size-z72);
+  --spacing-z80: var(--mahi-size-z80);
+  --spacing-z88: var(--mahi-size-z88);
+  --spacing-z96: var(--mahi-size-z96);
+  --spacing-z100: var(--mahi-size-z100);
+  --spacing-z160: var(--mahi-size-z160);
+  --spacing-z180: var(--mahi-size-z180);
+  --spacing-z400: var(--mahi-size-z400);
+  --spacing-z420: var(--mahi-size-z420);
+  --spacing-z800: var(--mahi-size-z800);
+  /* OFFSET */
+  --spacing-o3: var(--mahi-offset-o3);
+  --spacing-o4: var(--mahi-offset-o4);
+  --spacing-o6: var(--mahi-offset-o6);
+  --spacing-o8: var(--mahi-offset-o8);
+  --spacing-o10: var(--mahi-offset-o10);
+  --spacing-o12: var(--mahi-offset-o12);
+  --spacing-o14: var(--mahi-offset-o14);
+  --spacing-o16: var(--mahi-offset-o16);
+  --spacing-o20: var(--mahi-offset-o20);
+  --spacing-o24: var(--mahi-offset-o24);
+  --spacing-o32: var(--mahi-offset-o32);
+  --spacing-o34: var(--mahi-offset-o34);
+  --spacing-o40: var(--mahi-offset-o40);
+  --spacing-o44: var(--mahi-offset-o44);
+  --spacing-o48: var(--mahi-offset-o48);
+  --spacing-o50: var(--mahi-offset-o50);
+  --spacing-o56: var(--mahi-offset-o56);
+  --spacing-o60: var(--mahi-offset-o60);
+  --spacing-o70: var(--mahi-offset-o70);
+  --spacing-o72: var(--mahi-offset-o72);
+  --spacing-o80: var(--mahi-offset-o80);
+  --spacing-o108: var(--mahi-offset-o108);
+  --spacing-o120: var(--mahi-offset-o120);
+  --spacing-o140: var(--mahi-offset-o140);
+  --spacing-o142: var(--mahi-offset-o142);
+  --spacing-o170: var(--mahi-offset-o170);
+  /* ICON_SIZE */
+  --spacing-i14: var(--mahi-icon-size-i14);
+  --spacing-i16: var(--mahi-icon-size-i16);
+  --spacing-i20: var(--mahi-icon-size-i20);
+  --spacing-i22: var(--mahi-icon-size-i22);
+  --spacing-i32: var(--mahi-icon-size-i32);
+  --spacing-i80: var(--mahi-icon-size-i80);
+  /* RADIUS */
+  --radius-r2: var(--mahi-radius-r2);
+  --radius-r4: var(--mahi-radius-r4);
+  --radius-r8: var(--mahi-radius-r8);
+  --radius-r10: var(--mahi-radius-r10);
+  --radius-r12: var(--mahi-radius-r12);
+  --radius-r13: var(--mahi-radius-r13);
+  --radius-r14: var(--mahi-radius-r14);
+  --radius-r16: var(--mahi-radius-r16);
+  --radius-r17: var(--mahi-radius-r17);
+  --radius-r18: var(--mahi-radius-r18);
+  --radius-r19: var(--mahi-radius-r19);
+  --radius-r20: var(--mahi-radius-r20);
+  --radius-r21: var(--mahi-radius-r21);
+  --radius-r22: var(--mahi-radius-r22);
+  --radius-r24: var(--mahi-radius-r24);
+  --radius-r28: var(--mahi-radius-r28);
+  --radius-r29: var(--mahi-radius-r29);
+  --radius-r36: var(--mahi-radius-r36);
+  --radius-r40: var(--mahi-radius-r40);
+  --radius-r44: var(--mahi-radius-r44);
+  --radius-r48: var(--mahi-radius-r48);
+  --radius-r50: var(--mahi-radius-r50);
+  --radius-pill: var(--mahi-radius-pill);
+  /* TRACKING */
+  --tracking-t0_5: var(--mahi-tracking-t0_5);
+  --tracking-t1: var(--mahi-tracking-t1);
+  --tracking-t1_5: var(--mahi-tracking-t1_5);
+  --tracking-t2: var(--mahi-tracking-t2);
+  --tracking-t2_5: var(--mahi-tracking-t2_5);
+  --tracking-t3: var(--mahi-tracking-t3);
+  --tracking-t4: var(--mahi-tracking-t4);
+  --tracking-t5: var(--mahi-tracking-t5);
+  --tracking-t6: var(--mahi-tracking-t6);
+  --tracking-t8: var(--mahi-tracking-t8);
+  --tracking-t10: var(--mahi-tracking-t10);
+  /* LINE_HEIGHT */
+  --leading-l11: var(--mahi-line-height-l11);
+  --leading-l14: var(--mahi-line-height-l14);
+  --leading-l16: var(--mahi-line-height-l16);
+  --leading-l18: var(--mahi-line-height-l18);
+  --leading-l20: var(--mahi-line-height-l20);
+  --leading-l22: var(--mahi-line-height-l22);
+  --leading-l24: var(--mahi-line-height-l24);
+  --leading-l28: var(--mahi-line-height-l28);
+  --leading-l38: var(--mahi-line-height-l38);
+  /* SHADOW_BLUR → shadows */
+  --shadow-b3: var(--mahi-shadow-b3);
+  --shadow-b6: var(--mahi-shadow-b6);
+  --shadow-b8: var(--mahi-shadow-b8);
+  --shadow-b10: var(--mahi-shadow-b10);
+  --shadow-b12: var(--mahi-shadow-b12);
+  /* FONTS */
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-weight-regular: var(--mahi-font-weight-regular);
+  --font-weight-semi-bold: var(--mahi-font-weight-semi-bold);
+  --font-weight-bold: var(--mahi-font-weight-bold);
+  /* Breakpoints (from SIZE; media queries need the value written out) */
+  --breakpoint-sm: 26.25rem;
+  --breakpoint-md: 50rem;
+}
+
+@utility border-w1 {
+  border-width: var(--mahi-border-width-w1);
+}
+
+@utility border-t-w1 {
+  border-top-width: var(--mahi-border-width-w1);
+}
+
+@utility border-r-w1 {
+  border-right-width: var(--mahi-border-width-w1);
+}
+
+@utility border-b-w1 {
+  border-bottom-width: var(--mahi-border-width-w1);
+}
+
+@utility border-l-w1 {
+  border-left-width: var(--mahi-border-width-w1);
+}
+
+@utility border-x-w1 {
+  border-inline-width: var(--mahi-border-width-w1);
+}
+
+@utility border-y-w1 {
+  border-block-width: var(--mahi-border-width-w1);
+}
+
+@utility outline-w1 {
+  outline-width: var(--mahi-border-width-w1);
+}
+
+@utility decoration-w1 {
+  text-decoration-thickness: var(--mahi-border-width-w1);
+}
+
+@utility border-w1_5 {
+  border-width: var(--mahi-border-width-w1_5);
+}
+
+@utility border-t-w1_5 {
+  border-top-width: var(--mahi-border-width-w1_5);
+}
+
+@utility border-r-w1_5 {
+  border-right-width: var(--mahi-border-width-w1_5);
+}
+
+@utility border-b-w1_5 {
+  border-bottom-width: var(--mahi-border-width-w1_5);
+}
+
+@utility border-l-w1_5 {
+  border-left-width: var(--mahi-border-width-w1_5);
+}
+
+@utility border-x-w1_5 {
+  border-inline-width: var(--mahi-border-width-w1_5);
+}
+
+@utility border-y-w1_5 {
+  border-block-width: var(--mahi-border-width-w1_5);
+}
+
+@utility outline-w1_5 {
+  outline-width: var(--mahi-border-width-w1_5);
+}
+
+@utility decoration-w1_5 {
+  text-decoration-thickness: var(--mahi-border-width-w1_5);
+}
+
+@utility border-w2 {
+  border-width: var(--mahi-border-width-w2);
+}
+
+@utility border-t-w2 {
+  border-top-width: var(--mahi-border-width-w2);
+}
+
+@utility border-r-w2 {
+  border-right-width: var(--mahi-border-width-w2);
+}
+
+@utility border-b-w2 {
+  border-bottom-width: var(--mahi-border-width-w2);
+}
+
+@utility border-l-w2 {
+  border-left-width: var(--mahi-border-width-w2);
+}
+
+@utility border-x-w2 {
+  border-inline-width: var(--mahi-border-width-w2);
+}
+
+@utility border-y-w2 {
+  border-block-width: var(--mahi-border-width-w2);
+}
+
+@utility outline-w2 {
+  outline-width: var(--mahi-border-width-w2);
+}
+
+@utility decoration-w2 {
+  text-decoration-thickness: var(--mahi-border-width-w2);
+}
+
+@utility outline-offset-o3 {
+  outline-offset: var(--mahi-offset-o3);
+}
+
+@utility underline-offset-o3 {
+  text-underline-offset: var(--mahi-offset-o3);
+}
+
+@utility outline-offset-o4 {
+  outline-offset: var(--mahi-offset-o4);
+}
+
+@utility underline-offset-o4 {
+  text-underline-offset: var(--mahi-offset-o4);
+}
+
+@utility outline-offset-o6 {
+  outline-offset: var(--mahi-offset-o6);
+}
+
+@utility underline-offset-o6 {
+  text-underline-offset: var(--mahi-offset-o6);
+}
+
+@utility outline-offset-o8 {
+  outline-offset: var(--mahi-offset-o8);
+}
+
+@utility underline-offset-o8 {
+  text-underline-offset: var(--mahi-offset-o8);
+}
+
+@utility outline-offset-o10 {
+  outline-offset: var(--mahi-offset-o10);
+}
+
+@utility underline-offset-o10 {
+  text-underline-offset: var(--mahi-offset-o10);
+}
+
+@utility outline-offset-o12 {
+  outline-offset: var(--mahi-offset-o12);
+}
+
+@utility underline-offset-o12 {
+  text-underline-offset: var(--mahi-offset-o12);
+}
+
+@utility outline-offset-o14 {
+  outline-offset: var(--mahi-offset-o14);
+}
+
+@utility underline-offset-o14 {
+  text-underline-offset: var(--mahi-offset-o14);
+}
+
+@utility outline-offset-o16 {
+  outline-offset: var(--mahi-offset-o16);
+}
+
+@utility underline-offset-o16 {
+  text-underline-offset: var(--mahi-offset-o16);
+}
+
+@utility outline-offset-o20 {
+  outline-offset: var(--mahi-offset-o20);
+}
+
+@utility underline-offset-o20 {
+  text-underline-offset: var(--mahi-offset-o20);
+}
+
+@utility outline-offset-o24 {
+  outline-offset: var(--mahi-offset-o24);
+}
+
+@utility underline-offset-o24 {
+  text-underline-offset: var(--mahi-offset-o24);
+}
+
+@utility outline-offset-o32 {
+  outline-offset: var(--mahi-offset-o32);
+}
+
+@utility underline-offset-o32 {
+  text-underline-offset: var(--mahi-offset-o32);
+}
+
+@utility outline-offset-o34 {
+  outline-offset: var(--mahi-offset-o34);
+}
+
+@utility underline-offset-o34 {
+  text-underline-offset: var(--mahi-offset-o34);
+}
+
+@utility outline-offset-o40 {
+  outline-offset: var(--mahi-offset-o40);
+}
+
+@utility underline-offset-o40 {
+  text-underline-offset: var(--mahi-offset-o40);
+}
+
+@utility outline-offset-o44 {
+  outline-offset: var(--mahi-offset-o44);
+}
+
+@utility underline-offset-o44 {
+  text-underline-offset: var(--mahi-offset-o44);
+}
+
+@utility outline-offset-o48 {
+  outline-offset: var(--mahi-offset-o48);
+}
+
+@utility underline-offset-o48 {
+  text-underline-offset: var(--mahi-offset-o48);
+}
+
+@utility outline-offset-o50 {
+  outline-offset: var(--mahi-offset-o50);
+}
+
+@utility underline-offset-o50 {
+  text-underline-offset: var(--mahi-offset-o50);
+}
+
+@utility outline-offset-o56 {
+  outline-offset: var(--mahi-offset-o56);
+}
+
+@utility underline-offset-o56 {
+  text-underline-offset: var(--mahi-offset-o56);
+}
+
+@utility outline-offset-o60 {
+  outline-offset: var(--mahi-offset-o60);
+}
+
+@utility underline-offset-o60 {
+  text-underline-offset: var(--mahi-offset-o60);
+}
+
+@utility outline-offset-o70 {
+  outline-offset: var(--mahi-offset-o70);
+}
+
+@utility underline-offset-o70 {
+  text-underline-offset: var(--mahi-offset-o70);
+}
+
+@utility outline-offset-o72 {
+  outline-offset: var(--mahi-offset-o72);
+}
+
+@utility underline-offset-o72 {
+  text-underline-offset: var(--mahi-offset-o72);
+}
+
+@utility outline-offset-o80 {
+  outline-offset: var(--mahi-offset-o80);
+}
+
+@utility underline-offset-o80 {
+  text-underline-offset: var(--mahi-offset-o80);
+}
+
+@utility outline-offset-o108 {
+  outline-offset: var(--mahi-offset-o108);
+}
+
+@utility underline-offset-o108 {
+  text-underline-offset: var(--mahi-offset-o108);
+}
+
+@utility outline-offset-o120 {
+  outline-offset: var(--mahi-offset-o120);
+}
+
+@utility underline-offset-o120 {
+  text-underline-offset: var(--mahi-offset-o120);
+}
+
+@utility outline-offset-o140 {
+  outline-offset: var(--mahi-offset-o140);
+}
+
+@utility underline-offset-o140 {
+  text-underline-offset: var(--mahi-offset-o140);
+}
+
+@utility outline-offset-o142 {
+  outline-offset: var(--mahi-offset-o142);
+}
+
+@utility underline-offset-o142 {
+  text-underline-offset: var(--mahi-offset-o142);
+}
+
+@utility outline-offset-o170 {
+  outline-offset: var(--mahi-offset-o170);
+}
+
+@utility underline-offset-o170 {
+  text-underline-offset: var(--mahi-offset-o170);
+}
