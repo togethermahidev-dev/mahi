@@ -81,7 +81,7 @@ const current = useUserStore.getState().profile;
 setProfile({ ...current, streak_current: streakResult.streak_current, ... });
 ```
 
-**Training days update flow** (`TrainingDaysScreen`):
+**Training days update flow** (`RestDaysStreakPanel`):
 ```ts
 const { error } = await updateFitnessRoutine(userId, selectedDays.join(','));
 if (!error) setProfile({ ...profile, fitness_routine: routine });
