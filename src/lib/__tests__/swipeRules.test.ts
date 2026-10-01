@@ -35,6 +35,18 @@ describe('swipe rules', () => {
     it('does nothing while a pop-up screen is open', () => {
       expect(h({ dx: 40, blocked: true })).toBe('fail');
     });
+    it('leaves a touch that starts on the nav rail to the rail', () => {
+      const exclude = { x: 338, y: 300, width: 52, height: 232 };
+      expect(h({ startX: 350, startY: 400, exclude })).toBe('fail');
+      expect(h({ startX: 338, startY: 300, dx: -40, exclude })).toBe('fail');
+    });
+    it('still takes swipes that start beside the nav rail', () => {
+      const exclude = { x: 338, y: 300, width: 52, height: 232 };
+      expect(h({ startX: 330, startY: 400, dx: -30, exclude })).toBe('activate');
+      expect(h({ startX: 350, startY: 290, dx: -30, exclude })).toBe('activate');
+      expect(h({ startX: 350, startY: 540, dx: -30, exclude })).toBe('activate');
+      expect(h({ startX: 350, startY: 400, dx: -30, exclude: null })).toBe('activate');
+    });
   });
 
   describe('verticalSwipe (Camera ↕ Feed)', () => {

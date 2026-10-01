@@ -8,6 +8,7 @@
  *   the side edges where Android's back gesture lives) is left to the phone.
  * - The finger must move SLOP px, mostly along the swipe's own axis; the other axis fails it.
  * - `blocked`: a pop-up screen is open, so the page underneath must not move.
+ * - `exclude`: a sideways swipe never starts inside this rectangle (the nav rail owns its touches).
  *
  * Every function here is a worklet, so a navigator can call it on the UI thread from a gesture
  * callback as well as from ordinary code.
@@ -23,7 +24,16 @@ type Touch = {
   height: number;
   insets: { top: number; bottom: number };
   blocked: boolean;
+  /** Screen rectangle a sideways swipe may not start in, or null. */
+  exclude?: Rect | null;
 };
+
+export type Rect = { x: number; y: number; width: number; height: number };
+
+function inRect(x: number, y: number, r: Rect | null | undefined): boolean {
+  'worklet';
+  return !!r && x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height;
+}
 
 const SLOP = 20;
 /** Side strip left to the system back gesture. */
@@ -42,6 +52,7 @@ export function horizontalSwipe(t: Touch): SwipeDecision {
   'worklet';
   if (t.blocked || inSystemStrip(t)) return 'fail';
   if (t.startX < EDGE || t.startX > t.width - EDGE) return 'fail';
+  if (inRect(t.startX, t.startY, t.exclude)) return 'fail';
   const ax = Math.abs(t.dx);
   const ay = Math.abs(t.dy);
   if (ay > SLOP && ay >= ax) return 'fail';
