@@ -78,9 +78,6 @@ import {
   SHADOW_BLUR,
 } from '@/constants/tokens';
 
-// Must match PEEK_HEIGHT in VerticalNavigator.tsx
-const PEEK_HEIGHT = 0;
-
 // ─── Midnight Countdown ───────────────────────────────────────────────────────
 
 function getMsUntilMidnight(): number {
@@ -351,7 +348,7 @@ function DualPhotoPreview({
   const pillH = 36;
   const pillGap = 12;
   const postBtnH = 64;
-  const pillsB = SCREEN_HEIGHT - PEEK_HEIGHT - 32 - postBtnH - pillGap;
+  const pillsB = SCREEN_HEIGHT - 32 - postBtnH - pillGap;
   const pillsT = pillsB - pillH;
   // Lowest Y the PIP's top-left is allowed to reach: 12pt above the pill row.
   // Uses the dynamic pipH so a shorter (landscape) PIP can sit a touch lower
@@ -1934,7 +1931,7 @@ const styles = StyleSheet.create({
   },
   controlsRow: {
     position: 'absolute',
-    bottom: PEEK_HEIGHT + OFFSET.o32,
+    bottom: OFFSET.o32,
     left: 0,
     right: 0,
     flexDirection: 'row',
@@ -1968,7 +1965,7 @@ const styles = StyleSheet.create({
   // ── 0.5× / 1× lens toggle ──────────────────────────────────────────────────
   lensToggleWrap: {
     position: 'absolute',
-    bottom: PEEK_HEIGHT + OFFSET.o32 + OFFSET.o72 + OFFSET.o20, // above the shutter row (shutter is 72 tall)
+    bottom: OFFSET.o32 + OFFSET.o72 + OFFSET.o20, // above the shutter row (shutter is 72 tall)
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -2042,7 +2039,7 @@ const styles = StyleSheet.create({
   },
   postButtonFloat: {
     position: 'absolute',
-    bottom: PEEK_HEIGHT + OFFSET.o32,
+    bottom: OFFSET.o32,
     left: 0,
     right: 0,
     alignItems: 'center',
