@@ -1,4 +1,12 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  createContext,
+  forwardRef,
+  useContext,
+} from 'react';
 import {
   View,
   Text,
@@ -12,10 +20,13 @@ import {
   Keyboard,
   Modal,
   Platform,
+  ScrollView,
+  type ScrollViewProps,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { GestureDetector, Gesture, type NativeGesture } from 'react-native-gesture-handler';
+import { useAnimatedRef, useScrollOffset, type SharedValue } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -30,6 +41,7 @@ import PointsBadge from '@/components/PointsBadge';
 import KeyboardInset from '@/components/KeyboardInset';
 import DraggablePip from '@/components/DraggablePip';
 import { appHeaderHeight, pipZone } from '@/lib/pip';
+import { atListTop } from '@/lib/swipeRules';
 import type { FeedPost } from '@/api';
 import type { CommentWithProfile } from '@/api/social';
 import { FONTS } from '@/constants/fonts';
@@ -588,16 +600,30 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
 interface FeedScreenProps {
   /** Take the user to the camera (used by locked posts). */
   onGoToCamera?: () => void;
-  onScrollTopChange?: (atTop: boolean) => void;
   headerAnim?: Animated.Value;
   onOverlayChange?: (active: boolean) => void;
+  /** The list's scrolling as a gesture, so the Camera ↕ Feed swipe can run alongside it. */
+  listGesture?: NativeGesture;
+  /** How far the list is scrolled, kept up to date on the UI thread for the Camera ↕ Feed swipe. */
+  listOffset?: SharedValue<number>;
 }
+
+/** Lends the list's scrolling to the Camera ↕ Feed swipe (see FeedScrollView). */
+const ListGestureContext = createContext<NativeGesture | undefined>(undefined);
+
+/** The feed list's scroll view, wrapped so its scrolling is a gesture the swipe can work with. */
+const FeedScrollView = forwardRef<ScrollView, ScrollViewProps>(function FeedScrollView(props, ref) {
+  const gesture = useContext(ListGestureContext);
+  const list = <ScrollView {...props} ref={ref} />;
+  return gesture ? <GestureDetector gesture={gesture}>{list}</GestureDetector> : list;
+});
 
 export default function FeedScreen({
   onGoToCamera,
-  onScrollTopChange,
   headerAnim,
   onOverlayChange,
+  listGesture,
+  listOffset,
 }: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
   const headerH = appHeaderHeight(useSafeAreaInsets().top);
@@ -658,19 +684,15 @@ export default function FeedScreen({
   const localHeaderAnim = useRef(new Animated.Value(0)).current;
   const headerOffset = headerAnim ?? localHeaderAnim;
 
-  const atTopRef = useRef(true);
+  // The swipe reads where the list is on the UI thread, in step with the finger.
+  const listRef = useAnimatedRef<FlashListRef<FeedPost>>();
+  useScrollOffset(listRef, listOffset);
 
   const handleScroll = (e: any) => {
     const y = e.nativeEvent.contentOffset.y;
 
-    const isAtTop = y <= 2;
-    if (isAtTop !== atTopRef.current) {
-      atTopRef.current = isAtTop;
-      onScrollTopChange?.(isAtTop);
-    }
-
     // Show header on first card, hide on all others
-    const target = isAtTop ? 0 : headerH;
+    const target = atListTop(y) ? 0 : headerH;
     Animated.timing(headerOffset, {
       toValue: target,
       duration: 150,
@@ -680,62 +702,66 @@ export default function FeedScreen({
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <FlashList
-        data={posts}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) =>
-          item.locked ? (
-            <LockedPostItem
-              item={item}
-              height={cardHeight}
-              onAvatarPress={handleAvatarPress}
-              onUnlockPress={() => onGoToCamera?.()}
+      <ListGestureContext.Provider value={listGesture}>
+        <FlashList
+          ref={listRef}
+          renderScrollComponent={FeedScrollView}
+          data={posts}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) =>
+            item.locked ? (
+              <LockedPostItem
+                item={item}
+                height={cardHeight}
+                onAvatarPress={handleAvatarPress}
+                onUnlockPress={() => onGoToCamera?.()}
+              />
+            ) : (
+              <PostItem
+                item={item}
+                dark={dark}
+                width={screenWidth}
+                height={cardHeight}
+                onAvatarPress={handleAvatarPress}
+                onCommentPress={setCommentPostId}
+              />
+            )
+          }
+          getItemType={(item) => (item.locked ? 'locked' : 'post')}
+          snapToInterval={cardHeight}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          onEndReached={hasMore ? loadMore : undefined}
+          onEndReachedThreshold={0.4}
+          showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          onViewableItemsChanged={handleViewableChange}
+          viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading && posts.length === 0}
+              onRefresh={refresh}
+              tintColor={text}
             />
-          ) : (
-            <PostItem
-              item={item}
-              dark={dark}
-              width={screenWidth}
-              height={cardHeight}
-              onAvatarPress={handleAvatarPress}
-              onCommentPress={setCommentPostId}
-            />
-          )
-        }
-        getItemType={(item) => (item.locked ? 'locked' : 'post')}
-        snapToInterval={cardHeight}
-        snapToAlignment="start"
-        decelerationRate="fast"
-        onEndReached={hasMore ? loadMore : undefined}
-        onEndReachedThreshold={0.4}
-        showsVerticalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        onViewableItemsChanged={handleViewableChange}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading && posts.length === 0}
-            onRefresh={refresh}
-            tintColor={text}
-          />
-        }
-        ListEmptyComponent={
-          !isLoading ? (
-            <View style={styles.empty}>
-              <Text style={[styles.emptyTitle, { color: text }]}>NO POSTS YET</Text>
-              <Text style={[styles.emptySub, { color: muted }]}>
-                Take your first streak photo to appear here
-              </Text>
-            </View>
-          ) : null
-        }
-        ListFooterComponent={
-          error ? (
-            <Text style={[styles.errorText, { color: muted }]}>Failed to load feed</Text>
-          ) : null
-        }
-      />
+          }
+          ListEmptyComponent={
+            !isLoading ? (
+              <View style={styles.empty}>
+                <Text style={[styles.emptyTitle, { color: text }]}>NO POSTS YET</Text>
+                <Text style={[styles.emptySub, { color: muted }]}>
+                  Take your first streak photo to appear here
+                </Text>
+              </View>
+            ) : null
+          }
+          ListFooterComponent={
+            error ? (
+              <Text style={[styles.errorText, { color: muted }]}>Failed to load feed</Text>
+            ) : null
+          }
+        />
+      </ListGestureContext.Provider>
 
       {/* Full-screen profile — shown when another user's avatar is tapped */}
       {profileUserId ? (

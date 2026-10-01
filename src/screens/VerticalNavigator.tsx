@@ -1,5 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, PanResponder, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Animated, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Reanimated, {
+  Extrapolation,
+  ReduceMotion,
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  type SharedValue,
+} from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -14,8 +26,8 @@ import UserProfileScreen from '@/screens/UserProfileScreen';
 import { useNotificationsStore } from '@/store';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
-import { rubberBand, verticalRelease, verticalSwipe } from '@/lib/swipeRules';
-import { COLORS, SIZE } from '@/constants/tokens';
+import { atListTop, rubberBand, verticalRelease, verticalSwipe } from '@/lib/swipeRules';
+import { COLORS, RADIUS, SIZE } from '@/constants/tokens';
 
 // ─── Screen registry ──────────────────────────────────────────────────────────
 // Ordered top → bottom. Index 0 (Camera) is the entry screen.
@@ -30,6 +42,49 @@ const SCREEN_ICONS = SCREENS.map((s) => s.Icon);
 // Background colour behind each screen in each theme mode.
 const SCREEN_BG_DARK = [COLORS.ink, COLORS.bgDark] as const;
 const SCREEN_BG_LIGHT = [COLORS.ink, COLORS.white] as const;
+
+/** The snap to a screen. Runs even with Reduce Motion on, as it always has. */
+const SPRING = { damping: 22, stiffness: 160, mass: 0.9, reduceMotion: ReduceMotion.Never };
+
+// ─── Slot ─────────────────────────────────────────────────────────────────────
+
+/**
+ * One screen on the tape, one window tall. A screen below Camera slides up with rounded top
+ * corners that flatten as it arrives: radius 40 while it sits just below the screen above,
+ * 0 once it is the active screen ("morphing into the screen").
+ */
+function Slot({
+  index,
+  page,
+  width,
+  height,
+  backgroundColor,
+  children,
+}: {
+  index: number;
+  /** Where the tape sits, in screens (0 = Camera). */
+  page: SharedValue<number>;
+  width: number;
+  height: number;
+  backgroundColor: string;
+  children: React.ReactNode;
+}) {
+  const corners = useAnimatedStyle(() => {
+    // Camera is always at the top: no rounded entry.
+    const radius =
+      index === 0
+        ? 0
+        : interpolate(page.value, [index - 1, index], [RADIUS.r40, 0], Extrapolation.CLAMP);
+    return { borderTopLeftRadius: radius, borderTopRightRadius: radius };
+  });
+  return (
+    <Reanimated.View
+      style={[styles.slot, { width, height, top: index * height, backgroundColor }, corners]}
+    >
+      {children}
+    </Reanimated.View>
+  );
+}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -58,12 +113,8 @@ export default function VerticalNavigator({
 }: VerticalNavigatorProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const insetsRef = useRef(insets);
-  insetsRef.current = insets;
-  // Each screen is one window tall. The pan handlers are made once, so they read it from a ref.
+  // Each screen is one window tall.
   const { width, height } = useWindowDimensions();
-  const windowRef = useRef({ width, height });
-  windowRef.current = { width, height };
   // AppHeader height = top inset + 36 pill + 12 padding. Used to slide it away on scroll.
   const appHeaderH = insets.top + SIZE.z48;
   const unreadNotifications = useNotificationsStore((s) => s.unreadCount);
@@ -92,233 +143,239 @@ export default function VerticalNavigator({
 
   // Tell the parent whenever a fullscreen overlay opens or closes; swipes stay off while one is.
   const overlayActive = searchVisible || notifOpen || !!profileUserId || feedOverlay;
-  const overlayRef = useRef(false);
-  overlayRef.current = overlayActive;
+  // What the swipe reads on the UI thread.
+  const indexSV = useSharedValue(0);
+  const blockedSV = useSharedValue(false);
   useEffect(() => {
+    blockedSV.value = overlayActive;
     onOverlayChange?.(overlayActive);
   }, [overlayActive]);
-  const activeIndexRef = useRef(0);
-  const baseOffsetRef = useRef(0);
-  const feedScrollAtTop = useRef(true);
-  const tapeAnim = useRef(new Animated.Value(0)).current;
   const headerAnim = useRef(new Animated.Value(0)).current;
 
-  // Snap the tape to a target screen with a spring animation and haptic.
-  const navigateTo = (index: number) => {
+  // Where the tape sits, in screens (0 = Camera); fractional mid-swipe.
+  const page = useSharedValue(0);
+  // Where the finger went down, and where it was when the swipe took the drag: the tape follows
+  // the finger from that point, and the release distance is measured from it.
+  const startX = useSharedValue(0);
+  const startY = useSharedValue(0);
+  const grabY = useSharedValue(0);
+  const decided = useSharedValue(false);
+  const base = useSharedValue(0);
+  // The Feed list: its scrolling as a gesture (this swipe runs alongside it), how far it is
+  // scrolled, and how far it was when the finger went down.
+  const feedList = useMemo(() => Gesture.Native(), []);
+  const feedOffset = useSharedValue(0);
+  const feedOffsetAtDown = useSharedValue(0);
+
+  // The tape has been sent to `index`: record it, tick, and bring the header back off Feed.
+  const settle = (index: number, openSearch = false) => {
     setActiveIndex(index);
-    activeIndexRef.current = index;
+    indexSV.value = index;
     onIndexChange?.(index);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Animated.spring(tapeAnim, {
-      toValue: -(index * windowRef.current.height),
-      damping: 22,
-      stiffness: 160,
-      mass: 0.9,
-      useNativeDriver: true,
-    }).start();
-    // Always restore header when switching screens
     if (index !== 1) {
       headerAnim.setValue(0);
     }
+    // Pull down on Camera opens search; the tape snaps back to Camera first.
+    if (openSearch) setSearchVisible(true);
+  };
+
+  // Snap the tape to a target screen with a spring animation and haptic.
+  const navigateTo = (index: number) => {
+    settle(index);
+    page.value = withSpring(index, SPRING);
   };
 
   if (controlRef) controlRef.current = { navigateTo };
 
-  const panResponder = useRef(
-    PanResponder.create({
-      // Claim clear vertical swipes (see swipeRules); horizontal ones pass to HorizontalNavigator.
-      // On Feed only a pull down from the top of the list goes back to Camera.
-      // x0/y0 aren't set until the grant, so the start point is where the finger is minus how far it moved.
-      onMoveShouldSetPanResponder: (_e, { moveX, moveY, dx, dy }) =>
-        verticalSwipe({
-          startX: moveX - dx,
-          startY: moveY - dy,
-          dx,
-          dy,
-          width: windowRef.current.width,
-          height: windowRef.current.height,
-          insets: insetsRef.current,
-          blocked: overlayRef.current,
-          onFeed: activeIndexRef.current === 1,
-          feedAtTop: feedScrollAtTop.current,
-          // The feed's scroll view itself refuses to hand over a drag it has scrolled.
-          listMoved: false,
-        }) === 'activate',
+  const safeInsets = { top: insets.top, bottom: insets.bottom };
 
-      onPanResponderGrant: () => {
-        tapeAnim.stopAnimation();
-        baseOffsetRef.current = -(activeIndexRef.current * windowRef.current.height);
-      },
-
-      onPanResponderMove: (_e, { dy }) => {
-        const min = -((SCREENS.length - 1) * windowRef.current.height);
-        // Rubber-band resistance at the first and last screens
-        tapeAnim.setValue(rubberBand(baseOffsetRef.current + dy, min, 0));
-      },
-
-      onPanResponderRelease: (_e, { dy, vy }) => {
-        const { index, openSearch } = verticalRelease(
-          activeIndexRef.current,
-          SCREENS.length,
-          dy,
-          vy
-        );
-        navigateTo(index);
-        // Pull down on Camera opens search; the tape snaps back to Camera first.
-        if (openSearch) setSearchVisible(true);
-      },
-
-      // Snap back if the system takes the touch mid-swipe.
-      onPanResponderTerminate: () => navigateTo(activeIndexRef.current),
+  // Take clear up/down swipes (see swipeRules); sideways ones are left to HorizontalNavigator.
+  // On Feed only a pull down from the top of the list goes back to Camera. The swipe runs
+  // alongside the list's own scrolling, so the list can start moving first; once it has moved
+  // under the finger the drag stays with the list. Runs on the UI thread.
+  const swipe = Gesture.Pan()
+    .manualActivation(true)
+    .simultaneousWithExternalGesture(feedList)
+    .onTouchesDown((e) => {
+      'worklet';
+      const t = e.changedTouches[0];
+      if (e.numberOfTouches !== 1 || !t) return;
+      startX.value = t.absoluteX;
+      startY.value = t.absoluteY;
+      decided.value = false;
+      feedOffsetAtDown.value = feedOffset.value;
     })
-  ).current;
+    .onTouchesMove((e, manager) => {
+      'worklet';
+      const t = e.allTouches[0];
+      if (decided.value || !t) return;
+      const onFeed = indexSV.value === 1;
+      const listMoved = feedOffset.value !== feedOffsetAtDown.value;
+      const decision = verticalSwipe({
+        startX: startX.value,
+        startY: startY.value,
+        dx: t.absoluteX - startX.value,
+        dy: t.absoluteY - startY.value,
+        width,
+        height,
+        insets: safeInsets,
+        blocked: blockedSV.value,
+        onFeed,
+        feedAtTop: atListTop(feedOffset.value),
+        listMoved,
+      });
+      if (decision === 'activate') {
+        decided.value = true;
+        grabY.value = t.absoluteY;
+        manager.activate();
+      } else if (onFeed && listMoved) {
+        decided.value = true;
+        manager.fail();
+      }
+      // Otherwise it is asked again on the next move: a drag can still turn into a swipe.
+    })
+    .onStart(() => {
+      'worklet';
+      cancelAnimation(page);
+      base.value = indexSV.value;
+    })
+    .onUpdate((e) => {
+      'worklet';
+      // Follows the finger; rubber-band resistance past Camera and Feed.
+      page.value = rubberBand(
+        base.value - (e.absoluteY - grabY.value) / height,
+        0,
+        SCREENS.length - 1
+      );
+    })
+    .onEnd((e, success) => {
+      'worklet';
+      // Cut short (the phone took the touch): snap back to the screen it started on.
+      const { index, openSearch } = success
+        ? verticalRelease(
+            indexSV.value,
+            SCREENS.length,
+            e.absoluteY - grabY.value,
+            e.velocityY / 1000
+          )
+        : { index: indexSV.value, openSearch: false };
+      indexSV.value = index;
+      page.value = withSpring(index, SPRING);
+      scheduleOnRN(settle, index, openSearch);
+    });
 
-  // ─── Rounded top corners on the way in ─────────────────────────────────────
-  // Each screen slot (index > 0) slides up from the bottom with rounded top
-  // corners; as it becomes the active screen the corners collapse to 0, giving
-  // a "morphing into the screen" feel.
-  //
-  // Derivation per slot i (i > 0):
-  //   • tapeAnim = -(i-1)*height  → slot i is just below the screen → radius 40
-  //   • tapeAnim =  -i   *height  → slot i is fully active          → radius 0
-  //
-  // tapeAnim is used with useNativeDriver:true for translateY, and with
-  // useNativeDriver:false here for borderRadius — both are supported in RN.
-  const borderRadii = useMemo(
-    () =>
-      SCREENS.map((_, i) =>
-        i === 0
-          ? null // Camera is always at the top — no rounded entry needed
-          : tapeAnim.interpolate({
-              inputRange: [-i * height, -(i - 1) * height],
-              outputRange: [0, 40],
-              extrapolate: 'clamp',
-            })
-      ),
-    [height]
-  );
+  const tapeStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -page.value * height }] }));
 
   const bgPalette = dark ? SCREEN_BG_DARK : SCREEN_BG_LIGHT;
 
   return (
-    <View style={styles.root} {...panResponder.panHandlers}>
-      {/* Tape — all screens stacked vertically, translated by tapeAnim */}
-      <Animated.View
-        style={{ height: SCREENS.length * height, width, transform: [{ translateY: tapeAnim }] }}
-      >
-        {SCREENS.map(({ key, Component }, i) => {
-          const radius = borderRadii[i];
-
-          return (
-            <Animated.View
+    <GestureDetector gesture={swipe}>
+      <View style={styles.root}>
+        {/* Tape — all screens stacked vertically, moved by `page` */}
+        <Reanimated.View style={[{ height: SCREENS.length * height, width }, tapeStyle]}>
+          {SCREENS.map(({ key, Component }, i) => (
+            <Slot
               key={key}
-              style={[
-                styles.slot,
-                {
-                  width,
-                  height,
-                  top: i * height,
-                  backgroundColor: bgPalette[i],
-                  borderTopLeftRadius: radius ?? 0,
-                  borderTopRightRadius: radius ?? 0,
-                  overflow: 'hidden',
-                },
-              ]}
+              index={i}
+              page={page}
+              width={width}
+              height={height}
+              backgroundColor={bgPalette[i]}
             >
               {key === 'feed' ? (
                 <FeedScreen
                   onGoToCamera={() => navigateTo(0)}
-                  onScrollTopChange={(atTop) => {
-                    feedScrollAtTop.current = atTop;
-                  }}
                   headerAnim={headerAnim}
                   onOverlayChange={setFeedOverlay}
+                  listGesture={feedList}
+                  listOffset={feedOffset}
                 />
               ) : (
                 <Component />
               )}
-            </Animated.View>
-          );
-        })}
-      </Animated.View>
+            </Slot>
+          ))}
+        </Reanimated.View>
 
-      {/* Shared header overlay — profile pill (left) + MAHI (center) + messages (right).
+        {/* Shared header overlay — profile pill (left) + MAHI (center) + messages (right).
           isDark=true forces white on Camera (always dark bg); other screens follow theme.
           headerAnim drives translateY so it slides off-screen when the feed scrolls down. */}
-      <Animated.View
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 200,
-          transform: [
-            {
-              translateY: headerAnim.interpolate({
-                inputRange: [0, appHeaderH],
-                outputRange: [0, -appHeaderH],
-                extrapolate: 'clamp',
-              }),
-            },
-          ],
-        }}
-        pointerEvents="box-none"
-      >
-        <AppHeader
-          isDark={activeIndex === 0}
-          onProfilePress={onNavigateLeft}
-          onMessagesPress={onNavigateRight}
-          showNavPills={!railShown}
-          unreadNotifications={unreadNotifications}
-          onNotificationsPress={() => setNotifOpen(true)}
-        />
-      </Animated.View>
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 200,
+            transform: [
+              {
+                translateY: headerAnim.interpolate({
+                  inputRange: [0, appHeaderH],
+                  outputRange: [0, -appHeaderH],
+                  extrapolate: 'clamp',
+                }),
+              },
+            ],
+          }}
+          pointerEvents="box-none"
+        >
+          <AppHeader
+            isDark={activeIndex === 0}
+            onProfilePress={onNavigateLeft}
+            onMessagesPress={onNavigateRight}
+            showNavPills={!railShown}
+            unreadNotifications={unreadNotifications}
+            onNotificationsPress={() => setNotifOpen(true)}
+          />
+        </Animated.View>
 
-      {/* Notifications overlay — sibling of the header Animated.View so it is
+        {/* Notifications overlay — sibling of the header Animated.View so it is
           NOT affected by the hide-on-scroll transform. */}
-      <NotificationsScreen
-        visible={notifOpen}
-        onClose={() => setNotifOpen(false)}
-        onOpenPost={(_postId) => {
-          setNotifOpen(false);
-          // v1 no-op: FeedScreen scroll-to-post is a follow-up
-        }}
-        onOpenProfile={(uid) => {
-          setNotifOpen(false);
-          setProfileUserId(uid);
-        }}
-      />
-
-      {/* Full-screen profile — opened from notifications */}
-      {profileUserId ? (
-        <UserProfileScreen
-          key={profileUserId}
-          userId={profileUserId}
-          onBack={() => setProfileUserId(null)}
-          dark={dark}
+        <NotificationsScreen
+          visible={notifOpen}
+          onClose={() => setNotifOpen(false)}
+          onOpenPost={(_postId) => {
+            setNotifOpen(false);
+            // v1 no-op: FeedScreen scroll-to-post is a follow-up
+          }}
+          onOpenProfile={(uid) => {
+            setNotifOpen(false);
+            setProfileUserId(uid);
+          }}
         />
-      ) : null}
 
-      {/* Navigation dots — vertical pill dots on the right edge.
+        {/* Full-screen profile — opened from notifications */}
+        {profileUserId ? (
+          <UserProfileScreen
+            key={profileUserId}
+            userId={profileUserId}
+            onBack={() => setProfileUserId(null)}
+            dark={dark}
+          />
+        ) : null}
+
+        {/* Navigation dots — vertical pill dots on the right edge.
           Camera screen always has a dark background, so always use white dots
           there. Other screens follow the current theme. */}
-      {railShown ? null : (
-        <NavigationDots
-          count={SCREENS.length}
-          activeIndex={activeIndex}
-          dark={activeIndex === 0 ? true : dark}
-          icons={SCREEN_ICONS}
-          onDotPress={navigateTo}
-        />
-      )}
+        {railShown ? null : (
+          <NavigationDots
+            count={SCREENS.length}
+            activeIndex={activeIndex}
+            dark={activeIndex === 0 ? true : dark}
+            icons={SCREEN_ICONS}
+            onDotPress={navigateTo}
+          />
+        )}
 
-      {/* Global search overlay — triggered by pull-down from Camera screen */}
-      <GlobalSearchOverlay
-        visible={searchVisible}
-        onClose={() => setSearchVisible(false)}
-        dark={dark}
-      />
-    </View>
+        {/* Global search overlay — triggered by pull-down from Camera screen */}
+        <GlobalSearchOverlay
+          visible={searchVisible}
+          onClose={() => setSearchVisible(false)}
+          dark={dark}
+        />
+      </View>
+    </GestureDetector>
   );
 }
 
@@ -330,5 +387,6 @@ const styles = StyleSheet.create({
   },
   slot: {
     position: 'absolute',
+    overflow: 'hidden',
   },
 });
