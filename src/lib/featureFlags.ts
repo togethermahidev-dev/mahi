@@ -37,6 +37,8 @@ export const FEATURE_FLAGS = [
   'moderation-core', // block / report
   'streaks-core', // streak tracking / grid / rest days
   'auth-otp-signup', // OTP email signup flow
+  'auth-password-reset', // "Forgot password?" emails a code, then sets a new password
+  'account-delete', // Settings -> Delete account (Apple requires in-app deletion)
 
   // Tag loop (see docs/tag-loop-plan.md)
   'push-core', // P1 push permission prompt (server keeps queueing when off)

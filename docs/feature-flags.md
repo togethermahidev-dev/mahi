@@ -60,6 +60,12 @@ starts on the rail never moves the pages. Off = today's rail.)
 **Onboarding:** `onboarding-welcome-cards` (one-time 3-card welcome carousel after sign-in that
 teaches post → tag 3 friends → feed opens/locks; shown once per account per device. Off = never shown.)
 
+**Account:** `auth-password-reset` ("Forgot password?" on the log-in sheet emails a 6-digit code, then
+the code and a new password set it and log you in. Needs the `send-reset-code` and `reset-password`
+functions and migration `20261001100000_password_reset_codes`. Off = the link does nothing.) ·
+`account-delete` (Settings → "Delete account" asks once, plainly, then deletes the profile, posts,
+photos, messages and streak and logs out. Needs the `delete-account` function. Off = no row.)
+
 **Sign-in placeholders** (pills on the welcome screen with no sign-in behind them yet — keep these
 **off** in PostHog until the real sign-in ships; flags default on when unset):
 `auth-apple-signin` · `auth-google-signin`
