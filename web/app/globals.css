@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+/* Every colour, size and font value comes from here — generated from the app's tokens. */
+@import './tokens.css';
+
+@layer base {
+  html {
+    background-color: var(--mahi-color-paper);
+    color: var(--mahi-color-ink-deep);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: var(--mahi-color-accent);
+    color: var(--mahi-color-ink-deep);
+  }
+}
+
+/* Respect "reduce motion": no transitions or animations anywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

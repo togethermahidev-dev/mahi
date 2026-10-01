@@ -1,3 +1,7 @@
+# The Expo app lives at the repo root; web/ is the Mahi waitlist site (see web/README.md).
+packages:
+  - 'web'
+
 # pnpm 11+ reads project settings from here instead of .npmrc.
 # Expo / React Native tooling expects a flat node_modules layout.
 nodeLinker: hoisted
