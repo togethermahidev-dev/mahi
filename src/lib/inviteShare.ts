@@ -53,3 +53,11 @@ export function inviteListSummary(list: InviteItem[]): {
     allSent: unsent === 0,
   };
 }
+
+/**
+ * What one share sheet sends. No "use code" line: a code only works for a brand-new account,
+ * so it means nothing to someone already on Mahi.
+ */
+export function inviteShareMessage(url: string): string {
+  return `I tagged you on Mahi — you've got 48 hours to post back.\n${url}`;
+}
