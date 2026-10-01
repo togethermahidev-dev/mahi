@@ -6,12 +6,12 @@
 
 Controls the native OS splash screen.
 
-- Config plugin in `app.config.js` writes adaptive splash colors to native at prebuild time
-- Light background: `#F5F5F0`, dark background: `#0F0F0D`
+- Config plugin in `app.config.js` writes the splash colour to native at prebuild time
+- Background `#59c2d7` (brand cyan) in both light and dark
 - `SplashScreen.preventAutoHideAsync()` — called at module scope in `App.tsx`
 - `SplashScreen.hideAsync()` — called from `onLayout` in `SplashScreen.tsx`
 
-Splash image (`assets/splash-icon.png`) is the default Expo placeholder. Replace with the final MAHI logo (white text, transparent PNG) before a native prebuild.
+No splash image is set in the plugin (`assets/splash-icon.png` is unused). Add the final MAHI logo before a native prebuild if wanted.
 
 ---
 
@@ -50,6 +50,11 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 | `public.post_tags` | `post_id`, `user_id` | Junction table storing user tags on posts (user mentions in captions + on-photo bubble overlays). Composite PK `(post_id, user_id)` — dedup enforced at the DB layer. Both FKs use `ON DELETE CASCADE` (deleting a post or a profile also clears its tags). RLS: `SELECT using (true)` (tags are visible whenever the parent post is visible); `INSERT with check (exists (select 1 from posts p where p.id = post_id and p.user_id = auth.uid()))` — a user can only tag on posts they own. No UPDATE or DELETE policies (immutable v1; re-post to change). `post_tags_user_id_idx` btree on `user_id` for future "posts I was tagged in" lookups. `get_feed_posts` RPC aggregates these into a `tagged_users` array per post row. |
 | `public.streak_logs` | `id`, `user_id`, `streak_count`, `started_at`, `ended_at`, `is_active`, `created_at` | Audit log managed by `record_upload_streak` RPC — tracks active and closed streaks |
 
+Tag-loop, moderation, push and code tables (`tag_challenges`, `point_events`, `invites`, `app_config`,
+`push_tokens`, `push_outbox`, `conversation_reads`, `notifications`, `user_blocks`, `user_reports`,
+`otp_codes`, `auth_rate_limits`) are listed in [architecture.md](./architecture.md#database-schema) and
+specified in [tag-loop-plan.md](./tag-loop-plan.md); their SQL is in `supabase/migrations/`.
+
 ### Database Indexes
 
 | Index | Table | Definition | Purpose |
@@ -71,13 +76,18 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 - Called via `supabase.rpc('toggle_like', ...)` from `src/api/social.ts:toggleLike`.
 - One round trip, no race condition, no need to check existing state first.
 
-**`get_feed_posts(p_limit int, p_cursor_ts timestamptz, p_cursor_id uuid)`** — `SECURITY DEFINER STABLE`
+**Current app paths:** posting is `create_post` (one transaction: post, streak via `record_upload_streak`,
+tags, deadlines, pushes, invites); the feed is `get_feed` (server-side lock, `feed-lock-explainer` reads its
+unlock window); profiles read `get_user_posts`; chat sends through `send_message`. The entries below
+describe the older functions, still live for old builds until `supabase/deferred/` retires them.
+
+**`get_feed_posts(p_limit int, p_cursor_ts timestamptz, p_cursor_id uuid)`** — `SECURITY DEFINER STABLE` (legacy; the app now reads `get_feed`)
 - Replaces the old `posts` table select + `FEED_SELECT` constant.
 - Returns enriched feed rows including `like_count`, `comment_count`, `liked_by_me` (lateral `EXISTS` probe against `auth.uid()`), and `tagged_users` — an aggregated `{ user_id, username, display_name, avatar_url }[]` array built from a correlated `jsonb_agg(jsonb_build_object(...) order by tp.username)` subquery joining `post_tags` to `profiles`. The subquery result is wrapped in `coalesce(..., '[]'::jsonb)` so the column is **always an array, never NULL** — clients never need a `?? []` fallback and `FeedPost.tagged_users` is typed as required (`TaggedUser[]`, not `TaggedUser[] | null`).
 - Cursor pagination: `p_cursor_ts` + `p_cursor_id` mirror the old `created_at DESC, id DESC` cursor. Both default to `null` for the first page.
 - Called via `supabase.rpc('get_feed_posts', ...)` from `src/api/posts.ts:getFeedPosts`.
 
-**`createPost` client contract (not an RPC, lives in `src/api/posts.ts`)**
+**Old `createPost` client contract (before `create_post`; kept for history)**
 - Inserts one row into `public.posts` and, if `taggedUserIds` is provided and non-empty, a second batch insert into `public.post_tags` using `Array.from(new Set(taggedUserIds))` for client-side dedup before the DB's composite-PK would reject duplicates.
 - Returns `{ data, error }` with three possible shapes:
   - `{ data: PostRow, error: null }` — both inserts succeeded.
@@ -92,7 +102,7 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 - **Rest-day logic:** reads `profiles.fitness_routine` (comma-separated full day names). Uses `to_char(p_upload_date, 'Dy')` to get a 3-letter abbreviation and `position()` to check membership (works because 3-letter abbreviations are always a prefix/substring of the full name). If today is absent from the routine, it's a rest day — the streak extends without requiring a post. If today is a training day and the user missed it (no upload yesterday and not a rest day), the streak resets to 1.
 - Manages `streak_logs` (opens new log on reset, updates count on extend).
 - Returns `{ streak_current, streak_highest, streak_lowest, action }`.
-- Always pass `p_upload_date` as the device's **local** date (`new Date().toLocaleDateString('en-CA')`) — do not rely on server `CURRENT_DATE` (UTC) to avoid timezone drift.
+- Called by `create_post` with the post's date in the user's own time zone (`profiles.timezone`, migration `timezone_postdate`); the app no longer calls it directly.
 
 **`get_follow_data(p_current_user_id uuid, p_target_user_id uuid)`** — `STABLE SECURITY INVOKER`
 - Returns `{ is_following: boolean, follower_count: bigint, following_count: bigint }` in a single query.
@@ -106,22 +116,30 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 
 **Bucket: `posts`** (public — images served via CDN)
 
-- Upload paths: `{userId}/{timestamp}_{rand}.jpg` (rear/POV), `{userId}/{timestamp}_{rand}_pov.jpg` (front selfie)
-- Both images are uploaded in parallel via `Promise.all` in `CameraScreen`
-- Upload: `supabase.storage.from('posts').upload(path, buffer, { contentType: 'image/jpeg' })`
+- Upload paths: `{userId}/{clientId}_rear.jpg` and `{userId}/{clientId}_pov.jpg` (`uploadPostPhotos`, `upsert: true`, so a retry overwrites)
+- Both images are uploaded in parallel via `Promise.all`
 - Public URL: `supabase.storage.from('posts').getPublicUrl(path)` — works correctly because bucket is public
 - Storage policies: users can insert/delete their own files; SELECT is open (public reads)
-- On upload failure after storage succeeds: call `supabase.storage.from('posts').remove([paths])` to avoid orphaned objects (both paths are cleaned up if either upload fails)
+- On post failure after storage succeeds: `removePostPhotos(paths)` removes both
+- Bucket `avatars` holds profile photos (`avatars/{userId}/…`). `delete-account` removes both folders for the caller
+- The bucket goes private later (`supabase/deferred/private_bucket.sql`)
 
 ### Edge Functions
 
-All Edge Functions are deployed with `verify_jwt: false` (pre-auth flows).
+All functions run with `verify_jwt: false` (pre-auth flows) except `delete-account`, which keeps JWT
+verification on. Live versions checked against prod 2026-10-01. Full details: [supabase/README.md](../supabase/README.md).
 
 | Function | Purpose |
 |---|---|
-| `send-otp` | Receives `{ email }`, makes and stores a hashed 6-digit code, emails it via Resend |
-| `verify-otp` | Receives `{ email, code }`, checks it server-side and marks it verified |
-| `complete-signup` | Receives `{ email, password, code }`, creates the auth user (`email_confirm: true`) only for a verified code |
+| `send-otp` | Receives `{ email }`, makes and stores a hashed 6-digit sign-up code (`purpose = 'signup'`), emails it via Resend from `noreply@mahitechnology.com` |
+| `verify-otp` | Receives `{ email, code }`, checks a sign-up code server-side and marks it verified |
+| `complete-signup` | Receives `{ email, password, code }`, creates the auth user (`email_confirm: true`) only for a verified sign-up code |
+| `send-reset-code` | Receives `{ email }`, emails a reset code (`purpose = 'reset'`); same answer whether or not the account exists (flag `auth-password-reset`) |
+| `reset-password` | Receives `{ email, code, password }`, checks the reset code, sets the new password |
+| `delete-account` | No body; the caller's token says who. Removes their photos, then their auth user; every table cascades (flag `account-delete`) |
+| `send-push` | Push outbox sender for pg_cron — in the repo, **not deployed yet** |
+
+`check-email` is also live but not in this repo.
 
 ### Realtime
 
@@ -180,7 +198,7 @@ Used for two gradient overlays:
 
 2. **Post image overlay** (`FeedScreen` `PostItem`) — `LinearGradient` positioned absolutely over the top of each post image (`colors={['rgba(0,0,0,0.6)', 'transparent']}`), providing contrast for the overlaid username, timestamp, and streak pill.
 
-Installed via `npx expo install expo-linear-gradient` (SDK 55 compatible version `~55.0.9`).
+Installed via `npx expo install expo-linear-gradient` (`~57.0.2`).
 
 ---
 
@@ -188,32 +206,37 @@ Installed via `npx expo install expo-linear-gradient` (SDK 55 compatible version
 
 **Status: Active**
 
-Used for the `GlobalSearchOverlay` frosted-glass background. `BlurView` with `intensity={35}` and theme-aware `tint` (`'dark'` / `'light'`) covers the full screen behind the search input and results list. The overlay is triggered by a pull-down gesture from `CameraScreen` in `VerticalNavigator`.
+Used for the `GlobalSearchOverlay` frosted-glass background (theme-aware `tint`, opened by pulling down on Camera), the tag/caption glass pills, `TaggedBubbleStack`, and as the `NavRail` fallback where Liquid Glass isn't available.
 
-Installed as `~55.0.10`.
+Installed as `~57.0.3`. `expo-glass-effect` (`~57.0.4`) draws the nav rail's glass on iOS versions that support it.
 
 ---
 
 ## react-native-gesture-handler + react-native-reanimated
 
-**Status: Active** — `react-native-gesture-handler ~2.30.0`, `react-native-reanimated ~4.2.1`, `react-native-worklets 0.7.2`.
+**Status: Active** — `react-native-gesture-handler ~2.32.0`, `react-native-reanimated 4.5.1`, `react-native-worklets 0.10.1`. The only `PanResponder` left is `GlobalSearchOverlay`'s swipe-up-to-close.
 
 All drag gestures use RNGH `Gesture.Pan` + Reanimated shared values, running on the UI thread — the full-screen navigators as well as localised drag surfaces.
 
 **Navigators** — `HorizontalNavigator` and `VerticalNavigator` page between screens with a manually-activated `Gesture.Pan`. Every activate/fail decision, release target and rubber-band comes from the worklet rules in `src/lib/swipeRules.ts` (tested in `swipeRules.test.ts`): axis ownership, system-edge exclusion, pull-down for search. The vertical pan runs alongside the Feed list's native scroll and reads its offset on the UI thread: a downward drag at the top of Feed (`atListTop`) goes to the navigator, and once the list has scrolled under the finger (`listMoved`) the drag stays with the list.
 
-**RNGH `Gesture.Pan` + Reanimated** — used by three localised drag surfaces:
+**Simultaneous-gesture rule (owner-verified on a phone, OTA 10.21):** the sideways pan, the up/down pan and the Feed list's `Gesture.Native()` must all be allowed to track the same touch. `HorizontalNavigator` makes `feedList` and a ref (`swipeRef`) and passes both to `VerticalNavigator`, whose pan fills the ref with `.withRef()` and is `.simultaneousWithExternalGesture(feedList)`; the sideways pan is `.simultaneousWithExternalGesture(feedList, verticalSwipe)`. The swipe rules keep them apart by axis — the up/down pan fails at once on a sideways drag. Leave out either relation and iOS hands the touch to the inner gesture, so sideways swipes on Camera or Feed silently stop working.
+
+**RNGH `Gesture.Pan` + Reanimated** — localised drag surfaces:
 
 | Surface | File | Pattern |
 |---|---|---|
 | `CameraScreen` pip (inside `DualPhotoPreview` Modal) | `src/screens/CameraScreen.tsx` | Long-press activation (`activateAfterLongPress(150)`), bounds-clamp to screen corners, corner-snap spring on end, Tap-race for swap. Lives in its own `GestureHandlerRootView` because the Modal spawns a separate native window. |
 | Draggable pip | `src/components/DraggablePip.tsx` | Same pattern as CameraScreen pip (long-press + corner-snap + Tap-race). Shared by `FeedScreen` and `PostDetailModal`. |
+| Nav rail | `src/components/NavRail.tsx` | Hold or drag along the rail to switch screens live (`nav-rail-morph`); its rectangle is excluded from page swipes. |
+| Profile swipe-back | `src/screens/UserProfileScreen.tsx` | Pan to close a profile. |
+| Settings drawer | `src/components/SettingsPanel.tsx` | Swipe left to close. |
 
 **Feed list:** its scrolling is an RNGH `Gesture.Native()` made in `HorizontalNavigator` and shared with `VerticalNavigator`; both navigator pans are `simultaneousWithExternalGesture` with it. A vertical UIScrollView starts tracking after ~10pt in any direction, so without that relation it cancels a navigator pan before the 20px decision.
 
-**Coexistence rule:** the navigators' pans activate only after their swipe rules decide (20px), so a nested `GestureDetector` (pip drag, profile swipe-back, settings swipe-to-close) that activates first keeps the touch. Not yet verified on a device.
+**Coexistence rule:** the navigators' pans activate only after their swipe rules decide (20px), so a nested `GestureDetector` (pip drag, profile swipe-back, settings swipe-to-close, the rail) that activates first keeps the touch.
 
-**Root wrapping** — `App.tsx` wraps the whole tree in `GestureHandlerRootView` (required by RNGH). Components that render inside native `<Modal>` windows (e.g. `CameraScreen`'s `DualPhotoPreview`, `PostDetailModal`, `FollowListModal`, `BlockedUsersSheet`) must wrap their own root because a Modal is a separate native window and the app-level root does not cross that boundary. Components that render as plain absolute overlays (e.g. `StreakGridPanel`) rely on the app-level root and do **not** need their own.
+**Root wrapping** — `App.tsx` wraps the whole tree in `GestureHandlerRootView` (required by RNGH). Components that render inside native `<Modal>` windows (e.g. `CameraScreen`'s `DualPhotoPreview`, `PostDetailModal`, `FollowListModal`, `BlockedUsersSheet`) must wrap their own root because a Modal is a separate native window and the app-level root does not cross that boundary. Components that render as plain absolute overlays (e.g. `GlobalSearchOverlay`, `UserProfileScreen`) rely on the app-level root and do **not** need their own.
 
 **Shared-value pattern** — drag surfaces declare `useSharedValue` refs (e.g. `translateY`, `startY`, `viewportH`, `contentH`), read/write them inside `.onStart` / `.onUpdate` worklets (marked `'worklet'`), and consume them via `useAnimatedStyle` applied to a `Reanimated.View`. The `GestureDetector` must wrap the same `Reanimated.View` that consumes the animated style. Layout measurements flow via `onLayout` handlers that write directly to shared values (JS-thread writes to shared values are safe).
 
@@ -234,7 +257,13 @@ Product analytics via `posthog-react-native`. Singleton client created with `EXP
 | `signup_otp_sent` | `CreateAccountSheet.tsx` | OTP email dispatched |
 | `signup_otp_verified` | `CreateAccountSheet.tsx` | Server accepted the typed code |
 | `signup_otp_rejected` | `CreateAccountSheet.tsx` | Server refused the typed code |
+| `signup_otp_reused` | `CreateAccountSheet.tsx` | Back then Next reused the code already sent |
 | `signup_completed` | `CreateAccountSheet.tsx` | Account created (includes `training_days`, `fitness_goals`) |
+| `password_reset_code_sent` / `password_reset_done` / `password_reset_failed` | `ForgotPasswordSheet.tsx` | Password reset steps |
+| `user_blocked` / `user_unblocked` / `user_reported` | `UserProfileScreen.tsx`, `BlockedUsersSheet.tsx` | Moderation |
+| Tag-loop events (`tag_sent`, `tag_answered`, `tag_missed`, `invite_shared`, `invite_claimed`, `feed_unlocked`, …) | `src/lib/analytics.ts` (one typed map) | Sent after the server confirms |
+
+Feature flags are read through the same client — see [feature-flags.md](./feature-flags.md).
 
 **Required env vars:**
 ```
@@ -264,7 +293,7 @@ Error and crash reporting via `@sentry/react-native` v8.
 | Search | `GlobalSearchOverlay.tsx` | `captureException` on search error; breadcrumbs for overlay open, profile tap |
 | Camera upload | `CameraScreen.tsx` | `captureException` on upload failure |
 | Training days | `RestDaysStreakPanel.tsx` | `captureException` on save failure; breadcrumbs for panel open, successful save |
-| Follow | `UserProfileOverlay.tsx` | `captureMessage` on toggle follow/unfollow error; breadcrumb on follow tap |
+| Follow | `UserProfileScreen.tsx` | `captureMessage` on toggle follow/unfollow error; breadcrumb on follow tap |
 
 **Pattern:** use `Sentry.captureException(err, { tags: { flow }, extra })` for caught errors and `Sentry.addBreadcrumb({ category, message, level })` for navigation/action events. Use `console.error('[ComponentName]')` alongside for dev debugging.
 
