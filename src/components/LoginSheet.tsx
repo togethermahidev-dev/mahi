@@ -5,7 +5,6 @@ import {
   Text,
   TextInput,
   Pressable,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
   useColorScheme,
@@ -15,6 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import ForgotPasswordSheet from '@/components/ForgotPasswordSheet';
 import { FONTS } from '@/constants/fonts';
 import { COLORS, FONT_SIZE, SPACE, RADIUS, TRACKING, BORDER_WIDTH } from '@/constants/tokens';
 
@@ -44,6 +45,9 @@ export default function LoginSheet({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const passwordRef = useRef<TextInput>(null);
+  const resetEnabled = useFeatureFlag('auth-password-reset');
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetKey, setResetKey] = useState(0); // a fresh reset sheet on every open
 
   const handleLogin = async () => {
     if (loading) return;
@@ -98,7 +102,9 @@ export default function LoginSheet({
           automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
-          <Text style={[styles.title, { color: text }]}>Login</Text>
+          <Text style={[styles.title, { color: text }]} accessibilityRole="header">
+            Log in
+          </Text>
 
           {/* Email */}
           <Text style={[styles.label, { color: muted }]}>Email</Text>
@@ -187,16 +193,38 @@ export default function LoginSheet({
             {loading ? (
               <ActivityIndicator color={bg} />
             ) : (
-              <Text style={[styles.buttonText, { color: bg }]}>Login</Text>
+              <Text style={[styles.buttonText, { color: bg }]}>Log in</Text>
             )}
           </Pressable>
 
           {/* Forgot password */}
-          <TouchableOpacity onPress={() => {}} activeOpacity={0.7}>
-            <Text style={[styles.forgot, { color: muted }]}>Forgot password?</Text>
-          </TouchableOpacity>
+          {resetEnabled && (
+            <Pressable
+              onPress={() => {
+                setError('');
+                setResetKey((k) => k + 1);
+                setResetOpen(true);
+              }}
+              style={({ pressed }) => pressed && styles.pressed}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.forgot, { color: muted }]}>Forgot password?</Text>
+            </Pressable>
+          )}
         </ScrollView>
       </SafeAreaView>
+
+      {/* Opens over this sheet; logging in from it closes both. */}
+      <ForgotPasswordSheet
+        key={resetKey}
+        visible={resetOpen}
+        initialEmail={email.trim()}
+        onDismiss={() => setResetOpen(false)}
+        onLoggedIn={() => {
+          setResetOpen(false);
+          onAuthComplete();
+        }}
+      />
     </Modal>
   );
 }
