@@ -2,8 +2,8 @@
 
 > **History (status 2026-10-01):** all five phases shipped in June 2026 behind the flags listed in
 > [feature-flags.md](./feature-flags.md). Kept as a record of the spec. "Current behavior" lines and line
-> links describe the code *before* that work and are now out of date: `TrainingDaysScreen`, `CommentSheet`
-> and `ProfileMediaMapModal` are gone, navigation runs on gesture-handler (not `PanResponder`), and pop-ups
+> links describe the code *before* that work and are now out of date: `TrainingDaysScreen` and
+> `ProfileMediaMapModal` are gone, `CommentSheet` is a native page sheet, navigation runs on gesture-handler (not `PanResponder`), and pop-ups
 > are native page sheets. Current work: [tag-loop-plan.md](./tag-loop-plan.md) and [decisions.md](./decisions.md).
 
 This was the build spec for the June 2026 feedback round. It is **batched into phases** — do not one-shot.

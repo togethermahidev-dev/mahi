@@ -218,7 +218,7 @@ nothing sends; flag `push-core` is absent from PostHog (off).* Files: `supabase/
 
 **Edge Function `send-push`**
 - Accepts only POST with a matching `X-Internal-Secret` (function secret `SEND_PUSH_SECRET`,
-  constant-time compare); `verify_jwt: false` like every function here.
+  constant-time compare); `verify_jwt: false` like every function here except `delete-account`.
 - `{"mode":"send"}`: claims up to 500 rows, groups them per user into one message ("… (+N more)"),
   sends to Expo in chunks of 100, records tickets/errors, removes `DeviceNotRegistered` tokens. A
   failed Expo call leaves its rows claimed-but-unsent, so they are retried after the claim expires.
