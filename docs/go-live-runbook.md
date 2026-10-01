@@ -37,6 +37,11 @@ In this order (the tool sorts by the timestamp in the filename — you don't cho
 | 11 | `invites` | Invite links for people not on Mahi. |
 | 12 | `stats_views` | The tables of numbers for judging the beta. Read-only. |
 
+Rows 4 and 8 describe the rules as they went live on 2026-09-23. Since 2026-10-01 posting is
+**reactive posting** (`20261001120000_reactive_posting.sql`): you post only to answer an open tag (your
+first post excepted), each answer adds 1 to your streak, a missed tag puts it back to 0, and the feed
+opens for 24 hours after each post — see [architecture.md](./architecture.md#reactive-posting).
+
 All twelve are safe for the app people have on their phones today. Nothing here removes anything
 the current app uses — those steps are deliberately held back until a new app build is in the
 stores (see `supabase/deferred/`).

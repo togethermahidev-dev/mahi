@@ -29,6 +29,10 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
   glass nav rail with morphing selector, native page sheets and action sheets, welcome cards, locked-feed card,
   camera two-photo guide), password reset by emailed code, in-app Delete account, Inter font, design tokens
   enforced by tests, sentence-case labels. Founder's choices: [decisions.md](./decisions.md).
+- **Reactive posting (decided 2026-10-01):** you post only when a friend has tagged you and the tag is still
+  open (48 hours), except your first post. Each answer adds 1 to your streak; a missed tag puts it back to 0
+  (`streak_lost` notice) and keeps the feed locked until a friend tags you again; the best streak stays on
+  show. No rest days, training days or streak calendar. Rules: [architecture.md](./architecture.md#reactive-posting).
 - **Earlier hardening still in force:** typed `src/lib/env.ts`, `ErrorBoundary`, every store reset on
   sign-out, server-authoritative sign-up codes, Jest + pgTAP + typecheck CI.
 
@@ -37,8 +41,10 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
   PostHog (off) until then. Steps in [go-live-runbook.md](./go-live-runbook.md).
 - Invite landing page on `togethermahi.com` (the domain doesn't resolve yet; the 6-character code works).
 - Next native build: remove the unused microphone text from `app.config.js`; add `expo-symbols` for Apple icons.
-- Parked decisions: streak rule (#1), existing streaks (#10), whether a skipped rest day protects the streak
-  (#27), success targets (#12).
+- Parked decision: success targets (#12). (Streak rule #1, existing streaks #10 and rest days #27 were
+  decided on 2026-10-01 with reactive posting.)
+- Reactive posting server change (`20261001120000_reactive_posting.sql`): apply to production when the owner
+  says go.
 - Store release, then the `supabase/deferred/` contract steps.
 
 ---
@@ -77,7 +83,7 @@ Adding a full-stack feature is a mechanical copy of proven files — full recipe
 | Thin hook (subscription lifecycle) | `src/hooks/useNotifications.ts` |
 | DB table + RLS + RPC | `follows` table + `get_follow_data` in `supabase/migrations/` |
 | User-facing failure feedback | `useToastStore.getState().show(...)` |
-| Native page sheet | `StreakGridPanel.tsx` (`<Modal presentationStyle="pageSheet">`) |
+| Native page sheet | `BlockedUsersSheet.tsx` (`<Modal presentationStyle="pageSheet">`) |
 | Page swipe / spring | `HorizontalNavigator.tsx` + `src/lib/swipeRules.ts` (`damping:22, stiffness:160, mass:0.9`) |
 | Pure, tested UI rules | `src/lib/feedLock.ts` + `src/lib/__tests__/feedLock.test.ts` |
 | Gate a feature behind a flag | `useFeatureFlag('flag-key')` (keys in `src/lib/featureFlags.ts`; see [feature-flags.md](./feature-flags.md)) |

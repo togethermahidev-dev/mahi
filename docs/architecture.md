@@ -2,7 +2,24 @@
 
 ## Overview
 
-Mahi Fitness is a React Native fitness application built with Expo (iPhone first). Users take a daily two-photo post from the Camera screen and tag 3 friends, who have 48 hours to post back; the friends-only Feed stays locked until you post (the tag loop — [tag-loop-plan.md](./tag-loop-plan.md), [decisions.md](./decisions.md)). The app has messaging (inbox + requests), notifications, and profiles with streak stats. Backend is Supabase (auth, database, storage, Edge Functions). State is managed with Zustand using an optimistic-UI-first pattern; features sit behind PostHog flags ([feature-flags.md](./feature-flags.md)).
+Mahi Fitness is a React Native fitness application built with Expo (iPhone first). Users post a two-photo workout from the Camera screen only to answer a friend's tag (reactive posting, below — the first post is the exception), and every post tags 3 friends, who have 48 hours to answer. Each answer adds one to your streak; the friends-only Feed opens for 24 hours after each post (the tag loop — [tag-loop-plan.md](./tag-loop-plan.md), [decisions.md](./decisions.md)). The app has messaging (inbox + requests), notifications, and profiles with streak stats.
+
+## Reactive posting
+
+The posting rule since 2026-10-01 ([decisions.md](./decisions.md#reactive-posting-2026-10-01) #1, #10, #27–#30):
+
+- **Reactive posting** — you post only when a friend has tagged you and the tag is still open (48 hours,
+  `app_config.tag_window`). Your very first post is the one exception. The server enforces it:
+  `create_post` checks `public.reactive_posting_open(user)` and raises `reactive posting: not tagged`
+  otherwise (migration `20261001120000_reactive_posting.sql`, test `supabase/tests/reactive_posting_test.sql`).
+  The app's copy of the rule is `src/lib/reactivePosting.ts`.
+- **Streak** — each post that answers a tag adds 1. Miss a tag's 48 hours and the streak goes back to 0;
+  the person who missed gets a `streak_lost` notification (actor = the tagger). The best streak stays on
+  show. Posts carry the streak as "Streak N" (`src/lib/streakText.ts`), hidden at 0. No rest days, training
+  days, weekly calendar or streak calendar. Existing users' current streaks restarted at 0; best kept.
+- **Feed** — every post opens the feed for 24 hours. Tagged within those 24 hours → it locks when they
+  end; not tagged → it stays open until you're tagged, then locks. Miss a tag and it stays locked until
+  a friend tags you again (you can't post without a tag). Wording: `src/lib/feedLock.ts`. Backend is Supabase (auth, database, storage, Edge Functions). State is managed with Zustand using an optimistic-UI-first pattern; features sit behind PostHog flags ([feature-flags.md](./feature-flags.md)).
 
 ## Tech Stack
 
@@ -34,13 +51,14 @@ mahi-fitness/
 │   ├── api/            # Supabase query functions (posts, messages, profile, streaks, auth)
 │   ├── lib/            # Singleton clients (Supabase, PostHog, Sentry) + pure, unit-tested rules
 │   │                   #   (swipeRules, railSelector, feedLock, captureGuide, inviteStep, inviteShare,
-│   │                   #    streakGrid, welcomeCards, featureFlags, versionGate, …; tests in __tests__/)
+│   │                   #    reactivePosting, streakText, welcomeCards, featureFlags, versionGate, …;
+│   │                   #    tests in __tests__/)
 │   ├── constants/      # tokens.ts (design tokens), fonts.ts (Inter), ota.ts (OTA counter + history)
 │   ├── store/          # Zustand global state (feedStore, messagesStore, tagStore, inviteStore, …)
 │   ├── hooks/          # Thin store wrappers + utility hooks (useFeed, useOpenTags, useFeatureFlag, …)
 │   ├── types/          # TypeScript types — database.ts is the source of truth for DB shapes
 │   ├── components/     # Shared UI (AppHeader, NavRail, NavigationDots, WelcomeCards, FeedLockBanner,
-│   │                   #   CapturePipGuide, InviteStep, InviteShareSheet, DraggablePip, StreakCalendar,
+│   │                   #   CapturePipGuide, InviteStep, InviteShareSheet, DraggablePip,
 │   │                   #   LoginSheet, CreateAccountSheet, ForgotPasswordSheet, OtpCodeInput, SettingsPanel,
 │   │                   #   BlockedUsersSheet, KeyboardInset, GlobalSearchOverlay, …)
 │   └── screens/        # Screen-level components (navigators, Camera, Feed, Profile, UserProfile, …)
@@ -109,7 +127,7 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | **API** (`src/api/*`) | lib (supabase), types | React, Zustand, any state | pure stateless calls returning `{ data: T \| null, error: Error \| null }` (wrap PostgrestError via `new Error(error.message)`); barrel-exported from `index.ts` |
 | **lib** (`src/lib/*`) | nothing from upper layers | — | singleton clients (supabase/sentry/posthog), the typed `env` accessor, pure utils |
 
-**Known exceptions in today's code (2026-10-01):** some screens and components call `src/api` (or the Supabase auth client) directly for one-off reads or writes that no store owns — auth and account (`LoginSheet`, `CreateAccountSheet`, `ForgotPasswordSheet`, `SettingsPanel`), `CameraScreen` (photo upload + `create_post`), `UserProfileScreen`, `GlobalSearchOverlay`, `FollowListModal`, `BlockedUsersSheet`, `AvatarPicker`, `RestDaysStreakPanel`, `StreakCalendar`. Don't add more; new shared data goes through a store.
+**Known exceptions in today's code (2026-10-01):** some screens and components call `src/api` (or the Supabase auth client) directly for one-off reads or writes that no store owns — auth and account (`LoginSheet`, `CreateAccountSheet`, `ForgotPasswordSheet`, `SettingsPanel`), `CameraScreen` (photo upload + `create_post`), `UserProfileScreen`, `GlobalSearchOverlay`, `FollowListModal`, `BlockedUsersSheet`, `AvatarPicker`. Don't add more; new shared data goes through a store.
 
 **The only legal sideways import is store→store** for already-documented cross-store refreshes
 (e.g. `socialStore` → `feedStore.patchPost`; `blockStore` → `feedStore`/`messagesStore`/`followStore`).
@@ -127,8 +145,8 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 
 | Table | Purpose |
 |---|---|
-| `public.profiles` | User profile — display name, avatar, streak counters |
-| `public.posts` | Daily streak photos — one per user per day. `image_url` = rear/POV photo; `pov_image_url` = front selfie (nullable — null on legacy single-photo posts). Enforced by unique index `posts_user_day_unique (user_id, (created_at AT TIME ZONE 'UTC')::date)` and RLS INSERT policy |
+| `public.profiles` | User profile — display name, avatar, streak counters (current tag streak, best streak) |
+| `public.posts` | Workout posts, made under reactive posting (above), each carrying the poster's streak. `image_url` = rear/POV photo; `pov_image_url` = front selfie (nullable — null on legacy single-photo posts). Enforced by unique index `posts_user_day_unique (user_id, (created_at AT TIME ZONE 'UTC')::date)` and RLS INSERT policy |
 | `public.post_likes` | One row per user-post like. Unique constraint `(post_id, user_id)`. RLS: authenticated read-all, insert/delete own only. |
 | `public.post_comments` | Comments on posts. Ordered oldest-first. RLS: authenticated read-all, insert/delete own only. |
 | `public.follows` | Follow relationships. Unique constraint `(follower_id, following_id)`, self-follow check constraint. RLS: authenticated read-all, insert/delete own only (`auth.uid() = follower_id`). Explicit UPDATE deny policy. |
@@ -136,7 +154,7 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | `public.conversations` | Messaging thread — one row per pair, ordered participants constraint |
 | `public.messages` | Individual messages within a conversation |
 | `public.streak_logs` | Audit log of streak events |
-| `public.notifications` | Activity feed (likes, comments, follows, tags, invites) |
+| `public.notifications` | Activity feed (likes, comments, follows, tags, tag answered / missed, `streak_lost`, invites) |
 | `public.user_blocks` / `public.user_reports` | Moderation |
 | `public.tag_challenges` | A tag with its 48-hour deadline (tag loop) |
 | `public.point_events` | Mahi points, capped per day |
@@ -146,7 +164,7 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | `public.app_config` | One row of numeric rules (tag window, unlock window, caps, `min_app_version`, `invite_links_enabled`) |
 | `public.otp_codes` / `public.auth_rate_limits` | Hashed sign-up and reset codes (`purpose` = `signup` / `reset`) and send limits |
 
-All tables use Row Level Security (RLS). Writes for posting and messaging go through one `SECURITY DEFINER` function each: `create_post` (dates the post, records the streak, saves tags and deadlines, queues pushes, answers waiting tags) and `send_message`. The feed reads through `get_feed` (server-side lock), profiles through `get_user_posts`. Every migration is in `supabase/migrations/` and live on production as of 2026-10-01 (checked against prod); the old paths (`get_feed_posts`, the public photo bucket, direct message inserts) are retired later by the files in `supabase/deferred/`.
+All tables use Row Level Security (RLS). Writes for posting and messaging go through one `SECURITY DEFINER` function each: `create_post` (checks reactive posting with `reactive_posting_open`, dates the post, adds to the tag streak, saves tags and deadlines, queues pushes, answers waiting tags) and `send_message`. The feed reads through `get_feed` (server-side lock), profiles through `get_user_posts`. Every migration is in `supabase/migrations/` and live on production as of 2026-10-01 (checked against prod); the old paths (`get_feed_posts`, the public photo bucket, direct message inserts) are retired later by the files in `supabase/deferred/`.
 
 ---
 
@@ -174,7 +192,7 @@ All barrel-exported from `src/api/index.ts`.
 
 ## Navigation
 
-The app uses **state-driven navigation** — no React Navigation, no router (don't add one). Transitions are handled by conditional rendering in `App.tsx` and by two gesture-driven navigators. Pop-ups are native: page sheets (`<Modal presentationStyle="pageSheet">`) for comments, tags, notifications, requests, blocked users, friends and the streak panels; `ActionSheetIOS` for menus (profile menu, report reasons).
+The app uses **state-driven navigation** — no React Navigation, no router (don't add one). Transitions are handled by conditional rendering in `App.tsx` and by two gesture-driven navigators. Pop-ups are native: page sheets (`<Modal presentationStyle="pageSheet">`) for comments, tags, notifications, requests, blocked users and friends; `ActionSheetIOS` for menus (profile menu, report reasons).
 
 ### 2D Navigation Overview
 
@@ -241,21 +259,24 @@ Top bar placed from the safe area, `pointerEvents: 'box-none'` so touches pass t
 | `WelcomeScreen` | `src/screens/WelcomeScreen.tsx` | Log in (`LoginSheet`, with "Forgot password?" → `ForgotPasswordSheet`) / Create account (`CreateAccountSheet`; code typed in `OtpCodeInput`, autofill from email). Apple/Google pills are placeholders |
 | `InAppAnimationScreen` | `src/screens/InAppAnimationScreen.tsx` | Post-login entry animation |
 | `HorizontalNavigator` / `VerticalNavigator` | `src/screens/` | Gesture navigation (above) |
-| `CameraScreen` | `src/screens/CameraScreen.tsx` | **Two-tap** dual-camera capture. `CaptureState` (`src/lib/captureGuide.ts`): `idle → capturing-first → switching → awaiting-second → capturing-second`. With `camera-pip-guide`, `CapturePipGuide` shows what comes second, then the first photo, in the photo-in-photo spot. Then `DualPhotoPreview` (Modal: big photo + draggable pip, tap to swap), caption, tag sheet (page sheet; `InviteStep` when friends can't fill the slots), Post → `InviteShareSheet` when invites were used. Also `OpenTagsBanner`, the "Rest day" label, the "Streak secured" state. No microphone |
-| `FeedScreen` | `src/screens/FeedScreen.tsx` | Feed from `useFeed()` (`get_feed`), FlashList; `FeedLockBanner` (flag `feed-lock-explainer`) on top; dual-photo posts use `DraggablePip`; comments in a native page sheet; avatar → `UserProfileScreen` |
-| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Own profile: stats, avatar (`AvatarPicker`), "Suggested for you" folded away by default, FlashList grid (≥9 squares), `RestDaysStreakPanel` and `FollowListModal` page sheets, `PostDetailModal`, `SettingsPanel` (Blocked users, Log out, Delete account) |
-| `UserProfileScreen` | `src/screens/UserProfileScreen.tsx` | Another person's profile, opened over Feed, search, notifications, messages, friends lists; swipe right (gesture-handler pan) to close; menu and report reasons via `ActionSheetIOS`; Message (spinner while the chat opens); `StreakGridPanel` |
+| `CameraScreen` | `src/screens/CameraScreen.tsx` | **Two-tap** dual-camera capture. `CaptureState` (`src/lib/captureGuide.ts`): `idle → capturing-first → switching → awaiting-second → capturing-second`. With `camera-pip-guide`, `CapturePipGuide` shows what comes second, then the first photo, in the photo-in-photo spot. Then `DualPhotoPreview` (Modal: big photo + draggable pip, tap to swap), caption, tag sheet (page sheet; `InviteStep` when friends can't fill the slots), Post → `InviteShareSheet` when invites were used. Also `OpenTagsBanner` (who tagged you and the time left to answer) and the "Streak secured" state. No microphone |
+| `FeedScreen` | `src/screens/FeedScreen.tsx` | Feed from `useFeed()` (`get_feed`), FlashList; `FeedLockBanner` (flag `feed-lock-explainer`) on top; locked posts say "Answer a tag to see it", with a button only when you can post; dual-photo posts use `DraggablePip`; comments in a native page sheet; avatar → `UserProfileScreen` |
+| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Own profile: stats, avatar (`AvatarPicker`), "Suggested for you" folded away by default, FlashList grid (≥9 squares, "Streak N" badges), `FollowListModal` page sheet, `PostDetailModal`, `SettingsPanel` (Blocked users, Log out, Delete account) |
+| `UserProfileScreen` | `src/screens/UserProfileScreen.tsx` | Another person's profile, opened over Feed, search, notifications, messages, friends lists; swipe right (gesture-handler pan) to close; menu and report reasons via `ActionSheetIOS`; Message (spinner while the chat opens) |
 | `MessagesScreen` | `src/screens/MessagesScreen.tsx` | Inbox from `useMessages()`; requests open `MessageRequestsScreen` (page sheet; Deny asks first) |
 | `ConversationScreen` | `src/screens/ConversationScreen.tsx` | Thread; real-time via `useConversation`; request banner (Accept / Deny with confirm) |
-| `NotificationsScreen` | `src/screens/NotificationsScreen.tsx` | Activity list (page sheet) |
+| `NotificationsScreen` | `src/screens/NotificationsScreen.tsx` | Activity list (page sheet); `streak_lost` reads "You missed @x's tag. Your streak is back to 0." |
 
 App-level overlays in `App.tsx`: `WelcomeCards` (flag `onboarding-welcome-cards` — one-time 3-card carousel in a Modal, once per account per device, rules in `src/lib/welcomeCards.ts`), `UpdateRequiredScreen` (forced-update gate), `ToastHost`.
 
 ---
 
-## Streak panels (`StreakGridPanel`, `RestDaysStreakPanel`)
+## Streak
 
-Both are native page sheets that draw the shared `src/components/StreakCalendar.tsx`: months stacked vertically in a plain `ScrollView` that opens on today. Grid data and cell states come from `src/lib/streakGrid.ts` (tested): posted → solid accent; today with no post → accent outline; missed training day → faded; rest days (not in `fitness_routine`) and future days → very faded. `StreakGridPanel` is mounted by `UserProfileScreen`; `RestDaysStreakPanel` (Profile) also edits training days. Being a ScrollView in a page sheet, the calendar needs no pan of its own and no navigator isolation.
+The streak is a number, not a calendar (reactive posting, above): profiles show the current tag streak
+and the best one; posts show "Streak N" (hidden at 0). The streak calendar, rest days and training
+days (`StreakGridPanel`, `RestDaysStreakPanel`, `StreakCalendar`, `src/lib/streakGrid.ts`,
+`fitness_routine`) belong to the old daily rule and are retired.
 
 ---
 

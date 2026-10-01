@@ -40,15 +40,15 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 
 | Table | Key Columns | Notes |
 |---|---|---|
-| `public.profiles` | `id`, `username`, `display_name`, `avatar_url`, `fitness_routine`, `streak_current`, `streak_highest`, `streak_lowest`, `streak_last_upload_date` | `fitness_routine`: comma-separated full day names (e.g. `'Monday,Wednesday,Friday'`) — training days; days absent are rest days. SELECT open to all authenticated users (feed joins and `searchProfiles` ILIKE queries require it). INSERT/UPDATE own only (`auth.uid() = id`). |
-| `public.posts` | `id`, `user_id`, `image_url`, `pov_image_url`, `caption`, `streak_day`, `created_at` | `image_url` = rear/POV photo (default full-screen). `pov_image_url` = front selfie pip (nullable — null for legacy single-photo posts). Paginated cursor sort: `created_at DESC, id DESC`. Unique index `posts_user_day_unique` enforces one post per user per UTC day. RLS INSERT policy additionally blocks same-day inserts. |
+| `public.profiles` | `id`, `username`, `display_name`, `avatar_url`, `fitness_routine`, `streak_current`, `streak_highest`, `streak_lowest`, `streak_last_upload_date` | `streak_current`: tags answered in a row (back to 0 after a missed tag); `streak_highest`: best streak, kept on show (reactive posting, 2026-10-01). `fitness_routine`: old training days, no longer part of the streak. SELECT open to all authenticated users (feed joins and `searchProfiles` ILIKE queries require it). INSERT/UPDATE own only (`auth.uid() = id`). |
+| `public.posts` | `id`, `user_id`, `image_url`, `pov_image_url`, `caption`, `streak_day`, `created_at` | Made only under reactive posting (an open tag, or the first post). `streak_day` = the poster's streak with this post, shown as "Streak N" (hidden at 0). `image_url` = rear/POV photo (default full-screen). `pov_image_url` = front selfie pip (nullable — null for legacy single-photo posts). Paginated cursor sort: `created_at DESC, id DESC`. Unique index `posts_user_day_unique` enforces one post per user per UTC day. RLS INSERT policy additionally blocks same-day inserts. |
 | `public.post_likes` | `id`, `post_id`, `user_id`, `created_at` | Unique constraint `(post_id, user_id)`. RLS: authenticated read-all; insert/delete own only (`auth.uid() = user_id`). |
 | `public.post_comments` | `id`, `post_id`, `user_id`, `content`, `created_at` | Ordered oldest-first. RLS: authenticated read-all; insert/delete own only. |
 | `public.follows` | `id`, `follower_id`, `following_id`, `created_at` | Unique constraint `(follower_id, following_id)`. CHECK constraint prevents self-follows (`follower_id <> following_id`). RLS: authenticated read-all; insert/delete own only (`auth.uid() = follower_id`); explicit UPDATE deny policy (`USING (false)`). `followUser` uses idempotent upsert (`ignoreDuplicates: true`). |
 | `public.conversations` | `id`, `participant_one`, `participant_two`, `status`, `initiated_by`, `updated_at` | `participant_one < participant_two` enforced by `ordered_participants` CHECK constraint. `conversations_participants_unique` UNIQUE INDEX on `(participant_one, participant_two)` required for upsert `ON CONFLICT`. `REPLICA IDENTITY FULL` set for Realtime UPDATE/DELETE events. |
 | `public.messages` | `id`, `conversation_id`, `sender_id`, `content`, `created_at` | Trigger updates `conversations.updated_at` on insert. `REPLICA IDENTITY FULL` set for Realtime. Immutable — no UPDATE or DELETE. |
 | `public.post_tags` | `post_id`, `user_id` | Junction table storing user tags on posts (user mentions in captions + on-photo bubble overlays). Composite PK `(post_id, user_id)` — dedup enforced at the DB layer. Both FKs use `ON DELETE CASCADE` (deleting a post or a profile also clears its tags). RLS: `SELECT using (true)` (tags are visible whenever the parent post is visible); `INSERT with check (exists (select 1 from posts p where p.id = post_id and p.user_id = auth.uid()))` — a user can only tag on posts they own. No UPDATE or DELETE policies (immutable v1; re-post to change). `post_tags_user_id_idx` btree on `user_id` for future "posts I was tagged in" lookups. `get_feed_posts` RPC aggregates these into a `tagged_users` array per post row. |
-| `public.streak_logs` | `id`, `user_id`, `streak_count`, `started_at`, `ended_at`, `is_active`, `created_at` | Audit log managed by `record_upload_streak` RPC — tracks active and closed streaks |
+| `public.streak_logs` | `id`, `user_id`, `streak_count`, `started_at`, `ended_at`, `is_active`, `created_at` | Audit log of active and closed streaks (written in the posting transaction) |
 
 Tag-loop, moderation, push and code tables (`tag_challenges`, `point_events`, `invites`, `app_config`,
 `push_tokens`, `push_outbox`, `conversation_reads`, `notifications`, `user_blocks`, `user_reports`,
@@ -76,8 +76,9 @@ specified in [tag-loop-plan.md](./tag-loop-plan.md); their SQL is in `supabase/m
 - Called via `supabase.rpc('toggle_like', ...)` from `src/api/social.ts:toggleLike`.
 - One round trip, no race condition, no need to check existing state first.
 
-**Current app paths:** posting is `create_post` (one transaction: post, streak via `record_upload_streak`,
-tags, deadlines, pushes, invites); the feed is `get_feed` (server-side lock, `feed-lock-explainer` reads its
+**Current app paths:** posting is `create_post` (one transaction: the reactive-posting check
+`reactive_posting_open` — raises `reactive posting: not tagged` — then post, tag streak, tags, deadlines,
+pushes, invites); the feed is `get_feed` (server-side lock, `feed-lock-explainer` reads its
 unlock window); profiles read `get_user_posts`; chat sends through `send_message`. The entries below
 describe the older functions, still live for old builds until `supabase/deferred/` retires them.
 
@@ -99,7 +100,10 @@ describe the older functions, still live for old builds until `supabase/deferred
 - Authoritative streak counter. Auth-guarded: rejects calls where `p_user_id <> auth.uid()`.
 - Uses `SELECT ... FOR UPDATE` row lock to prevent double-tap race conditions.
 - Idempotent: same-day calls return current values without incrementing.
-- **Rest-day logic:** reads `profiles.fitness_routine` (comma-separated full day names). Uses `to_char(p_upload_date, 'Dy')` to get a 3-letter abbreviation and `position()` to check membership (works because 3-letter abbreviations are always a prefix/substring of the full name). If today is absent from the routine, it's a rest day — the streak extends without requiring a post. If today is a training day and the user missed it (no upload yesterday and not a rest day), the streak resets to 1.
+- **Old daily rule, replaced 2026-10-01** by the tag streak (`20261001120000_reactive_posting.sql`): it counted
+  posting days and skipped rest days from `profiles.fitness_routine`. Now each post that answers a tag adds 1,
+  a missed tag's 48 hours puts the streak back to 0 (the person who missed gets a `streak_lost` notification
+  from the tagger), and `streak_highest` keeps the best. No rest days or training days.
 - Manages `streak_logs` (opens new log on reset, updates count on extend).
 - Returns `{ streak_current, streak_highest, streak_lowest, action }`.
 - Called by `create_post` with the post's date in the user's own time zone (`profiles.timezone`, migration `timezone_postdate`); the app no longer calls it directly.
@@ -261,7 +265,7 @@ Product analytics via `posthog-react-native`. Singleton client created with `EXP
 | `signup_completed` | `CreateAccountSheet.tsx` | Account created (includes `training_days`, `fitness_goals`) |
 | `password_reset_code_sent` / `password_reset_done` / `password_reset_failed` | `ForgotPasswordSheet.tsx` | Password reset steps |
 | `user_blocked` / `user_unblocked` / `user_reported` | `UserProfileScreen.tsx`, `BlockedUsersSheet.tsx` | Moderation |
-| Tag-loop events (`tag_sent`, `tag_answered`, `tag_missed`, `invite_shared`, `invite_claimed`, `feed_unlocked`, …) | `src/lib/analytics.ts` (one typed map) | Sent after the server confirms |
+| Tag-loop events (`tag_sent`, `tag_answered`, `tag_missed`, `streak_lost`, `invite_shared`, `invite_claimed`, `feed_unlocked`, …) | `src/lib/analytics.ts` (one typed map) | Sent after the server confirms |
 
 Feature flags are read through the same client — see [feature-flags.md](./feature-flags.md).
 
@@ -292,7 +296,6 @@ Error and crash reporting via `@sentry/react-native` v8.
 | Signup | `CreateAccountSheet.tsx` | `captureException` on OTP send / account creation failure; breadcrumbs for OTP sent, verified, account created |
 | Search | `GlobalSearchOverlay.tsx` | `captureException` on search error; breadcrumbs for overlay open, profile tap |
 | Camera upload | `CameraScreen.tsx` | `captureException` on upload failure |
-| Training days | `RestDaysStreakPanel.tsx` | `captureException` on save failure; breadcrumbs for panel open, successful save |
 | Follow | `UserProfileScreen.tsx` | `captureMessage` on toggle follow/unfollow error; breadcrumb on follow tap |
 
 **Pattern:** use `Sentry.captureException(err, { tags: { flow }, extra })` for caught errors and `Sentry.addBreadcrumb({ category, message, level })` for navigation/action events. Use `console.error('[ComponentName]')` alongside for dev debugging.

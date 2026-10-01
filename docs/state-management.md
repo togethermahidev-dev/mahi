@@ -48,7 +48,8 @@ const isLoading = useAuthStore((s) => s.isLoading);
 
 ### `useUserStore` — `src/store/userStore.ts`
 
-Manages the authenticated user's profile including streak counters.
+Manages the authenticated user's profile including streak counters (the tag streak — see
+[architecture.md](./architecture.md#reactive-posting)).
 
 | Field | Type | Description |
 |---|---|---|
@@ -70,10 +71,10 @@ Manages the authenticated user's profile including streak counters.
   date_of_birth: string | null;
   contact_number: string | null;
   fitness_goals: string[] | null;
-  fitness_routine: string | null;   // comma-separated full day names e.g. 'Monday,Wednesday,Friday'
+  fitness_routine: string | null;   // old training days; no longer part of the streak (2026-10-01)
   avatar_url: string | null;
-  streak_current: number;
-  streak_highest: number;
+  streak_current: number;           // tags answered in a row; back to 0 after a missed tag
+  streak_highest: number;           // best streak, stays on show
   streak_lowest: number | null;
   streak_last_upload_date: string | null;  // YYYY-MM-DD local date
 }
@@ -85,12 +86,9 @@ const current = useUserStore.getState().profile;
 setProfile({ ...current, streak_current: streakResult.streak_current, ... });
 ```
 
-**Training days update flow** (`RestDaysStreakPanel`):
-```ts
-const { error } = await updateFitnessRoutine(userId, selectedDays.join(','));
-if (!error) setProfile({ ...profile, fitness_routine: routine });
-```
-`fitness_routine` stores training days (days the user works out). Days not in the list are rest days. The `record_upload_streak` DB function uses this to exempt rest days from streak-breaking.
+**No training days or rest days.** Under reactive posting (2026-10-01) the streak counts answered
+tags, not days, so nothing in the app edits `fitness_routine` for the streak any more; the server keeps
+`streak_current` and `streak_highest` and the app only reads them.
 
 **Usage:**
 ```ts
@@ -285,7 +283,7 @@ Persists sign-up form state across app backgrounding mid-flow. Cleared on comple
 | Store | File | Owns |
 |---|---|---|
 | `useConversationStore` | `conversationStore.ts` | Open threads: messages, paging older, `send` through `send_message`, `markRead`; channel registry outside state; re-reads the newest page after a reconnect |
-| `useNotificationsStore` | `notificationsStore.ts` | Activity items, `unreadCount`, realtime `subscribe`/`unsubscribe`, `markRead`/`markAllRead` |
+| `useNotificationsStore` | `notificationsStore.ts` | Activity items, `unreadCount`, realtime `subscribe`/`unsubscribe`, `markRead`/`markAllRead`; tracks `tag_missed` and `streak_lost` as they arrive |
 | `useSuggestStore` | `suggestStore.ts` | "Suggested for you" list, `followSuggested` |
 | `useBlockStore` | `blockStore.ts` | Blocked ids both ways (`isBlocked`), `block`/`unblock`; refreshes feed, messages and follows |
 | `usePushStore` | `pushStore.ts` | Whether this device's push token is registered |

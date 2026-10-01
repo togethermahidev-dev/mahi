@@ -10,12 +10,13 @@ Read first: [HANDOVER.md](./HANDOVER.md) (rules, goal loop), [architecture.md](.
 > the twelve go-live changes on 2026-09-23, then `friends`, `tag_nudge`, `signup_codes`, `version_gate`,
 > `tag_lock_rules`, `contract_invites` (invite links on) and the 2026-10-01 reset/delete migrations.
 > Not done: `send-push` deployment and push credentials (Phase 1), the invite landing page (Phase 7), the
-> streak half of Phase 5 (parked), the store release and the `supabase/deferred/` contract steps
+> reactive posting migration `20261001120000_reactive_posting.sql` (Phase 5's streak half, replaced — not
+> yet live), the store release and the `supabase/deferred/` contract steps
 > (Phases 3, 4, 6). The app is on the EAS preview lane only.
 
 > **Decisions:** [decisions.md](./decisions.md) records every choice, the options not taken, and where
-> this plan uses each one. Parked: #1 streak rule and #10 existing streaks (ask before Phase 5),
-> #12 success targets (ask before Phase 8). Numeric rules (48 h, 24 h, cap, quiet hours, grace) live
+> this plan uses each one. Decided 2026-10-01: reactive posting with a tag streak (#1, #10, #27–#30).
+> Parked: #12 success targets (ask before Phase 8). Numeric rules (48 h, 24 h, cap, quiet hours, grace) live
 > in one `app_config` row, not in code.
 
 ---
@@ -427,7 +428,8 @@ Differences from the design below:
   `feedStore` holds `locked`, `unlockedUntil`, `serverOffsetMs`, drops stale responses with a
   generation counter and duplicate ids on `loadMore`, and has a `loaded` flag so the screen shows a
   loading state instead of last session's posts. `useFeed` re-reads on foreground and when the
-  unlock ends. `FeedScreen` renders `LockedPostItem` (who, when, "POST TO UNLOCK" → camera).
+  unlock ends. `FeedScreen` renders `LockedPostItem` (who, when, and since 2026-10-01 "Answer a tag to
+  see it" — with a button to the camera only when you can post: an open tag, or your first post).
   Posting re-reads the feed. Locked profile tiles show the placeholder and don't open.
 - Local checks: `scripts/db.sh local` replays all 39 migrations on Postgres 17 and runs 83 pgTAP
   checks (all pass).
@@ -494,7 +496,14 @@ for both the post data and the image files.
 
 ### Phase 5 — Points and the new streak
 
-*Points built 2026-09-17, live 2026-09-23; the streak half waits for decisions #1, #10 and #27.*
+*Points built 2026-09-17, live 2026-09-23. The streak half below (the weekly streak and the
+`points_streak` migration) is **replaced by the tag streak** under reactive posting, decided 2026-10-01
+(#1, #10, #27–#30): you post only to answer an open tag (your first post excepted); each answer adds 1;
+a missed tag's 48 hours puts the streak back to 0 (`streak_lost` notice) and keeps the feed locked until
+a friend tags you again; the best streak stays on show; existing streaks restart at 0, best kept. No
+rest days, training days, weekly calendar or streak calendar. Server: `20261001120000_reactive_posting.sql`
+(`reactive_posting_open`, test `supabase/tests/reactive_posting_test.sql`); app: `src/lib/reactivePosting.ts`.
+Rules in [architecture.md](./architecture.md#reactive-posting).*
 `supabase/migrations/20260917115316_points.sql` (+ rollback, tested by applying it locally;
 `supabase/tests/points_test.sql`, 10 checks, flip-tested by removing the cap). Differences from the
 design below:
@@ -515,6 +524,8 @@ design below:
 
 
 **Goal:** points and streaks are counted once, on the server, in the posting transaction.
+
+*Original design (weekly streak — not built, replaced by the tag streak above):*
 
 **Migration `points_streak`**
 - `point_events`, `profiles.points/visits/streak_weeks/last_post_week`.
@@ -703,7 +714,8 @@ decision #12.* `supabase/migrations/20260923101500_stats_views.sql` (+ rollback;
   `src/lib/analytics.ts` so the names can't drift: `tag_sent` (one per post, with the tag and
   invite counts), `tag_answered`, `tag_missed`, `invite_shared`, `invite_claimed`,
   `feed_unlocked`, `push_opened`. `tag_missed` fires on the notification, so it counts twice per
-  missed tag — one per person — and `stats.tags_daily` holds the true count.
+  missed tag — one per person — and `stats.tags_daily` holds the true count. `streak_lost`
+  (2026-10-01) is read off its notification the same way, once, by the person who missed.
 - **Still to do:** decision #12's targets, then the inner circle runs the loop for 2 weeks and
   the views get compared against them.
 
@@ -749,7 +761,7 @@ written, so the order below is the order they are created and applied.
 | 4 | `tag_challenges` | P2 | expand |
 | 5 | `contract_posting` | P3 | contract |
 | 6 | `feed_lock` | P4 | expand |
-| 7 | `points_streak` | P5 | expand |
+| 7 | `points_streak` (streak half replaced by `reactive_posting`, 2026-10-01) | P5 | expand |
 | 8 | `messages` | P6 | expand |
 | 9 | `invites` | P7 | expand |
 | 10 | `private_bucket`, `contract_messages` | once the version gate covers the P4 and P6 builds | contract |
