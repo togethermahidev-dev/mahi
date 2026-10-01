@@ -2,24 +2,27 @@
 
 ## Overview
 
-Mahi Fitness is a React Native fitness application built with Expo. Users take a daily streak photo from the Camera screen; that photo appears in a social Feed. The app has a messaging system (inbox + requests) and a profile view with streak stats. Backend is Supabase (auth, database, storage). State is managed with Zustand using an optimistic-UI-first pattern.
+Mahi Fitness is a React Native fitness application built with Expo (iPhone first). Users take a daily two-photo post from the Camera screen and tag 3 friends, who have 48 hours to post back; the friends-only Feed stays locked until you post (the tag loop — [tag-loop-plan.md](./tag-loop-plan.md), [decisions.md](./decisions.md)). The app has messaging (inbox + requests), notifications, and profiles with streak stats. Backend is Supabase (auth, database, storage, Edge Functions). State is managed with Zustand using an optimistic-UI-first pattern; features sit behind PostHog flags ([feature-flags.md](./feature-flags.md)).
 
 ## Tech Stack
 
 | Layer | Tool | Version |
 |---|---|---|
-| Framework | Expo (React Native) | ~55.0.8 |
-| Language | TypeScript (strict) | ~5.9.2 |
-| Backend / Auth | Supabase | ^2.96.0 |
-| State Management | Zustand | ^5.0.11 |
+| Framework | Expo (React Native 0.86) | ~57.0.23 |
+| Language | TypeScript (strict) | ~6.0.3 |
+| Backend / Auth | Supabase | ^2.116.0 |
+| State Management | Zustand | ^5.0.15 |
 | Session Storage | AsyncStorage | ^2.2.0 |
-| List Rendering | @shopify/flash-list | — |
-| Gestures | react-native-gesture-handler | ~2.30.0 |
-| UI Animation | react-native-reanimated | ~4.2.1 |
-| Gradients | expo-linear-gradient | ~55.0.9 |
-| Blur | expo-blur | ~55.0.10 |
-| Analytics | PostHog | ^4.35.0 |
-| Error Tracking | Sentry | ^8.0.0 |
+| List Rendering | @shopify/flash-list | 2.0.2 |
+| Gestures | react-native-gesture-handler | ~2.32.0 |
+| UI Animation | react-native-reanimated | 4.5.1 |
+| Font | @expo-google-fonts/inter | ^0.4.2 |
+| Glass / Blur | expo-glass-effect, expo-blur | ~57 |
+| Gradients | expo-linear-gradient | ~57.0.2 |
+| Analytics | PostHog | ^4.74.0 |
+| Error Tracking | Sentry | ^8.26.0 |
+
+Versions as in `package.json`; check there before relying on one.
 
 ---
 
@@ -29,12 +32,19 @@ Mahi Fitness is a React Native fitness application built with Expo. Users take a
 mahi-fitness/
 ├── src/
 │   ├── api/            # Supabase query functions (posts, messages, profile, streaks, auth)
-│   ├── lib/            # Singleton clients (Supabase, PostHog, Sentry)
-│   ├── store/          # Zustand global state (feedStore, messagesStore, authStore, userStore, …)
-│   ├── hooks/          # Thin store wrappers + utility hooks (useMessages, useConversation, …)
+│   ├── lib/            # Singleton clients (Supabase, PostHog, Sentry) + pure, unit-tested rules
+│   │                   #   (swipeRules, railSelector, feedLock, captureGuide, inviteStep, inviteShare,
+│   │                   #    streakGrid, welcomeCards, featureFlags, versionGate, …; tests in __tests__/)
+│   ├── constants/      # tokens.ts (design tokens), fonts.ts (Inter), ota.ts (OTA counter + history)
+│   ├── store/          # Zustand global state (feedStore, messagesStore, tagStore, inviteStore, …)
+│   ├── hooks/          # Thin store wrappers + utility hooks (useFeed, useOpenTags, useFeatureFlag, …)
 │   ├── types/          # TypeScript types — database.ts is the source of truth for DB shapes
-│   ├── components/     # Shared UI components (AppHeader, NavigationDots, ThemeToggle, UserProfileOverlay, GlobalSearchOverlay, AvatarPicker, RestDaysStreakPanel, StreakGridPanel, StreakCalendar, CaptionText, TaggedBubbleStack)
-│   └── screens/        # Screen-level components (including ConversationScreen)
+│   ├── components/     # Shared UI (AppHeader, NavRail, NavigationDots, WelcomeCards, FeedLockBanner,
+│   │                   #   CapturePipGuide, InviteStep, InviteShareSheet, DraggablePip, StreakCalendar,
+│   │                   #   LoginSheet, CreateAccountSheet, ForgotPasswordSheet, OtpCodeInput, SettingsPanel,
+│   │                   #   BlockedUsersSheet, KeyboardInset, GlobalSearchOverlay, …)
+│   └── screens/        # Screen-level components (navigators, Camera, Feed, Profile, UserProfile, …)
+├── supabase/           # migrations, rollbacks, pgTAP tests, Edge Functions (see supabase/README.md)
 ├── docs/               # Project documentation
 ├── assets/             # Images, icons, splash
 ├── App.tsx             # Root component — auth subscription + store hydration
@@ -67,8 +77,10 @@ Store confirm / rollback
 onAuthStateChange (session found)
     │
     ├── getProfile(userId)              → useUserStore.setProfile()
-    ├── useFeedStore.sync()             → background, non-blocking
-    └── useMessagesStore.sync(userId)   → background, non-blocking
+    ├── useFeedStore.sync()                     → background, non-blocking
+    ├── useMessagesStore.sync()                 → background, non-blocking
+    ├── useNotificationsStore.sync(userId)      → background, non-blocking
+    └── useBlockStore.sync(userId)              → background, non-blocking
 
 useMessages() mount (MessagesScreen)
     │
@@ -97,6 +109,8 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | **API** (`src/api/*`) | lib (supabase), types | React, Zustand, any state | pure stateless calls returning `{ data: T \| null, error: Error \| null }` (wrap PostgrestError via `new Error(error.message)`); barrel-exported from `index.ts` |
 | **lib** (`src/lib/*`) | nothing from upper layers | — | singleton clients (supabase/sentry/posthog), the typed `env` accessor, pure utils |
 
+**Known exceptions in today's code (2026-10-01):** some screens and components call `src/api` (or the Supabase auth client) directly for one-off reads or writes that no store owns — auth and account (`LoginSheet`, `CreateAccountSheet`, `ForgotPasswordSheet`, `SettingsPanel`), `CameraScreen` (photo upload + `create_post`), `UserProfileScreen`, `GlobalSearchOverlay`, `FollowListModal`, `BlockedUsersSheet`, `AvatarPicker`, `RestDaysStreakPanel`, `StreakCalendar`. Don't add more; new shared data goes through a store.
+
 **The only legal sideways import is store→store** for already-documented cross-store refreshes
 (e.g. `socialStore` → `feedStore.patchPost`; `blockStore` → `feedStore`/`messagesStore`/`followStore`).
 
@@ -122,8 +136,17 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | `public.conversations` | Messaging thread — one row per pair, ordered participants constraint |
 | `public.messages` | Individual messages within a conversation |
 | `public.streak_logs` | Audit log of streak events |
+| `public.notifications` | Activity feed (likes, comments, follows, tags, invites) |
+| `public.user_blocks` / `public.user_reports` | Moderation |
+| `public.tag_challenges` | A tag with its 48-hour deadline (tag loop) |
+| `public.point_events` | Mahi points, capped per day |
+| `public.invites` | Invite links and 6-character codes |
+| `public.push_tokens` / `public.push_outbox` | Push devices and the push queue (sender not deployed yet) |
+| `public.conversation_reads` | Unread counts |
+| `public.app_config` | One row of numeric rules (tag window, unlock window, caps, `min_app_version`, `invite_links_enabled`) |
+| `public.otp_codes` / `public.auth_rate_limits` | Hashed sign-up and reset codes (`purpose` = `signup` / `reset`) and send limits |
 
-All tables use Row Level Security (RLS). Three Postgres RPCs handle social interactions (see Database Functions below). The `record_upload_streak(p_user_id, p_upload_date)` Postgres function (SECURITY DEFINER, auth-guarded) is the authoritative source for streak updates — it uses `SELECT ... FOR UPDATE` to prevent race conditions on double-tap. Always call it before `createPost` so the post row receives the RPC-confirmed `streak_day` value.
+All tables use Row Level Security (RLS). Writes for posting and messaging go through one `SECURITY DEFINER` function each: `create_post` (dates the post, records the streak, saves tags and deadlines, queues pushes, answers waiting tags) and `send_message`. The feed reads through `get_feed` (server-side lock), profiles through `get_user_posts`. Every migration is in `supabase/migrations/` and live on production as of 2026-10-01 (checked against prod); the old paths (`get_feed_posts`, the public photo bucket, direct message inserts) are retired later by the files in `supabase/deferred/`.
 
 ---
 
@@ -131,14 +154,19 @@ All tables use Row Level Security (RLS). Three Postgres RPCs handle social inter
 
 | File | Exports |
 |---|---|
-| `posts.ts` | `getFeedPosts` (via `get_feed_posts` RPC — returns `like_count`, `comment_count`, `liked_by_me`, and `tagged_users`), `getUserPosts`, `getPostDates` (distinct post dates for streak grid), `createPost` (accepts optional `taggedUserIds: string[]` to insert into `post_tags`), `FeedPost`, `FeedCursor`, `ProfilePostCursor`, `TaggedUser` |
-| `social.ts` | `toggleLike` (single-RPC atomic toggle), `getComments`, `addComment`, `CommentWithProfile` |
-| `follows.ts` | `followUser` (idempotent upsert), `unfollowUser`, `getFollowData` (single-RPC: `is_following` + `follower_count` + `following_count`) |
-| `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `createOrGetConversation`, `deleteConversation`, `getMessages`, `ConversationPreview`, `MsgRow` |
-| `profile.ts` | `getProfile`, `searchProfiles`, `updateAvatarUrl`, `updateFitnessRoutine`, `ProfileSearchResult` |
-| `streaks.ts` | `recordUpload`, `getStreakLogs`, `getActiveStreak` |
-| `auth.ts` | Auth helpers |
-| `email.ts` | OTP email via Edge Function |
+| `posts.ts` | `getFeed` (`get_feed` — lock state, `like_count`, `comment_count`, `liked_by_me`, `tagged_users`), `getUserPosts` (`get_user_posts`), `getPostDates`, `uploadPostPhotos`, `removePostPhotos`, `createPost` (`create_post`, one call with tags, invites and location) |
+| `tags.ts` | `getTaggableFriends`, `getOpenTags`, `getTagRules` |
+| `invites.ts` | `getInvitePreview`, `claimInvite` |
+| `social.ts` | `toggleLike` (single-RPC atomic toggle), `getComments`, `addComment` |
+| `follows.ts` | `followUser`, `unfollowUser`, `getFollowData`, `getFollowList`, `getFriends`, `getSuggestedFollows` |
+| `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `createOrGetConversation`, `deleteConversation`, `getMessages`, `markConversationRead` |
+| `notifications.ts` | `getNotifications`, `getUnreadCount`, `markAsRead`, `markAllAsRead` |
+| `moderation.ts` | `blockUser`, `unblockUser`, `getBlockedUsers`, `getBlockedIds`, `reportUser`, `hasReported` |
+| `profile.ts` | `checkUsername`, `insertProfile`, `getProfile`, `searchProfiles`, `updateAvatarUrl`, `updateTimezone`, `updateFitnessRoutine` |
+| `streaks.ts` | `getStreakLogs`, `getActiveStreak` |
+| `auth.ts` | `signIn`, `signOut`, `completeSignup`, `sendResetCode`, `resetPassword`, `deleteAccount` (Edge Functions) |
+| `push.ts` | `registerPushToken`, `unregisterPushToken` |
+| `appStatus.ts` | `getAppGate` (forced-update gate) |
 
 All barrel-exported from `src/api/index.ts`.
 
@@ -146,7 +174,7 @@ All barrel-exported from `src/api/index.ts`.
 
 ## Navigation
 
-The app uses **state-driven navigation** — no React Navigation. Transitions are handled by conditional rendering in `App.tsx` and by gesture-driven navigators.
+The app uses **state-driven navigation** — no React Navigation, no router (don't add one). Transitions are handled by conditional rendering in `App.tsx` and by two gesture-driven navigators. Pop-ups are native: page sheets (`<Modal presentationStyle="pageSheet">`) for comments, tags, notifications, requests, blocked users, friends and the streak panels; `ActionSheetIOS` for menus (profile menu, report reasons).
 
 ### 2D Navigation Overview
 
@@ -161,145 +189,83 @@ The app uses **state-driven navigation** — no React Navigation. Transitions ar
 └─────────────────────┴──────────────────────┴──────────────────────┘
 ```
 
-Gesture ownership is axis-exclusive:
-- `HorizontalNavigator`: claims `Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10`
-- `VerticalNavigator`: claims `Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10`
-- **Scroll guard:** on `FeedScreen` (index 1), downward swipes (back to Camera) are only claimed when the feed's `FlashList` is scrolled to the top (`y <= 2`). This prevents the navigator from stealing scroll gestures mid-feed.
+Both navigators run on **react-native-gesture-handler + reanimated** (UI thread): one manually-activated `Gesture.Pan` each, whose every decision comes from the pure worklet rules in `src/lib/swipeRules.ts` (tested in `swipeRules.test.ts`):
+- `horizontalSwipe` / `verticalSwipe` — the finger must move 20px (`SLOP`) mostly along the swipe's own axis; the other axis fails it. Touches that start in the phone's own strips (status bar, home bar, and the 24px side edges for sideways swipes) are left to the phone. `blocked` (a pop-up is open) fails both.
+- `exclude` — a sideways swipe never starts inside the nav rail's rectangle; the rail owns those touches.
+- `atListTop` — on Feed, a downward swipe back to Camera only starts at the top of the list (`y <= 2`); once the list has scrolled under the finger, the drag stays with the list.
+- `horizontalRelease` / `verticalRelease` / `rubberBand` — where a release lands (60px or 0.4 velocity), the rubber band at the ends, and the pull-down from Camera that opens search.
+
+**Gesture relations (the rule that makes swipes work):** the sideways pan, the up/down pan and the Feed list's scrolling (`Gesture.Native()`, made in `HorizontalNavigator` and passed down as `feedList`) must all be allowed to track the same touch. `HorizontalNavigator` passes a ref (`swipeRef`) that `VerticalNavigator`'s pan fills with `.withRef()`; the sideways pan is `.simultaneousWithExternalGesture(feedList, verticalSwipe)` and the up/down pan is `.simultaneousWithExternalGesture(feedList)`. The swipe rules keep them apart by axis (the up/down pan fails at once on a sideways drag). Without this, iOS hands the touch to the inner pan and sideways swipes on Camera or Feed do nothing (fixed 2026-10-01, OTA 10.15 / 10.16 / 10.21).
+
+Spring for both: `damping: 22, stiffness: 160, mass: 0.9` (Reduce Motion ignored on purpose). Light haptic on a page change. Pages are sized from the live window (`useWindowDimensions`), not fixed constants.
 
 ### Horizontal Navigator (`src/screens/HorizontalNavigator.tsx`)
 
 | Index | Panel | Access |
 |---|---|---|
-| 0 | `ProfileScreen` | Swipe right OR tap profile pill in header |
+| 0 | `ProfileScreen` | Swipe right, or the rail's Profile icon (header pill when the rail is off) |
 | 1 | `VerticalNavigator` | Default on entry |
-| 2 | `MessagesScreen` | Swipe left OR tap messages icon in header |
+| 2 | `MessagesScreen` | Swipe left, or the rail's Messages icon (header icon when the rail is off) |
 
-Spring params: `damping: 22, stiffness: 160, mass: 0.9`. Rubber-band at both ends. Light haptic on snap.
+It also renders the `NavRail` and measures its rectangle for the swipe `exclude`.
 
 ### Vertical Navigator (`src/screens/VerticalNavigator.tsx`)
-
-| Constant | Value | Description |
-|---|---|---|
-| `PEEK_HEIGHT` | `110` | Strip of the next screen visible at the bottom |
-| `SLOT_HEIGHT` | `SCREEN_HEIGHT - PEEK_HEIGHT` | Visible height per active screen |
-| `APP_HEADER_H` | `108` (iOS) / `80` (Android) | Height used for header animation range |
-
-Each slot is `SCREEN_HEIGHT` tall, positioned at `top: i * SLOT_HEIGHT`. Active screen translated to fill viewport. Top `PEEK_HEIGHT` px of the next slot bleeds through naturally.
-
-Render gating: only screens within ±1 index of `activeIndex` are fully mounted.
-
-**Global Search:** Pull-down gesture from `CameraScreen` (index 0) opens `GlobalSearchOverlay` — a frosted-glass full-screen overlay (`BlurView`, zIndex 500). Users can search for other profiles via `searchProfiles()`. Tapping a search result opens `UserProfileOverlay` (zIndex 510) on top of the search results; from there the user can tap MESSAGE to open `ConversationScreen`. The search overlay manages its own `profileUserId` and `activeConvo` state internally (same pattern as `FeedScreen`). Tapping your own profile in search results is a no-op (own-profile guard). All state (query, results, profile, conversation) is reset when the overlay closes.
-
-**Screen order (top → bottom):**
 
 | Index | Screen |
 |---|---|
 | 0 | `CameraScreen` |
 | 1 | `FeedScreen` |
 
-`FeedScreen` receives two props from `VerticalNavigator`:
-- `onScrollTopChange(atTop: boolean)` — fired when scroll crosses the `y <= 2` threshold; used to gate the swipe-back-to-camera gesture
-- `headerAnim` — an `Animated.Value` (range 0–`APP_HEADER_H`) that `FeedScreen` drives via its scroll handler; `VerticalNavigator` applies this as a `translateY` on the `AppHeader` wrapper so the header slides off-screen on scroll-down and returns on scroll-up
+Each page is one window tall. It also owns: the `AppHeader` (slid off-screen by `headerAnim` as the Feed scrolls down), `NotificationsScreen`, a `UserProfileScreen` opened from notifications, `NavigationDots` (only when the rail is off), `GlobalSearchOverlay`, and `usePushRegistration`.
+
+**Global Search:** pulling down on `CameraScreen` opens `GlobalSearchOverlay` — a frosted-glass overlay (`BlurView`). It searches with `searchProfiles()`; tapping a result opens `UserProfileScreen` over it, from which Message opens `ConversationScreen`. Tapping your own profile is a no-op. All state resets when the overlay closes.
+
+`FeedScreen` receives `headerAnim` (an `Animated.Value`, 0–header height, driven by its scroll) and the shared `feedList` gesture for its list.
+
+### Nav Rail (`src/components/NavRail.tsx`) — flags `nav-glass-rail`, `nav-rail-morph`
+
+A floating glass rail on the right edge with four icons: Camera, Feed, Messages, Profile (`expo-glass-effect` where available, `BlurView` otherwise). It replaces the side dots and the header's Profile/Messages pills.
+- `nav-rail-morph` on: the rail reads as one floating pill with an outline and shadow (`NAV_RAIL` tokens); one selector slides and stretches between icons (stretch, then contract; a plain move with Reduce Motion); press and hold or drag along the rail to switch screens live. Geometry and motion plans are pure in `src/lib/railSelector.ts` (tested).
+- A touch that starts on the rail never moves the pages (`exclude` in `swipeRules`).
+- Off: the old dots (`NavigationDots`) and header pills.
 
 ### App Header (`src/components/AppHeader.tsx`)
 
-Wrapped in an `Animated.View` inside `VerticalNavigator` at `zIndex: 200`, with `pointerEvents: 'box-none'` so touches pass through to screen content. The wrapper applies `translateY` from `headerAnim` to slide the header off-screen when the feed is scrolled down.
-
-The header has a `LinearGradient` background (`expo-linear-gradient`) that fades vertically from opaque to transparent:
-- Dark mode / Camera: `rgba(17,17,17,0.88) → rgba(17,17,17,0)`
-- Light mode: `rgba(255,255,255,0.92) → rgba(255,255,255,0)`
-
-```
-[ ● ProfilePill ]      MAHI      [ ✉ MessagesIcon ]
-```
-
-- `isDark: true` (Camera, always dark bg) → white foreground
-- `isDark: false` (Feed) → follows system theme
-
-### Navigation Dots (`src/components/NavigationDots.tsx`)
-
-Vertical pill dots on the right edge of `VerticalNavigator`. Each dot is tappable — tapping navigates directly to that screen via `onDotPress(index)` (passed from `VerticalNavigator` as `navigateTo`). The active dot expands to a `28×28` rounded square showing the screen icon; inactive dots are `6×6` pills.
-
-Props:
-- `count` / `activeIndex` / `dark` / `icons` — display config
-- `onDotPress?: (index: number) => void` — tap-to-navigate callback
-
----
+Top bar placed from the safe area, `pointerEvents: 'box-none'` so touches pass through. `LinearGradient` background from opaque to clear (dark on Camera/dark mode, white in light mode, from tokens). Shows the MAHI wordmark, the notifications bell (flag `notifications-core`), and the Profile/Messages pills only when the rail is off (`showNavPills`).
 
 ## Screens
 
 | Screen | Path | Status |
 |---|---|---|
-| `SplashScreen` | `src/screens/SplashScreen.tsx` | Active — custom JS splash |
-| `WelcomeScreen` | `src/screens/WelcomeScreen.tsx` | Active — sign-up / login |
-| `HorizontalNavigator` | `src/screens/HorizontalNavigator.tsx` | Active — horizontal gesture nav |
-| `VerticalNavigator` | `src/screens/VerticalNavigator.tsx` | Active — vertical gesture nav |
-| `CameraScreen` | `src/screens/CameraScreen.tsx` | Active — **two-tap** dual-camera capture: tap 1 takes the front selfie and auto-flips to rear; the user frames the POV shot and taps 2 to capture the rear. `captureState` state machine: `idle → front → switching → awaiting-rear → rear → idle`. After both photos are captured, `DualPhotoPreview` Modal opens (rear full-screen + draggable front pip, tap pip to swap). Includes already-posted guard, optimistic upload + streak, caption editor with user tagging (see Caption + Tagging section), rest-day indicator (shows "REST DAY" label when today is not in `fitness_routine`), and Sentry error capture on upload failure |
-| `FeedScreen` | `src/screens/FeedScreen.tsx` | Active — social feed from `useFeed()`; post metadata (avatar, username, timestamp, streak pill) overlaid on the image via `LinearGradient` (dark-to-transparent from top); dual-photo posts render a draggable pip (tap to swap) using `react-native-gesture-handler` `Gesture.Pan` + `react-native-reanimated` shared values with long-press activation and corner-snap; single-photo legacy posts render unchanged; 16:9 aspect ratio; captions + tagged users rendered via `CaptionText` component; header hide/show driven by scroll via `headerAnim` prop; scroll-top state reported via `onScrollTopChange` prop; tapping another user's avatar opens `UserProfileOverlay` → MESSAGE → `ConversationScreen` (profile + conversation overlays managed via local state); all interactions console-logged with `[FeedScreen]` prefix |
-| `SearchScreen` | `src/screens/SearchScreen.tsx` | Placeholder (global search is handled by `GlobalSearchOverlay` component, not this screen) |
-| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Active — own profile, follower/following counts, streak stats, avatar picker (`AvatarPicker` component), rest days and streak editor (`RestDaysStreakPanel` page sheet), streak grid (`StreakGridPanel` page sheet; both draw the shared `StreakCalendar` — months stacked vertically in a ScrollView that opens on today) |
-| `MessagesScreen` | `src/screens/MessagesScreen.tsx` | Active — inbox + requests from `useMessages()`; tapping a row opens `ConversationScreen` as an absolute overlay; REQUESTS tab has ACCEPT and DENY pill buttons |
-| `ConversationScreen` | `src/screens/ConversationScreen.tsx` | Active — individual message thread; inverted `FlatList` bubbles; real-time via `useConversation`; request banner (ACCEPT/DENY) shown to receiver on unaccepted conversations |
-| `InAppAnimationScreen` | `src/screens/InAppAnimationScreen.tsx` | Active — post-login entry animation |
+| `SplashScreen` | `src/screens/SplashScreen.tsx` | Custom JS splash with the version line |
+| `WelcomeScreen` | `src/screens/WelcomeScreen.tsx` | Log in (`LoginSheet`, with "Forgot password?" → `ForgotPasswordSheet`) / Create account (`CreateAccountSheet`; code typed in `OtpCodeInput`, autofill from email). Apple/Google pills are placeholders |
+| `InAppAnimationScreen` | `src/screens/InAppAnimationScreen.tsx` | Post-login entry animation |
+| `HorizontalNavigator` / `VerticalNavigator` | `src/screens/` | Gesture navigation (above) |
+| `CameraScreen` | `src/screens/CameraScreen.tsx` | **Two-tap** dual-camera capture. `CaptureState` (`src/lib/captureGuide.ts`): `idle → capturing-first → switching → awaiting-second → capturing-second`. With `camera-pip-guide`, `CapturePipGuide` shows what comes second, then the first photo, in the photo-in-photo spot. Then `DualPhotoPreview` (Modal: big photo + draggable pip, tap to swap), caption, tag sheet (page sheet; `InviteStep` when friends can't fill the slots), Post → `InviteShareSheet` when invites were used. Also `OpenTagsBanner`, the "Rest day" label, the "Streak secured" state. No microphone |
+| `FeedScreen` | `src/screens/FeedScreen.tsx` | Feed from `useFeed()` (`get_feed`), FlashList; `FeedLockBanner` (flag `feed-lock-explainer`) on top; dual-photo posts use `DraggablePip`; comments in a native page sheet; avatar → `UserProfileScreen` |
+| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Own profile: stats, avatar (`AvatarPicker`), "Suggested for you" folded away by default, FlashList grid (≥9 squares), `RestDaysStreakPanel` and `FollowListModal` page sheets, `PostDetailModal`, `SettingsPanel` (Blocked users, Log out, Delete account) |
+| `UserProfileScreen` | `src/screens/UserProfileScreen.tsx` | Another person's profile, opened over Feed, search, notifications, messages, friends lists; swipe right (gesture-handler pan) to close; menu and report reasons via `ActionSheetIOS`; Message (spinner while the chat opens); `StreakGridPanel` |
+| `MessagesScreen` | `src/screens/MessagesScreen.tsx` | Inbox from `useMessages()`; requests open `MessageRequestsScreen` (page sheet; Deny asks first) |
+| `ConversationScreen` | `src/screens/ConversationScreen.tsx` | Thread; real-time via `useConversation`; request banner (Accept / Deny with confirm) |
+| `NotificationsScreen` | `src/screens/NotificationsScreen.tsx` | Activity list (page sheet) |
+
+App-level overlays in `App.tsx`: `WelcomeCards` (flag `onboarding-welcome-cards` — one-time 3-card carousel in a Modal, once per account per device, rules in `src/lib/welcomeCards.ts`), `UpdateRequiredScreen` (forced-update gate), `ToastHost`.
 
 ---
 
-## StreakGridPanel (`src/components/StreakGridPanel.tsx`)
+## Streak panels (`StreakGridPanel`, `RestDaysStreakPanel`)
 
-Full-screen portrait calendar overlay that visualises the user's post history. Mounted by `ProfileScreen` (own profile) and by `UserProfileOverlay` (other users' profiles) as a slide-in panel (slide handled by legacy RN `Animated`, not Reanimated — the slide and the pan canvas run on different views).
-
-**Layout:**
-
-```
-┌─ panel ───────────────────────────────────┐
-│  STREAK                                 × │
-│  On a 12-day streak                       │
-│      12 STREAK  │  17 BEST                │
-│  ┌─ bordered viewport ─────────────────┐  │
-│  │         M  T  W  T  F  S  S         │  │
-│  │  ┌──────────────────────────────┐   │  │
-│  │  │ Jan   □ □ □ □ □ □ □          │   │  │
-│  │  │       □ □ ■ ■ □ ■ □          │   │  │
-│  │  │ Feb   □ □ □ □ □ □ □          │   │  │
-│  │  │  …    (pan-draggable canvas) │   │  │
-│  │  └──────────────────────────────┘   │  │
-│  └─────────────────────────────────────┘  │
-└───────────────────────────────────────────┘
-```
-
-**Grid data** — `buildMonthGrid(todayStr)` returns 12 `MonthBlock`s covering the last 12 months ordered oldest → newest so the current month is the last row in the canvas. Each block contains `{ label, year, leadingBlanks, days[] }`. `leadingBlanks = (firstDayOfMonth.getDay() + 6) % 7` maps the 1st of the month to a Monday-first column offset. Days after today in the current month are omitted.
-
-**Cell colouring** — same logic as the old grid (`getCellColor`). Posted → solid cyan (`#59c2d7`); today with no post → transparent + cyan border; past training days with no post → faded cyan (missed); rest days (not in `fitness_routine`) and future days → very faded cyan. The weekday for a rest-day check is derived from `(leadingBlanks + dayIdx) % 7` indexed into `WEEKDAY_NAMES` — no per-cell `Intl` lookups.
-
-**Pan gesture** — the canvas sits inside a clipping viewport (`overflow: 'hidden'`) wrapped in a `GestureDetector` around a `Reanimated.View`. `Gesture.Pan()` updates a `translateY` shared value with a worklet clamp: `minY = Math.min(0, viewportH - contentH)` → `translateY = max(minY, min(0, startY + translationY))`. Vertical-only on purpose — the 7-column grid fits any portrait viewport, so X-pan would only desync the fixed weekday header. No long-press activation (immediate drag), no corner-snap, no spring-on-end — it's a map surface, not a widget.
-
-**Initial position** — on first layout, `seedPosition()` reads `viewportH` and `contentH` (set via `onLayout` on the viewport and the canvas respectively) and seeds `translateY = min(0, viewportH - contentH)` so the current month lands near the bottom of the viewport (today visible). Idempotent — safe to re-seed on rotation. Shared values reset to 0 naturally on unmount; the panel unmounts when `visible && mounted` both go false, so re-opening gives a fresh pan state.
-
-**Gesture isolation from parent navigators** — `HorizontalNavigator` and `VerticalNavigator` use manually-activated RNGH pans driven by `src/lib/swipeRules.ts` (see `docs/integrations.md`). The streak calendar is a plain vertical `ScrollView` inside a page sheet, so it no longer needs its own pan.
+Both are native page sheets that draw the shared `src/components/StreakCalendar.tsx`: months stacked vertically in a plain `ScrollView` that opens on today. Grid data and cell states come from `src/lib/streakGrid.ts` (tested): posted → solid accent; today with no post → accent outline; missed training day → faded; rest days (not in `fitness_routine`) and future days → very faded. `StreakGridPanel` is mounted by `UserProfileScreen`; `RestDaysStreakPanel` (Profile) also edits training days. Being a ScrollView in a page sheet, the calendar needs no pan of its own and no navigator isolation.
 
 ---
 
 ## Caption + Tagging
 
-Users can attach an optional caption and tag up to 10 other users when posting. The whole flow lives inside the `DualPhotoPreview` modal in `CameraScreen.tsx` and renders in `FeedScreen.tsx`.
+Users attach an optional caption and must fill the post's tag slots (3, `tagStore.maxTags` from `app_config`) with friends or invite links. The flow lives inside the `DualPhotoPreview` modal in `CameraScreen.tsx` and renders in `FeedScreen.tsx`.
 
 ### Preview UI (`DualPhotoPreview`)
 
-After both photos are captured, three controls stack above the POST button, all centred in `postButtonFloat`:
-
-```
-┌──────────────────────────────┐
-│        ＋ Tag people          │  ← tag pill (tap → TagSheet)
-├──────────────────────────────┤
-│      ＋ Add a caption         │  ← caption pill (tap → CaptionSheet)
-├──────────────────────────────┤
-│            POST              │  ← existing post button
-└──────────────────────────────┘
-```
-
-Both pills share the same `BlurView intensity={40} tint="dark"` treatment (height 36, radius 18, `#FFFFFF` text when filled, muted when empty) and both read from their respective parent state (`taggedUsers: TaggedUser[]`, `caption: string`). The tag pill label is computed by `tagPillLabel(taggedUsers)` — `'＋ Tag people'` for zero, `'@username'` for one, `'@user1 +N'` for two or more.
-
-**Shared PIP-dodge.** Both pills live inside a single `Reanimated.View` with a `pillDodgeAnimStyle` driven by a `useDerivedValue` worklet. The worklet checks AABB intersection between the draggable PIP's current position and the union rect covering both pills (derived from `pillW`, `pillH`, `pillGap`, `postBtnH`). If the PIP overlaps, both pills lift together by `-(PIP_H + 16)` with a spring; when the PIP moves away, they spring back. The pills therefore never drift apart and always dodge as one unit.
+Above the Post button sits one row of glass pills: tag (`tagPillLabel` — `'＋ Tag people'`, `'@username'`, `'@user1 +N'`), caption (`'＋ Add a caption'`), and location (`posts-location-tagging`). The Post button reads `Tag N more` until every slot is filled (tapping it then opens the tag sheet with a warning haptic), then `Post`. The draggable pip may paint over the pill row.
 
 ### Sheet state machine
 
@@ -321,36 +287,34 @@ Only one sheet renders at a time (their `visible` props derive from `activeSheet
 | `'caption'` | DONE / scrim / back | `'none'` | `onCaptionChange(draft.trim())` |
 | `'tag'` | DONE | `'none'` | `onTaggedUsersChange(selected)` |
 | `'tag'` | ✕ / scrim / back (pill flow) | `'none'` | — |
-| `'tag'` | user tapped (singleShot, `@` flow) | `'caption'` | splice `@username ` at `captionAtIndex+1` into caption; append picked user to `taggedUsers` (deduped, capped at `MAX_TAGS`) |
+| `'tag'` | user tapped (singleShot, `@` flow) | `'caption'` | splice `@username ` at `captionAtIndex+1` into caption; append picked user to `taggedUsers` (deduped, capped at `maxTags`) |
 | `'tag'` | ✕ / scrim / back (`@` flow) | `'caption'` | leave the typed `@` in place |
 
 ### `CaptionSheet` (`@` bridge)
 
 Extends the simple `CaptionSheet` from the caption feature with one extra prop, `onOpenTagAt?: (atIndex, currentText) => void`. Inside, the `TextInput` now tracks the current caret via `onSelectionChange` into a `cursorRef: useRef<number>`, and `handleChangeText` detects a freshly-typed `@` at the cursor position. When detected, it fires `onOpenTagAt(cursor-1, next)` and early-returns without updating local `draft` state — the parent commits the text (including the `@`) and swaps the active sheet to `'tag'`.
 
-### `TagSheet` + `TagUserRow`
+### `TagSheet`
 
-New bottom sheet defined alongside `CaptionSheet` in `CameraScreen.tsx`. Visual shell matches the caption sheet (slide-up `Modal`, `Pressable` scrim dismiss, `KeyboardAvoidingView`, `sheetPanel` panel with grab handle + label row). Differences:
+Defined in `CameraScreen.tsx`; a native page sheet (`presentationStyle="pageSheet"` — swipe down or ✕ cancels).
 
-- **Top-right ✕ close button** (`sheetCloseX`) — absolutely positioned, 28×28 hit target. Required because multi-select needs distinct commit vs cancel affordances.
-- **Search input** (`tagSearchInput`) — 44pt pill, `autoFocus`, 350ms debounced `searchProfiles(q, 20)` matching the existing `GlobalSearchOverlay` pattern.
-- **Result list** — `FlatList` of `TagUserRow` rows, `keyboardShouldPersistTaps="handled"`, `maxHeight: SCREEN_HEIGHT * 0.45`. Each row renders the `ProfileSearchResult`'s avatar (or initial fallback), display name, `@handle`, and a cyan `✓` when selected. Tapping a row toggles membership in the local `selected: TaggedUser[]` state.
-- **`MAX_TAGS = 10`** — attempting to add an 11th fires a `Haptics.NotificationFeedbackType.Warning` and no-ops.
-- **DONE button** — same cyan treatment as the caption sheet; calls `onCommit(selected)`.
-- **`singleShot` prop** — when `true` (set by the `@` bridge via `singleShot={captionAtIndex !== null}`), the sheet hides the counter and DONE button, and `toggle()` commits immediately with the single tapped user. This is the `@`-autocomplete behaviour.
+- **Who can be tagged:** friends who follow back, from `getTaggableFriends` (`get_taggable_friends`), listed on open and filtered as you type (350ms debounce). Friends with an open tag on you can't be tagged back (founder's no-tag-back rule).
+- **Counter** `filled/maxTags`, where filled = friends picked + invite slots. Adding past `maxTags` fires a warning haptic and no-ops.
+- **Invite step** (flags `tags-invite-step` + `invite-links`; rules in `src/lib/inviteStep.ts`): when friends can't fill the slots, the sheet leads with `InviteStep` — "Invite N friends to post", a big invite button and a count of slots filled — instead of the search field. After posting, `InviteShareSheet` lists each invite link as sent / not sent with send again (`src/lib/inviteShare.ts`).
+- **`singleShot`** (set by the caption `@` bridge): no counter; tapping a friend commits just that one.
 
 ### `TaggedBubbleStack` (on-photo overlay)
 
-Shared component at `src/components/TaggedBubbleStack.tsx`. Renders a vertical stack of `@username` bubbles (`BlurView intensity={40} tint="dark"`, 28pt height, 14pt radius, `rgba(0,0,0,0.45)` background, white italic text) — max 3 visible, 4th+ collapses to a `+N more` chip. Returns `null` when `users.length === 0`.
+Shared component at `src/components/TaggedBubbleStack.tsx`. Renders a vertical stack of `@username` bubbles (`BlurView intensity={40} tint="dark"`, sizes and colours from tokens) — max 3 visible, 4th+ collapses to a `+N more` chip. Returns `null` when `users.length === 0`.
 
-- **Default positioning** is absolute `left: 16, bottom: 16` with `alignItems: 'flex-start'`. Uses `pointerEvents="box-none"` so taps outside the bubbles pass through to the photo.
+- **Default positioning** is absolute, bottom-left. Uses `pointerEvents="box-none"` so taps outside the bubbles pass through to the photo.
 - **Accepts an optional `style` prop** to override the default anchor — used by the camera preview to lift the stack above the pill column (`bubbleStackBottom` is computed from `pillsT` and a 16pt gap).
-- **Accepts an optional `onPressUser` prop** — when provided, tapping a bubble fires with the `TaggedUser`. When absent (e.g. in the preview), the `TouchableOpacity` is `disabled` and taps fall through.
+- **Accepts an optional `onPressUser` prop** — when provided, tapping a bubble fires with the `TaggedUser`. When absent (e.g. in the preview), the `Pressable` is `disabled` and taps fall through.
 - **Z-order requirement.** In both the preview and the feed, `TaggedBubbleStack` is rendered **before** the draggable PIP in JSX source order so the PIP paints on top. Dragging the PIP into the bubble region should not hide the PIP — the bubbles yield visually to the user-controlled interactive element.
 
 ### Feed display (`FeedScreen`)
 
-Inside each `PostItem`, the `TaggedBubbleStack` is rendered as an absolute overlay inside `styles.imageContainer` (which already has `position: 'relative'`), passed the post's `tagged_users` array plus an `onPressUser` handler that routes through the existing `onAvatarPress(userId)` → `UserProfileOverlay` flow.
+Inside each `PostItem`, the `TaggedBubbleStack` is rendered as an absolute overlay inside `styles.imageContainer` (which already has `position: 'relative'`), passed the post's `tagged_users` array plus an `onPressUser` handler that routes through the existing `onAvatarPress(userId)` → `UserProfileScreen` flow.
 
 The caption itself is rendered via the `CaptionText` component (`src/components/CaptionText.tsx`):
 
@@ -360,10 +324,8 @@ The caption itself is rendered via the `CaptionText` component (`src/components/
 
 ### Persistence + read path
 
-- **`public.posts.caption`** stores the optional caption string (nullable).
-- **`public.post_tags`** (junction: `post_id`, `user_id`) stores tag relationships, inserted by `createPost` after the post row lands. `createPost` dedups `taggedUserIds` via `Array.from(new Set(...))` before inserting, and surfaces partial-failure (post created but tag insert failed) via the returned `{ data, error }` tuple. `CameraScreen`'s `uploadPhotos` handler treats that as "confirm post, log tag failure to Sentry, move on."
-- **`get_feed_posts` RPC** returns an extra `tagged_users` column built by a correlated `jsonb_agg` over `post_tags` joined to `profiles`, wrapped in `coalesce(..., '[]'::jsonb)` so the client always receives an array (never `null`). See `docs/integrations.md` for the full function contract.
-- **`FeedPost.tagged_users: TaggedUser[]`** is required (non-null). The `src/api/posts.ts:getFeedPosts` row mapper passes `row.tagged_users` straight through — no fallback needed because the SQL coalesces.
+- `create_post` (`createPost` in `src/api/posts.ts`) stores the caption, the `post_tags` rows, a `tag_challenges` row per tag with its 48-hour deadline, and one invite per invite slot (returned as links), in one transaction. A retry with the same `clientId` returns the same post.
+- `get_feed` returns `tagged_users` as an always-present array (`coalesce(..., '[]')`), so `FeedPost.tagged_users` is typed `TaggedUser[]`.
 
 ---
 
@@ -372,23 +334,23 @@ The caption itself is rendered via the `CaptionText` component (`src/components/
 ```
 App launch
   OS renders native splash
-  JS bundle loads
+  JS bundle loads (Inter faces loaded with useFonts)
   SplashScreen.preventAutoHideAsync()       ← module scope in App.tsx
-  App renders → splashDone=false → <SplashScreen onLayout={...} />
-    → SplashScreen.hideAsync()              ← native gone, custom still visible
-    → setSplashDone(true)
+  App renders → <SplashScreen /> → SplashScreen.hideAsync() → setSplashDone(true)
 
-  supabase.auth.getSession()
+  getAppGate()                              ← every launch; a failed or slow check never blocks
+    → blocked: <UpdateRequiredScreen />
+
+  supabase.auth.onAuthStateChange
     → session found:
-        setSession(s) → setIsLoading(false)
-        getProfile()  → useUserStore.setProfile()
-        useFeedStore.sync()        [background]
-        useMessagesStore.sync()    [background]
+        hydrateForUser: getProfile → useUserStore.setProfile(); feed, messages,
+          notifications and blocks sync in the background
+        posthog.identify + reloadFeatureFlagsAsync
         → <InAppAnimationScreen onComplete → showCamera=true>
-        → <HorizontalNavigator />           ← stores already populated
+        → <HorizontalNavigator />  + <WelcomeCards /> (once per account per device)
 
     → no session:
-        setIsLoading(false)
+        every per-user store reset(), posthog.reset()
         → <WelcomeScreen />
 ```
 
@@ -396,11 +358,15 @@ App launch
 
 ## Config
 
-App config lives in `app.config.js`.
+App config lives in `app.config.js`. Version numbers, build numbers, OTA numbers and the update gate
+are handled only through the `/version-control` skill (`.claude/skills/version-control/SKILL.md`).
 
 | Field | Value |
 |---|---|
-| `version` | `0.1.0` |
-| `newArchEnabled` | `true` — React Native new architecture (JSI/Fabric) |
-| `userInterfaceStyle` | `automatic` — system light/dark mode |
-| `extra.buildNumber` | `'1'` — read by `SplashScreen.tsx` for version display |
+| `version` | `0.1.0` (owner changes it, never by hand in passing) |
+| `ios.buildNumber` / `android.versionCode` | Native build number (`10` as of 2026-10-01); moved only by `pnpm release:prepare` |
+| `runtimeVersion` | `{ policy: 'appVersion' }` — an OTA reaches the builds of the same version |
+| OTA number | `src/constants/ota.ts` (`OTA_NUMBER` + history), bumped by `node scripts/bump-build.cjs --ota`; shown on the version line |
+| `ios.associatedDomains` | `applinks:togethermahi.com` (invite links; the domain doesn't serve the app-site-association file yet) |
+| `NSMicrophoneUsageDescription` | Still present but unused — the app no longer asks for the mic; remove at the next native build |
+| `userInterfaceStyle` | `automatic` |
