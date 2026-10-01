@@ -8,9 +8,10 @@
 - Never read `process.env.*` directly — import the typed, fail-fast `env` from `src/lib/env.ts`.
 
 ## Supabase Edge Functions
-- All Edge Functions are deployed with `verify_jwt: false`
-- These functions handle pre-auth flows (sign-up, OTP, email checks)
-- This is the project-wide rule for all Edge Functions going forward
+- Pre-auth functions (`send-otp`, `verify-otp`, `complete-signup`, `send-reset-code`, `reset-password`)
+  and the cron-called `send-push` are deployed with `verify_jwt: false` (`--no-verify-jwt`)
+- `delete-account` is the exception: deployed **with** JWT verification (the default); it acts on the caller
+- Functions are deployed by the owner only; see `supabase/README.md`
 
 ## Email / OTP
 - The server makes, stores (SHA-256 hash only) and checks every sign-up code; the app never sees
@@ -19,7 +20,12 @@
   - `verify-otp` `{ email, code }` → checks it (5 tries), stamps `otp_codes.verified_at`
   - `complete-signup` `{ email, password, code }` → creates the account only for a code verified in the last 30 minutes
   - Auth hook `hook_require_verified_signup` (Before User Created) refuses email accounts without that stamp
-- Resend sender address: `noreply@mahitechnology.com`
+  - These three read only `purpose = 'signup'` codes in `otp_codes`
+- Password reset (flag `auth-password-reset`) uses the same table with `purpose = 'reset'`:
+  - `send-reset-code` `{ email }` → same answer and same work whether or not the email has an account
+  - `reset-password` `{ email, code, password }` → 5 tries, then sets the password with the admin API
+- Codes are emailed via Resend from `noreply@mahitechnology.com`. Test with real inboxes (Gmail works;
+  Maildrop dropped the email, 2026-10-01)
 - App Store review: provide Apple a **real seeded account** (created via the normal OTP flow) or a
   TestFlight build — there is **no hardcoded bypass** in the client. (The previous
   `appreview@togethermahi.com` / `1234` backdoor was removed; it shipped a working credential in the
@@ -33,15 +39,18 @@
 - Coordinates inherit the **post's public-read RLS** — there is no separate authz on the columns, so **anyone who can see the post can see its (rounded) coordinates**. RLS is unchanged and must not be weakened.
 
 ## Camera / Upload Flow
-- Shutter captures only — no upload until user taps POST on the preview screen
+- Two taps, two photos (the second tap stays; no auto timer). Shutter captures only — no upload until
+  the user taps Post on the preview screen. Microphone permission is never requested (the native
+  usage string in `app.config.js` goes at the next native build)
 - Photo preview renders in a `Modal` that slides in from the right — never use `absoluteFillObject` inside the camera slot (conflicts with VerticalNavigator `overflow: hidden` and AppHeader overlay)
-- Optimistic updates (`addPending`, streak increment) fire at POST confirmation, not at shutter
-- Upload order: storage → `recordUpload(userId, localDate)` → `createPost(userId, url, streakResult.streak_current)`
-- Always pass local date to `recordUpload`: `new Date().toLocaleDateString('en-CA')`
-- On any upload failure: remove pending post, revert streak, and remove orphaned storage object
-- `posts` storage bucket is **public** — use `getPublicUrl()` (not signed URLs)
-- One post per day is enforced at three layers: DB unique index, RLS INSERT policy, and client-side `hasPostedToday` guard (compares `profile.streak_last_upload_date` to today's local date)
-- `hasPostedToday` disables shutter + flip at 0.3 opacity and shows STREAK SECURED state
+- Optimistic updates (`addPending`, streak increment) fire at Post confirmation, not at shutter
+- Upload order: `uploadPostPhotos` (`posts/{userId}/{clientId}_rear.jpg` / `_pov.jpg`, upsert) →
+  `createPost` = the `create_post` RPC, one server call that dates the post, records the streak and
+  saves tags, deadlines and pushes. A retry with the same `clientId` returns the same post
+- On any failure: remove pending post, revert streak, and `removePostPhotos` the uploaded paths
+- `posts` storage bucket is still **public** (`supabase/deferred/private_bucket.sql` makes it private later)
+- One post per day: server (unique index, `create_post`) plus the client-side `hasPostedToday` guard
+- `hasPostedToday` disables shutter + flip at 0.3 opacity and shows the "Streak secured" state
 
 ## Auth
 - Supabase is the source of truth for auth
@@ -49,9 +58,17 @@
 - `onAuthStateChange` in `App.tsx` drives all screen transitions — no manual `authDone` flags
 - User creation uses `complete-signup` Edge Function (admin API, `email_confirm: true`)
 - Profile data is inserted into `public.profiles` after successful `signInWithPassword`
+- Sign-up keeps date of birth and phone number as required fields (founder, 2026-10-01)
+- Log in → "Forgot password?" (`ForgotPasswordSheet`, `OtpCodeInput`) emails a code; code + new password log you in
+- Settings → "Delete account" (flag `account-delete`; Apple requires in-app deletion) asks once, then calls
+  `delete-account`: photos removed, auth user deleted, every table cascades
+  (`20261001100100_account_delete_cascade`)
 
 ## State Management
-- Zustand stores: `useAuthStore`, `useUserStore`, `useSignUpStore`, `useFeedStore`, `useMessagesStore`, `useProfilePostsStore`, `useFollowStore`, `useSocialStore` — all exported from `src/store/index.ts`
+- Zustand stores, all exported from `src/store/index.ts`: auth, user, signUp, theme, feed, messages,
+  conversation, notifications, profilePosts, social, follow, suggest, block, push, tag, invite
+  (`toastStore` is imported directly). Every per-user store's `reset()` is called in the `App.tsx`
+  sign-out branch (auth comes from the session; theme and sign-up form survive sign-out)
 - Sign-up form state lives in `useSignUpStore` (persists across app backgrounding mid-flow)
 - Only the resend cooldown timestamp is kept on the device (`src/lib/otp.ts`); codes are server-only
 - When writing back to profile after async work, always read from `useUserStore.getState().profile` — never spread a closure snapshot
@@ -62,6 +79,7 @@
 - The DB function uses `to_char(date, 'Dy')` (3-letter abbreviation) with `position()` to check membership — this works because each abbreviation is a substring of only its corresponding full name
 - Client-side rest-day check uses `new Date().toLocaleDateString('en-US', { weekday: 'long' })` to get the full day name in device timezone
 - `RestDaysStreakPanel` (native page sheet opened from Profile) lets users edit their training days post-signup
+- Open question (founder, parked 2026-10-01): whether a skipped rest day protects the streak — see `docs/decisions.md`
 - `updateFitnessRoutine(userId, routine)` in `src/api/profile.ts` persists changes; store is updated via `setProfile({ ...profile, fitness_routine })` after save
 - Sentry breadcrumbs/exceptions are logged for training-day screen open, save success, and save failure
 
@@ -72,8 +90,14 @@
 - Sentry only enabled in production (`EXPO_PUBLIC_APP_ENV === 'production'`)
 
 ## Design System
-- Font: Josefin Sans — `JosefinSans_400Regular_Italic`, `JosefinSans_600SemiBold`, `JosefinSans_700Bold`
-- Dark/light mode via `useColorScheme()` — always support both
-- Colours: off-black `#1A1A17`, off-white `#E8E8E3`, bg dark `#1C1C19`, bg light `#FFFFFF`
-- Input `borderRadius: 14`, button `borderRadius: 50` (pill), button width `72%`
-- Padding: `32px` content, `24px` horizontal
+- Font: Inter, only through `FONTS` in `src/constants/fonts.ts` (`Inter_400Regular`, `Inter_400Regular_Italic`,
+  `Inter_600SemiBold`, `Inter_700Bold`, loaded in `App.tsx`). `fonts.test.ts` fails on a typed-out font name
+- Every colour, text size, spacing, radius, shadow, size, offset, icon size, letter spacing, line height and
+  border width comes from `src/constants/tokens.ts` (`withAlpha` for opacity). `designTokens.test.ts` fails on
+  a raw value anywhere else — need a new value? add a token first
+- UI copy is sentence case ("Log in", "Streak secured", "Day streak"). No all-caps, letter-spaced labels;
+  the MAHI wordmark is the only exception (owner, 2026-10-01)
+- Dark/light mode via `useAppTheme()` (the user's stored choice) — always support both
+- Pop-ups are native: page sheets (`presentationStyle="pageSheet"`) for comments, tags, notifications,
+  requests, blocked users, friends and the streak panels; `ActionSheetIOS` for menus
+- The keyboard never covers a sheet, field or button — see CLAUDE.md (`KeyboardInset`)
