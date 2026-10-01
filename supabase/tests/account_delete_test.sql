@@ -54,7 +54,9 @@ insert into public.user_blocks (blocker_id, blocked_id) select a, c from ids;
 insert into public.user_reports (reporter_id, reported_user_id, reason) select a, c, 'spam' from ids;
 insert into public.user_reports (reporter_id, reported_user_id, reason) select b, a, 'spam' from ids;
 insert into public.push_tokens (user_id, token, platform) select a, 'tok-a', 'ios' from ids;
-insert into public.streak_logs (user_id, started_at) select a, current_date from ids;
+insert into public.tag_challenges (tagger_id, tagged_id, expires_at)
+select a, b, now() + interval '48 hours' from ids union all
+select b, a, now() + interval '48 hours' from ids;
 
 -- The rule itself: the chat's starter no longer blocks the delete.
 select is(
@@ -80,7 +82,8 @@ select is((select count(*)::int from public.user_blocks where blocker_id = (sele
 select is((select count(*)::int from public.user_reports
   where reporter_id = (select a from ids) or reported_user_id = (select a from ids)), 0, 'reports by and about them gone');
 select is((select count(*)::int from public.push_tokens where user_id = (select a from ids)), 0, 'push tokens gone');
-select is((select count(*)::int from public.streak_logs where user_id = (select a from ids)), 0, 'streak gone');
+select is((select count(*)::int from public.tag_challenges
+  where tagger_id = (select a from ids) or tagged_id = (select a from ids)), 0, 'tags by and of them gone');
 
 select is((select count(*)::int from public.profiles where id in (select b from ids union select c from ids)), 2,
   'the other people stay');

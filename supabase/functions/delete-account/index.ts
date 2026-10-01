@@ -5,7 +5,7 @@
 // server, not just decoded). Steps:
 //   1. remove their files: posts/{id}/* (post photos) and avatars/{id}/* (profile photo)
 //   2. delete their auth user with the admin API; ON DELETE CASCADE then removes the profile,
-//      posts, likes, comments, tags, follows, chats and messages, notifications, streak, push
+//      posts, likes, comments, tags, follows, chats and messages, notifications, push
 //      tokens, points and invites (supabase/tests/account_delete_test.sql)
 // If step 1 fails nothing else happens, so the app can simply try again.
 // Deploy WITH JWT verification (the default). Secrets: the built-in SUPABASE_URL /
