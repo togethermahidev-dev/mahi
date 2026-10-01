@@ -285,6 +285,6 @@ const styles = StyleSheet.create({
   mapShadow: {
     flex: 1,
     width: '100%',
-    marginTop: SPACE.s96,
+    marginTop: SPACE.s16,
   },
 });
