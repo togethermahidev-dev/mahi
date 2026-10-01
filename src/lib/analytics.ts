@@ -17,12 +17,11 @@ export type TagLoopEvents = {
   /** A post answered someone's tag. One per tag answered. */
   tag_answered: { tagger_id: string; seconds: number };
   /**
-   * A deadline ran out — read off the notification the server sends, as it arrives. Both
-   * people get one, so this counts twice per missed tag; `stats.tags_daily` has the true
-   * count and the split between who missed and who was missed.
+   * A deadline ran out — read off the notification the server sends to the tagger, as it
+   * arrives, so once per missed tag; `stats.tags_daily` has the number of record.
    */
   tag_missed: { challenge_id: string | null };
-  /** The person who missed a tag lost their streak — read off the notification, like tag_missed. */
+  /** The person who missed the tag lost their streak — their side of the same miss. */
   streak_lost: { challenge_id: string | null };
   /** An invite link actually reached the share sheet and was sent. */
   invite_shared: Record<string, never>;
