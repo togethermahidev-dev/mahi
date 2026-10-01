@@ -44,6 +44,7 @@ are switched in the `app_config` table):
 `push-core` (P1, the one-time "turn on notifications" prompt) · `tag-challenges` (P2, the open-tags banner) · `mahi-points` (P5, points badges)
 `feed-lock-explainer` (the locked feed names who tagged you and how long you have to answer; the open
 feed says how long it stays open. Off = the plain locked post cards.)
+`tags-invite-step` (when friends can't fill a post's tag slots, the tag sheet leads with "Invite N friends to post", a big invite button and a count of slots filled; after posting, a list of the invite links shows which are sent and lets each be sent again. Off = the small + stepper and share sheets one after another.)
 
 **Camera:** `camera-pip-guide` (before the first photo, a small window in the preview's photo-in-photo
 spot says what comes second — "Selfie next" / "Your view next"; after it, the window shows the photo just
