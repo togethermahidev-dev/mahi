@@ -47,9 +47,17 @@ export function horizontalSwipe(t: Touch): SwipeDecision {
   return 'wait';
 }
 
-export function verticalSwipe(t: Touch & { onFeed: boolean; feedAtTop: boolean }): SwipeDecision {
+/**
+ * `feedAtTop`: the Feed list is at its top (see atListTop).
+ * `listMoved`: the Feed list has scrolled since the finger went down. The list then keeps the drag,
+ * as React Native's scroll view did: it won't hand over a drag it has already scrolled.
+ */
+export function verticalSwipe(
+  t: Touch & { onFeed: boolean; feedAtTop: boolean; listMoved: boolean }
+): SwipeDecision {
   'worklet';
   if (t.blocked || inSystemStrip(t)) return 'fail';
+  if (t.onFeed && t.listMoved) return 'fail';
   const ax = Math.abs(t.dx);
   const ay = Math.abs(t.dy);
   if (ax > SLOP && ax >= ay) return 'fail';
@@ -59,6 +67,12 @@ export function verticalSwipe(t: Touch & { onFeed: boolean; feedAtTop: boolean }
     return 'activate';
   }
   return 'wait';
+}
+
+/** The Feed list counts as at its top within its first 2px, or while pulled down past it. */
+export function atListTop(offsetY: number): boolean {
+  'worklet';
+  return offsetY <= 2;
 }
 
 // ─── Once a swipe has started ─────────────────────────────────────────────────
