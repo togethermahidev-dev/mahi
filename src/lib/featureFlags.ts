@@ -31,6 +31,7 @@ export const FEATURE_FLAGS = [
   'feed-core', // feed / likes / comments / post detail
   'messaging-core', // direct messaging / conversations / requests
   'camera-capture', // camera capture / PiP / tagging / captions
+  'camera-pip-guide', // live camera shows a small window: what comes second, then the first photo
   'follows-core', // follow system
   'notifications-core', // notifications activity feed
   'moderation-core', // block / report
