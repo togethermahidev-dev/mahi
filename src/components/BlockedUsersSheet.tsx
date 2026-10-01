@@ -11,6 +11,7 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FlashList } from '@shopify/flash-list';
 import { getBlockedUsers, type BlockedUser } from '@/api';
 import { useAuthStore, useBlockStore } from '@/store';
@@ -40,11 +41,15 @@ export default function BlockedUsersSheet({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      {/* Its own provider: the sheet's insets differ from the screen behind it. The sheet
-          mounts on open, so the list, search and open profile start fresh each time. */}
-      <SafeAreaProvider style={{ backgroundColor: bg }}>
-        <Sheet onClose={onClose} dark={dark} />
-      </SafeAreaProvider>
+      {/* A Modal is its own native window: gesture-handler needs its own root here (the
+          profile opened from a row swipes closed with a pan), and the sheet's insets differ
+          from the screen behind it. The sheet mounts on open, so the list, search and open
+          profile start fresh each time. */}
+      <GestureHandlerRootView style={styles.root}>
+        <SafeAreaProvider style={{ backgroundColor: bg }}>
+          <Sheet onClose={onClose} dark={dark} />
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -142,7 +147,7 @@ function Sheet({ onClose, dark }: Omit<BlockedUsersSheetProps, 'visible'>) {
             BLOCKED USERS
           </Text>
           {/* Spacer to keep title centred */}
-          <View style={styles.backBtn} />
+          <View style={styles.spacer} />
         </View>
 
         {/* Search bar */}
@@ -268,6 +273,10 @@ const styles = StyleSheet.create({
     borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  spacer: {
+    width: SIZE.z36,
+    height: SIZE.z36,
   },
   pressed: {
     opacity: 0.7,
