@@ -81,12 +81,23 @@ case "${1:-}" in
     ;;
   try)
     # Dry run on production: migrations + tests in ONE transaction that is always rolled back.
+    # Each test file runs inside its own savepoint, because pgTAP allows one plan() per
+    # transaction and rolling back to the savepoint clears it for the next file.
     shift
     [ $# -gt 0 ] || { echo "usage: scripts/db.sh try <migration.sql ...> <test.sql ...>" >&2; exit 1; }
     out=$(
       {
         echo 'begin;'
-        for f in "$@"; do grep -viE '^\s*(begin|rollback|commit)\s*;\s*$' "$f"; echo; done
+        n=0
+        for f in "$@"; do
+          case "$f" in
+            */tests/*) n=$((n + 1)); echo "savepoint t$n;" ;;
+          esac
+          grep -viE '^\s*(begin|rollback|commit)\s*;\s*$' "$f"; echo
+          case "$f" in
+            */tests/*) echo "rollback to savepoint t$n;" ;;
+          esac
+        done
         echo 'rollback;'
       } | psql "$CONN" -X -q -A -t -v ON_ERROR_STOP=1 2>&1
     ) || { echo "$out"; exit 1; }
