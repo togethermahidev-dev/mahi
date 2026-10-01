@@ -15,4 +15,7 @@ revoke insert on public.posts from authenticated;
 drop policy if exists post_tags_insert on public.post_tags;
 revoke insert on public.post_tags from authenticated;
 
+-- Nothing in the app edits a post; posts_update would let a user change their own streak_day or caption.
+revoke update on public.posts from authenticated;
+
 notify pgrst, 'reload schema';
