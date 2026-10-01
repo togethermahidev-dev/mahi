@@ -462,14 +462,11 @@ export type Database = {
           display_name: string | null;
           first_name: string | null;
           fitness_goals: string[] | null;
-          fitness_routine: string | null;
           id: string;
           is_banned: boolean;
           last_name: string | null;
           streak_current: number;
           streak_highest: number;
-          streak_last_upload_date: string | null;
-          streak_lowest: number | null;
           timezone: string;
           updated_at: string;
           username: string;
@@ -482,14 +479,11 @@ export type Database = {
           display_name?: string | null;
           first_name?: string | null;
           fitness_goals?: string[] | null;
-          fitness_routine?: string | null;
           id: string;
           is_banned?: boolean;
           last_name?: string | null;
           streak_current?: number;
           streak_highest?: number;
-          streak_last_upload_date?: string | null;
-          streak_lowest?: number | null;
           timezone?: string;
           updated_at?: string;
           username: string;
@@ -502,57 +496,16 @@ export type Database = {
           display_name?: string | null;
           first_name?: string | null;
           fitness_goals?: string[] | null;
-          fitness_routine?: string | null;
           id?: string;
           is_banned?: boolean;
           last_name?: string | null;
           streak_current?: number;
           streak_highest?: number;
-          streak_last_upload_date?: string | null;
-          streak_lowest?: number | null;
           timezone?: string;
           updated_at?: string;
           username?: string;
         };
         Relationships: [];
-      };
-      streak_logs: {
-        Row: {
-          created_at: string;
-          ended_at: string | null;
-          id: string;
-          is_active: boolean;
-          started_at: string;
-          streak_count: number;
-          user_id: string;
-        };
-        Insert: {
-          created_at?: string;
-          ended_at?: string | null;
-          id?: string;
-          is_active?: boolean;
-          started_at: string;
-          streak_count?: number;
-          user_id: string;
-        };
-        Update: {
-          created_at?: string;
-          ended_at?: string | null;
-          id?: string;
-          is_active?: boolean;
-          started_at?: string;
-          streak_count?: number;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'streak_logs_user_id_fkey';
-            columns: ['user_id'];
-            isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
-          },
-        ];
       };
       // NOTE: hand-added pending a real `supabase gen types` regen.
       user_blocks: {
@@ -804,10 +757,6 @@ export type Database = {
       unregister_push_token: {
         Args: { p_token: string };
         Returns: undefined;
-      };
-      record_upload_streak: {
-        Args: { p_upload_date?: string; p_user_id: string };
-        Returns: Json;
       };
       toggle_like: {
         Args: { p_post_id: string; p_user_id: string };
