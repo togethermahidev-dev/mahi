@@ -17,7 +17,6 @@ import Reanimated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { swipeLog } from '@/lib/swipeDebug';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -238,12 +237,6 @@ export default function VerticalNavigator({
         feedAtTop: atListTop(feedOffset.value),
         listMoved,
       });
-      if (decision !== 'wait') {
-        scheduleOnRN(
-          swipeLog,
-          `V ${decision} dx${Math.round(t.absoluteX - startX.value)} dy${Math.round(t.absoluteY - startY.value)}`
-        );
-      }
       if (decision === 'activate') {
         decided.value = true;
         grabY.value = t.absoluteY;
@@ -285,10 +278,6 @@ export default function VerticalNavigator({
       indexSV.value = index;
       page.value = withSpring(index, SPRING);
       scheduleOnRN(settle, index, openSearch);
-    })
-    .onFinalize((_e, success) => {
-      'worklet';
-      scheduleOnRN(swipeLog, `V end ${success ? 'ok' : 'cancelled/failed'}`);
     });
 
   const tapeStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -page.value * height }] }));
