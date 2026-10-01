@@ -261,3 +261,13 @@ export const BORDER_WIDTH = {
   w1_5: 1.5,
   w2: 2,
 } as const;
+
+// ─── Floating nav rail: the pill outline and shadow (with SHADOW_BLUR / SIZE) ────
+export const NAV_RAIL = {
+  /** Hairline pill outline: white at this opacity on dark screens. */
+  outlineOnDark: 0.24,
+  /** Hairline pill outline: ink at this opacity on light screens. */
+  outlineOnLight: 0.12,
+  /** The soft shadow the pill floats on. */
+  shadowOpacity: 0.22,
+} as const;
