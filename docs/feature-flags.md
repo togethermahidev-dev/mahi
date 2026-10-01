@@ -45,6 +45,9 @@ are switched in the `app_config` table):
 
 **Navigation:** `nav-glass-rail` (floating glass rail on the right with Camera, Feed, Messages and
 Profile; replaces the side dots and the header's Profile/Messages pills. Off = the old dots and pills.)
+`nav-rail-morph` (the rail reads as one floating pill with an outline and shadow; one selector slides
+and stretches between icons; press and hold or drag along the rail to switch screens live. A touch that
+starts on the rail never moves the pages. Off = today's rail.)
 
 **Onboarding:** `onboarding-welcome-cards` (one-time 3-card welcome carousel after sign-in that
 teaches post → tag 3 friends → feed opens/locks; shown once per account per device. Off = never shown.)
