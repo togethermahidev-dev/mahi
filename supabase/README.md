@@ -17,8 +17,8 @@ is live (checked against prod 2026-10-01). Still held back: `deferred/contract_p
 `deferred/contract_messages.sql`, `deferred/private_bucket.sql` — they shut old paths and wait for a
 store build covered by the version gate.
 
-Not pushed yet: `20261001120000_reactive_posting` and `supabase/deferred/drop_rest_days.sql`. Release order
-(owner-only): push `reactive_posting` → publish the OTA → turn `supabase/deferred/drop_rest_days.sql` into a migration and push it only once every phone
+Not pushed yet: `20261001120000_reactive_posting` and `20261001170000_drop_rest_days`. Release order
+(owner-only): push `reactive_posting` → publish the OTA → push `20261001170000_drop_rest_days` only once every phone
 has the new app (old builds still insert `fitness_routine` at sign-up and read the dropped columns).
 
 Rules (enforced by `.claude/hooks/guard.cjs`):

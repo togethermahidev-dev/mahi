@@ -282,7 +282,7 @@ The streak is a number, not a calendar (reactive posting, above): profiles show 
 and the best one; posts show "Streak N" (hidden at 0). The streak calendar, rest days and training
 days (`StreakGridPanel`, `RestDaysStreakPanel`, `StreakCalendar`, `src/lib/streakGrid.ts`,
 `fitness_routine`, `streak_logs`, `record_upload_streak`) belonged to the old daily rule and are
-deleted; `supabase/deferred/drop_rest_days.sql` removes the last columns and table from the database.
+deleted; `20261001170000_drop_rest_days` removes the last columns and table from the database.
 
 ---
 
