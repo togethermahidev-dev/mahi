@@ -18,7 +18,6 @@ export const FEATURE_FLAGS = [
   'notifications-core', // notifications activity feed
   'auth-password-reset', // "Forgot password?" emails a code, then sets a new password
   'account-delete', // Settings -> Delete account (Apple requires in-app deletion)
-  'follows-suggestions', // suggested follows
 
   // Tag loop (see docs/tag-loop-plan.md)
   'push-core', // P1 push permission prompt (server keeps queueing when off)
