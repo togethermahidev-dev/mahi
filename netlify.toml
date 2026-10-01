@@ -1,0 +1,22 @@
+# Netlify settings for the Mahi waitlist site in web/. The Expo app is never built here.
+# How to set up and deploy: web/README.md
+
+[build]
+  # Netlify works from web/: the ignore rule and build command run there, and the site is web/out.
+  base = "web"
+  publish = "out"
+  # Installs only the website's packages (not the Expo app's) and builds the static site into web/out.
+  command = "bash scripts/netlify-build.sh"
+  # No deploy on every push: skip the build unless web/DEPLOY.md changed.
+  # Netlify's rule: exit 0 = skip the build, exit 1 = build.
+  ignore = "bash scripts/netlify-ignore.sh"
+
+[build.environment]
+  # Same Node as the app (.nvmrc).
+  NODE_VERSION = "22"
+  # Netlify runs its own install before the build command, which would install the whole
+  # workspace (Expo app included). Turn it into a no-op whichever package manager Netlify picks;
+  # the build command does the web-only install instead.
+  NPM_FLAGS = "--version"
+  PNPM_VERSION = "12.4.2"
+  PNPM_FLAGS = "--help"
