@@ -188,8 +188,8 @@ select ok(not has_function_privilege('anon', 'public.break_missed_streaks(uuid)'
 select hasnt_column('public', 'tag_challenges', 'streak_broken_at', 'missed_at is the one missed timestamp');
 select hasnt_index('public', 'tag_challenges', 'tag_challenges_streak_unbroken', 'and has no index of its own');
 
--- The rest-day columns and streak_logs go later, with supabase/deferred/drop_rest_days.sql
--- (test: supabase/tests/deferred/drop_rest_days_test.sql).
+-- The rest-day columns and streak_logs are dropped by 20261001170000_drop_rest_days
+-- (test: supabase/tests/drop_rest_days_test.sql).
 
 select * from finish();
 rollback;

@@ -85,7 +85,7 @@ setProfile({ ...current, streak_current: streakResult.streak_current, ... });
 
 **No training days or rest days.** Under reactive posting (2026-10-01) the streak counts answered
 tags, not days; the server keeps `streak_current` and `streak_highest` and the app only reads them.
-`fitness_routine`, `streak_lowest` and `streak_last_upload_date` are gone (`supabase/deferred/drop_rest_days.sql`).
+`fitness_routine`, `streak_lowest` and `streak_last_upload_date` are gone (`20261001170000_drop_rest_days`).
 
 **Usage:**
 ```ts

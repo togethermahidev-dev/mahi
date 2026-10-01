@@ -154,7 +154,7 @@ is in the stores yet. Still to do, in order:
 
 0. **Reactive posting** (not pushed yet; rules in [architecture.md](./architecture.md#reactive-posting)),
    in this order: push `20261001120000_reactive_posting` (Steps 1–4 above) → publish the OTA → push
-   `supabase/deferred/drop_rest_days.sql` only once every phone has the new app (old builds still insert
+   `20261001170000_drop_rest_days` only once every phone has the new app (old builds still insert
    `fitness_routine` at sign-up and read the dropped columns).
 1. **Push notification credentials** — upload the Apple push key and Google FCM credentials in
    EAS (`eas credentials`). Then set `SEND_PUSH_SECRET`, add the Vault secrets `send_push_url` and

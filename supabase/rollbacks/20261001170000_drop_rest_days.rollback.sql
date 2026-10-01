@@ -1,4 +1,4 @@
--- Undo supabase/deferred/drop_rest_days.sql: brings back the columns and the streak_logs table empty.
+-- Undo 20261001170000_drop_rest_days: brings back the columns and the streak_logs table empty.
 -- The data in them is gone unless restored from a backup taken before the push
 -- (scripts/db.sh backup). Run this before 20261001120000_reactive_posting's rollback, whose
 -- create_post reads streak_lowest.
