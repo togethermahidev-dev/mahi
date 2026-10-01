@@ -144,7 +144,7 @@ function Sheet({ onClose, dark }: Omit<BlockedUsersSheetProps, 'visible'>) {
             numberOfLines={1}
             accessibilityRole="header"
           >
-            BLOCKED USERS
+            Blocked users
           </Text>
           {/* Spacer to keep title centred */}
           <View style={styles.spacer} />
@@ -224,7 +224,7 @@ function Sheet({ onClose, dark }: Omit<BlockedUsersSheetProps, 'visible'>) {
                     accessibilityRole="button"
                     accessibilityLabel={`Unblock @${item.username}`}
                   >
-                    <Text style={[styles.unblockBtnText, { color: text }]}>UNBLOCK</Text>
+                    <Text style={[styles.unblockBtnText, { color: text }]}>Unblock</Text>
                   </Pressable>
                 </View>
               );
@@ -291,7 +291,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t3,
   },
   searchWrap: {
     paddingHorizontal: SPACE.s20,
@@ -359,9 +358,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s6,
   },
   unblockBtnText: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t2,
   },
   separator: {
     height: SIZE.z1,

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Sentry } from '@/lib/sentry';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, FONT_SIZE, SPACE, RADIUS, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
+import { COLORS, FONT_SIZE, SPACE, RADIUS, LINE_HEIGHT } from '@/constants/tokens';
 
 interface Props {
   children: React.ReactNode;
@@ -53,7 +53,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
           accessibilityRole="button"
           accessibilityLabel="Try again"
         >
-          <Text style={styles.buttonText}>TRY AGAIN</Text>
+          <Text style={styles.buttonText}>Try again</Text>
         </Pressable>
       </View>
     );
@@ -94,6 +94,5 @@ const styles = StyleSheet.create({
     color: COLORS.offBlack,
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t1,
   },
 });

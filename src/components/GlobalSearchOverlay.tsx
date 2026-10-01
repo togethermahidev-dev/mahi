@@ -252,7 +252,7 @@ export default function GlobalSearchOverlay({
               accessibilityLabel="Cancel search"
               hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
             >
-              <Text style={[styles.cancelText, { color: text }]}>CANCEL</Text>
+              <Text style={[styles.cancelText, { color: text }]}>Cancel</Text>
             </Pressable>
           </View>
 
@@ -279,7 +279,7 @@ export default function GlobalSearchOverlay({
             </View>
           ) : !searched ? (
             <View style={styles.centered}>
-              <Text style={[styles.hintText, { color: muted }]}>Search for people on MAHI</Text>
+              <Text style={[styles.hintText, { color: muted }]}>Search for people on Mahi</Text>
             </View>
           ) : (
             <FlatList
@@ -386,8 +386,7 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f11,
-    letterSpacing: TRACKING.t2,
+    fontSize: FONT_SIZE.f15,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
