@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { signOut } from '@/api/auth';
+import { deleteAccount, signOut } from '@/api/auth';
+import { DELETE_ACCOUNT_CONFIRM } from '@/lib/account';
 import { VERSION_LINE } from '@/lib/appBuild';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
 import { FONTS } from '@/constants/fonts';
 import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SHADOW_BLUR, SIZE, OFFSET, TRACKING, BORDER_WIDTH } from '@/constants/tokens';
@@ -51,6 +53,7 @@ export default function SettingsPanel({
   const border = dark ? withAlpha(COLORS.offWhite, 0.08) : withAlpha(COLORS.offBlack, 0.06);
   const panelBg = dark ? COLORS.bgDark : COLORS.white;
   const backdropColor = dark ? withAlpha(COLORS.black, 0.6) : withAlpha(COLORS.black, 0.4);
+  const danger = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
 
   const slideAnim = useRef(new Animated.Value(-PANEL_WIDTH)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -62,6 +65,8 @@ export default function SettingsPanel({
 
   const [mounted, setMounted] = useState(false);
   const [blockedListOpen, setBlockedListOpen] = useState(false);
+  const deleteEnabled = useFeatureFlag('account-delete');
+  const [deleting, setDeleting] = useState(false);
   const insets = useSafeAreaInsets();
 
   // Android back closes the drawer (the blocked-users sheet handles its own back press).
@@ -153,12 +158,12 @@ export default function SettingsPanel({
 
   const handleLogout = () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
+      'Log out',
+      'Are you sure you want to log out?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Sign Out',
+          text: 'Log out',
           style: 'destructive',
           onPress: async () => {
             await signOut();
@@ -170,17 +175,43 @@ export default function SettingsPanel({
     );
   };
 
+  // Apple requires in-app deletion. One plain confirmation; on success App.tsx's sign-out path
+  // resets every store and shows the welcome screen.
+  const handleDeleteAccount = () => {
+    if (deleting) return;
+    Alert.alert(
+      DELETE_ACCOUNT_CONFIRM.title,
+      DELETE_ACCOUNT_CONFIRM.message,
+      [
+        { text: DELETE_ACCOUNT_CONFIRM.cancel, style: 'cancel' },
+        {
+          text: DELETE_ACCOUNT_CONFIRM.confirm,
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            const { error } = await deleteAccount();
+            if (error) {
+              setDeleting(false);
+              Alert.alert('Couldn’t delete your account', error.message);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   if (!mounted && !visible) return null;
 
   const accountSubItems = [
-    'Edit Profile',
-    'Update Bio & Link',
-    'User Controls',
-    'Safety & Privacy',
-    'Delete Account',
+    'Edit profile',
+    'Update bio & link',
+    'Blocked users',
+    'Safety & privacy',
+    ...(deleteEnabled ? ['Delete account'] : []),
   ];
 
-  const privacySubItems = ['T&Cs', 'Privacy Policy', 'Request My Personal Data'];
+  const privacySubItems = ['T&Cs', 'Privacy policy', 'Request my personal data'];
 
   return (
     <View
@@ -215,7 +246,7 @@ export default function SettingsPanel({
             ]}
           >
             <Text style={[styles.panelTitle, { color: text }]} accessibilityRole="header">
-              SETTINGS
+              Settings
             </Text>
             <Pressable
               onPress={onClose}
@@ -241,7 +272,7 @@ export default function SettingsPanel({
               accessibilityLabel="Account settings"
               accessibilityState={{ expanded: accountOpen }}
             >
-              <Text style={[styles.sectionLabel, { color: text }]}>ACCOUNT SETTINGS</Text>
+              <Text style={[styles.sectionLabel, { color: text }]}>Account settings</Text>
               <ChevronIcon open={accountAnim} color={muted} />
             </Pressable>
 
@@ -254,19 +285,27 @@ export default function SettingsPanel({
                 overflow: 'hidden',
               }}
             >
-              {accountSubItems.map((item) => (
-                <Pressable
-                  key={item}
-                  style={({ pressed }) => [styles.subRow, { borderBottomColor: border }, pressed && styles.pressed]}
-                  accessibilityRole="button"
-                  accessibilityLabel={item}
-                  onPress={() => {
-                    if (item === 'User Controls') setBlockedListOpen(true);
-                  }}
-                >
-                  <Text style={[styles.subLabel, { color: muted }]}>{item}</Text>
-                </Pressable>
-              ))}
+              {accountSubItems.map((item) => {
+                const isDelete = item === 'Delete account';
+                return (
+                  <Pressable
+                    key={item}
+                    style={({ pressed }) => [styles.subRow, { borderBottomColor: border }, pressed && styles.pressed]}
+                    accessibilityRole="button"
+                    accessibilityLabel={item}
+                    accessibilityState={isDelete ? { disabled: deleting, busy: deleting } : undefined}
+                    disabled={isDelete && deleting}
+                    onPress={() => {
+                      if (item === 'Blocked users') setBlockedListOpen(true);
+                      if (isDelete) handleDeleteAccount();
+                    }}
+                  >
+                    <Text style={[styles.subLabel, { color: isDelete ? danger : muted }]}>
+                      {isDelete && deleting ? 'Deleting your account…' : item}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </Animated.View>
 
             {/* ── Help & FAQ ── */}
@@ -275,7 +314,7 @@ export default function SettingsPanel({
               accessibilityRole="button"
               accessibilityLabel="Help and FAQ"
             >
-              <Text style={[styles.sectionLabel, { color: text }]}>HELP & FAQ</Text>
+              <Text style={[styles.sectionLabel, { color: text }]}>Help & FAQ</Text>
             </Pressable>
 
             {/* ── Privacy & Data accordion ── */}
@@ -286,7 +325,7 @@ export default function SettingsPanel({
               accessibilityLabel="Privacy and data"
               accessibilityState={{ expanded: privacyOpen }}
             >
-              <Text style={[styles.sectionLabel, { color: text }]}>PRIVACY & DATA</Text>
+              <Text style={[styles.sectionLabel, { color: text }]}>Privacy & data</Text>
               <ChevronIcon open={privacyAnim} color={muted} />
             </Pressable>
 
@@ -321,7 +360,7 @@ export default function SettingsPanel({
               accessibilityRole="button"
               accessibilityLabel="Log out"
             >
-              <Text style={[styles.logoutText, { color: muted }]}>LOG OUT</Text>
+              <Text style={[styles.logoutText, { color: muted }]}>Log out</Text>
             </Pressable>
 
             {/* Version line: v{runtime} {build}.{OTA} — see the version-control skill */}
@@ -367,8 +406,7 @@ const styles = StyleSheet.create({
   },
   panelTitle: {
     fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f13,
-    letterSpacing: TRACKING.t5,
+    fontSize: FONT_SIZE.f17,
   },
   closeBtn: {
     width: SIZE.z36,
@@ -403,8 +441,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f11,
-    letterSpacing: TRACKING.t3,
+    fontSize: FONT_SIZE.f15,
   },
   subRow: {
     paddingVertical: SPACE.s15,
@@ -430,8 +467,7 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f11,
-    letterSpacing: TRACKING.t3,
+    fontSize: FONT_SIZE.f15,
   },
   versionText: {
     fontFamily: FONTS.italic,
