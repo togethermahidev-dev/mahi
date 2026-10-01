@@ -275,7 +275,7 @@ Full-screen portrait calendar overlay that visualises the user's post history. M
 
 **Initial position** — on first layout, `seedPosition()` reads `viewportH` and `contentH` (set via `onLayout` on the viewport and the canvas respectively) and seeds `translateY = min(0, viewportH - contentH)` so the current month lands near the bottom of the viewport (today visible). Idempotent — safe to re-seed on rotation. Shared values reset to 0 naturally on unmount; the panel unmounts when `visible && mounted` both go false, so re-opening gives a fresh pan state.
 
-**Gesture isolation from parent navigators** — `HorizontalNavigator` and `VerticalNavigator` both use `PanResponder` with a 10px `onMoveShouldSet` threshold. RNGH installs native gesture recognizers that dispatch before the JS responder system, so touches landing inside the `GestureDetector` are captured by RNGH before the navigators' threshold is crossed. No `simultaneousHandlers` or `waitFor` configuration is required. Horizontal finger movement inside the grid is captured by the pan gesture (and ignored by the worklet), so it cannot bubble up and trigger a horizontal navigator page. Same pattern is used by the `FeedScreen` pip drag.
+**Gesture isolation from parent navigators** — `HorizontalNavigator` and `VerticalNavigator` use manually-activated RNGH pans driven by `src/lib/swipeRules.ts` (see `docs/integrations.md`). The streak calendar is a plain vertical `ScrollView` inside a page sheet, so it no longer needs its own pan.
 
 ---
 

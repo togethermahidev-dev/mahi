@@ -198,19 +198,18 @@ Installed as `~55.0.10`.
 
 **Status: Active** — `react-native-gesture-handler ~2.30.0`, `react-native-reanimated ~4.2.1`, `react-native-worklets 0.7.2`.
 
-Two gesture systems coexist in the app — legacy RN `PanResponder` for full-screen navigators, and RNGH `Gesture.Pan` + Reanimated shared values for localised drag surfaces.
+All drag gestures use RNGH `Gesture.Pan` + Reanimated shared values, running on the UI thread — the full-screen navigators as well as localised drag surfaces.
 
-**PanResponder (legacy RN)** — used by `HorizontalNavigator` and `VerticalNavigator` for screen-to-screen paging. Each navigator uses `onMoveShouldSetPanResponder` with a **10px movement threshold** and axis-exclusive ownership (`Math.abs(dx) > Math.abs(dy)` for horizontal, inverse for vertical). The vertical navigator additionally gates downward swipes on `FeedScreen` (index 1) by the list's scroll-top state.
+**Navigators** — `HorizontalNavigator` and `VerticalNavigator` page between screens with a manually-activated `Gesture.Pan`. Every activate/fail decision, release target and rubber-band comes from the worklet rules in `src/lib/swipeRules.ts` (tested in `swipeRules.test.ts`): axis ownership, system-edge exclusion, pull-down for search. The vertical pan runs alongside the Feed list's native scroll and reads its offset on the UI thread: a downward drag at the top of Feed (`atListTop`) goes to the navigator, and once the list has scrolled under the finger (`listMoved`) the drag stays with the list.
 
 **RNGH `Gesture.Pan` + Reanimated** — used by three localised drag surfaces:
 
 | Surface | File | Pattern |
 |---|---|---|
 | `CameraScreen` pip (inside `DualPhotoPreview` Modal) | `src/screens/CameraScreen.tsx` | Long-press activation (`activateAfterLongPress(150)`), bounds-clamp to screen corners, corner-snap spring on end, Tap-race for swap. Lives in its own `GestureHandlerRootView` because the Modal spawns a separate native window. |
-| `FeedScreen` per-post pip | `src/screens/FeedScreen.tsx:142` | Same pattern as CameraScreen pip (long-press + corner-snap + Tap-race). Lives inside both navigators — proves RNGH coexists with the parent `PanResponder` stacks. |
-| `StreakGridPanel` canvas | `src/components/StreakGridPanel.tsx` | Vertical-only pan inside a clipping viewport. No long-press (immediate drag), no snap, no spring-on-end — it's a map surface, not a widget. See `StreakGridPanel` notes in `architecture.md`. |
+| Draggable pip | `src/components/DraggablePip.tsx` | Same pattern as CameraScreen pip (long-press + corner-snap + Tap-race). Shared by `FeedScreen` and `PostDetailModal`. |
 
-**Coexistence rule:** RNGH installs native gesture recognizers that dispatch **before** the JS responder system evaluates `PanResponder` thresholds. Because both navigators require 10px of movement before claiming a touch, RNGH has a free head-start and captures any touch landing inside a `GestureDetector` before the navigator's threshold is crossed. **No `simultaneousHandlers` or `waitFor` configuration is required.** The `FeedScreen` pip drag inside the navigator stack is the production-verified proof.
+**Coexistence rule:** the navigators' pans activate only after their swipe rules decide (20px), so a nested `GestureDetector` (pip drag, profile swipe-back, settings swipe-to-close) that activates first keeps the touch. Not yet verified on a device.
 
 **Root wrapping** — `App.tsx` wraps the whole tree in `GestureHandlerRootView` (required by RNGH). Components that render inside native `<Modal>` windows (e.g. `CameraScreen`'s `DualPhotoPreview`, `PostDetailModal`, `FollowListModal`, `BlockedUsersSheet`) must wrap their own root because a Modal is a separate native window and the app-level root does not cross that boundary. Components that render as plain absolute overlays (e.g. `StreakGridPanel`) rely on the app-level root and do **not** need their own.
 
