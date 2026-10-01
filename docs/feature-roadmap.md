@@ -1,6 +1,12 @@
 # Mahi — Feature Roadmap (Batched Build Spec)
 
-This is the build spec for the current feedback round. It is **batched into phases** — do not one-shot.
+> **History (status 2026-10-01):** all five phases shipped in June 2026 behind the flags listed in
+> [feature-flags.md](./feature-flags.md). Kept as a record of the spec. "Current behavior" lines and line
+> links describe the code *before* that work and are now out of date: `TrainingDaysScreen`, `CommentSheet`
+> and `ProfileMediaMapModal` are gone, navigation runs on gesture-handler (not `PanResponder`), and pop-ups
+> are native page sheets. Current work: [tag-loop-plan.md](./tag-loop-plan.md) and [decisions.md](./decisions.md).
+
+This was the build spec for the June 2026 feedback round. It is **batched into phases** — do not one-shot.
 Each feature is scaffolded against the existing architecture so it drops into the codebase the same way
 every other feature does.
 
@@ -12,7 +18,7 @@ every other feature does.
 - **Layers touched** is filled per the contract. "none" means that layer is untouched.
 - **Security/Privacy** is mandatory — every DB change names its RLS posture; every native capability names its permission + consent cache.
 - **Verify (red→green)** — every feature ships with a flip test: make it fail first (RED), then pass (GREEN). A green never seen red is not trusted.
-- **No `process.env`** — read config from `src/lib/env.ts`. **No hardcoded hex** — use `useAppTheme().colors`. **Every new store's `reset()` must be wired into the `App.tsx` sign-out branch.**
+- **No `process.env`** — read config from `src/lib/env.ts`. **No hardcoded values** — use `src/constants/tokens.ts` (and `useAppTheme()` for light/dark). **Every new store's `reset()` must be wired into the `App.tsx` sign-out branch.**
 
 > ⚠ **Codebase fact that overrides any tooling suggestion:** this app uses **hand-rolled gesture navigation**
 > (`HorizontalNavigator` × `VerticalNavigator`). There is **no `react-navigation`**. Do NOT introduce
