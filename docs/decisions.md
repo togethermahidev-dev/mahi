@@ -54,7 +54,7 @@ open (48 hours) — your very first post is the one exception. Architecture:
 
 | # | Decision | Chosen | Other options | Status | Decided | Used in |
 | --- | --- | --- | --- | --- | --- | --- |
-| 28 | When you can post | Reactive posting: only to answer an open tag, plus your first post | One post a day | Decided | 2026-10-01 | `create_post` → `reactive_posting_open`, `src/lib/reactivePosting.ts` |
+| 28 | When you can post | Reactive posting: only to answer an open tag, plus your first post; no daily limit — one post per tag answered | One post a day | Decided | 2026-10-01 | `create_post` → `reactive_posting_open`, `src/lib/reactivePosting.ts` |
 | 29 | Feed lock | Every post opens the feed for 24 hours. Tagged within them → it locks when they end; not tagged → it stays open until you're tagged, then locks. Miss a tag → locked until a friend tags you again | Open until tagged (2026-09-28 rule) | Decided | 2026-10-01 | `get_feed`, `src/lib/feedLock.ts`, `FeedLockBanner` |
 | 30 | Missing a tag | Streak back to 0; the person who missed gets a `streak_lost` notice ("You missed @x's tag. Your streak is back to 0.") from the tagger | Silent reset | Decided | 2026-10-01 | `mark_missed_tags`, `NotificationsScreen` |
 
@@ -66,4 +66,4 @@ open (48 hours) — your very first post is the one exception. Architecture:
 | Tag deadline | 48 hours (`app_config.tag_window`) |
 | Late-upload grace | 10 minutes (`app_config.answer_grace`) |
 | Invite link lifetime | 7 days (`app_config.invite_ttl`) |
-| Posts per day | 1 (under reactive posting, only to answer an open tag) |
+| Posts per day | No limit since 2026-10-01: one post per tag answered, as often as you're tagged (the old one-a-day index was dropped by `20261001120000_reactive_posting.sql`) |

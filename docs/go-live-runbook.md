@@ -39,7 +39,7 @@ In this order (the tool sorts by the timestamp in the filename — you don't cho
 
 Rows 4 and 8 describe the rules as they went live on 2026-09-23. Since 2026-10-01 posting is
 **reactive posting** (`20261001120000_reactive_posting.sql`): you post only to answer an open tag (your
-first post excepted), each answer adds 1 to your streak, a missed tag puts it back to 0, and the feed
+first post excepted) — no longer one a day, but once per tag answered — each answer adds 1 to your streak, a missed tag puts it back to 0, and the feed
 opens for 24 hours after each post — see [architecture.md](./architecture.md#reactive-posting).
 
 All twelve are safe for the app people have on their phones today. Nothing here removes anything

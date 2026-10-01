@@ -12,7 +12,8 @@ The posting rule since 2026-10-01 ([decisions.md](./decisions.md#reactive-postin
   `app_config.tag_window`). Your very first post is the one exception. The server enforces it:
   `create_post` checks `public.reactive_posting_open(user)` and raises `reactive posting: not tagged`
   otherwise (migration `20261001120000_reactive_posting.sql`, test `supabase/tests/reactive_posting_test.sql`).
-  The app's copy of the rule is `src/lib/reactivePosting.ts`.
+  The app's copy of the rule is `src/lib/reactivePosting.ts`. There is no daily limit any more: one post per
+  tag answered, as often as you're tagged (the migration drops the old one-a-day index).
 - **Streak** — each post that answers a tag adds 1. Miss a tag's 48 hours and the streak goes back to 0;
   the person who missed gets a `streak_lost` notification (actor = the tagger). The best streak stays on
   show. Posts carry the streak as "Streak N" (`src/lib/streakText.ts`), hidden at 0. No rest days, training
@@ -146,7 +147,7 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | Table | Purpose |
 |---|---|
 | `public.profiles` | User profile — display name, avatar, streak counters (current tag streak, best streak) |
-| `public.posts` | Workout posts, made under reactive posting (above), each carrying the poster's streak. `image_url` = rear/POV photo; `pov_image_url` = front selfie (nullable — null on legacy single-photo posts). Enforced by unique index `posts_user_day_unique (user_id, (created_at AT TIME ZONE 'UTC')::date)` and RLS INSERT policy |
+| `public.posts` | Workout posts, made under reactive posting (above), each carrying the poster's streak. `image_url` = rear/POV photo; `pov_image_url` = front selfie (nullable — null on legacy single-photo posts). No daily limit: one post per tag answered (the old one-a-day unique index was dropped by `20261001120000_reactive_posting.sql`) |
 | `public.post_likes` | One row per user-post like. Unique constraint `(post_id, user_id)`. RLS: authenticated read-all, insert/delete own only. |
 | `public.post_comments` | Comments on posts. Ordered oldest-first. RLS: authenticated read-all, insert/delete own only. |
 | `public.follows` | Follow relationships. Unique constraint `(follower_id, following_id)`, self-follow check constraint. RLS: authenticated read-all, insert/delete own only (`auth.uid() = follower_id`). Explicit UPDATE deny policy. |
@@ -286,7 +287,7 @@ Users attach an optional caption and must fill the post's tag slots (3, `tagStor
 
 ### Preview UI (`DualPhotoPreview`)
 
-Above the Post button sits one row of glass pills: tag (`tagPillLabel` — `'＋ Tag people'`, `'@username'`, `'@user1 +N'`), caption (`'＋ Add a caption'`), and location (`posts-location-tagging`). The Post button reads `Tag N more` until every slot is filled (tapping it then opens the tag sheet with a warning haptic), then `Post`. The draggable pip may paint over the pill row.
+Above the Post button sits one row of glass pills: tag (`tagPillLabel` — `'＋ Tag people'`, `'@username'`, `'@user1 +N'`), caption (`'＋ Add a caption'`), and location. The Post button reads `Tag N more` until every slot is filled (tapping it then opens the tag sheet with a warning haptic), then `Post`. The draggable pip may paint over the pill row.
 
 ### Sheet state machine
 
