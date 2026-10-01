@@ -23,6 +23,61 @@ export async function signOut() {
   return supabase.auth.signOut();
 }
 
+/** POST to an Edge Function; `{ error }` carries the server's own message when it refuses. */
+async function callFunction(
+  name: string,
+  body: Record<string, string>,
+  accessToken?: string
+): Promise<{ error: Error | null }> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: env.supabaseAnonKey,
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) return { error: null };
+    const json = (await res.json().catch(() => ({}))) as { error?: string };
+    return { error: new Error(json.error ?? 'Something went wrong. Please try again.') };
+  } catch {
+    return { error: new Error('No connection. Check your internet and try again.') };
+  }
+}
+
+/**
+ * Password reset, step 1: email a 6-digit code. The server answers the same whether or not the
+ * email has an account.
+ */
+export async function sendResetCode(email: string) {
+  return callFunction('send-reset-code', { email: email.toLowerCase().trim() });
+}
+
+/**
+ * Password reset, step 2: the code and the new password. On success the password is changed;
+ * log in with it next.
+ */
+export async function resetPassword(email: string, code: string, password: string) {
+  return callFunction('reset-password', { email: email.toLowerCase().trim(), code, password });
+}
+
+/**
+ * Delete the signed-in account for good (photos, then the account; every row cascades), then
+ * sign out on this phone only — the server session is already gone. App.tsx's onAuthStateChange
+ * resets every store and shows the welcome screen.
+ */
+export async function deleteAccount(): Promise<{ error: Error | null }> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return { error: new Error('Log in again, then try again.') };
+  const { error } = await callFunction('delete-account', {}, token);
+  if (error) return { error };
+  await supabase.auth.signOut({ scope: 'local' });
+  return { error: null };
+}
+
 /**
  * Complete signup: verify the OTP and create a confirmed auth user.
  *
