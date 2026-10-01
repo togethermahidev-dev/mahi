@@ -59,11 +59,14 @@ import OpenTagsBanner from '@/components/OpenTagsBanner';
 import PointsBadge from '@/components/PointsBadge';
 import KeyboardInset from '@/components/KeyboardInset';
 import CapturePipGuide from '@/components/CapturePipGuide';
+import InviteStep from '@/components/InviteStep';
+import InviteShareSheet from '@/components/InviteShareSheet';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { formatWait } from '@/lib/countdown';
 import { nudgeLabel } from '@/lib/tagNudge';
-import { inviteShareMessage } from '@/lib/inviteShare';
+import { inviteList, inviteShareMessage, markInvite, type InviteItem } from '@/lib/inviteShare';
+import { tagSheetStep } from '@/lib/inviteStep';
 import {
   captureLabel as captureLabelFor,
   pipGuide,
@@ -999,9 +1002,20 @@ function TagSheet({
   const [results, setResults] = useState<TaggableFriend[]>([]);
   const maxTags = useTagStore((s) => s.maxTags);
   const canInvite = useFeatureFlag('invite-links');
+  const inviteStepOn = useFeatureFlag('tags-invite-step');
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRef = useRef<TextInput>(null);
   const filled = selected.length + invites;
+  // Friends who can be tagged right now (from the unfiltered list); null until it has loaded.
+  const [availableFriends, setAvailableFriends] = useState<number | null>(null);
+  const step = tagSheetStep({
+    flagOn: inviteStepOn,
+    canInvite,
+    singleShot: !!singleShot,
+    availableFriends,
+    maxTags,
+  });
 
   // Reseed when the sheet re-opens; ignore changes to initialSelected while open.
   useEffect(() => {
@@ -1010,9 +1024,17 @@ function TagSheet({
       setInvites(initialInvites);
       setQuery('');
       setResults([]);
+      setAvailableFriends(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
+
+  // With the invite step on, the keyboard waits until we know friends can fill the slots, so it
+  // never covers the step. Off: the search field takes focus on open, as before.
+  const stepIsFriends = step === 'friends';
+  useEffect(() => {
+    if (visible && inviteStepOn && stepIsFriends) searchRef.current?.focus();
+  }, [visible, inviteStepOn, stepIsFriends]);
 
   // Friends who follow back, filtered as you type (350ms debounce). An empty
   // query lists them all, so the sheet opens with the people you can tag.
@@ -1027,6 +1049,8 @@ function TagSheet({
         const { data } = await getTaggableFriends(q, 50);
         if (stale) return;
         setResults(data ?? []);
+        // The whole list (no search) says how many friends can fill a slot; a failed read counts as none.
+        if (!q) setAvailableFriends((data ?? []).filter((f) => !f.has_open_tag).length);
         setLoading(false);
       },
       q ? 350 : 0
@@ -1091,13 +1115,29 @@ function TagSheet({
           </View>
         </View>
 
+        {step === 'invite' && availableFriends !== null ? (
+          <InviteStep
+            maxTags={maxTags}
+            availableFriends={availableFriends}
+            friends={selected.length}
+            invites={invites}
+            onAdd={() => {
+              if (filled >= maxTags) return;
+              Haptics.selectionAsync();
+              setInvites((n) => n + 1);
+            }}
+            onRemove={() => setInvites((n) => Math.max(0, n - 1))}
+          />
+        ) : null}
+
         <TextInput
+          ref={searchRef}
           style={styles.tagSearchInput}
           value={query}
           onChangeText={setQuery}
           placeholder="Search friends who follow you back"
           placeholderTextColor={withAlpha(COLORS.offWhite, 0.45)}
-          autoFocus
+          autoFocus={!inviteStepOn}
           autoCapitalize="none"
           autoCorrect={false}
           autoComplete="off"
@@ -1116,7 +1156,9 @@ function TagSheet({
               <Text style={styles.tagEmptyText}>
                 {query.trim()
                   ? 'No friends found.'
-                  : 'Only friends who follow you back can be tagged.'}
+                  : step === 'invite'
+                    ? 'Friends who follow you back show up here.'
+                    : 'Only friends who follow you back can be tagged.'}
               </Text>
             )
           }
@@ -1129,7 +1171,7 @@ function TagSheet({
           )}
         />
 
-        {singleShot || !canInvite ? null : (
+        {singleShot || !canInvite || step !== 'friends' ? null : (
           <View style={styles.inviteRow}>
             <Text style={styles.inviteLabel}>
               {invites > 0
@@ -1233,6 +1275,9 @@ export default function CameraScreen(): React.JSX.Element {
   const { openTags, serverOffsetMs } = useOpenTags();
   const showTagBanner = useFeatureFlag('tag-challenges');
   const pipGuideOn = useFeatureFlag('camera-pip-guide');
+  const inviteStepOn = useFeatureFlag('tags-invite-step');
+  // The last post's invite links and which are sent. In memory only — links expire.
+  const [postInvites, setPostInvites] = useState<InviteItem[]>([]);
   // The first photo, shown in the small window on the live camera until the second is taken.
   const [guidePhotoUri, setGuidePhotoUri] = useState<string | null>(null);
 
@@ -1586,7 +1631,12 @@ export default function CameraScreen(): React.JSX.Element {
           );
       }
       useTagStore.getState().syncOpenTags();
-      await shareInvites(result.invites);
+      if (inviteStepOn) {
+        // A list to send them from, one share sheet each, so none is silently lost.
+        setPostInvites(inviteList(result.invites));
+      } else {
+        await shareInvites(result.invites);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error('[uploadPhotos] upload failed', err);
@@ -1616,6 +1666,20 @@ export default function CameraScreen(): React.JSX.Element {
   useEffect(() => {
     if (hasPreview) useTagStore.getState().loadRequirement();
   }, [hasPreview]);
+
+  // One share sheet for one invite link; only a link that actually went somewhere counts as sent.
+  const sendInvite = async (token: string) => {
+    const invite = postInvites.find((i) => i.token === token);
+    if (!invite) return;
+    try {
+      const result = await Share.share({ message: inviteShareMessage(invite.url) });
+      const shared = result.action === Share.sharedAction;
+      if (shared) track('invite_shared', {});
+      setPostInvites((list) => markInvite(list, token, shared));
+    } catch {
+      useToastStore.getState().show("Couldn't open sharing — please try again");
+    }
+  };
 
   const handleDiscard = () => {
     setFrontPhoto(null);
@@ -1872,6 +1936,12 @@ export default function CameraScreen(): React.JSX.Element {
           requiredTags={requiredTags}
           locationEnabled={locationEnabled}
           onToggleLocation={handleToggleLocation}
+        />
+
+        <InviteShareSheet
+          invites={postInvites}
+          onSend={sendInvite}
+          onClose={() => setPostInvites([])}
         />
       </View>
     </GestureDetector>
