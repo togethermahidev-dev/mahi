@@ -7,6 +7,8 @@ interface TagState {
   openTags: OpenTag[];
   /** server clock − device clock, from the last read. */
   serverOffsetMs: number;
+  /** True once this session's first read of open tags has landed. */
+  openTagsLoaded: boolean;
   /** Tags the next post must carry (the server enforces the same rule). */
   requiredTags: number;
   maxTags: number;
@@ -21,6 +23,7 @@ interface TagState {
 const initial = {
   openTags: [],
   serverOffsetMs: 0,
+  openTagsLoaded: false,
   requiredTags: 0,
   maxTags: 3,
   nudgeDays: 7,
@@ -42,6 +45,7 @@ export const useTagStore = create<TagState>((set, get) => ({
       set({
         openTags: data,
         serverOffsetMs: serverNow ? new Date(serverNow).getTime() - requestedAt : 0,
+        openTagsLoaded: true,
       });
     }
     set({ isSyncing: false });
