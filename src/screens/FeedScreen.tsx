@@ -747,7 +747,8 @@ export default function FeedScreen({
           }
           ListEmptyComponent={
             !isLoading ? (
-              <View style={styles.empty}>
+              // Starts below the header, which floats over the list and grows with the notch.
+              <View style={[styles.empty, { paddingTop: headerH + SPACE.s24 }]}>
                 <Text style={[styles.emptyTitle, { color: text }]}>NO POSTS YET</Text>
                 <Text style={[styles.emptySub, { color: muted }]}>
                   Take your first streak photo to appear here
@@ -1057,7 +1058,6 @@ const styles = StyleSheet.create({
   },
   empty: {
     alignItems: 'center',
-    paddingTop: SPACE.s80,
     gap: SPACE.s8,
   },
   emptyTitle: {
