@@ -13,6 +13,10 @@ Every store follows this contract:
 - API calls run after the store is already updated
 - On API failure, the store rolls back to previous state
 - `isLoading = isSyncing && storeIsEmpty` — the UI never shows a skeleton after first hydration
+- **Nothing that expires or can be withdrawn is saved on the phone.** Feed items, lock state, open tags
+  and invites live in memory only; a screen shows a loading state, then fresh server data (the feed's
+  `loaded` flag means "this session's first page has arrived"). Only the theme and the mid-flow
+  sign-up form persist.
 
 ---
 
@@ -98,7 +102,7 @@ const setProfile = useUserStore((s) => s.setProfile);
 
 ### `useFeedStore` — `src/store/feedStore.ts`
 
-Manages the social feed with optimistic post creation.
+Manages the social feed (`get_feed`, server-gated by the feed lock) with optimistic post creation.
 
 | Field | Type | Description |
 |---|---|---|
@@ -107,10 +111,12 @@ Manages the social feed with optimistic post creation.
 | `cursor` | `FeedCursor \| undefined` | Pagination cursor (last post's `{ts, id}`) |
 | `hasMore` | `boolean` | `false` when backend returns fewer rows than `PAGE_SIZE` |
 | `isSyncing` | `boolean` | `true` during any in-flight network call |
+| `loaded` / `error` | `boolean` / `Error \| null` | This session's first page has arrived / the last read failed |
+| `locked` / `unlockedUntil` / `serverOffsetMs` | | Feed lock state and the server-clock offset for "N hours left" |
 
 | Action | Description |
 |---|---|
-| `sync(force?)` | Fetch first page. Skips if `posts.length > 0 && !force`. Guard against concurrent calls. |
+| `sync(force?)` | Fetch first page. Skips if already syncing or loaded, unless `force`. A response from an older request is dropped. Tracks `feed_unlocked` when a sync finds the feed newly open. |
 | `loadMore()` | Append next page using cursor. No-op if `!hasMore`. |
 | `addPending(post)` | Prepend an optimistic post with a local `file://` URI |
 | `confirmPending(tempId, real)` | Replace pending post with confirmed backend row |
@@ -242,10 +248,11 @@ Manages conversation inbox, message requests, and real-time inbox subscriptions.
 
 | Action | Description |
 |---|---|
-| `sync(userId)` | Parallel fetch of inbox + requests. Guards against concurrent calls. |
+| `sync()` | Parallel fetch of inbox + requests. Guards against concurrent calls. |
 | `accept(conversationId)` | Optimistically move request → inbox; rolls back on API failure. |
 | `deny(conversationId)` | Optimistically remove from requests and delete the conversation; rolls back on failure. |
-| `patchConversationLastMessage(conversationId, msg)` | Update the `last_message` preview and `updated_at` for a conversation in both `inbox` and `requests`. Called by `useConversation` after every send/receive. |
+| `patchConversationLastMessage(conversationId, msg)` | Update the `last_message` preview and `updated_at` for a conversation in both `inbox` and `requests`. Called after every send/receive. |
+| `clearUnread(conversationId)` | Zero a conversation's unread count when it is read. |
 | `subscribeToInbox(userId)` | Open two Supabase Realtime channels (one filtered by `participant_one`, one by `participant_two`) to receive new conversations and status updates in real-time. Idempotent — no-op if already subscribed. |
 | `unsubscribeFromInbox(userId)` | Tear down both inbox channels. |
 | `reset()` | Close all channels and clear all state on sign-out. |
@@ -257,7 +264,7 @@ Manages conversation inbox, message requests, and real-time inbox subscriptions.
 const inbox    = useMessagesStore((s) => s.inbox);
 const requests = useMessagesStore((s) => s.requests);
 
-useMessagesStore.getState().sync(userId);
+useMessagesStore.getState().sync();
 useMessagesStore.getState().accept(conversationId);
 useMessagesStore.getState().deny(conversationId);
 useMessagesStore.getState().patchConversationLastMessage(conversationId, msg);
@@ -270,6 +277,21 @@ Prefer using `useMessages()` in components — it wraps the store and manages th
 ### `useSignUpStore` — `src/store/signUpStore.ts`
 
 Persists sign-up form state across app backgrounding mid-flow. Cleared on completion or sign-out.
+
+---
+
+### Other stores
+
+| Store | File | Owns |
+|---|---|---|
+| `useConversationStore` | `conversationStore.ts` | Open threads: messages, paging older, `send` through `send_message`, `markRead`; channel registry outside state; re-reads the newest page after a reconnect |
+| `useNotificationsStore` | `notificationsStore.ts` | Activity items, `unreadCount`, realtime `subscribe`/`unsubscribe`, `markRead`/`markAllRead` |
+| `useSuggestStore` | `suggestStore.ts` | "Suggested for you" list, `followSuggested` |
+| `useBlockStore` | `blockStore.ts` | Blocked ids both ways (`isBlocked`), `block`/`unblock`; refreshes feed, messages and follows |
+| `usePushStore` | `pushStore.ts` | Whether this device's push token is registered |
+| `useTagStore` | `tagStore.ts` | Open tags (memory only, they expire), `serverOffsetMs`, `openTagsLoaded`, `requiredTags`/`maxTags` from `app_config` |
+| `useInviteStore` | `inviteStore.ts` | The invite token/code the app was opened with (memory only) and its claim |
+| `useToastStore` | `toastStore.ts` | One toast message for failed mutations (imported directly, not from the barrel) |
 
 ---
 
@@ -291,23 +313,32 @@ import {
   useThemeStore,
   useFeedStore,
   useMessagesStore,
+  useConversationStore,
+  useNotificationsStore,
   useProfilePostsStore,
   useSocialStore,
   useFollowStore,
+  useSuggestStore,
+  useBlockStore,
+  usePushStore,
+  useTagStore,
+  useInviteStore,
 } from '@/store';
 
-import type { PendingPost, ThemeMode } from '@/store';
+import type { PendingPost, ThemeMode, Thread } from '@/store';
 ```
 
 ---
 
 ## Hydration — `App.tsx`
 
-After `onAuthStateChange` fires with a valid session, `App.tsx` fires non-blocking background syncs:
+After `onAuthStateChange` fires with a valid session, `App.tsx` (`hydrateForUser`) loads the profile and fires non-blocking background syncs:
 
 ```ts
 useFeedStore.getState().sync();
-useMessagesStore.getState().sync(userId);
+useMessagesStore.getState().sync();
+useNotificationsStore.getState().sync(userId);
+useBlockStore.getState().sync(userId);
 ```
 
 This means by the time the user navigates to FeedScreen or MessagesScreen, data is already in the stores — zero loading skeletons.
@@ -315,14 +346,13 @@ This means by the time the user navigates to FeedScreen or MessagesScreen, data 
 On sign-out, the following stores are reset in `App.tsx`:
 
 ```ts
-useUserStore.getState().reset();
-useFeedStore.getState().reset();
-useMessagesStore.getState().reset();
-useProfilePostsStore.getState().reset();
-useFollowStore.getState().reset();
+useUserStore, useFeedStore, useMessagesStore, useConversationStore, useNotificationsStore,
+useProfilePostsStore, useFollowStore, useSuggestStore, useBlockStore, useSocialStore,
+usePushStore, useTagStore, useInviteStore  // .getState().reset() each
+posthog.reset();  // also clears feature flags
 ```
 
-> **Note:** `useSocialStore.reset()` is not currently called on sign-out. The store owns per-post Realtime channels and comment caches; on a user switch they persist until `FeedScreen` unmounts the visible posts via `onViewableItemsChanged` and the per-post ref counts drop to zero. If you introduce multi-account switching without killing the process, add `useSocialStore.getState().reset()` to the sign-out branch in `App.tsx`.
+A new store's `reset()` goes into this list in the same commit.
 
 ---
 
