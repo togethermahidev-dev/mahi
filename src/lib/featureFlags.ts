@@ -72,6 +72,8 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * - flag not yet loaded (`undefined`) → `true`: don't hide a feature during the
  *   brief window before PostHog returns flags on cold start.
  * - explicit `false` → `false`: an off flag hides its feature (the kill-switch).
+ *   Note: once flags have loaded, the SDK also returns `false` for a key that doesn't exist in
+ *   PostHog — create every new flag in PostHog (at 100%) before shipping the code that reads it.
  *
  * Pure and SDK-free so it can be unit-tested in isolation.
  */
