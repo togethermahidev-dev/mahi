@@ -13,8 +13,8 @@ import { resolveFlag, type FeatureFlag } from '@/lib/featureFlags';
  * (e.g. after `reloadFeatureFlagsAsync()` on sign-in). See `resolveFlag` for the
  * default-on semantics. Gate any feature in one line:
  *
- *   const showSuggestions = useFeatureFlag('follows-suggestions');
- *   if (!showSuggestions) return null;
+ *   const showBell = useFeatureFlag('notifications-core');
+ *   if (!showBell) return null;
  */
 export function useFeatureFlag(flag: FeatureFlag): boolean {
   const analyticsEnabled = env.posthogKey != null;

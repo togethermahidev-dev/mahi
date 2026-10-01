@@ -5,7 +5,7 @@ each goal in the loop ([HANDOVER §4](./HANDOVER.md#4-the-goal-loop-goal-driven-
 behind a flag that's already live. Only keys that code reads stay in the registry; a shipped surface with no
 flag is simply on.
 
-**State in PostHog (checked 2026-10-01):** 15 of the 16 keys exist, all active at **100% for everyone**.
+**State in PostHog (checked 2026-10-01):** 14 of the 15 keys exist, all active at **100% for everyone**.
 The seven added 2026-10-01 (`onboarding-welcome-cards`, `feed-lock-explainer`, `nav-rail-morph`,
 `camera-pip-guide`, `tags-invite-step`, `auth-password-reset`, `account-delete`) and four that had never
 been created (`nav-glass-rail`, `invite-links`, `tag-challenges`, `mahi-points`) were created that day.
@@ -19,8 +19,8 @@ PostHog project: **EU region, `project_id=130791`**.
 ```ts
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 
-const showSuggestions = useFeatureFlag('follows-suggestions');
-if (!showSuggestions) return null;
+const showBell = useFeatureFlag('notifications-core');
+if (!showBell) return null;
 ```
 
 - Keys are the typed `FeatureFlag` union in [`src/lib/featureFlags.ts`](../src/lib/featureFlags.ts) — the single
@@ -39,9 +39,7 @@ if (!showSuggestions) return null;
 
 ## The flags
 
-Sixteen keys, every one read by code.
-
-**Roadmap** (keys map to [feature-roadmap.md](./feature-roadmap.md) items): `follows-suggestions` (5.1)
+Fifteen keys, every one read by code. (Suggested follows have no flag: they are always on.)
 
 **Notifications:** `notifications-core` (the bell in the header and the notifications list)
 
