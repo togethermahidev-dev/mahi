@@ -46,6 +46,9 @@ export const FEATURE_FLAGS = [
   // Navigation
   'nav-glass-rail', // floating glass rail on the right: Camera, Feed, Messages, Profile
 
+  // Onboarding
+  'onboarding-welcome-cards', // one-time 3-card carousel teaching the post / tag / feed loop
+
   // Sign-in placeholders — pills on the welcome screen with nothing behind them yet.
   'auth-apple-signin',
   'auth-google-signin',
