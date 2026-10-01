@@ -161,7 +161,7 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
           // Spacer balances the right-side search icon so the title stays centred.
           <View style={styles.headerIconBtn} />
         )}
-        <Text style={[styles.headerTitle, { color: text }]}>MESSAGES</Text>
+        <Text style={[styles.headerTitle, { color: text }]}>Messages</Text>
         <Pressable
           style={({ pressed }) => [styles.headerIconBtn, pressed && styles.pressed]}
           onPress={() => setSearchVisible(true)}
@@ -188,7 +188,7 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
             : 'Message requests'
         }
       >
-        <Text style={[styles.requestsLabel, { color: text }]}>MESSAGE REQUESTS</Text>
+        <Text style={[styles.requestsLabel, { color: text }]}>Message requests</Text>
         <View style={styles.requestsRight}>
           {incomingRequestCount > 0 ? (
             <View style={styles.badge}>
@@ -223,7 +223,7 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
         ListEmptyComponent={
           !isLoading ? (
             <View style={styles.placeholder}>
-              <Text style={[styles.placeholderTitle, { color: text }]}>INBOX</Text>
+              <Text style={[styles.placeholderTitle, { color: text }]}>Inbox</Text>
               <Text style={[styles.placeholderSub, { color: muted }]}>No messages yet</Text>
             </View>
           ) : null
@@ -303,7 +303,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FONT_SIZE.f24,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t8,
     textAlign: 'center',
   },
   headerIconBtn: {
@@ -321,9 +320,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   requestsLabel: {
-    fontSize: FONT_SIZE.f12,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t3,
   },
   requestsRight: {
     flexDirection: 'row',
@@ -413,7 +411,6 @@ const styles = StyleSheet.create({
   placeholderTitle: {
     fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t6,
   },
   placeholderSub: {
     fontSize: FONT_SIZE.f13,

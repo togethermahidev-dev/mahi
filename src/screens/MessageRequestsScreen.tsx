@@ -90,7 +90,7 @@ function RequestRow({
         {showAccept ? null : (
           <View style={styles.convoRight}>
             {time}
-            <Text style={[styles.pendingLabel, { color: muted }]}>PENDING</Text>
+            <Text style={[styles.pendingLabel, { color: muted }]}>Pending</Text>
           </View>
         )}
       </Pressable>
@@ -109,7 +109,7 @@ function RequestRow({
               accessibilityRole="button"
               accessibilityLabel={`Accept request from ${name}`}
             >
-              <Text style={[styles.actionBtnText, { color: text }]}>ACCEPT</Text>
+              <Text style={[styles.actionBtnText, { color: text }]}>Accept</Text>
             </Pressable>
             <Pressable
               style={({ pressed }) => [styles.actionBtn, styles.denyBtn, pressed && styles.pressed]}
@@ -117,7 +117,7 @@ function RequestRow({
               accessibilityRole="button"
               accessibilityLabel={`Deny request from ${name}`}
             >
-              <Text style={[styles.actionBtnText, styles.denyText]}>DENY</Text>
+              <Text style={[styles.actionBtnText, styles.denyText]}>Deny</Text>
             </Pressable>
           </View>
         </View>
@@ -161,7 +161,7 @@ export default function MessageRequestsScreen({
         >
           <Text style={[styles.backArrow, { color: text }]}>‹</Text>
         </Pressable>
-        <Text style={[styles.headerTitle, { color: text }]}>REQUESTS</Text>
+        <Text style={[styles.headerTitle, { color: text }]}>Requests</Text>
         <View style={styles.backSpacer} />
       </View>
 
@@ -200,7 +200,7 @@ export default function MessageRequestsScreen({
         ListEmptyComponent={
           !isLoading ? (
             <View style={styles.placeholder}>
-              <Text style={[styles.placeholderTitle, { color: text }]}>NO REQUESTS</Text>
+              <Text style={[styles.placeholderTitle, { color: text }]}>No requests</Text>
               <Text style={[styles.placeholderSub, { color: muted }]}>You're all caught up</Text>
             </View>
           ) : null
@@ -249,7 +249,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FONT_SIZE.f24,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t8,
     textAlign: 'center',
   },
   backSpacer: {
@@ -320,17 +319,15 @@ const styles = StyleSheet.create({
     borderColor: COLORS.danger,
   },
   actionBtnText: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t2,
   },
   denyText: {
     color: COLORS.danger,
   },
   pendingLabel: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t2,
   },
   placeholder: {
     flex: 1,
@@ -342,7 +339,6 @@ const styles = StyleSheet.create({
   placeholderTitle: {
     fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t6,
   },
   placeholderSub: {
     fontSize: FONT_SIZE.f13,

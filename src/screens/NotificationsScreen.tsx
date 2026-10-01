@@ -17,7 +17,6 @@ import {
   SIZE,
   BORDER_WIDTH,
   LINE_HEIGHT,
-  TRACKING,
 } from '@/constants/tokens';
 
 interface NotificationsScreenProps {
@@ -98,7 +97,7 @@ export default function NotificationsScreen({
             <Text style={[styles.backArrow, { color: text }]}>‹</Text>
           </Pressable>
           <Text style={[styles.headerName, { color: text }]} numberOfLines={1}>
-            NOTIFICATIONS
+            Notifications
           </Text>
           {/* Spacer to keep title centred */}
           <View style={styles.backBtn} />
@@ -262,7 +261,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t3,
   },
   loadingWrap: {
     flex: 1,
