@@ -43,6 +43,7 @@ import { getAppGate, getProfile, signOut, updateTimezone } from '@/api';
 import { gateVerdict, type AppGate } from '@/lib/versionGate';
 import { APP_BUILD, APP_VERSION } from '@/lib/appBuild';
 import UpdateRequiredScreen from '@/components/UpdateRequiredScreen';
+import WelcomeCards from '@/components/WelcomeCards';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -212,6 +213,8 @@ export default function App(): React.JSX.Element {
     content = (
       <>
         <HorizontalNavigator />
+        {/* One-time welcome cards, after the intro animation, over the app. */}
+        <WelcomeCards userId={session.user.id} />
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       </>
     );
