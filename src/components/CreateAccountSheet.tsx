@@ -16,8 +16,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabase';
-import { sendOTP, verifyOTP, clearOTP, OTP_LENGTH } from '@/lib/otp';
-import { sanitiseOtp } from '@/lib/otpCode';
+import { sendOTP, verifyOTP, clearOTP, getOTPState, OTP_LENGTH } from '@/lib/otp';
+import { sanitiseOtp, reusableCode, codeTimes } from '@/lib/otpCode';
 import { completeSignup } from '@/api/auth';
 import { useSignUpStore, useInviteStore } from '@/store';
 import { normaliseInviteCode } from '@/lib/inviteLink';
@@ -104,6 +104,7 @@ export default function CreateAccountSheet({
   // Step 2 — countdown timer & resend cooldown
   const [secondsLeft, setSecondsLeft] = useState(600);
   const [resendReady, setResendReady] = useState(false);
+  const [codeSentAt, setCodeSentAt] = useState<number | null>(null);
 
   // Step 4 — username availability
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>(
@@ -145,20 +146,21 @@ export default function CreateAccountSheet({
     };
   }, [step]);
 
-  // ── Countdown timer (resets each time we enter step 2) ────────────────────
+  // ── Countdown timer (runs from when the current code was sent) ────────────
   useEffect(() => {
-    if (step !== 2) return;
-    setSecondsLeft(600);
-    setResendReady(false);
+    if (step !== 2 || codeSentAt === null) return;
+    const { secondsLeft: left, resendInMs } = codeTimes(codeSentAt, Date.now());
+    setSecondsLeft(left);
+    setResendReady(resendInMs === 0);
     const countdown = setInterval(() => {
-      setSecondsLeft((s) => (s <= 1 ? 0 : s - 1));
+      setSecondsLeft(codeTimes(codeSentAt, Date.now()).secondsLeft);
     }, 1000);
-    const resendTimer = setTimeout(() => setResendReady(true), 60_000);
+    const resendTimer = setTimeout(() => setResendReady(true), resendInMs);
     return () => {
       clearInterval(countdown);
       clearTimeout(resendTimer);
     };
-  }, [step]);
+  }, [step, codeSentAt]);
 
   // ── Username availability (real query against profiles table) ─────────────
   useEffect(() => {
@@ -219,7 +221,7 @@ export default function CreateAccountSheet({
     setEnteredCode('');
     setUsernameStatus('idle');
     setEmailExists(false);
-    clearOTP();
+    // The sent-code record is kept, so reopening with the same email goes back to that code.
     resetForm();
     onDismiss();
   }, [onDismiss, resetForm]);
@@ -248,9 +250,20 @@ export default function CreateAccountSheet({
     setError('');
     setLoading(true);
     try {
+      // Back then Next (or closing and reopening) with the same email: the code already sent
+      // still works, so go back to it. Asking again inside a minute is refused by the server
+      // and would leave the user stuck here; after that it would cancel the code they have.
+      const sent = await getOTPState();
+      if (sent && reusableCode(sent, email, Date.now())) {
+        posthog.capture('signup_otp_reused');
+        setCodeSentAt(sent.sentAt);
+        setStep(2);
+        return;
+      }
       await sendOTP(email.trim());
       Sentry.addBreadcrumb({ category: 'signup', message: 'OTP sent', level: 'info' });
       posthog.capture('signup_otp_sent');
+      setCodeSentAt(Date.now());
       setStep(2);
     } catch (e: any) {
       Sentry.captureException(e, {
@@ -277,6 +290,7 @@ export default function CreateAccountSheet({
     setLoading(true);
     try {
       await verifyOTP(email, code);
+      await clearOTP(); // spent on the server: going back to step 1 must send a fresh one
       setEnteredCode(code);
       Sentry.addBreadcrumb({ category: 'signup', message: 'OTP verified', level: 'info' });
       posthog.capture('signup_otp_verified');
@@ -300,9 +314,7 @@ export default function CreateAccountSheet({
       await sendOTP(email.trim());
       setOtp('');
       setEnteredCode('');
-      setResendReady(false);
-      setSecondsLeft(600);
-      setTimeout(() => setResendReady(true), 60_000);
+      setCodeSentAt(Date.now());
     } catch (e: any) {
       setError(e.message ?? 'Failed to resend code.');
     } finally {
@@ -390,6 +402,7 @@ export default function CreateAccountSheet({
         training_days: fitnessRoutine,
       });
       Sentry.addBreadcrumb({ category: 'signup', message: 'Account created', level: 'info' });
+      await clearOTP(); // the code is spent
 
       // 5. onAuthStateChange in App.tsx fires from signInWithPassword above,
       //    switching to CameraScreen. onAuthComplete triggers the exit animation.
