@@ -23,6 +23,9 @@ if (!showSuggestions) return null;
   `posthog.reset()` on sign-out clears flags (so no sign-out reset wiring is needed — guardrail #6 is satisfied).
 - **Default-on:** `resolveFlag` returns `true` when PostHog isn't configured (no key) or while flags haven't
   loaded yet, so a feature is never hidden by analytics being slow or absent. Only an explicit `false` hides it.
+  **But a key that doesn't exist in PostHog reads as OFF once flags have loaded** (the SDK returns `false` for
+  a missing key). So every new flag must be created in PostHog, at 100%, before the update that uses it ships —
+  found 2026-10-01, when seven new features stayed hidden on the test phones until their flags were created.
   This pure logic is unit-tested in [`src/lib/__tests__/featureFlags.test.ts`](../src/lib/__tests__/featureFlags.test.ts).
 - Reference gate: the notifications bell in [`src/components/AppHeader.tsx`](../src/components/AppHeader.tsx) is
   gated by `notifications-core`.
@@ -67,7 +70,7 @@ functions and migration `20261001100000_password_reset_codes`. Off = no "Forgot 
 photos, messages and streak and logs out. Needs the `delete-account` function. Off = no row.)
 
 **Sign-in placeholders** (pills on the welcome screen with no sign-in behind them yet — keep these
-**off** in PostHog until the real sign-in ships; flags default on when unset):
+**off** in PostHog until the real sign-in ships; a missing flag reads as off once flags load):
 `auth-apple-signin` · `auth-google-signin`
 
 ## Creating / managing flags
