@@ -50,8 +50,8 @@
 - On any failure: remove pending post, revert streak, and `removePostPhotos` the uploaded paths
 - `posts` storage bucket is still **public** (`supabase/deferred/private_bucket.sql` makes it private later)
 - Reactive posting (below): `create_post` checks `reactive_posting_open` and raises `'reactive posting: not tagged'`;
-  the camera mirrors it with `reactivePostingGate()` (`src/lib/reactivePosting.ts`) + `hasEverPosted()`
-  (`src/api/posts.ts`) — a spinner while loading, "No tags to answer" when closed; the server error maps to
+  the camera mirrors it with `reactivePostingGate()` (`src/lib/reactivePosting.ts`), fed by the feed store's
+  `unlockedUntil` (null until the first post) and the open tags — a spinner while loading, "No tags to answer" when closed; the server error maps to
   the same toast. No daily limit
 
 ## Auth

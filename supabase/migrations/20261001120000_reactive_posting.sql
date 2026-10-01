@@ -186,6 +186,12 @@ begin
   end if;
   select * into v_cfg from public.app_config;
 
+  -- Every tag that ran out is marked missed now, not when the job runs: a tag of yours puts your
+  -- streak back to 0 before this post counts, and your own expired tags no longer block
+  -- re-tagging the same friend (their streaks reset too). It runs before this user's row is
+  -- locked, so two people posting at once can never wait on each other.
+  perform public.break_missed_streaks();
+
   -- Serialise everything this user does from here on (double taps, two devices).
   select * into v_profile from public.profiles where id = v_uid for update;
   if not found or v_profile.is_banned then
@@ -205,12 +211,6 @@ begin
       'replayed', true
     );
   end if;
-
-  -- Every tag that ran out is marked missed now, not when the job runs: a tag of yours puts your
-  -- streak back to 0 before this post counts, and your own expired tags no longer block
-  -- re-tagging the same friend (their streaks reset too).
-  perform public.break_missed_streaks();
-  select * into v_profile from public.profiles where id = v_uid;
 
   -- Reactive posting: you post when someone has tagged you (your first post is free).
   if not public.reactive_posting_open(v_uid) then

@@ -7,7 +7,7 @@
 -- owner and edge functions use the service role, so neither is affected.
 -- Test: supabase/tests/profile_update_columns_test.sql
 
-revoke update on public.profiles from authenticated;
+revoke update on public.profiles from anon, authenticated;
 grant update (display_name, first_name, last_name, date_of_birth, contact_number, fitness_goals,
               avatar_url, timezone)
   on public.profiles to authenticated;
