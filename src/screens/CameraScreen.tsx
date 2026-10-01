@@ -124,7 +124,7 @@ function MidnightCountdown({ onUnlock }: { onUnlock: () => void }) {
 
   return (
     <BlurView intensity={60} tint="dark" style={styles.postedOverlay}>
-      <Text style={styles.postedTitle}>STREAK SECURED</Text>
+      <Text style={styles.postedTitle}>Streak secured</Text>
       <Text style={styles.countdownTimer}>{formatCountdown(remaining)}</Text>
       <Text style={styles.postedSub}>until your next post unlocks</Text>
     </BlurView>
@@ -168,7 +168,7 @@ function StreakBadge({ count }: { count: number }) {
       ]}
     >
       <Text style={styles.streakNumber}>{count}</Text>
-      <Text style={styles.streakLabel}>DAY{'\n'}STREAK</Text>
+      <Text style={styles.streakLabel}>Day streak</Text>
     </Animated.View>
   );
 }
@@ -241,7 +241,7 @@ interface CapturedPhoto {
 
 // ─── Dual Photo Preview ───────────────────────────────────────────────────────
 // Full-screen primary + small draggable pip.
-// Rear (POV) is primary by default; front selfie is the pip.
+// Rear (your view) is primary by default; front selfie is the pip.
 // Tap pip → swap. Hold + drag pip → reposition.
 
 const PIP_W = 130;
@@ -768,7 +768,7 @@ function DualPhotoPreview({
               }}
             >
               <Text style={styles.postButtonText}>
-                {tagsMissing > 0 ? `TAG ${tagsMissing} MORE` : 'POST'}
+                {tagsMissing > 0 ? `Tag ${tagsMissing} more` : 'Post'}
               </Text>
             </Pressable>
           </View>
@@ -889,7 +889,7 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
         <View style={styles.sheetPanel}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetLabelRow}>
-            <Text style={styles.sheetLabel}>CAPTION</Text>
+            <Text style={styles.sheetLabel}>Caption</Text>
             <Text style={styles.sheetCounter}>{draft.length}/200</Text>
           </View>
           <TextInput
@@ -911,7 +911,7 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
             style={({ pressed }) => [styles.sheetDone, pressed && { opacity: 0.85 }]}
             onPress={commit}
           >
-            <Text style={styles.sheetDoneText}>DONE</Text>
+            <Text style={styles.sheetDoneText}>Done</Text>
           </Pressable>
           <KeyboardInset />
         </View>
@@ -1097,7 +1097,7 @@ function TagSheet({
     >
       <View style={styles.tagSheetPanel}>
         <View style={styles.sheetLabelRow}>
-          <Text style={styles.sheetLabel}>TAG PEOPLE</Text>
+          <Text style={styles.sheetLabel}>Tag people</Text>
           <View style={styles.sheetHeaderEnd}>
             {singleShot ? null : (
               <Text style={styles.sheetCounter}>
@@ -1207,7 +1207,7 @@ function TagSheet({
             style={({ pressed }) => [styles.sheetDone, pressed && { opacity: 0.85 }]}
             onPress={() => onCommit(selected, invites)}
           >
-            <Text style={styles.sheetDoneText}>DONE</Text>
+            <Text style={styles.sheetDoneText}>Done</Text>
           </Pressable>
         )}
         <KeyboardInset />
@@ -1719,7 +1719,7 @@ export default function CameraScreen(): React.JSX.Element {
               style={({ pressed }) => [styles.permissionButton, pressed && { opacity: 0.8 }]}
               onPress={() => Linking.openSettings()}
             >
-              <Text style={styles.permissionButtonText}>Open Settings</Text>
+              <Text style={styles.permissionButtonText}>Open settings</Text>
             </Pressable>
           )}
         </View>
@@ -1774,11 +1774,11 @@ export default function CameraScreen(): React.JSX.Element {
         )}
 
         {isRestDay && !hasPostedToday && (
-          // 62pt under the streak badge's top: just below its two-line label.
+          // 62pt under the streak badge's top: just below its label.
           <Text
             style={[styles.restDayLabel, { top: topRightY(insets.top) + OFFSET.o56 + OFFSET.o6 }]}
           >
-            REST DAY
+            Rest day
           </Text>
         )}
 
@@ -1948,22 +1948,20 @@ const styles = StyleSheet.create({
   },
   streakLabel: {
     color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f8,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t2_5,
     textAlign: 'center',
-    opacity: 0.65,
+    opacity: 0.75,
     marginTop: SPACE.s3,
-    lineHeight: LINE_HEIGHT.l11,
+    lineHeight: LINE_HEIGHT.l14,
   },
   restDayLabel: {
     position: 'absolute',
     right: OFFSET.o24,
     color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.italic,
-    letterSpacing: TRACKING.t2,
-    opacity: 0.5,
+    opacity: 0.6,
     textAlign: 'center',
   },
   captureLabelWrap: {
@@ -2000,7 +1998,6 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: FONT_SIZE.f22,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t4,
     textAlign: 'center',
   },
   countdownTimer: {
@@ -2141,9 +2138,8 @@ const styles = StyleSheet.create({
   },
   postButtonText: {
     color: COLORS.ink,
-    fontSize: FONT_SIZE.f16,
+    fontSize: FONT_SIZE.f17,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t2,
   },
   captionPill: {
     height: SIZE.z36,
@@ -2185,7 +2181,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: RADIUS.r24,
     paddingHorizontal: SPACE.s20,
     paddingTop: SPACE.s12,
-    // The closing KeyboardInset adds one more gap, so 12 here keeps 24 below DONE.
+    // The closing KeyboardInset adds one more gap, so 12 here keeps 24 below Done.
     paddingBottom: SPACE.s12,
     gap: SPACE.s12,
   },
@@ -2218,9 +2214,8 @@ const styles = StyleSheet.create({
   },
   sheetLabel: {
     color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f11,
+    fontSize: FONT_SIZE.f17,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t2,
   },
   sheetCounter: {
     color: withAlpha(COLORS.offWhite, 0.45),
@@ -2281,9 +2276,8 @@ const styles = StyleSheet.create({
   },
   sheetDoneText: {
     color: COLORS.white,
-    fontSize: FONT_SIZE.f14,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t2,
   },
   // ── Tag sheet (search + user rows)
   sheetCloseX: {
