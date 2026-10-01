@@ -14,6 +14,7 @@ import {
   Pressable,
   FlatList,
   Share,
+  AccessibilityInfo,
 } from 'react-native';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -57,10 +58,17 @@ import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import OpenTagsBanner from '@/components/OpenTagsBanner';
 import PointsBadge from '@/components/PointsBadge';
 import KeyboardInset from '@/components/KeyboardInset';
+import CapturePipGuide from '@/components/CapturePipGuide';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { formatWait } from '@/lib/countdown';
 import { nudgeLabel } from '@/lib/tagNudge';
+import {
+  captureLabel as captureLabelFor,
+  pipGuide,
+  previewPipRestTop,
+  type CaptureState,
+} from '@/lib/captureGuide';
 import { Sentry } from '@/lib/sentry';
 import { requestLocationPermission, getCurrentLocation } from '@/lib/location';
 import { FONTS } from '@/constants/fonts';
@@ -353,7 +361,7 @@ function DualPhotoPreview({
   // Lowest Y the PIP's top-left is allowed to reach: 12pt above the pill row.
   // Uses the dynamic pipH so a shorter (landscape) PIP can sit a touch lower
   // while still clearing the pill row and POST.
-  const pipMaxY = pillsT - pipH - 12;
+  const pipMaxY = previewPipRestTop(SCREEN_HEIGHT, pipH);
   // Anchor for the TaggedBubbleStack in the preview — sit above the pill
   // row with a 16pt breathing gap. Derived so it can't drift from pills.
   const bubbleStackBottom = SCREEN_HEIGHT - pillsT + 16;
@@ -1189,9 +1197,6 @@ async function shareInvites(invites: PostInvite[]): Promise<void> {
 
 // ─── CameraScreen ─────────────────────────────────────────────────────────────
 
-type CaptureState =
-  'idle' | 'capturing-first' | 'switching' | 'awaiting-second' | 'capturing-second';
-
 export default function CameraScreen(): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
@@ -1230,6 +1235,9 @@ export default function CameraScreen(): React.JSX.Element {
   const requiredTags = useTagStore((s) => s.requiredTags);
   const { openTags, serverOffsetMs } = useOpenTags();
   const showTagBanner = useFeatureFlag('tag-challenges');
+  const pipGuideOn = useFeatureFlag('camera-pip-guide');
+  // The first photo, shown in the small window on the live camera until the second is taken.
+  const [guidePhotoUri, setGuidePhotoUri] = useState<string | null>(null);
 
   const streakCount = profile?.streak_current ?? 0;
 
@@ -1370,6 +1378,7 @@ export default function CameraScreen(): React.JSX.Element {
       return;
     }
     firstPhotoRef.current = photo;
+    setGuidePhotoUri(photo.uri);
 
     // Step 2: flip to the other side and wait for the user to tap again
     setCaptureState('switching');
@@ -1390,6 +1399,7 @@ export default function CameraScreen(): React.JSX.Element {
     const secondPhoto = await takePhoto();
     setCaptureState('idle');
     firstPhotoRef.current = null;
+    setGuidePhotoUri(null);
     if (!secondPhoto) return;
 
     // Assign to front/rear based on which camera took which shot
@@ -1619,6 +1629,14 @@ export default function CameraScreen(): React.JSX.Element {
     setLocationEnabled(false);
   };
 
+  // Capture state label shown while sequencing. After the switch, `facing` is the second side.
+  const captureLabel = captureLabelFor(captureState, facing, pipGuideOn);
+
+  // Read each new step out to VoiceOver (iOS has no live regions; Android also gets one below).
+  useEffect(() => {
+    if (pipGuideOn && captureLabel) AccessibilityInfo.announceForAccessibility(captureLabel);
+  }, [pipGuideOn, captureLabel]);
+
   if (!cameraPermission || !micPermission) {
     return <View style={styles.root} />;
   }
@@ -1666,18 +1684,15 @@ export default function CameraScreen(): React.JSX.Element {
     );
   }
 
-  // Capture state label shown while sequencing
-  const secondLabel = facing === 'back' ? 'POV' : 'SELFIE';
-  const captureLabel =
-    captureState === 'capturing-first'
-      ? 'CAPTURING...'
-      : captureState === 'switching'
-        ? 'SWITCHING...'
-        : captureState === 'awaiting-second'
-          ? `TAP FOR ${secondLabel}`
-          : captureState === 'capturing-second'
-            ? 'CAPTURING...'
-            : null;
+  // The small window in the preview's photo-in-photo spot: what comes second, then the first photo.
+  const guide = pipGuide({
+    guideOn: pipGuideOn,
+    state: captureState,
+    facing,
+    hasFirstPhoto: guidePhotoUri !== null,
+    hasPostedToday,
+    cameraGranted,
+  });
 
   return (
     <GestureDetector gesture={doubleTapToFlip}>
@@ -1724,10 +1739,28 @@ export default function CameraScreen(): React.JSX.Element {
           </Text>
         )}
 
+        {guide && (
+          <CapturePipGuide
+            guide={guide}
+            photoUri={guidePhotoUri}
+            frame={{
+              left: PIP_MARGIN,
+              top: previewPipRestTop(SCREEN_HEIGHT, PIP_H),
+              width: PIP_W,
+              height: PIP_H,
+            }}
+          />
+        )}
+
         {/* Capture progress overlay */}
         {captureLabel && (
-          <View style={styles.captureLabelWrap}>
-            <Text style={styles.captureLabel}>{captureLabel}</Text>
+          <View
+            style={styles.captureLabelWrap}
+            accessibilityLiveRegion={pipGuideOn ? 'polite' : undefined}
+          >
+            <Text style={pipGuideOn ? styles.captureLabelPlain : styles.captureLabel}>
+              {captureLabel}
+            </Text>
           </View>
         )}
 
@@ -1899,6 +1932,13 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.bold,
     letterSpacing: TRACKING.t4,
+    opacity: 0.9,
+  },
+  captureLabelPlain: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f18,
+    lineHeight: LINE_HEIGHT.l24,
+    fontFamily: FONTS.semiBold,
     opacity: 0.9,
   },
   postedOverlay: {
