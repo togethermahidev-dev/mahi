@@ -1,4 +1,5 @@
-// Shared pieces of the sign-up code flow (send-otp, verify-otp, complete-signup).
+// Shared pieces of the emailed-code flows: sign-up (send-otp, verify-otp, complete-signup) and
+// password reset (send-reset-code, reset-password).
 // Codes live hashed in public.otp_codes; see migration 20260923230000_signup_codes.
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.116.0";
 
@@ -18,6 +19,23 @@ export function json(body: unknown, status = 200): Response {
 
 export function isValidEmail(email: unknown): email is string {
   return typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+// otp_codes.purpose (migration 20261001100000): sign-up and reset codes never count for each other.
+export type CodePurpose = "signup" | "reset";
+
+// Same rule as the app's src/lib/password.ts: not 'low' = 8+ characters and at least two of
+// upper case, digit, symbol.
+const SPECIAL = /[!@#$%^&*()\-_=+[\]{};:'",.<>/?\\|`~]/;
+export function isStrongPassword(pw: unknown): pw is string {
+  if (typeof pw !== "string" || pw.length < 8) return false;
+  return [/[A-Z]/.test(pw), /[0-9]/.test(pw), SPECIAL.test(pw)].filter(Boolean).length >= 2;
+}
+
+// The signed-in caller's access token, or null.
+export function bearerToken(req: Request): string | null {
+  const m = /^bearer\s+(\S+)\s*$/i.exec(req.headers.get("authorization") ?? "");
+  return m ? m[1] : null;
 }
 
 export function normalizeEmail(email: string): string {
@@ -73,4 +91,63 @@ export async function withinIpLimit(
   const { error } = await db.from("auth_rate_limits").insert({ ip, action });
   if (error) console.error("[rate-limit] record failed (allowing):", error);
   return true;
+}
+
+// Per-email send limits for one kind of code: 1 a minute, 5 an hour. The message, or null.
+export async function emailLimitMessage(db: SupabaseClient, email: string, purpose: CodePurpose) {
+  for (const [ms, max, message] of [
+    [60_000, 1, "Please wait a minute before asking for another code."],
+    [3_600_000, 5, "Too many codes requested. Please try again later."],
+  ] as const) {
+    const { count } = await db.from("otp_codes").select("id", { count: "exact", head: true })
+      .eq("email", email).eq("purpose", purpose).gte("created_at", new Date(Date.now() - ms).toISOString());
+    if ((count ?? 0) >= max) return message;
+  }
+  return null;
+}
+
+// Retires the email's open codes of this kind and stores a new one (hash only). The row id and
+// the code to email, or null if it could not be stored.
+export async function storeNewCode(db: SupabaseClient, email: string, purpose: CodePurpose) {
+  await db.from("otp_codes").update({ used: true }).eq("email", email).eq("purpose", purpose).eq("used", false);
+  const code = generateCode();
+  const { data: row, error } = await db.from("otp_codes").insert({
+    email,
+    purpose,
+    code_hash: await sha256(code),
+    expires_at: new Date(Date.now() + CODE_TTL_MS).toISOString(),
+  }).select("id").single();
+  if (error || !row) {
+    console.error("[otp] store failed:", error);
+    return null;
+  }
+  return { id: row.id as string, code };
+}
+
+// One try at the email's latest open code of this kind: looks it up and writes the attempt in one
+// conditional UPDATE, so two parallel tries cannot both count as the same one. True on a match.
+export async function tryCode(db: SupabaseClient, email: string, code: string, purpose: CodePurpose) {
+  const { data: rows, error: lookupError } = await db.from("otp_codes")
+    .select("id, code_hash, attempts")
+    .eq("email", email)
+    .eq("purpose", purpose)
+    .eq("used", false)
+    .gt("expires_at", new Date().toISOString())
+    .lt("attempts", MAX_ATTEMPTS)
+    .order("expires_at", { ascending: false })
+    .limit(1);
+  const row = rows?.[0];
+  if (lookupError || !row) {
+    if (lookupError) console.error("[otp] lookup failed:", lookupError);
+    return false;
+  }
+  const hashMatches = (await sha256(code)) === row.code_hash;
+  const { data: updated, error: updateError } = await db.from("otp_codes")
+    .update(attemptPatch({ hashMatches, attempts: row.attempts, now: new Date() }))
+    .eq("id", row.id)
+    .eq("used", false)
+    .eq("attempts", row.attempts)
+    .select("id");
+  if (updateError) console.error("[otp] update failed:", updateError);
+  return hashMatches && !updateError && !!updated?.length;
 }
