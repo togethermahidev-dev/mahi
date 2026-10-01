@@ -96,7 +96,7 @@ function PostDetail({ post, onClose }: { post: PostRow; onClose: () => void }): 
           <Text style={styles.closeX}>✕</Text>
         </Pressable>
         <View style={styles.streakBadge}>
-          <Text style={styles.streakText}>DAY {post.streak_day}</Text>
+          <Text style={styles.streakText}>Day {post.streak_day}</Text>
         </View>
       </LinearGradient>
 
@@ -164,7 +164,6 @@ const styles = StyleSheet.create({
   streakText: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t2,
     color: COLORS.white,
   },
   bottomOverlay: {

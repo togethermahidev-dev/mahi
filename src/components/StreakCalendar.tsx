@@ -129,12 +129,12 @@ export default function StreakCalendar({
       <View style={styles.statsRow}>
         <View style={styles.stat}>
           <Text style={[styles.statValue, { color: text }]}>{streakCurrent}</Text>
-          <Text style={[styles.statLabel, { color: muted }]}>STREAK</Text>
+          <Text style={[styles.statLabel, { color: muted }]}>Streak</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: muted }]} />
         <View style={styles.stat}>
           <Text style={[styles.statValue, { color: text }]}>{streakHighest}</Text>
-          <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
+          <Text style={[styles.statLabel, { color: muted }]}>Best</Text>
         </View>
       </View>
 
@@ -185,7 +185,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f13,
-    letterSpacing: TRACKING.t2,
     textAlign: 'center',
     paddingVertical: SPACE.s20,
   },
@@ -206,9 +205,8 @@ const styles = StyleSheet.create({
     lineHeight: LINE_HEIGHT.l28,
   },
   statLabel: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t3,
   },
   statDivider: {
     width: SIZE.z1,

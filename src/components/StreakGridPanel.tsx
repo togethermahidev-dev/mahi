@@ -4,7 +4,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import StreakCalendar from '@/components/StreakCalendar';
 import { Sentry } from '@/lib/sentry';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SIZE, OFFSET, TRACKING, BORDER_WIDTH } from '@/constants/tokens';
+import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SIZE, OFFSET, BORDER_WIDTH } from '@/constants/tokens';
 
 interface StreakGridPanelProps {
   visible: boolean;
@@ -49,7 +49,7 @@ function Sheet({ onClose, dark, ...grid }: Omit<StreakGridPanelProps, 'visible'>
     <View style={[styles.root, { paddingBottom: insets.bottom }]}>
       <View style={[styles.topBar, { borderBottomColor: border, paddingTop: insets.top + SPACE.s20 }]}>
         <Text style={[styles.title, { color: text }]} accessibilityRole="header">
-          STREAK
+          Streak
         </Text>
         <Pressable
           onPress={onClose}
@@ -81,8 +81,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f13,
-    letterSpacing: TRACKING.t5,
+    fontSize: FONT_SIZE.f16,
   },
   closeBtn: {
     width: SIZE.z36,

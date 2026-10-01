@@ -68,7 +68,7 @@ export default function SuggestedFollowsStrip({
         accessibilityState={{ expanded: open }}
         hitSlop={{ top: SPACE.s8, bottom: SPACE.s8 }}
       >
-        <Text style={[styles.header, { color: muted }]}>SUGGESTED FOR YOU</Text>
+        <Text style={[styles.header, { color: muted }]}>Suggested for you</Text>
         <Text style={[styles.chevron, { color: muted }, open && styles.chevronOpen]}>›</Text>
       </Pressable>
       {open ? (
@@ -122,7 +122,7 @@ export default function SuggestedFollowsStrip({
                   accessibilityRole="button"
                   accessibilityLabel={`Follow @${item.username ?? displayName}`}
                 >
-                  <Text style={styles.followBtnText}>FOLLOW</Text>
+                  <Text style={styles.followBtnText}>Follow</Text>
                 </Pressable>
               </Pressable>
             );
@@ -148,9 +148,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.s12,
   },
   header: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t3,
   },
   chevron: {
     fontSize: FONT_SIZE.f14,
@@ -204,9 +203,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s7,
   },
   followBtnText: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t2,
     color: COLORS.white,
   },
 });
