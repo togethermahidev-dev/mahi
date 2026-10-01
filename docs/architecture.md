@@ -13,7 +13,7 @@ The posting rule since 2026-10-01 ([decisions.md](./decisions.md#reactive-postin
   server enforces it: `create_post` checks `public.reactive_posting_open(user)` and raises
   `reactive posting: not tagged` otherwise (migration `20261001120000_reactive_posting.sql`, test
   `supabase/tests/reactive_posting_test.sql`). The app's copy of the rule is `reactivePostingGate()` in
-  `src/lib/reactivePosting.ts`, fed by `hasEverPosted()` (`src/api/posts.ts`) and the open tags: the camera
+  `src/lib/reactivePosting.ts`, fed by the feed's lock state (`unlockedUntil` is null until the first post) and the open tags: the camera
   shows a spinner while that loads and "No tags to answer" when closed; the server error maps to the same
   toast. There is no daily limit any more: one post per tag answered, as often as you're tagged (the
   migration drops the old one-a-day index).
@@ -186,8 +186,7 @@ All tables use Row Level Security (RLS). Writes for posting and messaging go thr
 | `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `createOrGetConversation`, `deleteConversation`, `getMessages`, `markConversationRead` |
 | `notifications.ts` | `getNotifications`, `getUnreadCount`, `markAsRead`, `markAllAsRead` |
 | `moderation.ts` | `blockUser`, `unblockUser`, `getBlockedUsers`, `getBlockedIds`, `reportUser`, `hasReported` |
-| `profile.ts` | `checkUsername`, `insertProfile`, `getProfile`, `searchProfiles`, `updateAvatarUrl`, `updateTimezone` |
-| `streaks.ts` | The `StreakResult` type only (`{ streak_current, streak_highest }`, the `streak` part of `create_post`'s result) |
+| `profile.ts` | `getProfile`, `searchProfiles`, `updateAvatarUrl`, `updateTimezone` (sign-up inserts the profile row directly) |
 | `auth.ts` | `signIn`, `signOut`, `completeSignup`, `sendResetCode`, `resetPassword`, `deleteAccount` (Edge Functions) |
 | `push.ts` | `registerPushToken`, `unregisterPushToken` |
 | `appStatus.ts` | `getAppGate` (forced-update gate) |
