@@ -42,11 +42,16 @@ The build plan is [docs/tag-loop-plan.md](../docs/tag-loop-plan.md).
 | `verify-otp` | Checks a typed code (5 tries, one atomic update per try) and stamps `verified_at` on a match. |
 | `complete-signup` | Creates the confirmed auth user only for a code `verify-otp` accepted in the last 30 minutes. |
 | `send-push` | Push outbox sender, called by pg_cron. |
+| `send-reset-code` | Password reset: same as `send-otp` but stores the code with `purpose = 'reset'`. Answers and works the same whether or not the email has an account. |
+| `reset-password` | Checks a reset code (5 tries), then sets the new password with the admin API. Same password rule as sign-up. |
+| `delete-account` | Deletes the caller's photos (`posts/{id}/`, `avatars/{id}/`), then their auth user; every table cascades. Deployed **with** JWT verification. |
 
-Shared code lives in `functions/_shared/otp.ts` (`deno test functions/_shared/otp_test.ts`). The
+Sign-up and reset codes share `otp_codes`, kept apart by `purpose` (migration
+`20261001100000_password_reset_codes`). Shared code lives in `functions/_shared/otp.ts` and
+`functions/_shared/email.ts` (`deno test functions/_shared/`). The
 Before User Created auth hook `hook_require_verified_signup` (migration `20260923230000_signup_codes`)
 refuses email sign-ups without a fresh `verified_at`, which closes the public sign-up endpoint. It is
 switched on in the Dashboard (Authentication → Hooks), not by the migration.
 
-Required function secrets: `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`. All functions run
+Required function secrets: `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`. All functions except `delete-account` run
 `verify_jwt: false` (pre-auth flows). `check-email` is live but not in this repo.
