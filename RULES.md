@@ -86,7 +86,7 @@
   hidden at 0
 - Notifications: `streak_lost` to the person who missed (actor = the tagger); `tag_missed` only to the tagger
 - Gone: rest days, training days, `fitness_routine`, `streak_logs`, `record_upload_streak`, the streak calendar.
-  `20261001120100_drop_rest_days` removes the columns and table once every phone has the new app
+  `supabase/deferred/drop_rest_days.sql` removes the columns and table once every phone has the new app
 
 ## Sentry Logging
 - `Sentry.captureException(err, { tags: { flow, action? }, extra })` for caught errors

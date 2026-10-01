@@ -6,7 +6,7 @@
 -- streak is never lowered. Everyone starts again from 0 today.
 -- The feed lock keeps its rule, but a cancelled tag no longer locks it.
 -- The old daily streak (record_upload_streak, rest days, streak_logs) stops being used here; its
--- columns and table go in 20261001120100_drop_rest_days once every phone has the new app.
+-- columns and table go in supabase/deferred/drop_rest_days.sql once every phone has the new app.
 -- Tests: supabase/tests/reactive_posting_test.sql, feed_lock_test.sql, tag_challenges_test.sql,
 -- timezone_postdate_test.sql
 

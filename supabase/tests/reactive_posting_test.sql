@@ -2,7 +2,7 @@
 -- answers a tag adds 1 to your streak, however many tags it answers. Missing a tag puts the streak
 -- back to 0.
 begin;
-select plan(46);
+select plan(42);
 
 -- Slots don't need filling here: this test is about answering, not tagging.
 update public.app_config set tags_required = false, quiet_start = '00:00', quiet_end = '00:00';
@@ -188,11 +188,8 @@ select ok(not has_function_privilege('anon', 'public.break_missed_streaks(uuid)'
 select hasnt_column('public', 'tag_challenges', 'streak_broken_at', 'missed_at is the one missed timestamp');
 select hasnt_index('public', 'tag_challenges', 'tag_challenges_streak_unbroken', 'and has no index of its own');
 
--- 12. Rest days and the old daily streak's bookkeeping are gone (20261001120100_drop_rest_days).
-select hasnt_column('public', 'profiles', 'fitness_routine', 'no training days on profiles');
-select hasnt_column('public', 'profiles', 'streak_lowest', 'no lowest streak');
-select hasnt_column('public', 'profiles', 'streak_last_upload_date', 'no last upload date');
-select hasnt_table('public', 'streak_logs', 'no streak history table');
+-- The rest-day columns and streak_logs go later, with supabase/deferred/drop_rest_days.sql
+-- (test: supabase/tests/deferred/drop_rest_days_test.sql).
 
 select * from finish();
 rollback;
