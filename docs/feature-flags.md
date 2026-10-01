@@ -46,6 +46,9 @@ are switched in the `app_config` table):
 **Navigation:** `nav-glass-rail` (floating glass rail on the right with Camera, Feed, Messages and
 Profile; replaces the side dots and the header's Profile/Messages pills. Off = the old dots and pills.)
 
+**Onboarding:** `onboarding-welcome-cards` (one-time 3-card welcome carousel after sign-in that
+teaches post → tag 3 friends → feed opens/locks; shown once per account per device. Off = never shown.)
+
 **Sign-in placeholders** (pills on the welcome screen with no sign-in behind them yet — keep these
 **off** in PostHog until the real sign-in ships; flags default on when unset):
 `auth-apple-signin` · `auth-google-signin`
