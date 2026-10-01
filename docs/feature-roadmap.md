@@ -5,6 +5,9 @@
 > links describe the code *before* that work and are now out of date: `TrainingDaysScreen` and
 > `ProfileMediaMapModal` are gone, `CommentSheet` is a native page sheet, navigation runs on gesture-handler (not `PanResponder`), and pop-ups
 > are native page sheets. Current work: [tag-loop-plan.md](./tag-loop-plan.md) and [decisions.md](./decisions.md).
+> **Retired 2026-10-01:** item 1.1 (rest days + streak panel) — reactive posting replaced the daily streak
+> with a tag streak, so there are no rest days, training days or streak calendar any more
+> ([architecture.md](./architecture.md#reactive-posting), [decisions.md](./decisions.md) #1, #27).
 
 This was the build spec for the June 2026 feedback round. It is **batched into phases** — do not one-shot.
 Each feature is scaffolded against the existing architecture so it drops into the codebase the same way
@@ -46,6 +49,9 @@ every other feature does.
 Goal: make existing features findable and fix navigation feel. All UI-only, no backend.
 
 ## 1.1 — Unified "Rest Days + Streak" panel
+
+> **Retired 2026-10-01** by reactive posting: rest days, training days and the streak calendar are gone,
+> and the flag `nav-rest-streak-unified` with them. Kept below as history.
 
 **Problem:** *"Ppl struggle to find / don't know to press streak tracker / set rest days — put them on one page, rest days on top, streak tracker underneath."*
 
@@ -306,7 +312,7 @@ Native capability work. Ship in this order (lowest risk first): **pinch-zoom →
 | API fn shape `{data,error}` | `src/api/follows.ts` |
 | Thin hook (sync on mount) | `src/hooks/useFeed.ts` |
 | Thin hook (subscription) | `src/hooks/useNotifications.ts` |
-| Slide-in panel + spring | `src/components/StreakGridPanel.tsx` / `TrainingDaysScreen.tsx` (`damping:22, stiffness:160, mass:0.9`) |
+| Slide-in panel + spring | was `StreakGridPanel.tsx` / `TrainingDaysScreen.tsx` (`damping:22, stiffness:160, mass:0.9`); both gone, pop-ups are native page sheets now |
 | Swipe page spring | `src/screens/HorizontalNavigator.tsx:42-48` |
 | Reusable search overlay | `src/components/GlobalSearchOverlay.tsx` (already block-filtered) |
 | Profile overlay open pattern | `src/screens/FeedScreen.tsx` avatar→`UserProfileScreen` |

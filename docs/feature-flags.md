@@ -39,22 +39,26 @@ if (!showSuggestions) return null;
 ## The flags
 
 **Roadmap goals — Phases 1–5** (keys map to [feature-roadmap.md](./feature-roadmap.md) items):
-`nav-rest-streak-unified` (1.1) · `messaging-search-entry` (1.2) · `messaging-row-split-taps` (1.3) ·
+`messaging-search-entry` (1.2) · `messaging-row-split-taps` (1.3) ·
 `nav-profile-entry-animation` (1.4) · `feed-action-buttons-polish` (2.1) · `profile-avatar-lightbox` (2.2) ·
 `profile-posts-recovery-fix` (2.3) · `camera-pinch-zoom` (3.1) · `camera-ultrawide-lens` (3.2) ·
 `camera-landscape` (3.3) · `posts-location-tagging` (4.1) · `follows-suggestions` (5.1)
 
 **Shipped-surface kill-switches:**
 `feed-core` · `messaging-core` · `camera-capture` · `follows-core` · `notifications-core` ·
-`moderation-core` · `streaks-core` · `auth-otp-signup`
+`moderation-core` · `auth-otp-signup`
+
+(`nav-rest-streak-unified` and `streaks-core` were removed on 2026-10-01: reactive posting has no rest
+days or streak calendar for them to switch — [decisions.md](./decisions.md) #1, #27.)
 
 **Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
 are switched in the `app_config` table):
 `push-core` (P1, the one-time "turn on notifications" prompt — **not in PostHog, so off**) · `tag-challenges` (P2, the open-tags banner) · `mahi-points` (P5, points badges) ·
 `invite-links` (P7, invite a slot from the tag sheet and share the links after posting; the 6-character
 code works, but links point at `togethermahi.com`, which doesn't resolve yet — see [tag-loop-plan.md](./tag-loop-plan.md) Phase 7)
-`feed-lock-explainer` (the locked feed names who tagged you and how long you have to answer; the open
-feed says how long it stays open. Off = the plain locked post cards.)
+`feed-lock-explainer` (the locked feed names who tagged you and how long you have to answer, or, with
+no open tag, says you can post again when a friend tags you; the open feed says how long it stays open,
+or, if you're tagged, when it locks. Off = the plain locked post cards.)
 `tags-invite-step` (when friends can't fill a post's tag slots, the tag sheet leads with "Invite N friends to post", a big invite button and a count of slots filled; after posting, a list of the invite links shows which are sent and lets each be sent again. Off = the small + stepper and share sheets one after another.)
 
 **Camera:** `camera-pip-guide` (before the first photo, a small window in the preview's photo-in-photo
