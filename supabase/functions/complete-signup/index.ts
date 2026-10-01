@@ -22,6 +22,7 @@ Deno.serve(async (req: Request) => {
     const { data: rows, error: lookupError } = await db.from("otp_codes")
       .select("code_hash")
       .eq("email", email)
+      .eq("purpose", "signup")
       .gt("verified_at", new Date(Date.now() - VERIFIED_WINDOW_MS).toISOString())
       .order("verified_at", { ascending: false })
       .limit(1);
