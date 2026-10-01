@@ -85,7 +85,7 @@ describe the older functions, still live for old builds until `supabase/deferred
 - Replaces the old `posts` table select + `FEED_SELECT` constant.
 - Returns enriched feed rows including `like_count`, `comment_count`, `liked_by_me` (lateral `EXISTS` probe against `auth.uid()`), and `tagged_users` — an aggregated `{ user_id, username, display_name, avatar_url }[]` array built from a correlated `jsonb_agg(jsonb_build_object(...) order by tp.username)` subquery joining `post_tags` to `profiles`. The subquery result is wrapped in `coalesce(..., '[]'::jsonb)` so the column is **always an array, never NULL** — clients never need a `?? []` fallback and `FeedPost.tagged_users` is typed as required (`TaggedUser[]`, not `TaggedUser[] | null`).
 - Cursor pagination: `p_cursor_ts` + `p_cursor_id` mirror the old `created_at DESC, id DESC` cursor. Both default to `null` for the first page.
-- Called via `supabase.rpc('get_feed_posts', ...)` from `src/api/posts.ts:getFeedPosts`.
+- No longer called by the app (`getFeedPosts` was replaced by `getFeed`); kept live for old builds until `supabase/deferred/private_bucket.sql`.
 
 **Old `createPost` client contract (before `create_post`; kept for history)**
 - Inserts one row into `public.posts` and, if `taggedUserIds` is provided and non-empty, a second batch insert into `public.post_tags` using `Array.from(new Set(taggedUserIds))` for client-side dedup before the DB's composite-PK would reject duplicates.
