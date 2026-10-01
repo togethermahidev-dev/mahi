@@ -55,7 +55,6 @@ export function withAlpha(hex: string, alpha: number): string {
 
 // ─── Text sizes ──────────────────────────────────────────────────────────────
 export const FONT_SIZE = {
-  f8: 8,
   f10: 10,
   f11: 11,
   f12: 12,
@@ -174,7 +173,6 @@ export const SIZE = {
   z56: 56,
   z58: 58,
   z60: 60,
-  z70: 70,
   z72: 72,
   z80: 80,
   z88: 88,
@@ -205,7 +203,6 @@ export const OFFSET = {
   o44: 44,
   o48: 48,
   o50: 50,
-  o56: 56,
   o60: 60,
   o70: 70,
   o72: 72,
@@ -237,7 +234,6 @@ export const TRACKING = {
   t3: 3,
   t4: 4,
   t5: 5,
-  t6: 6,
   t8: 8,
   t10: 10,
 } as const;

@@ -11,7 +11,6 @@ import PostDetailModal from '@/components/PostDetailModal';
 import SettingsPanel from '@/components/SettingsPanel';
 import { SettingsIcon } from '@/components/ScreenIcons';
 import AvatarPicker from '@/components/AvatarPicker';
-import RestDaysStreakPanel from '@/components/RestDaysStreakPanel';
 import FollowListModal from '@/components/FollowListModal';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import UserProfileScreen from '@/screens/UserProfileScreen';
@@ -22,13 +21,11 @@ import {
   withAlpha,
   FONT_SIZE,
   SPACE,
-  RADIUS,
   SIZE,
   OFFSET,
   ICON_SIZE,
   TRACKING,
   LINE_HEIGHT,
-  BORDER_WIDTH,
 } from '@/constants/tokens';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
@@ -43,7 +40,6 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
   const { dark } = useAppTheme();
   const top = useSafeAreaInsets().top;
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [restDaysStreakOpen, setRestDaysStreakOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<PostRow | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
@@ -104,22 +100,6 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
           <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
         ) : null}
 
-        {/* Merged Rest Days & Streak panel trigger */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.restDaysStreakPill,
-            { borderColor: COLORS.accent },
-            pressed && { opacity: 0.75 },
-          ]}
-          onPress={() => setRestDaysStreakOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Rest days and streak"
-          hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
-        >
-          <Text style={styles.restDaysStreakPillText}>Rest days & streak</Text>
-          <Text style={styles.restDaysStreakChevron}>{'▲'}</Text>
-        </Pressable>
-
         {/* Friends — a list, never a number */}
         <Pressable
           style={({ pressed }) => [styles.statsRow, pressed && { opacity: 0.7 }]}
@@ -169,18 +149,6 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
 
       {/* Settings panel — slides in from left */}
       <SettingsPanel visible={settingsOpen} onClose={() => setSettingsOpen(false)} dark={dark} />
-
-      {/* Merged rest-days editor + streak grid — slides in from left */}
-      <RestDaysStreakPanel
-        visible={restDaysStreakOpen}
-        onClose={() => setRestDaysStreakOpen(false)}
-        userId={profile?.id ?? userId ?? ''}
-        streakCurrent={profile?.streak_current ?? 0}
-        streakHighest={profile?.streak_highest ?? 0}
-        streakLastUploadDate={profile?.streak_last_upload_date ?? null}
-        fitnessRoutine={profile?.fitness_routine ?? null}
-        dark={dark}
-      />
 
       {/* Friends list */}
       <FollowListModal
@@ -237,25 +205,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.italic,
     marginBottom: SPACE.s16,
-  },
-  restDaysStreakPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.s8,
-    borderWidth: BORDER_WIDTH.w1,
-    borderRadius: RADIUS.r50,
-    paddingHorizontal: SPACE.s16,
-    paddingVertical: SPACE.s6,
-    marginBottom: SPACE.s24,
-  },
-  restDaysStreakPillText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f12,
-    color: COLORS.accent,
-  },
-  restDaysStreakChevron: {
-    fontSize: FONT_SIZE.f8,
-    color: COLORS.accent,
   },
   statsRow: {
     flexDirection: 'row',

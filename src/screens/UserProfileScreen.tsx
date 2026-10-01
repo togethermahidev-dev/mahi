@@ -25,7 +25,6 @@ import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
-import StreakGridPanel from '@/components/StreakGridPanel';
 import FollowListModal from '@/components/FollowListModal';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
@@ -98,7 +97,6 @@ export default function UserProfileScreen({
   const showPoints = useFeatureFlag('mahi-points');
   const [loading, setLoading] = useState(true);
   const [messaging, setMessaging] = useState(false);
-  const [streakGridOpen, setStreakGridOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [activeConvo, setActiveConvo] = useState<ConversationPreview | null>(null);
@@ -492,20 +490,6 @@ export default function UserProfileScreen({
                 ) : null}
               </View>
 
-              {/* Streak grid pill */}
-              <Pressable
-                style={({ pressed }) => [
-                  styles.streakTrackerPill,
-                  { borderColor: COLORS.accent },
-                  pressed && { opacity: 0.75 },
-                ]}
-                onPress={() => setStreakGridOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Streak tracker"
-              >
-                <Text style={styles.streakTrackerText}>Streak tracker</Text>
-              </Pressable>
-
               {/* Follow / Message actions */}
               {!isSelf ? (
                 <View style={styles.actionRow}>
@@ -569,20 +553,6 @@ export default function UserProfileScreen({
             ) : null}
           </>
         )}
-
-        {/* Streak accountability grid */}
-        {profile ? (
-          <StreakGridPanel
-            visible={streakGridOpen}
-            onClose={() => setStreakGridOpen(false)}
-            userId={userId}
-            streakCurrent={profile.streak_current ?? 0}
-            streakHighest={profile.streak_highest ?? 0}
-            streakLastUploadDate={profile.streak_last_upload_date ?? null}
-            fitnessRoutine={profile.fitness_routine ?? null}
-            dark={dark}
-          />
-        ) : null}
 
         {/* Friends list */}
         <FollowListModal
@@ -718,20 +688,6 @@ const styles = StyleSheet.create({
     width: SIZE.z1,
     height: SIZE.z40,
     opacity: 0.3,
-  },
-  streakTrackerPill: {
-    borderWidth: BORDER_WIDTH.w1,
-    borderRadius: RADIUS.r50,
-    paddingHorizontal: SPACE.s16,
-    paddingVertical: SPACE.s6,
-    marginTop: SPACE.s16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  streakTrackerText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f12,
-    color: COLORS.accent,
   },
   actionRow: {
     flexDirection: 'row',

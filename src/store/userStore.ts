@@ -10,12 +10,9 @@ interface UserProfile {
   date_of_birth: string | null; // ISO date 'YYYY-MM-DD'
   contact_number: string | null;
   fitness_goals: string[] | null;
-  fitness_routine: string | null;
   avatar_url: string | null;
   streak_current: number;
   streak_highest: number;
-  streak_lowest: number | null;
-  streak_last_upload_date: string | null; // ISO date 'YYYY-MM-DD'
   /** Mahi points (server-counted). */
   points?: number;
 }

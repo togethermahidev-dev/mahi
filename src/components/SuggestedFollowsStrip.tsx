@@ -36,7 +36,6 @@ export default function SuggestedFollowsStrip({
   const { suggestions, follow } = useSuggestedFollows();
 
   // Surfaces follow the established translucent offWhite/offBlack convention
-  // (same tokens StreakGridPanel/RestDaysStreakPanel use for borders/fills)
   // rather than introducing new opaque hex.
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
   const cardBg = dark ? withAlpha(COLORS.offWhite, 0.06) : withAlpha(COLORS.offBlack, 0.04);
