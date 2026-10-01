@@ -44,6 +44,7 @@ export const FEATURE_FLAGS = [
   'mahi-points', // P5 points badges and profile stat
   'invite-links', // P7 invite a slot from the tag sheet, share links after posting
   'feed-lock-explainer', // locked feed says why (who tagged you); open feed says how long it stays open
+  'tags-invite-step', // tag sheet leads with "Invite 3 friends" when friends can't fill the slots; invite list after posting
 
   // Navigation
   'nav-glass-rail', // floating glass rail on the right: Camera, Feed, Messages, Profile
