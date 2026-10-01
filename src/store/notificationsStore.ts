@@ -9,6 +9,7 @@ import {
   type NotificationWithActor,
 } from '@/api';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useUserStore } from './userStore';
 
 // Channel registry — outside store state so channel changes don't trigger renders
 const notifChannels = new Map<string, RealtimeChannel>();
@@ -128,6 +129,10 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       // exactly once per notification; the stats views are the number of record.
       if (payload.new.type === 'tag_missed' || payload.new.type === 'streak_lost') {
         track(payload.new.type, { challenge_id: payload.new.challenge_id ?? null });
+      }
+      // The server has just put my streak back to 0: re-read the profile the badges show.
+      if (payload.new.type === 'streak_lost') {
+        void useUserStore.getState().refresh(userId);
       }
 
       set((state) => ({

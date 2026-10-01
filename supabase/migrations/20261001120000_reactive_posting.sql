@@ -106,9 +106,7 @@ begin
              else v_actor || ' tagged you. You have ' || v_hours || ' hours to post.' end
       when 'tag_answered' then
         v_actor || ' posted ' || public.format_wait(v_c.answered_at - v_c.created_at) || ' after your tag'
-      when 'tag_missed' then
-        case when new.user_id = v_c.tagger_id then v_actor || ' missed your tag'
-             else 'You missed ' || v_actor || '''s tag' end
+      when 'tag_missed' then v_actor || ' missed your tag'
       when 'invite_joined' then v_actor || ' joined Mahi from your invite'
       when 'streak_lost' then 'You missed ' || v_actor || '''s tag. Your streak is back to 0.'
       else v_actor
