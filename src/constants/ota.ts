@@ -7,9 +7,10 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 10 · 14 — native sheets, menus and pickers; password + code autofill; gesture-handler swipes; empty feed below header (2026-10-01)
  *   build 10 · 13 — glass nav rail, Inter font, everything on design tokens (2026-09-30)
  *   build 10 · 12 — posts ask for all three slots once invite links are on (2026-09-28)
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 13;
+export const OTA_NUMBER = 14;
