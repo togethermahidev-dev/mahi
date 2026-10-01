@@ -232,11 +232,14 @@ export default function VerticalNavigator({
         decided.value = true;
         grabY.value = t.absoluteY;
         manager.activate();
-      } else if (onFeed && listMoved) {
+      } else if (decision === 'fail') {
+        // Let go at once. Held undecided, this swipe keeps the touch from the sideways page
+        // swipe (iOS won't start one gesture while another holds it), so on Camera, where no
+        // list ever takes the drag, sideways swipes did nothing.
         decided.value = true;
         manager.fail();
       }
-      // Otherwise it is asked again on the next move: a drag can still turn into a swipe.
+      // 'wait': asked again on the next move.
     })
     .onStart(() => {
       'worklet';
