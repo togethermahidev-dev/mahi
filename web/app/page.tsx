@@ -30,7 +30,7 @@ export default function Home() {
             <p className="text-f17 leading-l28 text-ios-grey-dark">
               Mahi is a fitness accountability app. Post one workout photo a day, tag three friends,
               and they&apos;ve got 48 hours to answer with a workout of their own. Coming to iPhone
-              first.
+              and Android.
             </p>
           </div>
 
