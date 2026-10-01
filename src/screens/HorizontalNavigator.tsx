@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -69,8 +69,14 @@ export default function HorizontalNavigator(): React.JSX.Element {
 
   // Take clear horizontal swipes (see swipeRules); vertical ones are left to VerticalNavigator
   // and to the lists inside the panels. Runs on the UI thread.
+  // The Feed list's scrolling. A vertical list starts tracking after ~10pt of movement in any
+  // direction, before this swipe decides at 20pt; without running alongside it, the list wins
+  // and sideways swipes on Feed do nothing.
+  const feedList = useMemo(() => Gesture.Native(), []);
+
   const swipe = Gesture.Pan()
     .manualActivation(true)
+    .simultaneousWithExternalGesture(feedList)
     .onTouchesDown((e, manager) => {
       'worklet';
       const t = e.changedTouches[0];
@@ -175,6 +181,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
             <View style={[styles.panel, panel]}>
               <VerticalNavigator
                 controlRef={verticalRef}
+                feedList={feedList}
                 railShown={showRail}
                 onIndexChange={setVIndex}
                 onNavigateLeft={() => navigateHorizontal(0)}

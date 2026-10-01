@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, type NativeGesture } from 'react-native-gesture-handler';
 import Reanimated, {
   Extrapolation,
   ReduceMotion,
@@ -99,6 +99,9 @@ interface VerticalNavigatorProps {
   onNavigateLeft: () => void; // tap profile pill or swipe right → Profile screen
   onNavigateRight: () => void; // tap messages icon or swipe left → Messages screen
   onOverlayChange?: (active: boolean) => void; // true when a fullscreen overlay is open
+  /** The Feed list's scrolling as a gesture, made by HorizontalNavigator so its sideways
+   *  swipe can run alongside the list too. */
+  feedList: NativeGesture;
 }
 
 // ─── VerticalNavigator ────────────────────────────────────────────────────────
@@ -110,6 +113,7 @@ export default function VerticalNavigator({
   onNavigateLeft,
   onNavigateRight,
   onOverlayChange,
+  feedList,
 }: VerticalNavigatorProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -161,9 +165,8 @@ export default function VerticalNavigator({
   const grabY = useSharedValue(0);
   const decided = useSharedValue(false);
   const base = useSharedValue(0);
-  // The Feed list: its scrolling as a gesture (this swipe runs alongside it), how far it is
-  // scrolled, and how far it was when the finger went down.
-  const feedList = useMemo(() => Gesture.Native(), []);
+  // The Feed list (`feedList`, its scrolling as a gesture — this swipe runs alongside it), how
+  // far it is scrolled, and how far it was when the finger went down.
   const feedOffset = useSharedValue(0);
   const feedOffsetAtDown = useSharedValue(0);
 

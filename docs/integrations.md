@@ -209,6 +209,8 @@ All drag gestures use RNGH `Gesture.Pan` + Reanimated shared values, running on 
 | `CameraScreen` pip (inside `DualPhotoPreview` Modal) | `src/screens/CameraScreen.tsx` | Long-press activation (`activateAfterLongPress(150)`), bounds-clamp to screen corners, corner-snap spring on end, Tap-race for swap. Lives in its own `GestureHandlerRootView` because the Modal spawns a separate native window. |
 | Draggable pip | `src/components/DraggablePip.tsx` | Same pattern as CameraScreen pip (long-press + corner-snap + Tap-race). Shared by `FeedScreen` and `PostDetailModal`. |
 
+**Feed list:** its scrolling is an RNGH `Gesture.Native()` made in `HorizontalNavigator` and shared with `VerticalNavigator`; both navigator pans are `simultaneousWithExternalGesture` with it. A vertical UIScrollView starts tracking after ~10pt in any direction, so without that relation it cancels a navigator pan before the 20px decision.
+
 **Coexistence rule:** the navigators' pans activate only after their swipe rules decide (20px), so a nested `GestureDetector` (pip drag, profile swipe-back, settings swipe-to-close) that activates first keeps the touch. Not yet verified on a device.
 
 **Root wrapping** — `App.tsx` wraps the whole tree in `GestureHandlerRootView` (required by RNGH). Components that render inside native `<Modal>` windows (e.g. `CameraScreen`'s `DualPhotoPreview`, `PostDetailModal`, `FollowListModal`, `BlockedUsersSheet`) must wrap their own root because a Modal is a separate native window and the app-level root does not cross that boundary. Components that render as plain absolute overlays (e.g. `StreakGridPanel`) rely on the app-level root and do **not** need their own.
