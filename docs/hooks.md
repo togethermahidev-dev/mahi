@@ -25,6 +25,11 @@ const { dark, colorScheme, colors } = useAppTheme();
 | `colors.text` | `string` | `#E8E8E3` (dark) / `#1A1A17` (light) |
 | `colors.offWhite` | `string` | `#E8E8E3` |
 | `colors.offBlack` | `string` | `#1A1A17` |
+| `colors.accent` | `string` | Brand cyan (`COLORS.accent`) |
+| `colors.glassOnDark` / `colors.glassOnLight` | `string` | Frosted fill where real glass/blur isn't available |
+| `navRail` | `{ width, edgeGap, gap }` | Nav rail geometry from tokens |
+
+All values come from `src/constants/tokens.ts`; anything not here, import from tokens directly.
 
 **Navigation usage:**
 - `CameraScreen` uses `dark` to set shutter ring/fill colour and overlay text contrast
@@ -62,28 +67,31 @@ const { posts, isLoading, hasMore, loadMore, refresh } = useProfilePosts(userId)
 ## `useFeed` — `src/hooks/useFeed.ts`
 
 ```ts
-const { posts, isLoading, error, hasMore, locked, loadMore, refresh } = useFeed();
+const { posts, isLoading, error, hasMore, locked, unlockedUntil, serverOffsetMs, loaded, loadMore, refresh } = useFeed();
 ```
 
 Reads `feedStore` (server-gated `get_feed`). Syncs once per session on mount, again whenever the app
 returns to the foreground, and when the 24-hour unlock ends (timer on the server clock).
 `isLoading` is true until this session's first page arrives, so last session's posts never flash.
 `locked` = friends' posts are hidden until the user posts; hidden items have `locked: true`.
+`unlockedUntil` + `serverOffsetMs` drive `FeedLockBanner`'s "N hours left" (wording in `src/lib/feedLock.ts`).
 
----|---|---|
+| Field | Type | Description |
+|---|---|---|
 | `posts` | `FeedPost[]` | `[...pending, ...confirmed]` — pending posts appear first |
-| `isLoading` | `boolean` | `true` only on true first-ever load (`isSyncing && posts.length === 0`) |
+| `isLoading` | `boolean` | `!loaded && posts.length === 0` |
 | `hasMore` | `boolean` | `false` when last page had fewer rows than `PAGE_SIZE` |
 | `loadMore` | `() => void` | Append next cursor page |
 | `refresh` | `() => void` | Force re-fetch from page 1 |
 
-Each `FeedPost` now includes `like_count: number`, `comment_count: number`, `liked_by_me: boolean`, and `tagged_users: TaggedUser[]` — all populated by the `get_feed_posts` RPC on initial load. Counts are kept live by `socialStore` writing back via `feedStore.patchPost` after each interaction or Realtime event. `tagged_users` is always a (possibly empty) array because the SQL coalesces the aggregation — the client never has to handle `null`. See `docs/architecture.md#caption--tagging` and `docs/integrations.md#database-functions` for the full tagging contract.
+Each `FeedPost` includes `like_count: number`, `comment_count: number`, `liked_by_me: boolean`, and `tagged_users: TaggedUser[]` — all populated by `get_feed`. Counts are kept live by `socialStore` writing back via `feedStore.patchPost` after each interaction or Realtime event. `tagged_users` is always a (possibly empty) array because the SQL coalesces the aggregation — the client never has to handle `null`. See `docs/architecture.md#caption--tagging` and `docs/integrations.md#database-functions` for the full tagging contract.
 
 **Zero-skeleton guarantee:** once the store has any data, `isLoading` is always `false` across re-mounts. `FeedScreen` never shows a skeleton after first load.
 
 **`FeedScreen` props** (set by `VerticalNavigator`):
-- `headerAnim?: Animated.Value` — scroll-driven value (0–`APP_HEADER_H`) that `VerticalNavigator` uses to translate the `AppHeader` off-screen on scroll-down
-- `onScrollTopChange?: (atTop: boolean) => void` — fired when the list crosses `y <= 2`; used by `VerticalNavigator` to gate the swipe-back-to-camera gesture
+- `headerAnim?: Animated.Value` — scroll-driven value (0–header height) that `VerticalNavigator` uses to translate the `AppHeader` off-screen on scroll-down
+- `listGesture` — the shared `feedList` `Gesture.Native()` wrapping the list's scrolling, so the page swipes can run alongside it; `listOffset` — the list's scroll offset on the UI thread, for the top-of-list rule (see [integrations.md](./integrations.md#react-native-gesture-handler--react-native-reanimated))
+- `onGoToCamera` (the locked-feed card's button) and `onOverlayChange` (a pop-up is open, so the pages must not move)
 
 **Double-tap gesture:** uses `Gesture.Tap().numberOfTaps(2).runOnJS(true)` — `.runOnJS(true)` is required so the callback runs on the JS thread where Zustand store references are accessible.
 
@@ -97,6 +105,7 @@ Thin wrapper over `useMessagesStore`. Triggers store sync and inbox real-time su
 import { useMessages } from '@/hooks/useMessages';
 
 const { inbox, requests, isLoading, refresh, accept, deny, send, startConversation } = useMessages();
+// send(conversationId, content) goes through useConversationStore (send_message) and returns a boolean
 ```
 
 **Return shape:**
@@ -109,7 +118,7 @@ const { inbox, requests, isLoading, refresh, accept, deny, send, startConversati
 | `refresh` | `() => void` | Force re-fetch inbox + requests |
 | `accept` | `(id: string) => Promise<void>` | Optimistically accept a request — moves to inbox immediately, rolls back on API failure |
 | `deny` | `(id: string) => Promise<void>` | Optimistically remove a request — deletes the conversation, rolls back on failure |
-| `send` | `(convId, content) => Promise<MsgRow \| null>` | Send a message (direct API call, used by `useConversation`) |
+| `send` | `(convId, content) => Promise<boolean>` | Send through `useConversationStore.send` |
 | `startConversation` | `(otherUserId: string) => Promise<ConversationPreview \| null>` | Create or retrieve an existing conversation — upserts via `createOrGetConversation`, injects result into the store |
 
 The `useEffect` inside `useMessages` also calls `subscribeToInbox(userId)` and unsubscribes on cleanup — so any component mounting this hook gets live inbox updates for free.
@@ -123,35 +132,22 @@ Manages the full state for a single open conversation thread. Used exclusively b
 ```ts
 import { useConversation } from '@/hooks/useConversation';
 
-const { messages, isLoading, send } = useConversation(conversationId);
+const { messages, isLoading, isLoadingOlder, hasMore, send, loadOlder, markRead } = useConversation(conversationId);
 ```
 
-**Return shape:**
+Thin wrapper over `useConversationStore` (`open` on mount, `close` on unmount).
 
 | Field | Type | Description |
 |---|---|---|
-| `messages` | `MsgRow[]` | All messages in the conversation, oldest first |
-| `isLoading` | `boolean` | `true` while history is being fetched on mount |
-| `send` | `(content: string) => Promise<void>` | Optimistic send — appends a temp bubble instantly, replaces with confirmed row on success, removes on failure |
+| `messages` | `Message[]` | The thread's loaded messages |
+| `isLoading` / `isLoadingOlder` / `hasMore` | `boolean` | First page / older page loading; more history exists |
+| `send` | `(content: string) => Promise<boolean>` | Optimistic send through `send_message` |
+| `loadOlder` | `() => void` | Page in older messages |
+| `markRead` | `() => void` | Mark the thread read (`mark_conversation_read`) |
 
-**Real-time:** subscribes to `messages` INSERT events filtered by `conversation_id` on mount. Incoming rows are deduped — if a temp message from the same sender exists it is replaced by the confirmed row; otherwise the incoming message is appended. On unmount the channel is removed via `supabase.removeChannel`.
+**Real-time:** the store keeps one channel per open thread (registry outside state) and re-reads the newest page after a reconnect, since a reconnect may have missed messages.
 
 **Preview sync:** every confirmed message (both sent and received via real-time) calls `useMessagesStore.getState().patchConversationLastMessage(conversationId, msg)` so the `ConvoRow` preview in `MessagesScreen` stays current without a full re-sync.
-
----
-
-## `useSupabase` — `src/hooks/useSupabase.ts`
-
-Returns the shared Supabase client singleton. Prefer this over importing `supabase` directly inside components.
-
-```ts
-import { useSupabase } from '@/hooks/useSupabase';
-
-const supabase = useSupabase();
-// supabase.from('table').select(...)
-```
-
-`App.tsx` uses the `supabase` singleton directly (not this hook) for the one-time auth subscription.
 
 ---
 
@@ -184,7 +180,49 @@ const { openTags, serverOffsetMs, isLoading, refresh } = useOpenTags();
 
 Tags waiting for the user's post (`get_open_tags`), kept in `tagStore` memory only (they expire).
 Syncs on mount and whenever the app returns to the foreground. `serverOffsetMs` lets countdowns
-(`src/lib/countdown.ts`) run on the server's clock. Used by `CameraScreen` for `OpenTagsBanner`.
+(`src/lib/countdown.ts`) run on the server's clock. Used by `CameraScreen` for `OpenTagsBanner` and by
+`FeedLockBanner` (who tagged you).
+
+---
+
+## `useFeatureFlag` — `src/hooks/useFeatureFlag.ts`
+
+```ts
+const on = useFeatureFlag('nav-rail-morph');
+```
+
+Reads one PostHog flag (keys typed in `src/lib/featureFlags.ts`). On while flags are loading or analytics
+is off; a key missing from PostHog reads as off once flags load. See [feature-flags.md](./feature-flags.md).
+
+---
+
+## `useNotifications` — `src/hooks/useNotifications.ts`
+
+```ts
+const { items, unreadCount, isLoading, refresh, markRead, markAllRead } = useNotifications();
+```
+
+Thin wrapper over `useNotificationsStore` that owns the realtime subscription lifecycle — the template
+for a hook with a subscription ([adding-a-feature.md](./adding-a-feature.md)).
+
+---
+
+## `useSuggestedFollows` — `src/hooks/useSuggestedFollows.ts`
+
+`{ suggestions, isLoading, refresh, follow }` over `useSuggestStore`; syncs on mount if not loaded.
+
+---
+
+## `useInviteLink` — `src/hooks/useInviteLink.ts`
+
+Mounted once in `App.tsx`. Takes an invite link that opened the app (cold or warm) into `inviteStore`
+(memory only) and claims it once someone is signed in.
+
+---
+
+## `useMinuteTick` — `src/hooks/useMinuteTick.ts`
+
+Device time refreshed every minute, so countdown text ("41 hours left") re-renders on its own.
 
 ---
 
@@ -194,5 +232,5 @@ Syncs on mount and whenever the app returns to the foreground. `serverOffsetMs` 
 - Hooks read from Zustand stores via selectors — no local `useState` for data that belongs in a store
 - `isLoading` follows the pattern: `isSyncing && storeIsEmpty` — never `isSyncing` alone
 - Trigger store actions via `useStore.getState().action()` to avoid stale closure issues
-- `send` in `useMessages` is a direct API call; `useConversation` owns the local message state for a thread
+- Message state for a thread lives in `useConversationStore`; `useMessages().send` and `useConversation().send` both go through it
 - Real-time subscriptions that span multiple components (inbox) live in a hook `useEffect`; subscriptions scoped to a single screen (conversation thread) live in the hook for that screen (`useConversation`)
