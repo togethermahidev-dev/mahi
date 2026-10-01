@@ -304,8 +304,8 @@ deadlines and their pushes, and answers any tags the poster holds.
      invite count = 3 (or fewer only when the caller has fewer than 3 taggable friends — until
      Phase 5 ships); every tagged id is taggable (same rules as `get_taggable_friends`).
   4. Insert the post with `post_date = v_today` (unique constraint rejects a second post today).
-  5. Update streak/visits (Phase 4 rule; until then, the existing `record_upload_streak` logic moved
-     inside, using `v_today`).
+  5. Update streak/visits (as built: the old `record_upload_streak` logic moved inside, using
+     `v_today`; since 2026-10-01 the tag streak — Phase 5).
   6. **Answer open tags:** `UPDATE tag_challenges SET answered_post_id, answered_at = now() WHERE
      tagged_id = caller AND answered_at IS NULL AND cancelled_at IS NULL AND expires_at +
      answer_grace > now() RETURNING …`. For each: notification `tag_answered` to the tagger;
@@ -350,7 +350,8 @@ deadlines and their pushes, and answers any tags the poster holds.
   - `TagSheet`: source = `getTaggableFriends`; exactly 3 required (POST disabled until 3, with
     the fewer-than-3 exception); `MAX_TAGS` → 3.
   - Open-tags banner above the shutter: "@joe tagged you · 31:12:04 left" from `useOpenTags`.
-  - After-post screen (`MidnightCountdown`) shows the answered tags returned by `create_post`.
+  - After posting, a toast ("Answered @x in …") shows the first tag answered, from the `answered`
+    list `create_post` returns.
 - `src/components/OpenTagsBanner.tsx`, `src/lib/countdown.ts` (pure, unit-tested: remaining time from
   `expires_at` + server offset).
 - `src/screens/NotificationsScreen.tsx` (*edit*): captions for `tag_answered`, `tag_missed`.
@@ -392,7 +393,7 @@ release — it is still `0.1.0`).
 
 **Migration `contract_posting`**
 - Revoke `INSERT` on `posts` and `post_tags` from `authenticated` (drop those RLS policies).
-- Revoke `record_upload_streak` from `authenticated`.
+- `record_upload_streak` is already dropped (`20261001120000_reactive_posting`); nothing to revoke.
 - Minimum app version: `app_config.min_app_version`; `get_app_status()` returns it. Client
   (`App.tsx`, *edit*) shows a blocking "Update Mahi" screen when below it.
 
@@ -480,7 +481,7 @@ for both the post data and the image files.
   `src/components/ProfileMediaMap.tsx` (*edit*): use `getUserPosts` + signed URLs; locked profiles show
   the same "Post to unlock".
 - `src/components/PostDetailModal.tsx` (*edit*): fetch through the gated RPC.
-- Flag: `feed-lock` (UI only); server switch = `app_config.feed_lock_enabled`.
+- Flag: `feed-lock-explainer` (UI only — the banner's wording); server switch = `app_config.feed_lock_enabled`.
 
 **Verify (pgTAP, red first):**
 - Viewer with no post in 24 h → `get_feed.items[*].image_path` all null; storage SELECT on a
@@ -713,9 +714,9 @@ decision #12.* `supabase/migrations/20260923101500_stats_views.sql` (+ rollback;
 - **Seven PostHog events**, each sent only after the server confirms, through one typed map in
   `src/lib/analytics.ts` so the names can't drift: `tag_sent` (one per post, with the tag and
   invite counts), `tag_answered`, `tag_missed`, `invite_shared`, `invite_claimed`,
-  `feed_unlocked`, `push_opened`. `tag_missed` fires on the notification, so it counts twice per
-  missed tag — one per person — and `stats.tags_daily` holds the true count. `streak_lost`
-  (2026-10-01) is read off its notification the same way, once, by the person who missed.
+  `feed_unlocked`, `push_opened`. `tag_missed` and `streak_lost` (2026-10-01) are read off their
+  notifications, once per missed tag each: `tag_missed` by the tagger, `streak_lost` by the person
+  who missed. `stats.tags_daily` is the number of record.
 - **Still to do:** decision #12's targets, then the inner circle runs the loop for 2 weeks and
   the views get compared against them.
 

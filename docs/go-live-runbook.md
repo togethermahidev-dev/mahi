@@ -27,7 +27,7 @@ In this order (the tool sorts by the timestamp in the filename — you don't cho
 | 1 | `reconcile_drift` | Records the one setting made by hand in the dashboard (profile-photo storage). Changes nothing else. |
 | 2 | `secure_toggle_like` | **Security fix.** Today any signed-in person can like or unlike as someone else. |
 | 3 | `pgtap` | Adds the test framework the checks below run on. |
-| 4 | `timezone_postdate` | "One post a day" follows each person's own time zone. |
+| 4 | `timezone_postdate` | Dates each post (`post_date`) in the person's own time zone; stats, points and the feed use it. |
 | 5 | `push` | Push notifications: queue, quiet hours, the job that sends them. |
 | 6 | `tag_challenges` | The core loop: posting in one step, 3 tags, 48-hour deadlines, reminders. |
 | 7 | `app_version_gate` | Lets you ask old app versions to update. |
@@ -36,11 +36,6 @@ In this order (the tool sorts by the timestamp in the filename — you don't cho
 | 10 | `messages` | One send path for chat, unread counts — and fixes blocking, which fails today. |
 | 11 | `invites` | Invite links for people not on Mahi. |
 | 12 | `stats_views` | The tables of numbers for judging the beta. Read-only. |
-
-Rows 4 and 8 describe the rules as they went live on 2026-09-23. Since 2026-10-01 posting is
-**reactive posting** (`20261001120000_reactive_posting.sql`): you post only to answer an open tag (your
-first post excepted) — no longer one a day, but once per tag answered — each answer adds 1 to your streak, a missed tag puts it back to 0, and the feed
-opens for 24 hours after each post — see [architecture.md](./architecture.md#reactive-posting).
 
 All twelve are safe for the app people have on their phones today. Nothing here removes anything
 the current app uses — those steps are deliberately held back until a new app build is in the
@@ -157,6 +152,10 @@ built to leave the current app untouched, and this is how we confirm it.
 The database is ready. The app runs on the preview lane (native build 10, OTA updates since); nothing
 is in the stores yet. Still to do, in order:
 
+0. **Reactive posting** (not pushed yet; rules in [architecture.md](./architecture.md#reactive-posting)),
+   in this order: push `20261001120000_reactive_posting` (Steps 1–4 above) → publish the OTA → push
+   `20261001120100_drop_rest_days` only once every phone has the new app (old builds still insert
+   `fitness_routine` at sign-up and read the dropped columns).
 1. **Push notification credentials** — upload the Apple push key and Google FCM credentials in
    EAS (`eas credentials`). Then set `SEND_PUSH_SECRET`, add the Vault secrets `send_push_url` and
    `send_push_secret`, and deploy `send-push` (not deployed yet). Only then create the `push-core`

@@ -60,7 +60,7 @@ const { posts, isLoading, hasMore, loadMore, refresh } = useProfilePosts(userId)
 | `loadMore` | `() => void` | Append next page |
 | `refresh` | `() => void` | Force re-fetch from page 1 |
 
-`addPost` (called from `CameraScreen` after confirmed upload) deduplicates by UTC calendar day — the grid never shows two entries for the same day.
+`addPost` (called from `CameraScreen` after confirmed upload) deduplicates by post id — a retry of the same post replaces it; there is no daily limit.
 
 ---
 

@@ -49,8 +49,10 @@
   saves tags, deadlines and pushes. A retry with the same `clientId` returns the same post
 - On any failure: remove pending post, revert streak, and `removePostPhotos` the uploaded paths
 - `posts` storage bucket is still **public** (`supabase/deferred/private_bucket.sql` makes it private later)
-- One post per day: server (unique index, `create_post`) plus the client-side `hasPostedToday` guard
-- `hasPostedToday` disables shutter + flip at 0.3 opacity and shows the "Streak secured" state
+- Reactive posting (below): `create_post` checks `reactive_posting_open` and raises `'reactive posting: not tagged'`;
+  the camera mirrors it with `reactivePostingGate()` (`src/lib/reactivePosting.ts`) + `hasEverPosted()`
+  (`src/api/posts.ts`) — a spinner while loading, "No tags to answer" when closed; the server error maps to
+  the same toast. No daily limit
 
 ## Auth
 - Supabase is the source of truth for auth
@@ -73,15 +75,18 @@
 - Only the resend cooldown timestamp is kept on the device (`src/lib/otp.ts`); codes are server-only
 - When writing back to profile after async work, always read from `useUserStore.getState().profile` — never spread a closure snapshot
 
-## Rest Days / Training Days
-- `profiles.fitness_routine` stores comma-separated **full day names** (e.g. `'Monday,Wednesday,Friday'`) — these are training days
-- Days **not** in `fitness_routine` are rest days — the `record_upload_streak` DB function exempts rest days from streak-breaking
-- The DB function uses `to_char(date, 'Dy')` (3-letter abbreviation) with `position()` to check membership — this works because each abbreviation is a substring of only its corresponding full name
-- Client-side rest-day check uses `new Date().toLocaleDateString('en-US', { weekday: 'long' })` to get the full day name in device timezone
-- `RestDaysStreakPanel` (native page sheet opened from Profile) lets users edit their training days post-signup
-- Open question (founder, parked 2026-10-01): whether a skipped rest day protects the streak — see `docs/decisions.md`
-- `updateFitnessRoutine(userId, routine)` in `src/api/profile.ts` persists changes; store is updated via `setProfile({ ...profile, fitness_routine })` after save
-- Sentry breadcrumbs/exceptions are logged for training-day screen open, save success, and save failure
+## Reactive posting and the streak
+- You can post only while you have an open tag you can still answer (48 hours + 10 minutes grace); your very
+  first post is free. No daily limit — the one-a-day unique index is dropped (`20261001120000_reactive_posting`)
+- Server rule: `public.reactive_posting_open(user)`, checked inside `create_post`. App rule: `reactivePostingGate()`
+  in `src/lib/reactivePosting.ts`
+- Streak: +1 per post that answers at least one tag; a missed tag resets `streak_current` to 0
+  (`break_missed_streaks`, run from the `mark_missed_tags` cron and inside `create_post`); `streak_highest` is
+  never lowered; `posts.streak_day` = the streak after that post. Badges read "Streak N" (`src/lib/streakText.ts`),
+  hidden at 0
+- Notifications: `streak_lost` to the person who missed (actor = the tagger); `tag_missed` only to the tagger
+- Gone: rest days, training days, `fitness_routine`, `streak_logs`, `record_upload_streak`, the streak calendar.
+  `20261001120100_drop_rest_days` removes the columns and table once every phone has the new app
 
 ## Sentry Logging
 - `Sentry.captureException(err, { tags: { flow, action? }, extra })` for caught errors
@@ -95,9 +100,9 @@
 - Every colour, text size, spacing, radius, shadow, size, offset, icon size, letter spacing, line height and
   border width comes from `src/constants/tokens.ts` (`withAlpha` for opacity). `designTokens.test.ts` fails on
   a raw value anywhere else — need a new value? add a token first
-- UI copy is sentence case ("Log in", "Streak secured", "Day streak"). No all-caps, letter-spaced labels;
+- UI copy is sentence case ("Log in", "Streak N", "No tags to answer"). No all-caps, letter-spaced labels;
   the MAHI wordmark is the only exception (owner, 2026-10-01)
 - Dark/light mode via `useAppTheme()` (the user's stored choice) — always support both
 - Pop-ups are native: page sheets (`presentationStyle="pageSheet"`) for comments, tags, notifications,
-  requests, blocked users, friends and the streak panels; `ActionSheetIOS` for menus
+  requests, blocked users and friends; `ActionSheetIOS` for menus
 - The keyboard never covers a sheet, field or button — see CLAUDE.md (`KeyboardInset`)

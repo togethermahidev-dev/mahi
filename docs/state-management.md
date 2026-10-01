@@ -71,12 +71,9 @@ Manages the authenticated user's profile including streak counters (the tag stre
   date_of_birth: string | null;
   contact_number: string | null;
   fitness_goals: string[] | null;
-  fitness_routine: string | null;   // old training days; no longer part of the streak (2026-10-01)
   avatar_url: string | null;
   streak_current: number;           // tags answered in a row; back to 0 after a missed tag
-  streak_highest: number;           // best streak, stays on show
-  streak_lowest: number | null;
-  streak_last_upload_date: string | null;  // YYYY-MM-DD local date
+  streak_highest: number;           // best streak, never lowered
 }
 ```
 
@@ -87,8 +84,8 @@ setProfile({ ...current, streak_current: streakResult.streak_current, ... });
 ```
 
 **No training days or rest days.** Under reactive posting (2026-10-01) the streak counts answered
-tags, not days, so nothing in the app edits `fitness_routine` for the streak any more; the server keeps
-`streak_current` and `streak_highest` and the app only reads them.
+tags, not days; the server keeps `streak_current` and `streak_highest` and the app only reads them.
+`fitness_routine`, `streak_lowest` and `streak_last_upload_date` are gone (`20261001120100_drop_rest_days`).
 
 **Usage:**
 ```ts
@@ -223,7 +220,7 @@ Manages the post grid shown on `ProfileScreen`. Separate from `useFeedStore` —
 |---|---|
 | `sync(userId)` | Fetch first page (30 posts) for the given profile |
 | `loadMore(userId)` | Append next page |
-| `addPost(post)` | Prepend a newly uploaded post; deduplicates by UTC calendar day — any existing post for the same day is replaced |
+| `addPost(post)` | Prepend a newly uploaded post; deduplicates by post id — a retry of the same post replaces it (no daily limit) |
 | `reset()` | Clear on sign-out |
 
 **Usage:**
