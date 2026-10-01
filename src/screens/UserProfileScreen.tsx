@@ -409,7 +409,7 @@ export default function UserProfileScreen({
           <ActivityIndicator color={muted} style={styles.loader} />
         ) : isBlocked ? (
           <View style={styles.blockedWrap}>
-            <Text style={[styles.blockedTitle, { color: text }]}>User Unavailable</Text>
+            <Text style={[styles.blockedTitle, { color: text }]}>User unavailable</Text>
             <Text style={[styles.blockedSubtitle, { color: muted }]}>
               {isBlockedByMe ? 'You have blocked this user.' : 'This content is not available.'}
             </Text>
@@ -423,7 +423,7 @@ export default function UserProfileScreen({
                 onPress={handleUnblock}
                 accessibilityRole="button"
               >
-                <Text style={[styles.unblockBtnText, { color: text }]}>UNBLOCK</Text>
+                <Text style={[styles.unblockBtnText, { color: text }]}>Unblock</Text>
               </Pressable>
             ) : null}
           </View>
@@ -461,7 +461,7 @@ export default function UserProfileScreen({
                 accessibilityRole="button"
                 accessibilityLabel="Friends"
               >
-                <Text style={[styles.statLabel, { color: muted }]}>FRIENDS ›</Text>
+                <Text style={[styles.statLabel, { color: muted }]}>Friends ›</Text>
               </Pressable>
 
               {/* Streak stats */}
@@ -470,14 +470,14 @@ export default function UserProfileScreen({
                   <Text style={[styles.statValue, { color: text }]}>
                     {profile?.streak_current ?? 0}
                   </Text>
-                  <Text style={[styles.statLabel, { color: muted }]}>STREAK</Text>
+                  <Text style={[styles.statLabel, { color: muted }]}>Streak</Text>
                 </View>
                 <View style={[styles.statDivider, { backgroundColor: muted }]} />
                 <View style={styles.stat}>
                   <Text style={[styles.statValue, { color: text }]}>
                     {profile?.streak_highest ?? 0}
                   </Text>
-                  <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
+                  <Text style={[styles.statLabel, { color: muted }]}>Best</Text>
                 </View>
                 {showPoints ? (
                   <>
@@ -486,7 +486,7 @@ export default function UserProfileScreen({
                       <Text style={[styles.statValue, { color: text }]}>
                         {profile?.points ?? 0}
                       </Text>
-                      <Text style={[styles.statLabel, { color: muted }]}>🔥 POINTS</Text>
+                      <Text style={[styles.statLabel, { color: muted }]}>Points</Text>
                     </View>
                   </>
                 ) : null}
@@ -503,7 +503,7 @@ export default function UserProfileScreen({
                 accessibilityRole="button"
                 accessibilityLabel="Streak tracker"
               >
-                <Text style={styles.streakTrackerText}>STREAK TRACKER</Text>
+                <Text style={styles.streakTrackerText}>Streak tracker</Text>
               </Pressable>
 
               {/* Follow / Message actions */}
@@ -525,7 +525,7 @@ export default function UserProfileScreen({
                     <Text
                       style={[styles.followBtnText, { color: isFollowing ? text : COLORS.white }]}
                     >
-                      {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
+                      {isFollowing ? 'Following' : 'Follow'}
                     </Text>
                   </Pressable>
 
@@ -545,7 +545,7 @@ export default function UserProfileScreen({
                     <Text
                       style={[styles.messageBtnText, { color: text, opacity: messaging ? 0 : 1 }]}
                     >
-                      MESSAGE
+                      Message
                     </Text>
                     {messaging ? (
                       <ActivityIndicator color={text} style={StyleSheet.absoluteFill} />
@@ -711,9 +711,8 @@ const styles = StyleSheet.create({
     lineHeight: LINE_HEIGHT.l28,
   },
   statLabel: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t3,
   },
   statDivider: {
     width: SIZE.z1,
@@ -731,8 +730,7 @@ const styles = StyleSheet.create({
   },
   streakTrackerText: {
     fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f10,
-    letterSpacing: TRACKING.t2,
+    fontSize: FONT_SIZE.f12,
     color: COLORS.accent,
   },
   actionRow: {
@@ -746,9 +744,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s9,
   },
   followBtnText: {
-    fontSize: FONT_SIZE.f11,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t3,
   },
   messageBtn: {
     borderWidth: BORDER_WIDTH.w1,
@@ -757,9 +754,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s9,
   },
   messageBtnText: {
-    fontSize: FONT_SIZE.f11,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t3,
   },
   blockedWrap: {
     alignItems: 'center',
@@ -769,7 +765,6 @@ const styles = StyleSheet.create({
   blockedTitle: {
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t3,
   },
   blockedSubtitle: {
     fontSize: FONT_SIZE.f13,
@@ -785,9 +780,8 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s8,
   },
   unblockBtnText: {
-    fontSize: FONT_SIZE.f11,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t3,
   },
   mapShadow: {
     flex: 1,
