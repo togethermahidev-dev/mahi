@@ -2,8 +2,14 @@
 
 For the owner to run, on their own machine. Nobody else touches production.
 
-Twelve database changes are written, tested and committed, and none of them is live yet. This is
-the order to apply them in, the exact commands, and what to check after each one.
+> **Status (checked against prod 2026-10-01):** done. The owner pushed these twelve on 2026-09-23
+> (161 checks rehearsed, then re-run live), and every later migration since — through
+> `20261001100100_account_delete_cascade` — the same way. Steps 0–4 stay here as the procedure for the
+> next database change (back up → `try` → `push --dry-run` → `push` → `test`). What's left is under
+> **After this**.
+
+Twelve database changes were written, tested and committed before any of them went live. This is
+the order they were applied in, the exact commands, and what to check after each one.
 
 **Read this first.** Do **not** paste the SQL into the Supabase dashboard's SQL editor. The
 dashboard doesn't record what it ran, so production and this repo drift apart — that drift is
@@ -143,14 +149,19 @@ built to leave the current app untouched, and this is how we confirm it.
 
 ## After this
 
-The database is ready and the app is not. In order:
+The database is ready. The app runs on the preview lane (native build 10, OTA updates since); nothing
+is in the stores yet. Still to do, in order:
 
 1. **Push notification credentials** — upload the Apple push key and Google FCM credentials in
-   EAS (`eas credentials`). Then tell me, and I'll set the two server secrets and deploy the
-   sending function.
-2. **A new app build** — it adds native modules, so this can't be an over-the-air update. Test it
-   on a device before any store release.
-3. **Store release**, then raise the minimum version. Before any build, run:
+   EAS (`eas credentials`). Then set `SEND_PUSH_SECRET`, add the Vault secrets `send_push_url` and
+   `send_push_secret`, and deploy `send-push` (not deployed yet). Only then create the `push-core`
+   flag in PostHog — it is deliberately absent (off) until push works.
+2. **Invite landing page** — host `/i/<token>`, `/.well-known/apple-app-site-association` and
+   `/.well-known/assetlinks.json` on `togethermahi.com` (the domain doesn't resolve yet). Until then
+   invite links open nothing; the 6-character code works.
+3. **The next native build** — remove the unused microphone text from `app.config.js`, add
+   `expo-symbols`. Test it on a device before any store release.
+4. **Store release**, then raise the minimum version. Before any build, run:
 
    ```bash
    pnpm release:check
@@ -159,7 +170,5 @@ The database is ready and the app is not. In order:
    It refuses if a migration would set the minimum app version higher than the version you're
    shipping — which would put every user behind an update screen with no update to install.
    CI runs it too.
-4. **The held-back steps** in `supabase/deferred/` — only once that build is in both stores.
-
-Do not release an app build before Step 3 above. The new app posts and reads through functions
-that only exist once these changes are live.
+5. **The held-back steps** in `supabase/deferred/` (`contract_posting`, `contract_messages`,
+   `private_bucket`) — only once that build is in both stores.
