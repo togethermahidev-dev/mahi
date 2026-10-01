@@ -12,6 +12,9 @@
   ignore = "bash scripts/netlify-ignore.sh"
 
 [build.environment]
+  # The site is a static export (web/out), not a Next.js server app. Netlify adds its Next.js
+  # runtime plugin on its own when it spots Next.js, and that plugin fails on a static export.
+  NETLIFY_NEXT_PLUGIN_SKIP = "true"
   # Same Node as the app (.nvmrc).
   NODE_VERSION = "22"
   # Netlify runs its own install before the build command, which would install the whole
