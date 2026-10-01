@@ -10,19 +10,10 @@
 -- Tests: supabase/tests/reactive_posting_test.sql, feed_lock_test.sql, tag_challenges_test.sql,
 -- timezone_postdate_test.sql
 
--- 1. Each tag remembers when it broke its person's streak, so it only ever does that once.
---    Tags that had already run out before today never count against the new streaks.
-alter table public.tag_challenges add column streak_broken_at timestamptz;
-
-update public.tag_challenges c
-set streak_broken_at = now()
-from public.app_config cfg
-where c.answered_at is null and c.cancelled_at is null
-  and c.expires_at + cfg.answer_grace < now();
-
-create index tag_challenges_streak_unbroken on public.tag_challenges (expires_at)
-  where answered_at is null and cancelled_at is null and streak_broken_at is null;
-
+-- 1. Everyone starts again from 0. missed_at stays the one record of a missed tag: a tag resets
+--    its person's streak at the moment it is marked missed, so it can only ever do that once, and
+--    tags that ran out before today already carry missed_at from the 5-minute job, so they never
+--    count against the new streaks.
 update public.profiles set streak_current = 0 where streak_current <> 0;
 
 -- 2. Reactive posting: may this person post now? Never posted, or an open tag they can still answer.
@@ -39,31 +30,32 @@ as $$
            cross join public.app_config cfg
            where c.tagged_id = p_user
              and c.answered_at is null and c.cancelled_at is null and c.missed_at is null
-             and now() <= c.expires_at + cfg.answer_grace
+             and c.expires_at >= now() - cfg.answer_grace
          );
 $$;
 
--- 3. Missed tags reset the streak: every run-out, unanswered, uncancelled tag not yet counted
---    (only p_user's when given) is marked and puts its person's streak back to 0.
+-- 3. Missed tags reset the streak: every run-out, unanswered, uncancelled tag not yet marked
+--    missed (only p_user's when given) is marked now and puts its person's streak back to 0.
+--    Marking it also frees the tagger → friend pair for a new tag.
 create function public.break_missed_streaks(p_user uuid default null)
 returns void
 language sql
 security definer
 set search_path = public
 as $$
-  with broken as (
+  with missed as (
     update public.tag_challenges c
-    set streak_broken_at = now()
+    set missed_at = now()
     from public.app_config cfg
     where c.tagged_id is not null
       and (p_user is null or c.tagged_id = p_user)
-      and c.answered_at is null and c.cancelled_at is null and c.streak_broken_at is null
-      and c.expires_at + cfg.answer_grace < now()
+      and c.answered_at is null and c.cancelled_at is null and c.missed_at is null
+      and c.expires_at < now() - cfg.answer_grace
     returning c.tagged_id
   )
   update public.profiles p
   set streak_current = 0
-  where p.id in (select tagged_id from broken) and p.streak_current <> 0;
+  where p.id in (select tagged_id from missed) and p.streak_current <> 0;
 $$;
 
 -- 4. The person who missed hears they lost their streak; the tagger still hears it was missed.
@@ -144,7 +136,7 @@ as $$
     from public.tag_challenges c
     cross join public.app_config cfg
     where c.answered_at is null and c.cancelled_at is null and c.missed_notified_at is null
-      and c.expires_at + cfg.answer_grace < now()
+      and c.expires_at < now() - cfg.answer_grace
     for update of c skip locked
   ),
   marked as (
@@ -214,8 +206,10 @@ begin
     );
   end if;
 
-  -- A tag of yours that ran out unanswered puts your streak back to 0 now, not when the job runs.
-  perform public.break_missed_streaks(v_uid);
+  -- Every tag that ran out is marked missed now, not when the job runs: a tag of yours puts your
+  -- streak back to 0 before this post counts, and your own expired tags no longer block
+  -- re-tagging the same friend (their streaks reset too).
+  perform public.break_missed_streaks();
   select * into v_profile from public.profiles where id = v_uid;
 
   -- Reactive posting: you post when someone has tagged you (your first post is free).
@@ -232,13 +226,6 @@ begin
   then
     raise exception 'photo not found' using errcode = '22023';
   end if;
-
-  -- Expired tags from this user no longer block re-tagging the same friend.
-  update public.tag_challenges c
-  set missed_at = now()
-  where c.tagger_id = v_uid
-    and c.answered_at is null and c.cancelled_at is null and c.missed_at is null
-    and c.expires_at + v_cfg.answer_grace < now();
 
   select count(*) into v_available from public.taggable_friends(v_uid) where not has_open_tag;
   -- Once invite links are switched on, an empty slot can always be filled by an invite, so every
@@ -265,7 +252,7 @@ begin
     select 1 from public.tag_challenges c
     where c.tagged_id = v_uid
       and c.answered_at is null and c.cancelled_at is null and c.missed_at is null
-      and now() <= c.expires_at + v_cfg.answer_grace
+      and c.expires_at >= now() - v_cfg.answer_grace
   ) then
     update public.profiles
     set streak_current = streak_current + 1,
