@@ -42,6 +42,8 @@ if (!showSuggestions) return null;
 **Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
 are switched in the `app_config` table):
 `push-core` (P1, the one-time "turn on notifications" prompt) · `tag-challenges` (P2, the open-tags banner) · `mahi-points` (P5, points badges)
+`feed-lock-explainer` (the locked feed names who tagged you and how long you have to answer; the open
+feed says how long it stays open. Off = the plain locked post cards.)
 
 **Navigation:** `nav-glass-rail` (floating glass rail on the right with Camera, Feed, Messages and
 Profile; replaces the side dots and the header's Profile/Messages pills. Off = the old dots and pills.)
