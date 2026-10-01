@@ -212,7 +212,7 @@ Two gesture systems coexist in the app — legacy RN `PanResponder` for full-scr
 
 **Coexistence rule:** RNGH installs native gesture recognizers that dispatch **before** the JS responder system evaluates `PanResponder` thresholds. Because both navigators require 10px of movement before claiming a touch, RNGH has a free head-start and captures any touch landing inside a `GestureDetector` before the navigator's threshold is crossed. **No `simultaneousHandlers` or `waitFor` configuration is required.** The `FeedScreen` pip drag inside the navigator stack is the production-verified proof.
 
-**Root wrapping** — `App.tsx` wraps the whole tree in `GestureHandlerRootView` (required by RNGH). Components that render inside native `<Modal>` windows (e.g. `CameraScreen`'s `DualPhotoPreview`, `ProfileMediaMapModal`) must wrap their own root because a Modal is a separate native window and the app-level root does not cross that boundary. Components that render as plain absolute overlays (e.g. `StreakGridPanel`) rely on the app-level root and do **not** need their own.
+**Root wrapping** — `App.tsx` wraps the whole tree in `GestureHandlerRootView` (required by RNGH). Components that render inside native `<Modal>` windows (e.g. `CameraScreen`'s `DualPhotoPreview`, `PostDetailModal`, `FollowListModal`, `BlockedUsersSheet`) must wrap their own root because a Modal is a separate native window and the app-level root does not cross that boundary. Components that render as plain absolute overlays (e.g. `StreakGridPanel`) rely on the app-level root and do **not** need their own.
 
 **Shared-value pattern** — drag surfaces declare `useSharedValue` refs (e.g. `translateY`, `startY`, `viewportH`, `contentH`), read/write them inside `.onStart` / `.onUpdate` worklets (marked `'worklet'`), and consume them via `useAnimatedStyle` applied to a `Reanimated.View`. The `GestureDetector` must wrap the same `Reanimated.View` that consumes the animated style. Layout measurements flow via `onLayout` handlers that write directly to shared values (JS-thread writes to shared values are safe).
 
@@ -262,7 +262,7 @@ Error and crash reporting via `@sentry/react-native` v8.
 | Signup | `CreateAccountSheet.tsx` | `captureException` on OTP send / account creation failure; breadcrumbs for OTP sent, verified, account created |
 | Search | `GlobalSearchOverlay.tsx` | `captureException` on search error; breadcrumbs for overlay open, profile tap |
 | Camera upload | `CameraScreen.tsx` | `captureException` on upload failure |
-| Training days | `TrainingDaysScreen.tsx` | `captureException` on save failure; breadcrumbs for screen open, successful save |
+| Training days | `RestDaysStreakPanel.tsx` | `captureException` on save failure; breadcrumbs for panel open, successful save |
 | Follow | `UserProfileOverlay.tsx` | `captureMessage` on toggle follow/unfollow error; breadcrumb on follow tap |
 
 **Pattern:** use `Sentry.captureException(err, { tags: { flow }, extra })` for caught errors and `Sentry.addBreadcrumb({ category, message, level })` for navigation/action events. Use `console.error('[ComponentName]')` alongside for dev debugging.

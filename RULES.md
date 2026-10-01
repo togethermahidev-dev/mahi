@@ -61,7 +61,7 @@
 - Days **not** in `fitness_routine` are rest days — the `record_upload_streak` DB function exempts rest days from streak-breaking
 - The DB function uses `to_char(date, 'Dy')` (3-letter abbreviation) with `position()` to check membership — this works because each abbreviation is a substring of only its corresponding full name
 - Client-side rest-day check uses `new Date().toLocaleDateString('en-US', { weekday: 'long' })` to get the full day name in device timezone
-- `TrainingDaysScreen` (full-screen overlay, slides from left) allows users to edit their training days post-signup
+- `RestDaysStreakPanel` (native page sheet opened from Profile) lets users edit their training days post-signup
 - `updateFitnessRoutine(userId, routine)` in `src/api/profile.ts` persists changes; store is updated via `setProfile({ ...profile, fitness_routine })` after save
 - Sentry breadcrumbs/exceptions are logged for training-day screen open, save success, and save failure
 
