@@ -37,7 +37,6 @@
   --mahi-color-amber: #D4963A;
   --mahi-color-amber-deep: #B07020;
   /* FONT_SIZE */
-  --mahi-font-size-f8: 0.5rem;
   --mahi-font-size-f10: 0.625rem;
   --mahi-font-size-f11: 0.6875rem;
   --mahi-font-size-f12: 0.75rem;
@@ -112,7 +111,6 @@
   --mahi-size-z56: 3.5rem;
   --mahi-size-z58: 3.625rem;
   --mahi-size-z60: 3.75rem;
-  --mahi-size-z70: 4.375rem;
   --mahi-size-z72: 4.5rem;
   --mahi-size-z80: 5rem;
   --mahi-size-z88: 5.5rem;
@@ -140,7 +138,6 @@
   --mahi-offset-o44: 2.75rem;
   --mahi-offset-o48: 3rem;
   --mahi-offset-o50: 3.125rem;
-  --mahi-offset-o56: 3.5rem;
   --mahi-offset-o60: 3.75rem;
   --mahi-offset-o70: 4.375rem;
   --mahi-offset-o72: 4.5rem;
@@ -190,7 +187,6 @@
   --mahi-tracking-t3: 0.1875rem;
   --mahi-tracking-t4: 0.25rem;
   --mahi-tracking-t5: 0.3125rem;
-  --mahi-tracking-t6: 0.375rem;
   --mahi-tracking-t8: 0.5rem;
   --mahi-tracking-t10: 0.625rem;
   /* LINE_HEIGHT */
@@ -276,7 +272,6 @@
   --color-amber: var(--mahi-color-amber);
   --color-amber-deep: var(--mahi-color-amber-deep);
   /* FONT_SIZE */
-  --text-f8: var(--mahi-font-size-f8);
   --text-f10: var(--mahi-font-size-f10);
   --text-f11: var(--mahi-font-size-f11);
   --text-f12: var(--mahi-font-size-f12);
@@ -351,7 +346,6 @@
   --spacing-z56: var(--mahi-size-z56);
   --spacing-z58: var(--mahi-size-z58);
   --spacing-z60: var(--mahi-size-z60);
-  --spacing-z70: var(--mahi-size-z70);
   --spacing-z72: var(--mahi-size-z72);
   --spacing-z80: var(--mahi-size-z80);
   --spacing-z88: var(--mahi-size-z88);
@@ -379,7 +373,6 @@
   --spacing-o44: var(--mahi-offset-o44);
   --spacing-o48: var(--mahi-offset-o48);
   --spacing-o50: var(--mahi-offset-o50);
-  --spacing-o56: var(--mahi-offset-o56);
   --spacing-o60: var(--mahi-offset-o60);
   --spacing-o70: var(--mahi-offset-o70);
   --spacing-o72: var(--mahi-offset-o72);
@@ -429,7 +422,6 @@
   --tracking-t3: var(--mahi-tracking-t3);
   --tracking-t4: var(--mahi-tracking-t4);
   --tracking-t5: var(--mahi-tracking-t5);
-  --tracking-t6: var(--mahi-tracking-t6);
   --tracking-t8: var(--mahi-tracking-t8);
   --tracking-t10: var(--mahi-tracking-t10);
   /* LINE_HEIGHT */
@@ -692,14 +684,6 @@
 
 @utility underline-offset-o50 {
   text-underline-offset: var(--mahi-offset-o50);
-}
-
-@utility outline-offset-o56 {
-  outline-offset: var(--mahi-offset-o56);
-}
-
-@utility underline-offset-o56 {
-  text-underline-offset: var(--mahi-offset-o56);
 }
 
 @utility outline-offset-o60 {
