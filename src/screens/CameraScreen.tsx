@@ -15,6 +15,7 @@ import {
   FlatList,
   Share,
   AccessibilityInfo,
+  ActivityIndicator,
 } from 'react-native';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,6 +48,7 @@ import { track } from '@/lib/analytics';
 import {
   createPost,
   getTaggableFriends,
+  hasEverPosted,
   removePostPhotos,
   uploadPostPhotos,
   type TaggedUser,
@@ -64,6 +66,7 @@ import InviteShareSheet from '@/components/InviteShareSheet';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { formatWait } from '@/lib/countdown';
+import { answersATag, reactivePostingGate } from '@/lib/reactivePosting';
 import { nudgeLabel } from '@/lib/tagNudge';
 import { inviteList, inviteShareMessage, markInvite, type InviteItem } from '@/lib/inviteShare';
 import { tagSheetStep } from '@/lib/inviteStep';
@@ -90,46 +93,8 @@ import {
   SHADOW_BLUR,
 } from '@/constants/tokens';
 
-// ─── Midnight Countdown ───────────────────────────────────────────────────────
-
-function getMsUntilMidnight(): number {
-  const now = new Date();
-  const next = new Date(now);
-  next.setHours(24, 0, 0, 0);
-  return next.getTime() - now.getTime();
-}
-
-function formatCountdown(ms: number): string {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  return [h, m, s].map((v) => String(v).padStart(2, '0')).join(':');
-}
-
-function MidnightCountdown({ onUnlock }: { onUnlock: () => void }) {
-  const [remaining, setRemaining] = useState(getMsUntilMidnight);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      const ms = getMsUntilMidnight();
-      setRemaining(ms);
-      if (ms <= 0) {
-        clearInterval(id);
-        onUnlock();
-      }
-    }, 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  return (
-    <BlurView intensity={60} tint="dark" style={styles.postedOverlay}>
-      <Text style={styles.postedTitle}>Streak secured</Text>
-      <Text style={styles.countdownTimer}>{formatCountdown(remaining)}</Text>
-      <Text style={styles.postedSub}>until your next post unlocks</Text>
-    </BlurView>
-  );
-}
+/** Said on the camera and in the toast when there's no open tag to answer. */
+const NO_TAGS_TITLE = 'No tags to answer';
 
 // ─── Streak Badge ─────────────────────────────────────────────────────────────
 
@@ -168,7 +133,7 @@ function StreakBadge({ count }: { count: number }) {
       ]}
     >
       <Text style={styles.streakNumber}>{count}</Text>
-      <Text style={styles.streakLabel}>Day streak</Text>
+      <Text style={styles.streakLabel}>Streak</Text>
     </Animated.View>
   );
 }
@@ -1240,7 +1205,6 @@ export default function CameraScreen(): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const { dark } = useAppTheme();
-  const insets = useSafeAreaInsets();
 
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [captureState, setCaptureState] = useState<CaptureState>('idle');
@@ -1271,7 +1235,7 @@ export default function CameraScreen(): React.JSX.Element {
   const profile = useUserStore((s) => s.profile);
   const setProfile = useUserStore((s) => s.setProfile);
   const requiredTags = useTagStore((s) => s.requiredTags);
-  const { openTags, serverOffsetMs } = useOpenTags();
+  const { openTags, serverOffsetMs, loaded: tagsLoaded } = useOpenTags();
   const showTagBanner = useFeatureFlag('tag-challenges');
   const pipGuideOn = useFeatureFlag('camera-pip-guide');
   const inviteStepOn = useFeatureFlag('tags-invite-step');
@@ -1282,15 +1246,18 @@ export default function CameraScreen(): React.JSX.Element {
 
   const streakCount = profile?.streak_current ?? 0;
 
-  const today = new Date().toLocaleDateString('en-CA');
-  const hasPostedToday = profile?.streak_last_upload_date === today;
-
-  const isRestDay = (() => {
-    const routine = profile?.fitness_routine;
-    if (!routine) return false;
-    const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-    return !routine.split(',').includes(dayName);
-  })();
+  // Reactive posting: your first post, then only while a friend's tag is open. Whether you've
+  // posted before is read from the server, in memory only (null = not read yet), and re-read
+  // whenever open tags refresh until it's known you have. Tags are never kept on the device.
+  const [hasPosted, setHasPosted] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!userId || hasPosted) return;
+    hasEverPosted(userId).then(({ data }) => {
+      if (data !== null) setHasPosted(data);
+    });
+  }, [userId, openTags, hasPosted]);
+  const gate = reactivePostingGate({ hasPosted, tagsLoaded, openTags, serverOffsetMs });
+  const blocked = gate !== 'open';
 
   const doubleTapToFlip = Gesture.Tap()
     .numberOfTaps(2)
@@ -1483,7 +1450,9 @@ export default function CameraScreen(): React.JSX.Element {
     setIsUploading(true);
 
     const tempId = `pending_${Date.now()}`;
-    const optimisticStreakDay = profile.streak_current + 1;
+    // Reactive posting: only a post that answers a tag adds to the streak.
+    const optimisticStreakDay =
+      profile.streak_current + (answersATag(openTags, serverOffsetMs) ? 1 : 0);
     const captionValue = caption || null;
     const taggedUsersSnapshot = taggedUsers;
     const inviteCountSnapshot = inviteCount;
@@ -1508,7 +1477,7 @@ export default function CameraScreen(): React.JSX.Element {
       longitude: null,
       created_at: new Date().toISOString(),
       // Placeholder until the server's row (dated in the user's time zone) replaces it.
-      post_date: today,
+      post_date: new Date().toLocaleDateString('en-CA'),
       client_id: null,
       image_path: null,
       pov_image_path: null,
@@ -1589,6 +1558,7 @@ export default function CameraScreen(): React.JSX.Element {
       } satisfies FeedPost);
       // Posting unlocks the feed: read it again so friends' posts appear.
       useFeedStore.getState().sync(true);
+      setHasPosted(true);
       useProfilePostsStore
         .getState()
         .addPost({ ...result.post, image_url: rear.uri, pov_image_url: front.uri });
@@ -1599,8 +1569,6 @@ export default function CameraScreen(): React.JSX.Element {
           ...current,
           streak_current: result.streak.streak_current,
           streak_highest: result.streak.streak_highest,
-          streak_lowest: result.streak.streak_lowest,
-          streak_last_upload_date: result.post.post_date,
         });
       }
 
@@ -1638,8 +1606,10 @@ export default function CameraScreen(): React.JSX.Element {
       if (current) setProfile({ ...current, streak_current: profile.streak_current });
       removePostPhotos(uploadedPaths).catch(() => {});
 
-      if (message.includes('already posted today')) {
-        useToastStore.getState().show("You've already posted today");
+      // Reactive posting: the server says there's no open tag to answer.
+      if (message.includes('reactive posting')) {
+        useToastStore.getState().show(NO_TAGS_TITLE);
+        useTagStore.getState().syncOpenTags();
       } else if (message.includes('tag')) {
         useToastStore.getState().show('Your tags changed — pick your friends again');
         useTagStore.getState().loadRequirement();
@@ -1705,7 +1675,7 @@ export default function CameraScreen(): React.JSX.Element {
   // The shutter is tappable in 'idle' (start) and 'awaiting-second' (take second shot).
   // Everything else is mid-capture and should be locked out.
   const shutterDisabled =
-    hasPostedToday || (captureState !== 'idle' && captureState !== 'awaiting-second');
+    blocked || (captureState !== 'idle' && captureState !== 'awaiting-second');
 
   if (!cameraGranted) {
     return (
@@ -1733,7 +1703,7 @@ export default function CameraScreen(): React.JSX.Element {
     state: captureState,
     facing,
     hasFirstPhoto: guidePhotoUri !== null,
-    hasPostedToday,
+    blocked,
     cameraGranted,
   });
 
@@ -1769,17 +1739,8 @@ export default function CameraScreen(): React.JSX.Element {
 
         <StreakBadge count={streakCount} />
 
-        {showTagBanner && !hasPostedToday && (
+        {showTagBanner && !blocked && (
           <OpenTagsBanner openTags={openTags} serverOffsetMs={serverOffsetMs} />
-        )}
-
-        {isRestDay && !hasPostedToday && (
-          // 62pt under the streak badge's top: just below its label.
-          <Text
-            style={[styles.restDayLabel, { top: topRightY(insets.top) + OFFSET.o56 + OFFSET.o6 }]}
-          >
-            Rest day
-          </Text>
         )}
 
         {guide && (
@@ -1807,20 +1768,22 @@ export default function CameraScreen(): React.JSX.Element {
           </View>
         )}
 
-        {hasPostedToday && (
-          <MidnightCountdown
-            onUnlock={() => {
-              setProfile({ ...useUserStore.getState().profile! });
-            }}
-          />
+        {/* Reactive posting: nothing to answer, so no shutter. */}
+        {gate === 'closed' && (
+          <BlurView intensity={60} tint="dark" style={styles.postedOverlay}>
+            <Text style={styles.postedTitle}>{NO_TAGS_TITLE}</Text>
+            <Text style={styles.postedSub}>
+              When a friend tags you, you'll have 48 hours to post.
+            </Text>
+          </BlurView>
         )}
 
         {/* 0.5× / 1× lens toggle — back camera only. Hidden entirely when the
           device has no ultra-wide lens (Android, or older iPhones), so it never
           offers an option we can't honour. Locked out mid-capture and after
-          today's post, matching the shutter/flip gating. Sits just above the
+          posting is blocked, matching the shutter gating. Sits just above the
           shutter row so it reads as a capture-config affordance. */}
-        {facing === 'back' && ultraWideLens && !hasPostedToday && (
+        {facing === 'back' && ultraWideLens && !blocked && (
           <View style={styles.lensToggleWrap} pointerEvents="box-none">
             <View style={styles.lensToggle}>
               <Pressable
@@ -1896,7 +1859,11 @@ export default function CameraScreen(): React.JSX.Element {
             disabled={shutterDisabled}
             onPress={handleShutterPress}
           >
-            <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
+            {gate === 'loading' ? (
+              <ActivityIndicator color={shutterRing} />
+            ) : (
+              <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
+            )}
           </Pressable>
 
           {/* Spacer */}
@@ -1955,15 +1922,6 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s3,
     lineHeight: LINE_HEIGHT.l14,
   },
-  restDayLabel: {
-    position: 'absolute',
-    right: OFFSET.o24,
-    color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.italic,
-    opacity: 0.6,
-    textAlign: 'center',
-  },
   captureLabelWrap: {
     position: 'absolute',
     top: 0,
@@ -1998,13 +1956,6 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: FONT_SIZE.f22,
     fontFamily: FONTS.bold,
-    textAlign: 'center',
-  },
-  countdownTimer: {
-    color: COLORS.white,
-    fontSize: FONT_SIZE.f48,
-    fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t6,
     textAlign: 'center',
   },
   postedSub: {

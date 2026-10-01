@@ -58,7 +58,7 @@ describe('pipGuide — what the small window on the live camera shows', () => {
     state: 'idle' as CaptureState,
     facing: 'back' as const,
     hasFirstPhoto: false,
-    hasPostedToday: false,
+    blocked: false,
     cameraGranted: true,
   };
 
@@ -98,8 +98,8 @@ describe('pipGuide — what the small window on the live camera shows', () => {
     });
   });
 
-  it('is hidden once today’s photo is posted', () => {
-    expect(pipGuide({ ...base, hasPostedToday: true })).toBeNull();
+  it('is hidden while posting is blocked', () => {
+    expect(pipGuide({ ...base, blocked: true })).toBeNull();
   });
 
   it('is hidden without camera permission', () => {

@@ -176,6 +176,15 @@ export async function getPostDates(
   return { data: dates, error: null };
 }
 
+/** Whether this user has ever posted (reactive posting: the first post needs no tag). */
+export async function hasEverPosted(
+  userId: string
+): Promise<{ data: boolean | null; error: Error | null }> {
+  const { data, error } = await supabase.from('posts').select('id').eq('user_id', userId).limit(1);
+  if (error) return { data: null, error: new Error(error.message) };
+  return { data: data.length > 0, error: null };
+}
+
 export type ProfilePostCursor = { ts: string; id: string };
 
 /**
@@ -247,8 +256,8 @@ export async function removePostPhotos(paths: string[]): Promise<void> {
  * tags with their 48-hour deadlines, queues the pushes, and answers any tags waiting for
  * this user. Retrying with the same `clientId` returns the same post.
  *
- * Errors: "already posted today"; "tag N friends" (not enough tags); "cannot tag that
- * person"; "photo not found".
+ * Errors: "reactive posting: not tagged" (no open tag and not a first post); "tag N
+ * friends" (not enough tags); "cannot tag that person"; "photo not found".
  */
 export async function createPost(opts: {
   clientId: string;
