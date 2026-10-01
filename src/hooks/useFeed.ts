@@ -11,6 +11,12 @@ export interface UseFeedResult {
   hasMore: boolean;
   /** Friends' posts are hidden until the user posts. */
   locked: boolean;
+  /** When the 24-hour window from the last post ends (null = never posted). */
+  unlockedUntil: string | null;
+  /** server clock − device clock at the last read. */
+  serverOffsetMs: number;
+  /** This session's first page has arrived. */
+  loaded: boolean;
   loadMore: () => void;
   refresh: () => void;
 }
@@ -54,6 +60,9 @@ export function useFeed(): UseFeedResult {
     error,
     hasMore,
     locked,
+    unlockedUntil,
+    serverOffsetMs,
+    loaded,
     loadMore: useFeedStore.getState().loadMore,
     refresh: () => useFeedStore.getState().sync(true),
   };

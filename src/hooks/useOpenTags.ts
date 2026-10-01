@@ -7,6 +7,8 @@ export interface UseOpenTagsResult {
   openTags: OpenTag[];
   serverOffsetMs: number;
   isLoading: boolean;
+  /** This session's first read has landed (until then, don't word anything from the tags). */
+  loaded: boolean;
   refresh: () => Promise<void>;
 }
 
@@ -16,6 +18,7 @@ export function useOpenTags(): UseOpenTagsResult {
   const openTags = useTagStore((s) => s.openTags);
   const serverOffsetMs = useTagStore((s) => s.serverOffsetMs);
   const isSyncing = useTagStore((s) => s.isSyncing);
+  const loaded = useTagStore((s) => s.openTagsLoaded);
 
   useEffect(() => {
     if (!userId) return;
@@ -30,6 +33,7 @@ export function useOpenTags(): UseOpenTagsResult {
     openTags,
     serverOffsetMs,
     isLoading: isSyncing && openTags.length === 0,
+    loaded,
     refresh: () => useTagStore.getState().syncOpenTags(),
   };
 }
