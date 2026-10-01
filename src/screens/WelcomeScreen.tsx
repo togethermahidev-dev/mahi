@@ -81,7 +81,7 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
             ]}
             onPress={() => setShowLogin(true)}
           >
-            <Text style={[styles.buttonText, { color: sheetText }]}>Login</Text>
+            <Text style={[styles.buttonText, { color: sheetText }]}>Log in</Text>
           </Pressable>
         </View>
       </Animated.View>
