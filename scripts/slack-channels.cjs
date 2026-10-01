@@ -6,7 +6,7 @@
 //   node scripts/slack-channels.cjs --apply    create missing channels, update purposes and pinned summaries
 //
 // Token: SLACK_BOT_TOKEN, or the git-ignored .slack-token file at the repo root. The bot needs
-// channels:manage, channels:read, groups:write, groups:read, chat:write and pins:write.
+// channels:manage, channels:read, groups:write, groups:read, chat:write, pins:write and pins:read.
 // People to invite into every channel: SLACK_INVITE=U0123,U0456 (Slack member IDs).
 // Re-running is safe: an existing channel keeps its history; only its purpose and the pinned
 // summary are brought up to date.
