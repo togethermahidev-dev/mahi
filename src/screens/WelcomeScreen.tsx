@@ -1,10 +1,20 @@
 import React, { useRef, useState } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity,
-  useColorScheme, Animated, Dimensions,
-} from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, Dimensions } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import LoginSheet from '@/components/LoginSheet';
 import CreateAccountSheet from '@/components/CreateAccountSheet';
+import { FONTS } from '@/constants/fonts';
+import {
+  COLORS,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  TRACKING,
+  OFFSET,
+  SIZE,
+  BORDER_WIDTH,
+} from '@/constants/tokens';
 
 const { height } = Dimensions.get('window');
 
@@ -13,51 +23,109 @@ interface Props {
 }
 
 export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Element {
-  const dark = useColorScheme() === 'dark';
-  const sheetBg   = dark ? '#1C1C19' : '#FFFFFF';
-  const sheetText = dark ? '#FFFFFF' : '#0F0F0D';
+  const { dark } = useAppTheme();
+  const sheetBg = dark ? COLORS.bgDark : COLORS.white;
+  const sheetText = dark ? COLORS.white : COLORS.inkDeep;
 
   const topY = useRef(new Animated.Value(0)).current;
   const botY = useRef(new Animated.Value(0)).current;
 
-  const [showLogin, setShowLogin]   = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  // Placeholders until Apple / Google sign-in is built; each pill is hidden by its own flag.
+  const showApple = useFeatureFlag('auth-apple-signin');
+  const showGoogle = useFeatureFlag('auth-google-signin');
 
   const handleAuthComplete = () => {
     setShowLogin(false);
     setShowSignup(false);
     Animated.parallel([
       Animated.timing(topY, { toValue: -height, duration: 400, useNativeDriver: true }),
-      Animated.timing(botY, { toValue: height,  duration: 400, useNativeDriver: true }),
+      Animated.timing(botY, { toValue: height, duration: 400, useNativeDriver: true }),
     ]).start(() => onAuthComplete());
   };
 
   return (
     <View style={styles.root}>
-      <Animated.View style={[styles.topSheet, { backgroundColor: sheetBg, transform: [{ translateY: topY }] }]}>
+      <Animated.View
+        style={[styles.topSheet, { backgroundColor: sheetBg, transform: [{ translateY: topY }] }]}
+      >
         <View style={styles.titles}>
-          <Text style={[styles.title, { color: sheetText }]}>MAHI</Text>
-          <Text style={[styles.subtitle, { color: sheetText }]}>The fitness accountability app</Text>
+          <View style={styles.titleWrapper}>
+            <Text style={[styles.title, styles.titleEcho]}>MAHI</Text>
+            <Text style={[styles.title, { color: sheetText }]}>MAHI</Text>
+          </View>
+          <Text style={[styles.subtitle, { color: sheetText }]}>
+            The fitness accountability app
+          </Text>
         </View>
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: sheetText }]}
-          activeOpacity={0.8}
-          onPress={() => setShowSignup(true)}
-        >
-          <Text style={[styles.buttonText, { color: sheetBg }]}>Create an account</Text>
-        </TouchableOpacity>
+        <View style={styles.buttons}>
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.button,
+              { backgroundColor: sheetText },
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={() => setShowSignup(true)}
+          >
+            <Text style={[styles.buttonText, { color: sheetBg }]}>Create an account</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.button,
+              styles.buttonOutline,
+              { borderColor: sheetText },
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={() => setShowLogin(true)}
+          >
+            <Text style={[styles.buttonText, { color: sheetText }]}>Log in</Text>
+          </Pressable>
+        </View>
       </Animated.View>
 
       <View style={styles.gap} />
 
-      <Animated.View style={[styles.bottomSheet, { backgroundColor: sheetBg, transform: [{ translateY: botY }] }]}>
-        <TouchableOpacity
-          style={[styles.button, styles.buttonOutline, { borderColor: sheetText }]}
-          activeOpacity={0.8}
-          onPress={() => setShowLogin(true)}
-        >
-          <Text style={[styles.buttonText, { color: sheetText }]}>Login</Text>
-        </TouchableOpacity>
+      <Animated.View
+        style={[
+          styles.bottomSheet,
+          { backgroundColor: sheetBg, transform: [{ translateY: botY }] },
+        ]}
+      >
+        {showApple || showGoogle ? (
+          <View style={styles.buttons}>
+            {showApple ? (
+              <Pressable
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.button,
+                  styles.buttonOutline,
+                  { borderColor: sheetText },
+                  pressed && { opacity: 0.8 },
+                ]}
+                onPress={() => {}}
+              >
+                <Text style={[styles.buttonText, { color: sheetText }]}>Continue with Apple</Text>
+              </Pressable>
+            ) : null}
+            {showGoogle ? (
+              <Pressable
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.button,
+                  styles.buttonOutline,
+                  { borderColor: sheetText },
+                  pressed && { opacity: 0.8 },
+                ]}
+                onPress={() => {}}
+              >
+                <Text style={[styles.buttonText, { color: sheetText }]}>Continue with Google</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
       </Animated.View>
 
       <LoginSheet
@@ -75,37 +143,42 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#111111' },
+  root: { flex: 1, backgroundColor: COLORS.ink },
   topSheet: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 80,
-    paddingBottom: 40,
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+    paddingHorizontal: SPACE.s24,
+    paddingTop: SPACE.s80,
+    paddingBottom: SPACE.s40,
+    borderBottomLeftRadius: RADIUS.r40,
+    borderBottomRightRadius: RADIUS.r40,
     justifyContent: 'space-between',
+    overflow: 'hidden',
   },
   titles: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 56, fontFamily: 'JosefinSans_700Bold', letterSpacing: 10, marginBottom: 12 },
-  subtitle: { fontSize: 16, fontFamily: 'JosefinSans_400Regular_Italic', opacity: 0.7 },
-  gap: { height: 55 },
+  titleWrapper: { position: 'relative', marginBottom: SPACE.s12 },
+  title: { fontSize: FONT_SIZE.f56, fontFamily: FONTS.bold, letterSpacing: TRACKING.t10 },
+  titleEcho: { position: 'absolute', color: COLORS.accent, top: OFFSET.o4, left: OFFSET.o4 },
+  subtitle: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.italic, opacity: 0.7 },
+  gap: { height: SIZE.z55 },
   bottomSheet: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 60,
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
+    paddingHorizontal: SPACE.s24,
+    paddingTop: SPACE.s40,
+    paddingBottom: SPACE.s60,
+    borderTopLeftRadius: RADIUS.r40,
+    borderTopRightRadius: RADIUS.r40,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  buttons: { width: '100%', gap: SPACE.s12 },
   button: {
     width: '72%',
     alignSelf: 'center',
-    paddingVertical: 20,
-    borderRadius: 50,
+    paddingVertical: SPACE.s20,
+    borderRadius: RADIUS.r50,
     alignItems: 'center',
   },
-  buttonOutline: { backgroundColor: 'transparent', borderWidth: 1.5 },
-  buttonText: { fontSize: 18, fontFamily: 'JosefinSans_600SemiBold' },
+  buttonOutline: { backgroundColor: 'transparent', borderWidth: BORDER_WIDTH.w1_5 },
+  buttonText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
 });

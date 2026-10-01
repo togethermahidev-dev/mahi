@@ -1,12 +1,23 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  Modal, View, Text, TextInput, TouchableOpacity,
-  StyleSheet, SafeAreaView, ScrollView, useColorScheme,
+  Modal,
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  ScrollView,
+  useColorScheme,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import ForgotPasswordSheet from '@/components/ForgotPasswordSheet';
+import { FONTS } from '@/constants/fonts';
+import { COLORS, FONT_SIZE, SPACE, RADIUS, TRACKING, BORDER_WIDTH } from '@/constants/tokens';
 
 const DOMAINS = ['gmail.com', 'icloud.com', 'outlook.com', 'yahoo.com'];
 
@@ -16,21 +27,30 @@ interface Props {
   onAuthComplete: () => void;
 }
 
-export default function LoginSheet({ visible, onDismiss, onAuthComplete }: Props): React.JSX.Element {
+export default function LoginSheet({
+  visible,
+  onDismiss,
+  onAuthComplete,
+}: Props): React.JSX.Element {
   const dark = useColorScheme() === 'dark';
-  const bg      = dark ? '#1C1C19' : '#FFFFFF';
-  const text    = dark ? '#FFFFFF' : '#0F0F0D';
-  const inputBg = dark ? '#2A2A27' : '#F5F5F0';
-  const muted   = dark ? '#888'    : '#999';
-  const red     = dark ? '#E06060' : '#C03030';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.white : COLORS.inkDeep;
+  const inputBg = dark ? COLORS.surfaceDark : COLORS.surfaceLight;
+  const muted = dark ? COLORS.grey888 : COLORS.grey999;
+  const red = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
 
-  const [email, setEmail]               = useState('');
-  const [password, setPassword]         = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading]           = useState(false);
-  const [error, setError]               = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const passwordRef = useRef<TextInput>(null);
+  const resetEnabled = useFeatureFlag('auth-password-reset');
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetKey, setResetKey] = useState(0); // a fresh reset sheet on every open
 
   const handleLogin = async () => {
+    if (loading) return;
     if (!email.trim() || !password.trim()) {
       setError('Enter your email and password.');
       return;
@@ -63,9 +83,9 @@ export default function LoginSheet({ visible, onDismiss, onAuthComplete }: Props
     onDismiss();
   };
 
-  const atIndex    = email.indexOf('@');
-  const showPills  = atIndex !== -1 && email.slice(atIndex + 1).length <= 1;
-  const localPart  = atIndex !== -1 ? email.slice(0, atIndex + 1) : email + '@';
+  const atIndex = email.indexOf('@');
+  const showPills = atIndex !== -1 && email.slice(atIndex + 1).length <= 1;
+  const localPart = atIndex !== -1 ? email.slice(0, atIndex + 1) : email + '@';
 
   return (
     <Modal
@@ -78,9 +98,13 @@ export default function LoginSheet({ visible, onDismiss, onAuthComplete }: Props
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
-          <Text style={[styles.title, { color: text }]}>Login</Text>
+          <Text style={[styles.title, { color: text }]} accessibilityRole="header">
+            Log in
+          </Text>
 
           {/* Email */}
           <Text style={[styles.label, { color: muted }]}>Email</Text>
@@ -91,22 +115,32 @@ export default function LoginSheet({ visible, onDismiss, onAuthComplete }: Props
             placeholder="your@email.com"
             placeholderTextColor={muted}
             keyboardType="email-address"
+            textContentType="username"
+            autoComplete="email"
             autoCapitalize="none"
             autoCorrect={false}
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => passwordRef.current?.focus()}
           />
 
           {/* Email domain pills */}
           {showPills && (
             <View style={styles.pillRow}>
-              {DOMAINS.map(domain => (
-                <TouchableOpacity
+              {DOMAINS.map((domain) => (
+                <Pressable
                   key={domain}
-                  style={[styles.pill, { borderColor: text }]}
+                  style={({ pressed }) => [
+                    styles.pill,
+                    { borderColor: text },
+                    pressed && styles.pressed,
+                  ]}
                   onPress={() => setEmail(localPart + domain)}
-                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use @${domain}`}
                 >
                   <Text style={[styles.pillText, { color: text }]}>@{domain}</Text>
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </View>
           )}
@@ -115,89 +149,145 @@ export default function LoginSheet({ visible, onDismiss, onAuthComplete }: Props
           <Text style={[styles.label, { color: muted }]}>Password</Text>
           <View style={[styles.inputRow, { backgroundColor: inputBg }]}>
             <TextInput
+              ref={passwordRef}
               style={[styles.inputInner, { color: text }]}
               value={password}
               onChangeText={setPassword}
               placeholder="••••••••"
               placeholderTextColor={muted}
               secureTextEntry={!showPassword}
+              textContentType="password"
+              autoComplete="current-password"
               autoCapitalize="none"
               autoCorrect={false}
+              returnKeyType="go"
+              onSubmitEditing={handleLogin}
             />
-            <TouchableOpacity onPress={() => setShowPassword(p => !p)} activeOpacity={0.7}>
-              <Text style={[styles.toggle, { color: muted }]}>{showPassword ? 'Hide' : 'Show'}</Text>
-            </TouchableOpacity>
+            <Pressable
+              onPress={() => setShowPassword((p) => !p)}
+              style={({ pressed }) => pressed && styles.pressed}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+            >
+              <Text style={[styles.toggle, { color: muted }]}>
+                {showPassword ? 'Hide' : 'Show'}
+              </Text>
+            </Pressable>
           </View>
 
           {/* Inline error */}
-          {error !== '' && (
-            <Text style={[styles.errorText, { color: red }]}>{error}</Text>
-          )}
+          {error !== '' && <Text style={[styles.errorText, { color: red }]}>{error}</Text>}
 
           {/* Login button */}
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: text, opacity: loading ? 0.6 : 1 }]}
-            activeOpacity={0.8}
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              { backgroundColor: text, opacity: loading ? 0.6 : 1 },
+              pressed && styles.pressedStrong,
+            ]}
             onPress={handleLogin}
             disabled={loading}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: loading, busy: loading }}
           >
-            {loading
-              ? <ActivityIndicator color={bg} />
-              : <Text style={[styles.buttonText, { color: bg }]}>Login</Text>
-            }
-          </TouchableOpacity>
+            {loading ? (
+              <ActivityIndicator color={bg} />
+            ) : (
+              <Text style={[styles.buttonText, { color: bg }]}>Log in</Text>
+            )}
+          </Pressable>
 
           {/* Forgot password */}
-          <TouchableOpacity onPress={() => {}} activeOpacity={0.7}>
-            <Text style={[styles.forgot, { color: muted }]}>Forgot password?</Text>
-          </TouchableOpacity>
+          {resetEnabled && (
+            <Pressable
+              onPress={() => {
+                setError('');
+                setResetKey((k) => k + 1);
+                setResetOpen(true);
+              }}
+              style={({ pressed }) => pressed && styles.pressed}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.forgot, { color: muted }]}>Forgot password?</Text>
+            </Pressable>
+          )}
         </ScrollView>
       </SafeAreaView>
+
+      {/* Opens over this sheet; logging in from it closes both. */}
+      <ForgotPasswordSheet
+        key={resetKey}
+        visible={resetOpen}
+        initialEmail={email.trim()}
+        onDismiss={() => setResetOpen(false)}
+        onLoggedIn={() => {
+          setResetOpen(false);
+          onAuthComplete();
+        }}
+      />
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { padding: 32, gap: 12 },
-  title: { fontSize: 32, fontFamily: 'JosefinSans_700Bold', letterSpacing: 4, marginBottom: 16 },
-  label: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', letterSpacing: 1, marginBottom: -4 },
+  content: { padding: SPACE.s32, gap: SPACE.s12 },
+  title: {
+    fontSize: FONT_SIZE.f32,
+    fontFamily: FONTS.bold,
+    letterSpacing: TRACKING.t4,
+    marginBottom: SPACE.s16,
+  },
+  label: {
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.semiBold,
+    letterSpacing: TRACKING.t1,
+    marginBottom: -SPACE.s4,
+  },
   input: {
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    fontFamily: 'JosefinSans_600SemiBold',
+    borderRadius: RADIUS.r14,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s14,
+    fontSize: FONT_SIZE.f16,
+    fontFamily: FONTS.semiBold,
   },
   inputRow: {
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    borderRadius: RADIUS.r14,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s4,
     flexDirection: 'row',
     alignItems: 'center',
   },
   inputInner: {
     flex: 1,
-    fontSize: 16,
-    fontFamily: 'JosefinSans_600SemiBold',
-    paddingVertical: 10,
+    fontSize: FONT_SIZE.f16,
+    fontFamily: FONTS.semiBold,
+    paddingVertical: SPACE.s10,
   },
-  toggle: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', paddingHorizontal: 4 },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  toggle: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, paddingHorizontal: SPACE.s4 },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s8 },
   pill: {
-    borderWidth: 1.5,
-    borderRadius: 50,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    borderWidth: BORDER_WIDTH.w1_5,
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s14,
+    paddingVertical: SPACE.s8,
   },
-  pillText: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold' },
+  pillText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
   button: {
-    borderRadius: 50,
-    paddingVertical: 20,
+    borderRadius: RADIUS.r50,
+    paddingVertical: SPACE.s20,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: SPACE.s8,
   },
-  buttonText: { fontSize: 18, fontFamily: 'JosefinSans_600SemiBold' },
-  forgot:    { fontSize: 14, fontFamily: 'JosefinSans_400Regular_Italic', textAlign: 'center', marginTop: 4 },
-  errorText: { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold' },
+  buttonText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
+  forgot: {
+    fontSize: FONT_SIZE.f14,
+    fontFamily: FONTS.italic,
+    textAlign: 'center',
+    marginTop: SPACE.s4,
+  },
+  errorText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
+  // Pressed feedback, matching the old TouchableOpacity activeOpacity values.
+  pressed: { opacity: 0.7 },
+  pressedStrong: { opacity: 0.8 },
 });

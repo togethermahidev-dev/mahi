@@ -1,0 +1,58 @@
+import { followSpan, morphPlan, nearestSlot, slotSpan } from '../railSelector';
+
+// The rail as drawn today: 4px padding, 44px buttons, 6px between them (3px above and below each).
+const rail = { padding: 4, button: 44, gap: 6, count: 4 };
+
+describe('rail selector', () => {
+  describe('slotSpan (where each icon sits, from the rail top)', () => {
+    it('places the icons one button plus one gap apart', () => {
+      expect(slotSpan(rail, 0)).toEqual({ top: 7, bottom: 51 });
+      expect(slotSpan(rail, 1)).toEqual({ top: 57, bottom: 101 });
+      expect(slotSpan(rail, 3)).toEqual({ top: 157, bottom: 201 });
+    });
+  });
+
+  describe('nearestSlot (which icon is nearest a finger)', () => {
+    it('picks the icon under the finger', () => {
+      expect(nearestSlot(rail, 29)).toBe(0);
+      expect(nearestSlot(rail, 79)).toBe(1);
+      expect(nearestSlot(rail, 140)).toBe(2);
+    });
+    it('switches at the midpoint between two icons', () => {
+      expect(nearestSlot(rail, 53)).toBe(0);
+      expect(nearestSlot(rail, 55)).toBe(1);
+    });
+    it('keeps to the first and last icon when the finger leaves the rail', () => {
+      expect(nearestSlot(rail, -80)).toBe(0);
+      expect(nearestSlot(rail, 600)).toBe(3);
+    });
+  });
+
+  describe('followSpan (the selector under a dragging finger)', () => {
+    it('centres the selector on the finger', () => {
+      expect(followSpan(rail, 100)).toEqual({ top: 78, bottom: 122 });
+    });
+    it('stops at the first and last icon', () => {
+      expect(followSpan(rail, 0)).toEqual(slotSpan(rail, 0));
+      expect(followSpan(rail, 400)).toEqual(slotSpan(rail, 3));
+    });
+  });
+
+  describe('morphPlan (stretch from the old spot to the new, then contract)', () => {
+    const from = slotSpan(rail, 0);
+    const to = slotSpan(rail, 2);
+
+    it('first stretches to cover both icons, then settles on the new one', () => {
+      expect(morphPlan(from, to, false)).toEqual({ stretch: { top: 7, bottom: 151 }, settle: to });
+    });
+    it('stretches upward when moving up', () => {
+      expect(morphPlan(to, from, false)).toEqual({ stretch: { top: 7, bottom: 151 }, settle: from });
+    });
+    it('stretches from wherever it is mid-move', () => {
+      expect(morphPlan({ top: 30, bottom: 120 }, to, false).stretch).toEqual({ top: 30, bottom: 151 });
+    });
+    it('with Reduce Motion on, just moves without stretching', () => {
+      expect(morphPlan(from, to, true)).toEqual({ stretch: to, settle: to });
+    });
+  });
+});
