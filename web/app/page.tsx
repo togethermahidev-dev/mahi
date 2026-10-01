@@ -5,15 +5,15 @@ import { Wordmark } from './_components/Wordmark';
 const STEPS = [
   {
     title: 'Post',
-    body: 'One workout photo a day, taken with your front and back camera at once. Posting opens your feed.',
+    body: 'When a friend tags you, answer within 48 hours with a workout photo, taken with your front and back camera at once.',
   },
   {
     title: 'Tag',
-    body: "Tag three friends. They've got 48 hours to answer with a workout of their own, and their feed stays locked until they do.",
+    body: "Every post tags three friends. They've got 48 hours to answer with a workout of their own, and their feed stays locked until they do.",
   },
   {
     title: 'Keep each other going',
-    body: "Build streaks and earn points together. It's easier to turn up when your friends are counting on you.",
+    body: "Every answer adds one to your streak and earns points. It's easier to turn up when your friends are counting on you.",
   },
 ];
 
@@ -25,11 +25,11 @@ export default function Home() {
           <div className="flex flex-col items-start gap-s24">
             <Wordmark />
             <h1 className="mt-s8 text-f32 leading-l38 font-bold text-ink-deep">
-              Train every day, with your friends keeping you honest.
+              Work out when a friend tags you, and keep each other honest.
             </h1>
             <p className="text-f17 leading-l28 text-ios-grey-dark">
-              Mahi is a fitness accountability app. Post one workout photo a day, tag three friends,
-              and they&apos;ve got 48 hours to answer with a workout of their own. Coming to iPhone
+              Mahi is a fitness accountability app. When a friend tags you, you&apos;ve got 48 hours
+              to answer with a workout photo, and every answer adds to your streak. Coming to iPhone
               and Android.
             </p>
           </div>
