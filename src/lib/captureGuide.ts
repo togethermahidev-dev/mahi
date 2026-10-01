@@ -46,11 +46,12 @@ export function pipGuide(input: {
   state: CaptureState;
   facing: CameraSide;
   hasFirstPhoto: boolean;
-  hasPostedToday: boolean;
+  /** Posting isn't open (still loading, or no tag to answer). */
+  blocked: boolean;
   cameraGranted: boolean;
 }): PipGuide | null {
-  const { guideOn, state, facing, hasFirstPhoto, hasPostedToday, cameraGranted } = input;
-  if (!guideOn || hasPostedToday || !cameraGranted) return null;
+  const { guideOn, state, facing, hasFirstPhoto, blocked, cameraGranted } = input;
+  if (!guideOn || blocked || !cameraGranted) return null;
 
   const beforeFirst = state === 'idle' || state === 'capturing-first';
   if (!beforeFirst && hasFirstPhoto) return { kind: 'photo' };
