@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  Image,
-  Modal,
-  StyleSheet,
-  TouchableOpacity,
-  useWindowDimensions,
-} from 'react-native';
+import { View, Text, Image, Modal, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -94,13 +86,15 @@ function PostDetail({ post, onClose }: { post: PostRow; onClose: () => void }): 
         colors={[withAlpha(COLORS.black, 0.6), 'transparent']}
         style={[styles.topOverlay, { paddingTop: insets.top }]}
       >
-        <TouchableOpacity
+        <Pressable
+          style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.2 }]}
           onPress={onClose}
-          style={styles.closeBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
           hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
           <Text style={styles.closeX}>✕</Text>
-        </TouchableOpacity>
+        </Pressable>
         <View style={styles.streakBadge}>
           <Text style={styles.streakText}>DAY {post.streak_day}</Text>
         </View>

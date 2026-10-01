@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSuggestedFollows } from '@/hooks/useSuggestedFollows';
@@ -64,10 +64,15 @@ export default function SuggestedFollowsStrip({
           const initials = displayName[0]?.toUpperCase() ?? '?';
 
           return (
-            <TouchableOpacity
-              activeOpacity={0.8}
+            <Pressable
+              style={({ pressed }) => [
+                styles.card,
+                { backgroundColor: cardBg },
+                pressed && { opacity: 0.8 },
+              ]}
               onPress={() => onPressUser(item.id)}
-              style={[styles.card, { backgroundColor: cardBg }]}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${displayName}'s profile`}
             >
               {item.avatar_url ? (
                 <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
@@ -86,14 +91,19 @@ export default function SuggestedFollowsStrip({
                 </Text>
               ) : null}
 
-              <TouchableOpacity
-                activeOpacity={0.75}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.followBtn,
+                  { backgroundColor: ACCENT },
+                  pressed && { opacity: 0.75 },
+                ]}
                 onPress={() => follow(item.id)}
-                style={[styles.followBtn, { backgroundColor: ACCENT }]}
+                accessibilityRole="button"
+                accessibilityLabel={`Follow @${item.username ?? displayName}`}
               >
                 <Text style={styles.followBtnText}>FOLLOW</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
+              </Pressable>
+            </Pressable>
           );
         }}
       />

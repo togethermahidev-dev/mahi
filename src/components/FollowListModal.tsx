@@ -1,13 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  Image,
-  Modal,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, Image, Modal, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
@@ -121,13 +113,19 @@ export default function FollowListModal({
           <View style={[styles.root, { backgroundColor: bg }]}>
             {/* Header */}
             <View style={[styles.header, { borderBottomColor: border }]}>
-              <TouchableOpacity
+              <Pressable
+                style={({ pressed }) => [
+                  styles.backBtn,
+                  { borderColor: border },
+                  pressed && { opacity: 0.2 },
+                ]}
                 onPress={onClose}
-                style={[styles.backBtn, { borderColor: border }]}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
                 hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
               >
                 <Text style={[styles.backArrow, { color: text }]}>{'\u2039'}</Text>
-              </TouchableOpacity>
+              </Pressable>
               <Text style={[styles.headerTitle, { color: text }]} numberOfLines={1}>
                 {title}
               </Text>
@@ -155,13 +153,14 @@ export default function FollowListModal({
                   const initials = displayName[0]?.toUpperCase() ?? '?';
 
                   return (
-                    <TouchableOpacity
-                      activeOpacity={0.7}
+                    <Pressable
+                      style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
                       onPress={() => {
                         if (item.id === currentUserId) return;
                         setProfileUserId(item.id);
                       }}
-                      style={styles.row}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open ${displayName}'s profile`}
                     >
                       {item.avatar_url ? (
                         <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
@@ -183,15 +182,20 @@ export default function FollowListModal({
                         ) : null}
                       </View>
                       {showUnfollow ? (
-                        <TouchableOpacity
-                          style={[styles.unfollowBtn, { borderColor: text }]}
-                          activeOpacity={0.75}
+                        <Pressable
+                          style={({ pressed }) => [
+                            styles.unfollowBtn,
+                            { borderColor: text },
+                            pressed && { opacity: 0.75 },
+                          ]}
                           onPress={() => handleUnfollow(item.id)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Unfollow @${item.username ?? displayName}`}
                         >
                           <Text style={[styles.unfollowBtnText, { color: text }]}>FOLLOWING</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                       ) : null}
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 }}
                 ListEmptyComponent={

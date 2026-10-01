@@ -5,7 +5,7 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
-  TouchableOpacity,
+  Pressable,
   useWindowDimensions,
 } from 'react-native';
 import { FlashList, useRecyclingState } from '@shopify/flash-list';
@@ -73,12 +73,17 @@ function GridCell({
   const badgeText = dark ? COLORS.offWhite : COLORS.offBlack;
 
   return (
-    <TouchableOpacity
+    <Pressable
       // FlashList gives each column an equal third of the width; nudging each cell right by a
       // share of the gap keeps the photos equal with GAP between them.
-      style={[styles.cell, { width: size, height: size, marginLeft: (column * GAP) / COLS }]}
+      style={({ pressed }) => [
+        styles.cell,
+        { width: size, height: size, marginLeft: (column * GAP) / COLS },
+        pressed && { opacity: 0.8 },
+      ]}
       onPress={onPress}
-      activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={`Day ${post.streak_day} post`}
     >
       <Image
         source={imgError || !post.image_url ? PLACEHOLDER_IMG : { uri: post.image_url }}
@@ -89,7 +94,7 @@ function GridCell({
       <View style={[styles.badge, { backgroundColor: badgeBg }]}>
         <Text style={[styles.badgeText, { color: badgeText }]}>DAY {post.streak_day}</Text>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

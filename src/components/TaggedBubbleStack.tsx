@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  type ViewStyle,
-  type StyleProp,
-} from 'react-native';
+import { View, Text, StyleSheet, Pressable, type ViewStyle, type StyleProp } from 'react-native';
 import { BlurView } from 'expo-blur';
 import type { TaggedUser } from '@/api';
 import { FONTS } from '@/constants/fonts';
@@ -29,18 +22,20 @@ export default function TaggedBubbleStack({ users, onPressUser, style }: Props) 
   return (
     <View style={[styles.stack, style]} pointerEvents="box-none">
       {visible.map((u) => (
-        <TouchableOpacity
+        <Pressable
+          style={({ pressed }) => pressed && { opacity: 0.85 }}
           key={u.user_id}
-          activeOpacity={0.85}
           disabled={!onPressUser}
           onPress={() => onPressUser?.(u)}
+          accessibilityRole="link"
+          accessibilityLabel={`@${u.username}`}
         >
           <BlurView intensity={40} tint="dark" style={styles.bubble}>
             <Text style={styles.bubbleText} numberOfLines={1} ellipsizeMode="tail">
               @{u.username}
             </Text>
           </BlurView>
-        </TouchableOpacity>
+        </Pressable>
       ))}
       {overflow > 0 ? (
         <BlurView intensity={40} tint="dark" style={styles.bubble}>

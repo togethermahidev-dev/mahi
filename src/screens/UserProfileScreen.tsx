@@ -9,7 +9,7 @@ import {
   Image,
   StyleSheet,
   Platform,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
 } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
@@ -374,23 +374,35 @@ export default function UserProfileScreen({
         style={[styles.root, { backgroundColor: bg, paddingTop: top, transform: [{ translateX }] }]}
       >
         {/* Back button — top-left */}
-        <TouchableOpacity
+        <Pressable
+          style={({ pressed }) => [
+            styles.backBtn,
+            { top, borderColor: muted },
+            pressed && { opacity: 0.2 },
+          ]}
           onPress={onBack}
-          style={[styles.backBtn, { top, borderColor: muted }]}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
           hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
           <Text style={[styles.backArrow, { color: muted }]}>‹</Text>
-        </TouchableOpacity>
+        </Pressable>
 
         {/* Ellipsis menu — top-right (only for other users) */}
         {!isSelf && !loading ? (
-          <TouchableOpacity
+          <Pressable
+            style={({ pressed }) => [
+              styles.ellipsisBtn,
+              { top, borderColor: muted },
+              pressed && { opacity: 0.2 },
+            ]}
             onPress={handleEllipsis}
-            style={[styles.ellipsisBtn, { top, borderColor: muted }]}
+            accessibilityRole="button"
+            accessibilityLabel="More options"
             hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
           >
             <Text style={[styles.ellipsisText, { color: muted }]}>...</Text>
-          </TouchableOpacity>
+          </Pressable>
         ) : null}
 
         {loading ? (
@@ -402,13 +414,17 @@ export default function UserProfileScreen({
               {isBlockedByMe ? 'You have blocked this user.' : 'This content is not available.'}
             </Text>
             {isBlockedByMe ? (
-              <TouchableOpacity
-                style={[styles.unblockBtn, { borderColor: text }]}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.unblockBtn,
+                  { borderColor: text },
+                  pressed && { opacity: 0.75 },
+                ]}
                 onPress={handleUnblock}
-                activeOpacity={0.75}
+                accessibilityRole="button"
               >
                 <Text style={[styles.unblockBtnText, { color: text }]}>UNBLOCK</Text>
-              </TouchableOpacity>
+              </Pressable>
             ) : null}
           </View>
         ) : (
@@ -439,13 +455,14 @@ export default function UserProfileScreen({
               ) : null}
 
               {/* Friends — a list, never a number */}
-              <TouchableOpacity
-                style={styles.statsRow}
-                activeOpacity={0.7}
+              <Pressable
+                style={({ pressed }) => [styles.statsRow, pressed && { opacity: 0.7 }]}
                 onPress={() => setFriendsOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Friends"
               >
                 <Text style={[styles.statLabel, { color: muted }]}>FRIENDS ›</Text>
-              </TouchableOpacity>
+              </Pressable>
 
               {/* Streak stats */}
               <View style={[styles.statsRow, { marginTop: SPACE.s16 }]}>
@@ -476,38 +493,52 @@ export default function UserProfileScreen({
               </View>
 
               {/* Streak grid pill */}
-              <TouchableOpacity
+              <Pressable
+                style={({ pressed }) => [
+                  styles.streakTrackerPill,
+                  { borderColor: COLORS.accent },
+                  pressed && { opacity: 0.75 },
+                ]}
                 onPress={() => setStreakGridOpen(true)}
-                activeOpacity={0.75}
-                style={[styles.streakTrackerPill, { borderColor: COLORS.accent }]}
+                accessibilityRole="button"
+                accessibilityLabel="Streak tracker"
               >
                 <Text style={styles.streakTrackerText}>STREAK TRACKER</Text>
-              </TouchableOpacity>
+              </Pressable>
 
               {/* Follow / Message actions */}
               {!isSelf ? (
                 <View style={styles.actionRow}>
-                  <TouchableOpacity
-                    style={[
+                  <Pressable
+                    style={({ pressed }) => [
                       styles.followBtn,
                       isFollowing
                         ? { borderColor: text, borderWidth: BORDER_WIDTH.w1 }
                         : { backgroundColor: COLORS.accent },
+                      pressed && { opacity: 0.75 },
                     ]}
                     onPress={handleFollow}
-                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Follow @${profile?.username ?? displayName}`}
+                    accessibilityState={{ selected: isFollowing }}
                   >
                     <Text
                       style={[styles.followBtnText, { color: isFollowing ? text : COLORS.white }]}
                     >
                       {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
                     </Text>
-                  </TouchableOpacity>
+                  </Pressable>
 
-                  <TouchableOpacity
-                    style={[styles.messageBtn, { borderColor: text, opacity: messaging ? 0.5 : 1 }]}
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.messageBtn,
+                      { borderColor: text, opacity: messaging ? 0.5 : 1 },
+                      pressed && { opacity: 0.75 },
+                    ]}
                     onPress={handleMessage}
-                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Message @${profile?.username ?? displayName}`}
+                    accessibilityState={{ busy: messaging, disabled: messaging }}
                     disabled={messaging}
                   >
                     {/* The label stays (hidden) while opening, so the button keeps its size. */}
@@ -519,7 +550,7 @@ export default function UserProfileScreen({
                     {messaging ? (
                       <ActivityIndicator color={text} style={StyleSheet.absoluteFill} />
                     ) : null}
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               ) : null}
 
