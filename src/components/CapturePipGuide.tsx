@@ -1,0 +1,84 @@
+import React from 'react';
+import { View, Text, Image, StyleSheet } from 'react-native';
+import { CameraIcon, ProfileIcon } from '@/components/ScreenIcons';
+import type { PipGuide } from '@/lib/captureGuide';
+import { FONTS } from '@/constants/fonts';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  SIZE,
+  ICON_SIZE,
+  LINE_HEIGHT,
+  BORDER_WIDTH,
+  SHADOW_BLUR,
+} from '@/constants/tokens';
+
+/**
+ * The small window on the live camera, in the preview's photo-in-photo spot, so people know two
+ * photos are taken: first it says what comes second, then it shows the photo just taken.
+ * Touches pass straight through to the camera controls under it. The camera is always dark.
+ */
+export default function CapturePipGuide({
+  guide,
+  photoUri,
+  frame,
+}: {
+  guide: PipGuide;
+  photoUri: string | null;
+  frame: { left: number; top: number; width: number; height: number };
+}) {
+  return (
+    <View pointerEvents="none" style={[styles.box, frame]}>
+      {guide.kind === 'photo' && photoUri ? (
+        <Image
+          source={{ uri: photoUri }}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+          accessibilityIgnoresInvertColors
+        />
+      ) : guide.kind === 'next' ? (
+        <View style={styles.placeholder}>
+          {guide.next === 'selfie' ? (
+            <ProfileIcon size={ICON_SIZE.i32} color={COLORS.white} />
+          ) : (
+            <CameraIcon size={ICON_SIZE.i32} color={COLORS.white} />
+          )}
+          <Text style={styles.text}>{guide.text}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  box: {
+    position: 'absolute',
+    borderRadius: RADIUS.r12,
+    overflow: 'hidden',
+    borderWidth: BORDER_WIDTH.w2,
+    borderColor: withAlpha(COLORS.white, 0.6),
+    backgroundColor: withAlpha(COLORS.black, 0.35),
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: SIZE.z4 },
+    shadowOpacity: 0.4,
+    shadowRadius: SHADOW_BLUR.b8,
+    elevation: 8,
+  },
+  placeholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.s8,
+    paddingHorizontal: SPACE.s8,
+  },
+  text: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f13,
+    lineHeight: LINE_HEIGHT.l18,
+    fontFamily: FONTS.semiBold,
+    textAlign: 'center',
+  },
+});

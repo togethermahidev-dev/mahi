@@ -1,0 +1,2 @@
+-- Nothing to undo: the avatars bucket and its policies existed in production before this
+-- migration recorded them. Dropping them would break avatar uploads.

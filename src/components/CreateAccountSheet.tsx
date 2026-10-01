@@ -1,21 +1,49 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Modal, View, Text, TextInput, TouchableOpacity,
-  StyleSheet, SafeAreaView, ScrollView, useColorScheme,
-  ActivityIndicator, TextInput as RNTextInput, Keyboard,
-  KeyboardAvoidingView, Platform,
+  Modal,
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  ScrollView,
+  useColorScheme,
+  ActivityIndicator,
+  TextInput as RNTextInput,
+  Keyboard,
+  Platform,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabase';
-import { sendOTP, verifyOTP, canResend as canResendOTP, clearOTP } from '@/lib/otp';
-import { useSignUpStore } from '@/store';
+import { sendOTP, verifyOTP, clearOTP, getOTPState, OTP_LENGTH } from '@/lib/otp';
+import { sanitiseOtp, reusableCode, codeTimes } from '@/lib/otpCode';
+import { completeSignup } from '@/api/auth';
+import { useSignUpStore, useInviteStore } from '@/store';
+import { normaliseInviteCode } from '@/lib/inviteLink';
+import {
+  getPasswordStrength,
+  MIN_PASSWORD_LENGTH,
+  PASSWORD_RULES,
+  type Strength,
+} from '@/lib/password';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
+import { env } from '@/lib/env';
+import { FONTS } from '@/constants/fonts';
+import { COLORS, FONT_SIZE, SPACE, RADIUS, BORDER_WIDTH, SIZE, TRACKING, LINE_HEIGHT } from '@/constants/tokens';
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+const SUPABASE_URL = env.supabaseUrl;
 
 const DOMAINS = ['gmail.com', 'hotmail.com', 'icloud.com', 'outlook.com', 'yahoo.com'];
-const GOALS = ['Lose weight', 'Build muscle', 'Improve endurance', 'Flexibility', 'General fitness', 'Sports performance'];
+const GOALS = [
+  'Lose weight',
+  'Build muscle',
+  'Improve endurance',
+  'Flexibility',
+  'General fitness',
+  'Sports performance',
+];
 const DAYS = [
   { label: 'Mon', full: 'Monday' },
   { label: 'Tue', full: 'Tuesday' },
@@ -26,20 +54,6 @@ const DAYS = [
   { label: 'Sun', full: 'Sunday' },
 ];
 
-// ─── Password strength ────────────────────────────────────────────────────────
-type Strength = 'low' | 'medium' | 'high';
-
-function getPasswordStrength(pw: string): Strength | null {
-  if (!pw) return null;
-  const hasUpper   = /[A-Z]/.test(pw);
-  const hasNumber  = /[0-9]/.test(pw);
-  const hasSpecial = /[!@#$%^&*()\-_=+\[\]{};:'",.<>/?\\|`~]/.test(pw);
-  const classes    = [hasUpper, hasNumber, hasSpecial].filter(Boolean).length;
-  if (pw.length < 8 || classes <= 1) return 'low';
-  if (classes === 3)                  return 'high';
-  return 'medium';
-}
-
 // ─── Props ───────────────────────────────────────────────────────────────────
 interface Props {
   visible: boolean;
@@ -48,35 +62,54 @@ interface Props {
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
-export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete }: Props): React.JSX.Element {
-  const dark    = useColorScheme() === 'dark';
-  const bg      = dark ? '#1C1C19' : '#FFFFFF';
-  const text    = dark ? '#FFFFFF' : '#0F0F0D';
-  const inputBg = dark ? '#2A2A27' : '#F5F5F0';
-  const muted   = dark ? '#888'    : '#999';
-  const green   = dark ? '#5DB075' : '#2D7A4F';
-  const red     = dark ? '#E06060' : '#C03030';
-  const amber   = dark ? '#D4963A' : '#B07020';
+export default function CreateAccountSheet({
+  visible,
+  onDismiss,
+  onAuthComplete,
+}: Props): React.JSX.Element {
+  const dark = useColorScheme() === 'dark';
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  const text = dark ? COLORS.white : COLORS.inkDeep;
+  const inputBg = dark ? COLORS.surfaceDark : COLORS.surfaceLight;
+  const muted = dark ? COLORS.grey888 : COLORS.grey999;
+  const green = dark ? COLORS.success : COLORS.successDeep;
+  const red = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
+  const amber = dark ? COLORS.amber : COLORS.amberDeep;
 
   // ── UI state (local) ───────────────────────────────────────────────────────
-  const [step, setStep]               = useState(1);
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState('');
+  const [step, setStep] = useState(1);
+  // An invite the app was opened with, or one typed in below. Claimed after sign-up.
+  const invitePreview = useInviteStore((s) => s.preview);
+  const pendingInvite = useInviteStore((s) => s.pendingToken);
+  const [codeInput, setCodeInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Step 2 — OTP boxes (6 digits, single entry)
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const otpRefs       = useRef<(RNTextInput | null)[]>(Array(6).fill(null));
+  // Step 2 — the code, in one field; the boxes are drawn from it
+  const [otp, setOtp] = useState('');
+  // Code verified in step 2 — complete-signup checks it again before creating the account.
+  const [enteredCode, setEnteredCode] = useState('');
+  const passwordRef = useRef<RNTextInput>(null);
+  const otpRef = useRef<RNTextInput>(null);
+  const [otpFocused, setOtpFocused] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  const focusBorder = (field: string) => ({
+    borderWidth: focusedField === field ? BORDER_WIDTH.w2 : 0,
+    borderColor: focusedField === field ? COLORS.accent : 'transparent',
+    backgroundColor: focusedField === field ? (dark ? COLORS.borderDark : COLORS.white) : inputBg,
+  });
 
   // Step 2 — countdown timer & resend cooldown
-  const [secondsLeft, setSecondsLeft]   = useState(600);
-  const [resendReady, setResendReady]   = useState(false);
-
-  // Step 3 — native date picker
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(600);
+  const [resendReady, setResendReady] = useState(false);
+  const [codeSentAt, setCodeSentAt] = useState<number | null>(null);
 
   // Step 4 — username availability
-  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>(
+    'idle'
+  );
   const usernameTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Step 1 — email-exists hint (debounced, non-blocking)
@@ -85,10 +118,22 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
 
   // ── Zustand form state ─────────────────────────────────────────────────────
   const {
-    email, password,
-    firstName, lastName, dobDD, dobMM, dobYYYY, contactNumber,
-    username, displayName, fitnessGoals, fitnessRoutine,
-    setField, toggleGoal, toggleRoutineDay, reset: resetForm,
+    email,
+    password,
+    firstName,
+    lastName,
+    dobDD,
+    dobMM,
+    dobYYYY,
+    contactNumber,
+    username,
+    displayName,
+    fitnessGoals,
+    fitnessRoutine,
+    setField,
+    toggleGoal,
+    toggleRoutineDay,
+    reset: resetForm,
   } = useSignUpStore();
 
   // ── Step logging ──────────────────────────────────────────────────────────
@@ -99,24 +144,30 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
       3: 'Getting Started (personal details)',
       4: 'Your Profile (fitness)',
     };
-    console.log(`[SignUp] Step ${step} — ${names[step]}`);
   }, [step]);
 
-  // ── Countdown timer (resets each time we enter step 2) ────────────────────
+  // ── Countdown timer (runs from when the current code was sent) ────────────
   useEffect(() => {
-    if (step !== 2) return;
-    setSecondsLeft(600);
-    setResendReady(false);
+    if (step !== 2 || codeSentAt === null) return;
+    const { secondsLeft: left, resendInMs } = codeTimes(codeSentAt, Date.now());
+    setSecondsLeft(left);
+    setResendReady(resendInMs === 0);
     const countdown = setInterval(() => {
-      setSecondsLeft(s => (s <= 1 ? 0 : s - 1));
+      setSecondsLeft(codeTimes(codeSentAt, Date.now()).secondsLeft);
     }, 1000);
-    const resendTimer = setTimeout(() => setResendReady(true), 60_000);
-    return () => { clearInterval(countdown); clearTimeout(resendTimer); };
-  }, [step]);
+    const resendTimer = setTimeout(() => setResendReady(true), resendInMs);
+    return () => {
+      clearInterval(countdown);
+      clearTimeout(resendTimer);
+    };
+  }, [step, codeSentAt]);
 
   // ── Username availability (real query against profiles table) ─────────────
   useEffect(() => {
-    if (!username) { setUsernameStatus('idle'); return; }
+    if (!username) {
+      setUsernameStatus('idle');
+      return;
+    }
     if (usernameTimer.current) clearTimeout(usernameTimer.current);
     setUsernameStatus('checking');
     usernameTimer.current = setTimeout(async () => {
@@ -131,7 +182,10 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
 
   // ── Email-exists check (debounced, non-blocking UX hint) ──────────────────
   useEffect(() => {
-    if (!email || !email.includes('@')) { setEmailExists(false); return; }
+    if (!email || !email.includes('@')) {
+      setEmailExists(false);
+      return;
+    }
     if (emailTimer.current) clearTimeout(emailTimer.current);
     emailTimer.current = setTimeout(async () => {
       try {
@@ -149,30 +203,12 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
   }, [email]);
 
   // ── OTP input handler ──────────────────────────────────────────────────────
-  const handleOtpChange = (
-    val: string,
-    i: number,
-    arr: string[],
-    setArr: (a: string[]) => void,
-    refs: React.MutableRefObject<(RNTextInput | null)[]>,
-  ) => {
-    const next = [...arr];
-    next[i] = val.slice(-1);
-    setArr(next);
-    if (val && i < 5) refs.current[i + 1]?.focus();
-    // Auto-advance when last digit is entered (pass code directly to avoid stale state)
-    if (val && i === 5) handleStep2Next(next.join(''));
-  };
-
-  const handleOtpKeyPress = (
-    e: { nativeEvent: { key: string } },
-    i: number,
-    arr: string[],
-    refs: React.MutableRefObject<(RNTextInput | null)[]>,
-  ) => {
-    if (e.nativeEvent.key === 'Backspace' && arr[i] === '' && i > 0) {
-      refs.current[i - 1]?.focus();
-    }
+  // Typed, pasted or autofilled: once the whole code is in, check it (pass the
+  // code directly to avoid stale state).
+  const handleOtpChange = (raw: string) => {
+    const code = sanitiseOtp(raw, OTP_LENGTH);
+    setOtp(code);
+    if (code.length === OTP_LENGTH) handleStep2Next(code);
   };
 
   // ── Reset everything on close ──────────────────────────────────────────────
@@ -181,10 +217,11 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
     setError('');
     setLoading(false);
     setShowPassword(false);
-    setOtp(Array(6).fill(''));
+    setOtp('');
+    setEnteredCode('');
     setUsernameStatus('idle');
     setEmailExists(false);
-    clearOTP();
+    // The sent-code record is kept, so reopening with the same email goes back to that code.
     resetForm();
     onDismiss();
   }, [onDismiss, resetForm]);
@@ -193,9 +230,19 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
 
   // Step 1 → 2: send OTP
   const handleStep1Next = async () => {
-    if (!email.trim())    { setError('Email is required.'); return; }
-    if (!password.trim()) { setError('Password is required.'); return; }
-    if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (loading) return;
+    if (!email.trim()) {
+      setError('Email is required.');
+      return;
+    }
+    if (!password.trim()) {
+      setError('Password is required.');
+      return;
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
     if (getPasswordStrength(password) === 'low') {
       setError('Password is too weak. Add uppercase letters, numbers, or symbols.');
       return;
@@ -203,36 +250,59 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
     setError('');
     setLoading(true);
     try {
+      // Back then Next (or closing and reopening) with the same email: the code already sent
+      // still works, so go back to it. Asking again inside a minute is refused by the server
+      // and would leave the user stuck here; after that it would cancel the code they have.
+      const sent = await getOTPState();
+      if (sent && reusableCode(sent, email, Date.now())) {
+        posthog.capture('signup_otp_reused');
+        setCodeSentAt(sent.sentAt);
+        setStep(2);
+        return;
+      }
       await sendOTP(email.trim());
       Sentry.addBreadcrumb({ category: 'signup', message: 'OTP sent', level: 'info' });
       posthog.capture('signup_otp_sent');
+      setCodeSentAt(Date.now());
       setStep(2);
     } catch (e: any) {
-      Sentry.captureException(e, { tags: { flow: 'signup', step: 'send_otp' }, extra: { email: email.trim().toLowerCase() } });
+      Sentry.captureException(e, {
+        tags: { flow: 'signup', step: 'send_otp' },
+        extra: { email: email.trim().toLowerCase() },
+      });
       setError(e.message ?? 'Failed to send verification email.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 2 → 3: verify OTP (client-side)
-  // codeOverride used by auto-advance (avoids stale otp state after setOtp)
+  // Step 2 → 3: the server checks the code now (verify-otp); complete-signup
+  // checks it again on the final step before creating the account.
+  // codeOverride used by auto-advance (avoids stale otp state after setOtp).
   const handleStep2Next = async (codeOverride?: string) => {
-    const code = codeOverride ?? otp.join('');
-    if (code.length < 6) { setError('Enter the 6-digit code.'); return; }
-    setError('');
-    setLoading(true);
-    const result = await verifyOTP(code);
-    setLoading(false);
-    if (!result.success) {
-      Sentry.addBreadcrumb({ category: 'signup', message: `OTP verify failed: ${result.error}`, level: 'warning' });
-      posthog.capture('signup_otp_failed', { error: result.error ?? null });
-      setError(result.error ?? 'Incorrect code.');
+    const code = codeOverride ?? otp;
+    if (code.length < OTP_LENGTH) {
+      setError(`Enter the ${OTP_LENGTH}-digit code.`);
       return;
     }
-    Sentry.addBreadcrumb({ category: 'signup', message: 'OTP verified', level: 'info' });
-    posthog.capture('signup_otp_verified');
-    setStep(3);
+    if (loading) return;
+    setError('');
+    setLoading(true);
+    try {
+      await verifyOTP(email, code);
+      await clearOTP(); // spent on the server: going back to step 1 must send a fresh one
+      setEnteredCode(code);
+      Sentry.addBreadcrumb({ category: 'signup', message: 'OTP verified', level: 'info' });
+      posthog.capture('signup_otp_verified');
+      setStep(3);
+    } catch (e: any) {
+      posthog.capture('signup_otp_rejected');
+      setError(e.message ?? 'Could not check the code.');
+      setOtp('');
+      otpRef.current?.focus();
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Resend OTP
@@ -242,10 +312,9 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
     setLoading(true);
     try {
       await sendOTP(email.trim());
-      setOtp(Array(6).fill(''));
-      setResendReady(false);
-      setSecondsLeft(600);
-      setTimeout(() => setResendReady(true), 60_000);
+      setOtp('');
+      setEnteredCode('');
+      setCodeSentAt(Date.now());
     } catch (e: any) {
       setError(e.message ?? 'Failed to resend code.');
     } finally {
@@ -273,33 +342,39 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
 
   // Step 4: create account
   const handleCreateAccount = async () => {
-    if (!username.trim())               { setError('Username is required.'); return; }
-    if (usernameStatus === 'taken')     { setError('That username is already taken.'); return; }
-    if (usernameStatus === 'checking')  { setError('Checking username…'); return; }
-    if (fitnessGoals.length === 0)      { setError('Select at least one fitness goal.'); return; }
+    if (!username.trim()) {
+      setError('Username is required.');
+      return;
+    }
+    if (usernameStatus === 'taken') {
+      setError('That username is already taken.');
+      return;
+    }
+    if (usernameStatus === 'checking') {
+      setError('Checking username…');
+      return;
+    }
+    if (fitnessGoals.length === 0) {
+      setError('Select at least one fitness goal.');
+      return;
+    }
+    if (enteredCode.length < OTP_LENGTH) {
+      setError('Verification code missing — please go back and re-enter it.');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
-      // 1. Create auth user with email already confirmed (OTP verified above)
-      const signupRes = await fetch(`${SUPABASE_URL}/functions/v1/complete-signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          password,
-        }),
-      });
-      const signupJson = await signupRes.json();
-      if (!signupRes.ok || signupJson.error) {
-        throw new Error(signupJson.error ?? 'Failed to create account.');
-      }
+      // 1. Create the confirmed auth user server-side. complete-signup only
+      //    does so for a code verify-otp accepted in the last 30 minutes; an
+      //    expired one surfaces here as the thrown error message.
+      await completeSignup(email.trim().toLowerCase(), password, enteredCode);
 
       // 2. Sign in to obtain a session
-      const { data: signInData, error: signInError } =
-        await supabase.auth.signInWithPassword({
-          email: email.trim().toLowerCase(),
-          password,
-        });
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
       if (signInError || !signInData.session) {
         throw new Error(signInError?.message ?? 'Sign in failed.');
       }
@@ -307,14 +382,14 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
       // 3. Insert profile row (auth.uid() is now set via RLS)
       const dob = `${dobYYYY}-${dobMM.padStart(2, '0')}-${dobDD.padStart(2, '0')}`;
       const { error: profileError } = await supabase.from('profiles').insert({
-        id:              signInData.session.user.id,
-        username:        username.trim().toLowerCase(),
-        display_name:    displayName.trim() || null,
-        first_name:      firstName.trim(),
-        last_name:       lastName.trim(),
-        date_of_birth:   dob,
-        contact_number:  contactNumber.trim() || null,
-        fitness_goals:   fitnessGoals.length > 0 ? fitnessGoals : null,
+        id: signInData.session.user.id,
+        username: username.trim().toLowerCase(),
+        display_name: displayName.trim() || null,
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        date_of_birth: dob,
+        contact_number: contactNumber.trim() || null,
+        fitness_goals: fitnessGoals.length > 0 ? fitnessGoals : null,
         fitness_routine: fitnessRoutine.length > 0 ? fitnessRoutine.join(',') : null,
       });
       if (profileError) throw new Error('Profile save failed: ' + profileError.message);
@@ -322,17 +397,21 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
       // 4. Track completed sign-up — fitness_goals and training_days arrays
       //    are used in PostHog dashboards for popularity heatmaps.
       posthog.capture('signup_completed', {
-        username:      username.trim().toLowerCase(),
+        username: username.trim().toLowerCase(),
         fitness_goals: fitnessGoals,
         training_days: fitnessRoutine,
       });
       Sentry.addBreadcrumb({ category: 'signup', message: 'Account created', level: 'info' });
+      await clearOTP(); // the code is spent
 
       // 5. onAuthStateChange in App.tsx fires from signInWithPassword above,
       //    switching to CameraScreen. onAuthComplete triggers the exit animation.
       onAuthComplete();
     } catch (e: any) {
-      Sentry.captureException(e, { tags: { flow: 'signup', step: 'create_account' }, extra: { email: email.trim().toLowerCase(), username: username.trim() } });
+      Sentry.captureException(e, {
+        tags: { flow: 'signup', step: 'create_account' },
+        extra: { email: email.trim().toLowerCase(), username: username.trim() },
+      });
       setError(e.message ?? 'Something went wrong.');
     } finally {
       setLoading(false);
@@ -340,13 +419,33 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
   };
 
   // ── Derived values ────────────────────────────────────────────────────────
-  const strength        = getPasswordStrength(password);
-  const strengthColour  = strength === 'high' ? green : strength === 'medium' ? amber : red;
-  const strengthLabel   = strength === 'high' ? 'High' : strength === 'medium' ? 'Medium' : 'Low';
+  const strength = getPasswordStrength(password);
+  const strengthColour = strength === 'high' ? green : strength === 'medium' ? amber : red;
+  const strengthLabel = strength === 'high' ? 'High' : strength === 'medium' ? 'Medium' : 'Low';
 
-  const atIndex   = email.indexOf('@');
+  const atIndex = email.indexOf('@');
   const showPills = atIndex !== -1 && email.slice(atIndex + 1).length <= 1;
   const localPart = atIndex !== -1 ? email.slice(0, atIndex + 1) : email + '@';
+
+  const dobSet = !!(dobDD && dobMM && dobYYYY);
+  const dobValue = dobSet
+    ? new Date(Number(dobYYYY), Number(dobMM) - 1, Number(dobDD))
+    : new Date(2000, 0, 1);
+  const setDob = (date: Date) => {
+    setField('dobDD', String(date.getDate()).padStart(2, '0'));
+    setField('dobMM', String(date.getMonth() + 1).padStart(2, '0'));
+    setField('dobYYYY', String(date.getFullYear()));
+  };
+  // Android: the system date dialog.
+  const openAndroidDob = () => {
+    Keyboard.dismiss();
+    DateTimePickerAndroid.open({
+      value: dobValue,
+      mode: 'date',
+      maximumDate: new Date(),
+      onValueChange: (_event, date) => setDob(date),
+    });
+  };
 
   const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
   const secs = String(secondsLeft % 60).padStart(2, '0');
@@ -362,7 +461,7 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
       <SafeAreaView style={[styles.root, { backgroundColor: bg }]}>
         {/* Progress dots */}
         <View style={styles.dots}>
-          {[1, 2, 3, 4].map(n => (
+          {[1, 2, 3, 4].map((n) => (
             <View
               key={n}
               style={[styles.dot, { backgroundColor: text, opacity: step === n ? 1 : 0.2 }]}
@@ -370,46 +469,101 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
           ))}
         </View>
 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
-
           {/* ── View 1 — Email + Password ─────────────────────────────────── */}
           {step === 1 && (
             <View style={styles.step}>
               <Text style={[styles.title, { color: text }]}>Create account</Text>
 
+              {/* Invite — who sent it, or a place to type its code */}
+              {invitePreview ? (
+                <View style={[styles.inviteCard, { backgroundColor: inputBg }]}>
+                  <Text style={[styles.inviteWho, { color: text }]}>
+                    @{invitePreview.username} invited you
+                  </Text>
+                  <Text style={[styles.inviteWhat, { color: muted }]}>
+                    {invitePreview.open
+                      ? "Their tag starts when you join — you'll have 48 hours to post back."
+                      : 'That invite has already been used, but you can still sign up.'}
+                  </Text>
+                </View>
+              ) : pendingInvite ? null : (
+                <>
+                  <Text style={[styles.label, { color: muted }]}>Got an invite code?</Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      styles.inviteCodeInput,
+                      { backgroundColor: inputBg, color: text },
+                      focusBorder('inviteCode'),
+                    ]}
+                    value={codeInput}
+                    onChangeText={(v) => {
+                      setCodeInput(v.toUpperCase());
+                      const code = normaliseInviteCode(v);
+                      if (code) useInviteStore.getState().setPending(code);
+                    }}
+                    onFocus={() => setFocusedField('inviteCode')}
+                    onBlur={() => setFocusedField(null)}
+                    placeholder="6 characters, optional"
+                    placeholderTextColor={muted}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    maxLength={8}
+                  />
+                </>
+              )}
+
               {/* Email */}
               <Text style={[styles.label, { color: muted }]}>Email</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: text }]}
+                style={[
+                  styles.input,
+                  { backgroundColor: inputBg, color: text },
+                  focusBorder('email'),
+                ]}
                 value={email}
-                onChangeText={v => { setField('email', v); setError(''); }}
+                onChangeText={(v) => {
+                  setField('email', v);
+                  setError('');
+                }}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="your@email.com"
                 placeholderTextColor={muted}
                 keyboardType="email-address"
+                textContentType="username"
+                autoComplete="email"
                 autoCapitalize="none"
                 autoCorrect={false}
+                returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={() => passwordRef.current?.focus()}
               />
 
               {/* Email domain suggestion pills */}
               {showPills && (
                 <View style={styles.pillRow}>
-                  {DOMAINS.map(domain => (
-                    <TouchableOpacity
+                  {DOMAINS.map((domain) => (
+                    <Pressable
                       key={domain}
-                      style={[styles.pill, { borderColor: text }]}
+                      style={({ pressed }) => [
+                        styles.pill,
+                        { borderColor: text },
+                        pressed && styles.pressed,
+                      ]}
                       onPress={() => setField('email', localPart + domain)}
-                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Use @${domain}`}
                     >
                       <Text style={[styles.pillText, { color: text }]}>@{domain}</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   ))}
                 </View>
               )}
@@ -423,22 +577,40 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
 
               {/* Password */}
               <Text style={[styles.label, { color: muted }]}>Password</Text>
-              <View style={[styles.inputRow, { backgroundColor: inputBg }]}>
+              <View
+                style={[styles.inputRow, { backgroundColor: inputBg }, focusBorder('password')]}
+              >
                 <TextInput
+                  ref={passwordRef}
                   style={[styles.inputInner, { color: text }]}
                   value={password}
-                  onChangeText={v => { setField('password', v); setError(''); }}
-                  placeholder="Min. 8 characters"
+                  onChangeText={(v) => {
+                    setField('password', v);
+                    setError('');
+                  }}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  placeholder={`Min. ${MIN_PASSWORD_LENGTH} characters`}
                   placeholderTextColor={muted}
                   secureTextEntry={!showPassword}
+                  textContentType="newPassword"
+                  autoComplete="new-password"
+                  passwordRules={PASSWORD_RULES}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  returnKeyType="next"
+                  onSubmitEditing={handleStep1Next}
                 />
-                <TouchableOpacity onPress={() => setShowPassword(p => !p)} activeOpacity={0.7}>
+                <Pressable
+                  onPress={() => setShowPassword((p) => !p)}
+                  style={({ pressed }) => pressed && styles.pressed}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                >
                   <Text style={[styles.toggle, { color: muted }]}>
                     {showPassword ? 'Hide' : 'Show'}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
 
               {/* Password strength bar */}
@@ -469,9 +641,7 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
           {step === 2 && (
             <View style={styles.step}>
               <Text style={[styles.title, { color: text }]}>Verify</Text>
-              <Text style={[styles.subtitle, { color: muted }]}>
-                Code sent to {email}
-              </Text>
+              <Text style={[styles.subtitle, { color: muted }]}>Code sent to {email}</Text>
 
               {/* Countdown */}
               <Text style={[styles.countdown, { color: secondsLeft < 60 ? red : muted }]}>
@@ -479,34 +649,65 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
               </Text>
 
               <Text style={[styles.label, { color: muted }]}>Code</Text>
-              <View style={styles.otpRow}>
-                {otp.map((val, i) => (
-                  <TextInput
-                    key={i}
-                    ref={r => { otpRefs.current[i] = r; }}
-                    style={[styles.otpBox, { backgroundColor: inputBg, color: text, borderColor: val ? text : 'transparent' }]}
-                    value={val}
-                    onChangeText={v => handleOtpChange(v, i, otp, setOtp, otpRefs)}
-                    onKeyPress={e => handleOtpKeyPress(e, i, otp, otpRefs)}
-                    keyboardType="number-pad"
-                    maxLength={1}
-                    textAlign="center"
-                    // iOS autofill — place on last input so it triggers after all 6 digits fill
-                    textContentType={i === 5 ? 'oneTimeCode' : 'none'}
-                  />
-                ))}
+              {/* One real field (iOS offers the emailed code above the keyboard). The
+                  boxes are drawn from its value; the field lies invisibly on top of
+                  them, so tapping any box focuses it and long-press pastes. */}
+              <View>
+                <View
+                  style={styles.otpRow}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                >
+                  {Array.from({ length: OTP_LENGTH }, (_, i) => {
+                    const digit = otp[i] ?? '';
+                    const current =
+                      otpFocused && i === Math.min(otp.length, OTP_LENGTH - 1);
+                    return (
+                      <View
+                        key={i}
+                        style={[
+                          styles.otpBox,
+                          {
+                            backgroundColor: inputBg,
+                            borderColor: current ? COLORS.accent : digit ? text : 'transparent',
+                            borderWidth: current ? BORDER_WIDTH.w2 : BORDER_WIDTH.w1_5,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.otpDigit, { color: text }]}>{digit}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+                <TextInput
+                  ref={otpRef}
+                  style={styles.otpInput}
+                  value={otp}
+                  onChangeText={handleOtpChange}
+                  onFocus={() => setOtpFocused(true)}
+                  onBlur={() => setOtpFocused(false)}
+                  keyboardType="number-pad"
+                  textContentType="oneTimeCode"
+                  autoComplete="one-time-code"
+                  maxLength={OTP_LENGTH}
+                  caretHidden
+                  autoFocus
+                  accessibilityLabel="Verification code"
+                />
               </View>
 
               {/* Resend */}
-              <TouchableOpacity
+              <Pressable
                 onPress={handleResend}
                 disabled={!resendReady || loading}
-                activeOpacity={0.7}
+                style={({ pressed }) => pressed && styles.pressed}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !resendReady || loading }}
               >
                 <Text style={[styles.resendText, { color: resendReady ? text : muted }]}>
                   {resendReady ? 'Resend code' : 'Resend available in 1 min'}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           )}
 
@@ -517,41 +718,101 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
 
               <Text style={[styles.label, { color: muted }]}>First name</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: text }]}
+                style={[
+                  styles.input,
+                  { backgroundColor: inputBg, color: text },
+                  focusBorder('firstName'),
+                ]}
                 value={firstName}
-                onChangeText={v => setField('firstName', v)}
+                onChangeText={(v) => setField('firstName', v)}
+                onFocus={() => setFocusedField('firstName')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Jane"
                 placeholderTextColor={muted}
+                textContentType="givenName"
+                autoComplete="given-name"
+                autoCapitalize="words"
               />
 
               <Text style={[styles.label, { color: muted }]}>Last name</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: text }]}
+                style={[
+                  styles.input,
+                  { backgroundColor: inputBg, color: text },
+                  focusBorder('lastName'),
+                ]}
                 value={lastName}
-                onChangeText={v => setField('lastName', v)}
+                onChangeText={(v) => setField('lastName', v)}
+                onFocus={() => setFocusedField('lastName')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Smith"
                 placeholderTextColor={muted}
+                textContentType="familyName"
+                autoComplete="family-name"
+                autoCapitalize="words"
               />
 
               <Text style={[styles.label, { color: muted }]}>Date of birth</Text>
-              <TouchableOpacity
-                style={[styles.input, { backgroundColor: inputBg }]}
-                onPress={() => { Keyboard.dismiss(); setShowDatePicker(true); }}
-                activeOpacity={0.8}
-              >
-                <Text style={{ color: (dobDD && dobMM && dobYYYY) ? text : muted, fontSize: 16, fontFamily: 'JosefinSans_600SemiBold' }}>
-                  {(dobDD && dobMM && dobYYYY) ? `${dobDD}/${dobMM}/${dobYYYY}` : 'DD/MM/YYYY'}
-                </Text>
-              </TouchableOpacity>
+              {Platform.OS === 'ios' ? (
+                // iOS: the native date field; tapping it opens the system calendar popover.
+                <View
+                  style={[styles.input, styles.dobRow, { backgroundColor: inputBg }]}
+                  onTouchStart={() => Keyboard.dismiss()}
+                >
+                  <View style={!dobSet && styles.dobUnset}>
+                    <DateTimePicker
+                      value={dobValue}
+                      mode="date"
+                      display="compact"
+                      maximumDate={new Date()}
+                      themeVariant={dark ? 'dark' : 'light'}
+                      onValueChange={(_event, date) => setDob(date)}
+                      accessibilityLabel="Date of birth"
+                    />
+                  </View>
+                  {!dobSet && (
+                    <Text style={[styles.dobHint, { color: muted }]}>Tap to choose</Text>
+                  )}
+                </View>
+              ) : (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.input,
+                    { backgroundColor: inputBg },
+                    pressed && styles.pressedStrong,
+                  ]}
+                  onPress={openAndroidDob}
+                  accessibilityRole="button"
+                  accessibilityLabel="Date of birth"
+                >
+                  <Text
+                    style={{
+                      color: dobSet ? text : muted,
+                      fontSize: FONT_SIZE.f16,
+                      fontFamily: FONTS.semiBold,
+                    }}
+                  >
+                    {dobSet ? `${dobDD}/${dobMM}/${dobYYYY}` : 'DD/MM/YYYY'}
+                  </Text>
+                </Pressable>
+              )}
 
               <Text style={[styles.label, { color: muted }]}>Contact number</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: text }]}
+                style={[
+                  styles.input,
+                  { backgroundColor: inputBg, color: text },
+                  focusBorder('contactNumber'),
+                ]}
                 value={contactNumber}
-                onChangeText={v => setField('contactNumber', v)}
+                onChangeText={(v) => setField('contactNumber', v)}
+                onFocus={() => setFocusedField('contactNumber')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="+44 7700 000000"
                 placeholderTextColor={muted}
                 keyboardType="phone-pad"
+                textContentType="telephoneNumber"
+                autoComplete="tel"
               />
             </View>
           )}
@@ -562,27 +823,52 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
               <Text style={[styles.title, { color: text }]}>Your profile</Text>
 
               <Text style={[styles.label, { color: muted }]}>Username</Text>
-              <View style={[styles.inputRow, { backgroundColor: inputBg }]}>
+              <View
+                style={[styles.inputRow, { backgroundColor: inputBg }, focusBorder('username')]}
+              >
                 <Text style={[styles.atSign, { color: username ? text : muted }]}>@</Text>
                 <TextInput
                   style={[styles.inputInner, { color: text }]}
                   value={username}
-                  onChangeText={v => { setField('username', v.replace('@', '')); setUsernameStatus('idle'); }}
+                  onChangeText={(v) => {
+                    setField('username', v.replace('@', ''));
+                    setUsernameStatus('idle');
+                  }}
+                  onFocus={() => setFocusedField('username')}
+                  onBlur={() => setFocusedField(null)}
                   placeholder="janesmith"
                   placeholderTextColor={muted}
+                  // The @handle is not the login, so keep iOS from offering saved passwords here.
+                  textContentType="none"
+                  autoComplete="off"
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
               </View>
-              {usernameStatus === 'checking'  && <Text style={[styles.fieldNote, { color: muted  }]}>Checking…</Text>}
-              {usernameStatus === 'available' && <Text style={[styles.fieldNote, { color: green  }]}>✓ Available</Text>}
-              {usernameStatus === 'taken'     && <Text style={[styles.fieldNote, { color: red    }]}>✗ Already taken</Text>}
+              {usernameStatus === 'checking' && (
+                <Text style={[styles.fieldNote, { color: muted }]}>Checking…</Text>
+              )}
+              {usernameStatus === 'available' && (
+                <Text style={[styles.fieldNote, { color: green }]}>✓ Available</Text>
+              )}
+              {usernameStatus === 'taken' && (
+                <Text style={[styles.fieldNote, { color: red }]}>✗ Already taken</Text>
+              )}
 
-              <Text style={[styles.label, { color: muted }]}>Display name <Text style={[styles.optionalTag, { color: muted }]}>(optional)</Text></Text>
+              <Text style={[styles.label, { color: muted }]}>
+                Display name{' '}
+                <Text style={[styles.optionalTag, { color: muted }]}>(optional)</Text>
+              </Text>
               <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: text }]}
+                style={[
+                  styles.input,
+                  { backgroundColor: inputBg, color: text },
+                  focusBorder('displayName'),
+                ]}
                 value={displayName}
-                onChangeText={v => setField('displayName', v)}
+                onChangeText={(v) => setField('displayName', v)}
+                onFocus={() => setFocusedField('displayName')}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Jane Smith"
                 placeholderTextColor={muted}
               />
@@ -590,45 +876,62 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
               <Text style={[styles.label, { color: muted }]}>Fitness goals</Text>
               <Text style={[styles.subtitle, { color: muted }]}>Select all that apply</Text>
               <View style={styles.goalsGrid}>
-                {GOALS.map(g => {
+                {GOALS.map((g) => {
                   const selected = fitnessGoals.includes(g);
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={g}
-                      style={[
+                      style={({ pressed }) => [
                         styles.goalPill,
                         selected
                           ? { backgroundColor: text }
-                          : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: text },
+                          : {
+                              backgroundColor: 'transparent',
+                              borderWidth: BORDER_WIDTH.w1_5,
+                              borderColor: text,
+                            },
+                        pressed && styles.pressed,
                       ]}
                       onPress={() => toggleGoal(g)}
-                      activeOpacity={0.7}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
                     >
                       <Text style={[styles.goalText, { color: selected ? bg : text }]}>{g}</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 })}
               </View>
 
               <Text style={[styles.label, { color: muted }]}>Training days</Text>
-              <Text style={[styles.subtitle, { color: muted }]}>Which days do you train?</Text>
+              <Text style={[styles.subtitle, { color: muted }]}>
+                Which days do you train?{'\n'}You can always change this later in your profile.
+              </Text>
               <View style={styles.daysRow}>
                 {DAYS.map(({ label, full }) => {
                   const selected = fitnessRoutine.includes(full);
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={full}
-                      style={[
+                      style={({ pressed }) => [
                         styles.dayPill,
                         selected
                           ? { backgroundColor: text }
-                          : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: text },
+                          : {
+                              backgroundColor: 'transparent',
+                              borderWidth: BORDER_WIDTH.w1_5,
+                              borderColor: text,
+                            },
+                        pressed && styles.pressed,
                       ]}
                       onPress={() => toggleRoutineDay(full)}
-                      activeOpacity={0.7}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
+                      accessibilityLabel={full}
                     >
-                      <Text style={[styles.dayText, { color: selected ? bg : text }]}>{label}</Text>
-                    </TouchableOpacity>
+                      <Text style={[styles.dayText, { color: selected ? bg : text }]}>
+                        {label}
+                      </Text>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -636,73 +939,58 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
           )}
 
           {/* Inline error */}
-          {error !== '' && (
-            <Text style={[styles.errorText, { color: red }]}>{error}</Text>
-          )}
+          {error !== '' && <Text style={[styles.errorText, { color: red }]}>{error}</Text>}
 
           {/* Navigation */}
           <View style={styles.navRow}>
             {step > 1 && (
-              <TouchableOpacity
-                style={[styles.navBtn, styles.navBtnOutline, { borderColor: text, flex: 1 }]}
-                onPress={() => { setError(''); setStep(s => s - 1); }}
-                activeOpacity={0.8}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.navBtn,
+                  styles.navBtnOutline,
+                  { borderColor: text, flex: 1 },
+                  pressed && styles.pressedStrong,
+                ]}
+                onPress={() => {
+                  setError('');
+                  setStep((s) => s - 1);
+                }}
                 disabled={loading}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: loading }}
               >
                 <Text style={[styles.navBtnText, { color: text }]}>Back</Text>
-              </TouchableOpacity>
+              </Pressable>
             )}
-            <TouchableOpacity
-              style={[styles.navBtn, { backgroundColor: text, flex: step > 1 ? 2 : 1, opacity: loading ? 0.6 : 1 }]}
+            <Pressable
+              style={({ pressed }) => [
+                styles.navBtn,
+                { backgroundColor: text, flex: step > 1 ? 2 : 1, opacity: loading ? 0.6 : 1 },
+                pressed && styles.pressedStrong,
+              ]}
               onPress={
-                step === 1 ? handleStep1Next :
-                step === 2 ? () => handleStep2Next() :
-                step === 3 ? handleStep3Next :
-                handleCreateAccount
+                step === 1
+                  ? handleStep1Next
+                  : step === 2
+                    ? () => handleStep2Next()
+                    : step === 3
+                      ? handleStep3Next
+                      : handleCreateAccount
               }
-              activeOpacity={0.8}
               disabled={loading}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: loading, busy: loading }}
             >
-              {loading
-                ? <ActivityIndicator color={bg} />
-                : <Text style={[styles.navBtnText, { color: bg }]}>
-                    {step === 4 ? 'Create account' : 'Next'}
-                  </Text>
-              }
-            </TouchableOpacity>
+              {loading ? (
+                <ActivityIndicator color={bg} />
+              ) : (
+                <Text style={[styles.navBtnText, { color: bg }]}>
+                  {step === 4 ? 'Create account' : 'Next'}
+                </Text>
+              )}
+            </Pressable>
           </View>
-
         </ScrollView>
-        </KeyboardAvoidingView>
-
-        {/* Native date picker — sits at the bottom like a keyboard */}
-        {step === 3 && showDatePicker && (
-          <View style={styles.datePickerOverlay}>
-            <View style={[styles.datePickerToolbar, { backgroundColor: dark ? '#3A3A3C' : '#E5E5EA' }]}>
-              <TouchableOpacity onPress={() => setShowDatePicker(false)} activeOpacity={0.7}>
-                <Text style={styles.datePickerDone}>Done</Text>
-              </TouchableOpacity>
-            </View>
-            <DateTimePicker
-              value={
-                (dobDD && dobMM && dobYYYY)
-                  ? new Date(Number(dobYYYY), Number(dobMM) - 1, Number(dobDD))
-                  : new Date(2000, 0, 1)
-              }
-              mode="date"
-              display="spinner"
-              maximumDate={new Date()}
-              themeVariant={dark ? 'dark' : 'light'}
-              onChange={(_event, date) => {
-                if (date) {
-                  setField('dobDD',   String(date.getDate()).padStart(2, '0'));
-                  setField('dobMM',   String(date.getMonth() + 1).padStart(2, '0'));
-                  setField('dobYYYY', String(date.getFullYear()));
-                }
-              }}
-            />
-          </View>
-        )}
       </SafeAreaView>
     </Modal>
   );
@@ -710,74 +998,118 @@ export default function CreateAccountSheet({ visible, onDismiss, onAuthComplete 
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  root:    { flex: 1 },
-  dots:    { flexDirection: 'row', justifyContent: 'center', gap: 8, paddingTop: 20, paddingBottom: 4 },
-  dot:     { width: 8, height: 8, borderRadius: 4 },
-  content: { padding: 32, gap: 12 },
-  step:    { gap: 12 },
+  root: { flex: 1 },
+  dots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: SPACE.s8,
+    paddingTop: SPACE.s20,
+    paddingBottom: SPACE.s4,
+  },
+  dot: { width: SIZE.z8, height: SIZE.z8, borderRadius: RADIUS.r4 },
+  content: { padding: SPACE.s32, gap: SPACE.s12 },
+  step: { gap: SPACE.s12 },
 
-  title:    { fontSize: 32, fontFamily: 'JosefinSans_700Bold', letterSpacing: 2, marginBottom: 8 },
-  subtitle: { fontSize: 14, fontFamily: 'JosefinSans_400Regular_Italic', marginTop: -4, marginBottom: 4 },
-  label:    { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', letterSpacing: 1, marginBottom: -4 },
+  title: { fontSize: FONT_SIZE.f32, fontFamily: FONTS.bold, letterSpacing: TRACKING.t2, marginBottom: SPACE.s8 },
+  subtitle: {
+    fontSize: FONT_SIZE.f14,
+    fontFamily: FONTS.italic,
+    marginTop: -SPACE.s4,
+    marginBottom: SPACE.s4,
+  },
+  label: {
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.semiBold,
+    letterSpacing: TRACKING.t1,
+    marginBottom: -SPACE.s4,
+  },
 
   input: {
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    fontFamily: 'JosefinSans_600SemiBold',
+    borderRadius: RADIUS.r14,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s14,
+    fontSize: FONT_SIZE.f16,
+    fontFamily: FONTS.semiBold,
   },
   inputRow: {
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    borderRadius: RADIUS.r14,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s4,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  inputInner: { flex: 1, fontSize: 16, fontFamily: 'JosefinSans_600SemiBold', paddingVertical: 10 },
-  toggle:     { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', paddingHorizontal: 4 },
+  inputInner: { flex: 1, fontSize: FONT_SIZE.f16, fontFamily: FONTS.semiBold, paddingVertical: SPACE.s10 },
+  toggle: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, paddingHorizontal: SPACE.s4 },
 
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  pill:    { borderWidth: 1.5, borderRadius: 50, paddingHorizontal: 14, paddingVertical: 8 },
-  pillText:{ fontSize: 13, fontFamily: 'JosefinSans_600SemiBold' },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s8, marginTop: SPACE.s4 },
+  pill: { borderWidth: BORDER_WIDTH.w1_5, borderRadius: RADIUS.r50, paddingHorizontal: SPACE.s14, paddingVertical: SPACE.s8 },
+  pillText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
 
-  strengthRow:    { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -4 },
-  strengthSegment:{ flex: 1, height: 4, borderRadius: 2 },
-  strengthLabel:  { fontSize: 12, fontFamily: 'JosefinSans_600SemiBold', marginLeft: 4 },
+  strengthRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s6, marginTop: -SPACE.s4 },
+  strengthSegment: { flex: 1, height: SIZE.z4, borderRadius: RADIUS.r2 },
+  strengthLabel: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.semiBold, marginLeft: SPACE.s4 },
 
-  countdown:   { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', textAlign: 'center', marginBottom: 4 },
-  resendText:  { fontSize: 14, fontFamily: 'JosefinSans_400Regular_Italic', textAlign: 'center', marginTop: 4 },
-
-  otpRow: { flexDirection: 'row', gap: 8 },
-  otpBox: {
-    flex: 1,
-    height: 54,
-    borderRadius: 14,
-    fontSize: 22,
-    fontFamily: 'JosefinSans_700Bold',
-    borderWidth: 1.5,
+  countdown: {
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.semiBold,
+    textAlign: 'center',
+    marginBottom: SPACE.s4,
+  },
+  resendText: {
+    fontSize: FONT_SIZE.f14,
+    fontFamily: FONTS.italic,
+    textAlign: 'center',
+    marginTop: SPACE.s4,
   },
 
-  fieldNote:  { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', marginTop: -4 },
-  errorText:  { fontSize: 13, fontFamily: 'JosefinSans_600SemiBold', marginTop: 4 },
+  otpRow: { flexDirection: 'row', gap: SPACE.s8, justifyContent: 'center' },
+  otpBox: {
+    width: SIZE.z46,
+    height: SIZE.z60,
+    borderRadius: RADIUS.r12,
+    borderWidth: BORDER_WIDTH.w1_5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  otpDigit: { fontSize: FONT_SIZE.f24, fontFamily: FONTS.bold },
+  // Near-zero (not zero) opacity keeps the field tappable and open to autofill.
+  otpInput: { ...StyleSheet.absoluteFill, opacity: 0.01 },
 
-  atSign: { fontSize: 16, fontFamily: 'JosefinSans_600SemiBold', paddingRight: 2 },
-  optionalTag: { fontSize: 11, fontFamily: 'JosefinSans_400Regular_Italic' },
+  inviteCard: { borderRadius: RADIUS.r14, paddingHorizontal: SPACE.s16, paddingVertical: SPACE.s14, gap: SPACE.s4 },
+  inviteWho: { fontSize: FONT_SIZE.f15, fontFamily: FONTS.bold, letterSpacing: TRACKING.t1 },
+  inviteWhat: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.italic, lineHeight: LINE_HEIGHT.l18 },
+  inviteCodeInput: { letterSpacing: TRACKING.t4 },
 
-  goalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
-  goalPill:  { borderRadius: 50, paddingHorizontal: 18, paddingVertical: 12 },
-  goalText:  { fontSize: 14, fontFamily: 'JosefinSans_600SemiBold' },
+  fieldNote: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, marginTop: -SPACE.s4 },
+  errorText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, marginTop: SPACE.s4 },
 
-  daysRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  dayPill: { flex: 1, borderRadius: 50, paddingVertical: 12, alignItems: 'center' },
-  dayText: { fontSize: 12, fontFamily: 'JosefinSans_600SemiBold' },
+  atSign: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.semiBold, paddingRight: SPACE.s2 },
+  optionalTag: { fontSize: FONT_SIZE.f11, fontFamily: FONTS.italic },
 
-  navRow:        { flexDirection: 'row', gap: 12, marginTop: 16 },
-  navBtn:        { borderRadius: 50, paddingVertical: 20, alignItems: 'center' },
-  navBtnOutline: { backgroundColor: 'transparent', borderWidth: 1.5 },
-  navBtnText:    { fontSize: 18, fontFamily: 'JosefinSans_600SemiBold' },
+  goalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s10, marginTop: SPACE.s4 },
+  goalPill: { borderRadius: RADIUS.r50, paddingHorizontal: SPACE.s18, paddingVertical: SPACE.s12 },
+  goalText: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.semiBold },
 
-  datePickerOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0 },
-  datePickerToolbar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20, paddingVertical: 10 },
-  datePickerDone:    { fontSize: 17, fontFamily: 'JosefinSans_600SemiBold', color: '#007AFF' },
+  daysRow: { flexDirection: 'row', gap: SPACE.s8, marginTop: SPACE.s4 },
+  dayPill: { flex: 1, borderRadius: RADIUS.r50, paddingVertical: SPACE.s12, alignItems: 'center' },
+  dayText: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.semiBold },
+
+  navRow: { flexDirection: 'row', gap: SPACE.s12, marginTop: SPACE.s16 },
+  navBtn: { borderRadius: RADIUS.r50, paddingVertical: SPACE.s20, alignItems: 'center' },
+  navBtnOutline: { backgroundColor: 'transparent', borderWidth: BORDER_WIDTH.w1_5 },
+  navBtnText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
+
+  dobRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: SPACE.s8,
+  },
+  // Until a date is picked the field shows a placeholder date, so it is dimmed.
+  dobUnset: { opacity: 0.4 },
+  dobHint: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.italic },
+
+  // Pressed feedback, matching the old TouchableOpacity activeOpacity values.
+  pressed: { opacity: 0.7 },
+  pressedStrong: { opacity: 0.8 },
 });

@@ -1,0 +1,445 @@
+/**
+ * AvatarPicker
+ *
+ * Displays the user's profile avatar and — when `isSelf` is true — a "+" button
+ * that lets the owner replace it with a new photo.
+ *
+ * ## Hooks used
+ * - `useState`                               react
+ * - `useCallback`                            react
+ * - `ImagePicker.useCameraPermissions`       expo-image-picker
+ * - `ImagePicker.useMediaLibraryPermissions` expo-image-picker
+ *
+ * ## Upload flow
+ * 1. User taps "+" → `handleEditPress` shows an ActionSheet (iOS) or Alert (Android).
+ * 2. Selection routes to `handleCamera` or `handleLibrary`.
+ * 3. Both run the shared permission guard before launching the native picker.
+ * 4. On image selection, `processAndUpload` is called (awaited to prevent parallel uploads):
+ *    a. Sets `localUri` for an optimistic preview.
+ *    b. Reads the file as Base64 via `FileSystem.readAsStringAsync`.
+ *    c. Decodes to an ArrayBuffer and uploads to the Supabase `avatars` bucket
+ *       at path `{userId}/avatar.jpg` with `upsert: true`.
+ *    d. Calls `updateAvatarUrl` to persist the stable public URL to `profiles.avatar_url`.
+ *    e. Calls `onUpdate` with a cache-busted URL so React Native Image re-renders
+ *       immediately (the base URL is stable; `?t=` is in-memory only).
+ *
+ * ## Permissions
+ * - If permission is denied and `canAskAgain` is true, requests it before opening the picker.
+ * - If permanently denied, shows an Alert with an "Open Settings" deep-link.
+ *
+ * ## Related files
+ * - `@/api/profile`   — `updateAvatarUrl(userId, url)` writes to `profiles` table
+ * - `@/lib/supabase`  — Supabase client (anon key, RLS enforced server-side)
+ * - Supabase Storage  — `avatars` bucket, public, RLS: foldername[1] = auth.uid()
+ */
+
+import React, { useState, useCallback } from 'react';
+import {
+  ActionSheetIOS,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Linking,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  Pressable,
+  View,
+} from 'react-native';
+import Svg, { Path } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode } from 'base64-arraybuffer';
+import { supabase } from '@/lib/supabase';
+import { updateAvatarUrl } from '@/api/profile';
+import { FONTS } from '@/constants/fonts';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  SIZE,
+  OFFSET,
+  SHADOW_BLUR,
+  LINE_HEIGHT,
+} from '@/constants/tokens';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface AvatarPickerProps {
+  /** Current avatar URL from `profiles.avatar_url`, or null if not set. */
+  avatarUrl: string | null;
+  /** When true renders the "+" edit button. Pass `userId === profile.id`. */
+  isSelf: boolean;
+  /** Authenticated user's UUID — used as the storage folder prefix. */
+  userId: string;
+  /** Theme colors forwarded from the parent screen. */
+  colors: { bg: string; text: string; muted: string };
+  /**
+   * Called after a successful upload with the new cache-busted URL.
+   * The caller should spread this into the Zustand profile: `setProfile({ ...profile, avatar_url: newUrl })`.
+   */
+  onUpdate: (newUrl: string) => void;
+}
+
+// ─── Hook: useAvatarUpload ────────────────────────────────────────────────────
+
+/**
+ * Encapsulates all upload logic so `AvatarPicker` stays a thin presentation layer.
+ *
+ * @returns `{ uploading, localUri, handleEditPress }`
+ */
+function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
+  const [uploading, setUploading] = useState(false);
+  const [localUri, setLocalUri] = useState<string | null>(null);
+
+  // expo-image-picker permission hooks — separate from expo-camera's hooks.
+  // These are scoped to ImagePicker usage and do not interfere with CameraScreen.
+  const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
+  const [libraryPermission, requestLibraryPermission] = ImagePicker.useMediaLibraryPermissions();
+
+  /** Shows a non-blocking alert directing the user to open Settings. */
+  const showPermissionAlert = useCallback((type: 'Camera' | 'Media Library') => {
+    Alert.alert(
+      `${type} Access Required`,
+      `Mahi needs ${type.toLowerCase()} access to update your profile photo. Please enable it in Settings.`,
+      [
+        { text: 'Not Now', style: 'cancel' },
+        { text: 'Open Settings', onPress: () => Linking.openSettings() },
+      ]
+    );
+  }, []);
+
+  /**
+   * Core upload pipeline. Must be awaited by callers to prevent parallel uploads.
+   *
+   * Steps: read file → base64 → ArrayBuffer → Supabase Storage → DB update → notify parent.
+   */
+  const processAndUpload = useCallback(
+    async (uri: string) => {
+      setLocalUri(uri); // optimistic preview
+      setUploading(true);
+      try {
+        // Read as Base64 (matches the pattern used in CameraScreen.tsx)
+        const base64 = await FileSystem.readAsStringAsync(uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        const buffer = decode(base64);
+
+        // Deterministic path — upsert overwrites the previous avatar in-place.
+        const storagePath = `${userId}/avatar.jpg`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(storagePath, buffer, {
+            contentType: 'image/jpeg',
+            upsert: true,
+          });
+        if (uploadError) throw uploadError;
+
+        // Stable public URL written to DB. Cache-buster applied in-memory only
+        // so RN Image always re-renders after re-upload without polluting the DB
+        // with ephemeral timestamps.
+        const publicUrl = supabase.storage.from('avatars').getPublicUrl(storagePath).data.publicUrl;
+
+        const { error: dbError } = await updateAvatarUrl(userId, publicUrl);
+        if (dbError) throw dbError;
+
+        onUpdate(`${publicUrl}?t=${Date.now()}`);
+        setLocalUri(null); // clear optimistic preview; parent now holds the persisted URL
+      } catch {
+        // Attempt best-effort cleanup of the orphaned storage file
+        // in case the upload succeeded but the DB write failed.
+        try {
+          await supabase.storage.from('avatars').remove([`${userId}/avatar.jpg`]);
+        } catch {
+          // Non-blocking — ignore cleanup failure
+        }
+        setLocalUri(null);
+        Alert.alert('Upload Failed', 'Could not update your profile photo. Please try again.');
+      } finally {
+        setUploading(false);
+      }
+    },
+    [userId, onUpdate]
+  );
+
+  /**
+   * Shared permission guard.
+   * Returns `true` if the permission is (or becomes) granted, `false` otherwise.
+   */
+  const ensurePermission = useCallback(
+    async (
+      permission: ImagePicker.PermissionResponse | null,
+      request: () => Promise<ImagePicker.PermissionResponse>,
+      type: 'Camera' | 'Media Library'
+    ): Promise<boolean> => {
+      let perm = permission;
+      if (!perm?.granted) {
+        if (perm?.canAskAgain) {
+          perm = await request();
+        }
+        if (!perm?.granted) {
+          showPermissionAlert(type);
+          return false;
+        }
+      }
+      return true;
+    },
+    [showPermissionAlert]
+  );
+
+  /** Opens the native camera. Awaits upload to prevent parallel requests. */
+  const handleCamera = useCallback(async () => {
+    const ok = await ensurePermission(cameraPermission, requestCameraPermission, 'Camera');
+    if (!ok) return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: 'images',
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      await processAndUpload(result.assets[0].uri);
+    }
+  }, [cameraPermission, requestCameraPermission, ensurePermission, processAndUpload]);
+
+  /** Opens the native media library with a 1:1 crop. Awaits upload to prevent parallel requests. */
+  const handleLibrary = useCallback(async () => {
+    const ok = await ensurePermission(libraryPermission, requestLibraryPermission, 'Media Library');
+    if (!ok) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (!result.canceled && result.assets[0]) {
+      await processAndUpload(result.assets[0].uri);
+    }
+  }, [libraryPermission, requestLibraryPermission, ensurePermission, processAndUpload]);
+
+  /**
+   * Entry point for the "+" button.
+   * Uses `ActionSheetIOS` on iOS for native feel; falls back to `Alert` on Android.
+   */
+  const handleEditPress = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: ['Cancel', 'Take Photo', 'Choose from Library'], cancelButtonIndex: 0 },
+        (i) => {
+          if (i === 1) handleCamera();
+          else if (i === 2) handleLibrary();
+        }
+      );
+    } else {
+      Alert.alert('Update Photo', '', [
+        { text: 'Take Photo', onPress: handleCamera },
+        { text: 'Choose from Library', onPress: handleLibrary },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
+  }, [handleCamera, handleLibrary]);
+
+  return { uploading, localUri, handleEditPress };
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export default function AvatarPicker({
+  avatarUrl,
+  isSelf,
+  userId,
+  colors,
+  onUpdate,
+}: AvatarPickerProps): React.JSX.Element {
+  const { uploading, localUri, handleEditPress } = useAvatarUpload(userId, onUpdate);
+  const insets = useSafeAreaInsets();
+
+  // Full-screen lightbox state — presentation only, so it stays in the component
+  // rather than the upload hook. Only opens when there is a real image to enlarge.
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  // Show local optimistic preview while uploading, otherwise the persisted URL.
+  const displayUri = localUri ?? avatarUrl;
+
+  const openLightbox = useCallback(() => {
+    console.log('[AvatarPicker] open lightbox');
+    setLightboxOpen(true);
+  }, []);
+  const closeLightbox = useCallback(() => setLightboxOpen(false), []);
+
+  return (
+    <View style={styles.container}>
+      {/* Avatar — image or person silhouette placeholder.
+          Tapping a real image opens the full-screen lightbox; the silhouette
+          fallback has nothing meaningful to enlarge, so its tap is disabled. */}
+      {displayUri ? (
+        <Pressable
+          accessibilityRole="imagebutton"
+          accessibilityLabel="Enlarge profile photo"
+          onPress={openLightbox}
+          style={({ pressed }) => pressed && { opacity: 0.9 }}
+        >
+          <Image source={{ uri: displayUri }} style={styles.avatar} />
+        </Pressable>
+      ) : (
+        <View style={[styles.avatar, styles.fallback, { backgroundColor: colors.muted }]}>
+          <Svg width={SIZE.z48} height={SIZE.z48} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12Z"
+              fill={colors.bg}
+              opacity={0.9}
+            />
+            <Path
+              d="M12 14C8.13 14 5 17.13 5 21H19C19 17.13 15.87 14 12 14Z"
+              fill={colors.bg}
+              opacity={0.9}
+            />
+          </Svg>
+        </View>
+      )}
+
+      {/* Upload spinner overlay */}
+      {uploading && (
+        <View style={styles.uploadOverlay}>
+          <ActivityIndicator color={COLORS.white} />
+        </View>
+      )}
+
+      {/* Edit button — visible only to the profile owner, hidden while uploading.
+          Rendered as a sibling ON TOP of the avatar's Pressable (separate
+          absolute hit area) so its "+" tap opens the picker and is NOT swallowed
+          by the avatar's enlarge tap. */}
+      {isSelf && !uploading && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Change profile photo"
+          style={({ pressed }) => [styles.editButton, pressed && { opacity: 0.8 }]}
+          onPress={handleEditPress}
+          hitSlop={{ top: OFFSET.o6, bottom: OFFSET.o6, left: OFFSET.o6, right: OFFSET.o6 }}
+        >
+          <Text style={styles.editPlus}>+</Text>
+        </Pressable>
+      )}
+
+      {/* Full-screen lightbox — enlarged avatar on a dim scrim.
+          Always dismissable: tap the scrim, tap the ✕, or hardware back. */}
+      {displayUri && (
+        <Modal
+          visible={lightboxOpen}
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={closeLightbox}
+        >
+          <Pressable style={styles.lightboxScrim} onPress={closeLightbox}>
+            <Image source={{ uri: displayUri }} style={styles.lightboxImage} resizeMode="contain" />
+            {/* Circular ✕ — independent dismiss affordance. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close photo"
+              style={({ pressed }) => [
+                styles.lightboxClose,
+                { top: insets.top + OFFSET.o8 },
+                pressed && { opacity: 0.8 },
+              ]}
+              onPress={closeLightbox}
+              hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+            >
+              <Text style={styles.lightboxCloseX}>✕</Text>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
+    </View>
+  );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'relative',
+    marginBottom: SPACE.s20,
+  },
+  avatar: {
+    width: SIZE.z96,
+    height: SIZE.z96,
+    borderRadius: RADIUS.r48,
+  },
+  fallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  uploadOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: RADIUS.r48,
+    backgroundColor: withAlpha(COLORS.black, 0.45),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: SIZE.z24,
+    height: SIZE.z24,
+    borderRadius: RADIUS.r12,
+    backgroundColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowColor: COLORS.black,
+    shadowOpacity: 0.25,
+    shadowRadius: SHADOW_BLUR.b3,
+    shadowOffset: { width: 0, height: SIZE.z1 },
+  },
+  editPlus: {
+    fontSize: FONT_SIZE.f16,
+    lineHeight: LINE_HEIGHT.l18,
+    color: COLORS.offBlack,
+    fontFamily: FONTS.semiBold,
+  },
+
+  // ── Lightbox ──
+  lightboxScrim: {
+    flex: 1,
+    // Dim scrim, consistent with other backdrops in the app (e.g.
+    // RestDaysStreakPanel/StreakGridPanel use black at 0.5); darker here
+    // so the enlarged avatar reads as a focused lightbox.
+    backgroundColor: withAlpha(COLORS.black, 0.85),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lightboxImage: {
+    width: '85%',
+    // Avatars are square (1:1) — keep the aspect so the enlarge stays circular-source.
+    aspectRatio: 1,
+    borderRadius: RADIUS.r16,
+  },
+  lightboxClose: {
+    position: 'absolute',
+    right: OFFSET.o24,
+    width: SIZE.z36,
+    height: SIZE.z36,
+    borderRadius: RADIUS.r18,
+    backgroundColor: withAlpha(COLORS.white, 0.15),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lightboxCloseX: {
+    fontSize: FONT_SIZE.f18,
+    lineHeight: LINE_HEIGHT.l20,
+    color: COLORS.white,
+    fontFamily: FONTS.semiBold,
+  },
+});

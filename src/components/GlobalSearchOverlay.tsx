@@ -1,0 +1,454 @@
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import {
+  Animated,
+  View,
+  Text,
+  TextInput,
+  FlatList,
+  Image,
+  Pressable,
+  StyleSheet,
+  Platform,
+  ActivityIndicator,
+  useWindowDimensions,
+  Keyboard,
+  PanResponder,
+} from 'react-native';
+import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SearchIcon } from '@/components/ScreenIcons';
+import { searchProfiles, type ProfileSearchResult } from '@/api';
+import PointsBadge from '@/components/PointsBadge';
+import { useAuthStore, useBlockStore } from '@/store';
+import UserProfileScreen from '@/screens/UserProfileScreen';
+import { Sentry } from '@/lib/sentry';
+import { FONTS } from '@/constants/fonts';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  OFFSET,
+  SIZE,
+  ICON_SIZE,
+  TRACKING,
+} from '@/constants/tokens';
+
+function UserRow({
+  item,
+  dark,
+  onPress,
+}: {
+  item: ProfileSearchResult;
+  dark: boolean;
+  onPress: () => void;
+}) {
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const avatarBg = dark ? COLORS.surfaceDark : COLORS.offWhite;
+
+  const displayName = item.display_name ?? item.first_name ?? item.username ?? '—';
+  const initials = displayName[0]?.toUpperCase() ?? '?';
+
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={item.username ? `${displayName}, @${item.username}` : displayName}
+    >
+      {item.avatar_url ? (
+        <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+      ) : (
+        <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}>
+          <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
+        </View>
+      )}
+      <View style={styles.rowText}>
+        <Text style={[styles.name, { color: text }]}>{displayName}</Text>
+        {item.username ? (
+          <Text style={[styles.handle, { color: muted }]}>@{item.username}</Text>
+        ) : null}
+      </View>
+      <PointsBadge points={item.points} style={[styles.streakText, { color: muted }]} />
+    </Pressable>
+  );
+}
+
+interface GlobalSearchOverlayProps {
+  visible: boolean;
+  onClose: () => void;
+  dark: boolean;
+}
+
+export default function GlobalSearchOverlay({
+  visible,
+  onClose,
+  dark,
+}: GlobalSearchOverlayProps): React.JSX.Element | null {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(-24)).current;
+  const inputRef = useRef<TextInput>(null);
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+
+  const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const inputBg = dark ? withAlpha(COLORS.white, 0.12) : withAlpha(COLORS.black, 0.08);
+  const tint = dark ? 'dark' : 'light';
+
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<ProfileSearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Swipe-up anywhere on the overlay dismisses it (and blocks the gesture
+  // from leaking through to the VerticalNavigator behind it).
+  const dismissPan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_e, { dy }) => Math.abs(dy) > 20,
+      onPanResponderRelease: (_e, { dy, vy }) => {
+        if (dy < -60 || vy < -0.4) {
+          Keyboard.dismiss();
+          onClose();
+        }
+      },
+      // Allow child elements (search bar, result rows, cancel) to reclaim touches.
+      onPanResponderTerminationRequest: () => true,
+    })
+  ).current;
+
+  useEffect(() => {
+    if (visible) {
+      console.log('[GlobalSearch] opened');
+      Sentry.addBreadcrumb({ category: 'search', message: 'Search overlay opened', level: 'info' });
+      Animated.parallel([
+        Animated.spring(fadeAnim, {
+          toValue: 1,
+          damping: 22,
+          stiffness: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          damping: 22,
+          stiffness: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        inputRef.current?.focus();
+      });
+    } else {
+      inputRef.current?.blur();
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: -24, duration: 180, useNativeDriver: true }),
+      ]).start();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      setQuery('');
+      setResults([]);
+      setSearched(false);
+      setProfileUserId(null);
+    }
+  }, [visible]);
+
+  const handleChange = useCallback((value: string) => {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!value.trim()) {
+      setResults([]);
+      setSearched(false);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await searchProfiles(value);
+        if (error) {
+          console.log('[GlobalSearch] search error |', error.message);
+          Sentry.captureMessage(error.message, {
+            level: 'warning',
+            tags: { flow: 'search' },
+            extra: { query: value },
+          });
+        }
+        const filtered = (data ?? []).filter((u) => !useBlockStore.getState().isBlocked(u.id));
+        console.log('[GlobalSearch] query:', value, '| results:', filtered.length);
+        setResults(filtered);
+        setSearched(true);
+      } catch (e) {
+        console.log('[GlobalSearch] search exception |', e);
+        Sentry.captureException(e, { tags: { flow: 'search' }, extra: { query: value } });
+        setResults([]);
+        setSearched(true);
+      } finally {
+        setLoading(false);
+      }
+    }, 350);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <Animated.View style={[styles.root, { opacity: fadeAnim }]} {...dismissPan.panHandlers}>
+      {/* Full-screen frosted glass background */}
+      <BlurView intensity={35} tint={tint} style={StyleSheet.absoluteFill} />
+
+      {/* Subtle colour wash on top of blur */}
+      <View
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            backgroundColor: dark ? withAlpha(COLORS.inkSoft, 0.25) : withAlpha(COLORS.paper, 0.25),
+          },
+        ]}
+        pointerEvents="none"
+      />
+
+      {/* Tap backdrop to dismiss. Hidden from screen readers: the Cancel button does the same. */}
+      <Pressable
+        style={StyleSheet.absoluteFill}
+        accessible={false}
+        onPress={() => {
+          Keyboard.dismiss();
+          onClose();
+        }}
+      />
+
+      <View style={styles.content} pointerEvents="box-none">
+        <Animated.View
+          style={{ paddingTop: insets.top + SPACE.s8, transform: [{ translateY: slideAnim }] }}
+        >
+          {/* Search bar row */}
+          <View style={styles.barRow}>
+            <View style={[styles.pill, { backgroundColor: inputBg }]}>
+              <View style={styles.magnify}>
+                <SearchIcon size={ICON_SIZE.i16} color={muted} />
+              </View>
+              <TextInput
+                ref={inputRef}
+                style={[styles.input, { color: text }]}
+                placeholder="Search users..."
+                placeholderTextColor={muted}
+                value={query}
+                onChangeText={handleChange}
+                autoCorrect={false}
+                autoCapitalize="none"
+                returnKeyType="search"
+                enablesReturnKeyAutomatically
+                clearButtonMode="while-editing"
+                accessibilityLabel="Search users"
+              />
+            </View>
+            <Pressable
+              style={({ pressed }) => [styles.cancelBtn, pressed && styles.pressed]}
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel search"
+              hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+            >
+              <Text style={[styles.cancelText, { color: text }]}>Cancel</Text>
+            </Pressable>
+          </View>
+
+          {/* Divider */}
+          <View
+            style={[
+              styles.divider,
+              {
+                backgroundColor: dark
+                  ? withAlpha(COLORS.offWhite, 0.1)
+                  : withAlpha(COLORS.offBlack, 0.08),
+              },
+            ]}
+          />
+
+          {/* Results */}
+          {loading ? (
+            <View style={styles.centered}>
+              <ActivityIndicator color={muted} />
+            </View>
+          ) : searched && results.length === 0 ? (
+            <View style={styles.centered}>
+              <Text style={[styles.emptyText, { color: muted }]}>No results for "{query}"</Text>
+            </View>
+          ) : !searched ? (
+            <View style={styles.centered}>
+              <Text style={[styles.hintText, { color: muted }]}>Search for people on Mahi</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={results}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <UserRow
+                  item={item}
+                  dark={dark}
+                  onPress={() => {
+                    if (item.id === currentUserId) {
+                      console.log('[GlobalSearch] tap own profile — ignored |', item.id);
+                      return;
+                    }
+                    console.log('[GlobalSearch] tap profile |', item.id, '| user:', item.username);
+                    Sentry.addBreadcrumb({
+                      category: 'search',
+                      message: `Profile tapped: ${item.username}`,
+                      level: 'info',
+                    });
+                    Keyboard.dismiss();
+                    setProfileUserId(item.id);
+                  }}
+                />
+              )}
+              ItemSeparatorComponent={() => (
+                <View
+                  style={[
+                    styles.separator,
+                    {
+                      backgroundColor: dark
+                        ? withAlpha(COLORS.offWhite, 0.08)
+                        : withAlpha(COLORS.offBlack, 0.06),
+                    },
+                  ]}
+                />
+              )}
+              // Rows that run under the keyboard stay reachable by scrolling.
+              automaticallyAdjustKeyboardInsets
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.list}
+              style={{ maxHeight: windowHeight * 0.55 }}
+            />
+          )}
+        </Animated.View>
+      </View>
+
+      {/* Full-screen profile — shown when a search result is tapped */}
+      {profileUserId ? (
+        <UserProfileScreen
+          key={profileUserId}
+          userId={profileUserId}
+          onBack={() => setProfileUserId(null)}
+          dark={dark}
+        />
+      ) : null}
+    </Animated.View>
+  );
+}
+
+const styles = StyleSheet.create({
+  pressed: {
+    opacity: 0.7,
+  },
+  root: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 500,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'flex-start',
+  },
+  barRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACE.s16,
+    paddingBottom: SPACE.s14,
+    gap: SPACE.s10,
+  },
+  pill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: Platform.OS === 'ios' ? SPACE.s12 : SPACE.s9,
+    // Subtle inner border for glass feel
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: withAlpha(COLORS.white, 0.25),
+  },
+  magnify: {
+    marginRight: SPACE.s8,
+  },
+  input: {
+    flex: 1,
+    fontFamily: FONTS.italic,
+    fontSize: FONT_SIZE.f15,
+  },
+  cancelBtn: {
+    paddingVertical: SPACE.s8,
+    paddingHorizontal: SPACE.s4,
+  },
+  cancelText: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZE.f15,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: SPACE.s16,
+    marginBottom: SPACE.s4,
+  },
+  list: {
+    paddingHorizontal: SPACE.s20,
+    paddingTop: SPACE.s8,
+    paddingBottom: SPACE.s24,
+  },
+  centered: {
+    alignItems: 'center',
+    paddingTop: SPACE.s48,
+    paddingHorizontal: SPACE.s24,
+  },
+  emptyText: {
+    fontFamily: FONTS.italic,
+    fontSize: FONT_SIZE.f15,
+  },
+  hintText: {
+    fontFamily: FONTS.italic,
+    fontSize: FONT_SIZE.f14,
+    letterSpacing: TRACKING.t0_5,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACE.s12,
+    gap: SPACE.s12,
+  },
+  avatar: {
+    width: SIZE.z44,
+    height: SIZE.z44,
+    borderRadius: RADIUS.r22,
+  },
+  avatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    fontSize: FONT_SIZE.f18,
+    fontFamily: FONTS.bold,
+  },
+  rowText: {
+    flex: 1,
+    gap: SPACE.s2,
+  },
+  name: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZE.f15,
+    letterSpacing: TRACKING.t1,
+  },
+  handle: {
+    fontFamily: FONTS.italic,
+    fontSize: FONT_SIZE.f13,
+  },
+  streakText: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZE.f13,
+  },
+  separator: {
+    height: SIZE.z1,
+  },
+});

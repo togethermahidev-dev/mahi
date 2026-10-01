@@ -1,0 +1,109 @@
+import React, { useEffect, useRef } from 'react';
+import { AccessibilityInfo, Animated, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useToastStore } from '@/store/toastStore';
+import { useAppTheme } from '@/hooks/useAppTheme';
+import { COLORS, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE, SHADOW_BLUR } from '@/constants/tokens';
+
+/**
+ * Single, app-wide toast sink. Subscribes to toastStore and renders a small
+ * bottom toast with a fade/slide animation whenever `message != null`.
+ * Auto-dismisses after `durationMs`. Mounted once near the app root.
+ */
+export function ToastHost(): React.JSX.Element | null {
+  const message = useToastStore((s) => s.message);
+  const durationMs = useToastStore((s) => s.durationMs);
+  const hide = useToastStore((s) => s.hide);
+  const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
+
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(12)).current;
+
+  useEffect(() => {
+    if (message == null) return;
+
+    // VoiceOver / TalkBack read the toast out, since it never takes focus.
+    AccessibilityInfo.announceForAccessibility(message);
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    const timer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: 12,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (finished) hide();
+      });
+    }, durationMs);
+
+    return () => clearTimeout(timer);
+  }, [message, durationMs, hide, opacity, translateY]);
+
+  if (message == null) return null;
+
+  return (
+    <View pointerEvents="none" style={[styles.container, { bottom: insets.bottom + OFFSET.o14 }]}>
+      <Animated.View
+        style={[
+          styles.toast,
+          {
+            backgroundColor: colors.offBlack,
+            opacity,
+            transform: [{ translateY }],
+          },
+        ]}
+      >
+        <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={2}>
+          {message}
+        </Text>
+      </Animated.View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingHorizontal: SPACE.s24,
+  },
+  toast: {
+    maxWidth: SIZE.z420,
+    paddingVertical: SPACE.s12,
+    paddingHorizontal: SPACE.s18,
+    borderRadius: RADIUS.r12,
+    // Minimal shadow scrim — allowed hardcoded value.
+    shadowColor: COLORS.black,
+    shadowOpacity: 0.25,
+    shadowRadius: SHADOW_BLUR.b8,
+    shadowOffset: { width: 0, height: SIZE.z2 },
+    elevation: 4,
+  },
+  text: {
+    fontSize: FONT_SIZE.f14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+});
