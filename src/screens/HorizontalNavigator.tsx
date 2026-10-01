@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -18,7 +18,7 @@ import MessagesScreen from '@/screens/MessagesScreen';
 import NavRail, { type RailTab } from '@/components/NavRail';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { horizontalRelease, horizontalSwipe, rubberBand } from '@/lib/swipeRules';
+import { horizontalRelease, horizontalSwipe, rubberBand, type Rect } from '@/lib/swipeRules';
 
 // ─── Panel registry ───────────────────────────────────────────────────────────
 // Panels, left to right — Profile (0) ← VerticalNavigator (1, default) → Messages (2)
@@ -32,6 +32,7 @@ const SPRING = { damping: 22, stiffness: 160, mass: 0.9, reduceMotion: ReduceMot
 
 export default function HorizontalNavigator(): React.JSX.Element {
   const showRail = useFeatureFlag('nav-glass-rail');
+  const railMorph = useFeatureFlag('nav-rail-morph');
   const { dark } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -51,6 +52,12 @@ export default function HorizontalNavigator(): React.JSX.Element {
   const startY = useSharedValue(0);
   const decided = useSharedValue(false);
   const base = useSharedValue(0);
+  // nav-rail-morph: where the rail is on screen. A touch that starts there belongs to the rail.
+  const railRectSV = useSharedValue<Rect | null>(null);
+  const railOwnsTouches = showRail && railMorph && !overlay;
+  useEffect(() => {
+    if (!railOwnsTouches) railRectSV.value = null;
+  }, [railOwnsTouches, railRectSV]);
 
   // The tape has been sent to `index`: record it and tick.
   const settle = (index: number) => {
@@ -94,6 +101,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
         height,
         insets: safeInsets,
         blocked: blockedSV.value,
+        exclude: railRectSV.value,
       });
       if (first === 'fail') {
         decided.value = true;
@@ -157,7 +165,8 @@ export default function HorizontalNavigator(): React.JSX.Element {
   const selectTab = (tab: RailTab) => {
     if (tab === 'profile') return navigateHorizontal(0);
     if (tab === 'messages') return navigateHorizontal(2);
-    if (hIndex !== 1) navigateHorizontal(1);
+    // indexSV, not hIndex: a drag along the rail can switch twice before the next render.
+    if (indexSV.value !== 1) navigateHorizontal(1);
     verticalRef.current?.navigateTo(tab === 'camera' ? 0 : 1);
   };
 
@@ -206,6 +215,14 @@ export default function HorizontalNavigator(): React.JSX.Element {
             onSelect={selectTab}
             onDark={railTab === 'camera' || dark}
             blurTarget={Platform.OS === 'android' ? blurTargetRef : undefined}
+            morph={railMorph}
+            onRect={
+              railMorph
+                ? (rect) => {
+                    railRectSV.value = rect;
+                  }
+                : undefined
+            }
           />
         ) : null}
       </View>
