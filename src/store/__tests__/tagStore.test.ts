@@ -39,3 +39,25 @@ describe('openTagsLoaded', () => {
     expect(useTagStore.getState().openTagsLoaded).toBe(false);
   });
 });
+
+describe('serverOffsetMs', () => {
+  const deviceNow = Date.parse('2026-10-01T12:00:00.000Z');
+  const MINUTE = 60 * 1000;
+
+  beforeEach(() => jest.spyOn(Date, 'now').mockReturnValue(deviceNow));
+  afterEach(() => jest.restoreAllMocks());
+
+  it('keeps the last known offset when a read returns no tags', async () => {
+    // The server clock rides on each tag row, so a read with no rows carries no clock.
+    mockGetOpenTags.mockResolvedValue({
+      data: [{ server_now: new Date(deviceNow + MINUTE).toISOString() }],
+      error: null,
+    });
+    await useTagStore.getState().syncOpenTags();
+    expect(useTagStore.getState().serverOffsetMs).toBe(MINUTE);
+
+    mockGetOpenTags.mockResolvedValue({ data: [], error: null });
+    await useTagStore.getState().syncOpenTags();
+    expect(useTagStore.getState().serverOffsetMs).toBe(MINUTE);
+  });
+});

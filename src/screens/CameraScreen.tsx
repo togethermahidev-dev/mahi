@@ -48,7 +48,6 @@ import { track } from '@/lib/analytics';
 import {
   createPost,
   getTaggableFriends,
-  hasEverPosted,
   removePostPhotos,
   uploadPostPhotos,
   type TaggedUser,
@@ -1246,17 +1245,17 @@ export default function CameraScreen(): React.JSX.Element {
 
   const streakCount = profile?.streak_current ?? 0;
 
-  // Reactive posting: your first post, then only while a friend's tag is open. Whether you've
-  // posted before is read from the server, in memory only (null = not read yet), and re-read
-  // whenever open tags refresh until it's known you have. Tags are never kept on the device.
-  const [hasPosted, setHasPosted] = useState<boolean | null>(null);
-  useEffect(() => {
-    if (!userId || hasPosted) return;
-    hasEverPosted(userId).then(({ data }) => {
-      if (data !== null) setHasPosted(data);
-    });
-  }, [userId, openTags, hasPosted]);
-  const gate = reactivePostingGate({ hasPosted, tagsLoaded, openTags, serverOffsetMs });
+  // Reactive posting: your first post, then only while a friend's tag is open. The feed already
+  // knows whether you've posted: its `unlockedUntil` is null until your first post (and the feed
+  // is re-read after every post). Nothing here is kept on the device.
+  const feedLoaded = useFeedStore((s) => s.loaded);
+  const unlockedUntil = useFeedStore((s) => s.unlockedUntil);
+  const gate = reactivePostingGate({
+    hasPosted: feedLoaded ? unlockedUntil !== null : null,
+    tagsLoaded,
+    openTags,
+    serverOffsetMs,
+  });
   const blocked = gate !== 'open';
 
   const doubleTapToFlip = Gesture.Tap()
@@ -1558,7 +1557,6 @@ export default function CameraScreen(): React.JSX.Element {
       } satisfies FeedPost);
       // Posting unlocks the feed: read it again so friends' posts appear.
       useFeedStore.getState().sync(true);
-      setHasPosted(true);
       useProfilePostsStore
         .getState()
         .addPost({ ...result.post, image_url: rear.uri, pov_image_url: front.uri });

@@ -4,7 +4,6 @@ export * from './notifications';
 export * from './posts';
 export * from './profile';
 export * from './social';
-export * from './streaks';
 export * from './follows';
 export * from './moderation';
 export * from './push';

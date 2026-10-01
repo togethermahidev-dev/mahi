@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { LogBox, Platform } from 'react-native';
+import { AppState, LogBox, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 // Suppress known harmless development warnings
@@ -89,8 +89,10 @@ async function hydrateForUser(userId: string): Promise<void> {
     Sentry.captureException(err, { tags: { flow: 'auth', action: 'getProfile' } });
   }
 
-  // Background-hydrate stores (non-blocking). Each guards against duplicate work.
+  // Background-hydrate stores (non-blocking). Each guards against duplicate work. The feed and
+  // the open tags also drive the camera's posting gate, so they load here, not on a screen.
   useFeedStore.getState().sync();
+  useTagStore.getState().syncOpenTags();
   useMessagesStore.getState().sync();
   useNotificationsStore.getState().sync(userId);
   useBlockStore.getState().sync(userId);
@@ -159,7 +161,17 @@ export default function App(): React.JSX.Element {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // One foreground listener for what expires: the feed's lock and the open tags.
+    const foreground = AppState.addEventListener('change', (state) => {
+      if (state !== 'active' || !useAuthStore.getState().user) return;
+      useFeedStore.getState().sync(true);
+      useTagStore.getState().syncOpenTags();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      foreground.remove();
+    };
   }, []);
 
   // Update gate: checked on every launch, signed in or not. A failed or slow check never

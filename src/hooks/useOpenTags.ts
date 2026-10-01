@@ -1,39 +1,21 @@
-import { useEffect } from 'react';
-import { AppState } from 'react-native';
-import { useAuthStore, useTagStore } from '@/store';
+import { useTagStore } from '@/store';
 import type { OpenTag } from '@/api';
 
 export interface UseOpenTagsResult {
   openTags: OpenTag[];
+  /** server clock − device clock, from the last read. */
   serverOffsetMs: number;
-  isLoading: boolean;
   /** This session's first read has landed (until then, don't word anything from the tags). */
   loaded: boolean;
-  refresh: () => Promise<void>;
 }
 
-/** Tags waiting for the user's post; refreshed on mount and whenever the app comes back. */
+/**
+ * Tags waiting for the user's post. App.tsx reads them on sign-in and whenever the app comes to
+ * the foreground; this only watches the store.
+ */
 export function useOpenTags(): UseOpenTagsResult {
-  const userId = useAuthStore((s) => s.user?.id);
   const openTags = useTagStore((s) => s.openTags);
   const serverOffsetMs = useTagStore((s) => s.serverOffsetMs);
-  const isSyncing = useTagStore((s) => s.isSyncing);
   const loaded = useTagStore((s) => s.openTagsLoaded);
-
-  useEffect(() => {
-    if (!userId) return;
-    useTagStore.getState().syncOpenTags();
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') useTagStore.getState().syncOpenTags();
-    });
-    return () => sub.remove();
-  }, [userId]);
-
-  return {
-    openTags,
-    serverOffsetMs,
-    isLoading: isSyncing && openTags.length === 0,
-    loaded,
-    refresh: () => useTagStore.getState().syncOpenTags(),
-  };
+  return { openTags, serverOffsetMs, loaded };
 }

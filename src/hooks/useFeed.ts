@@ -1,5 +1,4 @@
 import { useEffect, useMemo } from 'react';
-import { AppState } from 'react-native';
 import { useFeedStore } from '@/store';
 import { msLeft } from '@/lib/countdown';
 import type { FeedPost } from '@/api';
@@ -22,8 +21,8 @@ export interface UseFeedResult {
 }
 
 /**
- * The feed, always read fresh from the server: on mount (if this session hasn't loaded it),
- * whenever the app comes back to the foreground, and the moment the unlock runs out.
+ * The feed, always read fresh from the server: on mount (if this session hasn't loaded it) and
+ * the moment the unlock runs out. App.tsx re-reads it whenever the app comes to the foreground.
  */
 export function useFeed(): UseFeedResult {
   const posts = useFeedStore((s) => s.posts);
@@ -37,10 +36,6 @@ export function useFeed(): UseFeedResult {
 
   useEffect(() => {
     useFeedStore.getState().sync();
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') useFeedStore.getState().sync(true);
-    });
-    return () => sub.remove();
   }, []);
 
   // Re-read when the unlock ends so friends' photos disappear on time.

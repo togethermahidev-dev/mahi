@@ -142,7 +142,7 @@ export default function NotificationsScreen({
                   caption = `@${item.actor.username} answered your tag`;
                   break;
                 case 'tag_missed':
-                  caption = `The tag between you and @${item.actor.username} ran out`;
+                  caption = `@${item.actor.username} missed your tag`;
                   break;
                 case 'streak_lost':
                   caption = `You missed @${item.actor.username}'s tag. Your streak is back to 0.`;

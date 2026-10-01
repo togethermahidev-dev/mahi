@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useMinuteTick } from '@/hooks/useMinuteTick';
 import { openTagsBanner } from '@/lib/openTagsBanner';
 import { appHeaderHeight } from '@/lib/pip';
 import type { OpenTag } from '@/api';
@@ -23,16 +24,10 @@ export default function OpenTagsBanner({
   const { colors } = useAppTheme();
   // Just under the app header, whose height follows the status bar / notch.
   const top = appHeaderHeight(useSafeAreaInsets().top) + OFFSET.o12;
-  const [, setTick] = useState(0);
+  // Hours and minutes only, so a refresh every minute keeps it right.
+  const deviceNow = useMinuteTick();
 
-  // Hours and minutes only, so a refresh every 30 seconds keeps it right.
-  useEffect(() => {
-    if (openTags.length === 0) return;
-    const id = setInterval(() => setTick((t) => t + 1), 30 * 1000);
-    return () => clearInterval(id);
-  }, [openTags.length]);
-
-  const banner = openTagsBanner({ openTags, serverOffsetMs });
+  const banner = openTagsBanner({ openTags, serverOffsetMs, deviceNow });
   if (!banner) return null;
 
   return (

@@ -9,18 +9,6 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types';
 
-type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
-
-/** Check whether a username is already taken. */
-export async function checkUsername(username: string) {
-  return supabase.from('profiles').select('username').eq('username', username).maybeSingle();
-}
-
-/** Insert a new profile row after account creation. */
-export async function insertProfile(profile: ProfileInsert) {
-  return supabase.from('profiles').insert(profile);
-}
-
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 /** A profile plus its Mahi points (`points` is a computed column on the server). */

@@ -34,6 +34,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeed } from '@/hooks/useFeed';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useOpenTags } from '@/hooks/useOpenTags';
+import { answersATag } from '@/lib/reactivePosting';
 import FeedLockBanner from '@/components/FeedLockBanner';
 import { useFeedStore, useSocialStore, useUserStore, useAuthStore } from '@/store';
 import { LikeIcon, HeartIcon, CommentIcon } from '@/components/ScreenIcons';
@@ -678,9 +679,9 @@ export default function FeedScreen({
   const [bannerH, setBannerH] = useState(0);
   const topSpace = lockExplainer && bannerH > 0 ? bannerH + SPACE.s8 : 0;
 
-  // Friends' posts while locked: a button only when reactive posting lets you post (an open tag,
-  // or your first post).
-  const tagged = useOpenTags().openTags.length > 0;
+  // Friends' posts while locked: a button only when reactive posting lets you post (a tag still
+  // open on the server clock, or your first post).
+  const tagged = answersATag(useOpenTags().openTags, serverOffsetMs);
   const postedBefore = unlockedUntil !== null;
   const lockedText = useMemo(
     () => lockedPostText({ tagged, postedBefore }),
