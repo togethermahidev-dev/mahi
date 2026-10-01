@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, Image, StyleSheet, Pressable, LayoutAnimation } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSuggestedFollows } from '@/hooks/useSuggestedFollows';
@@ -47,66 +47,88 @@ export default function SuggestedFollowsStrip({
     [suggestions, excludeUserId]
   );
 
+  // Closed by default so the photo grid below gets the room; tap the title to open.
+  const [open, setOpen] = useState(false);
+
   // Don't render an empty strip
   if (data.length === 0) return null;
 
+  const toggle = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpen((o) => !o);
+  };
+
   return (
     <View style={styles.root}>
-      <Text style={[styles.header, { color: muted }]}>SUGGESTED FOR YOU</Text>
-      <FlashList<SuggestedUser>
-        data={data}
-        horizontal
-        keyExtractor={(item) => item.id}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => {
-          const displayName = item.display_name ?? item.username ?? '—';
-          const initials = displayName[0]?.toUpperCase() ?? '?';
+      <Pressable
+        style={({ pressed }) => [styles.headerRow, pressed && { opacity: 0.6 }]}
+        onPress={toggle}
+        accessibilityRole="button"
+        accessibilityLabel="Suggested for you"
+        accessibilityState={{ expanded: open }}
+        hitSlop={{ top: SPACE.s8, bottom: SPACE.s8 }}
+      >
+        <Text style={[styles.header, { color: muted }]}>SUGGESTED FOR YOU</Text>
+        <Text style={[styles.chevron, { color: muted }, open && styles.chevronOpen]}>›</Text>
+      </Pressable>
+      {open ? (
+        <FlashList<SuggestedUser>
+          data={data}
+          horizontal
+          keyExtractor={(item) => item.id}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => {
+            const displayName = item.display_name ?? item.username ?? '—';
+            const initials = displayName[0]?.toUpperCase() ?? '?';
 
-          return (
-            <Pressable
-              style={({ pressed }) => [
-                styles.card,
-                { backgroundColor: cardBg },
-                pressed && { opacity: 0.8 },
-              ]}
-              onPress={() => onPressUser(item.id)}
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${displayName}'s profile`}
-            >
-              {item.avatar_url ? (
-                <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}>
-                  <Text style={[styles.avatarInitial, { color: colors.text }]}>{initials}</Text>
-                </View>
-              )}
-
-              <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-                {displayName}
-              </Text>
-              {item.username ? (
-                <Text style={[styles.handle, { color: muted }]} numberOfLines={1}>
-                  @{item.username}
-                </Text>
-              ) : null}
-
+            return (
               <Pressable
                 style={({ pressed }) => [
-                  styles.followBtn,
-                  { backgroundColor: ACCENT },
-                  pressed && { opacity: 0.75 },
+                  styles.card,
+                  { backgroundColor: cardBg },
+                  pressed && { opacity: 0.8 },
                 ]}
-                onPress={() => follow(item.id)}
+                onPress={() => onPressUser(item.id)}
                 accessibilityRole="button"
-                accessibilityLabel={`Follow @${item.username ?? displayName}`}
+                accessibilityLabel={`Open ${displayName}'s profile`}
               >
-                <Text style={styles.followBtnText}>FOLLOW</Text>
+                {item.avatar_url ? (
+                  <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+                ) : (
+                  <View
+                    style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}
+                  >
+                    <Text style={[styles.avatarInitial, { color: colors.text }]}>{initials}</Text>
+                  </View>
+                )}
+
+                <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+                  {displayName}
+                </Text>
+                {item.username ? (
+                  <Text style={[styles.handle, { color: muted }]} numberOfLines={1}>
+                    @{item.username}
+                  </Text>
+                ) : null}
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.followBtn,
+                    { backgroundColor: ACCENT },
+                    pressed && { opacity: 0.75 },
+                  ]}
+                  onPress={() => follow(item.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Follow @${item.username ?? displayName}`}
+                >
+                  <Text style={styles.followBtnText}>FOLLOW</Text>
+                </Pressable>
               </Pressable>
-            </Pressable>
-          );
-        }}
-      />
+            );
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -118,12 +140,24 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: SPACE.s24,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.s8,
+    marginBottom: SPACE.s12,
+  },
   header: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
     letterSpacing: TRACKING.t3,
-    paddingHorizontal: SPACE.s24,
-    marginBottom: SPACE.s12,
+  },
+  chevron: {
+    fontSize: FONT_SIZE.f14,
+    fontFamily: FONTS.semiBold,
+  },
+  chevronOpen: {
+    transform: [{ rotate: '90deg' }],
   },
   listContent: {
     paddingHorizontal: SPACE.s24,
