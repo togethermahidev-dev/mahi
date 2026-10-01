@@ -2,7 +2,7 @@
 -- answers a tag adds 1 to your streak, however many tags it answers. Missing a tag puts the streak
 -- back to 0.
 begin;
-select plan(41);
+select plan(46);
 
 -- Slots don't need filling here: this test is about answering, not tagging.
 update public.app_config set tags_required = false, quiet_start = '00:00', quiet_end = '00:00';
@@ -19,7 +19,8 @@ insert into public.profiles (id, username, timezone) values
   ('00000000-0000-0000-0000-0000000057cc', 'streak_c', 'Europe/London'),
   ('00000000-0000-0000-0000-0000000057dd', 'streak_d', 'Europe/London');
 insert into storage.objects (bucket_id, name)
-select 'posts', '00000000-0000-0000-0000-0000000057aa/' || n || '.jpg' from generate_series(1, 8) n;
+select 'posts', '00000000-0000-0000-0000-0000000057aa/' || n || '.jpg' from generate_series(1, 8) n
+union all select 'posts', '00000000-0000-0000-0000-0000000057bb/1.jpg';
 
 create function pg_temp.post(n int) returns jsonb language plpgsql as $$
 begin
@@ -112,9 +113,11 @@ select is((select count(*)::int from public.notifications
 select is((select body from public.push_outbox
            where kind = 'streak_lost' and user_id = '00000000-0000-0000-0000-0000000057aa'),
   'You missed @streak_b''s tag. Your streak is back to 0.', 'the streak push says so');
-select ok((select streak_broken_at is not null from public.tag_challenges
-           where tagged_id = '00000000-0000-0000-0000-0000000057aa' and missed_at is not null),
-  'the tag is marked as having broken the streak');
+select ok((select missed_at is not null from public.tag_challenges
+           where tagger_id = '00000000-0000-0000-0000-0000000057bb'
+             and tagged_id = '00000000-0000-0000-0000-0000000057aa'
+             and answered_at is null and cancelled_at is null),
+  'the tag is marked missed');
 
 -- Running the job again changes nothing.
 update public.profiles set streak_current = 2 where id = '00000000-0000-0000-0000-0000000057aa';
@@ -132,6 +135,10 @@ select is((pg_temp.post(5) -> 'streak' ->> 'streak_current')::int, 1,
   'a miss not yet processed still resets the streak before the answer counts');
 reset role;
 select is((pg_temp.a()).streak_highest, 4, 'highest kept at 4');
+select ok((select missed_at is not null from public.tag_challenges
+           where tagger_id = '00000000-0000-0000-0000-0000000057cc'
+             and tagged_id = '00000000-0000-0000-0000-0000000057aa' and answered_at is null),
+  'posting marks the run-out tag missed itself, without waiting for the job');
 select public.mark_missed_tags();
 select is((pg_temp.a()).streak_current, 1, 'the job later doesn''t reset the streak a second time');
 select is((select count(*)::int from public.notifications
@@ -145,14 +152,32 @@ values ('00000000-0000-0000-0000-0000000057bb', '00000000-0000-0000-0000-0000000
 select public.mark_missed_tags();
 select is((pg_temp.a()).streak_current, 1, 'a cancelled tag never breaks the streak');
 
--- 9. Old misses don't count against new streaks: an expired tag already marked doesn't reset.
-insert into public.tag_challenges (tagger_id, tagged_id, created_at, expires_at, streak_broken_at)
+-- 9. Old misses don't count against new streaks: a tag the job had already marked missed before
+--    the streak rule began (missed_at set) never resets anything.
+insert into public.tag_challenges (tagger_id, tagged_id, created_at, expires_at, missed_at)
 values ('00000000-0000-0000-0000-0000000057dd', '00000000-0000-0000-0000-0000000057aa',
         now() - interval '9 days', now() - interval '7 days', now() - interval '6 days');
 select public.break_missed_streaks('00000000-0000-0000-0000-0000000057aa');
-select is((pg_temp.a()).streak_current, 1, 'a miss already counted is never counted again');
+select is((pg_temp.a()).streak_current, 1, 'a tag already marked missed is never counted again');
 
--- 10. The old daily streak is gone, and the streak job isn't callable from the app.
+-- 10. Anyone posting sweeps every run-out tag: B's tag on A ran out, and B's own (first) post
+--     marks it missed and puts A's streak back to 0, not just B's own tags.
+update public.profiles set streak_current = 3 where id = '00000000-0000-0000-0000-0000000057aa';
+select pg_temp.tag('b', '49 hours');
+select set_config('role', 'authenticated', true),
+       set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000057bb","role":"authenticated"}', true);
+select is((public.create_post('55555555-0000-0000-0000-0000000000b1',
+  '00000000-0000-0000-0000-0000000057bb/1.jpg', null, null, '{}'::uuid[]) -> 'streak' ->> 'streak_current')::int,
+  0, 'B''s first post is free and starts no streak');
+reset role;
+select is((pg_temp.a()).streak_current, 0, 'B posting puts A''s streak back to 0 for the tag A missed');
+select is((select count(*)::int from public.tag_challenges
+           where tagger_id = '00000000-0000-0000-0000-0000000057bb'
+             and tagged_id = '00000000-0000-0000-0000-0000000057aa'
+             and answered_at is null and cancelled_at is null and missed_at is null), 0,
+  'and marks that tag missed, so B can tag A again');
+
+-- 11. The old daily streak is gone, and the streak job isn't callable from the app.
 select hasnt_function('public', 'record_upload_streak', 'record_upload_streak no longer exists');
 select ok(not has_function_privilege('authenticated', 'public.reactive_posting_open(uuid)', 'execute'),
   'the app cannot call reactive_posting_open');
@@ -160,9 +185,10 @@ select ok(not has_function_privilege('authenticated', 'public.break_missed_strea
   'the app cannot call break_missed_streaks');
 select ok(not has_function_privilege('anon', 'public.break_missed_streaks(uuid)', 'execute'),
   'nor can signed-out callers');
-select has_column('public', 'tag_challenges', 'streak_broken_at', 'tags record when they broke a streak');
+select hasnt_column('public', 'tag_challenges', 'streak_broken_at', 'missed_at is the one missed timestamp');
+select hasnt_index('public', 'tag_challenges', 'tag_challenges_streak_unbroken', 'and has no index of its own');
 
--- 11. Rest days and the old daily streak's bookkeeping are gone (20261001120100_drop_rest_days).
+-- 12. Rest days and the old daily streak's bookkeeping are gone (20261001120100_drop_rest_days).
 select hasnt_column('public', 'profiles', 'fitness_routine', 'no training days on profiles');
 select hasnt_column('public', 'profiles', 'streak_lowest', 'no lowest streak');
 select hasnt_column('public', 'profiles', 'streak_last_upload_date', 'no last upload date');

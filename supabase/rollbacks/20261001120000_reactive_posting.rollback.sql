@@ -1,6 +1,6 @@
 -- Undo 20261001120000_reactive_posting. Puts back "one post a day", the daily streak function,
 -- the old create_post, mark_missed_tags, push text and feed lock, and drops the reactive posting
--- helper, the streak breaker and tag_challenges.streak_broken_at.
+-- helper and the streak breaker.
 -- Not undone: streaks reset to 0 on the day this ran stay reset (the old values are gone).
 -- The one-post-a-day index can only come back if nobody has two posts on one local day: delete or
 -- keep those posts first (this file stops with a duplicate-key error otherwise).
@@ -396,8 +396,6 @@ $$;
 
 drop function public.break_missed_streaks(uuid);
 drop function public.reactive_posting_open(uuid);
-drop index public.tag_challenges_streak_unbroken;
-alter table public.tag_challenges drop column streak_broken_at;
 
 notify pgrst, 'reload schema';
 commit;
