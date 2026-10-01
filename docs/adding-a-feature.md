@@ -18,7 +18,12 @@ if the operation must validate `auth.uid()` server-side or return aggregate coun
 `get_follow_data`); a simple owner-scoped insert/delete can stay a direct table op guarded by RLS.
 
 Every table needs owner-scoped `INSERT`/`UPDATE`/`DELETE` policies — RLS is the only authorization
-layer (there is no backend server). Then regenerate types:
+layer (there is no backend server).
+
+Schema changes go **only** through a migration file (`supabase migration new <name>`) with a matching
+`supabase/rollbacks/<name>.rollback.sql` and a pgTAP test in `supabase/tests/` — red before the
+migration, green after (`scripts/db.sh local`). Never the dashboard SQL editor. Applying it to
+production is the owner's step ([supabase/README.md](../supabase/README.md)). Then regenerate types:
 
 ```bash
 npx supabase gen types typescript --project-id <id> > src/types/database.ts
@@ -59,14 +64,23 @@ select store state, run a `[userId]`-keyed `useEffect` that `subscribe`s and ret
 return `{ items, isLoading, toggle }` delegating to `useBookmarkStore.getState()` actions. **No business
 logic in the hook** — it owns subscription lifecycle only.
 
-## 5. UI — wire into a screen
+## 5. Flag — add `saved-posts`
+
+Add the key to `FEATURE_FLAGS` in `src/lib/featureFlags.ts`, list it in [feature-flags.md](./feature-flags.md),
+and gate the UI with `useFeatureFlag('saved-posts')`. Ask the owner to create it in PostHog at 100%
+**before** the update ships — a key missing from PostHog reads as off once flags load.
+
+## 6. UI — wire into a screen
 
 Call `const { bookmarkedByMe, toggle } = useBookmarks()` and render the optimistic state. **Surface the
-`{ error }`** the store action returns (don't swallow it). Use `useAppTheme().colors` — never hardcode hex.
+`{ error }`** the store action returns (don't swallow it). Every colour, size, spacing, radius and font
+comes from `src/constants/tokens.ts` / `fonts.ts` — add a token if one is missing (the token tests fail
+on raw values). Sentence-case labels. Put pure UI rules (wording, thresholds) in `src/lib/` with a Jest
+test. A bottom-anchored sheet or composer ends with `<KeyboardInset />`; pop-ups are native page sheets.
 
-## 6. Verify (red → green)
+## 7. Verify (red → green)
 
-- `pnpm typecheck` passes. (Prove the gate works: inject a type error, see it go red, then revert.)
+- `pnpm typecheck`, `pnpm test` and `pnpm lint` pass. (Prove the gate works: inject a failure, see it go red, then revert.)
 - Optimistic path **and** rollback path: kill the network, confirm the UI reverts.
 - Sign out → sign in as a different user → confirm **no state leaks** (this is what the `reset()` wiring guarantees).
 
@@ -83,3 +97,6 @@ Call `const { bookmarkedByMe, toggle } = useBookmarks()` and render the optimist
 | Thin hook (with subscription) | `src/hooks/useNotifications.ts` |
 | Sign-out reset wiring | `App.tsx` sign-out `else` block |
 | Env access | `src/lib/env.ts` (never read `process.env` directly) |
+| Flag | `src/lib/featureFlags.ts` + `useFeatureFlag` |
+| Styles | `src/constants/tokens.ts`, `src/constants/fonts.ts` |
+| Migration + rollback + test | `supabase/migrations/20261001100000_password_reset_codes.sql`, its rollback and `supabase/tests/password_reset_codes_test.sql` |
