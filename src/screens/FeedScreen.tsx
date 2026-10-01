@@ -31,6 +31,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeed } from '@/hooks/useFeed';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import FeedLockBanner from '@/components/FeedLockBanner';
 import { useFeedStore, useSocialStore, useUserStore, useAuthStore } from '@/store';
 import { LikeIcon, HeartIcon, CommentIcon } from '@/components/ScreenIcons';
 import UserProfileScreen from '@/screens/UserProfileScreen';
@@ -103,18 +105,29 @@ function LockedPostItem({
   height,
   onAvatarPress,
   onUnlockPress,
+  topSpace = 0,
+  softCopy = false,
 }: {
   item: FeedPost;
   /** Card height: one full screen (TikTok-style snap). */
   height: number;
   onAvatarPress: (userId: string) => void;
   onUnlockPress: () => void;
+  /** Room kept at the top for the lock card over the first post. */
+  topSpace?: number;
+  /** Sentence-case button (flag 'feed-lock-explainer'). */
+  softCopy?: boolean;
 }) {
   const { colors } = useAppTheme();
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
   return (
-    <View style={[styles.lockedCard, { backgroundColor: colors.offBlack, height }]}>
+    <View
+      style={[
+        styles.lockedCard,
+        { backgroundColor: colors.offBlack, height, paddingTop: topSpace },
+      ]}
+    >
       <Pressable
         style={({ pressed }) => [styles.lockedWho, pressed && { opacity: 0.75 }]}
         onPress={() => onAvatarPress(item.profiles.id)}
@@ -146,8 +159,17 @@ function LockedPostItem({
         ]}
         onPress={onUnlockPress}
         accessibilityRole="button"
+        accessibilityLabel="Post to unlock"
       >
-        <Text style={[styles.lockedButtonText, { color: colors.offBlack }]}>POST TO UNLOCK</Text>
+        <Text
+          style={[
+            styles.lockedButtonText,
+            softCopy && styles.lockedButtonTextSoft,
+            { color: colors.offBlack },
+          ]}
+        >
+          {softCopy ? 'Post to unlock' : 'POST TO UNLOCK'}
+        </Text>
       </Pressable>
     </View>
   );
@@ -162,6 +184,7 @@ function PostItem({
   height,
   onAvatarPress,
   onCommentPress,
+  topSpace = 0,
 }: {
   item: FeedPost;
   dark: boolean;
@@ -170,6 +193,8 @@ function PostItem({
   height: number;
   onAvatarPress: (userId: string) => void;
   onCommentPress: (postId: string) => void;
+  /** Room kept at the top for the feed timer over the first post. */
+  topSpace?: number;
 }) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
@@ -209,7 +234,7 @@ function PostItem({
   const pipUrl = hasDual && !rearIsPrimary ? item.image_url : item.pov_image_url;
 
   // ── Draggable PiP (FaceTime-style) — safe zone clears the header + tagged pills ──
-  const pipSafeZone = pipZone({ width, height }, headerH + OFFSET.o120);
+  const pipSafeZone = pipZone({ width, height }, headerH + OFFSET.o120 + topSpace);
 
   // ── Double-tap medal burst animation ─────────────────────────────────────
   const medalScale = useRef(new Animated.Value(0)).current;
@@ -324,7 +349,7 @@ function PostItem({
             {/* Top gradient — tagged pills + streak badge inline */}
             <LinearGradient
               colors={[withAlpha(COLORS.black, 0.6), 'transparent']}
-              style={[styles.postOverlay, { paddingTop: headerH + SPACE.s4 }]}
+              style={[styles.postOverlay, { paddingTop: headerH + SPACE.s4 + topSpace }]}
               pointerEvents="box-none"
             >
               <TaggedBubbleStack
@@ -633,7 +658,24 @@ export default function FeedScreen({
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
 
-  const { posts, isLoading, error, hasMore, loadMore, refresh } = useFeed();
+  const {
+    posts,
+    isLoading,
+    error,
+    hasMore,
+    loadMore,
+    refresh,
+    locked,
+    unlockedUntil,
+    serverOffsetMs,
+    loaded,
+  } = useFeed();
+
+  // Lock card / feed timer under the header. It floats over the first post (a list header would
+  // knock the full-screen snapping out of step), so the first post keeps room for it.
+  const lockExplainer = useFeatureFlag('feed-lock-explainer');
+  const [bannerH, setBannerH] = useState(0);
+  const topSpace = lockExplainer && bannerH > 0 ? bannerH + SPACE.s8 : 0;
 
   // Profile overlay, conversation overlay, and comment sheet — lifted to
   // FeedScreen so overlays cover the full screen (not just the PostItem card)
@@ -681,7 +723,7 @@ export default function FeedScreen({
   );
 
   // ── Scroll-driven header hide/show ───────────────────────────────────────
-  const localHeaderAnim = useRef(new Animated.Value(0)).current;
+  const [localHeaderAnim] = useState(() => new Animated.Value(0));
   const headerOffset = headerAnim ?? localHeaderAnim;
 
   // The swipe reads where the list is on the UI thread, in step with the finger.
@@ -708,13 +750,16 @@ export default function FeedScreen({
           renderScrollComponent={FeedScrollView}
           data={posts}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) =>
+          extraData={topSpace}
+          renderItem={({ item, index }) =>
             item.locked ? (
               <LockedPostItem
                 item={item}
                 height={cardHeight}
                 onAvatarPress={handleAvatarPress}
                 onUnlockPress={() => onGoToCamera?.()}
+                topSpace={index === 0 ? topSpace : 0}
+                softCopy={lockExplainer}
               />
             ) : (
               <PostItem
@@ -724,6 +769,7 @@ export default function FeedScreen({
                 height={cardHeight}
                 onAvatarPress={handleAvatarPress}
                 onCommentPress={setCommentPostId}
+                topSpace={index === 0 ? topSpace : 0}
               />
             )
           }
@@ -748,7 +794,7 @@ export default function FeedScreen({
           ListEmptyComponent={
             !isLoading ? (
               // Starts below the header, which floats over the list and grows with the notch.
-              <View style={[styles.empty, { paddingTop: headerH + SPACE.s24 }]}>
+              <View style={[styles.empty, { paddingTop: headerH + SPACE.s24 + topSpace }]}>
                 <Text style={[styles.emptyTitle, { color: text }]}>NO POSTS YET</Text>
                 <Text style={[styles.emptySub, { color: muted }]}>
                   Take your first streak photo to appear here
@@ -763,6 +809,36 @@ export default function FeedScreen({
           }
         />
       </ListGestureContext.Provider>
+
+      {lockExplainer && loaded ? (
+        <Animated.View
+          pointerEvents="box-none"
+          onLayout={(e) => setBannerH(e.nativeEvent.layout.height)}
+          style={[
+            styles.lockBanner,
+            {
+              top: headerH,
+              // Slides away with the header once the first post scrolls off.
+              transform: [
+                {
+                  translateY: headerOffset.interpolate({
+                    inputRange: [0, headerH],
+                    outputRange: [0, -(headerH + bannerH)],
+                    extrapolate: 'clamp',
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <FeedLockBanner
+            locked={locked}
+            unlockedUntil={unlockedUntil}
+            serverOffsetMs={serverOffsetMs}
+            onPost={() => onGoToCamera?.()}
+          />
+        </Animated.View>
+      ) : null}
 
       {/* Full-screen profile — shown when another user's avatar is tapped */}
       {profileUserId ? (
@@ -1055,6 +1131,16 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
     letterSpacing: TRACKING.t3,
+  },
+  lockedButtonTextSoft: {
+    fontSize: FONT_SIZE.f15,
+    letterSpacing: 0,
+  },
+  lockBanner: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    paddingHorizontal: SPACE.s16,
   },
   empty: {
     alignItems: 'center',
