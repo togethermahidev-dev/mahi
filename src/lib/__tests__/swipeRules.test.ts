@@ -1,4 +1,5 @@
 import {
+  atListTop,
   horizontalRelease,
   horizontalSwipe,
   rubberBand,
@@ -46,6 +47,7 @@ describe('swipe rules', () => {
         blocked: false,
         onFeed: false,
         feedAtTop: true,
+        listMoved: false,
         ...o,
       });
 
@@ -61,12 +63,28 @@ describe('swipe rules', () => {
       expect(v({ onFeed: true, feedAtTop: false, dy: 30 })).toBe('fail');
       expect(v({ onFeed: true, dy: -30 })).toBe('fail');
     });
+    it('on Feed, once the list has scrolled under the finger, the drag stays with the list', () => {
+      expect(v({ onFeed: true, dy: 30, listMoved: true })).toBe('fail');
+      expect(v({ onFeed: true, dy: 15, listMoved: true })).toBe('fail');
+    });
     it('leaves the status bar and home bar strips to the phone', () => {
       expect(v({ startY: 20, dy: 40 })).toBe('fail');
       expect(v({ startY: 790, dy: -40 })).toBe('fail');
     });
     it('does nothing while a pop-up screen is open', () => {
       expect(v({ dy: 40, blocked: true })).toBe('fail');
+    });
+  });
+
+  describe('atListTop (the Feed list is at its top)', () => {
+    it('counts the first 2px and any pull past the top', () => {
+      expect(atListTop(0)).toBe(true);
+      expect(atListTop(2)).toBe(true);
+      expect(atListTop(-40)).toBe(true);
+    });
+    it('is false once the list has scrolled further', () => {
+      expect(atListTop(2.5)).toBe(false);
+      expect(atListTop(800)).toBe(false);
     });
   });
 
@@ -134,6 +152,7 @@ describe('swipe rules', () => {
     for (const fn of [
       horizontalSwipe,
       verticalSwipe,
+      atListTop,
       rubberBand,
       horizontalRelease,
       verticalRelease,

@@ -141,6 +141,8 @@ export default function VerticalNavigator({
           blocked: overlayRef.current,
           onFeed: activeIndexRef.current === 1,
           feedAtTop: feedScrollAtTop.current,
+          // The feed's scroll view itself refuses to hand over a drag it has scrolled.
+          listMoved: false,
         }) === 'activate',
 
       onPanResponderGrant: () => {
