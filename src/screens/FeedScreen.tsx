@@ -106,7 +106,6 @@ function LockedPostItem({
   onAvatarPress,
   onUnlockPress,
   topSpace = 0,
-  softCopy = false,
 }: {
   item: FeedPost;
   /** Card height: one full screen (TikTok-style snap). */
@@ -115,8 +114,6 @@ function LockedPostItem({
   onUnlockPress: () => void;
   /** Room kept at the top for the lock card over the first post. */
   topSpace?: number;
-  /** Sentence-case button (flag 'feed-lock-explainer'). */
-  softCopy?: boolean;
 }) {
   const { colors } = useAppTheme();
   const name = item.profiles.display_name ?? item.profiles.username;
@@ -145,7 +142,7 @@ function LockedPostItem({
         )}
         <Text style={[styles.lockedName, { color: colors.offWhite }]}>{name}</Text>
         <Text style={[styles.lockedTime, { color: colors.offWhite }]}>
-          posted {relativeTime(item.created_at)} · DAY {item.streak_day}
+          posted {relativeTime(item.created_at)} · Day {item.streak_day}
         </Text>
       </Pressable>
       <Text style={[styles.lockedHint, { color: colors.offWhite }]}>
@@ -162,13 +159,9 @@ function LockedPostItem({
         accessibilityLabel="Post to unlock"
       >
         <Text
-          style={[
-            styles.lockedButtonText,
-            softCopy && styles.lockedButtonTextSoft,
-            { color: colors.offBlack },
-          ]}
+          style={[styles.lockedButtonText, { color: colors.offBlack }]}
         >
-          {softCopy ? 'Post to unlock' : 'POST TO UNLOCK'}
+          Post to unlock
         </Text>
       </Pressable>
     </View>
@@ -358,11 +351,11 @@ function PostItem({
                 style={styles.topTaggedPills}
               />
               <View style={styles.streakBadge}>
-                <Text style={styles.streakText}>DAY {item.streak_day}</Text>
+                <Text style={styles.streakText}>Day {item.streak_day}</Text>
                 {item.response ? (
                   <Text style={styles.responseText}>
-                    ANSWERED @{item.response.tagger_username} IN{' '}
-                    {formatWait(item.response.seconds).toUpperCase()}
+                    Answered @{item.response.tagger_username} in{' '}
+                    {formatWait(item.response.seconds)}
                   </Text>
                 ) : null}
               </View>
@@ -560,7 +553,7 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
   return (
     <>
       <Text style={[styles.sheetTitle, { color: text }]} accessibilityRole="header">
-        {commentCount} {commentCount === 1 ? 'COMMENT' : 'COMMENTS'}
+        {commentCount} {commentCount === 1 ? 'comment' : 'comments'}
       </Text>
 
       {/* Comment list */}
@@ -612,7 +605,7 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
           accessibilityRole="button"
           accessibilityLabel="Send comment"
         >
-          <Text style={styles.commentSubmitText}>SEND</Text>
+          <Text style={styles.commentSubmitText}>Send</Text>
         </Pressable>
       </View>
       <KeyboardInset />
@@ -759,7 +752,6 @@ export default function FeedScreen({
                 onAvatarPress={handleAvatarPress}
                 onUnlockPress={() => onGoToCamera?.()}
                 topSpace={index === 0 ? topSpace : 0}
-                softCopy={lockExplainer}
               />
             ) : (
               <PostItem
@@ -795,9 +787,9 @@ export default function FeedScreen({
             !isLoading ? (
               // Starts below the header, which floats over the list and grows with the notch.
               <View style={[styles.empty, { paddingTop: headerH + SPACE.s24 + topSpace }]}>
-                <Text style={[styles.emptyTitle, { color: text }]}>NO POSTS YET</Text>
+                <Text style={[styles.emptyTitle, { color: text }]}>No posts yet</Text>
                 <Text style={[styles.emptySub, { color: muted }]}>
-                  Take your first streak photo to appear here
+                  Post your first workout to appear here
                 </Text>
               </View>
             ) : null
@@ -926,13 +918,11 @@ const styles = StyleSheet.create({
   streakText: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t2,
     color: COLORS.white,
   },
   responseText: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t1,
     color: COLORS.white,
     marginTop: SPACE.s2,
   },
@@ -1053,9 +1043,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s7,
   },
   commentSubmitText: {
-    fontSize: FONT_SIZE.f11,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t2,
     color: COLORS.white,
   },
   // ── Comment sheet (native page sheet)
@@ -1063,9 +1052,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sheetTitle: {
-    fontSize: FONT_SIZE.f12,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t2,
     textAlign: 'center',
     paddingTop: SPACE.s20,
     paddingBottom: SPACE.s12,
@@ -1114,7 +1102,6 @@ const styles = StyleSheet.create({
   lockedTime: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t1,
     opacity: 0.7,
   },
   lockedHint: {
@@ -1128,13 +1115,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s32,
   },
   lockedButtonText: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t3,
-  },
-  lockedButtonTextSoft: {
     fontSize: FONT_SIZE.f15,
-    letterSpacing: 0,
+    fontFamily: FONTS.bold,
   },
   lockBanner: {
     position: 'absolute',
@@ -1149,7 +1131,6 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t6,
   },
   emptySub: {
     fontSize: FONT_SIZE.f13,
