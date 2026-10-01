@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, type GestureType } from 'react-native-gesture-handler';
 import Animated, {
   ReduceMotion,
   cancelAnimation,
@@ -82,10 +82,14 @@ export default function HorizontalNavigator(): React.JSX.Element {
   // direction, before this swipe decides at 20pt; without running alongside it, the list wins
   // and sideways swipes on Feed do nothing.
   const feedList = useMemo(() => Gesture.Native(), []);
+  // The up/down page swipe (VerticalNavigator). The two swipes must be allowed to track the same
+  // touch: otherwise iOS hands it to the inner up/down swipe and this one stops getting moves, so
+  // sideways swipes on Camera did nothing. Their rules keep them apart (each takes only its axis).
+  const verticalSwipe = useRef<GestureType | undefined>(undefined);
 
   const swipe = Gesture.Pan()
     .manualActivation(true)
-    .simultaneousWithExternalGesture(feedList)
+    .simultaneousWithExternalGesture(feedList, verticalSwipe)
     .onTouchesDown((e, manager) => {
       'worklet';
       const t = e.changedTouches[0];
@@ -218,6 +222,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
               <VerticalNavigator
                 controlRef={verticalRef}
                 feedList={feedList}
+                swipeRef={verticalSwipe}
                 railShown={showRail}
                 onIndexChange={setVIndex}
                 onNavigateLeft={() => navigateHorizontal(0)}
