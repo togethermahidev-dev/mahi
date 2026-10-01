@@ -116,7 +116,7 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
           accessibilityLabel="Rest days and streak"
           hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
-          <Text style={styles.restDaysStreakPillText}>REST DAYS & STREAK</Text>
+          <Text style={styles.restDaysStreakPillText}>Rest days & streak</Text>
           <Text style={styles.restDaysStreakChevron}>{'▲'}</Text>
         </Pressable>
 
@@ -127,26 +127,26 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
           accessibilityRole="button"
           accessibilityLabel="Friends"
         >
-          <Text style={[styles.statLabel, { color: muted }]}>FRIENDS ›</Text>
+          <Text style={[styles.statLabel, { color: muted }]}>Friends ›</Text>
         </Pressable>
 
         {/* Streak stats */}
         <View style={[styles.statsRow, { marginTop: SPACE.s16 }]}>
           <View style={styles.stat}>
             <Text style={[styles.statValue, { color: text }]}>{profile?.streak_current ?? 0}</Text>
-            <Text style={[styles.statLabel, { color: muted }]}>STREAK</Text>
+            <Text style={[styles.statLabel, { color: muted }]}>Streak</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: muted }]} />
           <View style={styles.stat}>
             <Text style={[styles.statValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
-            <Text style={[styles.statLabel, { color: muted }]}>BEST</Text>
+            <Text style={[styles.statLabel, { color: muted }]}>Best</Text>
           </View>
           {showPoints ? (
             <>
               <View style={[styles.statDivider, { backgroundColor: muted }]} />
               <View style={styles.stat}>
                 <Text style={[styles.statValue, { color: text }]}>{profile?.points ?? 0}</Text>
-                <Text style={[styles.statLabel, { color: muted }]}>🔥 POINTS</Text>
+                <Text style={[styles.statLabel, { color: muted }]}>Points</Text>
               </View>
             </>
           ) : null}
@@ -250,8 +250,7 @@ const styles = StyleSheet.create({
   },
   restDaysStreakPillText: {
     fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f10,
-    letterSpacing: TRACKING.t2,
+    fontSize: FONT_SIZE.f12,
     color: COLORS.accent,
   },
   restDaysStreakChevron: {
@@ -273,9 +272,8 @@ const styles = StyleSheet.create({
     lineHeight: LINE_HEIGHT.l28,
   },
   statLabel: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t3,
   },
   statDivider: {
     width: SIZE.z1,
