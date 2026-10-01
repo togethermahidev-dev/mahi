@@ -30,7 +30,7 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
   camera two-photo guide), password reset by emailed code, in-app Delete account, Inter font, design tokens
   enforced by tests, sentence-case labels. Founder's choices: [decisions.md](./decisions.md).
 - **Reactive posting (decided 2026-10-01):** you post only when a friend has tagged you and the tag is still
-  open (48 hours), except your first post. Each answer adds 1 to your streak; a missed tag puts it back to 0
+  open (48 hours), except your first post — no daily limit, one post per tag answered. Each answer adds 1 to your streak; a missed tag puts it back to 0
   (`streak_lost` notice) and keeps the feed locked until a friend tags you again; the best streak stays on
   show. No rest days, training days or streak calendar. Rules: [architecture.md](./architecture.md#reactive-posting).
 - **Earlier hardening still in force:** typed `src/lib/env.ts`, `ErrorBoundary`, every store reset on

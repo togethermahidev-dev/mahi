@@ -50,8 +50,8 @@ Goal: make existing features findable and fix navigation feel. All UI-only, no b
 
 ## 1.1 — Unified "Rest Days + Streak" panel
 
-> **Retired 2026-10-01** by reactive posting: rest days, training days and the streak calendar are gone,
-> and the flag `nav-rest-streak-unified` with them. Kept below as history.
+> **Retired 2026-10-01** by reactive posting: rest days, training days and the streak calendar are gone.
+> Kept below as history.
 
 **Problem:** *"Ppl struggle to find / don't know to press streak tracker / set rest days — put them on one page, rest days on top, streak tracker underneath."*
 

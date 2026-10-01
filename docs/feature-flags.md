@@ -1,10 +1,11 @@
 # Feature Flags (PostHog)
 
-Every feature — shipped or upcoming — is gated behind a PostHog feature flag. They exist so we can flip a
-feature off (kill-switch) or do a gradual rollout later, and so each goal in the loop
-([HANDOVER §4](./HANDOVER.md#4-the-goal-loop-goal-driven-development-process)) ships behind a flag that's already live.
+New features ship behind a PostHog feature flag, so one can be flipped off or rolled out gradually, and so
+each goal in the loop ([HANDOVER §4](./HANDOVER.md#4-the-goal-loop-goal-driven-development-process)) ships
+behind a flag that's already live. Only keys that code reads stay in the registry; a shipped surface with no
+flag is simply on.
 
-**State in PostHog (checked 2026-10-01):** 33 of the 34 keys exist, all active at **100% for everyone**.
+**State in PostHog (checked 2026-10-01):** 15 of the 16 keys exist, all active at **100% for everyone**.
 The seven added 2026-10-01 (`onboarding-welcome-cards`, `feed-lock-explainer`, `nav-rail-morph`,
 `camera-pip-guide`, `tags-invite-step`, `auth-password-reset`, `account-delete`) and four that had never
 been created (`nav-glass-rail`, `invite-links`, `tag-challenges`, `mahi-points`) were created that day.
@@ -38,18 +39,11 @@ if (!showSuggestions) return null;
 
 ## The flags
 
-**Roadmap goals — Phases 1–5** (keys map to [feature-roadmap.md](./feature-roadmap.md) items):
-`messaging-search-entry` (1.2) · `messaging-row-split-taps` (1.3) ·
-`nav-profile-entry-animation` (1.4) · `feed-action-buttons-polish` (2.1) · `profile-avatar-lightbox` (2.2) ·
-`profile-posts-recovery-fix` (2.3) · `camera-pinch-zoom` (3.1) · `camera-ultrawide-lens` (3.2) ·
-`camera-landscape` (3.3) · `posts-location-tagging` (4.1) · `follows-suggestions` (5.1)
+Sixteen keys, every one read by code.
 
-**Shipped-surface kill-switches:**
-`feed-core` · `messaging-core` · `camera-capture` · `follows-core` · `notifications-core` ·
-`moderation-core` · `auth-otp-signup`
+**Roadmap** (keys map to [feature-roadmap.md](./feature-roadmap.md) items): `follows-suggestions` (5.1)
 
-(`nav-rest-streak-unified` and `streaks-core` were removed on 2026-10-01: reactive posting has no rest
-days or streak calendar for them to switch — [decisions.md](./decisions.md) #1, #27.)
+**Notifications:** `notifications-core` (the bell in the header and the notifications list)
 
 **Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
 are switched in the `app_config` table):
@@ -73,7 +67,8 @@ and stretches between icons; press and hold or drag along the rail to switch scr
 starts on the rail never moves the pages. Off = today's rail.)
 
 **Onboarding:** `onboarding-welcome-cards` (one-time 3-card welcome carousel after sign-in that
-teaches post → tag 3 friends → feed opens/locks; shown once per account per device. Off = never shown.)
+teaches post when a friend tags you → every post tags 3 friends → feed opens/locks; shown once per account
+per device. Off = never shown.)
 
 **Account:** `auth-password-reset` ("Forgot password?" on the log-in sheet emails a 6-digit code, then
 the code and a new password set it and log you in. Needs the `send-reset-code` and `reset-password`

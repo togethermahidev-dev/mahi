@@ -34,7 +34,7 @@ Read first: [HANDOVER.md](./HANDOVER.md) (rules, goal loop), [architecture.md](.
      two devices run one after the other.
    - Every client-initiated write carries a client-generated `client_id uuid` with a `UNIQUE`
      constraint. A retry returns the existing row instead of creating a second one.
-   - Invariants are constraints, not checks: one post per user per local day, one open tag per
+   - Invariants are constraints, not checks: one post per tag answered (the one-per-day constraint went with reactive posting, 2026-10-01), one open tag per
      tagger→friend pair, one point per (tag, user). A lost race fails on the constraint.
    - Deadlines are stored (`expires_at`) and compared with `now()` at read and write time. No job has
      to run on time for a rule to be correct; jobs only send pushes.
@@ -166,7 +166,7 @@ day-boundary bug fixed.
      (no extra RPC: the app updates its own profile row, which RLS already allows).
    - `posts.post_date`, backfilled in each user's zone (no duplicate days found in live data);
      a trigger sets `created_at` and `post_date` on insert and freezes both on update.
-   - Unique `(user_id, post_date)` replaces the UTC-day index; the racy same-day check in the
+   - Unique `(user_id, post_date)` replaces the UTC-day index (itself dropped 2026-10-01 by `reactive_posting` — no daily limit); the racy same-day check in the
      `posts_insert` policy is dropped because the index enforces it.
    - App: `updateTimezone()` in `src/api/profile.ts`; `App.tsx` `hydrateForUser` sends the phone's
      zone when it differs. Works with current app builds unchanged.
@@ -609,7 +609,7 @@ the migration, green after). Differences from the design below:
   app returns to the foreground, so a dropped connection never leaves a gap (no polling).
 - `src/screens/ConversationScreen.tsx` (*edit*): load older on scroll; mark read on open and on new
   message while open. `MessagesScreen.tsx` (*edit*): unread dots from `unread_count`.
-- Flag: existing `messaging-core`.
+- Flag: none (messaging has no flag).
 
 **Verify:** pgTAP — same `client_id` twice → one message; blocked sender → rejected; unread count
 after read = 0. Device — airplane-mode send, reconnect, retry → one message; two quick sends keep
