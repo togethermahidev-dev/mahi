@@ -13,8 +13,8 @@ export interface WelcomeCard {
 export const WELCOME_CARDS: readonly WelcomeCard[] = [
   {
     icon: 'camera',
-    title: 'Post your workout every day.',
-    body: 'One photo, front and back camera. Your streak is on show to your friends.',
+    title: 'Post when a friend tags you.',
+    body: 'You have 48 hours to answer with a photo, front and back camera. Each answer adds one to your streak.',
   },
   {
     icon: 'people',
@@ -24,7 +24,7 @@ export const WELCOME_CARDS: readonly WelcomeCard[] = [
   {
     icon: 'feed',
     title: 'Post to open your feed.',
-    body: 'Posting opens your feed. It stays open until a friend tags you — then post your answer to open it again.',
+    body: 'Posting your answer opens your feed for 24 hours. If a friend tags you, it locks until you answer.',
   },
 ];
 

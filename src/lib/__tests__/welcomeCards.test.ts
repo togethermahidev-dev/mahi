@@ -10,10 +10,16 @@ import {
 describe('welcome cards', () => {
   it('has the three owner-approved cards, in order', () => {
     expect(WELCOME_CARDS.map((c) => c.title)).toEqual([
-      'Post your workout every day.',
+      'Post when a friend tags you.',
       'Every post tags 3 friends.',
       'Post to open your feed.',
     ]);
+  });
+
+  it('explains answering a tag and the streak on card 1', () => {
+    expect(WELCOME_CARDS[0].body).toBe(
+      'You have 48 hours to answer with a photo, front and back camera. Each answer adds one to your streak.'
+    );
   });
 
   it('explains friends on card 2 and how the feed opens and locks on card 3', () => {
@@ -21,7 +27,7 @@ describe('welcome cards', () => {
       'They have 48 hours to answer with a workout of their own. Friends are people who follow each other.'
     );
     expect(WELCOME_CARDS[2].body).toBe(
-      'Posting opens your feed. It stays open until a friend tags you — then post your answer to open it again.'
+      'Posting your answer opens your feed for 24 hours. If a friend tags you, it locks until you answer.'
     );
   });
 
