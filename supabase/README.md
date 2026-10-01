@@ -12,14 +12,11 @@ The files are production's own migration history, downloaded from
 policies that had been created in the dashboard. Every live table, column, function, trigger, policy,
 index and bucket was checked against these files; nothing else was missing.
 
-Every later migration, through `20261001100100_account_delete_cascade`, has been pushed by the owner and
-is live (checked against prod 2026-10-01). Still held back: `deferred/contract_posting.sql`,
+Every later migration, through `20261001170000_drop_rest_days`, has been pushed by the owner and
+is live (checked against prod 2026-10-01; reactive posting, the profile column grants and the
+rest-days drop went in that afternoon, after OTA 10.22). Still held back: `deferred/contract_posting.sql`,
 `deferred/contract_messages.sql`, `deferred/private_bucket.sql` — they shut old paths and wait for a
 store build covered by the version gate.
-
-Not pushed yet: `20261001120000_reactive_posting` and `20261001170000_drop_rest_days`. Release order
-(owner-only): push `reactive_posting` → publish the OTA → push `20261001170000_drop_rest_days` only once every phone
-has the new app (old builds still insert `fitness_routine` at sign-up and read the dropped columns).
 
 Rules (enforced by `.claude/hooks/guard.cjs`):
 
