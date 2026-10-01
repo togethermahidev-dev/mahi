@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Dimensions, PanResponder, StyleSheet, View } from 'react-native';
+import { Animated, PanResponder, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -14,24 +14,8 @@ import UserProfileScreen from '@/screens/UserProfileScreen';
 import { useNotificationsStore } from '@/store';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
-import { verticalSwipe } from '@/lib/swipeRules';
+import { rubberBand, verticalRelease, verticalSwipe } from '@/lib/swipeRules';
 import { COLORS, SIZE } from '@/constants/tokens';
-
-// ─── Layout constants ──────────────────────────────────────────────────────────
-// PEEK_HEIGHT: strip of the next screen visible at the bottom of each screen.
-//   → Must match the PEEK_HEIGHT constant in CameraScreen.tsx (shutter positioning).
-// SLOT_HEIGHT: the vertical space each screen occupies when active.
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
-export const PEEK_HEIGHT = 0;
-const SLOT_HEIGHT = SCREEN_HEIGHT - PEEK_HEIGHT;
-
-// ─── Gesture thresholds ────────────────────────────────────────────────────────
-const SWIPE_PX = 60; // min drag distance to trigger navigation
-const SWIPE_VY = 0.4; // min release velocity to trigger navigation
-
-// Pull-down threshold to open search (only when at top/camera screen)
-const SEARCH_PULL_PX = 80;
-const SEARCH_PULL_VY = 0.3;
 
 // ─── Screen registry ──────────────────────────────────────────────────────────
 // Ordered top → bottom. Index 0 (Camera) is the entry screen.
@@ -43,8 +27,7 @@ const SCREENS = [
 
 const SCREEN_ICONS = SCREENS.map((s) => s.Icon);
 
-// Background colours per screen in each theme mode. Used for off-screen
-// placeholder views so the peek strip colour is always correct.
+// Background colour behind each screen in each theme mode.
 const SCREEN_BG_DARK = [COLORS.ink, COLORS.bgDark] as const;
 const SCREEN_BG_LIGHT = [COLORS.ink, COLORS.white] as const;
 
@@ -77,6 +60,10 @@ export default function VerticalNavigator({
   const insets = useSafeAreaInsets();
   const insetsRef = useRef(insets);
   insetsRef.current = insets;
+  // Each screen is one window tall. The pan handlers are made once, so they read it from a ref.
+  const { width, height } = useWindowDimensions();
+  const windowRef = useRef({ width, height });
+  windowRef.current = { width, height };
   // AppHeader height = top inset + 36 pill + 12 padding. Used to slide it away on scroll.
   const appHeaderH = insets.top + SIZE.z48;
   const unreadNotifications = useNotificationsStore((s) => s.unreadCount);
@@ -123,7 +110,7 @@ export default function VerticalNavigator({
     onIndexChange?.(index);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Animated.spring(tapeAnim, {
-      toValue: -(index * SLOT_HEIGHT),
+      toValue: -(index * windowRef.current.height),
       damping: 22,
       stiffness: 160,
       mass: 0.9,
@@ -148,53 +135,35 @@ export default function VerticalNavigator({
           startY: moveY - dy,
           dx,
           dy,
-          width: SCREEN_WIDTH,
-          height: SCREEN_HEIGHT,
+          width: windowRef.current.width,
+          height: windowRef.current.height,
           insets: insetsRef.current,
           blocked: overlayRef.current,
           onFeed: activeIndexRef.current === 1,
           feedAtTop: feedScrollAtTop.current,
         }) === 'activate',
 
-      onPanResponderGrant: (evt) => {
+      onPanResponderGrant: () => {
         tapeAnim.stopAnimation();
-        baseOffsetRef.current = -(activeIndexRef.current * SLOT_HEIGHT);
-
-        // Stronger haptic when touch starts inside the peek strip zone and
-        // there is a next screen to navigate to.
-        const touchY = evt.nativeEvent.pageY;
-        if (touchY > SCREEN_HEIGHT - PEEK_HEIGHT && activeIndexRef.current < SCREENS.length - 1) {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        }
+        baseOffsetRef.current = -(activeIndexRef.current * windowRef.current.height);
       },
 
       onPanResponderMove: (_e, { dy }) => {
-        const max = 0;
-        const min = -((SCREENS.length - 1) * SLOT_HEIGHT);
-        const raw = baseOffsetRef.current + dy;
+        const min = -((SCREENS.length - 1) * windowRef.current.height);
         // Rubber-band resistance at the first and last screens
-        let clamped: number;
-        if (raw > max) clamped = max + (raw - max) / 3;
-        else if (raw < min) clamped = min + (raw - min) / 3;
-        else clamped = raw;
-        tapeAnim.setValue(clamped);
+        tapeAnim.setValue(rubberBand(baseOffsetRef.current + dy, min, 0));
       },
 
       onPanResponderRelease: (_e, { dy, vy }) => {
-        const i = activeIndexRef.current;
-        let next = i;
-        if ((dy < -SWIPE_PX || vy < -SWIPE_VY) && i < SCREENS.length - 1) next = i + 1;
-        if ((dy > SWIPE_PX || vy > SWIPE_VY) && i > 0) next = i - 1;
-
-        // Pull down while on top (camera) screen → open search overlay
-        if (i === 0 && (dy > SEARCH_PULL_PX || vy > SEARCH_PULL_VY)) {
-          // Snap back to camera position first
-          navigateTo(0);
-          setSearchVisible(true);
-          return;
-        }
-
-        navigateTo(next);
+        const { index, openSearch } = verticalRelease(
+          activeIndexRef.current,
+          SCREENS.length,
+          dy,
+          vy
+        );
+        navigateTo(index);
+        // Pull down on Camera opens search; the tape snaps back to Camera first.
+        if (openSearch) setSearchVisible(true);
       },
 
       // Snap back if the system takes the touch mid-swipe.
@@ -202,14 +171,14 @@ export default function VerticalNavigator({
     })
   ).current;
 
-  // ─── Peek strip border radius ──────────────────────────────────────────────
-  // Each screen slot (index > 0) slides in from the bottom with rounded top
-  // corners while it is peeking. As it becomes the active screen the corners
-  // collapse to 0, giving a "morphing into the screen" feel.
+  // ─── Rounded top corners on the way in ─────────────────────────────────────
+  // Each screen slot (index > 0) slides up from the bottom with rounded top
+  // corners; as it becomes the active screen the corners collapse to 0, giving
+  // a "morphing into the screen" feel.
   //
   // Derivation per slot i (i > 0):
-  //   • tapeAnim = -(i-1)*SLOT_HEIGHT  → slot i is in peek position  → radius 40
-  //   • tapeAnim =  -i   *SLOT_HEIGHT  → slot i is fully active      → radius 0
+  //   • tapeAnim = -(i-1)*height  → slot i is just below the screen → radius 40
+  //   • tapeAnim =  -i   *height  → slot i is fully active          → radius 0
   //
   // tapeAnim is used with useNativeDriver:true for translateY, and with
   // useNativeDriver:false here for borderRadius — both are supported in RN.
@@ -219,12 +188,12 @@ export default function VerticalNavigator({
         i === 0
           ? null // Camera is always at the top — no rounded entry needed
           : tapeAnim.interpolate({
-              inputRange: [-i * SLOT_HEIGHT, -(i - 1) * SLOT_HEIGHT],
+              inputRange: [-i * height, -(i - 1) * height],
               outputRange: [0, 40],
               extrapolate: 'clamp',
             })
       ),
-    []
+    [height]
   );
 
   const bgPalette = dark ? SCREEN_BG_DARK : SCREEN_BG_LIGHT;
@@ -232,14 +201,11 @@ export default function VerticalNavigator({
   return (
     <View style={styles.root} {...panResponder.panHandlers}>
       {/* Tape — all screens stacked vertically, translated by tapeAnim */}
-      <Animated.View style={[styles.tape, { transform: [{ translateY: tapeAnim }] }]}>
+      <Animated.View
+        style={{ height: SCREENS.length * height, width, transform: [{ translateY: tapeAnim }] }}
+      >
         {SCREENS.map(({ key, Component }, i) => {
           const radius = borderRadii[i];
-
-          // Only fully mount screens within one index of the active screen.
-          // Distant slots render as a plain coloured placeholder so the
-          // peek strip colour is always correct without heavy mounts.
-          const isNearby = Math.abs(i - activeIndex) <= 1;
 
           return (
             <Animated.View
@@ -247,7 +213,9 @@ export default function VerticalNavigator({
               style={[
                 styles.slot,
                 {
-                  top: i * SLOT_HEIGHT,
+                  width,
+                  height,
+                  top: i * height,
                   backgroundColor: bgPalette[i],
                   borderTopLeftRadius: radius ?? 0,
                   borderTopRightRadius: radius ?? 0,
@@ -255,21 +223,17 @@ export default function VerticalNavigator({
                 },
               ]}
             >
-              {isNearby ? (
-                key === 'feed' ? (
-                  <FeedScreen
-                    onGoToCamera={() => navigateTo(0)}
-                    onScrollTopChange={(atTop) => {
-                      feedScrollAtTop.current = atTop;
-                    }}
-                    headerAnim={headerAnim}
-                    onOverlayChange={setFeedOverlay}
-                  />
-                ) : (
-                  <Component />
-                )
+              {key === 'feed' ? (
+                <FeedScreen
+                  onGoToCamera={() => navigateTo(0)}
+                  onScrollTopChange={(atTop) => {
+                    feedScrollAtTop.current = atTop;
+                  }}
+                  headerAnim={headerAnim}
+                  onOverlayChange={setFeedOverlay}
+                />
               ) : (
-                <View style={[StyleSheet.absoluteFill, { backgroundColor: bgPalette[i] }]} />
+                <Component />
               )}
             </Animated.View>
           );
@@ -362,17 +326,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: COLORS.ink,
   },
-  tape: {
-    // Total tape height: N screens each at SLOT_HEIGHT, plus one PEEK_HEIGHT
-    // so the last screen can fill fully without clipping.
-    height: SCREENS.length * SLOT_HEIGHT + PEEK_HEIGHT,
-    width: SCREEN_WIDTH,
-  },
   slot: {
     position: 'absolute',
-    width: SCREEN_WIDTH,
-    // Each slot is SCREEN_HEIGHT tall (SLOT_HEIGHT + PEEK_HEIGHT) so its
-    // content fills its visible area and the peek area below it.
-    height: SCREEN_HEIGHT,
   },
 });
