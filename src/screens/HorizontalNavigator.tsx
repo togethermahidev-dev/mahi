@@ -52,6 +52,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
   const decided = useSharedValue(false);
+  const moves = useSharedValue(0); // preview diagnostics: moves seen this touch
   const base = useSharedValue(0);
   // nav-rail-morph: where the rail is on screen. A touch that starts there belongs to the rail.
   const railRectSV = useSharedValue<Rect | null>(null);
@@ -92,6 +93,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
       startX.value = t.absoluteX;
       startY.value = t.absoluteY;
       decided.value = false;
+      moves.value = 0;
       // A touch in a system strip, or with a pop-up open, is let go straight away.
       const first = horizontalSwipe({
         startX: t.absoluteX,
@@ -116,6 +118,13 @@ export default function HorizontalNavigator(): React.JSX.Element {
     .onTouchesMove((e, manager) => {
       'worklet';
       const t = e.allTouches[0];
+      moves.value += 1;
+      if (moves.value <= 3 && t) {
+        scheduleOnRN(
+          swipeLog,
+          `H move${moves.value} dx${Math.round(t.absoluteX - startX.value)} decided=${decided.value}`
+        );
+      }
       if (decided.value || !t) return;
       const decision = horizontalSwipe({
         startX: startX.value,
@@ -166,9 +175,13 @@ export default function HorizontalNavigator(): React.JSX.Element {
       page.value = withSpring(next, SPRING);
       scheduleOnRN(settle, next);
     })
+    .onTouchesCancelled(() => {
+      'worklet';
+      scheduleOnRN(swipeLog, `H touches cancelled after ${moves.value} moves`);
+    })
     .onFinalize((_e, success) => {
       'worklet';
-      scheduleOnRN(swipeLog, `H end ${success ? 'ok' : 'cancelled/failed'}`);
+      scheduleOnRN(swipeLog, `H end ${success ? 'ok' : 'cancelled/failed'} moves=${moves.value}`);
     });
 
   const tapeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: -page.value * width }] }));
