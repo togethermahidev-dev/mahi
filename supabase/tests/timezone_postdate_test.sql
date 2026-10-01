@@ -1,6 +1,6 @@
--- One post per user per LOCAL day, dated by the server in the user's time zone.
+-- Every post is dated by the server in the user's local day (time zone). Any number a day.
 begin;
-select plan(9);
+select plan(10);
 
 insert into auth.users (id, email)
 values ('00000000-0000-0000-0000-00000000a001', 'tz-test-a@example.invalid'),
@@ -22,12 +22,11 @@ select ok(
   'created_at is set by the server'
 );
 
--- A second post on the same local day is refused.
-select throws_ok(
+-- More than one post a day is fine now: you post whenever someone tags you.
+select lives_ok(
   $$insert into public.posts (user_id, image_url, streak_day)
     values ('00000000-0000-0000-0000-00000000a001', 'y', 1)$$,
-  '23505', null,
-  'second post on the same local day is refused'
+  'a second post on the same local day is allowed'
 );
 
 -- Yesterday's local post (same UTC day) does not block today's. The old UTC rule refused this.
@@ -45,13 +44,14 @@ select lives_ok(
 -- Clients cannot re-date a post.
 update public.posts set post_date = '2000-01-01', created_at = '2000-01-01'
 where user_id = '00000000-0000-0000-0000-00000000a001';
-select isnt(
-  (select post_date from public.posts where user_id = '00000000-0000-0000-0000-00000000a001'),
-  '2000-01-01'::date,
+select is(
+  (select count(*)::int from public.posts
+   where user_id = '00000000-0000-0000-0000-00000000a001' and post_date = '2000-01-01'),
+  0,
   'post_date cannot be changed'
 );
 select ok(
-  (select created_at from public.posts where user_id = '00000000-0000-0000-0000-00000000a001') = now(),
+  (select bool_and(created_at = now()) from public.posts where user_id = '00000000-0000-0000-0000-00000000a001'),
   'created_at cannot be changed'
 );
 
@@ -67,6 +67,7 @@ select lives_ok(
 );
 
 select hasnt_index('public', 'posts', 'posts_user_day_unique', 'the UTC-day index is gone');
+select hasnt_index('public', 'posts', 'posts_user_post_date_unique', 'the one-post-a-day index is gone');
 
 select * from finish();
 rollback;

@@ -1,7 +1,7 @@
 -- Feed lock: people you follow, hidden until you post; each post opens it for 24 hours, and after
--- that it stays open until someone tags you.
+-- that it stays open until someone tags you (a cancelled tag doesn't count; a missed one does).
 begin;
-select plan(22);
+select plan(28);
 
 -- A follows B, C and E (banned); B follows A back; D is not followed.
 insert into auth.users (id, email) values
@@ -123,7 +123,61 @@ select is((public.get_user_posts('00000000-0000-0000-0000-00000000d00b', 10) -> 
 select is((public.get_user_posts('00000000-0000-0000-0000-00000000d00a', 10) -> 'items' -> 0 ->> 'image_path'),
   '00000000-0000-0000-0000-00000000d00a/a1.jpg', 'your own profile always shows');
 
--- 6. The server switch and blocking.
+-- 6. Which tags lock. A's post is 25 hours old and B's open tag (10 hours old) locks it.
+reset role;
+update public.tag_challenges set cancelled_at = now()
+where tagged_id = '00000000-0000-0000-0000-00000000d00a' and answered_at is null;
+set local role authenticated;
+select is((pg_temp.feed() ->> 'locked')::boolean, false, 'a cancelled tag doesn''t lock the feed');
+
+reset role;
+insert into public.tag_challenges (tagger_id, tagged_id, created_at, expires_at, missed_at) values
+  ('00000000-0000-0000-0000-00000000d00b', '00000000-0000-0000-0000-00000000d00a',
+   now() - interval '20 hours', now() - interval '1 hour', now());
+set local role authenticated;
+select is((pg_temp.feed() ->> 'locked')::boolean, true, 'a missed tag still locks it');
+
+-- A tag inside the 24 hours keeps the feed open until they end, then locks it.
+reset role;
+delete from public.tag_challenges where tagged_id = '00000000-0000-0000-0000-00000000d00a';
+set local session_replication_role = replica;
+update public.posts set created_at = now() - interval '23 hours' where id = '00000000-0000-0000-0000-0000000d0a01';
+set local session_replication_role = origin;
+insert into public.tag_challenges (tagger_id, tagged_id, created_at, expires_at) values
+  ('00000000-0000-0000-0000-00000000d00b', '00000000-0000-0000-0000-00000000d00a',
+   now() - interval '22 hours', now() + interval '26 hours');
+set local role authenticated;
+select is((pg_temp.feed() ->> 'locked')::boolean, false, 'a tag inside the 24 hours leaves the feed open');
+reset role;
+set local session_replication_role = replica;
+update public.posts set created_at = now() - interval '25 hours' where id = '00000000-0000-0000-0000-0000000d0a01';
+update public.tag_challenges set created_at = now() - interval '24 hours', expires_at = now() + interval '24 hours'
+where tagged_id = '00000000-0000-0000-0000-00000000d00a';
+set local session_replication_role = origin;
+set local role authenticated;
+select is((pg_temp.feed() ->> 'locked')::boolean, true, '...and locks it once they end');
+
+-- After the 24 hours, a new tag locks it at once.
+reset role;
+delete from public.tag_challenges where tagged_id = '00000000-0000-0000-0000-00000000d00a';
+set local session_replication_role = replica;
+update public.posts set created_at = now() - interval '30 hours' where id = '00000000-0000-0000-0000-0000000d0a01';
+set local session_replication_role = origin;
+set local role authenticated;
+select is((pg_temp.feed() ->> 'locked')::boolean, false, 'untagged after the 24 hours: open');
+reset role;
+insert into public.tag_challenges (tagger_id, tagged_id, expires_at) values
+  ('00000000-0000-0000-0000-00000000d00b', '00000000-0000-0000-0000-00000000d00a', now() + interval '48 hours');
+set local role authenticated;
+select is((pg_temp.feed() ->> 'locked')::boolean, true, 'a tag after the 24 hours locks it at once');
+
+reset role;
+set local session_replication_role = replica;
+update public.posts set created_at = now() - interval '25 hours' where id = '00000000-0000-0000-0000-0000000d0a01';
+set local session_replication_role = origin;
+set local role authenticated;
+
+-- 7. The server switch and blocking.
 reset role;
 update public.app_config set feed_lock_enabled = false;
 set local role authenticated;

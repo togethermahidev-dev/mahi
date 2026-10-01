@@ -1,6 +1,6 @@
 -- Tag challenges: one atomic post, 3 tags, 48-hour deadlines, answering, missing, cancelling.
 begin;
-select plan(28);
+select plan(29);
 
 -- Invite links off unless a section turns them on: fewer friends excuses the difference.
 update public.app_config set invite_links_enabled = false;
@@ -81,17 +81,18 @@ select is(
     '00000000-0000-0000-0000-00000000c00a/a1.jpg', null, null, '{}') ->> 'replayed')::boolean,
   true, 'retrying with the same client id returns the same post'
 );
-select throws_like(
+select throws_ok(
   $$select public.create_post('11111111-0000-0000-0000-00000000000b',
     '00000000-0000-0000-0000-00000000c00a/a2.jpg', null, null,
     array['00000000-0000-0000-0000-00000000c00b','00000000-0000-0000-0000-00000000c00c','00000000-0000-0000-0000-00000000c00d']::uuid[])$$,
-  '%already posted today%', 'a second post the same day is refused'
+  'P0001', 'reactive posting: not tagged', 'a second post with no tag to answer is refused'
 );
 reset role;
 
 select is((select count(*)::int from public.posts where user_id = '00000000-0000-0000-0000-00000000c00a'), 1, 'one post saved');
 select is((select caption from public.posts where user_id = '00000000-0000-0000-0000-00000000c00a'), 'Leg day', 'caption trimmed');
-select is((select streak_day from public.posts where user_id = '00000000-0000-0000-0000-00000000c00a'), 1, 'streak recorded in the same call');
+select is((select streak_day from public.posts where user_id = '00000000-0000-0000-0000-00000000c00a'), 0,
+  'streak recorded in the same call: a first post answers nobody, so 0');
 select is((select count(*)::int from public.tag_challenges where tagger_id = '00000000-0000-0000-0000-00000000c00a'), 3, '3 challenges');
 select ok((pg_temp.challenge('tag_a', 'tag_b')).expires_at = now() + interval '48 hours', 'deadline is 48 hours out');
 select is((select count(*)::int from public.post_tags pt join public.posts p on p.id = pt.post_id
@@ -148,7 +149,9 @@ select is((select count(*)::int from public.push_outbox
 update public.tag_challenges set expires_at = now() - interval '1 hour'
 where id = (pg_temp.challenge('tag_a', 'tag_c')).id;
 select public.mark_missed_tags();
-select is((select count(*)::int from public.notifications where type = 'tag_missed'), 2, 'tagger and tagged are told about the miss');
+select is((select count(*)::int from public.notifications where type = 'tag_missed'), 1, 'the tagger is told about the miss');
+select is((select count(*)::int from public.notifications where type = 'streak_lost'), 1,
+  'the tagged person is told they lost their streak');
 select is((select body from public.push_outbox where kind = 'tag_missed' and user_id = '00000000-0000-0000-0000-00000000c00a'),
   '@tag_c missed your tag', 'the tagger''s push names who missed');
 
