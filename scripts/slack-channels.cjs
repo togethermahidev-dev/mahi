@@ -15,11 +15,14 @@ const path = require('path');
 
 const API = 'https://slack.com/api/';
 
+// Form-encoded, not JSON: Slack's read methods (conversations.list, pins.list) ignore a JSON body.
 async function slack(method, token, body) {
+  const form = new URLSearchParams();
+  for (const [k, v] of Object.entries(body ?? {})) if (v !== undefined) form.set(k, String(v));
   const res = await fetch(API + method, {
     method: 'POST',
-    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json; charset=utf-8' },
-    body: JSON.stringify(body ?? {}),
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/x-www-form-urlencoded' },
+    body: form,
   });
   const json = await res.json();
   if (!json.ok) throw new Error(`${method}: ${json.error}`);
@@ -65,7 +68,14 @@ async function apply(token, items, invite) {
   for (const c of items) {
     let id = c.id;
     if (c.action === 'create') {
-      id = (await slack('conversations.create', token, { name: c.name, is_private: true })).channel.id;
+      try {
+        id = (await slack('conversations.create', token, { name: c.name, is_private: true })).channel.id;
+      } catch (e) {
+        if (!/name_taken/.test(e.message)) throw e;
+        // An archived channel, or a private one the bot isn't in, holds the name.
+        console.log(`skipped  #${c.name}: a channel with that name already exists (archived, or private without the bot)`);
+        continue;
+      }
     }
     await slack('conversations.setPurpose', token, { channel: id, purpose: c.purpose });
     const text = pinnedText(c);
