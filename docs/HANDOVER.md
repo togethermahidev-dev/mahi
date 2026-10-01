@@ -128,6 +128,7 @@ scripts/db.sh local # replay every migration on a throwaway local Postgres and r
 pnpm lint           # eslint src
 pnpm format         # prettier --write src
 pnpm start          # expo
+pnpm dev:web        # the waitlist website in web/ (also build:web, lint:web)
 ```
 
 After editing source, rebuild the graph per [CLAUDE.md](../CLAUDE.md). Production database and function changes
@@ -147,4 +148,5 @@ versions: the `/version-control` skill.
 - [feature-flags.md](./feature-flags.md) — PostHog flags, the `useFeatureFlag` gate, MCP scoping
 - [state-management.md](./state-management.md) · [integrations.md](./integrations.md) · [hooks.md](./hooks.md)
 - [supabase/README.md](../supabase/README.md) — backend + migration reconciliation
+- [web/README.md](../web/README.md) — the waitlist website: local dev, design tokens, Netlify setup and how to deploy
 - [RULES.md](../RULES.md) — project rules (also points here)
