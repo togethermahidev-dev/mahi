@@ -29,6 +29,7 @@ import {
   COLORS,
   ICON_SIZE,
   NAV_RAIL,
+  BORDER_WIDTH,
   RADIUS,
   SHADOW_BLUR,
   SIZE,
@@ -295,7 +296,7 @@ export default function NavRail({
   }
 
   if (morph) {
-    // One floating pill: a soft shadow under the glass and a hairline outline around it.
+    // One floating pill: a soft shadow under the glass and a clear outline around it.
     const pill = { borderRadius: navRail.width / 2 };
     body = (
       <GestureDetector gesture={railGesture}>
@@ -374,6 +375,6 @@ const styles = StyleSheet.create({
     ],
   },
   outline: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: BORDER_WIDTH.w1_5,
   },
 });

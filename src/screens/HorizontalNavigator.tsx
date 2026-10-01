@@ -10,7 +10,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { swipeLog } from '@/lib/swipeDebug';
-import SwipeDebugOverlay from '@/components/SwipeDebugOverlay';
 import { BlurTargetView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -240,7 +239,6 @@ export default function HorizontalNavigator(): React.JSX.Element {
             }
           />
         ) : null}
-        <SwipeDebugOverlay />
       </View>
     </GestureDetector>
   );
