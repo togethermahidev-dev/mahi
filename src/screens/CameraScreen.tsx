@@ -25,7 +25,7 @@ import Reanimated, {
   runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { BlurView } from 'expo-blur';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -1238,7 +1238,6 @@ async function shareInvites(invites: PostInvite[]): Promise<void> {
 
 export default function CameraScreen(): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const [micPermission, requestMicPermission] = useMicrophonePermissions();
   const cameraRef = useRef<CameraView>(null);
   const { dark } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -1307,12 +1306,6 @@ export default function CameraScreen(): React.JSX.Element {
       requestCameraPermission();
     }
   }, [cameraPermission?.status]);
-
-  useEffect(() => {
-    if (micPermission && !micPermission.granted && micPermission.canAskAgain) {
-      requestMicPermission();
-    }
-  }, [micPermission?.status]);
 
   // Query the physical lenses for the active camera. On iOS this resolves to the
   // device's lens ids (incl. ultra-wide on capable devices); on Android it
@@ -1698,12 +1691,12 @@ export default function CameraScreen(): React.JSX.Element {
     if (pipGuideOn && captureLabel) AccessibilityInfo.announceForAccessibility(captureLabel);
   }, [pipGuideOn, captureLabel]);
 
-  if (!cameraPermission || !micPermission) {
+  // Photos only: the camera never asks for the microphone.
+  if (!cameraPermission) {
     return <View style={styles.root} />;
   }
 
   const cameraGranted = cameraPermission.granted;
-  const micGranted = micPermission.granted;
   const shutterRing = COLORS.accent;
   const shutterFill = COLORS.accent;
   const flipColor = COLORS.white;
@@ -1714,25 +1707,14 @@ export default function CameraScreen(): React.JSX.Element {
   const shutterDisabled =
     hasPostedToday || (captureState !== 'idle' && captureState !== 'awaiting-second');
 
-  if (!cameraGranted || !micGranted) {
-    let message: string;
-    if (!cameraGranted && !micGranted) {
-      message = 'Mahi needs access to your camera and microphone to power your fitness experience.';
-    } else if (!cameraGranted) {
-      message = 'Mahi needs camera access to power your fitness experience.';
-    } else {
-      message = 'Mahi needs microphone access to record your workout sessions.';
-    }
-
-    const canAskCamera = !cameraGranted && cameraPermission.canAskAgain;
-    const canAskMic = !micGranted && micPermission.canAskAgain;
-    const canAskAny = canAskCamera || canAskMic;
-
+  if (!cameraGranted) {
     return (
       <View style={styles.root}>
         <View style={styles.permissionCenter}>
-          <Text style={styles.deniedMessage}>{message}</Text>
-          {!canAskAny && (
+          <Text style={styles.deniedMessage}>
+            Mahi needs camera access to power your fitness experience.
+          </Text>
+          {!cameraPermission.canAskAgain && (
             <Pressable
               style={({ pressed }) => [styles.permissionButton, pressed && { opacity: 0.8 }]}
               onPress={() => Linking.openSettings()}
