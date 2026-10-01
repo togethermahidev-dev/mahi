@@ -173,7 +173,7 @@ export default function ConversationScreen({
                 accessibilityRole="button"
                 accessibilityLabel="Accept request"
               >
-                <Text style={[styles.requestBtnText, { color: text }]}>ACCEPT</Text>
+                <Text style={[styles.requestBtnText, { color: text }]}>Accept</Text>
               </Pressable>
               <Pressable
                 style={({ pressed }) => [
@@ -185,7 +185,7 @@ export default function ConversationScreen({
                 accessibilityRole="button"
                 accessibilityLabel="Deny request"
               >
-                <Text style={[styles.requestBtnText, styles.denyText]}>DENY</Text>
+                <Text style={[styles.requestBtnText, styles.denyText]}>Deny</Text>
               </Pressable>
             </View>
           </View>
@@ -290,7 +290,7 @@ export default function ConversationScreen({
               accessibilityLabel="Send"
               accessibilityState={{ disabled: !inputText.trim() || sending }}
             >
-              <Text style={[styles.sendText, { color: text }]}>SEND</Text>
+              <Text style={[styles.sendText, { color: text }]}>Send</Text>
             </Pressable>
           </View>
           <KeyboardInset />
@@ -360,9 +360,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.danger,
   },
   requestBtnText: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t2,
   },
   denyText: {
     color: COLORS.danger,
@@ -451,8 +450,7 @@ const styles = StyleSheet.create({
     paddingBottom: SPACE.s8,
   },
   sendText: {
-    fontSize: FONT_SIZE.f11,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t2,
   },
 });
