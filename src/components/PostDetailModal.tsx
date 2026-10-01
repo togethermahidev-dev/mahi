@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import CaptionText from '@/components/CaptionText';
 import DraggablePip from '@/components/DraggablePip';
 import { appHeaderHeight, pipZone } from '@/lib/pip';
+import { streakText } from '@/lib/streakText';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -56,6 +57,7 @@ export default function PostDetailModal({
 function PostDetail({ post, onClose }: { post: PostRow; onClose: () => void }): React.JSX.Element {
   // ── Dual-camera PiP ──────────────────────────────────────────────────────
   const hasDual = !!post.pov_image_url;
+  const streak = streakText(post.streak_day);
   const [rearIsPrimary, setRearIsPrimary] = useState(true);
   const primaryUrl = hasDual && !rearIsPrimary ? post.pov_image_url! : post.image_url;
   const pipUrl = hasDual && !rearIsPrimary ? post.image_url : post.pov_image_url;
@@ -95,9 +97,11 @@ function PostDetail({ post, onClose }: { post: PostRow; onClose: () => void }): 
         >
           <Text style={styles.closeX}>✕</Text>
         </Pressable>
-        <View style={styles.streakBadge}>
-          <Text style={styles.streakText}>Day {post.streak_day}</Text>
-        </View>
+        {streak ? (
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakText}>{streak}</Text>
+          </View>
+        ) : null}
       </LinearGradient>
 
       {/* Bottom gradient — caption + date */}

@@ -1,7 +1,8 @@
 /**
  * Top of the feed, under the app header (flag 'feed-lock-explainer'):
- * - locked → one card saying why (who tagged you, or that you haven't posted) and a button to the camera;
- * - open → a quiet line saying how long it stays open.
+ * - locked → one card saying why (who tagged you, or that you haven't posted) and, when there's
+ *   something you can post, a button to the camera;
+ * - open → a quiet line saying how long it stays open (or, if you're tagged, when it locks).
  * Lock state and open tags expire, so both come fresh from the server each session (never saved
  * on the phone); the card waits for this session's first read of open tags rather than guessing.
  */
@@ -57,19 +58,21 @@ function LockedCard({
         {card.headline}
       </Text>
       <Text style={[styles.body, { color: withAlpha(colors.text, 0.75) }]}>{card.body}</Text>
-      <Pressable
-        style={({ pressed }) => [
-          styles.button,
-          { backgroundColor: colors.accent },
-          pressed && { opacity: 0.85 },
-        ]}
-        onPress={onPost}
-        accessibilityRole="button"
-        accessibilityLabel={card.button}
-        accessibilityHint="Opens the camera"
-      >
-        <Text style={[styles.buttonText, { color: colors.offBlack }]}>{card.button}</Text>
-      </Pressable>
+      {card.button ? (
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            { backgroundColor: colors.accent },
+            pressed && { opacity: 0.85 },
+          ]}
+          onPress={onPost}
+          accessibilityRole="button"
+          accessibilityLabel={card.button}
+          accessibilityHint="Opens the camera"
+        >
+          <Text style={[styles.buttonText, { color: colors.offBlack }]}>{card.button}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -80,8 +83,11 @@ function OpenTimer({
   serverOffsetMs,
 }: FeedLockBannerProps): React.JSX.Element | null {
   const { dark, colors } = useAppTheme();
+  const { openTags, loaded } = useOpenTags();
   const deviceNow = useMinuteTick();
-  const text = feedTimerText({ locked, unlockedUntil, serverOffsetMs, deviceNow });
+  // Wait for this session's open tags, so the line doesn't swap once they land.
+  if (!loaded) return null;
+  const text = feedTimerText({ locked, unlockedUntil, openTags, serverOffsetMs, deviceNow });
   if (!text) return null;
 
   return (

@@ -22,6 +22,8 @@ export type TagLoopEvents = {
    * count and the split between who missed and who was missed.
    */
   tag_missed: { challenge_id: string | null };
+  /** The person who missed a tag lost their streak — read off the notification, like tag_missed. */
+  streak_lost: { challenge_id: string | null };
   /** An invite link actually reached the share sheet and was sent. */
   invite_shared: Record<string, never>;
   /** Someone joined from a link and their 48 hours started. */

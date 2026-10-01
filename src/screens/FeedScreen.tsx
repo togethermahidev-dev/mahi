@@ -3,6 +3,7 @@ import React, {
   useRef,
   useCallback,
   useEffect,
+  useMemo,
   createContext,
   forwardRef,
   useContext,
@@ -32,6 +33,7 @@ import * as Haptics from 'expo-haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeed } from '@/hooks/useFeed';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { useOpenTags } from '@/hooks/useOpenTags';
 import FeedLockBanner from '@/components/FeedLockBanner';
 import { useFeedStore, useSocialStore, useUserStore, useAuthStore } from '@/store';
 import { LikeIcon, HeartIcon, CommentIcon } from '@/components/ScreenIcons';
@@ -39,6 +41,8 @@ import UserProfileScreen from '@/screens/UserProfileScreen';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import CaptionText from '@/components/CaptionText';
 import { formatWait } from '@/lib/countdown';
+import { streakText } from '@/lib/streakText';
+import { lockedPostText } from '@/lib/feedLock';
 import PointsBadge from '@/components/PointsBadge';
 import KeyboardInset from '@/components/KeyboardInset';
 import DraggablePip from '@/components/DraggablePip';
@@ -99,15 +103,18 @@ function CommentRow({ comment, dark }: { comment: CommentWithProfile; dark: bool
 
 // ─── LockedPostItem ──────────────────────────────────────────────────────────
 
-/** A friend's post while the viewer hasn't posted: who and when, no photo or caption. */
+/** A friend's post while the viewer's feed is locked: who and when, no photo or caption. */
 function LockedPostItem({
   item,
   height,
+  text,
   onAvatarPress,
   onUnlockPress,
   topSpace = 0,
 }: {
   item: FeedPost;
+  /** What to say, and a button only when the viewer can post. */
+  text: { hint: string; button?: string };
   /** Card height: one full screen (TikTok-style snap). */
   height: number;
   onAvatarPress: (userId: string) => void;
@@ -118,6 +125,7 @@ function LockedPostItem({
   const { colors } = useAppTheme();
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
+  const streak = streakText(item.streak_day);
   return (
     <View
       style={[
@@ -142,24 +150,25 @@ function LockedPostItem({
         )}
         <Text style={[styles.lockedName, { color: colors.offWhite }]}>{name}</Text>
         <Text style={[styles.lockedTime, { color: colors.offWhite }]}>
-          posted {relativeTime(item.created_at)} · Day {item.streak_day}
+          posted {relativeTime(item.created_at)}
+          {streak ? ` · ${streak}` : ''}
         </Text>
       </Pressable>
-      <Text style={[styles.lockedHint, { color: colors.offWhite }]}>
-        Post your workout to see it
-      </Text>
-      <Pressable
-        style={({ pressed }) => [
-          styles.lockedButton,
-          { backgroundColor: colors.accent },
-          pressed && { opacity: 0.85 },
-        ]}
-        onPress={onUnlockPress}
-        accessibilityRole="button"
-        accessibilityLabel="Post to unlock"
-      >
-        <Text style={[styles.lockedButtonText, { color: colors.offBlack }]}>Post to unlock</Text>
-      </Pressable>
+      <Text style={[styles.lockedHint, { color: colors.offWhite }]}>{text.hint}</Text>
+      {text.button ? (
+        <Pressable
+          style={({ pressed }) => [
+            styles.lockedButton,
+            { backgroundColor: colors.accent },
+            pressed && { opacity: 0.85 },
+          ]}
+          onPress={onUnlockPress}
+          accessibilityRole="button"
+          accessibilityLabel={text.button}
+        >
+          <Text style={[styles.lockedButtonText, { color: colors.offBlack }]}>{text.button}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -194,6 +203,7 @@ function PostItem({
 
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
+  const streak = streakText(item.streak_day);
 
   const [rearIsPrimary, setRearIsPrimary] = useState(true);
   // Whether the primary photo is landscape (wider than tall), detected on load,
@@ -346,14 +356,17 @@ function PostItem({
                 onPressUser={(u) => onAvatarPress(u.user_id)}
                 style={styles.topTaggedPills}
               />
-              <View style={styles.streakBadge}>
-                <Text style={styles.streakText}>Day {item.streak_day}</Text>
-                {item.response ? (
-                  <Text style={styles.responseText}>
-                    Answered @{item.response.tagger_username} in {formatWait(item.response.seconds)}
-                  </Text>
-                ) : null}
-              </View>
+              {streak || item.response ? (
+                <View style={styles.streakBadge}>
+                  {streak ? <Text style={styles.streakText}>{streak}</Text> : null}
+                  {item.response ? (
+                    <Text style={styles.responseText}>
+                      Answered @{item.response.tagger_username} in{' '}
+                      {formatWait(item.response.seconds)}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
             </LinearGradient>
             {/* Bottom gradient — profile row + caption */}
             <LinearGradient
@@ -665,6 +678,16 @@ export default function FeedScreen({
   const [bannerH, setBannerH] = useState(0);
   const topSpace = lockExplainer && bannerH > 0 ? bannerH + SPACE.s8 : 0;
 
+  // Friends' posts while locked: a button only when reactive posting lets you post (an open tag,
+  // or your first post).
+  const tagged = useOpenTags().openTags.length > 0;
+  const postedBefore = unlockedUntil !== null;
+  const lockedText = useMemo(
+    () => lockedPostText({ tagged, postedBefore }),
+    [tagged, postedBefore]
+  );
+  const listExtra = useMemo(() => ({ topSpace, lockedText }), [topSpace, lockedText]);
+
   // Profile overlay, conversation overlay, and comment sheet — lifted to
   // FeedScreen so overlays cover the full screen (not just the PostItem card)
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
@@ -738,12 +761,13 @@ export default function FeedScreen({
           renderScrollComponent={FeedScrollView}
           data={posts}
           keyExtractor={(item) => item.id}
-          extraData={topSpace}
+          extraData={listExtra}
           renderItem={({ item, index }) =>
             item.locked ? (
               <LockedPostItem
                 item={item}
                 height={cardHeight}
+                text={lockedText}
                 onAvatarPress={handleAvatarPress}
                 onUnlockPress={() => onGoToCamera?.()}
                 topSpace={index === 0 ? topSpace : 0}
