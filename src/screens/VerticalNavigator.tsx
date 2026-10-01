@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { Gesture, GestureDetector, type NativeGesture } from 'react-native-gesture-handler';
+import {
+  Gesture,
+  GestureDetector,
+  type GestureType,
+  type NativeGesture,
+} from 'react-native-gesture-handler';
 import Reanimated, {
   Extrapolation,
   ReduceMotion,
@@ -103,6 +108,8 @@ interface VerticalNavigatorProps {
   /** The Feed list's scrolling as a gesture, made by HorizontalNavigator so its sideways
    *  swipe can run alongside the list too. */
   feedList: NativeGesture;
+  /** Filled with this navigator's up/down swipe so HorizontalNavigator's swipe can track the same touch. */
+  swipeRef: React.MutableRefObject<GestureType | undefined>;
 }
 
 // ─── VerticalNavigator ────────────────────────────────────────────────────────
@@ -115,6 +122,7 @@ export default function VerticalNavigator({
   onNavigateRight,
   onOverlayChange,
   feedList,
+  swipeRef,
 }: VerticalNavigatorProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -200,6 +208,7 @@ export default function VerticalNavigator({
   // under the finger the drag stays with the list. Runs on the UI thread.
   const swipe = Gesture.Pan()
     .manualActivation(true)
+    .withRef(swipeRef)
     .simultaneousWithExternalGesture(feedList)
     .onTouchesDown((e) => {
       'worklet';
