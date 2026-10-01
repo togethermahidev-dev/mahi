@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
@@ -70,12 +70,15 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
     <View style={[styles.root, { backgroundColor: bg, paddingTop: top }]}>
       {/* Settings icon — top-left */}
       <View style={[styles.headerLeft, { top }]}>
-        <TouchableOpacity
+        <Pressable
+          style={({ pressed }) => pressed && { opacity: 0.2 }}
           onPress={() => setSettingsOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
           hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
           <SettingsIcon size={ICON_SIZE.i22} color={toggleColor} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {/* Theme toggle — top-right */}
@@ -102,24 +105,30 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
         ) : null}
 
         {/* Merged Rest Days & Streak panel trigger */}
-        <TouchableOpacity
+        <Pressable
+          style={({ pressed }) => [
+            styles.restDaysStreakPill,
+            { borderColor: COLORS.accent },
+            pressed && { opacity: 0.75 },
+          ]}
           onPress={() => setRestDaysStreakOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Rest days and streak"
           hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
-          activeOpacity={0.75}
-          style={[styles.restDaysStreakPill, { borderColor: COLORS.accent }]}
         >
           <Text style={styles.restDaysStreakPillText}>REST DAYS & STREAK</Text>
           <Text style={styles.restDaysStreakChevron}>{'▲'}</Text>
-        </TouchableOpacity>
+        </Pressable>
 
         {/* Friends — a list, never a number */}
-        <TouchableOpacity
-          style={styles.statsRow}
-          activeOpacity={0.7}
+        <Pressable
+          style={({ pressed }) => [styles.statsRow, pressed && { opacity: 0.7 }]}
           onPress={() => setFriendsOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Friends"
         >
           <Text style={[styles.statLabel, { color: muted }]}>FRIENDS ›</Text>
-        </TouchableOpacity>
+        </Pressable>
 
         {/* Streak stats */}
         <View style={[styles.statsRow, { marginTop: SPACE.s16 }]}>

@@ -6,7 +6,7 @@ import {
   RefreshControl,
   StyleSheet,
   Animated,
-  TouchableOpacity,
+  Pressable,
   useWindowDimensions,
   TextInput,
   Keyboard,
@@ -102,10 +102,11 @@ function LockedPostItem({
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
   return (
     <View style={[styles.lockedCard, { backgroundColor: colors.offBlack, height }]}>
-      <TouchableOpacity
-        style={styles.lockedWho}
+      <Pressable
+        style={({ pressed }) => [styles.lockedWho, pressed && { opacity: 0.75 }]}
         onPress={() => onAvatarPress(item.profiles.id)}
-        activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${name}'s profile`}
       >
         {item.profiles.avatar_url ? (
           <Image source={{ uri: item.profiles.avatar_url }} style={styles.lockedAvatar} />
@@ -120,17 +121,21 @@ function LockedPostItem({
         <Text style={[styles.lockedTime, { color: colors.offWhite }]}>
           posted {relativeTime(item.created_at)} · DAY {item.streak_day}
         </Text>
-      </TouchableOpacity>
+      </Pressable>
       <Text style={[styles.lockedHint, { color: colors.offWhite }]}>
         Post your workout to see it
       </Text>
-      <TouchableOpacity
-        style={[styles.lockedButton, { backgroundColor: colors.accent }]}
+      <Pressable
+        style={({ pressed }) => [
+          styles.lockedButton,
+          { backgroundColor: colors.accent },
+          pressed && { opacity: 0.85 },
+        ]}
         onPress={onUnlockPress}
-        activeOpacity={0.85}
+        accessibilityRole="button"
       >
         <Text style={[styles.lockedButtonText, { color: colors.offBlack }]}>POST TO UNLOCK</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
@@ -330,10 +335,11 @@ function PostItem({
               style={styles.captionOverlay}
               pointerEvents="box-none"
             >
-              <TouchableOpacity
-                style={styles.avatarRow}
+              <Pressable
+                style={({ pressed }) => [styles.avatarRow, pressed && { opacity: 0.75 }]}
                 onPress={() => onAvatarPress(item.profiles.id)}
-                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${name}'s profile`}
               >
                 {item.profiles.avatar_url ? (
                   <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
@@ -355,7 +361,7 @@ function PostItem({
                   </View>
                   <Text style={styles.timeOverlay}>{relativeTime(item.created_at)}</Text>
                 </View>
-              </TouchableOpacity>
+              </Pressable>
               {item.caption ? (
                 <CaptionText
                   caption={item.caption}
@@ -405,24 +411,27 @@ function PostItem({
             draggable PiP's bottom-right snap zone, so we don't extend the hit
             area that way — it grows up/down/right instead. */}
         <View style={styles.sideActions} pointerEvents="box-none">
-          <TouchableOpacity
-            style={styles.sideActionBtn}
+          <Pressable
+            style={({ pressed }) => [styles.sideActionBtn, pressed && { opacity: 0.7 }]}
             onPress={handleLike}
-            activeOpacity={0.7}
             hitSlop={{ top: OFFSET.o20, bottom: OFFSET.o20, left: OFFSET.o4, right: OFFSET.o20 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Like, ${likeCount} ${likeCount === 1 ? 'like' : 'likes'}`}
+            accessibilityState={{ selected: likedByMe }}
           >
             <HeartIcon size={ICON_SIZE.i32} color={COLORS.white} filled={likedByMe} />
             <Text style={styles.sideActionCount}>{likeCount}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.sideActionBtn}
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.sideActionBtn, pressed && { opacity: 0.7 }]}
             onPress={handleCommentPress}
-            activeOpacity={0.7}
             hitSlop={{ top: OFFSET.o20, bottom: OFFSET.o20, left: OFFSET.o4, right: OFFSET.o20 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Comments, ${commentCount}`}
           >
             <CommentIcon size={ICON_SIZE.i32} color={COLORS.white} />
             <Text style={styles.sideActionCount}>{commentCount}</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
     </View>
@@ -528,13 +537,18 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
           enablesReturnKeyAutomatically
           autoFocus
         />
-        <TouchableOpacity
-          style={[styles.commentSubmit, { backgroundColor: COLORS.accent }]}
+        <Pressable
+          style={({ pressed }) => [
+            styles.commentSubmit,
+            { backgroundColor: COLORS.accent },
+            pressed && { opacity: 0.75 },
+          ]}
           onPress={handleSubmitComment}
-          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel="Send comment"
         >
           <Text style={styles.commentSubmitText}>SEND</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
       <KeyboardInset />
     </>
