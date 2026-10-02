@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Image,
@@ -6,15 +6,18 @@ import {
   StyleSheet,
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   useWindowDimensions,
 } from 'react-native';
 import { FlashList, useRecyclingState } from '@shopify/flash-list';
+import type { NativeGesture } from 'react-native-gesture-handler';
 import Svg, { Path } from 'react-native-svg';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { streakText } from '@/lib/streakText';
 import { gridTile } from '@/lib/videoPosts';
 import { VideoIcon } from '@/components/ScreenIcons';
+import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -123,77 +126,99 @@ function GridCell({
 interface ProfileMediaMapProps {
   userId: string;
   isSelf: boolean;
+  /**
+   * Everything above the grid (avatar, name, stats, buttons, suggestions). The whole profile is
+   * one list: this scrolls away with the grid, so the grid can fill the screen.
+   */
+  header: React.ReactElement;
   onPostPress?: (post: PostRow) => void;
+  /** The list's scrolling as a gesture, so a page swipe around it can run alongside it. */
+  listGesture?: NativeGesture;
 }
 
+/** A profile page as one scrolling list: the header, then the posts three to a row. */
 export default function ProfileMediaMap({
   userId,
   isSelf,
+  header,
   onPostPress,
+  listGesture,
 }: ProfileMediaMapProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
 
-  const { posts, isLoading, hasMore, loadMore } = useProfilePosts(userId);
+  const { posts, isLoading, hasMore, loadMore, refresh } = useProfilePosts(userId);
   const { width } = useWindowDimensions();
   const cellSize = (width - GAP * (COLS - 1)) / COLS;
 
-  if (isLoading) {
-    return (
-      <View style={[styles.container, styles.centered, { backgroundColor: bg }]}>
-        <ActivityIndicator color={muted} />
-      </View>
-    );
-  }
+  // Pull to refresh: the spinner shows until the fresh posts are in.
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  };
 
-  if (posts.length === 0) {
-    return (
-      <View style={[styles.container, styles.centered, { backgroundColor: bg }]}>
-        <CameraIcon color={muted} />
-        <Text style={[styles.emptyTitle, { color: text }]}>
-          {isSelf ? 'Upload your first workout' : 'No posts yet'}
-        </Text>
-        <Text style={[styles.emptySubtitle, { color: muted }]}>
-          {isSelf ? 'Snap a photo and it will appear here.' : "This user hasn't posted yet."}
-        </Text>
-      </View>
-    );
-  }
+  const empty = isLoading ? (
+    <View style={styles.centered}>
+      <ActivityIndicator color={muted} accessibilityLabel="Loading posts" />
+    </View>
+  ) : (
+    <View style={styles.centered}>
+      <CameraIcon color={muted} />
+      <Text style={[styles.emptyTitle, { color: text }]}>
+        {isSelf ? 'Upload your first workout' : 'No posts yet'}
+      </Text>
+      <Text style={[styles.emptySubtitle, { color: muted }]}>
+        {isSelf ? 'Snap a photo and it will appear here.' : "This user hasn't posted yet."}
+      </Text>
+    </View>
+  );
 
   return (
-    <FlashList
-      data={posts}
-      keyExtractor={(item) => item.id}
-      numColumns={COLS}
-      style={{ backgroundColor: bg }}
-      renderItem={({ item, index }) => (
-        <GridCell
-          post={item}
-          dark={dark}
-          size={cellSize}
-          column={index % COLS}
-          // Locked posts (no photo URL until the viewer posts) don't open.
-          onPress={() => item.image_url && onPostPress?.(item)}
-        />
-      )}
-      showsVerticalScrollIndicator={false}
-      onEndReached={hasMore ? loadMore : undefined}
-      onEndReachedThreshold={0.4}
-    />
+    <ListGestureContext.Provider value={listGesture}>
+      <FlashList
+        renderScrollComponent={GestureScrollView}
+        data={posts}
+        keyExtractor={(item) => item.id}
+        numColumns={COLS}
+        style={{ ...styles.list, backgroundColor: bg }}
+        ListHeaderComponent={header}
+        ListEmptyComponent={empty}
+        renderItem={({ item, index }) => (
+          <GridCell
+            post={item}
+            dark={dark}
+            size={cellSize}
+            column={index % COLS}
+            // Locked posts (no photo URL until the viewer posts) don't open.
+            onPress={() => item.image_url && onPostPress?.(item)}
+          />
+        )}
+        showsVerticalScrollIndicator={false}
+        onEndReached={hasMore ? loadMore : undefined}
+        onEndReachedThreshold={0.4}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={muted} />
+        }
+      />
+    </ListGestureContext.Provider>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  list: {
     flex: 1,
   },
+  // Loading and "no posts" sit under the header, where the grid would start.
   centered: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACE.s12,
     paddingHorizontal: SPACE.s32,
+    paddingVertical: SPACE.s48,
   },
   cell: {
     marginBottom: GAP,

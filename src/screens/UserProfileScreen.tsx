@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActionSheetIOS,
   Alert,
@@ -105,12 +105,17 @@ export default function UserProfileScreen({
   >(null);
   const [suggestedUserId, setSuggestedUserId] = useState<string | null>(null);
 
+  // The page is one scrolling list. Its scrolling is a gesture the swipe back runs alongside:
+  // a vertical list grabs a touch after ~10pt in any direction, before the swipe decides.
+  const pageList = useMemo(() => Gesture.Native(), []);
+
   // Swipe sideways to close. The pan only takes over once the finger has clearly moved
   // sideways, so taps and up/down scrolls stay with the buttons and lists inside. Off while a
   // screen opened from here is on top, so a swipe there closes that one only.
   const swipeBack = Gesture.Pan()
     .runOnJS(true)
     .enabled(!suggestedUserId && !activeConvo)
+    .simultaneousWithExternalGesture(pageList)
     .activeOffsetX([-SWIPE_SLOP, SWIPE_SLOP])
     .failOffsetY([-SWIPE_SLOP, SWIPE_SLOP])
     // A swipe during the entrance spring freezes it where it is, so the screen doesn't jump.
@@ -366,192 +371,193 @@ export default function UserProfileScreen({
     }
   };
 
+  // Back and the menu: in the header's top corners, so they scroll away with it (or at the top
+  // of the page while it loads or is blocked).
+  const topButtons = (
+    <>
+      {/* Back button — top-left */}
+      <Pressable
+        style={({ pressed }) => [styles.backBtn, { borderColor: muted }, pressed && { opacity: 0.2 }]}
+        onPress={onBack}
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+        hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+      >
+        <Text style={[styles.backArrow, { color: muted }]}>‹</Text>
+      </Pressable>
+
+      {/* Ellipsis menu — top-right (only for other users) */}
+      {!isSelf && !loading ? (
+        <Pressable
+          style={({ pressed }) => [
+            styles.ellipsisBtn,
+            { borderColor: muted },
+            pressed && { opacity: 0.2 },
+          ]}
+          onPress={handleEllipsis}
+          accessibilityRole="button"
+          accessibilityLabel="More options"
+          hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+        >
+          <Text style={[styles.ellipsisText, { color: muted }]}>...</Text>
+        </Pressable>
+      ) : null}
+    </>
+  );
+
+  // Everything above the grid. The page is one list, so this scrolls away and the grid can
+  // fill the screen.
+  const header = (
+    <View style={styles.header}>
+      {topButtons}
+
+      {/* Avatar */}
+      <View style={styles.avatarWrap}>
+        {profile?.avatar_url ? (
+          <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+        ) : (
+          <View
+            style={[
+              styles.avatar,
+              styles.avatarFallback,
+              { backgroundColor: dark ? COLORS.borderDark : COLORS.offWhite },
+            ]}
+          >
+            <Text style={[styles.avatarInitial, { color: bg }]}>{initials}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Name + handle */}
+      <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
+      {profile?.username ? (
+        <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
+      ) : null}
+
+      {/* Friends — a list, never a number */}
+      <Pressable
+        style={({ pressed }) => [styles.statsRow, pressed && { opacity: 0.7 }]}
+        onPress={() => setFriendsOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Friends"
+      >
+        <Text style={[styles.statLabel, { color: muted }]}>Friends ›</Text>
+      </Pressable>
+
+      {/* Streak stats */}
+      <View style={[styles.statsRow, { marginTop: SPACE.s16 }]}>
+        <View style={styles.stat}>
+          <Text style={[styles.statValue, { color: text }]}>{profile?.streak_current ?? 0}</Text>
+          <Text style={[styles.statLabel, { color: muted }]}>Streak</Text>
+        </View>
+        <View style={[styles.statDivider, { backgroundColor: muted }]} />
+        <View style={styles.stat}>
+          <Text style={[styles.statValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
+          <Text style={[styles.statLabel, { color: muted }]}>Best</Text>
+        </View>
+        {showPoints ? (
+          <>
+            <View style={[styles.statDivider, { backgroundColor: muted }]} />
+            <View style={styles.stat}>
+              <Text style={[styles.statValue, { color: text }]}>{profile?.points ?? 0}</Text>
+              <Text style={[styles.statLabel, { color: muted }]}>Points</Text>
+            </View>
+          </>
+        ) : null}
+      </View>
+
+      {/* Follow / Message actions */}
+      {!isSelf ? (
+        <View style={styles.actionRow}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.followBtn,
+              isFollowing
+                ? { borderColor: text, borderWidth: BORDER_WIDTH.w1 }
+                : { backgroundColor: COLORS.accent },
+              pressed && { opacity: 0.75 },
+            ]}
+            onPress={handleFollow}
+            accessibilityRole="button"
+            accessibilityLabel={`Follow @${profile?.username ?? displayName}`}
+            accessibilityState={{ selected: isFollowing }}
+          >
+            <Text style={[styles.followBtnText, { color: isFollowing ? text : COLORS.white }]}>
+              {isFollowing ? 'Following' : 'Follow'}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.messageBtn,
+              { borderColor: text, opacity: messaging ? 0.5 : 1 },
+              pressed && { opacity: 0.75 },
+            ]}
+            onPress={handleMessage}
+            accessibilityRole="button"
+            accessibilityLabel={`Message @${profile?.username ?? displayName}`}
+            accessibilityState={{ busy: messaging, disabled: messaging }}
+            disabled={messaging}
+          >
+            {/* The label stays (hidden) while opening, so the button keeps its size. */}
+            <Text style={[styles.messageBtnText, { color: text, opacity: messaging ? 0 : 1 }]}>
+              Message
+            </Text>
+            {messaging ? <ActivityIndicator color={text} style={StyleSheet.absoluteFill} /> : null}
+          </Pressable>
+        </View>
+      ) : null}
+
+      {/* Suggested follows — syncs on mount, renders null when empty.
+        Excludes the profile being viewed so we never suggest this page. */}
+      <SuggestedFollowsStrip onPressUser={setSuggestedUserId} excludeUserId={userId} />
+    </View>
+  );
+
   return (
     <GestureDetector gesture={swipeBack}>
       <Animated.View
         style={[styles.root, { backgroundColor: bg, paddingTop: top, transform: [{ translateX }] }]}
       >
-        {/* Back button — top-left */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.backBtn,
-            { top, borderColor: muted },
-            pressed && { opacity: 0.2 },
-          ]}
-          onPress={onBack}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
-        >
-          <Text style={[styles.backArrow, { color: muted }]}>‹</Text>
-        </Pressable>
-
-        {/* Ellipsis menu — top-right (only for other users) */}
-        {!isSelf && !loading ? (
-          <Pressable
-            style={({ pressed }) => [
-              styles.ellipsisBtn,
-              { top, borderColor: muted },
-              pressed && { opacity: 0.2 },
-            ]}
-            onPress={handleEllipsis}
-            accessibilityRole="button"
-            accessibilityLabel="More options"
-            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
-          >
-            <Text style={[styles.ellipsisText, { color: muted }]}>...</Text>
-          </Pressable>
-        ) : null}
-
         {loading ? (
-          <ActivityIndicator color={muted} style={styles.loader} />
-        ) : isBlocked ? (
-          <View style={styles.blockedWrap}>
-            <Text style={[styles.blockedTitle, { color: text }]}>User unavailable</Text>
-            <Text style={[styles.blockedSubtitle, { color: muted }]}>
-              {isBlockedByMe ? 'You have blocked this user.' : 'This content is not available.'}
-            </Text>
-            {isBlockedByMe ? (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.unblockBtn,
-                  { borderColor: text },
-                  pressed && { opacity: 0.75 },
-                ]}
-                onPress={handleUnblock}
-                accessibilityRole="button"
-              >
-                <Text style={[styles.unblockBtnText, { color: text }]}>Unblock</Text>
-              </Pressable>
-            ) : null}
+          <View style={styles.page}>
+            {topButtons}
+            <ActivityIndicator color={muted} style={styles.loader} />
           </View>
-        ) : (
-          <>
-            {/* Profile header */}
-            <View style={styles.header}>
-              {/* Avatar */}
-              <View style={styles.avatarWrap}>
-                {profile?.avatar_url ? (
-                  <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
-                ) : (
-                  <View
-                    style={[
-                      styles.avatar,
-                      styles.avatarFallback,
-                      { backgroundColor: dark ? COLORS.borderDark : COLORS.offWhite },
-                    ]}
-                  >
-                    <Text style={[styles.avatarInitial, { color: bg }]}>{initials}</Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Name + handle */}
-              <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
-              {profile?.username ? (
-                <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
+        ) : isBlocked ? (
+          <View style={styles.page}>
+            {topButtons}
+            <View style={styles.blockedWrap}>
+              <Text style={[styles.blockedTitle, { color: text }]}>User unavailable</Text>
+              <Text style={[styles.blockedSubtitle, { color: muted }]}>
+                {isBlockedByMe ? 'You have blocked this user.' : 'This content is not available.'}
+              </Text>
+              {isBlockedByMe ? (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.unblockBtn,
+                    { borderColor: text },
+                    pressed && { opacity: 0.75 },
+                  ]}
+                  onPress={handleUnblock}
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.unblockBtnText, { color: text }]}>Unblock</Text>
+                </Pressable>
               ) : null}
-
-              {/* Friends — a list, never a number */}
-              <Pressable
-                style={({ pressed }) => [styles.statsRow, pressed && { opacity: 0.7 }]}
-                onPress={() => setFriendsOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Friends"
-              >
-                <Text style={[styles.statLabel, { color: muted }]}>Friends ›</Text>
-              </Pressable>
-
-              {/* Streak stats */}
-              <View style={[styles.statsRow, { marginTop: SPACE.s16 }]}>
-                <View style={styles.stat}>
-                  <Text style={[styles.statValue, { color: text }]}>
-                    {profile?.streak_current ?? 0}
-                  </Text>
-                  <Text style={[styles.statLabel, { color: muted }]}>Streak</Text>
-                </View>
-                <View style={[styles.statDivider, { backgroundColor: muted }]} />
-                <View style={styles.stat}>
-                  <Text style={[styles.statValue, { color: text }]}>
-                    {profile?.streak_highest ?? 0}
-                  </Text>
-                  <Text style={[styles.statLabel, { color: muted }]}>Best</Text>
-                </View>
-                {showPoints ? (
-                  <>
-                    <View style={[styles.statDivider, { backgroundColor: muted }]} />
-                    <View style={styles.stat}>
-                      <Text style={[styles.statValue, { color: text }]}>
-                        {profile?.points ?? 0}
-                      </Text>
-                      <Text style={[styles.statLabel, { color: muted }]}>Points</Text>
-                    </View>
-                  </>
-                ) : null}
-              </View>
-
-              {/* Follow / Message actions */}
-              {!isSelf ? (
-                <View style={styles.actionRow}>
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.followBtn,
-                      isFollowing
-                        ? { borderColor: text, borderWidth: BORDER_WIDTH.w1 }
-                        : { backgroundColor: COLORS.accent },
-                      pressed && { opacity: 0.75 },
-                    ]}
-                    onPress={handleFollow}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Follow @${profile?.username ?? displayName}`}
-                    accessibilityState={{ selected: isFollowing }}
-                  >
-                    <Text
-                      style={[styles.followBtnText, { color: isFollowing ? text : COLORS.white }]}
-                    >
-                      {isFollowing ? 'Following' : 'Follow'}
-                    </Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.messageBtn,
-                      { borderColor: text, opacity: messaging ? 0.5 : 1 },
-                      pressed && { opacity: 0.75 },
-                    ]}
-                    onPress={handleMessage}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Message @${profile?.username ?? displayName}`}
-                    accessibilityState={{ busy: messaging, disabled: messaging }}
-                    disabled={messaging}
-                  >
-                    {/* The label stays (hidden) while opening, so the button keeps its size. */}
-                    <Text
-                      style={[styles.messageBtnText, { color: text, opacity: messaging ? 0 : 1 }]}
-                    >
-                      Message
-                    </Text>
-                    {messaging ? (
-                      <ActivityIndicator color={text} style={StyleSheet.absoluteFill} />
-                    ) : null}
-                  </Pressable>
-                </View>
-              ) : null}
-
-              {/* Suggested follows — syncs on mount, renders null when empty.
-                Excludes the profile being viewed so we never suggest this page. */}
-              <SuggestedFollowsStrip onPressUser={setSuggestedUserId} excludeUserId={userId} />
             </View>
-
-            {/* Media grid */}
-            {profile ? (
-              <View
-                style={[styles.mapShadow, { shadowColor: dark ? COLORS.black : COLORS.offBlack }]}
-              >
-                <ProfileMediaMap userId={profile.id} isSelf={false} onPostPress={setSelectedPost} />
-              </View>
-            ) : null}
-          </>
+          </View>
+        ) : profile ? (
+          // The header and the media grid, scrolling as one page
+          <ProfileMediaMap
+            userId={profile.id}
+            isSelf={false}
+            header={header}
+            onPostPress={setSelectedPost}
+            listGesture={pageList}
+          />
+        ) : (
+          header
         )}
 
         {/* Friends list */}
@@ -594,11 +600,15 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     zIndex: 510,
     flex: 1,
+  },
+  // Loading or blocked: no list, just the top buttons and a message.
+  page: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-start',
   },
   backBtn: {
     position: 'absolute',
+    top: 0,
     left: OFFSET.o24,
     zIndex: 1,
     width: SIZE.z36,
@@ -615,6 +625,7 @@ const styles = StyleSheet.create({
   },
   ellipsisBtn: {
     position: 'absolute',
+    top: 0,
     right: OFFSET.o24,
     zIndex: 1,
     width: SIZE.z36,
@@ -636,6 +647,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingHorizontal: SPACE.s32,
+    paddingBottom: SPACE.s16,
     width: '100%',
   },
   avatarWrap: {
@@ -738,10 +750,5 @@ const styles = StyleSheet.create({
   unblockBtnText: {
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
-  },
-  mapShadow: {
-    flex: 1,
-    width: '100%',
-    marginTop: SPACE.s16,
   },
 });

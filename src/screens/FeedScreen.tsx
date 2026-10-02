@@ -1,13 +1,4 @@
-import React, {
-  useState,
-  useRef,
-  useCallback,
-  useEffect,
-  useMemo,
-  createContext,
-  forwardRef,
-  useContext,
-} from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,8 +12,6 @@ import {
   Keyboard,
   Modal,
   Platform,
-  ScrollView,
-  type ScrollViewProps,
 } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,6 +29,7 @@ import { useFeedStore, useSocialStore, useUserStore, useAuthStore } from '@/stor
 import { LikeIcon, HeartIcon, CommentIcon } from '@/components/ScreenIcons';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
+import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import CaptionText from '@/components/CaptionText';
 import { formatWait } from '@/lib/countdown';
 import { streakText } from '@/lib/streakText';
@@ -678,16 +668,6 @@ interface FeedScreenProps {
   isActive?: boolean;
 }
 
-/** Lends the list's scrolling to the Camera ↕ Feed swipe (see FeedScrollView). */
-const ListGestureContext = createContext<NativeGesture | undefined>(undefined);
-
-/** The feed list's scroll view, wrapped so its scrolling is a gesture the swipe can work with. */
-const FeedScrollView = forwardRef<ScrollView, ScrollViewProps>(function FeedScrollView(props, ref) {
-  const gesture = useContext(ListGestureContext);
-  const list = <ScrollView {...props} ref={ref} />;
-  return gesture ? <GestureDetector gesture={gesture}>{list}</GestureDetector> : list;
-});
-
 export default function FeedScreen({
   onGoToCamera,
   onFindFriends,
@@ -815,7 +795,7 @@ export default function FeedScreen({
       <ListGestureContext.Provider value={listGesture}>
         <FlashList
           ref={listRef}
-          renderScrollComponent={FeedScrollView}
+          renderScrollComponent={GestureScrollView}
           data={posts}
           keyExtractor={(item) => item.id}
           extraData={listExtra}

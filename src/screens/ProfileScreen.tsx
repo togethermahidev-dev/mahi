@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import type { NativeGesture } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
@@ -34,9 +35,14 @@ interface ProfileScreenProps {
   // True when this panel is the active panel in HorizontalNavigator (index 0).
   // Drives a focus re-sync of the posts grid to recover a raced/empty first load.
   isActive?: boolean;
+  /** The page list's scrolling as a gesture, so the sideways page swipe can run alongside it. */
+  listGesture?: NativeGesture;
 }
 
-export default function ProfileScreen({ isActive = true }: ProfileScreenProps): React.JSX.Element {
+export default function ProfileScreen({
+  isActive = true,
+  listGesture,
+}: ProfileScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const top = useSafeAreaInsets().top;
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -62,10 +68,12 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
 
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
 
-  return (
-    <View style={[styles.root, { backgroundColor: bg, paddingTop: top }]}>
+  // Everything above the grid. The page is one list, so this scrolls away and the grid can
+  // fill the screen.
+  const header = (
+    <View style={styles.header}>
       {/* Settings icon — top-left */}
-      <View style={[styles.headerLeft, { top }]}>
+      <View style={styles.headerLeft}>
         <Pressable
           style={({ pressed }) => pressed && { opacity: 0.2 }}
           onPress={() => setSettingsOpen(true)}
@@ -78,74 +86,77 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
       </View>
 
       {/* Theme toggle — top-right */}
-      <View style={[styles.headerRight, { top }]}>
+      <View style={styles.headerRight}>
         <ThemeToggle color={toggleColor} size={ICON_SIZE.i22} />
       </View>
 
-      {/* Profile header — avatar, name, stats */}
-      <View style={styles.header}>
-        {/* Avatar — always rendered; edit button shown as soon as userId is known
-            (ProfileScreen is always the signed-in user's own profile) */}
-        <AvatarPicker
-          avatarUrl={profile?.avatar_url ?? null}
-          isSelf={!!userId}
-          userId={userId ?? ''}
-          colors={{ bg, text, muted }}
-          onUpdate={(newUrl) => profile && setProfile({ ...profile, avatar_url: newUrl })}
-        />
+      {/* Avatar — always rendered; edit button shown as soon as userId is known
+          (ProfileScreen is always the signed-in user's own profile) */}
+      <AvatarPicker
+        avatarUrl={profile?.avatar_url ?? null}
+        isSelf={!!userId}
+        userId={userId ?? ''}
+        colors={{ bg, text, muted }}
+        onUpdate={(newUrl) => profile && setProfile({ ...profile, avatar_url: newUrl })}
+      />
 
-        {/* Name + handle */}
-        <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
-        {profile?.username ? (
-          <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
-        ) : null}
+      {/* Name + handle */}
+      <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
+      {profile?.username ? (
+        <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
+      ) : null}
 
-        {/* Friends — a list, never a number */}
-        <Pressable
-          style={({ pressed }) => [styles.statsRow, pressed && { opacity: 0.7 }]}
-          onPress={() => setFriendsOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Friends"
-        >
-          <Text style={[styles.statLabel, { color: muted }]}>Friends ›</Text>
-        </Pressable>
+      {/* Friends — a list, never a number */}
+      <Pressable
+        style={({ pressed }) => [styles.statsRow, pressed && { opacity: 0.7 }]}
+        onPress={() => setFriendsOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Friends"
+      >
+        <Text style={[styles.statLabel, { color: muted }]}>Friends ›</Text>
+      </Pressable>
 
-        {/* Streak stats */}
-        <View style={[styles.statsRow, { marginTop: SPACE.s16 }]}>
-          <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: text }]}>{profile?.streak_current ?? 0}</Text>
-            <Text style={[styles.statLabel, { color: muted }]}>Streak</Text>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: muted }]} />
-          <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
-            <Text style={[styles.statLabel, { color: muted }]}>Best</Text>
-          </View>
-          {showPoints ? (
-            <>
-              <View style={[styles.statDivider, { backgroundColor: muted }]} />
-              <View style={styles.stat}>
-                <Text style={[styles.statValue, { color: text }]}>{profile?.points ?? 0}</Text>
-                <Text style={[styles.statLabel, { color: muted }]}>Points</Text>
-              </View>
-            </>
-          ) : null}
+      {/* Streak stats */}
+      <View style={[styles.statsRow, { marginTop: SPACE.s16 }]}>
+        <View style={styles.stat}>
+          <Text style={[styles.statValue, { color: text }]}>{profile?.streak_current ?? 0}</Text>
+          <Text style={[styles.statLabel, { color: muted }]}>Streak</Text>
         </View>
-
-        {/* Suggested follows — syncs on mount, renders null when empty */}
-        <SuggestedFollowsStrip onPressUser={setProfileUserId} excludeUserId={userId} />
+        <View style={[styles.statDivider, { backgroundColor: muted }]} />
+        <View style={styles.stat}>
+          <Text style={[styles.statValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
+          <Text style={[styles.statLabel, { color: muted }]}>Best</Text>
+        </View>
+        {showPoints ? (
+          <>
+            <View style={[styles.statDivider, { backgroundColor: muted }]} />
+            <View style={styles.stat}>
+              <Text style={[styles.statValue, { color: text }]}>{profile?.points ?? 0}</Text>
+              <Text style={[styles.statLabel, { color: muted }]}>Points</Text>
+            </View>
+          </>
+        ) : null}
       </View>
 
-      {/* Personal streak photo grid */}
+      {/* Suggested follows — syncs on mount, renders null when empty */}
+      <SuggestedFollowsStrip onPressUser={setProfileUserId} excludeUserId={userId} />
+    </View>
+  );
+
+  return (
+    <View style={[styles.root, { backgroundColor: bg, paddingTop: top }]}>
+      {/* The header and the personal streak photo grid, scrolling as one page */}
       {profile && userId ? (
-        <View style={[styles.mapShadow, { shadowColor: dark ? COLORS.black : COLORS.offBlack }]}>
-          <ProfileMediaMap
-            userId={profile.id}
-            isSelf={userId === profile.id}
-            onPostPress={setSelectedPost}
-          />
-        </View>
-      ) : null}
+        <ProfileMediaMap
+          userId={profile.id}
+          isSelf={userId === profile.id}
+          header={header}
+          onPostPress={setSelectedPost}
+          listGesture={listGesture}
+        />
+      ) : (
+        header
+      )}
 
       {/* Settings panel — slides in from left */}
       <SettingsPanel visible={settingsOpen} onClose={() => setSettingsOpen(false)} dark={dark} />
@@ -178,20 +189,22 @@ export default function ProfileScreen({ isActive = true }: ProfileScreenProps): 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
   },
+  // Settings and the theme toggle sit in the header's top corners and scroll away with it.
   headerLeft: {
     position: 'absolute',
+    top: 0,
     left: OFFSET.o24,
   },
   headerRight: {
     position: 'absolute',
+    top: 0,
     right: OFFSET.o24,
   },
   header: {
     alignItems: 'center',
     paddingHorizontal: SPACE.s32,
+    paddingBottom: SPACE.s16,
     width: '100%',
   },
   displayName: {
@@ -228,10 +241,5 @@ const styles = StyleSheet.create({
     width: SIZE.z1,
     height: SIZE.z40,
     opacity: 0.3,
-  },
-  mapShadow: {
-    flex: 1,
-    width: '100%',
-    marginTop: SPACE.s16,
   },
 });

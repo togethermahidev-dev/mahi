@@ -80,6 +80,9 @@ export default function HorizontalNavigator(): React.JSX.Element {
   // direction, before this swipe decides at 20pt; without running alongside it, the list wins
   // and sideways swipes on Feed do nothing.
   const feedList = useMemo(() => Gesture.Native(), []);
+  // The Profile page's list, the same way: the whole profile is one scrolling list, and a
+  // sideways swipe on it must still move the pages.
+  const profileList = useMemo(() => Gesture.Native(), []);
   // The up/down page swipe (VerticalNavigator). The two swipes must be allowed to track the same
   // touch: otherwise iOS hands it to the inner up/down swipe and this one stops getting moves, so
   // sideways swipes on Camera did nothing. Their rules keep them apart (each takes only its axis).
@@ -87,7 +90,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
 
   const swipe = Gesture.Pan()
     .manualActivation(true)
-    .simultaneousWithExternalGesture(feedList, verticalSwipe)
+    .simultaneousWithExternalGesture(feedList, profileList, verticalSwipe)
     .onTouchesDown((e, manager) => {
       'worklet';
       const t = e.changedTouches[0];
@@ -187,7 +190,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
                 tape settles on index 0 so ProfileScreen can recover a raced/empty
                 first posts-sync (hand-rolled nav focus, not react-navigation). */}
             <View style={[styles.panel, panel]}>
-              <ProfileScreen isActive={hIndex === 0} />
+              <ProfileScreen isActive={hIndex === 0} listGesture={profileList} />
             </View>
 
             {/* Panel 1: VerticalNavigator (main content) — default visible panel */}
