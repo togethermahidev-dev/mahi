@@ -2,11 +2,11 @@
 
 ## Overview
 
-Mahi Fitness is a React Native fitness application built with Expo (iPhone first). Users post a two-photo workout from the Camera screen only to answer a friend's tag (reactive posting, below — the first post is the exception), and every post tags 3 friends, who have 48 hours to answer. Each answer adds one to your streak; the friends-only Feed opens for 24 hours after each post (the tag loop — [tag-loop-plan.md](./tag-loop-plan.md), [decisions.md](./decisions.md)). The app has messaging (inbox + requests), notifications, and profiles with streak stats.
+Mahi Fitness is a React Native fitness application built with Expo (iPhone first). Users post a two-photo workout from the Camera screen only to answer a friend's tag (reactive posting, below — the first post is the exception), and every post tags 3 friends, who have 48 hours to answer. Each answer earns one Mahi point; the friends-only Feed opens for 24 hours after each post (the tag loop — [tag-loop-plan.md](./tag-loop-plan.md), [decisions.md](./decisions.md)). The app has messaging (inbox + requests), notifications, and profiles with Mahi points (Points and Best).
 
 ## Reactive posting
 
-The posting rule since 2026-10-01 ([decisions.md](./decisions.md#reactive-posting-2026-10-01) #1, #10, #27–#30):
+The posting rule since 2026-10-01 ([decisions.md](./decisions.md#reactive-posting-2026-10-01) #1, #10, #27–#30; Mahi points #47–#50):
 
 - **Reactive posting** — you post only when a friend has tagged you and you can still answer (48 hours,
   `app_config.tag_window`, plus 10 minutes `answer_grace`). Your very first post is the one exception. The
@@ -17,12 +17,19 @@ The posting rule since 2026-10-01 ([decisions.md](./decisions.md#reactive-postin
   shows a spinner while that loads and "No tags to answer" when closed; the server error maps to the same
   toast. There is no daily limit any more: one post per tag answered, as often as you're tagged (the
   migration drops the old one-a-day index).
-- **Streak** — each post that answers at least one tag adds 1; `posts.streak_day` holds the streak after the
-  post. Miss a tag and the streak goes back to 0 (`break_missed_streaks`, run by the `mark_missed_tags` cron
-  and inside `create_post`); the person who missed gets a `streak_lost` notification (actor = the tagger),
-  the tagger gets `tag_missed`. `streak_highest` is never lowered. Posts carry the streak as "Streak N"
-  (`src/lib/streakText.ts`), hidden at 0. No rest days, training days, weekly calendar or streak calendar.
-  Existing users' current streaks restarted at 0; best kept.
+- **Mahi points** (founder, 2026-10-02: "This is not streaks. Streaks are a daily thing.") — each post
+  that answers at least one tag earns its poster 1 point (not 1 per tag); the tagger earns nothing and
+  there is no daily cap. Miss a tag's 48 hours and the points go back to 0 (`break_missed_streaks`, run
+  by the `mark_missed_tags` cron and inside `create_post`); the person who missed gets a `streak_lost`
+  notification ("You missed @x's tag. Your points are back to 0.", actor = the tagger), the tagger gets
+  `tag_missed`. The best is never lowered and always shown. The database keeps the old names so older
+  apps keep working: `profiles.streak_current` = points, `streak_highest` = best, `posts.streak_day` =
+  the poster's points after that post, `create_post` returns them as `streak`. `points` in feed items,
+  the tag list and the profile's computed column carries the same number
+  (`20261002170000_mahi_points.sql`, test `supabase/tests/mahi_points_test.sql`). App wording:
+  `src/lib/mahiPoints.ts` ("N points", hidden at 0 on posts); the word streak is never shown. No daily
+  streak, rest days, training days or calendar. The old separate points (tagger point, 3-a-day cap,
+  `point_events`) are gone.
 - **Feed** — every post opens the feed for 24 hours. Tagged within those 24 hours → it locks when they
   end; not tagged → it stays open until you're tagged, then locks. Miss a tag and it stays locked until
   a friend tags you again (you can't post without a tag); a cancelled tag no longer locks. Wording:
@@ -121,10 +128,10 @@ Versions as in `package.json`; check there before relying on one.
 ```
 mahi-fitness/
 ├── src/
-│   ├── api/            # Supabase query functions (posts, messages, profile, streaks, auth)
+│   ├── api/            # Supabase query functions (posts, messages, profile, tags, auth)
 │   ├── lib/            # Singleton clients (Supabase, PostHog, Sentry) + pure, unit-tested rules
 │   │                   #   (swipeRules, railSelector, feedLock, captureGuide, inviteStep, inviteShare,
-│   │                   #    reactivePosting, streakText, welcomeCards, featureFlags, versionGate, …;
+│   │                   #    reactivePosting, mahiPoints, welcomeCards, featureFlags, versionGate, …;
 │   │                   #    tests in __tests__/)
 │   ├── constants/      # tokens.ts (design tokens), fonts.ts (Inter), ota.ts (OTA counter + history)
 │   ├── store/          # Zustand global state (feedStore, messagesStore, tagStore, inviteStore, …)
@@ -218,8 +225,8 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 
 | Table | Purpose |
 |---|---|
-| `public.profiles` | User profile — display name, avatar, streak counters (current tag streak, best streak) |
-| `public.posts` | Workout posts, made under reactive posting (above), each carrying the poster's streak. `image_url` = rear/POV photo; `pov_image_url` = front selfie (nullable — null on legacy single-photo posts). `rear_media_type` / `front_media_type` = `'photo'` or `'video'` per shot (video posts, default `'photo'`). No daily limit: one post per tag answered (the old one-a-day unique index was dropped by `20261001120000_reactive_posting.sql`) |
+| `public.profiles` | User profile — display name, avatar, Mahi points (`streak_current`) and best (`streak_highest`) |
+| `public.posts` | Workout posts, made under reactive posting (above), each carrying the poster's Mahi points after it (`streak_day`). `image_url` = rear/POV photo; `pov_image_url` = front selfie (nullable — null on legacy single-photo posts). `rear_media_type` / `front_media_type` = `'photo'` or `'video'` per shot (video posts, default `'photo'`). No daily limit: one post per tag answered (the old one-a-day unique index was dropped by `20261001120000_reactive_posting.sql`) |
 | `public.post_likes` | One row per user-post like. Unique constraint `(post_id, user_id)`. RLS: authenticated read-all, insert/delete own only. |
 | `public.post_comments` | Comments on posts. Ordered oldest-first. RLS: authenticated read-all, insert/delete own only. |
 | `public.comment_likes` | One row per user-comment like (flag `comment-likes`). Unique `(comment_id, user_id)`, cascades with the comment and the profile. RLS: read where the comment is readable, insert own only and not across a block (`comment_like_allowed`), delete own only. Read through `get_comment_likes(post)` (count + liked by me per comment) and `get_comment_likers(comment)` (newest first, without people blocked either way or banned); written through `toggle_comment_like`. Migration `20261002130000_comment_likes`. |
@@ -230,14 +237,13 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | `public.notifications` | Activity feed (likes, comments, follows, tags, tag answered / missed, `streak_lost`, invites) |
 | `public.user_blocks` / `public.user_reports` | Moderation |
 | `public.tag_challenges` | A tag with its 48-hour deadline (tag loop) |
-| `public.point_events` | Mahi points, capped per day |
 | `public.invites` | Invite links and 6-character codes |
 | `public.push_tokens` / `public.push_outbox` | Push devices and the push queue (sender not deployed yet) |
 | `public.conversation_reads` | Unread counts |
 | `public.app_config` | One row of numeric rules (tag window, unlock window, caps, `min_app_version`, `invite_links_enabled`) |
 | `public.otp_codes` / `public.auth_rate_limits` | Hashed sign-up and reset codes (`purpose` = `signup` / `reset`) and send limits |
 
-All tables use Row Level Security (RLS). Writes for posting and messaging go through one `SECURITY DEFINER` function each: `create_post` (checks reactive posting with `reactive_posting_open`, dates the post, adds to the tag streak, saves tags and deadlines, queues pushes, answers waiting tags) and `send_message`. The feed reads through `get_feed` (server-side lock), profiles through `get_user_posts`. Every migration is in `supabase/migrations/` and live on production as of 2026-10-01 (checked against prod); the old paths (`get_feed_posts`, the public photo bucket, direct message inserts) are retired later by the files in `supabase/deferred/`.
+All tables use Row Level Security (RLS). Writes for posting and messaging go through one `SECURITY DEFINER` function each: `create_post` (checks reactive posting with `reactive_posting_open`, dates the post, adds the Mahi point, saves tags and deadlines, queues pushes, answers waiting tags) and `send_message`. The feed reads through `get_feed` (server-side lock), profiles through `get_user_posts`. Every migration is in `supabase/migrations/`; all through `20261002130000_comment_likes` are live (checked against prod 2026-10-02) — see `supabase/README.md` for the ones waiting; the old paths (`get_feed_posts`, the public photo bucket, direct message inserts) are retired later by the files in `supabase/deferred/`.
 
 ---
 
@@ -289,7 +295,7 @@ Both navigators run on **react-native-gesture-handler + reanimated** (UI thread)
 
 The Profile page is one scrolling list too (2026-10-02), so `HorizontalNavigator` makes a second `Gesture.Native()`, `profileList`, passes it to `ProfileScreen` (`listGesture`), and the sideways pan is `.simultaneousWithExternalGesture(feedList, profileList, verticalSwipe)`. A list lends its scrolling through `ListGestureContext` + `GestureScrollView` (`src/components/GestureScrollView.tsx`, the FlashList `renderScrollComponent`), shared by the Feed, both profile pages and the post viewer. `UserProfileScreen`'s swipe back and `PostViewer`'s sideways close run alongside their own list the same way.
 
-**Hold to view** (2026-10-02, owner: "native hold to preview"): `PostCard`'s press and hold (`Gesture.LongPress`, `POST_CARD.holdMs`) runs alongside its double tap and alongside the list (it reads the list's gesture from `ListGestureContext`), so a finger that moves first is a scroll or a page swipe and the hold never starts; once held, the list can still scroll. Held: a light haptic, and `chromeStore.viewing` fades out (`useChromeFade`) the name and caption, the tags and streak row, the like / comment column, the glass bar and the post viewer's ✕; release brings them back. The small photo stays and stays draggable (its own gesture, on top); a double tap still likes. The page swipes that started under a hold wait for the finger to lift.
+**Hold to view** (2026-10-02, owner: "native hold to preview"): `PostCard`'s press and hold (`Gesture.LongPress`, `POST_CARD.holdMs`) runs alongside its double tap and alongside the list (it reads the list's gesture from `ListGestureContext`), so a finger that moves first is a scroll or a page swipe and the hold never starts; once held, the list can still scroll. Held: a light haptic, and `chromeStore.viewing` fades out (`useChromeFade`) the name and caption, the tags and points row, the like / comment column, the glass bar and the post viewer's ✕; release brings them back. The small photo stays and stays draggable (its own gesture, on top); a double tap still likes. The page swipes that started under a hold wait for the finger to lift.
 
 **Hold to preview** (flag `context-menu-preview`, default off, iPhone + build 11): `PreviewMenu` (`src/components/PreviewMenu.tsx`) hosts the held content in a SwiftUI `Host` → `ContextMenu` → `RNHostView`, so Apple's own context-menu hold (a `UIContextMenuInteraction`, not a gesture-handler gesture) lifts a `Preview` with menu `Items`. Used by profile grid squares, Messages rows and `PostCard` (where it replaces the `Gesture.LongPress` above: with the flag on `postGesture` is the double tap alone). Nothing in the gesture relations changes: the hosted RN content keeps its gestures (double tap, taps) because the surface's touch handler still dispatches into it; the system hold fails as soon as the finger moves, so list scrolling, the vertical paging and the page swipes win a moving finger, and once the menu is up the system takes the touch. The draggable small photo and the like / comment column sit outside the held area. `@expo/ui` is required lazily (`src/lib/expoUiModule.ts`) so build 10 never loads it. One `Host` per mounted cell (FlashList recycles them: about a screenful), because a context menu must belong to the view that is held; the preview's content mounts only while it shows (`onAppear` / `onDisappear`), so no second picture is decoded per cell.
 
@@ -341,22 +347,24 @@ Top bar placed from the safe area, `pointerEvents: 'box-none'` so touches pass t
 | `HorizontalNavigator` / `VerticalNavigator` | `src/screens/` | Gesture navigation (above) |
 | `CameraScreen` | `src/screens/CameraScreen.tsx` | **Two-tap** dual-camera capture. `CaptureState` (`src/lib/captureGuide.ts`): `idle → capturing-first → switching → awaiting-second → capturing-second`. With `camera-pip-guide`, `CapturePipGuide` shows what comes second, then the first photo, in the photo-in-photo spot. Then `DualPhotoPreview` (Modal: big photo + draggable pip, tap to swap), caption, tag sheet (page sheet; `InviteStep` when friends can't fill the slots), Post → `InviteShareSheet` when invites were used. Also `OpenTagsBanner` (who tagged you and the time left to answer) and the reactive-posting gate: a spinner while it loads, "No tags to answer" when closed. Flash button (off → on → auto, kept for the app session; the selfie side lights the screen) and photo quality (`src/lib/cameraCapture.ts`). With `camera-tap-focus` (build 11+, iPhone): one tap focuses and exposes there (`FocusSquare`, native `focusAt` from `patches/expo-camera.patch`); two taps still flip. Haptics come from `haptic(moment)` in `src/lib/haptics.ts`. No microphone |
 | `FeedScreen` | `src/screens/FeedScreen.tsx` | Feed from `useFeed()` (`get_feed`), FlashList; `FeedLockBanner` (flag `feed-lock-explainer`) on top; locked posts say "Answer a tag to see it", with a button only when you can post; each post is a `PostCard` (`src/components/PostCard.tsx`; dual-photo posts use `DraggablePip`); comments in `CommentSheet`, a native page sheet (with `comment-likes`: a heart and count per comment, read fresh on each opening and shown once they arrive; the count opens `CommentLikersSheet`, a page sheet of who liked it — loading, then the live list, nothing kept); avatar → `UserProfileScreen` |
-| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Own profile as one scrolling list (`ProfileMediaMap`: the header — settings, theme, avatar, stats, "Suggested for you" folded away by default — scrolls away, then the 3-column grid with "Streak N" badges; pull to refresh). Avatar (`AvatarPicker`: "+" changes it, a tap opens `AvatarViewer`), `FollowListModal` page sheet, `PostViewer`, `SettingsPanel` (Blocked users, Delete account, Help = the welcome cards again, Log out; no rows without an action) |
+| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Own profile as one scrolling list (`ProfileMediaMap`: the header — settings, theme, avatar, stats, "Suggested for you" folded away by default — scrolls away, then the 3-column grid with "N points" badges; pull to refresh). Avatar (`AvatarPicker`: "+" changes it, a tap opens `AvatarViewer`), `FollowListModal` page sheet, `PostViewer`, `SettingsPanel` (Blocked users, Delete account, Help = the welcome cards again, Log out; no rows without an action) |
 | `UserProfileScreen` | `src/screens/UserProfileScreen.tsx` | Another person's profile, opened over Feed, search, notifications, messages, friends lists; one scrolling list like your own (back and menu scroll away with the header); swipe right (gesture-handler pan) to close; tap the photo → `AvatarViewer`; tap a post → `PostViewer`; menu and report reasons via `ActionSheetIOS`; Message (spinner while the chat opens) |
 | `PostViewer` | `src/components/PostViewer.tsx` | A tapped grid post, full screen, in a Modal: up/down pages through all of that profile's posts (only those the grid opens — the feed lock's rule, `openablePosts` in `src/lib/viewer.ts`), each drawn by `PostCard` (videos play on screen); a swipe left or right closes (`swipeCloses`), as do ✕ and back. Owner, 2026-10-02 |
 | `AvatarViewer` | `src/components/AvatarViewer.tsx` | A profile picture full screen: pinch or double tap to zoom (`clampZoom`, `clampPan`), swipe away in any direction to close, ✕, back |
 | `MessagesScreen` | `src/screens/MessagesScreen.tsx` | Inbox from `useMessages()`; requests open `MessageRequestsScreen` (page sheet; Deny asks first) |
 | `ConversationScreen` | `src/screens/ConversationScreen.tsx` | Thread; real-time via `useConversation`; request banner (Accept / Deny with confirm) |
-| `NotificationsScreen` | `src/screens/NotificationsScreen.tsx` | Activity list (page sheet); `streak_lost` reads "You missed @x's tag. Your streak is back to 0." |
+| `NotificationsScreen` | `src/screens/NotificationsScreen.tsx` | Activity list (page sheet); `streak_lost` reads "You missed @x's tag. Your points are back to 0." |
 
 App-level overlays in `App.tsx`: `WelcomeCards` (flag `onboarding-welcome-cards` — one-time 3-card carousel in a Modal, once per account per device, and again from Settings → Help; rules in `src/lib/welcomeCards.ts`), `UpdateRequiredScreen` (forced-update gate), `ToastHost`.
 
 ---
 
-## Streak
+## Mahi points
 
-The streak is a number, not a calendar (reactive posting, above): profiles show the current tag streak
-and the best one; posts show "Streak N" (hidden at 0). The streak calendar, rest days and training
+Mahi points are a number, not a calendar (reactive posting, above): profiles show Points and Best;
+posts and the profile grid show "N points" (hidden at 0); the camera's top-right corner counts your
+points; the tag list and search show "N points" (`PointsBadge`, no flame — points are not a streak).
+Earning a point is the `pointsUp` haptic. The old daily streak's calendar, rest days and training
 days (`StreakGridPanel`, `RestDaysStreakPanel`, `StreakCalendar`, `src/lib/streakGrid.ts`,
 `fitness_routine`, `streak_logs`, `record_upload_streak`) belonged to the old daily rule and are
 deleted; `20261001170000_drop_rest_days` removes the last columns and table from the database.
