@@ -15,6 +15,7 @@
 export const FEATURE_FLAGS = [
   // Kill-switches
   'camera-pip-guide', // live camera shows a small window: what comes second, then the first photo
+  'camera-tap-focus', // tap the live camera to focus and expose there (build 11+, default OFF)
   'notifications-core', // notifications activity feed
   'auth-password-reset', // "Forgot password?" emails a code, then sets a new password
   'account-delete', // Settings -> Delete account (Apple requires in-app deletion)
@@ -57,11 +58,13 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * `ios-sf-symbols`: Apple's icons need build 11; off until switched on, so icons never swap
  * from drawn to Apple's in front of someone while flags load.
  * `context-menu-preview`: waits for build 11; off, hold to view stays exactly as today.
+ * `camera-tap-focus`: needs build 11's native focus, so it waits to be switched on.
  */
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'video-posts',
   'ios-sf-symbols',
   'context-menu-preview',
+  'camera-tap-focus',
 ];
 
 /** Whether a flag reads as on before PostHog has answered (true for all but DEFAULT_OFF_FLAGS). */

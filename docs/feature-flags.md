@@ -13,10 +13,9 @@ been created (`nav-glass-rail`, `invite-links`, `tag-challenges`, `mahi-points`)
 the server (Apple/Google push credentials, `send-push` deployed — see [go-live-runbook.md](./go-live-runbook.md)).
 **`video-posts` (added 2026-10-02) is a default-off flag:** the owner wants it OFF for everyone.
 Create it in PostHog **switched off** (or at 0%); it reads as off until PostHog says true.
-**`ios-sf-symbols` (added 2026-10-02) is also default-off:** create it in PostHog **switched off**; turn it
-on only once build 11 is on the phones (build 10 ignores it either way).
-**`context-menu-preview` (added 2026-10-02) is default-off too:** it needs build 11; create it in PostHog
-**switched off** and turn it on only once build 11 is out.
+**`ios-sf-symbols`, `context-menu-preview` and `camera-tap-focus` (added 2026-10-02) are default-off too:**
+they need build 11; they exist in PostHog **switched off** — turn each on only once build 11 is on the phones
+(build 10 ignores them either way).
 
 PostHog project: **EU region, `project_id=130791`**.
 
@@ -40,7 +39,7 @@ if (!showBell) return null;
   a missing key). So every new flag must be created in PostHog, at 100%, before the update that uses it ships —
   found 2026-10-01, when seven new features stayed hidden on the test phones until their flags were created.
   This pure logic is unit-tested in [`src/lib/__tests__/featureFlags.test.ts`](../src/lib/__tests__/featureFlags.test.ts).
-- **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `video-posts`, `ios-sf-symbols` and `context-menu-preview`): off while flags
+- **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `video-posts`, `ios-sf-symbols`, `context-menu-preview` and `camera-tap-focus`): off while flags
   load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns `true`. Use this
   for a feature that must never show, even for a moment on cold start (video posts would otherwise be able to
   ask for the microphone before flags load).
@@ -67,6 +66,13 @@ or, if you're tagged, when it locks. Off = the plain locked post cards.)
 spot says what comes second — "Selfie next" / "Your view next"; after it, the window shows the photo just
 taken while the screen switches to the other camera. Status reads "Taking photo…", "Switching…", "Tap for
 your selfie" / "Tap for your view". Off = no window and the old capture labels.)
+`camera-tap-focus` (**default off**; needs build 11). On: one tap on the live camera focuses and sets the
+exposure there, with a small yellow square at the tap that settles and fades (Reduce Motion: it only
+appears and fades). Two taps still switch camera; with this on, a single tap waits 0.28 s to tell them
+apart. Moving the phone (a new scene) goes back to normal autofocus. iPhone only; Android and build 10
+(which OTA updates also reach) have no native focus point, so there it reads as off whatever the switch
+says. Native side: the `focusAt` patch to expo-camera in `patches/expo-camera.patch`. Off = no tap to
+focus, and the double tap to switch camera is exactly as before.)
 
 **Posts:** `video-posts` (**default off**; owner: off for everyone). On: each of a post's two shots can be a
 photo or a video of up to 15 seconds — a Photo / Video switch by the shutter, and press and hold the shutter

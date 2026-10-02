@@ -60,6 +60,7 @@ import OpenTagsBanner from '@/components/OpenTagsBanner';
 import PointsBadge from '@/components/PointsBadge';
 import KeyboardInset from '@/components/KeyboardInset';
 import FlashButton from '@/components/FlashButton';
+import FocusSquare, { FOCUS_SQUARE_SIZE, type FocusTap } from '@/components/FocusSquare';
 import CapturePipGuide from '@/components/CapturePipGuide';
 import PostVideo, { SoundButton } from '@/components/PostVideo';
 import InviteStep from '@/components/InviteStep';
@@ -80,7 +81,15 @@ import {
   type ShutterPress,
 } from '@/lib/videoPosts';
 import { formatWait } from '@/lib/countdown';
-import { PHOTO_CAPTURE, flashMode, nextFlash, type FlashChoice } from '@/lib/cameraCapture';
+import {
+  PHOTO_CAPTURE,
+  flashMode,
+  focusPoint,
+  focusSquareOrigin,
+  nextFlash,
+  tapFocusAvailable,
+  type FlashChoice,
+} from '@/lib/cameraCapture';
 import { answersATag, reactivePostingGate } from '@/lib/reactivePosting';
 import { nudgeLabel } from '@/lib/tagNudge';
 import { cantTagReason } from '@/lib/tagRules';
@@ -107,6 +116,7 @@ import {
   TRACKING,
   BORDER_WIDTH,
   SHADOW_BLUR,
+  CAMERA,
 } from '@/constants/tokens';
 
 /** Said on the camera and in the toast when there's no open tag to answer. */
@@ -1371,6 +1381,15 @@ export default function CameraScreen(): React.JSX.Element {
   });
   const blocked = gate !== 'open';
 
+  // Tap to focus (flag `camera-tap-focus`): switch on, an iPhone, and a build whose camera can
+  // focus on a point (build 11+). OTA updates also reach build 10, which can't: there it's off.
+  const tapFocusOn = useFeatureFlag('camera-tap-focus');
+  const [nativeFocus, setNativeFocus] = useState(false);
+  const focusOn = tapFocusAvailable({ flagOn: tapFocusOn, platform: Platform.OS, nativeFocus });
+  const [cameraSize, setCameraSize] = useState({ width: 0, height: 0 });
+  // The last tap's square, on the camera it was tapped on (a flip leaves it behind).
+  const [focusTap, setFocusTap] = useState<(FocusTap & { facing: 'back' | 'front' }) | null>(null);
+
   const doubleTapToFlip = Gesture.Tap()
     .numberOfTaps(2)
     .runOnJS(true)
@@ -1378,6 +1397,30 @@ export default function CameraScreen(): React.JSX.Element {
       if (captureState !== 'idle') return;
       haptic('flip');
       setFacing((f) => (f === 'back' ? 'front' : 'back'));
+    });
+  // With tap to focus on, a single tap waits out the double-tap window: keep it short.
+  if (focusOn) doubleTapToFlip.maxDelay(CAMERA.doubleTapMs);
+
+  const focusAt = (x: number, y: number) => {
+    const cam = cameraRef.current;
+    const point = focusPoint(x, y, cameraSize.width, cameraSize.height);
+    if (!point || !cam?.isFocusAtAvailable?.()) return;
+    cam.focusAtAsync(point.x, point.y).catch((err) => {
+      console.log('[CameraScreen] focus failed', err);
+    });
+    const origin = focusSquareOrigin(x, y, FOCUS_SQUARE_SIZE, cameraSize.width, cameraSize.height);
+    setFocusTap({ ...origin, id: Date.now(), facing });
+  };
+
+  // One tap on the live camera focuses there; two still flip it (the single tap waits for that).
+  const tapToFocus = Gesture.Tap()
+    .enabled(focusOn && !blocked)
+    .runOnJS(true)
+    .requireExternalGestureToFail(doubleTapToFlip)
+    .onEnd((e, success) => {
+      if (!success) return;
+      if (captureState !== 'idle' && captureState !== 'awaiting-second') return;
+      focusAt(e.x, e.y);
     });
 
   useEffect(() => {
@@ -1990,7 +2033,11 @@ export default function CameraScreen(): React.JSX.Element {
           selectedLens={
             facing === 'back' && useUltraWide && ultraWideLens ? ultraWideLens : undefined
           }
-          onCameraReady={refreshAvailableLenses}
+          onCameraReady={() => {
+            refreshAvailableLenses();
+            // Build 11+ has native tap to focus; build 10 (reached by OTA) doesn't.
+            setNativeFocus(cameraRef.current?.isFocusAtAvailable?.() ?? false);
+          }}
           onAvailableLensesChanged={(e) => setAvailableLenses(e.lenses)}
           // Landscape capture WITHOUT a global orientation unlock. The app stays
           // portrait-locked (app.config.js orientation:'portrait' — every other
@@ -2013,6 +2060,23 @@ export default function CameraScreen(): React.JSX.Element {
           videoBitrate={videoOn ? VIDEO_RECORDING.bitrate : undefined}
           videoStabilizationMode={videoOn ? VIDEO_RECORDING.stabilization : undefined}
         />
+
+        {/* Tap to focus: the live camera's empty area, under every control. */}
+        {focusOn && (
+          <GestureDetector gesture={tapToFocus}>
+            <View
+              style={StyleSheet.absoluteFill}
+              onLayout={(e) =>
+                setCameraSize({
+                  width: e.nativeEvent.layout.width,
+                  height: e.nativeEvent.layout.height,
+                })
+              }
+            >
+              <FocusSquare tap={focusTap?.facing === facing ? focusTap : null} />
+            </View>
+          </GestureDetector>
+        )}
 
         <StreakBadge count={streakCount} />
 
