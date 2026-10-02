@@ -627,6 +627,8 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
 interface FeedScreenProps {
   /** Take the user to the camera (used by locked posts). */
   onGoToCamera?: () => void;
+  /** Open people search (the empty feed's "Find friends" button). */
+  onFindFriends?: () => void;
   headerAnim?: Animated.Value;
   onOverlayChange?: (active: boolean) => void;
   /** The list's scrolling as a gesture, so the Camera ↕ Feed swipe can run alongside it. */
@@ -647,6 +649,7 @@ const FeedScrollView = forwardRef<ScrollView, ScrollViewProps>(function FeedScro
 
 export default function FeedScreen({
   onGoToCamera,
+  onFindFriends,
   headerAnim,
   onOverlayChange,
   listGesture,
@@ -809,8 +812,25 @@ export default function FeedScreen({
               <View style={[styles.empty, { paddingTop: headerH + SPACE.s24 + topSpace }]}>
                 <Text style={[styles.emptyTitle, { color: text }]}>No posts yet</Text>
                 <Text style={[styles.emptySub, { color: muted }]}>
-                  Post your first workout to appear here
+                  Workouts from you and your friends show up here.
                 </Text>
+                {onFindFriends ? (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.lockedButton,
+                      styles.emptyButton,
+                      { backgroundColor: COLORS.accent },
+                      pressed && { opacity: 0.85 },
+                    ]}
+                    onPress={onFindFriends}
+                    accessibilityRole="button"
+                    accessibilityLabel="Find friends"
+                  >
+                    <Text style={[styles.lockedButtonText, { color: COLORS.offBlack }]}>
+                      Find friends
+                    </Text>
+                  </Pressable>
+                ) : null}
               </View>
             ) : null
           }
@@ -1157,6 +1177,9 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.italic,
     textAlign: 'center',
     paddingHorizontal: SPACE.s32,
+  },
+  emptyButton: {
+    marginTop: SPACE.s16,
   },
   errorText: {
     textAlign: 'center',
