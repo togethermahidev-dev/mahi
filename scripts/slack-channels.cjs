@@ -10,7 +10,8 @@
 //
 // Token: SLACK_BOT_TOKEN, or the git-ignored .slack-token file at the repo root. The bot needs
 // channels:manage, channels:read, groups:write, groups:read, chat:write, pins:write and pins:read
-// (--tidy also needs groups:history).
+// (--tidy also needs groups:history, and an admin's user token with chat:write + groups:history in
+// .slack-user-token, because Slack won't let an app delete its own "set the channel description" notices).
 // People to invite into every channel: SLACK_INVITE=U0123,U0456 (Slack member IDs).
 // Re-running is safe: an existing channel keeps its history; only its purpose and the pinned
 // summary are brought up to date.
@@ -120,9 +121,9 @@ async function apply(token, items, invite) {
   }
 }
 
-function readToken() {
-  if (process.env.SLACK_BOT_TOKEN) return process.env.SLACK_BOT_TOKEN.trim();
-  const file = path.join(__dirname, '..', '.slack-token');
+function readToken(name = '.slack-token', envName = 'SLACK_BOT_TOKEN') {
+  if (process.env[envName]) return process.env[envName].trim();
+  const file = path.join(__dirname, '..', name);
   if (fs.existsSync(file)) return fs.readFileSync(file, 'utf8').trim();
   return null;
 }
@@ -145,6 +146,8 @@ async function postUpdate(argv, channels, token, applyIt) {
 /** Delete the "set the channel description" notices the bot left in each channel (needs groups:history). */
 async function tidy(channels, token, applyIt) {
   if (!token) throw new Error('No token: set SLACK_BOT_TOKEN or create .slack-token');
+  const userToken = readToken('.slack-user-token', 'SLACK_USER_TOKEN');
+  if (applyIt && !userToken) throw new Error('Deleting needs an admin user token: create .slack-user-token (xoxp-…)');
   const me = await slack('auth.test', token);
   const existing = await listExisting(token);
   let count = 0;
@@ -157,7 +160,8 @@ async function tidy(channels, token, applyIt) {
       for (const m of page.messages) {
         if (m.subtype !== 'channel_purpose' || m.user !== me.user_id) continue;
         count += 1;
-        if (applyIt) await slack('chat.delete', token, { channel: found.id, ts: m.ts });
+        // Slack refuses to let an app delete these system notices; an admin's user token can.
+        if (applyIt) await slack('chat.delete', userToken, { channel: found.id, ts: m.ts });
       }
       cursor = page.response_metadata?.next_cursor || undefined;
     } while (cursor);

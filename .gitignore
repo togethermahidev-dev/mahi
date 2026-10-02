@@ -68,3 +68,4 @@ docs/next-features-plan.md
 
 # Slack bot token for scripts/slack-channels.cjs (owner-only, never committed)
 .slack-token
+.slack-user-token
