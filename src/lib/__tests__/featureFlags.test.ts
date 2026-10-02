@@ -54,8 +54,9 @@ describe('default-off flags (video-posts, context-menu-preview)', () => {
     expect(FEATURE_FLAGS).toContain('video-posts');
   });
 
-  it('only the build-11 and video flags default off', () => {
+  it('only the push, video and build-11 flags default off', () => {
     expect(DEFAULT_OFF_FLAGS).toEqual([
+      'push-core',
       'video-posts',
       'ios-sf-symbols',
       'context-menu-preview',
@@ -63,6 +64,13 @@ describe('default-off flags (video-posts, context-menu-preview)', () => {
       'identity-verification',
       'purchases',
     ]);
+  });
+
+  // The full-screen notifications page must never flash up while flags load, or before push is
+  // set up on the server: off until PostHog says true.
+  it('lists push-core in the registry, off by default', () => {
+    expect(FEATURE_FLAGS).toContain('push-core');
+    expect(flagDefaultOn('push-core')).toBe(false);
   });
 
   // Apple's icons need build 11; off until PostHog says true, so nothing swaps icons on cold start.

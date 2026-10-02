@@ -47,6 +47,7 @@ import { gateVerdict, type AppGate } from '@/lib/versionGate';
 import { APP_BUILD, APP_VERSION } from '@/lib/appBuild';
 import UpdateRequiredScreen from '@/components/UpdateRequiredScreen';
 import WelcomeCards from '@/components/WelcomeCards';
+import PushPrimer from '@/components/PushPrimer';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -104,6 +105,8 @@ async function hydrateForUser(userId: string): Promise<void> {
 export default function App(): React.JSX.Element {
   const [splashDone, setSplashDone] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  // The welcome cards are out of the way, so the notifications page may show.
+  const [welcomeSettled, setWelcomeSettled] = useState(false);
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_400Regular_Italic,
@@ -193,7 +196,10 @@ export default function App(): React.JSX.Element {
 
   // Reset camera gate on sign-out so returning users always see the animation
   useEffect(() => {
-    if (!session) setShowCamera(false);
+    if (!session) {
+      setShowCamera(false);
+      setWelcomeSettled(false);
+    }
   }, [session]);
 
   const onSplashLayout = useCallback(() => {
@@ -233,7 +239,9 @@ export default function App(): React.JSX.Element {
       <>
         <HorizontalNavigator />
         {/* One-time welcome cards, after the intro animation, over the app. */}
-        <WelcomeCards userId={session.user.id} />
+        <WelcomeCards userId={session.user.id} onSettled={setWelcomeSettled} />
+        {/* One-time "turn on notifications" page, once the cards are out of the way. */}
+        <PushPrimer welcomeSettled={welcomeSettled} />
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       </>
     );
