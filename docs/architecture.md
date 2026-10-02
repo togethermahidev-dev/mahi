@@ -28,6 +28,36 @@ The posting rule since 2026-10-01 ([decisions.md](./decisions.md#reactive-postin
   a friend tags you again (you can't post without a tag); a cancelled tag no longer locks. Wording:
   `src/lib/feedLock.ts`. Backend is Supabase (auth, database, storage, Edge Functions). State is managed with Zustand using an optimistic-UI-first pattern; features sit behind PostHog flags ([feature-flags.md](./feature-flags.md)).
 
+## Video posts
+
+Owner, 2026-10-02 ([decisions.md](./decisions.md#video-posts-2026-10-02) #33–#38). Flag `video-posts`,
+**default off** (off while flags load and with no PostHog key; on only when PostHog says true).
+
+- **What it does:** each of a post's two shots (rear = your view, front = selfie) is a photo or a video of
+  up to 15 seconds. On the camera a Photo / Video switch sits by the shutter (beside the 1× / 0.5× lens
+  toggle); a tap does what the switch says, and pressing and holding the shutter always records until you
+  let go, or 15 s. Recording: 720p H.264 at ~3.5 Mbit/s (~7 MB for 15 s), `VIDEO_RECORDING` in
+  `src/lib/videoPosts.ts`. Videos play muted and looping while on screen — preview, feed, the small window,
+  post detail — with a mute / unmute button (`PostVideo`, `SoundButton` in `src/components/PostVideo.tsx`);
+  the profile grid shows the still photo (or a video card) with a video mark (`gridTile`).
+- **Microphone:** the camera stays in photo mode and muted unless video is on and in use, so the system
+  prompt can't appear on its own (expo-camera adds a microphone input as soon as `mode="video"` is unmuted).
+  The first recording asks once (`askMicIfNew` in `CameraScreen`); a refusal records silent video.
+- **Older builds and OTA safety:** OTA updates reach build 10, which has no `expo-video` native module.
+  Nothing imports `expo-video` at the top level: `src/lib/videoModule.ts` checks
+  `requireOptionalNativeModule('ExpoVideo')` and only then requires the package. No module = video posts
+  off (`videoAvailable(flag, native)`, hook `useVideoPosts`), and a video someone else posted shows an
+  "Update Mahi to play videos" card instead of a player.
+- **Server** (migration `20261002100000_video_posts`, test `video_posts_test.sql`): `posts.rear_media_type` /
+  `front_media_type` (`'photo' | 'video'`, default `'photo'`); `create_post` takes `p_rear_media_type` /
+  `p_front_media_type` last and optional, and refuses a mismatch (`unsupported media`: a video must be a
+  `.mov` / `.mp4`, a photo must not); `feed_item` returns both types, null while locked (with the paths,
+  so a locked viewer gets no video links). The `posts` bucket now takes `image/jpeg`, `video/quicktime`,
+  `video/mp4` up to 50 MB. The app sends the media arguments only for a post with a video, so photo posts
+  make exactly the old call. Posting rules are unchanged: a video post answers tags like a photo post.
+- **Uploads:** a video is read from its file only when posting (`uploadPostMedia`); the feed shows the
+  pending post with "Posting…" until it's saved. Nothing new is kept on the device.
+
 ## Tech Stack
 
 | Layer | Tool | Version |
@@ -43,6 +73,7 @@ The posting rule since 2026-10-01 ([decisions.md](./decisions.md#reactive-postin
 | Font | @expo-google-fonts/inter | ^0.4.2 |
 | Glass / Blur | expo-glass-effect, expo-blur | ~57 |
 | Gradients | expo-linear-gradient | ~57.0.2 |
+| Video playback | expo-video (loaded only when the build has it) | ~57.0.5 |
 | Analytics | PostHog | ^4.74.0 |
 | Error Tracking | Sentry | ^8.26.0 |
 
@@ -153,7 +184,7 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | Table | Purpose |
 |---|---|
 | `public.profiles` | User profile — display name, avatar, streak counters (current tag streak, best streak) |
-| `public.posts` | Workout posts, made under reactive posting (above), each carrying the poster's streak. `image_url` = rear/POV photo; `pov_image_url` = front selfie (nullable — null on legacy single-photo posts). No daily limit: one post per tag answered (the old one-a-day unique index was dropped by `20261001120000_reactive_posting.sql`) |
+| `public.posts` | Workout posts, made under reactive posting (above), each carrying the poster's streak. `image_url` = rear/POV photo; `pov_image_url` = front selfie (nullable — null on legacy single-photo posts). `rear_media_type` / `front_media_type` = `'photo'` or `'video'` per shot (video posts, default `'photo'`). No daily limit: one post per tag answered (the old one-a-day unique index was dropped by `20261001120000_reactive_posting.sql`) |
 | `public.post_likes` | One row per user-post like. Unique constraint `(post_id, user_id)`. RLS: authenticated read-all, insert/delete own only. |
 | `public.post_comments` | Comments on posts. Ordered oldest-first. RLS: authenticated read-all, insert/delete own only. |
 | `public.follows` | Follow relationships. Unique constraint `(follower_id, following_id)`, self-follow check constraint. RLS: authenticated read-all, insert/delete own only (`auth.uid() = follower_id`). Explicit UPDATE deny policy. |
@@ -178,7 +209,7 @@ All tables use Row Level Security (RLS). Writes for posting and messaging go thr
 
 | File | Exports |
 |---|---|
-| `posts.ts` | `getFeed` (`get_feed` — lock state, `like_count`, `comment_count`, `liked_by_me`, `tagged_users`), `getUserPosts` (`get_user_posts`), `hasEverPosted` (the first post is free), `uploadPostPhotos`, `removePostPhotos`, `createPost` (`create_post`, one call with tags, invites and location) |
+| `posts.ts` | `getFeed` (`get_feed` — lock state, `like_count`, `comment_count`, `liked_by_me`, `tagged_users`), `getUserPosts` (`get_user_posts`), `hasEverPosted` (the first post is free), `uploadPostMedia` (photos or videos), `removePostPhotos`, `createPost` (`create_post`, one call with tags, invites, location and — for a video post — media types) |
 | `tags.ts` | `getTaggableFriends`, `getOpenTags`, `getTagRules` |
 | `invites.ts` | `getInvitePreview`, `claimInvite` |
 | `social.ts` | `toggleLike` (single-RPC atomic toggle), `getComments`, `addComment` |

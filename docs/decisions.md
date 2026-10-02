@@ -60,6 +60,23 @@ open (48 hours) — your very first post is the one exception. Architecture:
 | 31 | Seeing the welcome cards again | Settings → Help reopens the three cards | Shown once only | Decided | 2026-10-02 | `SettingsPanel`, `WelcomeCardsModal`, flag `onboarding-welcome-cards` |
 | 32 | Settings rows with nothing behind them | Removed (Edit profile, Update bio & link, Safety & privacy, Privacy & data); a row comes back when it's built | Keep as placeholders | Decided | 2026-10-02 | `SettingsPanel` |
 
+## Video posts (2026-10-02)
+
+The owner answered the open question "should posts ever include video?" — yes. Built behind the
+default-off flag `video-posts`; architecture: [architecture.md](./architecture.md#video-posts).
+
+| # | Decision | Chosen | Other options | Status | Decided | Used in |
+| --- | --- | --- | --- | --- | --- | --- |
+| 33 | Video in posts | Each of the two shots (your view = back, selfie = front) can be a photo or a video, whichever the user wants | Photos only · one video per post | Decided | 2026-10-02 | `posts.rear_media_type` / `front_media_type`, `create_post`, `CameraScreen` |
+| 34 | How to record | Both: a Photo / Video switch by the shutter, and press and hold the shutter to record (a tap is a photo, as today). Letting go, or 15 seconds, stops | Switch only · hold only | Decided | 2026-10-02 | `src/lib/videoPosts.ts` (`shutterIntent`), `CameraScreen` |
+| 35 | Longest video | 15 seconds per video | 10 s · 30 s | Decided | 2026-10-02 | `MAX_VIDEO_SECONDS`, `recordAsync({ maxDuration })` |
+| 36 | Playback | Videos start muted, loop while on screen and pause off screen — in the feed, the small window and post detail — with a mute / unmute button | Autoplay with sound · tap to play | Decided | 2026-10-02 | `PostVideo`, `SoundButton`, `FeedScreen`, `PostDetailModal`, `DraggablePip` |
+| 37 | Rollout | Everything behind one flag, `video-posts`, OFF for everyone. Off = today's photo-only app, and the microphone is never asked for; on = the microphone is asked for only when someone first records | On for testers first | Decided | 2026-10-02 | `src/lib/featureFlags.ts` (`DEFAULT_OFF_FLAGS`), `useVideoPosts` |
+| 38 | Microphone permission | Keep it in the app; the text becomes "Mahi uses the microphone to record sound in your workout videos." (needs the next native build anyway) | Remove it (the 2026-10-01 plan while posts were photo-only) | Decided | 2026-10-02 | `app.config.js` |
+
+A video post answers tags exactly like a photo post: reactive posting, the streak, tags, invites and
+the feed lock are unchanged (a locked viewer gets no video links).
+
 ## Fixed by the PRD (not open questions)
 
 | Rule | Value |
