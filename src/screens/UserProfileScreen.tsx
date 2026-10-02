@@ -29,6 +29,7 @@ import FollowListModal from '@/components/FollowListModal';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostViewer from '@/components/PostViewer';
+import AvatarViewer from '@/components/AvatarViewer';
 import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview } from '@/api';
 import type { Database } from '@/types';
@@ -101,6 +102,7 @@ export default function UserProfileScreen({
   const [reporting, setReporting] = useState(false);
   const [activeConvo, setActiveConvo] = useState<ConversationPreview | null>(null);
   const [viewerPostId, setViewerPostId] = useState<string | null>(null);
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const [suggestedUserId, setSuggestedUserId] = useState<string | null>(null);
 
   // The page is one scrolling list. Its scrolling is a gesture the swipe back runs alongside:
@@ -416,7 +418,15 @@ export default function UserProfileScreen({
       {/* Avatar */}
       <View style={styles.avatarWrap}>
         {profile?.avatar_url ? (
-          <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+          // Tap: the photo full screen (pinch to zoom, swipe to close).
+          <Pressable
+            accessibilityRole="imagebutton"
+            accessibilityLabel={`View @${profile.username}'s profile photo`}
+            onPress={() => setAvatarOpen(true)}
+            style={({ pressed }) => pressed && { opacity: 0.9 }}
+          >
+            <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+          </Pressable>
         ) : (
           <View
             style={[
@@ -590,6 +600,12 @@ export default function UserProfileScreen({
             setViewerPostId(null);
             setSuggestedUserId(id);
           }}
+        />
+
+        {/* Their profile photo, full screen */}
+        <AvatarViewer
+          uri={avatarOpen ? (profile?.avatar_url ?? null) : null}
+          onClose={() => setAvatarOpen(false)}
         />
 
         {/* Suggested user's profile — opened from a suggestion card */}
