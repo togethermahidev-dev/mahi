@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,7 @@ import CommentSheet from '@/components/CommentSheet';
 import { relativeTime } from '@/lib/relativeTime';
 import { streakText } from '@/lib/streakText';
 import { lockedPostText } from '@/lib/feedLock';
+import { feedLockMoment, haptic } from '@/lib/haptics';
 import { shouldPlay } from '@/lib/videoPosts';
 import { appHeaderHeight } from '@/lib/pip';
 import { atListTop } from '@/lib/swipeRules';
@@ -169,6 +170,15 @@ export default function FeedScreen({
     serverOffsetMs,
     loaded,
   } = useFeed();
+
+  // The feed locking or opening is felt once, by someone looking at it (on arrival if it changed
+  // while they were on another screen).
+  const lockSeen = useRef<boolean | null>(null);
+  useEffect(() => {
+    const felt = feedLockMoment({ seen: lockSeen.current, locked, loaded, onScreen: isActive });
+    lockSeen.current = felt.seen;
+    if (felt.moment) haptic(felt.moment);
+  }, [locked, loaded, isActive]);
 
   // Lock card / feed timer under the header. It floats over the first post (a list header would
   // knock the full-screen snapping out of step), so the first post keeps room for it.

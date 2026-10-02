@@ -18,7 +18,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
+import { haptic } from '@/lib/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import NavigationDots from '@/components/NavigationDots';
 import AppHeader from '@/components/AppHeader';
@@ -186,7 +186,7 @@ export default function VerticalNavigator({
     setActiveIndex(index);
     indexSV.value = index;
     onIndexChange?.(index);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic('tick');
     if (index !== 1) {
       headerAnim.setValue(0);
     }

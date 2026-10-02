@@ -25,7 +25,7 @@ import Reanimated, {
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { haptic, hapticSequence, postedMoments } from '@/lib/haptics';
 import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
 import { BlurView } from 'expo-blur';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
@@ -446,7 +446,7 @@ function DualPhotoPreview({
       pipStartX.value = pipTransX.value;
       pipStartY.value = pipTransY.value;
       pipScaleVal.value = withSpring(1.1, { damping: 12, stiffness: 200 });
-      runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
+      runOnJS(haptic)('pickUp');
     })
     .onUpdate((e) => {
       'worklet';
@@ -553,7 +553,7 @@ function DualPhotoPreview({
     .onEnd(() => {
       'worklet';
       resetPrimaryZoom(true);
-      runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
+      runOnJS(haptic)('tick');
     });
 
   // Compose: pinch + pan run together (Simultaneous) so a two-finger pinch can
@@ -785,7 +785,7 @@ function DualPhotoPreview({
               disabled={isUploading}
               onPress={() => {
                 if (tagsMissing > 0) {
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                  haptic('warning');
                   setActiveSheet('tag');
                   return;
                 }
@@ -848,7 +848,7 @@ function DualPhotoPreview({
               const already = taggedUsers.some((u) => u.user_id === picked.user_id);
               if (!already) {
                 if (taggedUsers.length + inviteCount >= maxTags) {
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                  haptic('warning');
                 } else {
                   onTaggedUsersChange([...taggedUsers, picked]);
                 }
@@ -1105,7 +1105,7 @@ function TagSheet({
       return;
     }
     if (filled >= maxTags) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      haptic('warning');
       return;
     }
     setSelected((prev) => [...prev, asTagged]);
@@ -1147,7 +1147,7 @@ function TagSheet({
             invites={invites}
             onAdd={() => {
               if (filled >= maxTags) return;
-              Haptics.selectionAsync();
+              haptic('selection');
               setInvites((n) => n + 1);
             }}
             onRemove={() => setInvites((n) => Math.max(0, n - 1))}
@@ -1364,7 +1364,7 @@ export default function CameraScreen(): React.JSX.Element {
     .runOnJS(true)
     .onEnd(() => {
       if (captureState !== 'idle') return;
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      haptic('flip');
       setFacing((f) => (f === 'back' ? 'front' : 'back'));
     });
 
@@ -1592,10 +1592,10 @@ export default function CameraScreen(): React.JSX.Element {
 
   const handleShutterPress = () => {
     if (captureState === 'idle') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      haptic('shutter');
       captureFirst();
     } else if (captureState === 'awaiting-second') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      haptic('shutter');
       captureSecond();
     }
   };
@@ -1633,7 +1633,7 @@ export default function CameraScreen(): React.JSX.Element {
     // Let go while the microphone question or the switch to video was still going.
     if (stopRequestedRef.current) return;
     if (shotMode === 'photo') setHoldVideo(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic('shutter');
     if (captureState === 'idle') captureFirst('video');
     else captureSecond('video');
   };
@@ -1656,7 +1656,7 @@ export default function CameraScreen(): React.JSX.Element {
       setLocationEnabled(false);
       return;
     }
-    Haptics.selectionAsync();
+    haptic('selection');
     // requestLocationPermission caches the decision; first call prompts, later
     // calls return the cached grant/deny without re-prompting.
     const granted = await requestLocationPermission();
@@ -1670,6 +1670,7 @@ export default function CameraScreen(): React.JSX.Element {
     if (uploadingRef.current) return;
     uploadingRef.current = true;
     setIsUploading(true);
+    haptic('postSent');
 
     const tempId = `pending_${Date.now()}`;
     // Reactive posting: only a post that answers a tag adds to the streak.
@@ -1795,6 +1796,14 @@ export default function CameraScreen(): React.JSX.Element {
         locked: false,
       } satisfies FeedPost;
       useFeedStore.getState().confirmPending(tempId, posted);
+      // Tags reached friends, then (when the server says so) the streak went up.
+      hapticSequence(
+        postedMoments({
+          tags: taggedUsersSnapshot.length + inviteCountSnapshot,
+          streakBefore: profile.streak_current,
+          streakAfter: result.streak.streak_current,
+        })
+      );
       // Posting unlocks the feed: read it again so friends' posts appear.
       useFeedStore.getState().sync(true);
       useProfilePostsStore.getState().addPost(posted);
@@ -1837,6 +1846,7 @@ export default function CameraScreen(): React.JSX.Element {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error('[uploadPhotos] upload failed', err);
+      haptic('error');
       useFeedStore.getState().removePending(tempId);
       const current = useUserStore.getState().profile;
       if (current) setProfile({ ...current, streak_current: profile.streak_current });
@@ -2045,7 +2055,7 @@ export default function CameraScreen(): React.JSX.Element {
                     disabled={isCapturing}
                     onPress={() => {
                       if (!useUltraWide) return;
-                      Haptics.selectionAsync();
+                      haptic('selection');
                       setUseUltraWide(false);
                     }}
                   >
@@ -2064,7 +2074,7 @@ export default function CameraScreen(): React.JSX.Element {
                     disabled={isCapturing}
                     onPress={() => {
                       if (useUltraWide) return;
-                      Haptics.selectionAsync();
+                      haptic('selection');
                       setUseUltraWide(true);
                     }}
                   >
@@ -2097,7 +2107,7 @@ export default function CameraScreen(): React.JSX.Element {
                       accessibilityState={{ checked: shotMode === m, disabled: switchDisabled }}
                       onPress={() => {
                         if (shotMode === m) return;
-                        Haptics.selectionAsync();
+                        haptic('selection');
                         setShotMode(m);
                       }}
                     >
@@ -2128,7 +2138,7 @@ export default function CameraScreen(): React.JSX.Element {
             ]}
             disabled={captureState !== 'idle'}
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              haptic('flip');
               setFacing((f) => (f === 'back' ? 'front' : 'back'));
             }}
           >

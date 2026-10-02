@@ -10,7 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { BlurTargetView } from 'expo-blur';
-import * as Haptics from 'expo-haptics';
+import { haptic } from '@/lib/haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import VerticalNavigator, { type VerticalControl } from '@/screens/VerticalNavigator';
 import ProfileScreen from '@/screens/ProfileScreen';
@@ -67,7 +67,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
   const settle = (index: number) => {
     setHIndex(index);
     indexSV.value = index;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic('tick');
   };
 
   // Snap the horizontal tape to a target panel with a spring animation.

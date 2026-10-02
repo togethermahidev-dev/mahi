@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
+import { haptic } from '@/lib/haptics';
 import { useFeedStore, useProfilePostsStore, useSocialStore, useUserStore } from '@/store';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import KeyboardInset from '@/components/KeyboardInset';
@@ -76,7 +76,7 @@ function CommentRow({
           <Pressable
             style={({ pressed }) => [styles.likeBtn, pressed && { opacity: 0.6 }]}
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              haptic('tick');
               useSocialStore.getState().toggleCommentLike(comment.id);
             }}
             disabled={sending}
