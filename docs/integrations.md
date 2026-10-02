@@ -224,7 +224,7 @@ All drag gestures use RNGH `Gesture.Pan` + Reanimated shared values, running on 
 | Surface | File | Pattern |
 |---|---|---|
 | `CameraScreen` pip (inside `DualPhotoPreview` Modal) | `src/screens/CameraScreen.tsx` | Long-press activation (`activateAfterLongPress(150)`), bounds-clamp to screen corners, corner-snap spring on end, Tap-race for swap. Lives in its own `GestureHandlerRootView` because the Modal spawns a separate native window. |
-| Draggable pip | `src/components/DraggablePip.tsx` | Same pattern as CameraScreen pip (long-press + corner-snap + Tap-race). Shared by `FeedScreen` and `PostDetailModal`. |
+| Draggable pip | `src/components/DraggablePip.tsx` | Same pattern as CameraScreen pip (long-press + corner-snap + Tap-race). Inside `PostCard`, shared by `FeedScreen` and `PostViewer`. |
 | Nav rail | `src/components/NavRail.tsx` | Hold or drag along the rail to switch screens live (`nav-rail-morph`); its rectangle is excluded from page swipes. |
 | Profile swipe-back | `src/screens/UserProfileScreen.tsx` | Pan to close a profile. |
 | Settings drawer | `src/components/SettingsPanel.tsx` | Swipe left to close. |
@@ -233,7 +233,7 @@ All drag gestures use RNGH `Gesture.Pan` + Reanimated shared values, running on 
 
 **Coexistence rule:** the navigators' pans activate only after their swipe rules decide (20px), so a nested `GestureDetector` (pip drag, profile swipe-back, settings swipe-to-close, the rail) that activates first keeps the touch.
 
-**Root wrapping** — `App.tsx` wraps the whole tree in `GestureHandlerRootView` (required by RNGH). Components that render inside native `<Modal>` windows (e.g. `CameraScreen`'s `DualPhotoPreview`, `PostDetailModal`, `FollowListModal`, `BlockedUsersSheet`) must wrap their own root because a Modal is a separate native window and the app-level root does not cross that boundary. Components that render as plain absolute overlays (e.g. `GlobalSearchOverlay`, `UserProfileScreen`) rely on the app-level root and do **not** need their own.
+**Root wrapping** — `App.tsx` wraps the whole tree in `GestureHandlerRootView` (required by RNGH). Components that render inside native `<Modal>` windows (e.g. `CameraScreen`'s `DualPhotoPreview`, `PostViewer`, `AvatarViewer`, `FollowListModal`, `BlockedUsersSheet`) must wrap their own root because a Modal is a separate native window and the app-level root does not cross that boundary. Components that render as plain absolute overlays (e.g. `GlobalSearchOverlay`, `UserProfileScreen`) rely on the app-level root and do **not** need their own.
 
 **Shared-value pattern** — drag surfaces declare `useSharedValue` refs (e.g. `translateY`, `startY`, `viewportH`, `contentH`), read/write them inside `.onStart` / `.onUpdate` worklets (marked `'worklet'`), and consume them via `useAnimatedStyle` applied to a `Reanimated.View`. The `GestureDetector` must wrap the same `Reanimated.View` that consumes the animated style. Layout measurements flow via `onLayout` handlers that write directly to shared values (JS-thread writes to shared values are safe).
 

@@ -28,7 +28,7 @@ interface PostVideoProps {
 }
 
 /**
- * One video shot of a post (feed, small window, post detail, preview). Touches pass through to
+ * One video shot of a post (feed, small window, post viewer, preview). Touches pass through to
  * the gestures around it (double-tap to like, tap the small window to swap, pinch in the preview).
  * On a build without the native video module (build 10 after an OTA) it shows a still card
  * instead of crashing.
