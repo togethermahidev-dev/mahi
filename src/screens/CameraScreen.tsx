@@ -59,6 +59,7 @@ import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import OpenTagsBanner from '@/components/OpenTagsBanner';
 import PointsBadge from '@/components/PointsBadge';
 import KeyboardInset from '@/components/KeyboardInset';
+import FlashButton from '@/components/FlashButton';
 import CapturePipGuide from '@/components/CapturePipGuide';
 import PostVideo, { SoundButton } from '@/components/PostVideo';
 import InviteStep from '@/components/InviteStep';
@@ -79,7 +80,7 @@ import {
   type ShutterPress,
 } from '@/lib/videoPosts';
 import { formatWait } from '@/lib/countdown';
-import { PHOTO_CAPTURE } from '@/lib/cameraCapture';
+import { PHOTO_CAPTURE, flashMode, nextFlash, type FlashChoice } from '@/lib/cameraCapture';
 import { answersATag, reactivePostingGate } from '@/lib/reactivePosting';
 import { nudgeLabel } from '@/lib/tagNudge';
 import { cantTagReason } from '@/lib/tagRules';
@@ -110,6 +111,9 @@ import {
 
 /** Said on the camera and in the toast when there's no open tag to answer. */
 const NO_TAGS_TITLE = 'No tags to answer';
+
+/** The flash setting, kept for this app session only (never saved on the phone). */
+let flashThisSession: FlashChoice = 'off';
 
 // ─── Streak Badge ─────────────────────────────────────────────────────────────
 
@@ -1270,6 +1274,13 @@ export default function CameraScreen(): React.JSX.Element {
 
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [captureState, setCaptureState] = useState<CaptureState>('idle');
+  const [flashChoice, setFlashChoice] = useState<FlashChoice>(() => flashThisSession);
+  const cycleFlash = () => {
+    const next = nextFlash(flashChoice);
+    flashThisSession = next;
+    haptic('selection');
+    setFlashChoice(next);
+  };
 
   // 0.5× ultra-wide lens (back camera only; pure capture config, not persisted).
   // `availableLenses` is populated from the camera ref (iOS reports physical
@@ -1970,6 +1981,8 @@ export default function CameraScreen(): React.JSX.Element {
           ref={cameraRef}
           style={StyleSheet.absoluteFill}
           facing={facing}
+          // Flash: off / on / auto as set; on the selfie side "on" lights the screen instead.
+          flash={flashMode(flashChoice, facing)}
           // 0.5× ultra-wide is a back-camera-only physical lens (iOS). Only pass
           // a selectedLens when the user opted in AND we're on the back camera —
           // never feed a back-cam lens id to the selfie cam. undefined ⇒ default
@@ -2188,8 +2201,12 @@ export default function CameraScreen(): React.JSX.Element {
             )}
           </Pressable>
 
-          {/* Spacer */}
-          <View style={styles.flipButton} />
+          {/* Flash — photos only, so it steps aside while the switch says Video. */}
+          {videoOn && shotMode === 'video' ? (
+            <View style={styles.flipButton} />
+          ) : (
+            <FlashButton choice={flashChoice} onPress={cycleFlash} disabled={switchDisabled} />
+          )}
         </View>
 
         <DualPhotoPreview
