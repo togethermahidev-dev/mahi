@@ -17,10 +17,9 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeed } from '@/hooks/useFeed';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useOpenTags } from '@/hooks/useOpenTags';
-import { useRailRoom } from '@/hooks/useChrome';
 import { answersATag } from '@/lib/reactivePosting';
 import FeedLockBanner from '@/components/FeedLockBanner';
-import { useSocialStore, useAuthStore, useChromeStore } from '@/store';
+import { useSocialStore, useAuthStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import PostCard from '@/components/PostCard';
@@ -66,8 +65,6 @@ function LockedPostItem({
   topSpace?: number;
 }) {
   const { colors } = useAppTheme();
-  // Centred, and clear of the glass bar on the left (the same room on both sides keeps it centred).
-  const railRoom = useRailRoom();
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
   const points = pointsBadgeText(item.streak_day);
@@ -75,12 +72,7 @@ function LockedPostItem({
     <View
       style={[
         styles.lockedCard,
-        {
-          backgroundColor: colors.offBlack,
-          height,
-          paddingTop: topSpace,
-          paddingHorizontal: Math.max(SPACE.s32, railRoom),
-        },
+        { backgroundColor: colors.offBlack, height, paddingTop: topSpace },
       ]}
     >
       <Pressable
@@ -151,7 +143,6 @@ export default function FeedScreen({
 }: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
   const headerH = appHeaderHeight(useSafeAreaInsets().top);
-  const railRoom = useRailRoom();
   // TikTok-style snap: each card fills the full screen height.
   const { width: screenWidth, height: cardHeight } = useWindowDimensions();
   const bg = dark ? COLORS.bgDark : COLORS.white;
@@ -208,8 +199,8 @@ export default function FeedScreen({
   const toggleFeedMuted = useCallback(() => setFeedMuted((m) => !m), []);
   const feedOnScreen = isActive && !profileUserId;
   const listExtra = useMemo(
-    () => ({ topSpace, railRoom, lockedText, inViewId, feedMuted, feedOnScreen }),
-    [topSpace, railRoom, lockedText, inViewId, feedMuted, feedOnScreen]
+    () => ({ topSpace, lockedText, inViewId, feedMuted, feedOnScreen }),
+    [topSpace, lockedText, inViewId, feedMuted, feedOnScreen]
   );
 
   // Notify parent when a fullscreen overlay (profile) opens/closes
@@ -247,10 +238,7 @@ export default function FeedScreen({
       });
 
       visiblePostIds.current = nowVisible;
-      const inView = viewableItems[0]?.key ?? null;
-      setInViewId(inView);
-      // A move to another post bounces the glass bar's Feed icon.
-      useChromeStore.getState().feedPostShown(inView);
+      setInViewId(viewableItems[0]?.key ?? null);
     },
     []
   );
@@ -303,7 +291,6 @@ export default function FeedScreen({
                 onAvatarPress={handleAvatarPress}
                 onCommentPress={setCommentPostId}
                 topSpace={index === 0 ? topSpace : 0}
-                leftSpace={railRoom}
                 playing={shouldPlay({ screenActive: feedOnScreen, inView: inViewId === item.id })}
                 soundOff={feedMuted}
                 onToggleMuted={toggleFeedMuted}
@@ -426,6 +413,7 @@ const styles = StyleSheet.create({
   lockedCard: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: SPACE.s32,
     gap: SPACE.s16,
   },
   lockedWho: {

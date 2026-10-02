@@ -1,4 +1,4 @@
-import { followSpan, morphPlan, nearestSlot, slotSpan } from '../railSelector';
+import { followSpan, morphPlan, nearestSlot, railShows, slotSpan } from '../railSelector';
 
 // The rail as drawn today: 4px padding, 44px buttons, 6px between them (3px above and below each).
 const rail = { padding: 4, button: 44, gap: 6, count: 4 };
@@ -53,6 +53,26 @@ describe('rail selector', () => {
     });
     it('with Reduce Motion on, just moves without stretching', () => {
       expect(morphPlan(from, to, true)).toEqual({ stretch: to, settle: to });
+    });
+  });
+
+  describe('railShows (the rail is seen on the Camera only)', () => {
+    const onCamera = { on: true, tab: 'camera', overlay: false, covered: false } as const;
+
+    it('shows on the Camera', () => {
+      expect(railShows(onCamera)).toBe(true);
+    });
+    it('is hidden on Feed, Messages and Profile', () => {
+      expect(railShows({ ...onCamera, tab: 'feed' })).toBe(false);
+      expect(railShows({ ...onCamera, tab: 'messages' })).toBe(false);
+      expect(railShows({ ...onCamera, tab: 'profile' })).toBe(false);
+    });
+    it('is hidden under a pop-up or a full-screen view opened over the Camera', () => {
+      expect(railShows({ ...onCamera, overlay: true })).toBe(false);
+      expect(railShows({ ...onCamera, covered: true })).toBe(false);
+    });
+    it('is hidden everywhere when the switch is off', () => {
+      expect(railShows({ ...onCamera, on: false })).toBe(false);
     });
   });
 });

@@ -17,6 +17,23 @@ export type RailGeometry = {
 
 export type Span = { top: number; bottom: number };
 
+export type RailTab = 'camera' | 'feed' | 'messages' | 'profile';
+
+/**
+ * Whether the rail is on screen. It is seen on the Camera only (owner, 2026-10-02): not on Feed,
+ * Messages or Profile, and not under a pop-up or a full-screen view opened over the Camera.
+ */
+export function railShows(s: {
+  /** The `nav-glass-rail` switch. */
+  on: boolean;
+  /** The screen showing. */
+  tab: RailTab;
+  overlay: boolean;
+  covered: boolean;
+}): boolean {
+  return s.on && s.tab === 'camera' && !s.overlay && !s.covered;
+}
+
 function centreOf(g: RailGeometry, i: number): number {
   'worklet';
   return g.padding + g.gap / 2 + g.button / 2 + i * (g.button + g.gap);

@@ -18,8 +18,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useChromeFade } from '@/hooks/useChrome';
-import { useChromeStore } from '@/store';
 import {
   CameraIcon,
   FeedIcon,
@@ -38,10 +36,17 @@ import {
   SPACE,
   withAlpha,
 } from '@/constants/tokens';
-import { followSpan, morphPlan, nearestSlot, slotSpan, type RailGeometry } from '@/lib/railSelector';
+import {
+  followSpan,
+  morphPlan,
+  nearestSlot,
+  slotSpan,
+  type RailGeometry,
+  type RailTab,
+} from '@/lib/railSelector';
 import type { Rect } from '@/lib/swipeRules';
 
-export type RailTab = 'camera' | 'feed' | 'messages' | 'profile';
+export type { RailTab };
 
 const TABS: { key: RailTab; label: string; Icon: React.ComponentType<IconProps> }[] = [
   { key: 'camera', label: 'Camera', Icon: CameraIcon },
@@ -62,17 +67,6 @@ const FOLLOW_TRAIL = { damping: 22, stiffness: 260, mass: 0.6, reduceMotion: Red
 const MOVE = { duration: 180, easing: Easing.out(Easing.cubic), reduceMotion: ReduceMotion.Never };
 /** Press and hold this long (ms) to pick up the selector; a drag along the rail picks it up at once. */
 const HOLD_MS = 280;
-/** The Feed icon's bounce as the feed moves to the next post (skipped with Reduce Motion). */
-const BUMP_UP = {
-  duration: NAV_RAIL.feedBumpUpMs,
-  easing: Easing.out(Easing.quad),
-  reduceMotion: ReduceMotion.Never,
-};
-const BUMP_DOWN = {
-  duration: NAV_RAIL.feedBumpDownMs,
-  easing: Easing.inOut(Easing.quad),
-  reduceMotion: ReduceMotion.Never,
-};
 
 interface NavRailProps {
   active: RailTab;
@@ -91,9 +85,9 @@ interface NavRailProps {
 }
 
 /**
- * Floating glass rail on the left edge (owner, 2026-10-02: left on every screen, so it never
- * meets the like and comment buttons on the right): Apple's Liquid Glass on iOS 26+, a frosted
- * blur on older iPhones and on Android. Centred vertically, inside the safe area.
+ * Floating glass rail on the left edge, seen on the Camera only (owner, 2026-10-02; see
+ * `railShows`): Apple's Liquid Glass on iOS 26+, a frosted blur on older iPhones and on Android.
+ * Centred vertically, inside the safe area.
  */
 export default function NavRail({
   active,
@@ -106,8 +100,6 @@ export default function NavRail({
   const { colors, navRail } = useAppTheme();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
-  // Holding a post (hold to view) fades the rail away with everything else over the photo.
-  const chrome = useChromeFade();
   const scheme = onDark ? 'dark' : 'light';
   const iconColor = onDark ? colors.offWhite : colors.offBlack;
   const button = navRail.width - SIZE.z8;
@@ -153,18 +145,6 @@ export default function NavRail({
     // geometry is rebuilt each render from fixed tokens; the active icon is what moves it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex, morph]);
-
-  // ─── The Feed icon's bounce, in time with each move to the next post ─────────
-  const feedTick = useChromeStore((s) => s.feedTick);
-  const feedScale = useSharedValue(1);
-  useEffect(() => {
-    if (feedTick === 0 || reduceMotion) return;
-    feedScale.value = withSequence(
-      withTiming(NAV_RAIL.feedBumpScale, BUMP_UP),
-      withTiming(1, BUMP_DOWN)
-    );
-  }, [feedTick, reduceMotion, feedScale]);
-  const feedIconStyle = useAnimatedStyle(() => ({ transform: [{ scale: feedScale.value }] }));
 
   const selectorStyle = useAnimatedStyle(() => ({
     top: top.value,
@@ -273,9 +253,7 @@ export default function NavRail({
           pressed && styles.pressed,
         ]}
       >
-        <Animated.View style={key === 'feed' ? feedIconStyle : undefined}>
-          <Icon size={ICON_SIZE.i20} color={selected ? colors.offBlack : iconColor} />
-        </Animated.View>
+        <Icon size={ICON_SIZE.i20} color={selected ? colors.offBlack : iconColor} />
       </Pressable>
     );
   });
@@ -351,8 +329,8 @@ export default function NavRail({
   }
 
   return (
-    <Animated.View
-      pointerEvents={chrome.viewing ? 'none' : 'box-none'}
+    <View
+      pointerEvents="box-none"
       accessibilityRole="tablist"
       onLayout={morph ? measure : undefined}
       style={[
@@ -362,11 +340,10 @@ export default function NavRail({
           top: insets.top,
           bottom: insets.bottom,
         },
-        chrome.style,
       ]}
     >
       {body}
-    </Animated.View>
+    </View>
   );
 }
 

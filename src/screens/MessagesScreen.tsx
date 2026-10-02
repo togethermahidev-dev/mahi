@@ -4,7 +4,6 @@ import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMessages } from '@/hooks/useMessages';
-import { useRailRoom } from '@/hooks/useChrome';
 import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
 import { useAuthStore, useConversationStore } from '@/store';
 import ConversationScreen from '@/screens/ConversationScreen';
@@ -54,7 +53,6 @@ function ConvoRow({
   muted,
   border,
   accent,
-  leftSpace,
   menuOn,
   dark,
   currentUserId,
@@ -66,8 +64,6 @@ function ConvoRow({
   muted: string;
   border: string;
   accent: string;
-  /** Room kept on the left for the glass bar, so it never sits on a friend's picture. */
-  leftSpace: number;
   /** Hold to preview (flag context-menu-preview, iPhone, build 11). */
   menuOn: boolean;
   dark: boolean;
@@ -95,12 +91,7 @@ function ConvoRow({
   // don't overlap: tapping the avatar opens the profile, tapping the rest of
   // the row opens the conversation. No dead zone between them.
   const row = (
-    <View
-      style={[
-        styles.convoRow,
-        { borderBottomColor: border, paddingLeft: Math.max(SPACE.s24, leftSpace) },
-      ]}
-    >
+    <View style={[styles.convoRow, { borderBottomColor: border }]}>
       <Pressable
         style={({ pressed }) => pressed && styles.pressed}
         onPress={onAvatarPress}
@@ -179,7 +170,6 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
   const border = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.12);
   const accent = colors.accent;
   const insets = useSafeAreaInsets();
-  const railRoom = useRailRoom();
 
   const [openConvo, setOpenConvo] = useState<ConversationPreview | null>(null);
   const [showRequests, setShowRequests] = useState(false);
@@ -190,8 +180,6 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
   const { inbox, requests, isLoading, refresh } = useMessages();
   const userId = useAuthStore((s) => s.user?.id);
   const menuOn = useContextMenuPreview();
-  // Rows re-render when the glass bar's room or hold to preview changes.
-  const listExtra = useMemo(() => ({ railRoom, menuOn }), [railRoom, menuOn]);
 
   // Only requests addressed to *this* user (i.e., where they are the receiver,
   // not the requester) count toward the attention badge.
@@ -266,10 +254,10 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
       <FlashList
         data={inbox}
         keyExtractor={(item) => item.id}
-        extraData={listExtra}
+        // Rows re-render when hold to preview changes.
+        extraData={menuOn}
         renderItem={({ item }) => (
           <ConvoRow
-            leftSpace={railRoom}
             item={item}
             onPress={() => setOpenConvo(item)}
             onAvatarPress={() => {

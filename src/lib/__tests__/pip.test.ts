@@ -18,13 +18,6 @@ describe('draggable photo-in-photo', () => {
     });
   });
 
-  it('with the glass bar on the left, the small photo keeps clear of it', () => {
-    const zone = pipZone(screen, 228, 70);
-    expect(zone.left).toBe(70);
-    expect(zone.right).toBe(400 - PIP_W - 70);
-    expect(snapToCorner(0, 0, zone).x).toBe(70);
-  });
-
   it('a drag stays inside the safe zone', () => {
     const zone = pipZone(screen, 228);
     expect(clampToZone(-50, 5000, zone)).toEqual({ x: zone.left, y: zone.bottom });

@@ -6,7 +6,6 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { useAuthStore, useUserStore } from '@/store';
 import { pointsStatsLabel } from '@/lib/mahiPoints';
-import { useRailRoom } from '@/hooks/useChrome';
 import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostViewer from '@/components/PostViewer';
@@ -43,8 +42,6 @@ export default function ProfileScreen({
 }: ProfileScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const top = useSafeAreaInsets().top;
-  // The header is centred: the same room on both sides keeps it clear of the glass bar.
-  const railRoom = useRailRoom();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [viewerPostId, setViewerPostId] = useState<string | null>(null);
@@ -70,7 +67,7 @@ export default function ProfileScreen({
   // Everything above the grid. The page is one list, so this scrolls away and the grid can
   // fill the screen.
   const header = (
-    <View style={[styles.header, { paddingHorizontal: Math.max(SPACE.s32, railRoom) }]}>
+    <View style={styles.header}>
       {/* Settings icon — top-left */}
       <View style={styles.headerLeft}>
         <Pressable
@@ -207,6 +204,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
+    paddingHorizontal: SPACE.s32,
     paddingBottom: SPACE.s16,
     width: '100%',
   },

@@ -21,17 +21,10 @@ export function appHeaderHeight(topInset: number): number {
   return topInset + SIZE.z36 + SPACE.s12;
 }
 
-/**
- * The area the photo may move in. `top` is the highest the photo may go; `left` is the room kept
- * on the left (the glass bar's, where it shows).
- */
-export function pipZone(
-  screen: { width: number; height: number },
-  top: number,
-  left: number = EDGE
-): PipZone {
+/** The area the photo may move in. `top` is the highest the photo may go. */
+export function pipZone(screen: { width: number; height: number }, top: number): PipZone {
   return {
-    left: Math.max(EDGE, left),
+    left: EDGE,
     right: screen.width - PIP_W - SIDE_ACTIONS_W,
     top,
     bottom: screen.height - BOTTOM_CONTENT_H - PIP_H,

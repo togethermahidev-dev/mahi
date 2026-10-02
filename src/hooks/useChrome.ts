@@ -7,8 +7,9 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { POST_CARD, SPACE } from '@/constants/tokens';
 
 /**
- * The room the glass bar takes on the left edge (its gap, width and a little space beside it),
- * or 0 when the bar is off. Things that sit on the left in the middle of a page start past it.
+ * The room the glass bar takes on the Camera's left edge (its gap, width and a little space
+ * beside it), or 0 when the bar is off. Things on the left in the middle of the Camera start past
+ * it. The bar is on no other screen, so nothing else keeps room for it.
  */
 export function useRailRoom(): number {
   const shown = useFeatureFlag('nav-glass-rail');
