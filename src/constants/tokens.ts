@@ -294,6 +294,20 @@ export const POST_CARD = {
   showMs: 220,
 } as const;
 
+// ─── Hold-to-preview pop-up (iPhone, flag context-menu-preview) ─────────────────
+export const PREVIEW_MENU = {
+  /** A post's preview: this share of the screen's width… */
+  postWidth: 0.86,
+  /** …height to width as the camera's portrait photos (3:4)… */
+  postAspect: 4 / 3,
+  /** …and never taller than this share of the screen, so the menu fits below. */
+  postMaxHeight: 0.6,
+  /** A chat's preview: this share of the screen's width… */
+  chatWidth: 0.86,
+  /** …and this share of its height. */
+  chatHeight: 0.45,
+} as const;
+
 // ─── Full-screen viewers: a profile's posts and a profile picture ───────────────
 export const VIEWER = {
   /** A close swipe takes over once the finger moves this far (px) along its axis. */
