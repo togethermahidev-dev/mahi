@@ -12,11 +12,13 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { haptic } from '@/lib/haptics';
 import { useFeedStore, useProfilePostsStore, useSocialStore, useUserStore } from '@/store';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import KeyboardInset from '@/components/KeyboardInset';
 import CommentLikersSheet from '@/components/CommentLikersSheet';
+import UserProfileScreen from '@/screens/UserProfileScreen';
 import { HeartIcon } from '@/components/ScreenIcons';
 import { relativeTime } from '@/lib/relativeTime';
 import type { CommentWithProfile } from '@/api/social';
@@ -39,6 +41,7 @@ function CommentRow({
   dark,
   showLikes,
   onShowLikers,
+  onOpenProfile,
 }: {
   comment: CommentWithProfile;
   dark: boolean;
@@ -46,6 +49,8 @@ function CommentRow({
   showLikes: boolean;
   /** Tap on the count: who liked it. */
   onShowLikers: (commentId: string) => void;
+  /** Tap on the photo, name or words: open the commenter's profile. */
+  onOpenProfile: (userId: string) => void;
 }) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
@@ -59,18 +64,28 @@ function CommentRow({
 
   return (
     <View style={styles.commentRow}>
-      {comment.profiles.avatar_url ? (
-        <Image source={{ uri: comment.profiles.avatar_url }} style={styles.commentAvatar} />
-      ) : (
-        <View style={[styles.commentAvatar, styles.avatarFallback, { backgroundColor: muted }]}>
-          <Text style={[styles.commentAvatarInitial, { color: text }]}>{initials}</Text>
+      <Pressable
+        style={({ pressed }) => [styles.commentMain, pressed && { opacity: 0.6 }]}
+        onPress={() => onOpenProfile(comment.profiles.id)}
+        accessibilityRole="button"
+        accessibilityLabel={`${name}: ${comment.content}`}
+        accessibilityHint={`Opens ${name}'s profile`}
+      >
+        {comment.profiles.avatar_url ? (
+          <Image source={{ uri: comment.profiles.avatar_url }} style={styles.commentAvatar} />
+        ) : (
+          <View style={[styles.commentAvatar, styles.avatarFallback, { backgroundColor: muted }]}>
+            <Text style={[styles.commentAvatarInitial, { color: text }]}>{initials}</Text>
+          </View>
+        )}
+        <View style={styles.commentBody}>
+          <Text style={[styles.commentUsername, { color: text }]}>{name}</Text>
+          <Text style={[styles.commentText, { color: text }]}>{comment.content}</Text>
         </View>
-      )}
-      <View style={styles.commentBody}>
-        <Text style={[styles.commentUsername, { color: text }]}>{name}</Text>
-        <Text style={[styles.commentText, { color: text }]}>{comment.content}</Text>
-      </View>
-      <Text style={[styles.commentTime, { color: muted }]}>{relativeTime(comment.created_at)}</Text>
+        <Text style={[styles.commentTime, { color: muted }]}>
+          {relativeTime(comment.created_at)}
+        </Text>
+      </Pressable>
       {showLikes ? (
         <View style={styles.likeCol}>
           <Pressable
@@ -127,12 +142,15 @@ export default function CommentSheet({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      {/* Its own provider: the sheet's insets differ from the screen behind it. */}
-      <SafeAreaProvider>
-        <View style={[styles.sheet, { backgroundColor: sheetBg }]}>
-          {shownId ? <CommentThread key={shownId} postId={shownId} dark={dark} /> : null}
-        </View>
-      </SafeAreaProvider>
+      {/* A Modal is its own window: gesture-handler needs its own root (a commenter's profile
+          swipes closed with a pan), and the sheet's insets differ from the screen behind it. */}
+      <GestureHandlerRootView style={styles.sheet}>
+        <SafeAreaProvider>
+          <View style={[styles.sheet, { backgroundColor: sheetBg }]}>
+            {shownId ? <CommentThread key={shownId} postId={shownId} dark={dark} /> : null}
+          </View>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -181,6 +199,11 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
     if (likesOn) useSocialStore.getState().loadCommentLikes(postId);
   }, [likesOn, postId]);
   const [likersFor, setLikersFor] = useState<string | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const openProfile = useCallback((userId: string) => {
+    Keyboard.dismiss();
+    setProfileUserId(userId);
+  }, []);
   const showLikers = useCallback((commentId: string) => {
     Keyboard.dismiss();
     setLikersFor(commentId);
@@ -218,6 +241,7 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
                 dark={dark}
                 showLikes={showLikes}
                 onShowLikers={showLikers}
+                onOpenProfile={openProfile}
               />
             )}
             keyboardShouldPersistTaps="handled"
@@ -269,6 +293,16 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
 
       {/* Who liked a comment — a page sheet over this one */}
       <CommentLikersSheet commentId={likersFor} dark={dark} onClose={() => setLikersFor(null)} />
+
+      {/* A commenter's profile, over the comments; swipe or back returns to them */}
+      {profileUserId ? (
+        <UserProfileScreen
+          key={profileUserId}
+          userId={profileUserId}
+          onBack={() => setProfileUserId(null)}
+          dark={dark}
+        />
+      ) : null}
     </>
   );
 }
@@ -284,6 +318,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingHorizontal: SPACE.s12,
     paddingVertical: SPACE.s8,
+    gap: SPACE.s8,
+  },
+  /** Photo, name, words and time: one tap target that opens the commenter's profile. */
+  commentMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: SPACE.s8,
   },
   commentAvatar: {
