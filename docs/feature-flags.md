@@ -82,8 +82,11 @@ photo-only camera exactly, and the app never asks for the microphone.)
 below (Apple's own context menu). Profile grid squares: the post's photo, with Open, Like / Unlike and
 Share (Share sends the photo itself — post links expire within the hour — fetched to the phone only
 for the share sheet and deleted when it closes). A tap still opens the post viewer; locked squares
-don't pop. VoiceOver: the same choices are actions on the square. On build 10 or Android it reads as
-off. Off = today's grid exactly.
+don't pop. Messages rows: the latest six messages in that chat, read fresh from the server each time
+it opens (a spinner first, nothing kept on the phone, and peeking doesn't mark them read), with Open and,
+while the chat is unread, Mark as read (no Mute: the server has none). VoiceOver: the same choices are
+actions on the square or row. On build 10 or Android it reads as
+off. Off = today's grid and Messages list exactly.
 
 **Comments:** `comment-likes` (a heart and a count on each comment in the comments sheet — in the feed
 and the post viewer; a tap likes or unlikes at once and rolls back if the server says no; tap the count

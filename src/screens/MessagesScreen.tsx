@@ -1,16 +1,25 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, Modal, useWindowDimensions } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMessages } from '@/hooks/useMessages';
 import { useRailRoom } from '@/hooks/useChrome';
-import { useAuthStore } from '@/store';
+import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
+import { useAuthStore, useConversationStore } from '@/store';
 import ConversationScreen from '@/screens/ConversationScreen';
 import MessageRequestsScreen from '@/screens/MessageRequestsScreen';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import GlobalSearchOverlay from '@/components/GlobalSearchOverlay';
 import { SearchIcon } from '@/components/ScreenIcons';
+import PreviewMenu from '@/components/PreviewMenu';
+import ChatPreview from '@/components/ChatPreview';
+import {
+  isMenuAction,
+  menuA11yActions,
+  messagesMenuItems,
+  previewSize,
+} from '@/lib/contextMenuPreview';
 import type { ConversationPreview } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -46,6 +55,9 @@ function ConvoRow({
   border,
   accent,
   leftSpace,
+  menuOn,
+  dark,
+  currentUserId,
 }: {
   item: ConversationPreview;
   onPress: () => void;
@@ -56,6 +68,10 @@ function ConvoRow({
   accent: string;
   /** Room kept on the left for the glass bar, so it never sits on a friend's picture. */
   leftSpace: number;
+  /** Hold to preview (flag context-menu-preview, iPhone, build 11). */
+  menuOn: boolean;
+  dark: boolean;
+  currentUserId: string | undefined;
 }) {
   const name = item.other_profile.display_name ?? item.other_profile.username;
   const initials = (item.other_profile.username ?? '?')[0].toUpperCase();
@@ -66,10 +82,19 @@ function ConvoRow({
     : '';
   const unread = item.unread_count > 0;
 
+  // Hold to preview: the latest messages pop out, with Open and (while unread) Mark as read.
+  const screen = useWindowDimensions();
+  const items = menuOn ? messagesMenuItems({ unread }) : [];
+  const runAction = (action: string) => {
+    if (!isMenuAction(action)) return;
+    if (action === 'open') onPress();
+    else if (action === 'mark-read') useConversationStore.getState().markRead(item.id);
+  };
+
   // Avatar and body are SIBLINGS (not nested pressables) so the touch targets
   // don't overlap: tapping the avatar opens the profile, tapping the rest of
   // the row opens the conversation. No dead zone between them.
-  return (
+  const row = (
     <View
       style={[
         styles.convoRow,
@@ -100,6 +125,9 @@ function ConvoRow({
         accessibilityRole="button"
         accessibilityLabel={`Conversation with ${name}${unread ? ', unread' : ''}`}
         hitSlop={{ top: OFFSET.o14, bottom: OFFSET.o14, right: OFFSET.o8 }}
+        // VoiceOver: the menu's choices as actions (a double tap already opens the chat).
+        accessibilityActions={menuOn ? menuA11yActions(items, ['open']) : undefined}
+        onAccessibilityAction={menuOn ? (e) => runAction(e.nativeEvent.actionName) : undefined}
       >
         <View style={styles.convoInfo}>
           <Text style={[styles.convoName, { color: text }]}>{name}</Text>
@@ -114,6 +142,28 @@ function ConvoRow({
         </View>
       </Pressable>
     </View>
+  );
+
+  if (!menuOn) return row;
+  return (
+    <PreviewMenu
+      width={screen.width}
+      dark={dark}
+      items={items}
+      onAction={runAction}
+      previewSize={previewSize(screen, 'chat')}
+      previewBackground={dark ? COLORS.bgDark : COLORS.white}
+      renderPreview={() => (
+        <ChatPreview
+          conversationId={item.id}
+          name={name}
+          currentUserId={currentUserId}
+          dark={dark}
+        />
+      )}
+    >
+      {row}
+    </PreviewMenu>
   );
 }
 
@@ -139,6 +189,9 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
 
   const { inbox, requests, isLoading, refresh } = useMessages();
   const userId = useAuthStore((s) => s.user?.id);
+  const menuOn = useContextMenuPreview();
+  // Rows re-render when the glass bar's room or hold to preview changes.
+  const listExtra = useMemo(() => ({ railRoom, menuOn }), [railRoom, menuOn]);
 
   // Only requests addressed to *this* user (i.e., where they are the receiver,
   // not the requester) count toward the attention badge.
@@ -213,7 +266,7 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
       <FlashList
         data={inbox}
         keyExtractor={(item) => item.id}
-        extraData={railRoom}
+        extraData={listExtra}
         renderItem={({ item }) => (
           <ConvoRow
             leftSpace={railRoom}
@@ -228,6 +281,9 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
             muted={muted}
             border={border}
             accent={accent}
+            menuOn={menuOn}
+            dark={dark}
+            currentUserId={userId}
           />
         )}
         refreshing={isLoading}
