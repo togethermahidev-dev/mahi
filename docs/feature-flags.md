@@ -51,7 +51,7 @@ if (!showBell) return null;
 
 ## The flags
 
-Twenty-one keys, every one read by code. (Suggested follows have no flag: they are always on.)
+Twenty-two keys, every one read by code. (Suggested follows have no flag: they are always on.)
 
 **Notifications:** `notifications-core` (the bell in the header and the notifications list)
 
