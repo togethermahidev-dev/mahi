@@ -66,7 +66,7 @@ starts on the rail never moves the pages. Off = today's rail.)
 
 **Onboarding:** `onboarding-welcome-cards` (one-time 3-card welcome carousel after sign-in that
 teaches post when a friend tags you → every post tags 3 friends → feed opens/locks; shown once per account
-per device. Off = never shown.)
+per device, and again from Settings → Help. Off = never shown, and the Help row is hidden.)
 
 **Account:** `auth-password-reset` ("Forgot password?" on the log-in sheet emails a 6-digit code, then
 the code and a new password set it and log you in. Needs the `send-reset-code` and `reset-password`

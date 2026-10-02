@@ -52,26 +52,18 @@ function CardIllustration({ icon, color }: { icon: WelcomeCard['icon']; color: s
 
 /**
  * One-time welcome carousel, shown over the signed-in app until this account has closed it
- * on this device. A full-screen Modal keeps its swipes away from the page-swipe navigators.
+ * on this device. Settings → Help shows the same cards again (WelcomeCardsModal).
  */
 export default function WelcomeCards({ userId }: { userId: string }): React.JSX.Element | null {
   const enabled = useFeatureFlag('onboarding-welcome-cards');
-  const { colors } = useAppTheme();
-  const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const scrollRef = useRef<ScrollView>(null);
   const [visible, setVisible] = useState(false);
-  const [index, setIndex] = useState(0);
 
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
     AsyncStorage.getItem(welcomeSeenKey(userId))
       .then((seen) => {
-        if (!cancelled && seen !== '1') {
-          setIndex(0);
-          setVisible(true);
-        }
+        if (!cancelled && seen !== '1') setVisible(true);
       })
       .catch(() => {});
     return () => {
@@ -79,18 +71,30 @@ export default function WelcomeCards({ userId }: { userId: string }): React.JSX.
     };
   }, [userId, enabled]);
 
-  useEffect(() => {
-    if (visible) AccessibilityInfo.announceForAccessibility(cardPositionLabel(index, COUNT));
-  }, [visible, index]);
-
   const close = () => {
     setVisible(false);
     // Failing to save only means the cards show once more.
     AsyncStorage.setItem(welcomeSeenKey(userId), '1').catch(() => {});
   };
 
+  if (!enabled || !visible) return null;
+  return <WelcomeCardsModal onClose={close} />;
+}
+
+/** The cards themselves. A full-screen Modal keeps its swipes away from the page-swipe navigators. */
+export function WelcomeCardsModal({ onClose }: { onClose: () => void }): React.JSX.Element {
+  const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const scrollRef = useRef<ScrollView>(null);
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    AccessibilityInfo.announceForAccessibility(cardPositionLabel(index, COUNT));
+  }, [index]);
+
   const onButton = () => {
-    if (isLastCard(index, COUNT)) return close();
+    if (isLastCard(index, COUNT)) return onClose();
     const next = index + 1;
     scrollRef.current?.scrollTo({ x: next * width, animated: true });
     setIndex(next);
@@ -100,12 +104,10 @@ export default function WelcomeCards({ userId }: { userId: string }): React.JSX.
     setIndex(pageFromOffset(e.nativeEvent.contentOffset.x, width, COUNT));
   };
 
-  if (!enabled || !visible) return null;
-
   const label = cardButtonLabel(index, COUNT);
 
   return (
-    <Modal visible animationType="fade" onRequestClose={close} statusBarTranslucent>
+    <Modal visible animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <View
         style={[
           styles.root,

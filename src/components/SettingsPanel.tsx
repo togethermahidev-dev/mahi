@@ -17,6 +17,7 @@ import { DELETE_ACCOUNT_CONFIRM } from '@/lib/account';
 import { VERSION_LINE } from '@/lib/appBuild';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
+import { WelcomeCardsModal } from '@/components/WelcomeCards';
 import { FONTS } from '@/constants/fonts';
 import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SHADOW_BLUR, SIZE, OFFSET, TRACKING, BORDER_WIDTH } from '@/constants/tokens';
 
@@ -59,13 +60,14 @@ export default function SettingsPanel({
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
   const [accountOpen, setAccountOpen] = useState(false);
-  const [privacyOpen, setPrivacyOpen] = useState(false);
   const accountAnim = useRef(new Animated.Value(0)).current;
-  const privacyAnim = useRef(new Animated.Value(0)).current;
 
   const [mounted, setMounted] = useState(false);
   const [blockedListOpen, setBlockedListOpen] = useState(false);
   const deleteEnabled = useFeatureFlag('account-delete');
+  // Help shows the welcome cards again, so it follows their switch.
+  const helpEnabled = useFeatureFlag('onboarding-welcome-cards');
+  const [helpOpen, setHelpOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -133,21 +135,15 @@ export default function SettingsPanel({
       ]).start(() => {
         setMounted(false);
         setAccountOpen(false);
-        setPrivacyOpen(false);
         accountAnim.setValue(0);
-        privacyAnim.setValue(0);
       });
     }
   }, [visible]);
 
-  const toggleAccordion = (
-    isOpen: boolean,
-    setOpen: (v: boolean) => void,
-    anim: Animated.Value
-  ) => {
-    const next = !isOpen;
-    setOpen(next);
-    Animated.spring(anim, {
+  const toggleAccount = () => {
+    const next = !accountOpen;
+    setAccountOpen(next);
+    Animated.spring(accountAnim, {
       toValue: next ? 1 : 0,
       damping: 22,
       stiffness: 160,
@@ -203,15 +199,8 @@ export default function SettingsPanel({
 
   if (!mounted && !visible) return null;
 
-  const accountSubItems = [
-    'Edit profile',
-    'Update bio & link',
-    'Blocked users',
-    'Safety & privacy',
-    ...(deleteEnabled ? ['Delete account'] : []),
-  ];
-
-  const privacySubItems = ['T&Cs', 'Privacy policy', 'Request my personal data'];
+  // Every row here does something: a row with nothing behind it stays out until it's built.
+  const accountSubItems = ['Blocked users', ...(deleteEnabled ? ['Delete account'] : [])];
 
   return (
     <View
@@ -267,7 +256,7 @@ export default function SettingsPanel({
             {/* ── Account Settings accordion ── */}
             <Pressable
               style={({ pressed }) => [styles.sectionRow, { borderBottomColor: border }, pressed && styles.pressed]}
-              onPress={() => toggleAccordion(accountOpen, setAccountOpen, accountAnim)}
+              onPress={toggleAccount}
               accessibilityRole="button"
               accessibilityLabel="Account settings"
               accessibilityState={{ expanded: accountOpen }}
@@ -308,47 +297,18 @@ export default function SettingsPanel({
               })}
             </Animated.View>
 
-            {/* ── Help & FAQ ── */}
-            <Pressable
-              style={({ pressed }) => [styles.sectionRow, { borderBottomColor: border }, pressed && styles.pressed]}
-              accessibilityRole="button"
-              accessibilityLabel="Help and FAQ"
-            >
-              <Text style={[styles.sectionLabel, { color: text }]}>Help & FAQ</Text>
-            </Pressable>
-
-            {/* ── Privacy & Data accordion ── */}
-            <Pressable
-              style={({ pressed }) => [styles.sectionRow, { borderBottomColor: border }, pressed && styles.pressed]}
-              onPress={() => toggleAccordion(privacyOpen, setPrivacyOpen, privacyAnim)}
-              accessibilityRole="button"
-              accessibilityLabel="Privacy and data"
-              accessibilityState={{ expanded: privacyOpen }}
-            >
-              <Text style={[styles.sectionLabel, { color: text }]}>Privacy & data</Text>
-              <ChevronIcon open={privacyAnim} color={muted} />
-            </Pressable>
-
-            <Animated.View
-              style={{
-                maxHeight: privacyAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, privacySubItems.length * 50],
-                }),
-                overflow: 'hidden',
-              }}
-            >
-              {privacySubItems.map((item) => (
-                <Pressable
-                  key={item}
-                  style={({ pressed }) => [styles.subRow, { borderBottomColor: border }, pressed && styles.pressed]}
-                  accessibilityRole="button"
-                  accessibilityLabel={item}
-                >
-                  <Text style={[styles.subLabel, { color: muted }]}>{item}</Text>
-                </Pressable>
-              ))}
-            </Animated.View>
+            {/* ── Help: the welcome cards again ── */}
+            {helpEnabled ? (
+              <Pressable
+                style={({ pressed }) => [styles.sectionRow, { borderBottomColor: border }, pressed && styles.pressed]}
+                onPress={() => setHelpOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Help"
+                accessibilityHint="Shows how Mahi works"
+              >
+                <Text style={[styles.sectionLabel, { color: text }]}>Help</Text>
+              </Pressable>
+            ) : null}
 
             {/* Spacer */}
             <View style={styles.spacer} />
@@ -369,12 +329,14 @@ export default function SettingsPanel({
         </Animated.View>
       </GestureDetector>
 
-      {/* Blocked users list — opened from User Controls */}
+      {/* Blocked users list — opened from Account settings */}
       <BlockedUsersSheet
         visible={blockedListOpen}
         onClose={() => setBlockedListOpen(false)}
         dark={dark}
       />
+
+      {helpOpen ? <WelcomeCardsModal onClose={() => setHelpOpen(false)} /> : null}
     </View>
   );
 }
