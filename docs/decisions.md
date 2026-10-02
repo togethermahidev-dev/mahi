@@ -116,6 +116,26 @@ not streaks. Streaks are a daily thing." Architecture: [architecture.md](./archi
 | 49 | Daily streak | None for now | A daily streak beside the points | Decided | 2026-10-02 | — |
 | 50 | Points switch | Points always show; the `mahi-points` flag is removed (deleted from PostHog 2026-10-02, after OTA 10.26) | Keep the switch | Decided | 2026-10-02 | `src/lib/featureFlags.ts` |
 
+## Push notifications (2026-10-02)
+
+The founder, with a BeReal screenshot as the model: a full-screen page that makes sure people allow
+notifications, and pushes such as "You've just been tagged by __. 47:59 hours left to post your
+Mahi!" — "so people feel the timer going down in the back of their mind… notifs for the tag, you've
+been tagged, how long left on the feed, all that stuff." Architecture:
+[architecture.md](./architecture.md#push-notifications); switching it on:
+[go-live-runbook.md](./go-live-runbook.md#switching-push-notifications-on).
+
+| # | Decision | Chosen | Other options | Status | Decided | Used in |
+| --- | --- | --- | --- | --- | --- | --- |
+| 52 | Asking for notifications | A full-screen page, once per device, after the welcome cards and the phone's camera question: "When do you post on Mahi?", one line of why, a card "Please turn on notifications" with Allow / Not now. Allow brings up the phone's own question. Replaces the pop-up | A plain pop-up (2026-09-17) | Decided | 2026-10-02 | `PushPrimer`, `src/lib/pushPrimer.ts`, flag `push-core` |
+| 53 | After "Not now" or "Don't allow" | While they hold an open tag, one dismissible line under the camera's open-tags pill: "Turn on notifications so you never miss a tag". It opens Mahi in the phone's Settings; if the phone was never asked, it asks (Settings has no notifications row until then). Dismissed until the next tag | Show the full page again · nothing | Decided | 2026-10-02 | `PushNudge`, `pushNudge()` |
+| 54 | The tag push | "You've just been tagged by @sam. 48 hours left to post your Mahi!" A push can't tick, so it says the time left at the moment it is sent (48, from `app_config.tag_window`), not a running 47:59 | "@sam tagged you. You have 48 hours to post." | Built — wording for the founder to sign off | 2026-10-02 | `push_on_notification` |
+| 55 | The reminders | Still 24 hours and 2 hours before the deadline: "24 hours left to post your Mahi! @sam is waiting." / "2 hours left to post your Mahi! @sam is waiting." | "24 hours left to answer @sam" | Built — wording for the founder to sign off | 2026-10-02 | `queue_tag_pushes` |
+| 56 | Feed pushes | Two, each with its own server switch, both on: "Your feed locks in 1 hour. Post your answer to @sam to keep it open." one hour before the 24 hours end (the hour is a setting), and "Your feed is locked. Post your answer to @sam to open it." when it locks. Only for someone whose feed is open and who holds an open tag made since their last post — so the feed really will lock. A tag that locks the feed at once gets no second push. Posting takes them back | No feed pushes · one push only | Proposed — built; the founder to confirm the two texts and whether both stay on | 2026-10-02 | `schedule_feed_lock_pushes`, `app_config.feed_lock_warning_push` / `feed_lock_warning_lead` / `feed_locked_push` |
+| 57 | The other pushes | Kept, in sentence case, and the list in the app says the same: "@sam answered your tag in 3h" (was "posted 3h after your tag"), "@sam missed your tag", "You missed @sam's tag. Your points are back to 0.", "@sam liked your post", "@sam commented on your post", "@sam started following you", "@sam joined Mahi from your invite", "Sam sent you a message" | — | Built — wording for the founder to sign off | 2026-10-02 | `push_on_notification`, `send_message`, `src/lib/notificationText.ts` |
+| 58 | A push that is late | Closed, not sent, once it is more than an hour overdue (a setting): what it says about time would be untrue. Also means switching push on never sends the old queue. Quiet hours are not "late": those pushes wait for 07:00, except a feed warning, which is dropped | Send whenever | Built | 2026-10-02 | `claim_push_batch`, `app_config.push_stale_after` |
+| 59 | A live countdown on the lock screen | Researched, not built. Needs a native build (it could join build 11) and its own sending path to Apple; an iPhone only keeps one alive for 8 hours, so it would cover the last hours of a tag, not all 48 | — | Parked — the founder to say if it is wanted | — | — |
+
 ## Fixed by the PRD (not open questions)
 
 | Rule | Value |

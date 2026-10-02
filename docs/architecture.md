@@ -35,6 +35,75 @@ The posting rule since 2026-10-01 ([decisions.md](./decisions.md#reactive-postin
   a friend tags you again (you can't post without a tag); a cancelled tag no longer locks. Wording:
   `src/lib/feedLock.ts`. Backend is Supabase (auth, database, storage, Edge Functions). State is managed with Zustand using an optimistic-UI-first pattern; features sit behind PostHog flags ([feature-flags.md](./feature-flags.md)).
 
+## Push notifications
+
+Founder, 2026-10-02 ([decisions.md](./decisions.md#push-notifications-2026-10-02) #52–#59). The app asks
+for the permission, the database decides what is sent and when, one function sends. **Not live yet:**
+`send-push` is not deployed and `push-core` is absent from PostHog; the owner's steps are in
+[go-live-runbook.md](./go-live-runbook.md#switching-push-notifications-on). No new native build is needed
+for iPhone (build 10 has `expo-notifications` and the push entitlement).
+
+- **Asking** (flag `push-core`, default off). `PushPrimer` (`src/components/PushPrimer.tsx`, rendered in
+  `App.tsx` beside the welcome cards) is a full-screen page: "When do you post on Mahi?", one line of
+  why, and a card "Please turn on notifications" with **Allow** (brings up the phone's own question)
+  and **Not now**. It shows once per device — remembered once answered — to someone the phone has not
+  asked yet, and only when the welcome cards are out of the way (`WelcomeCards` reports `onSettled`) and
+  the phone's camera question has been answered (`usePushPrimer` re-reads the camera permission each time
+  the app comes back to the front). It replaces the old pop-up. Someone who chose "Not now" or told the
+  phone "Don't allow" sees, while they hold an open tag, one line under the camera's open-tags pill
+  (`PushNudge`, inside `OpenTagsBanner`): "Turn on notifications so you never miss a tag". A tap opens
+  Mahi in the phone's Settings — or, if the phone was never asked, brings up its question (Settings has
+  no notifications row until it has). The ✕ hides it until the next tag. The rules are pure and tested:
+  `shouldShowPushPrimer`, `pushNudge`, `nudgeDismissMark` in `src/lib/pushPrimer.ts`. State lives in
+  `pushStore` (`permission`, `primerAnswered`, `nudgeDismissedThrough`); `usePushRegistration` refreshes
+  it on sign-in and on every return to the front, and registers the device once allowed — so switching
+  notifications on in Settings is picked up without a restart. Events: `push_primer_answered`,
+  `push_nudge`, `push_opened`.
+- **What is sent** (title "Mahi"; several due in the same minute for one person become one push ending
+  "(+N more)"). The words live in `push_on_notification`, `queue_tag_pushes`,
+  `schedule_feed_lock_pushes` (`20261002190000_tag_and_feed_pushes.sql`) and `send_message`; the
+  notifications list says the same through `notificationText()` (`src/lib/notificationText.ts`), minus
+  what goes out of date ("just", the hours left).
+
+  | Push | Words | Tap opens |
+  | --- | --- | --- |
+  | Tagged | You've just been tagged by @sam. 48 hours left to post your Mahi! | Camera |
+  | Reminders, 24 h and 2 h before the deadline | 24 hours left to post your Mahi! @sam is waiting. | Camera |
+  | Feed about to lock | Your feed locks in 1 hour. Post your answer to @sam to keep it open. | Camera |
+  | Feed locked | Your feed is locked. Post your answer to @sam to open it. | Camera |
+  | Your tag was answered | @sam answered your tag in 3h | Notifications list |
+  | Your tag was missed | @sam missed your tag | Notifications list |
+  | You missed a tag | You missed @sam's tag. Your points are back to 0. | Notifications list |
+  | Like / comment | @sam liked your post · @sam commented on your post | Notifications list |
+  | Follow | @sam started following you | Their profile |
+  | Joined from your invite | @sam joined Mahi from your invite | Their profile |
+  | Message (one per sender per chat per minute) | Sam sent you a message | Messages |
+
+  A push can't tick, so each states the time left at the moment it is sent. The hours in the tag push
+  come from `app_config.tag_window`.
+- **Feed-lock pushes** follow `viewer_is_locked`: they are queued only for someone whose feed is open on
+  its 24 hours and who holds an open tag made since their last post — the warning
+  `feed_lock_warning_lead` (1 hour) before the 24 hours end, the locked push when they end, both naming
+  the tag with the nearest deadline. A tag that arrives after the 24 hours locks the feed at once and
+  its own tag push is the news: no second push. `schedule_feed_lock_pushes(user)` works one person's
+  two pushes out from scratch; the `queue_tag_pushes` trigger on `tag_challenges` calls it whenever a tag
+  is made, answered, cancelled or missed, so posting (which answers every open tag) takes them back. The
+  same trigger queues the two reminders — `create_post` and `claim_invite` no longer do. Each feed push
+  has its own switch (`feed_lock_warning_push`, `feed_locked_push`).
+- **Sending.** Everything goes through `enqueue_push` into `push_outbox` in the same transaction as the
+  change it announces: no push to yourself, between blocked people, from or to a banned person. Quiet
+  hours (22:00–07:00 in the person's own time zone) move a push to 07:00; a reminder that would then be
+  past its deadline, and a feed warning that would have to wait at all, are dropped. The `send-push` job
+  runs every minute (`invoke_send_push` → `supabase/functions/send-push` → Expo's push service →
+  Apple), and skips until the two Vault secrets exist. `claim_push_batch` hands out what is due and
+  closes anything more than `push_stale_after` (1 hour) overdue as `stale` instead of sending it, so a
+  pause — or switching push on for the first time — never sends a backlog. Receipts are checked every
+  15 minutes and dead device tokens removed.
+- **Tapping** a push: `pushDestination()` (`src/lib/pushRoute.ts`) → `usePushRouting` in
+  `VerticalNavigator`, which first brings the main panel forward if Profile or Messages is showing.
+- **Later:** a live countdown on the lock screen (iOS Live Activity) — researched, not built; it needs
+  a native build.
+
 ## Video posts
 
 Owner, 2026-10-02 ([decisions.md](./decisions.md#video-posts-2026-10-02) #33–#38). Flag `video-posts`,
@@ -238,7 +307,7 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | `public.user_blocks` / `public.user_reports` | Moderation |
 | `public.tag_challenges` | A tag with its 48-hour deadline (tag loop) |
 | `public.invites` | Invite links and 6-character codes |
-| `public.push_tokens` / `public.push_outbox` | Push devices and the push queue (sender not deployed yet) |
+| `public.push_tokens` / `public.push_outbox` | Push devices and the push queue (sender not deployed yet — [Push notifications](#push-notifications)) |
 | `public.conversation_reads` | Unread counts |
 | `public.app_config` | One row of numeric rules (tag window, unlock window, caps, `min_app_version`, `invite_links_enabled`) |
 | `public.otp_codes` / `public.auth_rate_limits` | Hashed sign-up and reset codes (`purpose` = `signup` / `reset`) and send limits |
@@ -318,7 +387,7 @@ It also renders the `NavRail` (on the Camera only: `railShows`) and measures its
 | 0 | `CameraScreen` |
 | 1 | `FeedScreen` |
 
-Each page is one window tall. It also owns: the `AppHeader` (slid off-screen by `headerAnim` as the Feed scrolls down), `NotificationsScreen`, a `UserProfileScreen` opened from notifications, `NavigationDots` (only when the rail is off), `GlobalSearchOverlay`, and `usePushRegistration`.
+Each page is one window tall. It also owns: the `AppHeader` (slid off-screen by `headerAnim` as the Feed scrolls down), `NotificationsScreen`, a `UserProfileScreen` opened from notifications, `NavigationDots` (only when the rail is off), `GlobalSearchOverlay`, and the push hooks `usePushRegistration` and `usePushRouting` ([Push notifications](#push-notifications)).
 
 **Global Search:** pulling down on `CameraScreen` opens `GlobalSearchOverlay` — a frosted-glass overlay (`BlurView`). It searches with `searchProfiles()`; tapping a result opens `UserProfileScreen` over it, from which Message opens `ConversationScreen`. Tapping your own profile is a no-op. All state resets when the overlay closes.
 
@@ -353,9 +422,9 @@ Top bar placed from the safe area, `pointerEvents: 'box-none'` so touches pass t
 | `AvatarViewer` | `src/components/AvatarViewer.tsx` | A profile picture full screen: pinch or double tap to zoom (`clampZoom`, `clampPan`), swipe away in any direction to close, ✕, back |
 | `MessagesScreen` | `src/screens/MessagesScreen.tsx` | Inbox from `useMessages()`; requests open `MessageRequestsScreen` (page sheet; Deny asks first) |
 | `ConversationScreen` | `src/screens/ConversationScreen.tsx` | Thread; real-time via `useConversation`; request banner (Accept / Deny with confirm) |
-| `NotificationsScreen` | `src/screens/NotificationsScreen.tsx` | Activity list (page sheet); `streak_lost` reads "You missed @x's tag. Your points are back to 0." |
+| `NotificationsScreen` | `src/screens/NotificationsScreen.tsx` | Activity list (page sheet); each row's words come from `notificationText()` and match the push for the same thing (a tag: "You've been tagged by @x. 48 hours to post your Mahi!"; `streak_lost`: "You missed @x's tag. Your points are back to 0.") |
 
-App-level overlays in `App.tsx`: `WelcomeCards` (flag `onboarding-welcome-cards` — one-time 3-card carousel in a Modal, once per account per device, and again from Settings → Help; rules in `src/lib/welcomeCards.ts`), `UpdateRequiredScreen` (forced-update gate), `ToastHost`.
+App-level overlays in `App.tsx`: `WelcomeCards` (flag `onboarding-welcome-cards` — one-time 3-card carousel in a Modal, once per account per device, and again from Settings → Help; rules in `src/lib/welcomeCards.ts`), `PushPrimer` (flag `push-core` — the one-time "turn on notifications" page, after the cards; see [Push notifications](#push-notifications)), `UpdateRequiredScreen` (forced-update gate), `ToastHost`.
 
 ---
 
@@ -460,6 +529,7 @@ App launch
         posthog.identify + reloadFeatureFlagsAsync
         → <InAppAnimationScreen onComplete → showCamera=true>
         → <HorizontalNavigator />  + <WelcomeCards /> (once per account per device)
+                                   + <PushPrimer /> (once per device, after the cards; flag push-core)
 
     → no session:
         every per-user store reset(), posthog.reset()
