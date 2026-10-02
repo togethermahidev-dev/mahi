@@ -40,8 +40,8 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 
 | Table | Key Columns | Notes |
 |---|---|---|
-| `public.profiles` | `id`, `username`, `display_name`, `avatar_url`, `timezone`, `streak_current`, `streak_highest` | `streak_current`: tags answered in a row (back to 0 after a missed tag); `streak_highest`: best streak, never lowered (reactive posting, 2026-10-01). `fitness_routine`, `streak_lowest`, `streak_last_upload_date` and the `streak_logs` table are removed by `20261001120100_drop_rest_days`. SELECT open to all authenticated users (feed joins and `searchProfiles` ILIKE queries require it). INSERT/UPDATE own only (`auth.uid() = id`). |
-| `public.posts` | `id`, `user_id`, `image_url`, `pov_image_url`, `caption`, `streak_day`, `created_at` | Made only under reactive posting (an open tag, or the first post). `streak_day` = the poster's streak with this post, shown as "Streak N" (hidden at 0). `image_url` = rear/POV photo (default full-screen). `pov_image_url` = front selfie pip (nullable — null for legacy single-photo posts). Paginated cursor sort: `created_at DESC, id DESC`. No daily limit since 2026-10-01: one post per tag answered (the one-a-day unique index was dropped by `20261001120000_reactive_posting.sql`). |
+| `public.profiles` | `id`, `username`, `display_name`, `avatar_url`, `timezone`, `streak_current`, `streak_highest` | `streak_current`: the person's **Mahi points** (+1 per post that answers a tag, back to 0 after a missed tag); `streak_highest`: their Best, never lowered. The columns keep their old names; people only see "points" and "Best" (2026-10-02). `fitness_routine`, `streak_lowest`, `streak_last_upload_date` and the `streak_logs` table are removed by `20261001120100_drop_rest_days`. SELECT open to all authenticated users (feed joins and `searchProfiles` ILIKE queries require it). INSERT/UPDATE own only (`auth.uid() = id`). |
+| `public.posts` | `id`, `user_id`, `image_url`, `pov_image_url`, `caption`, `streak_day`, `created_at` | Made only under reactive posting (an open tag, or the first post). `streak_day` = the poster's Mahi points with this post, shown as "N points" (hidden at 0). `image_url` = rear/POV photo (default full-screen). `pov_image_url` = front selfie pip (nullable — null for legacy single-photo posts). Paginated cursor sort: `created_at DESC, id DESC`. No daily limit since 2026-10-01: one post per tag answered (the one-a-day unique index was dropped by `20261001120000_reactive_posting.sql`). |
 | `public.post_likes` | `id`, `post_id`, `user_id`, `created_at` | Unique constraint `(post_id, user_id)`. RLS: authenticated read-all; insert/delete own only (`auth.uid() = user_id`). |
 | `public.post_comments` | `id`, `post_id`, `user_id`, `content`, `created_at` | Ordered oldest-first. RLS: authenticated read-all; insert/delete own only. |
 | `public.follows` | `id`, `follower_id`, `following_id`, `created_at` | Unique constraint `(follower_id, following_id)`. CHECK constraint prevents self-follows (`follower_id <> following_id`). RLS: authenticated read-all; insert/delete own only (`auth.uid() = follower_id`); explicit UPDATE deny policy (`USING (false)`). `followUser` uses idempotent upsert (`ignoreDuplicates: true`). |
@@ -49,7 +49,7 @@ npx supabase gen types typescript --project-id <project-id> > src/types/database
 | `public.messages` | `id`, `conversation_id`, `sender_id`, `content`, `created_at` | Trigger updates `conversations.updated_at` on insert. `REPLICA IDENTITY FULL` set for Realtime. Immutable — no UPDATE or DELETE. |
 | `public.post_tags` | `post_id`, `user_id` | Junction table storing user tags on posts (user mentions in captions + on-photo bubble overlays). Composite PK `(post_id, user_id)` — dedup enforced at the DB layer. Both FKs use `ON DELETE CASCADE` (deleting a post or a profile also clears its tags). RLS: `SELECT using (true)` (tags are visible whenever the parent post is visible); `INSERT with check (exists (select 1 from posts p where p.id = post_id and p.user_id = auth.uid()))` — a user can only tag on posts they own. No UPDATE or DELETE policies (immutable v1; re-post to change). `post_tags_user_id_idx` btree on `user_id` for future "posts I was tagged in" lookups. `get_feed_posts` RPC aggregates these into a `tagged_users` array per post row. |
 
-Tag-loop, moderation, push and code tables (`tag_challenges`, `point_events`, `invites`, `app_config`,
+Tag-loop, moderation, push and code tables (`tag_challenges`, `invites`, `app_config`,
 `push_tokens`, `push_outbox`, `conversation_reads`, `notifications`, `user_blocks`, `user_reports`,
 `otp_codes`, `auth_rate_limits`) are listed in [architecture.md](./architecture.md#database-schema) and
 specified in [tag-loop-plan.md](./tag-loop-plan.md); their SQL is in `supabase/migrations/`.
@@ -76,7 +76,7 @@ specified in [tag-loop-plan.md](./tag-loop-plan.md); their SQL is in `supabase/m
 - One round trip, no race condition, no need to check existing state first.
 
 **Current app paths:** posting is `create_post` (one transaction: the reactive-posting check
-`reactive_posting_open` — raises `reactive posting: not tagged` — then post, tag streak, tags, deadlines,
+`reactive_posting_open` — raises `reactive posting: not tagged` — then post, Mahi points, tags, deadlines,
 pushes, invites); the feed is `get_feed` (server-side lock, `feed-lock-explainer` reads its
 unlock window); profiles read `get_user_posts`; chat sends through `send_message`. The entries below
 describe the older functions, still live for old builds until `supabase/deferred/` retires them.
@@ -98,7 +98,7 @@ describe the older functions, still live for old builds until `supabase/deferred
 **`reactive_posting_open(p_user uuid)`** / **`break_missed_streaks(p_user uuid default null)`** — internals, not granted to `authenticated` (`20261001120000_reactive_posting.sql`)
 - `reactive_posting_open`: true when the person has never posted or has an open tag they can still answer (48 hours + `app_config.answer_grace`, 10 minutes). `create_post` raises `reactive posting: not tagged` otherwise.
 - `break_missed_streaks`: every run-out, unanswered, uncancelled tag not yet counted puts its person's `streak_current` back to 0 (once per tag); run by the `mark_missed_tags` cron and inside `create_post` for the caller. `streak_highest` is never lowered.
-- The streak itself moves inside `create_post`: +1 per post that answers at least one tag, written to `posts.streak_day`. `record_upload_streak` and `streak_logs` are gone (the function dropped by `reactive_posting`, the table by `20261001120100_drop_rest_days`).
+- The Mahi points move inside `create_post`: +1 per post that answers at least one tag, written to `posts.streak_day`. `record_upload_streak` and `streak_logs` are gone (the function dropped by `reactive_posting`, the table by `20261001120100_drop_rest_days`).
 
 **`get_follow_data(p_current_user_id uuid, p_target_user_id uuid)`** — `STABLE SECURITY INVOKER`
 - Returns `{ is_following: boolean, follower_count: bigint, following_count: bigint }` in a single query.

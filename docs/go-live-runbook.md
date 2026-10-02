@@ -32,7 +32,7 @@ In this order (the tool sorts by the timestamp in the filename — you don't cho
 | 6 | `tag_challenges` | The core loop: posting in one step, 3 tags, 48-hour deadlines, reminders. |
 | 7 | `app_version_gate` | Lets you ask old app versions to update. |
 | 8 | `feed_lock` | Friends-only feed, locked until you post. |
-| 9 | `points` | Mahi points, capped at 3 a day. |
+| 9 | `points` | The first points system (a point for tagger and answerer, 3 a day). Replaced on 2026-10-02 by `20261002170000_mahi_points`: one Mahi point per answering post, back to 0 on a missed tag. |
 | 10 | `messages` | One send path for chat, unread counts — and fixes blocking, which fails today. |
 | 11 | `invites` | Invite links for people not on Mahi. |
 | 12 | `stats_views` | The tables of numbers for judging the beta. Read-only. |

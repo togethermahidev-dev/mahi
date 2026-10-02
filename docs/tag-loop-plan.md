@@ -14,8 +14,14 @@ Read first: [HANDOVER.md](./HANDOVER.md) (rules, goal loop), [architecture.md](.
 > yet live), the store release and the `supabase/deferred/` contract steps
 > (Phases 3, 4, 6). The app is on the EAS preview lane only.
 
+> **Superseded 2026-10-02 — Mahi points (#47–#50):** wherever this plan says "streak", "points for the
+> tagger", "3 a day" or the flame badge, read: one **Mahi point** per post that answers a tag (answerer only,
+> no cap), back to 0 on a missed tag, Best kept, never called a streak, no daily streak. The first points
+> system (Phase 5) was replaced by `20261002170000_mahi_points.sql`. Current rules:
+> [architecture.md](./architecture.md#reactive-posting).
+
 > **Decisions:** [decisions.md](./decisions.md) records every choice, the options not taken, and where
-> this plan uses each one. Decided 2026-10-01: reactive posting with a tag streak (#1, #10, #27–#30).
+> this plan uses each one. Decided 2026-10-01: reactive posting (#1, #10, #27–#30); 2026-10-02: Mahi points.
 > Parked: #12 success targets (ask before Phase 8). Numeric rules (48 h, 24 h, cap, quiet hours, grace) live
 > in one `app_config` row, not in code.
 

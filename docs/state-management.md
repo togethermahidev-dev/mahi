@@ -48,7 +48,7 @@ const isLoading = useAuthStore((s) => s.isLoading);
 
 ### `useUserStore` — `src/store/userStore.ts`
 
-Manages the authenticated user's profile including streak counters (the tag streak — see
+Manages the authenticated user's profile including the Mahi points counters (stored as `streak_current` / `streak_highest` — see
 [architecture.md](./architecture.md#reactive-posting)).
 
 | Field | Type | Description |
@@ -72,8 +72,8 @@ Manages the authenticated user's profile including streak counters (the tag stre
   contact_number: string | null;
   fitness_goals: string[] | null;
   avatar_url: string | null;
-  streak_current: number;           // tags answered in a row; back to 0 after a missed tag
-  streak_highest: number;           // best streak, never lowered
+  streak_current: number;           // Mahi points: +1 per answering post; back to 0 after a missed tag
+  streak_highest: number;           // Best points, never lowered
 }
 ```
 
@@ -83,8 +83,8 @@ const current = useUserStore.getState().profile;
 setProfile({ ...current, streak_current: streakResult.streak_current, ... });
 ```
 
-**No training days or rest days.** Under reactive posting (2026-10-01) the streak counts answered
-tags, not days; the server keeps `streak_current` and `streak_highest` and the app only reads them.
+**No training days or rest days.** Mahi points count posts that answer a tag,
+not days (there is no daily streak); the server keeps `streak_current` and `streak_highest` and the app only reads them.
 `fitness_routine`, `streak_lowest` and `streak_last_upload_date` are gone (`20261001170000_drop_rest_days`).
 
 **Usage:**
