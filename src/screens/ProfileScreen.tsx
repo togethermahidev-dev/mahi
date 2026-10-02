@@ -8,14 +8,13 @@ import { useAuthStore, useUserStore } from '@/store';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
-import PostDetailModal from '@/components/PostDetailModal';
+import PostViewer from '@/components/PostViewer';
 import SettingsPanel from '@/components/SettingsPanel';
 import { SettingsIcon } from '@/components/ScreenIcons';
 import AvatarPicker from '@/components/AvatarPicker';
 import FollowListModal from '@/components/FollowListModal';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import UserProfileScreen from '@/screens/UserProfileScreen';
-import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -28,8 +27,6 @@ import {
   TRACKING,
   LINE_HEIGHT,
 } from '@/constants/tokens';
-
-type PostRow = Database['public']['Tables']['posts']['Row'];
 
 interface ProfileScreenProps {
   // True when this panel is the active panel in HorizontalNavigator (index 0).
@@ -47,7 +44,7 @@ export default function ProfileScreen({
   const top = useSafeAreaInsets().top;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<PostRow | null>(null);
+  const [viewerPostId, setViewerPostId] = useState<string | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
@@ -151,7 +148,7 @@ export default function ProfileScreen({
           userId={profile.id}
           isSelf={userId === profile.id}
           header={header}
-          onPostPress={setSelectedPost}
+          onPostPress={(post) => setViewerPostId(post.id)}
           listGesture={listGesture}
         />
       ) : (
@@ -170,8 +167,18 @@ export default function ProfileScreen({
         dark={dark}
       />
 
-      {/* Post detail — opened when a grid cell is tapped */}
-      <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />
+      {/* Your posts, full screen from the tapped one: up/down browses, sideways closes */}
+      {profile ? (
+        <PostViewer
+          userId={profile.id}
+          postId={viewerPostId}
+          onClose={() => setViewerPostId(null)}
+          onOpenProfile={(id) => {
+            setViewerPostId(null);
+            setProfileUserId(id);
+          }}
+        />
+      ) : null}
 
       {/* Suggested user's profile — opened from a suggestion card */}
       {profileUserId ? (

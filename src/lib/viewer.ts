@@ -16,7 +16,10 @@ export function openablePosts<T extends { image_url: string }>(posts: T[]): T[] 
 
 /** Where the viewer opens: the tapped post, or the first one if it has gone. */
 export function viewerStartIndex(posts: { id: string }[], postId: string): number {
-  return Math.max(0, posts.findIndex((p) => p.id === postId));
+  return Math.max(
+    0,
+    posts.findIndex((p) => p.id === postId)
+  );
 }
 
 /** A close swipe (either way) closes past the distance or when flicked fast enough. */

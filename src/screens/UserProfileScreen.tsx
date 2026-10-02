@@ -28,7 +28,7 @@ import { Sentry } from '@/lib/sentry';
 import FollowListModal from '@/components/FollowListModal';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
-import PostDetailModal from '@/components/PostDetailModal';
+import PostViewer from '@/components/PostViewer';
 import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview } from '@/api';
 import type { Database } from '@/types';
@@ -100,9 +100,7 @@ export default function UserProfileScreen({
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [activeConvo, setActiveConvo] = useState<ConversationPreview | null>(null);
-  const [selectedPost, setSelectedPost] = useState<
-    Database['public']['Tables']['posts']['Row'] | null
-  >(null);
+  const [viewerPostId, setViewerPostId] = useState<string | null>(null);
   const [suggestedUserId, setSuggestedUserId] = useState<string | null>(null);
 
   // The page is one scrolling list. Its scrolling is a gesture the swipe back runs alongside:
@@ -377,7 +375,11 @@ export default function UserProfileScreen({
     <>
       {/* Back button — top-left */}
       <Pressable
-        style={({ pressed }) => [styles.backBtn, { borderColor: muted }, pressed && { opacity: 0.2 }]}
+        style={({ pressed }) => [
+          styles.backBtn,
+          { borderColor: muted },
+          pressed && { opacity: 0.2 },
+        ]}
         onPress={onBack}
         accessibilityRole="button"
         accessibilityLabel="Back"
@@ -553,7 +555,7 @@ export default function UserProfileScreen({
             userId={profile.id}
             isSelf={false}
             header={header}
-            onPostPress={setSelectedPost}
+            onPostPress={(post) => setViewerPostId(post.id)}
             listGesture={pageList}
           />
         ) : (
@@ -578,8 +580,17 @@ export default function UserProfileScreen({
           />
         ) : null}
 
-        {/* Post detail — opened when a grid cell is tapped */}
-        <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />
+        {/* Their posts, full screen from the tapped one: up/down browses, sideways closes.
+            Only posts the feed lock lets you open (see ProfileMediaMap) can be tapped. */}
+        <PostViewer
+          userId={userId}
+          postId={viewerPostId}
+          onClose={() => setViewerPostId(null)}
+          onOpenProfile={(id) => {
+            setViewerPostId(null);
+            setSuggestedUserId(id);
+          }}
+        />
 
         {/* Suggested user's profile — opened from a suggestion card */}
         {suggestedUserId ? (

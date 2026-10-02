@@ -18,7 +18,7 @@ import { streakText } from '@/lib/streakText';
 import { gridTile } from '@/lib/videoPosts';
 import { VideoIcon } from '@/components/ScreenIcons';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
-import type { Database } from '@/types';
+import type { FeedPost } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -33,8 +33,6 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PLACEHOLDER_IMG = require('../../assets/jogger.png') as number;
-
-type PostRow = Database['public']['Tables']['posts']['Row'];
 
 const COLS = 3;
 const GAP = SPACE.s2;
@@ -67,7 +65,7 @@ function GridCell({
   column,
   onPress,
 }: {
-  post: PostRow;
+  post: FeedPost;
   dark: boolean;
   size: number;
   column: number;
@@ -131,7 +129,7 @@ interface ProfileMediaMapProps {
    * one list: this scrolls away with the grid, so the grid can fill the screen.
    */
   header: React.ReactElement;
-  onPostPress?: (post: PostRow) => void;
+  onPostPress?: (post: FeedPost) => void;
   /** The list's scrolling as a gesture, so a page swipe around it can run alongside it. */
   listGesture?: NativeGesture;
 }
