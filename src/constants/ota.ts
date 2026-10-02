@@ -10,7 +10,7 @@
  *   build 10 · 25 — tap a comment to open the commenter's profile (2026-10-02)
  *   build 10 · 24 — camera flash and selfie screen flash, sharper photos, richer haptics app-wide; build-11 pieces (Apple icons, hold-to-preview, tap to focus, Didit, RevenueCat) present but off (2026-10-02)
  *   build 10 · 23 — one-scroll profiles, post viewer, profile picture zoom, glass bar on the left, hold to view, raised like buttons, comment likes, Settings/empty-feed tidy-up; video code ready but off until build 11 (2026-10-02)
- *   build 10 · 22 — post when tagged, tag streak, rest days and calendar gone (2026-10-01)
+ *   build 10 · 22 — post when tagged, answered-tag counter (shown as Mahi points since 2026-10-02), rest days and calendar gone (2026-10-01)
  *   build 10 · 21 — sideways and up/down swipes share the touch (Camera sideways fix) (2026-10-01)
  *   build 10 · 20 — more swipe diagnostics (2026-10-01)
  *   build 10 · 19 — solid rail pill outline; swipe diagnostics off-screen (2026-10-01)

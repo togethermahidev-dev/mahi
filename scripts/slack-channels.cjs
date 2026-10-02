@@ -48,9 +48,11 @@ function needsPurpose(channel, currentPurpose) {
 function plan(channels, existing) {
   return channels.map((c) => {
     const found = existing.get(c.name);
-    return found
-      ? { ...c, action: 'update', id: found.id, currentPurpose: found.purpose }
-      : { ...c, action: 'create' };
+    if (found) return { ...c, action: 'update', id: found.id, currentPurpose: found.purpose };
+    // `was`: the channel's old name. Found under it → same channel, renamed in place (history kept).
+    const old = c.was ? existing.get(c.was) : undefined;
+    if (old) return { ...c, action: 'update', id: old.id, currentPurpose: old.purpose, rename: true };
+    return { ...c, action: 'create' };
   });
 }
 
@@ -104,6 +106,7 @@ async function apply(token, items, invite) {
         continue;
       }
     }
+    if (c.rename) await slack('conversations.rename', token, { channel: id, name: c.name });
     if (needsPurpose(c, c.currentPurpose)) {
       await slack('conversations.setPurpose', token, { channel: id, purpose: c.purpose });
     }

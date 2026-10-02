@@ -62,3 +62,16 @@ test('a channel with its own invite list invites only those people', () => {
   assert.deepStrictEqual(inviteFor({ name: 'a', invite: ['U1', 'U2'] }, ['U9']), ['U1', 'U2']);
   assert.deepStrictEqual(inviteFor({ name: 'b' }, ['U9']), ['U9']);
 });
+
+test('a channel that used to have another name is renamed, not created again', () => {
+  const existing = new Map([['streak-and-points', { id: 'C7', purpose: 'p' }]]);
+  const [item] = plan([{ name: 'mahi-points', was: 'streak-and-points', purpose: 'p', summary: 's' }], existing);
+  assert.strictEqual(item.action, 'update');
+  assert.strictEqual(item.id, 'C7');
+  assert.strictEqual(item.rename, true);
+  // Once renamed it is found under its new name and left alone.
+  const after = new Map([['mahi-points', { id: 'C7', purpose: 'p' }]]);
+  const [again] = plan([{ name: 'mahi-points', was: 'streak-and-points', purpose: 'p', summary: 's' }], after);
+  assert.strictEqual(again.action, 'update');
+  assert.ok(!again.rename);
+});
