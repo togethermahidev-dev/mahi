@@ -88,6 +88,19 @@ these needs a new native module, so they ship as plain updates without a flag.
 | 40 | Opening a post from a profile | Full screen from the tapped post; up/down browses all of that profile's posts, one per screen as in the feed; a swipe left or right closes (like Instagram / TikTok) | One post at a time | Decided | 2026-10-02 | `PostViewer`, `PostCard`, `src/lib/viewer.ts` |
 | 41 | Profile pictures | Tap any profile's picture: full screen, pinch to zoom, swipe to close. Your own keeps its "+" to change it | Fixed-size enlarge, tap to close | Decided | 2026-10-02 | `AvatarViewer`, `AvatarPicker` |
 
+## Feed polish and comment likes (2026-10-02)
+
+Same rule: replace the old with the new. Items 42–45 change existing screens, so they ship without a
+flag; comment likes (46) is a new feature behind `comment-likes`.
+
+| # | Decision | Chosen | Other options | Status | Decided | Used in |
+| --- | --- | --- | --- | --- | --- | --- |
+| 42 | Like and comment buttons | Higher up the right-hand side, where TikTok and Reels put them, on a full-width dark shade (the old shade stopped short of the buttons) | Low on the right | Decided | 2026-10-02 | `PostCard`, `POST_CARD` tokens |
+| 43 | Glass bar side | The left edge on every screen, so it never meets the raised buttons; things on the left move past it, and it hides over profiles, Settings and search | Stay on the right | Decided | 2026-10-02 | `NavRail`, `useRailRoom`, `useCoverRail` |
+| 44 | Hold to view | Press and hold a post (feed and post viewer): a light tap, then the name, caption, tags, streak, buttons and glass bar fade away until the finger lifts. The small photo stays and stays draggable | — | Decided | 2026-10-02 | `PostCard`, `chromeStore`, `useChromeFade` |
+| 45 | Feed icon | A small bounce on the glass bar's Feed icon each time the feed moves to the next post; none with Reduce Motion | — | Decided | 2026-10-02 | `NavRail`, `chromeStore.feedTick` |
+| 46 | Comment likes | A heart and count on every comment; tap the count for who liked it (names, pictures, tap for their profile), included now | Hearts only, list later | Decided | 2026-10-02 | `CommentSheet`, `CommentLikersSheet`, migration `20261002130000_comment_likes`, flag `comment-likes` |
+
 ## Fixed by the PRD (not open questions)
 
 | Rule | Value |
