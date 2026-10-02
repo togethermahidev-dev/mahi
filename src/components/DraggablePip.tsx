@@ -7,7 +7,7 @@ import Reanimated, {
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { haptic } from '@/lib/haptics';
 import PostVideo from '@/components/PostVideo';
 import { PIP_H, PIP_W, clampToZone, snapToCorner, type PipZone } from '@/lib/pip';
 import { COLORS, withAlpha, RADIUS, BORDER_WIDTH, SHADOW_BLUR, SIZE } from '@/constants/tokens';
@@ -63,7 +63,7 @@ export default function DraggablePip({
       startX.set(x.get());
       startY.set(y.get());
       scale.set(withSpring(1.1, LIFT));
-      runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
+      runOnJS(haptic)('pickUp');
     })
     .onUpdate((e) => {
       'worklet';
