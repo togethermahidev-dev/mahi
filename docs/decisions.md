@@ -114,7 +114,7 @@ not streaks. Streaks are a daily thing." Architecture: [architecture.md](./archi
 | 47 | What people count | Mahi points: +1 for each post that answers at least one open tag (not per tag); a missed tag's 48 hours puts them back to 0; Best is never lowered and always shown. The counter the app called the streak, renamed everywhere people see it | Keep calling it a streak | Decided | 2026-10-02 | `create_post`, `break_missed_streaks`, `src/lib/mahiPoints.ts`, profiles, posts, camera, tag list, search, notices, welcome card, waitlist site |
 | 48 | The old points | Retired: no point for the tagger, no 3-a-day cap, no never-resetting total (`point_events`, `award_point`, `daily_point_cap`, `stats.points_daily` dropped) | Keep both numbers | Decided | 2026-10-02 | `20261002170000_mahi_points.sql` |
 | 49 | Daily streak | None for now | A daily streak beside the points | Decided | 2026-10-02 | — |
-| 50 | Points switch | Points always show; the `mahi-points` flag is removed (delete it in PostHog) | Keep the switch | Decided | 2026-10-02 | `src/lib/featureFlags.ts` |
+| 50 | Points switch | Points always show; the `mahi-points` flag is removed (deleted from PostHog 2026-10-02, after OTA 10.26) | Keep the switch | Decided | 2026-10-02 | `src/lib/featureFlags.ts` |
 
 ## Fixed by the PRD (not open questions)
 

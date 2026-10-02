@@ -19,8 +19,8 @@ they need build 11; they exist in PostHog **switched off** — turn each on only
 **`identity-verification` and `purchases` (added 2026-10-02) are default off too:** dormant until Didit and
 RevenueCat are set up (owner steps in [HANDOVER.md](./HANDOVER.md)). Both exist in PostHog **switched off**.
 **`mahi-points` was removed 2026-10-02** (decision #50): Mahi points are the core counter and always show.
-No code reads it any more — delete it in PostHog (id 296003, still at 100% when checked 2026-10-02) once
-the Mahi points update is out; until then the apps on phones still read it.
+No code reads it any more, and it was deleted from PostHog the same day, after OTA 10.26 went out (a phone
+still on an older update hides points for one launch, until 10.26 loads).
 
 PostHog project: **EU region, `project_id=130791`**.
 
