@@ -1,7 +1,7 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import { env } from '@/lib/env';
 import { posthog } from '@/lib/posthog';
-import { resolveFlag, type FeatureFlag } from '@/lib/featureFlags';
+import { flagDefaultOn, resolveFlag, type FeatureFlag } from '@/lib/featureFlags';
 
 /**
  * Read a PostHog feature flag as a boolean (default-on).
@@ -23,7 +23,7 @@ export function useFeatureFlag(flag: FeatureFlag): boolean {
   const subscribe = useCallback((onChange: () => void) => posthog.onFeatureFlags(onChange), []);
 
   const getSnapshot = useCallback(
-    () => resolveFlag(posthog.isFeatureEnabled(flag), analyticsEnabled),
+    () => resolveFlag(posthog.isFeatureEnabled(flag), analyticsEnabled, flagDefaultOn(flag)),
     [flag, analyticsEnabled]
   );
 
