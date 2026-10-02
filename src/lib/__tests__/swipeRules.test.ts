@@ -35,17 +35,21 @@ describe('swipe rules', () => {
     it('does nothing while a pop-up screen is open', () => {
       expect(h({ dx: 40, blocked: true })).toBe('fail');
     });
+    // The glass bar sits on the left edge, inside the safe area (10px gap, 52px wide).
+    const rail = { x: 10, y: 300, width: 52, height: 232 };
     it('leaves a touch that starts on the nav rail to the rail', () => {
-      const exclude = { x: 338, y: 300, width: 52, height: 232 };
-      expect(h({ startX: 350, startY: 400, exclude })).toBe('fail');
-      expect(h({ startX: 338, startY: 300, dx: -40, exclude })).toBe('fail');
+      expect(h({ startX: 30, startY: 400, exclude: rail })).toBe('fail');
+      expect(h({ startX: 62, startY: 532, dx: 40, exclude: rail })).toBe('fail');
+    });
+    it('still leaves the left edge strip to the phone, beside the rail too', () => {
+      expect(h({ startX: 5, startY: 400, dx: 40, exclude: rail })).toBe('fail');
+      expect(h({ startX: 20, startY: 200, dx: 40, exclude: rail })).toBe('fail');
     });
     it('still takes swipes that start beside the nav rail', () => {
-      const exclude = { x: 338, y: 300, width: 52, height: 232 };
-      expect(h({ startX: 330, startY: 400, dx: -30, exclude })).toBe('activate');
-      expect(h({ startX: 350, startY: 290, dx: -30, exclude })).toBe('activate');
-      expect(h({ startX: 350, startY: 540, dx: -30, exclude })).toBe('activate');
-      expect(h({ startX: 350, startY: 400, dx: -30, exclude: null })).toBe('activate');
+      expect(h({ startX: 70, startY: 400, dx: 30, exclude: rail })).toBe('activate');
+      expect(h({ startX: 30, startY: 290, dx: 30, exclude: rail })).toBe('activate');
+      expect(h({ startX: 30, startY: 540, dx: 30, exclude: rail })).toBe('activate');
+      expect(h({ startX: 30, startY: 400, dx: 30, exclude: null })).toBe('activate');
     });
   });
 

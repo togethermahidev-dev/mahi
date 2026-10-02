@@ -23,6 +23,7 @@ import {
 } from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { useCoverRail } from '@/hooks/useChrome';
 import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
 import FollowListModal from '@/components/FollowListModal';
@@ -70,6 +71,8 @@ export default function UserProfileScreen({
 }: UserProfileScreenProps): React.JSX.Element {
   const currentUserId = useAuthStore((s) => s.user?.id);
   const top = useSafeAreaInsets().top;
+  // Full screen over a page: the glass bar hides while it's open (as it does over the Feed).
+  useCoverRail(true);
 
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;

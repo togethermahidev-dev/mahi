@@ -17,3 +17,4 @@ export { useBlockStore } from './blockStore';
 export { usePushStore } from './pushStore';
 export { useTagStore } from './tagStore';
 export { useInviteStore } from './inviteStore';
+export { useChromeStore } from './chromeStore';

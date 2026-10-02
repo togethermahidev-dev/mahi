@@ -245,7 +245,7 @@ The app uses **state-driven navigation** — no React Navigation, no router (don
 
 Both navigators run on **react-native-gesture-handler + reanimated** (UI thread): one manually-activated `Gesture.Pan` each, whose every decision comes from the pure worklet rules in `src/lib/swipeRules.ts` (tested in `swipeRules.test.ts`):
 - `horizontalSwipe` / `verticalSwipe` — the finger must move 20px (`SLOP`) mostly along the swipe's own axis; the other axis fails it. Touches that start in the phone's own strips (status bar, home bar, and the 24px side edges for sideways swipes) are left to the phone. `blocked` (a pop-up is open) fails both.
-- `exclude` — a sideways swipe never starts inside the nav rail's rectangle; the rail owns those touches.
+- `exclude` — a sideways swipe never starts inside the nav rail's rectangle (left edge); the rail owns those touches. The 24px left edge strip stays the phone's, beside the rail too.
 - `atListTop` — on Feed, a downward swipe back to Camera only starts at the top of the list (`y <= 2`); once the list has scrolled under the finger, the drag stays with the list.
 - `horizontalRelease` / `verticalRelease` / `rubberBand` — where a release lands (60px or 0.4 velocity), the rubber band at the ends, and the pull-down from Camera that opens search.
 
@@ -280,7 +280,8 @@ Each page is one window tall. It also owns: the `AppHeader` (slid off-screen by 
 
 ### Nav Rail (`src/components/NavRail.tsx`) — flags `nav-glass-rail`, `nav-rail-morph`
 
-A floating glass rail on the right edge with four icons: Camera, Feed, Messages, Profile (`expo-glass-effect` where available, `BlurView` otherwise). It replaces the side dots and the header's Profile/Messages pills.
+A floating glass rail on the **left** edge (owner, 2026-10-02: on every screen, so it never meets the like and comment buttons on the right), inside the safe area and vertically centred, with four icons: Camera, Feed, Messages, Profile (`expo-glass-effect` where available, `BlurView` otherwise). It replaces the side dots and the header's Profile/Messages pills.
+- Nothing on the left sits under it: `useRailRoom()` (`src/hooks/useChrome.ts`) is the room it takes, used by the feed's small photo, the locked post card, the profile header, the inbox rows and the camera's photo-in-photo guide. It hides while a full-screen view is open over a page (someone's profile, Settings, search — `useCoverRail`, `chromeStore.covers`), as it does over the Feed's pop-ups.
 - `nav-rail-morph` on: the rail reads as one floating pill with an outline and shadow (`NAV_RAIL` tokens); one selector slides and stretches between icons (stretch, then contract; a plain move with Reduce Motion); press and hold or drag along the rail to switch screens live. Geometry and motion plans are pure in `src/lib/railSelector.ts` (tested).
 - A touch that starts on the rail never moves the pages (`exclude` in `swipeRules`).
 - Off: the old dots (`NavigationDots`) and header pills.

@@ -66,6 +66,7 @@ import InviteShareSheet from '@/components/InviteShareSheet';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useVideoPosts } from '@/hooks/useVideoPosts';
+import { useRailRoom } from '@/hooks/useChrome';
 import {
   HOLD_TO_RECORD_MS,
   VIDEO_RECORDING,
@@ -1263,6 +1264,8 @@ export default function CameraScreen(): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const { dark } = useAppTheme();
+  // The glass bar sits on the left, level with the small window's spot: the window starts past it.
+  const railRoom = useRailRoom();
 
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [captureState, setCaptureState] = useState<CaptureState>('idle');
@@ -1997,7 +2000,7 @@ export default function CameraScreen(): React.JSX.Element {
             photoUri={guidePhotoUri}
             photoIsVideo={guideIsVideo}
             frame={{
-              left: PIP_MARGIN,
+              left: Math.max(PIP_MARGIN, railRoom),
               top: previewPipRestTop(SCREEN_HEIGHT, PIP_H),
               width: PIP_W,
               height: PIP_H,

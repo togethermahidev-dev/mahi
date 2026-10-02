@@ -73,7 +73,7 @@ posts with a video icon. Needs the `expo-video` native module (a new native buil
 `20261002100000_video_posts`. On a build without the native module (build 10) it reads as off. Off = today's
 photo-only camera exactly, and the app never asks for the microphone.)
 
-**Navigation:** `nav-glass-rail` (floating glass rail on the right with Camera, Feed, Messages and
+**Navigation:** `nav-glass-rail` (floating glass rail on the left with Camera, Feed, Messages and
 Profile; replaces the side dots and the header's Profile/Messages pills. Off = the old dots and pills.)
 `nav-rail-morph` (the rail reads as one floating pill with an outline and shadow; one selector slides
 and stretches between icons; press and hold or drag along the rail to switch screens live. A touch that
