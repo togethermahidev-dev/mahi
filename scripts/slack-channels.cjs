@@ -4,6 +4,8 @@
 //
 //   node scripts/slack-channels.cjs            show the plan, change nothing
 //   node scripts/slack-channels.cjs --apply    create missing channels, update purposes and pinned summaries
+//   node scripts/slack-channels.cjs --post <channel> "<summary>" [--apply]
+//                                              post a short update on what changed (shows it unless --apply)
 //
 // Token: SLACK_BOT_TOKEN, or the git-ignored .slack-token file at the repo root. The bot needs
 // channels:manage, channels:read, groups:write, groups:read, chat:write, pins:write and pins:read.
@@ -40,6 +42,16 @@ function plan(channels, existing) {
     const found = existing.get(c.name);
     return found ? { ...c, action: 'update', id: found.id } : { ...c, action: 'create' };
   });
+}
+
+/** A change summary for one feature channel: short, plain words, and only to a channel we know. */
+function updateMessage(name, text, channels) {
+  if (!channels.some((c) => c.name === name)) throw new Error(`unknown channel #${name}`);
+  const body = (text ?? '').trim();
+  if (!body) throw new Error('the update is empty');
+  if (body.length > 600) throw new Error('the update is too long: keep it to a few short sentences');
+  if (/reactive posting|feature flag|migration/i.test(body)) throw new Error('no engineering words in updates');
+  return body;
 }
 
 async function listExisting(token) {
@@ -104,10 +116,26 @@ function readToken() {
   return null;
 }
 
+async function postUpdate(argv, channels, token, applyIt) {
+  const name = argv[argv.indexOf('--post') + 1];
+  const text = updateMessage(name, argv[argv.indexOf('--post') + 2], channels);
+  console.log(`#${name}: ${text}`);
+  if (!applyIt) {
+    console.log('\nNothing sent. Run again with --apply to post it.');
+    return;
+  }
+  if (!token) throw new Error('No token: set SLACK_BOT_TOKEN or create .slack-token');
+  const found = (await listExisting(token)).get(name);
+  if (!found) throw new Error(`#${name} isn't visible to the bot`);
+  await slack('chat.postMessage', token, { channel: found.id, text });
+  console.log('posted');
+}
+
 async function main() {
   const applyIt = process.argv.includes('--apply');
   const channels = require('./slack-channels.json');
   const token = readToken();
+  if (process.argv.includes('--post')) return postUpdate(process.argv, channels, token, applyIt);
   const invite = (process.env.SLACK_INVITE ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
   const existing = token ? await listExisting(token) : new Map();
@@ -125,7 +153,7 @@ async function main() {
   await apply(token, items, invite);
 }
 
-module.exports = { plan, pinnedText };
+module.exports = { plan, pinnedText, updateMessage };
 
 if (require.main === module) {
   main().catch((e) => {
