@@ -267,3 +267,23 @@ export const NAV_RAIL = {
   /** The soft shadow the pill floats on. */
   shadowOpacity: 0.22,
 } as const;
+
+// ─── Full-screen viewers: a profile's posts and a profile picture ───────────────
+export const VIEWER = {
+  /** A close swipe takes over once the finger moves this far (px) along its axis. */
+  swipeSlop: 20,
+  /** A swipe closes the viewer past this distance (px)… */
+  closeDistance: 80,
+  /** …or when flicked at this speed (px per second). */
+  closeVelocity: 500,
+  /** How long the viewer takes to slide away once a swipe closes it (ms). */
+  closeMs: 200,
+  /** The dark background fades out over this much drag (px) while closing. */
+  fadeDistance: 300,
+  /** A swipe that doesn't close springs back with this feel. */
+  snapBack: { damping: 22, stiffness: 220 },
+  /** Profile picture zoom: fitted to the screen, the most a pinch allows, and a double tap. */
+  zoomMin: 1,
+  zoomMax: 4,
+  zoomDoubleTap: 2.5,
+} as const;
