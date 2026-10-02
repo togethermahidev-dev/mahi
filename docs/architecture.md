@@ -36,7 +36,7 @@ Owner, 2026-10-02 ([decisions.md](./decisions.md#video-posts-2026-10-02) #33–#
 - **What it does:** each of a post's two shots (rear = your view, front = selfie) is a photo or a video of
   up to 15 seconds. On the camera a Photo / Video switch sits by the shutter (beside the 1× / 0.5× lens
   toggle); a tap does what the switch says, and pressing and holding the shutter always records until you
-  let go, or 15 s. Recording: 720p H.264 at ~3.5 Mbit/s (~7 MB for 15 s), `VIDEO_RECORDING` in
+  let go, or 15 s. Recording: 1080p H.264 at ~5 Mbit/s (~9 MB for 15 s), standard stabilisation, `VIDEO_RECORDING` in
   `src/lib/videoPosts.ts`. Videos play muted and looping while on screen — preview, feed, the small window,
   the post viewer — with a mute / unmute button (`PostVideo`, `SoundButton` in `src/components/PostVideo.tsx`);
   the profile grid shows the still photo (or a video card) with a video mark (`gridTile`).

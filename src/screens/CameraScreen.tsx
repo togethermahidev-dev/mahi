@@ -79,6 +79,7 @@ import {
   type ShutterPress,
 } from '@/lib/videoPosts';
 import { formatWait } from '@/lib/countdown';
+import { PHOTO_CAPTURE } from '@/lib/cameraCapture';
 import { answersATag, reactivePostingGate } from '@/lib/reactivePosting';
 import { nudgeLabel } from '@/lib/tagNudge';
 import { cantTagReason } from '@/lib/tagRules';
@@ -1424,7 +1425,7 @@ export default function CameraScreen(): React.JSX.Element {
   // Helper: take a photo from whatever camera is currently active
   const takePhoto = async (): Promise<CapturedPhoto | null> => {
     if (!cameraRef.current) return null;
-    const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
+    const photo = await cameraRef.current.takePictureAsync({ quality: PHOTO_CAPTURE.shotQuality });
     if (!photo?.uri) return null;
     // Re-encode to bake EXIF orientation into pixel data. With
     // `responsiveOrientationWhenOrientationLocked` on (iOS), a sideways-held
@@ -1446,7 +1447,8 @@ export default function CameraScreen(): React.JSX.Element {
       width,
       height,
     } = await manipulateAsync(photo.uri, tiltActions, {
-      compress: 0.8,
+      // The one JPEG encode that is uploaded (see PHOTO_CAPTURE).
+      compress: PHOTO_CAPTURE.jpegQuality,
       format: SaveFormat.JPEG,
     });
     const base64 = await FileSystem.readAsStringAsync(normalizedUri, {
@@ -1996,6 +1998,7 @@ export default function CameraScreen(): React.JSX.Element {
           mute={videoOn ? micStatus !== 'granted' : undefined}
           videoQuality={videoOn ? VIDEO_RECORDING.quality : undefined}
           videoBitrate={videoOn ? VIDEO_RECORDING.bitrate : undefined}
+          videoStabilizationMode={videoOn ? VIDEO_RECORDING.stabilization : undefined}
         />
 
         <StreakBadge count={streakCount} />

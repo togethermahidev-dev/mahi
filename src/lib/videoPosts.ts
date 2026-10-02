@@ -14,13 +14,17 @@ export type CapturedMediaRef = { kind: MediaType; uri: string };
 export const MAX_VIDEO_SECONDS = 15;
 
 /**
- * Recording settings: 720p H.264 at ~3.5 Mbit/s keeps 15 s near 7 MB (fast to upload, well under
- * the bucket's 50 MB limit). iOS only honours the bitrate when the codec is named.
+ * Recording settings: 1080p H.264 at ~5 Mbit/s keeps 15 s under 9 MB (quick to upload, well under
+ * the bucket's 50 MB limit) while matching an iPhone screen's width, so a full-screen video isn't
+ * soft the way 720p is. iOS only honours the bitrate when the codec is named. Standard
+ * stabilisation steadies a handheld clip without cinematic's extra crop and start-up lag, which
+ * matter for a hold-to-record clip of a few seconds.
  */
 export const VIDEO_RECORDING = {
-  quality: '720p',
+  quality: '1080p',
   codec: 'avc1',
-  bitrate: 3_500_000,
+  bitrate: 5_000_000,
+  stabilization: 'standard',
   maxDuration: MAX_VIDEO_SECONDS,
   maxFileSize: 40 * 1024 * 1024,
 } as const;
