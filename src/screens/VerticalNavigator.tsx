@@ -93,7 +93,7 @@ function Slot({
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
-/** Lets the right-hand rail move this tape. */
+/** Lets the glass rail move this tape. */
 export type VerticalControl = { navigateTo: (index: number) => void };
 
 interface VerticalNavigatorProps {

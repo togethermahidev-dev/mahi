@@ -78,8 +78,9 @@ interface NavRailProps {
 }
 
 /**
- * Floating glass rail on the right edge: Apple's Liquid Glass on iOS 26+, a frosted blur on
- * older iPhones and on Android. Centred vertically, inside the safe area.
+ * Floating glass rail on the left edge (owner, 2026-10-02: left on every screen, so it never
+ * meets the like and comment buttons on the right): Apple's Liquid Glass on iOS 26+, a frosted
+ * blur on older iPhones and on Android. Centred vertically, inside the safe area.
  */
 export default function NavRail({
   active,
@@ -328,7 +329,7 @@ export default function NavRail({
       style={[
         styles.anchor,
         {
-          right: insets.right + navRail.edgeGap,
+          left: insets.left + navRail.edgeGap,
           top: insets.top,
           bottom: insets.bottom,
         },

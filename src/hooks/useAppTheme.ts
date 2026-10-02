@@ -21,11 +21,11 @@ export interface AppTheme {
     glassOnDark: string;
     glassOnLight: string;
   };
-  /** Floating right-hand nav rail. */
+  /** Floating left-hand nav rail. */
   navRail: {
     /** Rail width; also the button size. */
     width: number;
-    /** Gap from the screen's right safe edge. */
+    /** Gap from the screen's left safe edge. */
     edgeGap: number;
     /** Space between buttons. */
     gap: number;

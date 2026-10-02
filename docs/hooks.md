@@ -64,6 +64,19 @@ const { posts, isLoading, hasMore, loadMore, refresh } = useProfilePosts(userId)
 
 ---
 
+## `useRailRoom`, `useCoverRail`, `useChromeFade` — `src/hooks/useChrome.ts`
+
+The glass bar (nav rail) floats on the **left** edge, vertically centred.
+- `useRailRoom()` — the room it takes on the left (safe inset + `edgeGap` + `width` + `SPACE.s8`), 0 when
+  `nav-glass-rail` is off. Things on the left in the middle of a page start past it: the feed's small photo
+  (`pipZone`'s `left`), the locked post card and the profile header (same room both sides, still centred),
+  the inbox rows, the camera's photo-in-photo guide.
+- `useCoverRail(open)` — while `open`, the bar hides (`chromeStore.covers`): `UserProfileScreen`,
+  `SettingsPanel`, `GlobalSearchOverlay`.
+- `useChromeFade()` — `{ viewing, style }`: an opacity that fades out while a post is held (hold to view).
+
+---
+
 ## `useFeed` — `src/hooks/useFeed.ts`
 
 ```ts

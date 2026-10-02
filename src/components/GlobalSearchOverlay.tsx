@@ -34,6 +34,7 @@ import {
   ICON_SIZE,
   TRACKING,
 } from '@/constants/tokens';
+import { useCoverRail } from '@/hooks/useChrome';
 
 function UserRow({
   item,
@@ -92,6 +93,8 @@ export default function GlobalSearchOverlay({
   const inputRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
+  // Opened from Messages, the glass bar would sit on the results: it hides while search is open.
+  useCoverRail(visible);
 
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);

@@ -18,6 +18,7 @@ import MessagesScreen from '@/screens/MessagesScreen';
 import NavRail, { type RailTab } from '@/components/NavRail';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useChromeStore } from '@/store';
 import { horizontalRelease, horizontalSwipe, rubberBand, type Rect } from '@/lib/swipeRules';
 
 // ─── Panel registry ───────────────────────────────────────────────────────────
@@ -40,6 +41,9 @@ export default function HorizontalNavigator(): React.JSX.Element {
   const [hIndex, setHIndex] = useState(DEFAULT_INDEX);
   const [vIndex, setVIndex] = useState(0);
   const [overlay, setOverlay] = useState(false);
+  // A full-screen view the rail would sit on (someone's profile, settings) hides it too.
+  const covered = useChromeStore((s) => s.covers > 0);
+  const railShown = showRail && !overlay && !covered;
   const verticalRef = useRef<VerticalControl | null>(null);
   const blurTargetRef = useRef<View | null>(null);
 
@@ -54,7 +58,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
   const base = useSharedValue(0);
   // nav-rail-morph: where the rail is on screen. A touch that starts there belongs to the rail.
   const railRectSV = useSharedValue<Rect | null>(null);
-  const railOwnsTouches = showRail && railMorph && !overlay;
+  const railOwnsTouches = railShown && railMorph;
   useEffect(() => {
     if (!railOwnsTouches) railRectSV.value = null;
   }, [railOwnsTouches, railRectSV]);
@@ -218,7 +222,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
           </Animated.View>
         </Tape>
 
-        {showRail && !overlay ? (
+        {railShown ? (
           <NavRail
             active={railTab}
             onSelect={selectTab}

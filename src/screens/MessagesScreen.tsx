@@ -4,6 +4,7 @@ import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMessages } from '@/hooks/useMessages';
+import { useRailRoom } from '@/hooks/useChrome';
 import { useAuthStore } from '@/store';
 import ConversationScreen from '@/screens/ConversationScreen';
 import MessageRequestsScreen from '@/screens/MessageRequestsScreen';
@@ -44,6 +45,7 @@ function ConvoRow({
   muted,
   border,
   accent,
+  leftSpace,
 }: {
   item: ConversationPreview;
   onPress: () => void;
@@ -52,6 +54,8 @@ function ConvoRow({
   muted: string;
   border: string;
   accent: string;
+  /** Room kept on the left for the glass bar, so it never sits on a friend's picture. */
+  leftSpace: number;
 }) {
   const name = item.other_profile.display_name ?? item.other_profile.username;
   const initials = (item.other_profile.username ?? '?')[0].toUpperCase();
@@ -66,7 +70,12 @@ function ConvoRow({
   // don't overlap: tapping the avatar opens the profile, tapping the rest of
   // the row opens the conversation. No dead zone between them.
   return (
-    <View style={[styles.convoRow, { borderBottomColor: border }]}>
+    <View
+      style={[
+        styles.convoRow,
+        { borderBottomColor: border, paddingLeft: Math.max(SPACE.s24, leftSpace) },
+      ]}
+    >
       <Pressable
         style={({ pressed }) => pressed && styles.pressed}
         onPress={onAvatarPress}
@@ -120,6 +129,7 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
   const border = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.12);
   const accent = colors.accent;
   const insets = useSafeAreaInsets();
+  const railRoom = useRailRoom();
 
   const [openConvo, setOpenConvo] = useState<ConversationPreview | null>(null);
   const [showRequests, setShowRequests] = useState(false);
@@ -203,8 +213,10 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
       <FlashList
         data={inbox}
         keyExtractor={(item) => item.id}
+        extraData={railRoom}
         renderItem={({ item }) => (
           <ConvoRow
+            leftSpace={railRoom}
             item={item}
             onPress={() => setOpenConvo(item)}
             onAvatarPress={() => {

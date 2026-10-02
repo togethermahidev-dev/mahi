@@ -45,6 +45,7 @@ export default function PostCard({
   onAvatarPress,
   onCommentPress,
   topSpace = 0,
+  leftSpace = 0,
   playing = false,
   soundOff = true,
   onToggleMuted,
@@ -58,6 +59,8 @@ export default function PostCard({
   onCommentPress: (postId: string) => void;
   /** Room kept at the top for the feed timer over the first post. */
   topSpace?: number;
+  /** Room kept on the left for the glass bar (the feed); the small photo stays clear of it. */
+  leftSpace?: number;
   /** Video posts: this card is the one on screen, so its videos play. */
   playing?: boolean;
   /** Video posts: the big video's sound (shared across the feed, muted at first). */
@@ -108,7 +111,7 @@ export default function PostCard({
   const postingVideo = 'isPending' in item && (rearKind === 'video' || frontKind === 'video');
 
   // ── Draggable PiP (FaceTime-style) — safe zone clears the header + tagged pills ──
-  const pipSafeZone = pipZone({ width, height }, headerH + OFFSET.o120 + topSpace);
+  const pipSafeZone = pipZone({ width, height }, headerH + OFFSET.o120 + topSpace, leftSpace);
 
   // ── Double-tap medal burst animation ─────────────────────────────────────
   const medalScale = useRef(new Animated.Value(0)).current;

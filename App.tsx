@@ -35,6 +35,7 @@ import {
   usePushStore,
   useTagStore,
   useInviteStore,
+  useChromeStore,
 } from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -156,6 +157,7 @@ export default function App(): React.JSX.Element {
         usePushStore.getState().reset();
         useTagStore.getState().reset();
         useInviteStore.getState().reset();
+        useChromeStore.getState().reset();
         Sentry.setUser(null);
         posthog.reset();
       }
