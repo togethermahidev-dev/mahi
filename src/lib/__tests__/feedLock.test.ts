@@ -155,8 +155,18 @@ describe('lockedPostText', () => {
   it('never posted: the first post is always allowed', () => {
     expect(lockedPostText({ tagged: false, postedBefore: false })).toEqual({
       hint: 'Post your first workout to see it',
-      button: 'Post to unlock',
+      button: 'Post a workout',
     });
+  });
+
+  it('never posted: the button says the same as the lock card above it', () => {
+    const card = lockExplainer({
+      locked: true,
+      unlockedUntil: null,
+      openTags: [],
+      serverOffsetMs: 0,
+    });
+    expect(lockedPostText({ tagged: false, postedBefore: false }).button).toBe(card?.button);
   });
 
   it('posted before, no open tag: no button, since there is nothing to post yet', () => {

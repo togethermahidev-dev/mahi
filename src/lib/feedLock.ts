@@ -84,7 +84,7 @@ export function lockedPostText({
   postedBefore: boolean;
 }): { hint: string; button?: string } {
   if (tagged) return { hint: 'Answer a tag to see it', button: 'Post your answer' };
-  if (!postedBefore) return { hint: 'Post your first workout to see it', button: 'Post to unlock' };
+  if (!postedBefore) return { hint: 'Post your first workout to see it', button: 'Post a workout' };
   return { hint: 'Answer a tag to see it' };
 }
 
