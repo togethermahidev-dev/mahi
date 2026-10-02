@@ -20,8 +20,8 @@ export type HapticMoment =
   | 'postSent'
   /** The server confirms the post's tags reached friends. */
   | 'tagSent'
-  /** The server says the streak went up. */
-  | 'streakUp'
+  /** The server says a Mahi point was earned. */
+  | 'pointsUp'
   /** The feed you are looking at opens… */
   | 'feedUnlocked'
   /** …or locks. */
@@ -47,14 +47,14 @@ export const HAPTIC_MOMENTS: Record<HapticMoment, Feel> = {
   pickUp: impact(Haptics.ImpactFeedbackStyle.Light),
   postSent: impact(Haptics.ImpactFeedbackStyle.Medium),
   tagSent: notify(Haptics.NotificationFeedbackType.Success),
-  streakUp: impact(Haptics.ImpactFeedbackStyle.Heavy),
+  pointsUp: impact(Haptics.ImpactFeedbackStyle.Heavy),
   feedUnlocked: notify(Haptics.NotificationFeedbackType.Success),
   feedLocked: notify(Haptics.NotificationFeedbackType.Warning),
   warning: notify(Haptics.NotificationFeedbackType.Warning),
   error: notify(Haptics.NotificationFeedbackType.Error),
 };
 
-/** The pause between two moments felt one after the other (tags sent, then streak up), in ms. */
+/** The pause between two moments felt one after the other (tags sent, then points up), in ms. */
 export const HAPTIC_GAP_MS = 450;
 
 /** Feel a moment. Safe from worklets via `runOnJS(haptic)('pickUp')`. */
@@ -79,21 +79,21 @@ export function hapticSequence(moments: HapticMoment[]): void {
 
 /**
  * What a post confirmed by the server feels like: its tags (or invite links) reached people,
- * then — when the server says so — the streak went up.
+ * then — when the server says so — a Mahi point was earned.
  */
 export function postedMoments({
   tags,
-  streakBefore,
-  streakAfter,
+  pointsBefore,
+  pointsAfter,
 }: {
   /** Friends tagged plus invite links. */
   tags: number;
-  streakBefore: number;
-  streakAfter: number;
+  pointsBefore: number;
+  pointsAfter: number;
 }): HapticMoment[] {
   const moments: HapticMoment[] = [];
   if (tags > 0) moments.push('tagSent');
-  if (streakAfter > streakBefore) moments.push('streakUp');
+  if (pointsAfter > pointsBefore) moments.push('pointsUp');
   return moments;
 }
 

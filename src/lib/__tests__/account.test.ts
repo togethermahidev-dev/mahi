@@ -22,7 +22,7 @@ describe('resetFormError (new password step)', () => {
 describe('DELETE_ACCOUNT_CONFIRM', () => {
   it('says plainly what goes and that it cannot be undone', () => {
     const { message } = DELETE_ACCOUNT_CONFIRM;
-    for (const word of ['profile', 'posts', 'photos', 'messages', 'streak']) {
+    for (const word of ['profile', 'posts', 'photos', 'messages', 'points']) {
       expect(message).toContain(word);
     }
     expect(message).toMatch(/can.t be undone/);

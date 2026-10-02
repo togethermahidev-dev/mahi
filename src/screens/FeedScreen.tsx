@@ -26,7 +26,7 @@ import GestureScrollView, { ListGestureContext } from '@/components/GestureScrol
 import PostCard from '@/components/PostCard';
 import CommentSheet from '@/components/CommentSheet';
 import { relativeTime } from '@/lib/relativeTime';
-import { streakText } from '@/lib/streakText';
+import { pointsBadgeText } from '@/lib/mahiPoints';
 import { lockedPostText } from '@/lib/feedLock';
 import { feedLockMoment, haptic } from '@/lib/haptics';
 import { shouldPlay } from '@/lib/videoPosts';
@@ -70,7 +70,7 @@ function LockedPostItem({
   const railRoom = useRailRoom();
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
-  const streak = streakText(item.streak_day);
+  const points = pointsBadgeText(item.streak_day);
   return (
     <View
       style={[
@@ -101,7 +101,7 @@ function LockedPostItem({
         <Text style={[styles.lockedName, { color: colors.offWhite }]}>{name}</Text>
         <Text style={[styles.lockedTime, { color: colors.offWhite }]}>
           posted {relativeTime(item.created_at)}
-          {streak ? ` · ${streak}` : ''}
+          {points ? ` · ${points}` : ''}
         </Text>
       </Pressable>
       <Text style={[styles.lockedHint, { color: colors.offWhite }]}>{text.hint}</Text>

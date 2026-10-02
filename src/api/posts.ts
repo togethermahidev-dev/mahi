@@ -28,9 +28,7 @@ export type TaggedUser = {
 };
 
 export type FeedPost = PostRow & {
-  profiles: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'> & {
-    points?: number;
-  };
+  profiles: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
   like_count: number;
   comment_count: number;
   liked_by_me: boolean;
@@ -74,7 +72,7 @@ type FeedItem = {
   liked_by_me: boolean;
   tagged_users: TaggedUser[];
   response: { tagger_username: string; seconds: number } | null;
-  profile: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'> & { points: number };
+  profile: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
 };
 
 // Photo and video links last an hour; the feed re-reads before its unlock ends.
@@ -184,17 +182,18 @@ export async function getUserPosts(
 export type AnsweredTag = { tagger_id: string; username: string; seconds: number };
 
 /**
- * The `streak` part of the `create_post` result: each post that answers a tag adds 1, missing
- * a tag resets it to 0, and the best streak stays. Keep in sync with the DB function.
+ * The `streak` part of the `create_post` result — Mahi points under the server's old names: each
+ * post that answers a tag adds 1, missing a tag resets it to 0, and the best stays. Keep in sync
+ * with the DB function.
  */
-export interface StreakResult {
+export interface PointsResult {
   streak_current: number;
   streak_highest: number;
 }
 
 export type CreatePostResult = {
   post: PostRow;
-  streak: StreakResult;
+  streak: PointsResult;
   /** Tags this post answered, oldest first. */
   answered: AnsweredTag[];
   /** A link per slot filled by an invite, to share. Same links on a retry. */
@@ -241,7 +240,7 @@ export async function removePostPhotos(paths: string[]): Promise<void> {
 }
 
 /**
- * Create a post in ONE server call: the server dates it, records the streak, saves the
+ * Create a post in ONE server call: the server dates it, records the points, saves the
  * tags with their 48-hour deadlines, queues the pushes, and answers any tags waiting for
  * this user. Retrying with the same `clientId` returns the same post.
  *

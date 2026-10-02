@@ -23,7 +23,7 @@ export function resetFormError(input: { code: string; password: string }): strin
 export const DELETE_ACCOUNT_CONFIRM = {
   title: 'Delete your account?',
   message:
-    'This deletes your profile, posts, photos, messages and streak for good. It can’t be undone.',
+    'This deletes your profile, posts, photos, messages and points for good. It can’t be undone.',
   cancel: 'Cancel',
   confirm: 'Delete account',
 } as const;

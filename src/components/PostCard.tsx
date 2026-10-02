@@ -26,13 +26,12 @@ import { ListGestureContext } from '@/components/GestureScrollView';
 import { HeartIcon, CommentIcon } from '@/components/ScreenIcons';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import CaptionText from '@/components/CaptionText';
-import PointsBadge from '@/components/PointsBadge';
 import DraggablePip from '@/components/DraggablePip';
 import PostVideo, { SoundButton } from '@/components/PostVideo';
 import PreviewMenu, { PostPreviewImage } from '@/components/PreviewMenu';
 import { formatWait } from '@/lib/countdown';
 import { relativeTime } from '@/lib/relativeTime';
-import { streakText } from '@/lib/streakText';
+import { pointsBadgeText } from '@/lib/mahiPoints';
 import { mediaTypeOrPhoto } from '@/lib/videoPosts';
 import {
   isMenuAction,
@@ -107,7 +106,8 @@ export default function PostCard({
 
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
-  const streak = streakText(item.streak_day);
+  // The poster's Mahi points after this post (one number per card, so none by the name).
+  const points = pointsBadgeText(item.streak_day);
 
   const [rearIsPrimary, setRearIsPrimary] = useState(true);
   // Whether the primary photo is landscape (wider than tall), detected on load,
@@ -214,7 +214,7 @@ export default function PostCard({
     });
 
   // ── Hold to view ─────────────────────────────────────────────────────────
-  // Press and hold (still) → a light tap, and the name, caption, tags, streak, buttons and glass
+  // Press and hold (still) → a light tap, and the name, caption, tags, points, buttons and glass
   // bar fade out; lifting brings them back. A finger that moves first is a scroll or a swipe, so
   // the hold never starts; once held, the list can still scroll alongside it.
   const list = useContext(ListGestureContext);
@@ -348,7 +348,7 @@ export default function PostCard({
                 style={[StyleSheet.absoluteFill, chrome.style]}
                 pointerEvents={chrome.viewing ? 'none' : 'box-none'}
               >
-                {/* Top gradient — tagged pills + streak badge inline */}
+                {/* Top gradient — tagged pills + points badge inline */}
                 <LinearGradient
                   colors={[withAlpha(COLORS.black, 0.6), 'transparent']}
                   style={[styles.postOverlay, { paddingTop: headerH + SPACE.s4 + topSpace }]}
@@ -359,9 +359,9 @@ export default function PostCard({
                     onPressUser={(u) => onAvatarPress(u.user_id)}
                     style={styles.topTaggedPills}
                   />
-                  {streak || item.response ? (
-                    <View style={styles.streakBadge}>
-                      {streak ? <Text style={styles.streakText}>{streak}</Text> : null}
+                  {points || item.response ? (
+                    <View style={styles.pointsBadge}>
+                      {points ? <Text style={styles.pointsText}>{points}</Text> : null}
                       {item.response ? (
                         <Text style={styles.responseText}>
                           Answered @{item.response.tagger_username} in{' '}
@@ -401,10 +401,7 @@ export default function PostCard({
                       </View>
                     )}
                     <View style={styles.userInfo}>
-                      <View style={styles.nameRow}>
-                        <Text style={styles.usernameOverlay}>{name}</Text>
-                        <PointsBadge points={item.profiles.points} style={styles.pointsOverlay} />
-                      </View>
+                      <Text style={styles.usernameOverlay}>{name}</Text>
                       <Text style={styles.timeOverlay}>
                         {postingVideo ? 'Posting…' : relativeTime(item.created_at)}
                       </Text>
@@ -553,13 +550,13 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.italic,
     color: withAlpha(COLORS.white, 0.75),
   },
-  streakBadge: {
+  pointsBadge: {
     paddingHorizontal: SPACE.s14,
     paddingVertical: SPACE.s6,
     borderRadius: RADIUS.r50,
     backgroundColor: withAlpha(COLORS.white, 0.2),
   },
-  streakText: {
+  pointsText: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
     color: COLORS.white,
@@ -630,15 +627,6 @@ const styles = StyleSheet.create({
   sideActionCount: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-    color: COLORS.white,
-  },
-  // ── Empty / error
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.s8,
-  },
-  pointsOverlay: {
     color: COLORS.white,
   },
 });

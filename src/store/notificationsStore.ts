@@ -130,7 +130,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       if (payload.new.type === 'tag_missed' || payload.new.type === 'streak_lost') {
         track(payload.new.type, { challenge_id: payload.new.challenge_id ?? null });
       }
-      // The server has just put my streak back to 0: re-read the profile the badges show.
+      // The server has just put my Mahi points back to 0: re-read the profile the badges show.
       if (payload.new.type === 'streak_lost') {
         void useUserStore.getState().refresh(userId);
       }

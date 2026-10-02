@@ -35,7 +35,7 @@ describe('haptic moments — one named feel per moment in the app', () => {
       'flip',
       'tagSent',
       'postSent',
-      'streakUp',
+      'pointsUp',
       'feedUnlocked',
       'feedLocked',
       'error',
@@ -67,8 +67,8 @@ describe('haptic moments — one named feel per moment in the app', () => {
     expect(notification).toHaveBeenNthCalledWith(2, 'success');
   });
 
-  it('a streak going up is the heaviest bump', () => {
-    haptic('streakUp');
+  it('earning a Mahi point is the heaviest bump', () => {
+    haptic('pointsUp');
     expect(impact).toHaveBeenCalledWith('heavy');
   });
 
@@ -93,27 +93,27 @@ describe('haptic moments — one named feel per moment in the app', () => {
 });
 
 describe('postedMoments — what a confirmed post feels like', () => {
-  it('tags sent, then the streak going up', () => {
-    expect(postedMoments({ tags: 3, streakBefore: 4, streakAfter: 5 })).toEqual([
+  it('tags sent, then a Mahi point earned', () => {
+    expect(postedMoments({ tags: 3, pointsBefore: 4, pointsAfter: 5 })).toEqual([
       'tagSent',
-      'streakUp',
+      'pointsUp',
     ]);
   });
 
-  it('tags sent without a streak change (a first post answers no tag)', () => {
-    expect(postedMoments({ tags: 3, streakBefore: 0, streakAfter: 0 })).toEqual(['tagSent']);
+  it('tags sent without a points change (a first post answers no tag)', () => {
+    expect(postedMoments({ tags: 3, pointsBefore: 0, pointsAfter: 0 })).toEqual(['tagSent']);
   });
 
   it('invite links count as tags', () => {
-    expect(postedMoments({ tags: 1, streakBefore: 2, streakAfter: 2 })).toEqual(['tagSent']);
+    expect(postedMoments({ tags: 1, pointsBefore: 2, pointsAfter: 2 })).toEqual(['tagSent']);
   });
 
-  it('nothing extra when no one was tagged and the streak stayed', () => {
-    expect(postedMoments({ tags: 0, streakBefore: 2, streakAfter: 2 })).toEqual([]);
+  it('nothing extra when no one was tagged and the points stayed', () => {
+    expect(postedMoments({ tags: 0, pointsBefore: 2, pointsAfter: 2 })).toEqual([]);
   });
 
-  it('a streak that went down (a missed tag) is not a celebration', () => {
-    expect(postedMoments({ tags: 3, streakBefore: 5, streakAfter: 1 })).toEqual(['tagSent']);
+  it('points that went down (a missed tag) is not a celebration', () => {
+    expect(postedMoments({ tags: 3, pointsBefore: 5, pointsAfter: 1 })).toEqual(['tagSent']);
   });
 });
 

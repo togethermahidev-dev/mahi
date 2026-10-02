@@ -58,6 +58,7 @@ import {
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import OpenTagsBanner from '@/components/OpenTagsBanner';
 import PointsBadge from '@/components/PointsBadge';
+import { pointsCount } from '@/lib/mahiPoints';
 import KeyboardInset from '@/components/KeyboardInset';
 import FlashButton from '@/components/FlashButton';
 import FocusSquare, { FOCUS_SQUARE_SIZE, type FocusTap } from '@/components/FocusSquare';
@@ -125,14 +126,15 @@ const NO_TAGS_TITLE = 'No tags to answer';
 /** The flash setting, kept for this app session only (never saved on the phone). */
 let flashThisSession: FlashChoice = 'off';
 
-// ─── Streak Badge ─────────────────────────────────────────────────────────────
+// ─── Points counter ───────────────────────────────────────────────────────────
 
-/** Top of the top-right corner items (streak badge, discard ✕): just below the status bar. */
+/** Top of the top-right corner items (points counter, discard ✕): just below the status bar. */
 function topRightY(insetTop: number): number {
   return insetTop + OFFSET.o48;
 }
 
-function StreakBadge({ count }: { count: number }) {
+/** Your Mahi points, in the top-right corner of the live camera. */
+function PointsCounter({ count }: { count: number }) {
   const insets = useSafeAreaInsets();
   const scaleAnim = useRef(new Animated.Value(4)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -157,12 +159,14 @@ function StreakBadge({ count }: { count: number }) {
   return (
     <Animated.View
       style={[
-        styles.streakBadge,
+        styles.pointsCounter,
         { top: topRightY(insets.top), transform: [{ scale: scaleAnim }], opacity: opacityAnim },
       ]}
+      accessible
+      accessibilityLabel={`Mahi points: ${pointsCount(count)}`}
     >
-      <Text style={styles.streakNumber}>{count}</Text>
-      <Text style={styles.streakLabel}>Streak</Text>
+      <Text style={styles.pointsNumber}>{count}</Text>
+      <Text style={styles.pointsLabel}>Points</Text>
     </Animated.View>
   );
 }
@@ -999,7 +1003,7 @@ function TagUserRow({
       )}
       <View style={{ flex: 1 }}>
         <Text style={styles.tagRowName}>
-          {display} <PointsBadge points={item.points} style={styles.tagRowHandle} />
+          {display} · <PointsBadge points={item.points} style={styles.tagRowHandle} />
         </Text>
         <Text style={styles.tagRowHandle}>
           @{item.username}
@@ -1366,7 +1370,7 @@ export default function CameraScreen(): React.JSX.Element {
     return () => clearInterval(id);
   }, [recordingSince]);
 
-  const streakCount = profile?.streak_current ?? 0;
+  const pointsCountNow = profile?.streak_current ?? 0;
 
   // Reactive posting: your first post, then only while a friend's tag is open. The feed already
   // knows whether you've posted: its `unlockedUntil` is null until your first post (and the feed
@@ -1729,8 +1733,8 @@ export default function CameraScreen(): React.JSX.Element {
     haptic('postSent');
 
     const tempId = `pending_${Date.now()}`;
-    // Reactive posting: only a post that answers a tag adds to the streak.
-    const optimisticStreakDay =
+    // Reactive posting: only a post that answers a tag earns a Mahi point.
+    const optimisticPoints =
       profile.streak_current + (answersATag(openTags, serverOffsetMs) ? 1 : 0);
     const captionValue = caption || null;
     const taggedUsersSnapshot = taggedUsers;
@@ -1738,7 +1742,7 @@ export default function CameraScreen(): React.JSX.Element {
     // Snapshot the location opt-in for THIS post before we reset UI state below.
     const locationEnabledSnapshot = locationEnabled;
 
-    setProfile({ ...profile, streak_current: optimisticStreakDay });
+    setProfile({ ...profile, streak_current: optimisticPoints });
 
     // Optimistic feed entry — use rear as primary display image
     useFeedStore.getState().addPending({
@@ -1748,7 +1752,7 @@ export default function CameraScreen(): React.JSX.Element {
       image_url: rear.uri,
       pov_image_url: front.uri,
       caption: captionValue,
-      streak_day: optimisticStreakDay,
+      streak_day: optimisticPoints,
       // Optimistic entry carries no coords — the per-post location fix is taken
       // lazily right before createPost (below), and confirmPending later swaps in
       // postData with the real (rounded) coordinates if location was opted in.
@@ -1816,7 +1820,7 @@ export default function CameraScreen(): React.JSX.Element {
         console.log('[CameraScreen] location for post', coords ? 'attached' : 'unavailable');
       }
 
-      // One server call: post, streak, tags, deadlines and pushes, all or nothing.
+      // One server call: post, points, tags, deadlines and pushes, all or nothing.
       const { data: result, error: postErr } = await createPost({
         clientId,
         imagePath: paths.rearPath,
@@ -1852,12 +1856,12 @@ export default function CameraScreen(): React.JSX.Element {
         locked: false,
       } satisfies FeedPost;
       useFeedStore.getState().confirmPending(tempId, posted);
-      // Tags reached friends, then (when the server says so) the streak went up.
+      // Tags reached friends, then (when the server says so) a Mahi point was earned.
       hapticSequence(
         postedMoments({
           tags: taggedUsersSnapshot.length + inviteCountSnapshot,
-          streakBefore: profile.streak_current,
-          streakAfter: result.streak.streak_current,
+          pointsBefore: profile.streak_current,
+          pointsAfter: result.streak.streak_current,
         })
       );
       // Posting unlocks the feed: read it again so friends' posts appear.
@@ -2078,7 +2082,7 @@ export default function CameraScreen(): React.JSX.Element {
           </GestureDetector>
         )}
 
-        <StreakBadge count={streakCount} />
+        <PointsCounter count={pointsCountNow} />
 
         {showTagBanner && !blocked && (
           <OpenTagsBanner openTags={openTags} serverOffsetMs={serverOffsetMs} />
@@ -2305,18 +2309,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.ink,
   },
-  streakBadge: {
+  pointsCounter: {
     position: 'absolute',
     right: OFFSET.o24,
     alignItems: 'center',
   },
-  streakNumber: {
+  pointsNumber: {
     color: COLORS.white,
     fontSize: FONT_SIZE.f38,
     fontFamily: FONTS.bold,
     lineHeight: LINE_HEIGHT.l38,
   },
-  streakLabel: {
+  pointsLabel: {
     color: COLORS.offWhite,
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,

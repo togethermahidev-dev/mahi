@@ -14,7 +14,7 @@ export const WELCOME_CARDS: readonly WelcomeCard[] = [
   {
     icon: 'camera',
     title: 'Post when a friend tags you.',
-    body: 'You have 48 hours to answer with a photo, front and back camera. Each answer adds one to your streak.',
+    body: 'You have 48 hours to answer with a photo, front and back camera. Each answer earns you a Mahi point.',
   },
   {
     icon: 'people',

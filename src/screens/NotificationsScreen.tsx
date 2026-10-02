@@ -145,7 +145,7 @@ export default function NotificationsScreen({
                   caption = `@${item.actor.username} missed your tag`;
                   break;
                 case 'streak_lost':
-                  caption = `You missed @${item.actor.username}'s tag. Your streak is back to 0.`;
+                  caption = `You missed @${item.actor.username}'s tag. Your points are back to 0.`;
                   break;
                 case 'invite_joined':
                   caption = `@${item.actor.username} joined Mahi from your invite`;

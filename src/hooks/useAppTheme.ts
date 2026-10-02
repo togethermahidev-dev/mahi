@@ -15,7 +15,7 @@ export interface AppTheme {
     text: string;
     offWhite: string;
     offBlack: string;
-    /** Brand cyan used for streaks, shutter and highlights. */
+    /** Brand cyan used for the shutter and highlights. */
     accent: string;
     /** Frosted fill behind floating glass where real glass/blur isn't available. */
     glassOnDark: string;

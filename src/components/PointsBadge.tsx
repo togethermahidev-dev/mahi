@@ -1,10 +1,10 @@
 import React from 'react';
 import { StyleSheet, Text, type StyleProp, type TextStyle } from 'react-native';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { FONTS } from '@/constants/fonts';
 import { FONT_SIZE } from '@/constants/tokens';
+import { pointsCount } from '@/lib/mahiPoints';
 
-/** "🔥 12" — a person's Mahi points. Hidden when the `mahi-points` flag is off or points are unknown. */
+/** "12 points" — a person's Mahi points (no flame: points are not a streak). Hidden when unknown. */
 export default function PointsBadge({
   points,
   style,
@@ -12,9 +12,8 @@ export default function PointsBadge({
   points: number | null | undefined;
   style?: StyleProp<TextStyle>;
 }): React.JSX.Element | null {
-  const enabled = useFeatureFlag('mahi-points');
-  if (!enabled || points == null) return null;
-  return <Text style={[styles.text, style]}>🔥 {points}</Text>;
+  if (points == null) return null;
+  return <Text style={[styles.text, style]}>{pointsCount(points)}</Text>;
 }
 
 const styles = StyleSheet.create({

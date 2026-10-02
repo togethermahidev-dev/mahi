@@ -22,7 +22,7 @@ import {
   type ReportReason,
 } from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { pointsStatsLabel } from '@/lib/mahiPoints';
 import { useCoverRail } from '@/hooks/useChrome';
 import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
@@ -97,8 +97,7 @@ export default function UserProfileScreen({
   // for free. Same spring params as HorizontalNavigator page changes.
   const translateX = useRef(new Animated.Value(SCREEN_WIDTH)).current;
 
-  const [profile, setProfile] = useState<(ProfileRow & { points?: number }) | null>(null);
-  const showPoints = useFeatureFlag('mahi-points');
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [messaging, setMessaging] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
@@ -459,26 +458,21 @@ export default function UserProfileScreen({
         <Text style={[styles.statLabel, { color: muted }]}>Friends ›</Text>
       </Pressable>
 
-      {/* Streak stats */}
-      <View style={[styles.statsRow, { marginTop: SPACE.s16 }]}>
+      {/* Mahi points: one per post that answers a tag, back to 0 on a missed tag; Best stays */}
+      <View
+        style={[styles.statsRow, { marginTop: SPACE.s16 }]}
+        accessible
+        accessibilityLabel={pointsStatsLabel(profile?.streak_current, profile?.streak_highest)}
+      >
         <View style={styles.stat}>
           <Text style={[styles.statValue, { color: text }]}>{profile?.streak_current ?? 0}</Text>
-          <Text style={[styles.statLabel, { color: muted }]}>Streak</Text>
+          <Text style={[styles.statLabel, { color: muted }]}>Points</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: muted }]} />
         <View style={styles.stat}>
           <Text style={[styles.statValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
           <Text style={[styles.statLabel, { color: muted }]}>Best</Text>
         </View>
-        {showPoints ? (
-          <>
-            <View style={[styles.statDivider, { backgroundColor: muted }]} />
-            <View style={styles.stat}>
-              <Text style={[styles.statValue, { color: text }]}>{profile?.points ?? 0}</Text>
-              <Text style={[styles.statLabel, { color: muted }]}>Points</Text>
-            </View>
-          </>
-        ) : null}
       </View>
 
       {/* Follow / Message actions */}

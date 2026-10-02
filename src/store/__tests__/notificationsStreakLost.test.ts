@@ -1,5 +1,5 @@
 /**
- * A "streak lost" notice means the server has just put your streak back to 0. The number on the
+ * A `streak_lost` notice means the server has just put your Mahi points back to 0. The number on the
  * camera and your profile comes from the profile in userStore, so that must be re-read when the
  * notice arrives; nothing else about a notification touches the profile.
  */
@@ -59,7 +59,7 @@ beforeEach(() => {
 });
 
 describe('a streak_lost notice', () => {
-  it('re-reads my profile so the streak shows 0 straight away', async () => {
+  it('re-reads my profile so the points show 0 straight away', async () => {
     await onInsert!(row('streak_lost'));
     expect(refresh).toHaveBeenCalledWith('me');
   });

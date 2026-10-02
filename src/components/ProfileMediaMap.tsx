@@ -14,7 +14,7 @@ import type { NativeGesture } from 'react-native-gesture-handler';
 import Svg, { Path } from 'react-native-svg';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
-import { streakText } from '@/lib/streakText';
+import { pointsBadgeText } from '@/lib/mahiPoints';
 import { gridTile } from '@/lib/videoPosts';
 import {
   gridMenuItems,
@@ -89,7 +89,7 @@ function GridCell({
   const [imgError, setImgError] = useRecyclingState(false, [post.id]);
   const badgeBg = dark ? withAlpha(COLORS.offBlack, 0.75) : withAlpha(COLORS.offWhite, 0.75);
   const badgeText = dark ? COLORS.offWhite : COLORS.offBlack;
-  const streak = streakText(post.streak_day);
+  const points = pointsBadgeText(post.streak_day);
   // Video posts: show the post's still photo (or a video card) and mark it with a video icon.
   const tile = gridTile(post);
   const label = tile.video ? 'video post' : 'post';
@@ -125,9 +125,7 @@ function GridCell({
       ]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={
-        streak ? `${streak} ${label}` : label.charAt(0).toUpperCase() + label.slice(1)
-      }
+      accessibilityLabel={`${label.charAt(0).toUpperCase() + label.slice(1)}${points ? `, ${points}` : ''}`}
       // VoiceOver: the menu's choices as actions (a double tap already opens the post).
       accessibilityActions={withMenu ? menuA11yActions(items, ['open']) : undefined}
       onAccessibilityAction={withMenu ? (e) => runAction(e.nativeEvent.actionName) : undefined}
@@ -149,9 +147,9 @@ function GridCell({
           <VideoIcon size={ICON_SIZE.i16} color={badgeText} />
         </View>
       ) : null}
-      {streak ? (
+      {points ? (
         <View style={[styles.badge, { backgroundColor: badgeBg }]}>
-          <Text style={[styles.badgeText, { color: badgeText }]}>{streak}</Text>
+          <Text style={[styles.badgeText, { color: badgeText }]}>{points}</Text>
         </View>
       ) : null}
     </Pressable>
