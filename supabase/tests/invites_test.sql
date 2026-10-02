@@ -1,4 +1,6 @@
 -- Invite links: a tag slot filled by someone not on Mahi, and what happens when they join.
+-- Every check reads only this test's own invites and tags, so it also runs on a database with
+-- history.
 begin;
 select plan(30);
 
@@ -34,12 +36,17 @@ create function pg_temp.as_user(p_id uuid) returns void language sql as $$
   select set_config('role', 'authenticated', true),
          set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true);
 $$;
--- The app never reads the invites table; these two are the test's way in, as the owner.
+-- The app never reads the invites table; these are the test's way in, as the owner: the invites
+-- A and B make here, and nobody else's.
+create function pg_temp.invites() returns setof public.invites language sql security definer as $$
+  select * from public.invites
+  where inviter_id in ('00000000-0000-0000-0000-00000000d00a', '00000000-0000-0000-0000-00000000d00b');
+$$;
 create function pg_temp.token() returns text language sql security definer as $$
-  select token from public.invites order by created_at, token limit 1;
+  select token from pg_temp.invites() order by created_at, token limit 1;
 $$;
 create function pg_temp.open_code() returns text language sql security definer as $$
-  select code from public.invites where claimed_at is null order by created_at, token limit 1;
+  select code from pg_temp.invites() where claimed_at is null order by created_at, token limit 1;
 $$;
 create function pg_temp.post(p_tags uuid[], p_invites int)
 returns jsonb language sql as $$
@@ -77,12 +84,13 @@ select ok(
   'a code is 6 characters, with no 0, O, 1 or I to misread'
 );
 reset role;
-select is((select count(*)::int from public.invites), 2,
+select is((select count(*)::int from pg_temp.invites()), 2,
   'the retries handed back the same two links and made no more');
 
 -- 2. A slot waiting for someone is nobody's tag until they join.
 select is(
-  (select count(*)::int from public.tag_challenges where tagged_id is null), 2,
+  (select count(*)::int from public.tag_challenges
+   where tagged_id is null and tagger_id = '00000000-0000-0000-0000-00000000d00a'), 2,
   'two challenges are waiting for nobody'
 );
 select pg_temp.as_user('00000000-0000-0000-0000-00000000d00b');
@@ -90,7 +98,8 @@ select is((select count(*)::int from public.get_open_tags()), 1, 'B sees only th
 reset role;
 select public.mark_missed_tags();
 select is(
-  (select count(*)::int from public.tag_challenges where tagged_id is null and missed_at is not null),
+  (select count(*)::int from public.tag_challenges
+   where tagged_id is null and missed_at is not null and tagger_id = '00000000-0000-0000-0000-00000000d00a'),
   0, 'a waiting invite is never marked missed'
 );
 
@@ -137,15 +146,16 @@ select is(
   'the inviter is told they joined'
 );
 select is(
-  (select count(*)::int from public.push_outbox
-   where user_id = '00000000-0000-0000-0000-00000000d00c' and kind = 'tag_reminder'), 2,
-  'the new person gets both reminders'
+  (select string_agg(body, ' | ' order by send_after) from public.push_outbox
+   where user_id = '00000000-0000-0000-0000-00000000d00c' and kind = 'tag_reminder'),
+  '24 hours left to post your Mahi! @inv_a is waiting. | 2 hours left to post your Mahi! @inv_a is waiting.',
+  'the new person gets both reminders, naming who invited them'
 );
 
 select pg_temp.as_user('00000000-0000-0000-0000-00000000d00c');
 select lives_ok($$select public.claim_invite(pg_temp.token())$$, 'claiming again changes nothing');
 reset role;
-select is((select count(*)::int from public.invites where claimed_at is not null), 1,
+select is((select count(*)::int from pg_temp.invites() where claimed_at is not null), 1,
   'only one claim is recorded');
 
 select pg_temp.as_user('00000000-0000-0000-0000-00000000d00e');
@@ -159,7 +169,8 @@ select pg_temp.as_user('00000000-0000-0000-0000-00000000d00b');
 select public.create_post('22222222-0000-0000-0000-0000000000b1',
   '00000000-0000-0000-0000-00000000d00b/b1.jpg', null, null, '{}'::uuid[], null, null, 1);
 reset role;
-update public.invites set expires_at = now() - interval '1 day' where claimed_at is null;
+update public.invites set expires_at = now() - interval '1 day'
+where claimed_at is null and token in (select token from pg_temp.invites());
 select pg_temp.as_user('00000000-0000-0000-0000-00000000d00e');
 select throws_ok($$select public.claim_invite(pg_temp.open_code())$$, '22023', null,
   'an expired link cannot be claimed');
@@ -167,7 +178,8 @@ reset role;
 select public.expire_invites();
 select is(
   (select count(*)::int from public.tag_challenges
-   where tagged_id is null and cancelled_at is not null), 1,
+   where tagged_id is null and cancelled_at is not null
+     and tagger_id in ('00000000-0000-0000-0000-00000000d00a', '00000000-0000-0000-0000-00000000d00b')), 1,
   'an expired link takes its waiting tag with it'
 );
 
