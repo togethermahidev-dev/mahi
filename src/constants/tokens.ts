@@ -266,6 +266,32 @@ export const NAV_RAIL = {
   outlineOnLight: 0.35,
   /** The soft shadow the pill floats on. */
   shadowOpacity: 0.22,
+  /** The Feed icon's small bounce each time the feed moves to the next post: how big it grows… */
+  feedBumpScale: 1.2,
+  /** …how long it takes to grow (ms)… */
+  feedBumpUpMs: 110,
+  /** …and to settle back (ms). */
+  feedBumpDownMs: 180,
+} as const;
+
+// ─── Full-screen posts (feed and post viewer) ───────────────────────────────────
+export const POST_CARD = {
+  /** The like / comment column's bottom edge, as a share of the post's height (TikTok, Reels). */
+  actionsBottom: 0.3,
+  /** The shade behind the name, caption and buttons covers this share of the post, full width… */
+  shadeHeight: 0.5,
+  /** …darkening to this opacity part-way down (behind the buttons)… */
+  shadeMid: 0.35,
+  /** …and this at the bottom (behind the name and caption). */
+  shadeBottom: 0.7,
+  /** The soft shadow under the like / comment icons and counts, so they read on light photos. */
+  actionsShadow: 0.4,
+  /** Press and hold a post this long (ms) to see the whole photo: everything over it fades… */
+  holdMs: 250,
+  /** …out this fast (ms)… */
+  hideMs: 160,
+  /** …and back this fast (ms) on release. */
+  showMs: 220,
 } as const;
 
 // ─── Full-screen viewers: a profile's posts and a profile picture ───────────────

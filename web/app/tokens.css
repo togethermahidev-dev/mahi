@@ -213,6 +213,9 @@
   --mahi-nav-rail-outline-on-dark: 0.6;
   --mahi-nav-rail-outline-on-light: 0.35;
   --mahi-nav-rail-shadow-opacity: 0.22;
+  --mahi-nav-rail-feed-bump-scale: 1.2;
+  --mahi-nav-rail-feed-bump-up-ms: 110;
+  --mahi-nav-rail-feed-bump-down-ms: 180;
   /* FONTS */
   --mahi-font-weight-regular: 400;
   --mahi-font-weight-italic: 400;
