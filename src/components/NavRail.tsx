@@ -19,6 +19,7 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useChromeFade } from '@/hooks/useChrome';
+import { useChromeStore } from '@/store';
 import {
   CameraIcon,
   FeedIcon,
@@ -61,6 +62,17 @@ const FOLLOW_TRAIL = { damping: 22, stiffness: 260, mass: 0.6, reduceMotion: Red
 const MOVE = { duration: 180, easing: Easing.out(Easing.cubic), reduceMotion: ReduceMotion.Never };
 /** Press and hold this long (ms) to pick up the selector; a drag along the rail picks it up at once. */
 const HOLD_MS = 280;
+/** The Feed icon's bounce as the feed moves to the next post (skipped with Reduce Motion). */
+const BUMP_UP = {
+  duration: NAV_RAIL.feedBumpUpMs,
+  easing: Easing.out(Easing.quad),
+  reduceMotion: ReduceMotion.Never,
+};
+const BUMP_DOWN = {
+  duration: NAV_RAIL.feedBumpDownMs,
+  easing: Easing.inOut(Easing.quad),
+  reduceMotion: ReduceMotion.Never,
+};
 
 interface NavRailProps {
   active: RailTab;
@@ -141,6 +153,18 @@ export default function NavRail({
     // geometry is rebuilt each render from fixed tokens; the active icon is what moves it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex, morph]);
+
+  // ─── The Feed icon's bounce, in time with each move to the next post ─────────
+  const feedTick = useChromeStore((s) => s.feedTick);
+  const feedScale = useSharedValue(1);
+  useEffect(() => {
+    if (feedTick === 0 || reduceMotion) return;
+    feedScale.value = withSequence(
+      withTiming(NAV_RAIL.feedBumpScale, BUMP_UP),
+      withTiming(1, BUMP_DOWN)
+    );
+  }, [feedTick, reduceMotion, feedScale]);
+  const feedIconStyle = useAnimatedStyle(() => ({ transform: [{ scale: feedScale.value }] }));
 
   const selectorStyle = useAnimatedStyle(() => ({
     top: top.value,
@@ -249,7 +273,9 @@ export default function NavRail({
           pressed && styles.pressed,
         ]}
       >
-        <Icon size={ICON_SIZE.i20} color={selected ? colors.offBlack : iconColor} />
+        <Animated.View style={key === 'feed' ? feedIconStyle : undefined}>
+          <Icon size={ICON_SIZE.i20} color={selected ? colors.offBlack : iconColor} />
+        </Animated.View>
       </Pressable>
     );
   });

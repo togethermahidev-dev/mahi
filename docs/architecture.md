@@ -286,6 +286,7 @@ A floating glass rail on the **left** edge (owner, 2026-10-02: on every screen, 
 - Nothing on the left sits under it: `useRailRoom()` (`src/hooks/useChrome.ts`) is the room it takes, used by the feed's small photo, the locked post card, the profile header, the inbox rows and the camera's photo-in-photo guide. It hides while a full-screen view is open over a page (someone's profile, Settings, search — `useCoverRail`, `chromeStore.covers`), as it does over the Feed's pop-ups.
 - `nav-rail-morph` on: the rail reads as one floating pill with an outline and shadow (`NAV_RAIL` tokens); one selector slides and stretches between icons (stretch, then contract; a plain move with Reduce Motion); press and hold or drag along the rail to switch screens live. Geometry and motion plans are pure in `src/lib/railSelector.ts` (tested).
 - A touch that starts on the rail never moves the pages (`exclude` in `swipeRules`).
+- The Feed icon bounces a little (`NAV_RAIL.feedBump*`) each time the feed moves to another post (`chromeStore.feedPostShown`, from the feed's in-view post); not with Reduce Motion.
 - Off: the old dots (`NavigationDots`) and header pills.
 
 ### App Header (`src/components/AppHeader.tsx`)

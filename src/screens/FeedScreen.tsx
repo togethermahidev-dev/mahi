@@ -20,7 +20,7 @@ import { useOpenTags } from '@/hooks/useOpenTags';
 import { useRailRoom } from '@/hooks/useChrome';
 import { answersATag } from '@/lib/reactivePosting';
 import FeedLockBanner from '@/components/FeedLockBanner';
-import { useSocialStore, useAuthStore } from '@/store';
+import { useSocialStore, useAuthStore, useChromeStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import PostCard from '@/components/PostCard';
@@ -237,7 +237,10 @@ export default function FeedScreen({
       });
 
       visiblePostIds.current = nowVisible;
-      setInViewId(viewableItems[0]?.key ?? null);
+      const inView = viewableItems[0]?.key ?? null;
+      setInViewId(inView);
+      // A move to another post bounces the glass bar's Feed icon.
+      useChromeStore.getState().feedPostShown(inView);
     },
     []
   );
