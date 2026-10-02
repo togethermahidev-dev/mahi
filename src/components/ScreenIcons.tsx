@@ -1,14 +1,59 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import Svg, { Path, Circle, Line, G, Text as SvgText } from 'react-native-svg';
 import { FONTS } from '@/constants/fonts';
 import { COLORS } from '@/constants/tokens';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import {
+  SF_SYMBOL_WEIGHT,
+  sfSymbolFor,
+  symbolsAvailable,
+  type ScreenIconKey,
+} from '@/lib/sfSymbols';
+import { hasNativeSymbols, loadExpoSymbols } from '@/lib/symbolModule';
 
 export interface IconProps {
   size: number;
   color: string;
 }
 
-export function SearchIcon({ size, color }: IconProps) {
+/*
+ * Each plain icon below has two looks: today's drawing, and on iPhone Apple's own icon (SF Symbol,
+ * flag `ios-sf-symbols`, build 11+). The exported icons at the bottom pick one, so call sites don't
+ * change. The brand "echo" icons (LikeIcon, CommentIcon, MessagesIcon) are always drawn.
+ * Mapping and rules: src/lib/sfSymbols.ts.
+ */
+
+/**
+ * Apple's icon at the same size and colour when this iPhone build has it and the flag is on;
+ * otherwise the drawing (Android, build 10, flag off). Hidden from VoiceOver like the drawings:
+ * the button around each icon carries the label.
+ */
+function SymbolOr({
+  icon,
+  size,
+  color,
+  children,
+}: IconProps & { icon: ScreenIconKey; children: React.ReactElement }) {
+  const flagOn = useFeatureFlag('ios-sf-symbols');
+  const name = sfSymbolFor(icon, symbolsAvailable(Platform.OS, hasNativeSymbols(), flagOn));
+  const symbols = name ? loadExpoSymbols() : null;
+  if (!name || !symbols) return children;
+  return (
+    <symbols.SymbolView
+      name={name}
+      size={size}
+      tintColor={color}
+      weight={SF_SYMBOL_WEIGHT}
+      fallback={children}
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    />
+  );
+}
+
+function SearchDrawing({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Circle cx="11" cy="11" r="7" stroke={color} strokeWidth={1.8} />
@@ -25,7 +70,7 @@ export function SearchIcon({ size, color }: IconProps) {
   );
 }
 
-export function CameraIcon({ size, color }: IconProps) {
+function CameraDrawing({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -40,7 +85,7 @@ export function CameraIcon({ size, color }: IconProps) {
   );
 }
 
-export function FeedIcon({ size, color }: IconProps) {
+function FeedDrawing({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       {/* Three stacked post lines — social feed / news feed */}
@@ -51,7 +96,7 @@ export function FeedIcon({ size, color }: IconProps) {
   );
 }
 
-export function ProfileIcon({ size, color }: IconProps) {
+function ProfileDrawing({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -147,7 +192,7 @@ export function CommentIcon({ size, color }: IconProps) {
   );
 }
 
-export function SettingsIcon({ size, color }: IconProps) {
+function SettingsDrawing({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Circle
@@ -170,7 +215,7 @@ export function SettingsIcon({ size, color }: IconProps) {
   );
 }
 
-export function NotificationsIcon({ size, color }: IconProps) {
+function NotificationsDrawing({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       {/* Bell body — rounded cap, flared skirt */}
@@ -197,7 +242,7 @@ export function NotificationsIcon({ size, color }: IconProps) {
  * HeartIcon — simple heart for like button (IG Reels / TikTok style).
  * Filled red when liked, outline when not.
  */
-export function HeartIcon({ size, color, filled = false }: IconProps & { filled?: boolean }) {
+function HeartDrawing({ size, color, filled = false }: IconProps & { filled?: boolean }) {
   const heart =
     'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z';
   return (
@@ -235,7 +280,7 @@ export function MessagesIcon({ size, color }: IconProps) {
 }
 
 /** VideoIcon — a film camera: marks a video in a post or on a profile square. */
-export function VideoIcon({ size, color }: IconProps) {
+function VideoDrawing({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -258,7 +303,7 @@ export function VideoIcon({ size, color }: IconProps) {
 const SPEAKER = 'M11 5L6 9H3v6h3l5 4V5z';
 
 /** SoundOnIcon — a speaker with sound waves (the video is playing with sound). */
-export function SoundOnIcon({ size, color }: IconProps) {
+function SoundOnDrawing({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path d={SPEAKER} stroke={color} strokeWidth={1.8} strokeLinejoin="round" />
@@ -273,11 +318,98 @@ export function SoundOnIcon({ size, color }: IconProps) {
 }
 
 /** SoundOffIcon — a speaker with a cross (the video is muted). */
-export function SoundOffIcon({ size, color }: IconProps) {
+function SoundOffDrawing({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path d={SPEAKER} stroke={color} strokeWidth={1.8} strokeLinejoin="round" />
       <Path d="M16 9.5l5 5M21 9.5l-5 5" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
     </Svg>
+  );
+}
+
+// ── The icons the app uses ──
+
+export function SearchIcon(props: IconProps) {
+  return (
+    <SymbolOr icon="search" {...props}>
+      <SearchDrawing {...props} />
+    </SymbolOr>
+  );
+}
+
+export function CameraIcon(props: IconProps) {
+  return (
+    <SymbolOr icon="camera" {...props}>
+      <CameraDrawing {...props} />
+    </SymbolOr>
+  );
+}
+
+export function FeedIcon(props: IconProps) {
+  return (
+    <SymbolOr icon="feed" {...props}>
+      <FeedDrawing {...props} />
+    </SymbolOr>
+  );
+}
+
+export function ProfileIcon(props: IconProps) {
+  return (
+    <SymbolOr icon="profile" {...props}>
+      <ProfileDrawing {...props} />
+    </SymbolOr>
+  );
+}
+
+export function SettingsIcon(props: IconProps) {
+  return (
+    <SymbolOr icon="settings" {...props}>
+      <SettingsDrawing {...props} />
+    </SymbolOr>
+  );
+}
+
+export function NotificationsIcon(props: IconProps) {
+  return (
+    <SymbolOr icon="notifications" {...props}>
+      <NotificationsDrawing {...props} />
+    </SymbolOr>
+  );
+}
+
+/** Filled = liked: a solid heart in the same red as the drawing. */
+export function HeartIcon({ size, color, filled = false }: IconProps & { filled?: boolean }) {
+  return (
+    <SymbolOr
+      icon={filled ? 'heartFilled' : 'heart'}
+      size={size}
+      color={filled ? COLORS.dangerAlt : color}
+    >
+      <HeartDrawing size={size} color={color} filled={filled} />
+    </SymbolOr>
+  );
+}
+
+export function VideoIcon(props: IconProps) {
+  return (
+    <SymbolOr icon="video" {...props}>
+      <VideoDrawing {...props} />
+    </SymbolOr>
+  );
+}
+
+export function SoundOnIcon(props: IconProps) {
+  return (
+    <SymbolOr icon="soundOn" {...props}>
+      <SoundOnDrawing {...props} />
+    </SymbolOr>
+  );
+}
+
+export function SoundOffIcon(props: IconProps) {
+  return (
+    <SymbolOr icon="soundOff" {...props}>
+      <SoundOffDrawing {...props} />
+    </SymbolOr>
   );
 }
