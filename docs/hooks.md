@@ -165,22 +165,41 @@ Thin wrapper over `useConversationStore` (`open` on mount, `close` on unmount).
 
 ## `usePushRegistration` — `src/hooks/usePushRegistration.ts`
 
-Mounted once in `VerticalNavigator`. When signed in: registers this device's push token through
-`usePushStore.register()` if permission is already granted; otherwise, once per device and only while
-the `push-core` flag is on, shows an explainer alert and then the OS prompt
-(`usePushStore.requestAndRegister()`). Re-registers when the OS rotates the token. Sign-out
-unregisters the token in `api/auth.ts signOut()` before the session ends.
+Mounted once in `VerticalNavigator`. When signed in, and again each time the app comes back to the
+front, it calls `usePushStore.refresh()`: that reads the phone's permission and what this device
+remembers (page answered, line dismissed) and registers the push token once permission is granted —
+so switching notifications on in Settings is picked up without a restart. Re-registers when the OS
+rotates the token. It never asks for the permission; that is `usePushPrimer`. Sign-out unregisters
+the token in `api/auth.ts signOut()` before the session ends.
+
+---
+
+## `usePushPrimer` — `src/hooks/usePushPrimer.ts`
+
+```ts
+const { visible, answer } = usePushPrimer(welcomeSettled);
+```
+
+Drives the one-time "turn on notifications" page (`PushPrimer`, in `App.tsx`). `visible` follows
+`shouldShowPushPrimer` (`src/lib/pushPrimer.ts`): flag `push-core` on, the phone not asked yet, the
+page not answered on this device, the welcome cards out of the way (`welcomeSettled`) and the
+phone's camera question answered (re-read whenever the app returns to the front) — then a short
+beat, so it never opens while another page is closing. `answer(true)` brings up the phone's own
+question and registers the device if allowed; `answer(false)` is "Not now". Either way the page is
+remembered as answered.
 
 ---
 
 ## `usePushRouting` — `src/hooks/usePushRouting.ts`
 
 ```ts
-usePushRouting({ openProfile: (userId) => …, openNotifications: () => … });
+usePushRouting({ openProfile, openNotifications, openCamera, openMessages });
 ```
 
 Handles a tapped push (including the one that launched the app): marks its notification read, then
-opens the actor's profile for follows or the notifications list for everything else.
+opens what `pushDestination()` (`src/lib/pushRoute.ts`) says — the actor's profile for a follow or
+an invite joined, the camera for a tag, a reminder or a feed-lock push, Messages for a message, the
+notifications list for everything else.
 
 ---
 

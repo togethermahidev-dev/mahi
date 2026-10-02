@@ -156,10 +156,9 @@ is in the stores yet. Still to do, in order:
    in this order: push `20261001120000_reactive_posting` (Steps 1–4 above) → publish the OTA → push
    `20261001170000_drop_rest_days` only once every phone has the new app (old builds still insert
    `fitness_routine` at sign-up and read the dropped columns).
-1. **Push notification credentials** — upload the Apple push key and Google FCM credentials in
-   EAS (`eas credentials`). Then set `SEND_PUSH_SECRET`, add the Vault secrets `send_push_url` and
-   `send_push_secret`, and deploy `send-push` (not deployed yet). Only then create the `push-core`
-   flag in PostHog — it is deliberately absent (off) until push works.
+1. **Push notifications** — the ordered steps are in
+   [Switching push notifications on](#switching-push-notifications-on) below. No new native build
+   is needed for iPhone. `push-core` stays absent from PostHog (off) until step 6 there.
 2. **Invite landing page** — host `/i/<token>`, `/.well-known/apple-app-site-association` and
    `/.well-known/assetlinks.json` on `togethermahi.com` (the domain doesn't resolve yet). Until then
    invite links open nothing; the 6-character code works.
@@ -176,3 +175,157 @@ is in the stores yet. Still to do, in order:
    CI runs it too.
 5. **The held-back steps** in `supabase/deferred/` (`contract_posting`, `contract_messages`,
    `private_bucket`) — only once that build is in both stores.
+
+---
+
+## Switching push notifications on
+
+For the owner to run, in this order. Written 2026-10-02; nothing here has been run.
+
+**Does it need a new native build? No, not for iPhone.** Build 10 already contains the
+notifications module and Apple's push permission: checked 2026-10-02 in the build file itself
+(EAS build `2b2d870f`, 2026-09-30, commit `a98e627` — it carries `ExpoNotifications` and is signed
+with `aps-environment: production`; `expo-notifications` has been in `package.json` since
+`dcc1b79`, 2026-09-17). The app side — the "turn on notifications" page and the camera's reminder
+line — is JavaScript only, so it goes out as an OTA update. Android is separate: it needs Google's
+FCM credentials and its own first build.
+
+**What is on production today** (checked against prod 2026-10-02, read-only):
+
+| Piece | State |
+| --- | --- |
+| `send-push` function | Not deployed (7 other functions are live) |
+| Vault secrets `send_push_url`, `send_push_secret` | Neither exists (the Vault is empty) |
+| Function secret `SEND_PUSH_SECRET` | Can't be read from outside; treat as not set |
+| `pg_cron` 1.6.4, `pg_net` 0.19.5 | Installed |
+| Jobs `send-push` (every minute), `push-receipts` (every 15 minutes) | Active, and doing nothing: they skip until both Vault secrets exist |
+| `push_tokens` | 0 rows — no phone has registered |
+| `push_outbox` | 18 rows, none ever sent, 15 already due (likes, follows, tags, reminders, a message since 2026-10-01) |
+| Latest migration | `20261002170000_mahi_points`; `20261002190000_tag_and_feed_pushes` is waiting |
+| PostHog `push-core` | Does not exist, so it reads as off |
+
+The 18 queued pushes are old news. They are not sent when push goes live: step 2's migration
+makes the sender close anything more than an hour overdue instead of sending it.
+
+### 1. Apple push key (EAS)
+
+```bash
+npx -y eas-cli@24.7.0 whoami          # must say togethermahi
+npx -y eas-cli@24.7.0 credentials -p ios
+```
+
+Pick the `preview` profile. Under **Push Notifications** it should show a key (a Key ID, team
+`733RLXDJNY`) — EAS made one during the first preview build. If it says none: choose
+**Push Notifications: Manage your Apple Push Notifications Key** → **Set up a new key** and let EAS
+create it. The key lives on Expo's servers, so adding it needs no rebuild. Nothing is needed for
+Google until there is an Android build.
+
+### 2. Database: try → backup → push
+
+```bash
+cd ~/workspace/mahi
+scripts/db.sh try supabase/migrations/20261002190000_tag_and_feed_pushes.sql \
+  supabase/tests/tag_feed_pushes_test.sql supabase/tests/push_test.sql \
+  supabase/tests/tag_challenges_test.sql supabase/tests/invites_test.sql \
+  supabase/tests/reactive_posting_test.sql supabase/tests/mahi_points_test.sql \
+  supabase/tests/feed_lock_test.sql supabase/tests/video_posts_test.sql supabase/tests/stats_test.sql
+scripts/db.sh backup
+scripts/db.sh push --dry-run          # expect exactly: 20261002190000_tag_and_feed_pushes.sql
+scripts/db.sh push
+```
+
+**Expect** from `try`: only `ok` lines (nothing is kept — it rolls itself back). Any `not ok` or
+`ERROR`: stop and send the output. Safe for the app on phones: nothing the app reads changes.
+Undo: `supabase/rollbacks/20261002190000_tag_and_feed_pushes.rollback.sql`.
+
+### 3. The function and its secret
+
+```bash
+export SUPABASE_ACCESS_TOKEN=<Mahi token: Edge Functions and Secrets, read-write>
+SECRET=$(openssl rand -hex 32)        # keep this Terminal window open until step 4 is done
+supabase secrets set --project-ref pzepodsppqtvptzmwxzs SEND_PUSH_SECRET="$SECRET"
+supabase functions deploy send-push --no-verify-jwt --project-ref pzepodsppqtvptzmwxzs
+
+# It is live and refuses strangers (expect 401):
+curl -s -o /dev/null -w "%{http_code}\n" -X POST https://pzepodsppqtvptzmwxzs.supabase.co/functions/v1/send-push
+# ...and answers the secret. Expect {"claimed":0} or {"claimed":N,...,"messages":0,...};
+# "messages":0 means nothing went to a phone:
+curl -s -X POST -H "X-Internal-Secret: $SECRET" -H "Content-Type: application/json" \
+  -d '{"mode":"send"}' https://pzepodsppqtvptzmwxzs.supabase.co/functions/v1/send-push
+```
+
+The function's other two secrets, `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, are built in.
+
+### 4. Let the database call it (Vault)
+
+The every-minute job reads two Vault secrets. They hold a secret value, so they are typed in
+here, never written into a migration:
+
+```bash
+psql "host=aws-1-eu-west-2.pooler.supabase.com port=5432 dbname=postgres user=postgres.pzepodsppqtvptzmwxzs sslmode=require" \
+  -v ON_ERROR_STOP=1 -v secret="$SECRET" <<'SQL'
+select vault.create_secret('https://pzepodsppqtvptzmwxzs.supabase.co/functions/v1/send-push', 'send_push_url');
+select vault.create_secret(:'secret', 'send_push_secret');
+select name from vault.secrets order by name;   -- expect send_push_secret, send_push_url
+SQL
+```
+
+From the next minute the job calls the function whenever something is due. With no phone
+registered, nothing reaches anyone yet.
+
+### 5. The app update
+
+The page and the reminder line ship as an OTA update (`/version-control` skill; JavaScript only).
+Publish it to preview and open the app twice on the phone so it lands. Nothing shows yet:
+`push-core` is still off.
+
+### 6. Test one push on one phone
+
+1. In PostHog create the flag `push-core` (boolean, active) with **one** release condition:
+   person property `email` equals your own account's email, 100%. Only your phone gets the page.
+2. Force-quit and reopen Mahi. The page "When do you post on Mahi?" appears (after the welcome
+   cards if you haven't closed them). Tap **Allow**, then **Allow** on the phone's own question.
+3. Check a phone registered (a read-only query, with the `psql` connection from step 4):
+   `select count(*) from public.push_tokens;` → 1.
+4. Between 07:00 and 22:00 (quiet hours hold pushes until 07:00), from a second account like one
+   of your posts. Within about a minute your phone shows **Mahi — @them liked your post**. Tap it:
+   the notifications list opens.
+5. From the second account, post and tag yourself: **You've just been tagged by @them. 48 hours
+   left to post your Mahi!** Tap it: the camera opens.
+6. Check it was recorded (read-only, same connection):
+   `select kind, body, sent_at, error from public.push_outbox order by id desc limit 5;`
+   → `sent_at` filled, `error` empty. `InvalidCredentials` means the Apple push key (step 1);
+   `no_tokens` means the phone didn't register (look in Sentry for flow `push`);
+   `DeviceNotRegistered` means that phone turned notifications off.
+
+### 7. Everyone
+
+Edit `push-core` in PostHog: remove the email condition, 100% of everyone. Update the
+`push-core` line in the `#feature-flags` summary and post in `#push-notifications`.
+
+### Settings you can change later
+
+All in `app_config`, each a one-line migration (for example
+`update public.app_config set feed_locked_push = false;`):
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `feed_lock_warning_push` | on | "Your feed locks in 1 hour…" |
+| `feed_lock_warning_lead` | 1 hour | How long before the lock the warning goes; the words follow it |
+| `feed_locked_push` | on | "Your feed is locked…" |
+| `push_stale_after` | 1 hour | A push more overdue than this is closed, not sent |
+| `quiet_start` / `quiet_end` | 22:00 / 07:00 | Quiet hours, in each person's own time zone |
+
+### Rolling back
+
+- **Stop asking people:** switch `push-core` off in PostHog. Phones that already allowed keep
+  getting pushes.
+- **Stop sending:** remove the Vault secrets; the job goes back to skipping.
+  `psql "<same connection as step 4>" -c "delete from vault.secrets where name in ('send_push_url','send_push_secret');"`
+  Pushes keep being queued; when sending is switched back on, anything more than an hour overdue
+  is closed rather than sent.
+- **Only the feed pushes:** the two switches above.
+- **The wording and the feed pushes altogether:**
+  `supabase/rollbacks/20261002190000_tag_and_feed_pushes.rollback.sql`.
+- **The function:** `supabase functions delete send-push --project-ref pzepodsppqtvptzmwxzs`
+  (after removing the Vault secrets, or the job logs a failed call every minute).

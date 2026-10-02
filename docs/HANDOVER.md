@@ -22,7 +22,8 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
   production (checked against prod 2026-10-02); `20261002150000_identity_verifications` and
   `20261002170000_mahi_points` are waiting. Edge Functions live: `send-otp`, `verify-otp`, `complete-signup`,
   `send-reset-code`, `reset-password`, `delete-account` (JWT on), plus `check-email` (not in this repo).
-  `send-push` is built but not deployed. See [supabase/README.md](../supabase/README.md).
+  `send-push` is built but not deployed, and `20261002190000_tag_and_feed_pushes` is waiting with
+  it (push go-live, below). See [supabase/README.md](../supabase/README.md).
 - **App:** native build 10, version `0.1.0`, on the EAS **preview** lane only — nothing is in the stores.
   Changes ship as OTA updates (history in `src/constants/ota.ts`); see the `/version-control` skill.
 - **Built and on (flags in [feature-flags.md](./feature-flags.md)):** the tag loop (3 tags, 48-hour deadlines,
@@ -43,8 +44,20 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
   sign-out, server-authoritative sign-up codes, Jest + pgTAP + typecheck CI.
 
 **Pending (the work ahead):**
-- Push notifications: Apple/Google credentials, then `send-push` + its secrets; `push-core` stays absent from
-  PostHog (off) until then. Steps in [go-live-runbook.md](./go-live-runbook.md).
+- **Push notifications (built 2026-10-02, not live; decisions #52–#59,
+  [architecture.md](./architecture.md#push-notifications)).** In the app, behind `push-core` (now a
+  default-off flag, still absent from PostHog): a full-screen "turn on notifications" page once per
+  device after the welcome cards, and a reminder line on the camera for someone tagged with
+  notifications off. On the server, migration `20261002190000_tag_and_feed_pushes` (**not pushed**):
+  the new tag and reminder wording, two feed-lock pushes with their own switches, and a rule that a
+  push more than an hour overdue is closed instead of sent. **No new native build is needed for
+  iPhone** — build 10 has the notifications module and the push entitlement (checked in the build
+  file); the app side goes by OTA. Owner's ordered steps (Apple push key check, migration, function
+  and secrets, Vault, OTA, one test push, then the flag for everyone, and how to roll back):
+  [go-live-runbook.md](./go-live-runbook.md#switching-push-notifications-on). Not checked on a
+  phone. Waiting on the founder: sign-off on the push wording (the full list is in the architecture
+  doc), whether both feed pushes stay on, and whether a lock-screen countdown (#59) is wanted for
+  build 11. Android needs Google's FCM credentials and its first build.
 - Invite landing page on `togethermahi.com` (the domain doesn't resolve yet; the 6-character code works).
 - **Video posts (built 2026-10-02, flag `video-posts`, default OFF — [architecture.md](./architecture.md#video-posts)):**
   needs a new native build (adds `expo-video`; the microphone text stays, reworded), migration

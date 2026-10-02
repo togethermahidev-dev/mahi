@@ -9,8 +9,11 @@ flag is simply on.
 The seven added 2026-10-01 (`onboarding-welcome-cards`, `feed-lock-explainer`, `nav-rail-morph`,
 `camera-pip-guide`, `tags-invite-step`, `auth-password-reset`, `account-delete`) and four that had never
 been created (`nav-glass-rail`, `invite-links`, `tag-challenges`, `mahi-points`) were created that day.
-**`push-core` is deliberately not created**, so it reads as off, until push notifications are set up on
-the server (Apple/Google push credentials, `send-push` deployed — see [go-live-runbook.md](./go-live-runbook.md)).
+**`push-core` is deliberately not created** (checked 2026-10-02), and since 2026-10-02 it is a
+default-off flag, so it reads as off — even while flags load — until push notifications are set up on
+the server and the owner creates it (steps in
+[go-live-runbook.md](./go-live-runbook.md#switching-push-notifications-on): first for the owner's
+account only, to test one push, then for everyone).
 **`video-posts` (added 2026-10-02) is a default-off flag:** the owner wants it OFF for everyone.
 Create it in PostHog **switched off** (or at 0%); it reads as off until PostHog says true.
 **`ios-sf-symbols`, `context-menu-preview` and `camera-tap-focus` (added 2026-10-02) are default-off too:**
@@ -44,11 +47,12 @@ if (!showBell) return null;
   a missing key). So every new flag must be created in PostHog, at 100%, before the update that uses it ships —
   found 2026-10-01, when seven new features stayed hidden on the test phones until their flags were created.
   This pure logic is unit-tested in [`src/lib/__tests__/featureFlags.test.ts`](../src/lib/__tests__/featureFlags.test.ts).
-- **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `video-posts`, `ios-sf-symbols`,
-  `context-menu-preview`, `camera-tap-focus`, `identity-verification` and `purchases`): off while flags
-  load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns `true`. Use this
-  for a feature that must never show, even for a moment on cold start (video posts would otherwise be able to
-  ask for the microphone before flags load).
+- **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `push-core`, `video-posts`,
+  `ios-sf-symbols`, `context-menu-preview`, `camera-tap-focus`, `identity-verification` and `purchases`): off
+  while flags load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns
+  `true`. Use this for a feature that must never show, even for a moment on cold start (video posts would
+  otherwise be able to ask for the microphone before flags load; the full-screen notifications page would
+  flash up on a first launch).
 - Reference gate: the notifications bell in [`src/components/AppHeader.tsx`](../src/components/AppHeader.tsx) is
   gated by `notifications-core`.
 
@@ -60,7 +64,14 @@ Twenty-one keys, every one read by code. (Suggested follows have no flag: they a
 
 **Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
 are switched in the `app_config` table):
-`push-core` (P1, the one-time "turn on notifications" prompt — **not in PostHog, so off**) · `tag-challenges` (P2, the open-tags banner) ·
+`push-core` (**default off; not in PostHog yet**. On: a full-screen page, once per device after the
+welcome cards and the phone's camera question — "When do you post on Mahi?", one line of why, and a card
+"Please turn on notifications" with Allow / Not now; Allow brings up the phone's own question. Someone
+who said "Not now" or "Don't allow" sees, while they hold an open tag, one dismissible line under the
+camera's open-tags pill, "Turn on notifications so you never miss a tag", which opens Mahi in the
+phone's Settings (or the phone's question if it was never asked). Works on build 10; needs `send-push`
+live to be worth switching on. The server queues pushes whether it is on or off. Off = nobody is asked;
+phones that already allowed still register.) · `tag-challenges` (P2, the open-tags banner) ·
 `invite-links` (P7, invite a slot from the tag sheet and share the links after posting; the 6-character
 code works, but links point at `togethermahi.com`, which doesn't resolve yet — see [tag-loop-plan.md](./tag-loop-plan.md) Phase 7)
 `feed-lock-explainer` (the locked feed names who tagged you and how long you have to answer, or, with

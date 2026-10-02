@@ -288,7 +288,7 @@ Persists sign-up form state across app backgrounding mid-flow. Cleared on comple
 | `useNotificationsStore` | `notificationsStore.ts` | Activity items, `unreadCount`, realtime `subscribe`/`unsubscribe`, `markRead`/`markAllRead`; tracks `tag_missed` and `streak_lost` as they arrive |
 | `useSuggestStore` | `suggestStore.ts` | "Suggested for you" list, `followSuggested` |
 | `useBlockStore` | `blockStore.ts` | Blocked ids both ways (`isBlocked`), `block`/`unblock`; refreshes feed, messages and follows |
-| `usePushStore` | `pushStore.ts` | Whether this device's push token is registered |
+| `usePushStore` | `pushStore.ts` | Whether this device's push token is registered, what the phone says about notifications, and whether the "turn on notifications" page and the camera's reminder line have been answered or dismissed on this device |
 | `useTagStore` | `tagStore.ts` | Open tags (memory only, they expire), `serverOffsetMs`, `openTagsLoaded`, `requiredTags`/`maxTags` from `app_config` |
 | `useInviteStore` | `inviteStore.ts` | The invite token/code the app was opened with (memory only) and its claim |
 | `useToastStore` | `toastStore.ts` | One toast message for failed mutations (imported directly, not from the barrel) |

@@ -26,6 +26,17 @@ no daily cap, the `point_events` ledger, `award_point`, `app_config.daily_point_
 `rollbacks/20261002170000_mahi_points.rollback.sql`). Safe for every app already on phones: they read
 `points` and `streak_current`, and both still exist (`point_events` was empty on prod, checked
 2026-10-02).
+Also not pushed: `20261002190000_tag_and_feed_pushes` (push wording and feed-lock pushes: the tag
+push says "You've just been tagged by @sam. 48 hours left to post your Mahi!", the reminders "24
+hours left to post your Mahi! @sam is waiting."; two new pushes, "Your feed locks in 1 hour…" and
+"Your feed is locked…", queued only for someone whose feed is open and who holds an open tag, each
+with its own switch — `app_config.feed_lock_warning_push`, `feed_lock_warning_lead`,
+`feed_locked_push`; reminders and feed pushes are queued by the `queue_tag_pushes` trigger on
+`tag_challenges`, no longer by `create_post` / `claim_invite`; `claim_push_batch` closes a push more
+than `app_config.push_stale_after` (1 hour) overdue as `stale` instead of sending it; test
+`tests/tag_feed_pushes_test.sql`, undo `rollbacks/20261002190000_tag_and_feed_pushes.rollback.sql`).
+Safe for every app on phones: nothing the app reads changes. It goes out with the push go-live steps
+in `docs/go-live-runbook.md`.
 Still held back: `deferred/contract_posting.sql`,
 `deferred/contract_messages.sql`, `deferred/private_bucket.sql` — they shut old paths and wait for a
 store build covered by the version gate — and `deferred/contract_points.sql`, which drops the
@@ -60,7 +71,7 @@ The build plan is [docs/tag-loop-plan.md](../docs/tag-loop-plan.md).
 | `send-otp` | Makes a 6-digit sign-up code (`purpose = 'signup'`) **server-side**, stores `sha256(code)` + expiry in `otp_codes`, emails it via Resend from `noreply@mahitechnology.com`. Limits: 1/min and 5/hour per email, 5/min and 30/hour per network address (`auth_rate_limits`). |
 | `verify-otp` | Checks a typed sign-up code (5 tries, one atomic update per try) and stamps `verified_at` on a match. |
 | `complete-signup` | Creates the confirmed auth user only for a sign-up code `verify-otp` accepted in the last 30 minutes. |
-| `send-push` | Push outbox sender, called by pg_cron. **Not deployed yet** — waits for push credentials (see `docs/go-live-runbook.md`). |
+| `send-push` | Push outbox sender, called by pg_cron every minute once the Vault secrets `send_push_url` and `send_push_secret` exist. **Not deployed yet** — the owner's steps are in `docs/go-live-runbook.md` ("Switching push notifications on"). Deploy with `--no-verify-jwt`; the gate is the `X-Internal-Secret` header (`SEND_PUSH_SECRET`). |
 | `send-reset-code` | Password reset: same as `send-otp` but stores the code with `purpose = 'reset'`. Answers and works the same whether or not the email has an account. |
 | `reset-password` | Checks a reset code (5 tries), then sets the new password with the admin API. Same password rule as sign-up. |
 | `delete-account` | Deletes the caller's photos (`posts/{id}/`, `avatars/{id}/`), then their auth user; every table cascades. Deployed **with** JWT verification. |
