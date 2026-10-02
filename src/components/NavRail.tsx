@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { BlurView } from 'expo-blur';
-import * as Haptics from 'expo-haptics';
+import { haptic } from '@/lib/haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -173,7 +173,7 @@ export default function NavRail({
 
   // Switch screens live as the finger passes each icon.
   const pick = (i: number) => {
-    Haptics.selectionAsync();
+    haptic('selection');
     onSelectRef.current(TABS[i].key);
   };
 
@@ -263,7 +263,7 @@ export default function NavRail({
         accessibilityState={{ selected }}
         onPress={() => {
           if (selected) return;
-          Haptics.selectionAsync();
+          haptic('selection');
           onSelect(key);
         }}
         style={({ pressed }) => [
