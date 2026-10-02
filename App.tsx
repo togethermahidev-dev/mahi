@@ -38,6 +38,8 @@ import {
   useChromeStore,
 } from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
+import { useIdentityStore } from '@/store/identityStore';
+import { usePurchasesStore } from '@/store/purchasesStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useInviteLink } from '@/hooks/useInviteLink';
 import { getAppGate, getProfile, signOut, updateTimezone } from '@/api';
@@ -158,6 +160,9 @@ export default function App(): React.JSX.Element {
         useTagStore.getState().reset();
         useInviteStore.getState().reset();
         useChromeStore.getState().reset();
+        useIdentityStore.getState().reset();
+        // Logs RevenueCat out only if it was configured (flag `purchases`); otherwise a no-op.
+        usePurchasesStore.getState().reset();
         Sentry.setUser(null);
         posthog.reset();
       }

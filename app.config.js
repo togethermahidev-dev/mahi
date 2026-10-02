@@ -57,6 +57,14 @@ const config = {
         url: 'https://sentry.io/',
       },
     ],
+    // Didit identity checks (flag identity-verification, dormant in build 11). NFC passport
+    // reading off, automatic capture on: no NFC capability, entitlement or usage text needed.
+    // The plugin's preferred keys; its legacy iosNfcEnabled/androidNfcEnabled: false would give
+    // Android the smaller 'core' variant (manual capture) instead.
+    [
+      '@didit-protocol/sdk-react-native',
+      { iosVariant: 'autodetection', androidVariant: 'autodetection' },
+    ],
     [
       'expo-splash-screen',
       {
