@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Reanimated from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
+import { haptic } from '@/lib/haptics';
 import {
   useChromeStore,
   useFeedStore,
@@ -200,7 +200,7 @@ export default function PostCard({
       } else {
         console.log('[FeedScreen] double-tap → already liked, skipping');
       }
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      haptic('tick');
       triggerMedalBurst(x, y);
     },
     [currentUser, likedByMe, item.id, triggerMedalBurst]
@@ -222,7 +222,7 @@ export default function PostCard({
   const holding = useRef(false);
   const startHold = useCallback(() => {
     holding.current = true;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic('pickUp');
     useChromeStore.getState().setViewing(true);
   }, []);
   const endHold = useCallback(() => {
@@ -256,7 +256,7 @@ export default function PostCard({
       console.warn('[FeedScreen] like: no currentUser');
       return;
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic('tick');
     useSocialStore.getState().toggleLike(item.id, currentUser.id);
   }, [item.id, currentUser, likedByMe]);
 
