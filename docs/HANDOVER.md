@@ -47,6 +47,37 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
 - **Comment likes (built 2026-10-02, flag `comment-likes`):** migration `20261002130000_comment_likes`
   pushed, then the flag created in PostHog at 100%. No native build needed. Not yet checked on a phone.
 - Next native build: add `expo-symbols` for Apple icons. (The microphone text is kept for video posts.)
+- **Identity checks (Didit) and in-app purchases (RevenueCat) — dormant in build 11** (flags
+  `identity-verification` and `purchases`, both default OFF —
+  [architecture.md](./architecture.md#identity-checks-and-purchases-dormant)). Build 11 carries the native
+  pieces; switching either on later is an OTA plus the flag. Nothing is deployed or pushed. Owner steps:
+  - *Didit:* make an account at business.didit.me; build a workflow (ID document + liveness + face match,
+    no NFC) and copy its workflow id; create an API key; add a webhook destination with URL
+    `https://pzepodsppqtvptzmwxzs.supabase.co/functions/v1/didit-webhook` and copy its secret. Then:
+    ```bash
+    export SUPABASE_ACCESS_TOKEN=<Mahi token>
+    supabase secrets set --project-ref pzepodsppqtvptzmwxzs \
+      DIDIT_API_KEY=<key> DIDIT_WORKFLOW_ID=<workflow id> DIDIT_WEBHOOK_SECRET=<webhook secret>
+    scripts/db.sh backup
+    scripts/db.sh try supabase/migrations/20261002150000_identity_verifications.sql supabase/tests/identity_verifications_test.sql
+    scripts/db.sh push --dry-run && scripts/db.sh push
+    supabase functions deploy didit-session --project-ref pzepodsppqtvptzmwxzs
+    supabase functions deploy didit-webhook --no-verify-jwt --project-ref pzepodsppqtvptzmwxzs
+    ```
+  - *RevenueCat + App Store Connect:* sign the Paid Apps Agreement (banking and tax) in App Store Connect;
+    create the products (subscriptions or one-off purchases); create an In-App Purchase key (.p8) under
+    Users and Access → Integrations and give RevenueCat the .p8, its key id and the issuer id; in the app's
+    App Store Connect page set App Store Server Notifications (Version 2) to the URL RevenueCat shows. In
+    RevenueCat: a project, the iOS app (`com.mahi.app`), the products, an entitlement and a current offering
+    (and a paywall if you want RevenueCat's). Put the public SDK keys in each EAS lane as **sensitive**
+    (not secret — updates can't read secrets):
+    `eas env:create --environment production --name EXPO_PUBLIC_REVENUECAT_IOS_KEY --value appl_… --visibility sensitive`
+    (same for `preview`; `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` when Android comes).
+  - Apple reviews the first in-app purchase together with an app version: submit the products with the
+    version that first shows them.
+  - Create both flags in PostHog **switched off**; turn on only after the steps above.
+  - Question for you: build 11's camera and microphone texts talk about workouts. Apple may want them to
+    mention identity checks once Didit is switched on — reword before that store build?
 - Parked decision: success targets (#12). (Streak rule #1, existing streaks #10 and rest days #27 were
   decided on 2026-10-01 with reactive posting.)
 - Store release, then the `supabase/deferred/` contract steps.

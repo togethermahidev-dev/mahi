@@ -22,6 +22,11 @@ Also not pushed: `20261002130000_comment_likes` (comment likes: `comment_likes` 
 `get_comment_likes`, `get_comment_likers`; test `tests/comment_likes_test.sql`, undo
 `rollbacks/20261002130000_comment_likes.rollback.sql`). Additive — no app build reads it unless the
 `comment-likes` flag is on, and comments load the same way with or without it.
+Also not pushed: `20261002150000_identity_verifications` (identity checks with Didit: the
+`identity_verifications` table — people read only their own rows — and `record_identity_verification`,
+service role only; test `tests/identity_verifications_test.sql`, undo
+`rollbacks/20261002150000_identity_verifications.rollback.sql`). Additive — nothing reads it unless the
+`identity-verification` flag is on. Push it before deploying `didit-session` / `didit-webhook`.
 Still held back: `deferred/contract_posting.sql`,
 `deferred/contract_messages.sql`, `deferred/private_bucket.sql` — they shut old paths and wait for a
 store build covered by the version gate.
@@ -59,7 +64,10 @@ The build plan is [docs/tag-loop-plan.md](../docs/tag-loop-plan.md).
 | `send-reset-code` | Password reset: same as `send-otp` but stores the code with `purpose = 'reset'`. Answers and works the same whether or not the email has an account. |
 | `reset-password` | Checks a reset code (5 tries), then sets the new password with the admin API. Same password rule as sign-up. |
 | `delete-account` | Deletes the caller's photos (`posts/{id}/`, `avatars/{id}/`), then their auth user; every table cascades. Deployed **with** JWT verification. |
+| `didit-session` | Identity check, step 1: for the signed-in caller (token checked), creates a Didit session (`POST https://verification.didit.me/v3/session/`, `vendor_data` = user id), stores a `pending` row and returns the session token. Already approved → no new session; at most 5 a day. **Not deployed.** Deploy **with** JWT verification. Secrets `DIDIT_API_KEY`, `DIDIT_WORKFLOW_ID`. |
+| `didit-webhook` | Identity check, step 2: Didit calls it on each status change. Checks the HMAC signature (`X-Signature` or `X-Signature-V2`, `X-Timestamp` within 5 minutes) with `DIDIT_WEBHOOK_SECRET`, then records the status (repeats and late events are harmless; statuses only, no personal details). **Not deployed.** Deploy with `--no-verify-jwt`. |
 
+Didit pieces live in `functions/_shared/didit.ts` (`deno test functions/_shared/didit_test.ts`).
 Sign-up and reset codes share `otp_codes`, kept apart by `purpose` (migration
 `20261001100000_password_reset_codes`). Shared code lives in `functions/_shared/otp.ts` and
 `functions/_shared/email.ts` (`deno test functions/_shared/`). The
@@ -68,7 +76,8 @@ refuses email sign-ups without a fresh `verified_at`, which closes the public si
 switched on in the Dashboard (Authentication → Hooks), not by the migration.
 
 Required function secrets: `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY` (`send-push` adds `SEND_PUSH_SECRET`).
-All functions except `delete-account` run `verify_jwt: false` (deploy with `--no-verify-jwt`); `delete-account`
-keeps JWT verification on. Deployed versions (checked against prod 2026-10-01): `send-otp` v18, `verify-otp` v2,
+All functions except `delete-account` and `didit-session` run `verify_jwt: false` (deploy with
+`--no-verify-jwt`); those two keep JWT verification on. `didit-webhook` is reached by Didit at
+`https://pzepodsppqtvptzmwxzs.supabase.co/functions/v1/didit-webhook` once deployed. Deployed versions (checked against prod 2026-10-01): `send-otp` v18, `verify-otp` v2,
 `complete-signup` v7, `send-reset-code` v1, `reset-password` v1, `delete-account` v1. `check-email` is live but
 not in this repo. Deploys are the owner's; the CLI needs `SUPABASE_ACCESS_TOKEN` set to a Mahi token.

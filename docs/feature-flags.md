@@ -16,6 +16,8 @@ Create it in PostHog **switched off** (or at 0%); it reads as off until PostHog 
 **`ios-sf-symbols`, `context-menu-preview` and `camera-tap-focus` (added 2026-10-02) are default-off too:**
 they need build 11; they exist in PostHog **switched off** — turn each on only once build 11 is on the phones
 (build 10 ignores them either way).
+**`identity-verification` and `purchases` (added 2026-10-02) are default off too:** dormant until Didit and
+RevenueCat are set up (owner steps in [HANDOVER.md](./HANDOVER.md)). Both exist in PostHog **switched off**.
 
 PostHog project: **EU region, `project_id=130791`**.
 
@@ -39,7 +41,8 @@ if (!showBell) return null;
   a missing key). So every new flag must be created in PostHog, at 100%, before the update that uses it ships —
   found 2026-10-01, when seven new features stayed hidden on the test phones until their flags were created.
   This pure logic is unit-tested in [`src/lib/__tests__/featureFlags.test.ts`](../src/lib/__tests__/featureFlags.test.ts).
-- **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `video-posts`, `ios-sf-symbols`, `context-menu-preview` and `camera-tap-focus`): off while flags
+- **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `video-posts`, `ios-sf-symbols`,
+  `context-menu-preview`, `camera-tap-focus`, `identity-verification` and `purchases`): off while flags
   load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns `true`. Use this
   for a feature that must never show, even for a moment on cold start (video posts would otherwise be able to
   ask for the microphone before flags load).
@@ -48,7 +51,7 @@ if (!showBell) return null;
 
 ## The flags
 
-Eighteen keys, every one read by code. (Suggested follows have no flag: they are always on.)
+Twenty-one keys, every one read by code. (Suggested follows have no flag: they are always on.)
 
 **Notifications:** `notifications-core` (the bell in the header and the notifications list)
 
@@ -110,6 +113,16 @@ when liked), video, sound on / sound off (speaker with waves / speaker struck th
 icons — comment and messages bubbles with the blue offset layer, and the like medal — stay drawn. Mapping
 in [`src/lib/sfSymbols.ts`](../src/lib/sfSymbols.ts). Needs the `expo-symbols` native module: on build 10
 and on Android it reads as off. Off = today's drawn icons exactly.)
+
+**Identity checks and purchases** (dormant in build 11 — [architecture.md](./architecture.md#identity-checks-and-purchases-dormant)):
+`identity-verification` (**default off**; a Didit identity check: the server starts a session, Didit's own
+screens check an ID document and a selfie, the result arrives at the server and is read fresh from it. No
+screen uses it yet. Needs the Didit native module (build 11), functions `didit-session` and `didit-webhook`,
+their secrets and migration `20261002150000_identity_verifications`. On a build without Didit it reads as off.)
+`purchases` (**default off**; in-app purchases through RevenueCat: offering, entitlement check, purchase,
+restore and RevenueCat's paywall. No screen uses it yet. Needs the RevenueCat native modules (build 11) and
+`EXPO_PUBLIC_REVENUECAT_IOS_KEY` in the lane. On a build without RevenueCat, or with no key, it reads as off
+and RevenueCat is never started.)
 
 **Navigation:** `nav-glass-rail` (floating glass rail on the left with Camera, Feed, Messages and
 Profile; replaces the side dots and the header's Profile/Messages pills. Off = the old dots and pills.)
