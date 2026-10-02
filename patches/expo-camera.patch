@@ -1,0 +1,276 @@
+diff --git a/build/Camera.types.d.ts b/build/Camera.types.d.ts
+index 0ee50ec0d2705ef233c5ccbcfa098e92d91446bb..1242a62110e64b690d6dbfa87fd6dacd91b25591 100644
+--- a/build/Camera.types.d.ts
++++ b/build/Camera.types.d.ts
+@@ -459,6 +459,8 @@ export type CameraViewProps = ViewProps & {
+  * @hidden
+  */
+ export interface CameraViewRef {
++    /** Mahi patch: present only on builds whose native camera has it (iOS). */
++    readonly focusAt?: (x: number, y: number) => Promise<void>;
+     readonly takePicture: (options: CameraPictureOptions) => Promise<CameraCapturedPicture>;
+     readonly takePictureRef?: (options: CameraPictureOptions) => Promise<PictureRef>;
+     readonly getAvailablePictureSizes: () => Promise<string[]>;
+diff --git a/build/CameraView.d.ts b/build/CameraView.d.ts
+index da858fa67131c22597375a2400877ac7d640f971..935a554628a8bdb0f4fab0aa57d21cbc3b62f6db 100644
+--- a/build/CameraView.d.ts
++++ b/build/CameraView.d.ts
+@@ -48,6 +48,16 @@ export default class CameraView extends Component<CameraViewProps> {
+      * Pauses the camera preview. It is not recommended to use `takePictureAsync` when preview is paused.
+      */
+     pausePreview(): Promise<void>;
++    /**
++     * Mahi patch: focus and expose at a point of the view (iOS). `x` and `y` are 0-1 across and
++     * down the view as seen on screen. Resolves `false`, doing nothing, when this build's native
++     * camera has no `focusAt` (builds made before the patch, Android).
++     */
++    focusAtAsync(x: number, y: number): Promise<boolean>;
++    /**
++     * Mahi patch: whether this build's native camera can focus on a point (see `focusAtAsync`).
++     */
++    isFocusAtAvailable(): boolean;
+     static ConversionTables: {
+         [prop: string]: unknown;
+         type: Record<keyof import("./Camera.types").CameraType, import("./Camera.types").CameraNativeProps["facing"]>;
+diff --git a/build/CameraView.js b/build/CameraView.js
+index 78f81984d8831a895ed5259ec75597489afbdbc2..24be29e968c3eb8b8b1e84a0f12c1744b48cafaf 100644
+--- a/build/CameraView.js
++++ b/build/CameraView.js
+@@ -107,6 +107,24 @@ export default class CameraView extends Component {
+     async pausePreview() {
+         return this._cameraRef.current?.pausePreview();
+     }
++    /**
++     * Mahi patch: focus and expose at a point of the view (iOS). `x` and `y` are 0-1 across and
++     * down the view as seen on screen. Resolves `false`, doing nothing, when this build's native
++     * camera has no `focusAt` (builds made before the patch, Android).
++     */
++    async focusAtAsync(x, y) {
++        const native = this._cameraRef.current;
++        if (typeof native?.focusAt !== 'function')
++            return false;
++        await native.focusAt(x, y);
++        return true;
++    }
++    /**
++     * Mahi patch: whether this build's native camera can focus on a point (see `focusAtAsync`).
++     */
++    isFocusAtAvailable() {
++        return typeof this._cameraRef.current?.focusAt === 'function';
++    }
+     // Values under keys from this object will be transformed to native options
+     static ConversionTables = ConversionTables;
+     static defaultProps = {
+diff --git a/ios/CameraViewModule.swift b/ios/CameraViewModule.swift
+index cccd73f006589bed21d54532752e0995886ad34f..38803983c85eeda393db0a1ffccdca910f9b0be3 100644
+--- a/ios/CameraViewModule.swift
++++ b/ios/CameraViewModule.swift
+@@ -250,6 +250,12 @@ public final class CameraViewModule: Module, ScannerResultHandler {
+         view.pausePreview()
+       }
+ 
++      // Mahi patch: tap to focus. `x` and `y` are 0-1 across and down the view as seen on screen.
++      // Main queue: the preview layer converts the point to the sensor's.
++      AsyncFunction("focusAt") { (view, x: Double, y: Double) in
++        view.focus(atViewX: x, y: y)
++      }.runOnQueue(.main)
++
+       AsyncFunction("getAvailablePictureSizes") {
+         return PictureSize.allCases.map { $0.rawValue }
+       }
+diff --git a/ios/Current/CameraSessionManager.swift b/ios/Current/CameraSessionManager.swift
+index 7a6568c3f0cdad49c1ab276da79660fdcd9a24dc..8fc87a67d5ef4cd440b440d6dd62e0e2ea0bcfba 100644
+--- a/ios/Current/CameraSessionManager.swift
++++ b/ios/Current/CameraSessionManager.swift
+@@ -34,6 +34,8 @@ class CameraSessionManager: NSObject, DeviceDiscoveryDelegate {
+   private var photoOutput: AVCapturePhotoOutput?
+   private var videoFileOutput: AVCaptureMovieFileOutput?
+   private var runtimeErrorTask: Task<Void, Never>?
++  // Mahi patch: tap to focus waits for the scene to change, then goes back to continuous focus.
++  private var subjectAreaObserver: NSObjectProtocol?
+ 
+   init(delegate: CameraSessionManagerDelegate) {
+     self.delegate = delegate
+@@ -209,6 +211,83 @@ class CameraSessionManager: NSObject, DeviceDiscoveryDelegate {
+     }
+   }
+ 
++  /// Mahi patch: tap to focus. Focus and expose once at `devicePoint` (the sensor's 0-1 point of
++  /// interest). When the scene changes enough (the phone moves), go back to continuous focus and
++  /// exposure in the middle, as before the tap. Runs on the session queue.
++  func focus(at devicePoint: CGPoint) {
++    guard let device = captureDeviceInput?.device else {
++      return
++    }
++    configureFocus(device, at: devicePoint, focusMode: .autoFocus, exposureMode: .autoExpose, monitorSubjectArea: true)
++    watchSubjectArea(of: device)
++  }
++
++  private func configureFocus(
++    _ device: AVCaptureDevice,
++    at point: CGPoint,
++    focusMode: AVCaptureDevice.FocusMode,
++    exposureMode: AVCaptureDevice.ExposureMode,
++    monitorSubjectArea: Bool
++  ) {
++    do {
++      try device.lockForConfiguration()
++      defer { device.unlockForConfiguration() }
++      if device.isFocusPointOfInterestSupported && device.isFocusModeSupported(focusMode) {
++        device.focusPointOfInterest = point
++        device.focusMode = focusMode
++      }
++      if device.isExposurePointOfInterestSupported && device.isExposureModeSupported(exposureMode) {
++        device.exposurePointOfInterest = point
++        device.exposureMode = exposureMode
++      }
++      device.isSubjectAreaChangeMonitoringEnabled = monitorSubjectArea
++    } catch {
++      log.info("\(#function): \(error.localizedDescription)")
++    }
++  }
++
++  private func watchSubjectArea(of device: AVCaptureDevice) {
++    stopWatchingSubjectArea()
++    subjectAreaObserver = NotificationCenter.default.addObserver(
++      forName: AVCaptureDevice.subjectAreaDidChangeNotification,
++      object: device,
++      queue: nil
++    ) { [weak self] _ in
++      guard let self, let delegate = self.delegate else {
++        return
++      }
++      delegate.sessionQueue.async {
++        self.endTapFocus()
++      }
++    }
++  }
++
++  /// Back to continuous focus and exposure in the middle, as before the tap. Does nothing when no
++  /// tap is waiting. Runs on the session queue.
++  private func endTapFocus() {
++    guard subjectAreaObserver != nil else {
++      return
++    }
++    stopWatchingSubjectArea()
++    guard let delegate, let device = captureDeviceInput?.device else {
++      return
++    }
++    configureFocus(
++      device,
++      at: CGPoint(x: 0.5, y: 0.5),
++      focusMode: delegate.autoFocus,
++      exposureMode: .continuousAutoExposure,
++      monitorSubjectArea: false
++    )
++  }
++
++  private func stopWatchingSubjectArea() {
++    if let subjectAreaObserver {
++      NotificationCenter.default.removeObserver(subjectAreaObserver)
++      self.subjectAreaObserver = nil
++    }
++  }
++
+   func updateZoom() {
+     guard let device = captureDeviceInput?.device, let delegate else {
+       return
+@@ -277,6 +356,8 @@ class CameraSessionManager: NSObject, DeviceDiscoveryDelegate {
+   func stopSession() {
+     runtimeErrorTask?.cancel()
+     runtimeErrorTask = nil
++    // Mahi patch: the device outlives this session; leave it focusing continuously again.
++    endTapFocus()
+ 
+     // Stop before deconfiguring. Removing inputs and outputs from a session that is still
+     // running rebuilds the capture graph just to tear it down, and that rebuild waits out
+@@ -323,6 +404,7 @@ class CameraSessionManager: NSObject, DeviceDiscoveryDelegate {
+ 
+   deinit {
+     runtimeErrorTask?.cancel()
++    stopWatchingSubjectArea()
+   }
+ 
+   var currentPhotoOutput: AVCapturePhotoOutput? { photoOutput }
+@@ -339,6 +421,9 @@ class CameraSessionManager: NSObject, DeviceDiscoveryDelegate {
+     if captureDeviceInput?.device.uniqueID == device.uniqueID {
+       return
+     }
++    // Mahi patch: a tap's focus belongs to the camera it was made on. The device keeps its
++    // settings, so put it back to continuous focus before switching away from it.
++    endTapFocus()
+ 
+     session.beginConfiguration()
+     defer {
+diff --git a/ios/Current/CameraView.swift b/ios/Current/CameraView.swift
+index 4692d00921801b1a12c9d64062c3fe37ae2af391..308cea0906577149aa1105fc11e049d7268dd822 100644
+--- a/ios/Current/CameraView.swift
++++ b/ios/Current/CameraView.swift
+@@ -355,6 +355,24 @@ public class CameraView: ExpoView, EXAppLifecycleListener, EXCameraInterface, Ca
+     previewLayer.connection?.isEnabled = true
+   }
+ 
++  /// Mahi patch: focus and expose at a point of the view, 0-1 across and down as seen on screen.
++  /// The preview layer turns it into the sensor's point of interest, accounting for the
++  /// aspect-fill crop, the sensor's rotation and the mirrored selfie preview. Main thread only.
++  func focus(atViewX x: Double, y: Double) {
++    let size = previewLayer.bounds.size
++    guard size.width > 0, size.height > 0 else {
++      return
++    }
++    let layerPoint = CGPoint(
++      x: CGFloat(min(max(x, 0), 1)) * size.width,
++      y: CGFloat(min(max(y, 0), 1)) * size.height
++    )
++    let devicePoint = previewLayer.captureDevicePointConverted(fromLayerPoint: layerPoint)
++    sessionQueue.async {
++      self.sessionManager.focus(at: devicePoint)
++    }
++  }
++
+   func pausePreview() {
+     previewLayer.connection?.isEnabled = false
+   }
+diff --git a/src/Camera.types.ts b/src/Camera.types.ts
+index 7cf0a075b9c174a843bc141d54c01bfcc146b112..04112a4f2cdf9d4c822c4533c8b4e330005153a1 100644
+--- a/src/Camera.types.ts
++++ b/src/Camera.types.ts
+@@ -495,6 +495,8 @@ export type CameraViewProps = ViewProps & {
+  * @hidden
+  */
+ export interface CameraViewRef {
++  /** Mahi patch: present only on builds whose native camera has it (iOS). */
++  readonly focusAt?: (x: number, y: number) => Promise<void>;
+   readonly takePicture: (options: CameraPictureOptions) => Promise<CameraCapturedPicture>;
+   readonly takePictureRef?: (options: CameraPictureOptions) => Promise<PictureRef>;
+   readonly getAvailablePictureSizes: () => Promise<string[]>;
+diff --git a/src/CameraView.tsx b/src/CameraView.tsx
+index b2cc359476729812a3f8a7e144e01d51b362bd0f..70e827cffb3347efd4d034714e7fadb157ae06b2 100644
+--- a/src/CameraView.tsx
++++ b/src/CameraView.tsx
+@@ -153,6 +153,25 @@ export default class CameraView extends Component<CameraViewProps> {
+     return this._cameraRef.current?.pausePreview();
+   }
+ 
++  /**
++   * Mahi patch: focus and expose at a point of the view (iOS). `x` and `y` are 0-1 across and
++   * down the view as seen on screen. Resolves `false`, doing nothing, when this build's native
++   * camera has no `focusAt` (builds made before the patch, Android).
++   */
++  async focusAtAsync(x: number, y: number): Promise<boolean> {
++    const native = this._cameraRef.current;
++    if (typeof native?.focusAt !== 'function') return false;
++    await native.focusAt(x, y);
++    return true;
++  }
++
++  /**
++   * Mahi patch: whether this build's native camera can focus on a point (see `focusAtAsync`).
++   */
++  isFocusAtAvailable(): boolean {
++    return typeof this._cameraRef.current?.focusAt === 'function';
++  }
++
+   // Values under keys from this object will be transformed to native options
+   static ConversionTables = ConversionTables;
+ 
