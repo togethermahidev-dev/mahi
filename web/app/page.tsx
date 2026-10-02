@@ -13,7 +13,7 @@ const STEPS = [
   },
   {
     title: 'Keep each other going',
-    body: "Every answer adds one to your streak and earns points. It's easier to turn up when your friends are counting on you.",
+    body: "Every answer on time earns you a Mahi point. Miss a tag and your points go back to 0, but your best stays. It's easier to turn up when your friends are counting on you.",
   },
 ];
 
@@ -29,8 +29,8 @@ export default function Home() {
             </h1>
             <p className="text-f17 leading-l28 text-ios-grey-dark">
               Mahi is a fitness accountability app. When a friend tags you, you&apos;ve got 48 hours
-              to answer with a workout photo, and every answer adds to your streak. Coming to iPhone
-              and Android.
+              to answer with a workout photo, and every answer earns you a Mahi point. Coming to
+              iPhone and Android.
             </p>
           </div>
 
