@@ -11,8 +11,10 @@ The seven added 2026-10-01 (`onboarding-welcome-cards`, `feed-lock-explainer`, `
 been created (`nav-glass-rail`, `invite-links`, `tag-challenges`, `mahi-points`) were created that day.
 **`push-core` is deliberately not created**, so it reads as off, until push notifications are set up on
 the server (Apple/Google push credentials, `send-push` deployed — see [go-live-runbook.md](./go-live-runbook.md)).
-**`video-posts` (added 2026-10-02) is the one default-off flag:** the owner wants it OFF for everyone.
+**`video-posts` (added 2026-10-02) is a default-off flag:** the owner wants it OFF for everyone.
 Create it in PostHog **switched off** (or at 0%); it reads as off until PostHog says true.
+**`ios-sf-symbols` (added 2026-10-02) is also default-off:** create it in PostHog **switched off**; turn it
+on only once build 11 is on the phones (build 10 ignores it either way).
 
 PostHog project: **EU region, `project_id=130791`**.
 
@@ -36,7 +38,7 @@ if (!showBell) return null;
   a missing key). So every new flag must be created in PostHog, at 100%, before the update that uses it ships —
   found 2026-10-01, when seven new features stayed hidden on the test phones until their flags were created.
   This pure logic is unit-tested in [`src/lib/__tests__/featureFlags.test.ts`](../src/lib/__tests__/featureFlags.test.ts).
-- **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`, today only `video-posts`): off while flags
+- **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`, today `video-posts` and `ios-sf-symbols`): off while flags
   load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns `true`. Use this
   for a feature that must never show, even for a moment on cold start (video posts would otherwise be able to
   ask for the microphone before flags load).
@@ -45,7 +47,7 @@ if (!showBell) return null;
 
 ## The flags
 
-Seventeen keys, every one read by code. (Suggested follows have no flag: they are always on.)
+Eighteen keys, every one read by code. (Suggested follows have no flag: they are always on.)
 
 **Notifications:** `notifications-core` (the bell in the header and the notifications list)
 
@@ -79,6 +81,14 @@ to open "Likes", who liked it, newest first, with a tap on a name opening their 
 either way can't like each other's comments and don't show in the list. Counts and the list are read
 fresh from the server each time; nothing is kept on the device. Needs migration
 `20261002130000_comment_likes`. Off = comments exactly as before, no hearts.)
+
+**Look:** `ios-sf-symbols` (**default off**; needs build 11). On an iPhone, the app's plain drawn icons
+become Apple's own (SF Symbols) at the same size and colour: search → magnifying glass, camera, feed →
+three left-aligned lines, profile → person, settings → gear, notifications → bell, heart (red filled heart
+when liked), video, sound on / sound off (speaker with waves / speaker struck through). The brand "echo"
+icons — comment and messages bubbles with the blue offset layer, and the like medal — stay drawn. Mapping
+in [`src/lib/sfSymbols.ts`](../src/lib/sfSymbols.ts). Needs the `expo-symbols` native module: on build 10
+and on Android it reads as off. Off = today's drawn icons exactly.)
 
 **Navigation:** `nav-glass-rail` (floating glass rail on the left with Camera, Feed, Messages and
 Profile; replaces the side dots and the header's Profile/Messages pills. Off = the old dots and pills.)

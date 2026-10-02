@@ -54,8 +54,14 @@ describe('default-off flags (video-posts)', () => {
     expect(FEATURE_FLAGS).toContain('video-posts');
   });
 
-  it('only video-posts defaults off', () => {
-    expect(DEFAULT_OFF_FLAGS).toEqual(['video-posts']);
+  it('only video-posts and ios-sf-symbols default off', () => {
+    expect(DEFAULT_OFF_FLAGS).toEqual(['video-posts', 'ios-sf-symbols']);
+  });
+
+  // Apple's icons need build 11; off until PostHog says true, so nothing swaps icons on cold start.
+  it('lists ios-sf-symbols in the registry, default off', () => {
+    expect(FEATURE_FLAGS).toContain('ios-sf-symbols');
+    expect(flagDefaultOn('ios-sf-symbols' as FeatureFlag)).toBe(false);
   });
 
   // Owner: off for everyone, and the app never asks for the microphone while it is off.
