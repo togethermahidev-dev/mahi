@@ -22,6 +22,10 @@
 -- Quiet hours: a warning that would have to wait is dropped ("in 1 hour" would no longer be
 -- true); the locked push waits until they end, and is dropped if the tag has run out by then.
 -- Blocked and banned people are left out by enqueue_push, as for every push.
+-- Late is worse than never for a push that states a time: one that is more than
+-- app_config.push_stale_after (1 hour) overdue when the sender gets to it — sending was paused,
+-- or was not switched on yet — is closed as 'stale' instead of sent. So switching push on never
+-- sends a backlog.
 --
 -- Reminders move out of create_post and claim_invite into one trigger on tag_challenges, so the
 -- words live in one place. Safe for every app on phones: nothing the app reads changes.
@@ -34,7 +38,9 @@ alter table public.app_config
   add column feed_lock_warning_push boolean not null default true,
   add column feed_lock_warning_lead interval not null default '1 hour'
     constraint app_config_feed_lock_warning_lead_positive check (feed_lock_warning_lead > interval '0'),
-  add column feed_locked_push boolean not null default true;
+  add column feed_locked_push boolean not null default true,
+  add column push_stale_after interval not null default '1 hour'
+    constraint app_config_push_stale_after_positive check (push_stale_after > interval '0');
 
 -- 2. "1 hour", "2 hours", "30 minutes", "1 hour 30 minutes" — for a sentence, unlike format_wait.
 create function public.format_time_left(p interval)
@@ -511,11 +517,6 @@ from public.tag_challenges c
 join public.profiles p on p.id = c.tagger_id
 where o.kind = 'tag_reminder' and o.sent_at is null and o.challenge_id = c.id;
 
---    Pushes that were already due were never sent (nothing sends until send-push is live, and
---    no phone has registered for pushes yet): they are old news by now, and some say things that
---    are no longer true ("24 hours left"). They go, so switching push on never sends a backlog.
-delete from public.push_outbox where sent_at is null and send_after <= now();
-
 -- 9. People holding an open tag right now get their feed pushes queued, as if tagged after this.
 select public.schedule_feed_lock_pushes(t.tagged_id)
 from (
@@ -525,7 +526,45 @@ from (
     and c.answered_at is null and c.cancelled_at is null and c.missed_at is null
 ) t;
 
--- 10. Internals only: nothing here is for the app to call.
+-- 10. The sender never hands out a push that is badly overdue (20260917111346_push's body, plus
+--     the stale rule). It is closed like a sent one, with error 'stale', so it is not retried.
+create or replace function public.claim_push_batch(p_limit int default 500)
+returns table (id bigint, user_id uuid, kind text, body text, data jsonb, tokens text[])
+language sql
+security definer
+set search_path = public
+as $$
+  with stale as (
+    update public.push_outbox o
+    set sent_at = now(), error = 'stale', receipts_checked_at = now()
+    from public.app_config cfg
+    where o.sent_at is null and o.send_after < now() - cfg.push_stale_after
+  ),
+  due as (
+    select o.id
+    from public.push_outbox o
+    cross join public.app_config cfg
+    where o.sent_at is null
+      and o.send_after <= now()
+      and o.send_after >= now() - cfg.push_stale_after
+      and (o.claimed_at is null or o.claimed_at < now() - interval '5 minutes')
+    order by o.send_after
+    limit p_limit
+    for update of o skip locked
+  ),
+  claimed as (
+    update public.push_outbox o
+    set claimed_at = now()
+    from due
+    where o.id = due.id
+    returning o.id, o.user_id, o.kind, o.body, o.data
+  )
+  select c.id, c.user_id, c.kind, c.body, c.data,
+         coalesce((select array_agg(t.token) from public.push_tokens t where t.user_id = c.user_id), '{}')
+  from claimed c;
+$$;
+
+-- 11. Internals only: nothing here is for the app to call.
 revoke execute on function
   public.format_time_left(interval),
   public.schedule_feed_lock_pushes(uuid),

@@ -1,6 +1,6 @@
 -- Push notifications: token ownership, the outbox, quiet hours, and who may call what.
 begin;
-select plan(19);
+select plan(23);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000b001', 'push-a@example.invalid'),
@@ -84,6 +84,19 @@ select public.complete_push(
    from pg_temp.mine() where claimed_at is not null)
 );
 select is((select count(*)::int from pg_temp.mine() where sent_at is null), 0, 'completed rows are marked sent');
+
+-- A push that is badly overdue when the sender gets to it (sending was paused, or not switched on
+-- yet) is closed, not sent: by then what it says may no longer be true.
+select col_default_is('public', 'app_config', 'push_stale_after', '1 hour', 'a push is stale after an hour, unless changed');
+update public.app_config set push_stale_after = '1 hour';
+insert into public.push_outbox (user_id, kind, body, send_after, dedupe_key) values
+  ('00000000-0000-0000-0000-00000000b001', 'test', 'late', now() - interval '2 hours', 'dedupe-late'),
+  ('00000000-0000-0000-0000-00000000b001', 'test', 'on time', now() - interval '30 minutes', 'dedupe-on-time');
+select is(
+  (select array_agg(c.body) from public.claim_push_batch(100000) c where c.id in (select id from pg_temp.mine())),
+  array['on time'], 'a push half an hour overdue still goes; one two hours overdue does not');
+select is((select error from pg_temp.mine() where body = 'late'), 'stale', 'the overdue one is closed as stale');
+select ok((select sent_at is not null from pg_temp.mine() where body = 'late'), 'so it is never retried');
 
 select public.remove_push_tokens(array['ExponentPushToken[test-1]']);
 select is((select count(*)::int from public.push_tokens where token = 'ExponentPushToken[test-1]'), 0,
