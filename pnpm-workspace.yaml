@@ -25,3 +25,6 @@ peerDependencyRules:
   allowedVersions:
     eslint-plugin-import>eslint: '10'
     eslint-plugin-react>eslint: '10'
+
+patchedDependencies:
+  expo-camera: patches/expo-camera.patch
