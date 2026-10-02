@@ -88,12 +88,16 @@ describe('recording limits', () => {
     expect(VIDEO_RECORDING.maxDuration).toBe(15);
   });
 
-  it('keeps files small: 720p, about 3.5 Mbit/s, H.264, never above the bucket limit', () => {
-    expect(VIDEO_RECORDING.quality).toBe('720p');
+  it('records full-screen sharp but small: 1080p, about 5 Mbit/s, H.264, under 10 MB for 15 s', () => {
+    expect(VIDEO_RECORDING.quality).toBe('1080p');
     expect(VIDEO_RECORDING.codec).toBe('avc1');
-    // 15 s at this rate is ~6.6 MB; the file cap is well under the bucket's 50 MB.
+    // 15 s at this rate is ~8.9 MB; the file cap is well under the bucket's 50 MB.
     expect((VIDEO_RECORDING.bitrate * MAX_VIDEO_SECONDS) / 8).toBeLessThan(10 * 1024 * 1024);
     expect(VIDEO_RECORDING.maxFileSize).toBeLessThan(50 * 1024 * 1024);
+  });
+
+  it('steadies handheld clips with standard stabilisation (no extra crop or start-up lag)', () => {
+    expect(VIDEO_RECORDING.stabilization).toBe('standard');
   });
 });
 
