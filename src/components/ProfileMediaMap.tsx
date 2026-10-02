@@ -16,7 +16,18 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { streakText } from '@/lib/streakText';
 import { gridTile } from '@/lib/videoPosts';
+import {
+  gridMenuItems,
+  isMenuAction,
+  menuA11yActions,
+  previewSize,
+  shareTarget,
+} from '@/lib/contextMenuPreview';
+import { sharePost } from '@/lib/sharePost';
+import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
+import { useSocialStore, useUserStore } from '@/store';
 import { VideoIcon } from '@/components/ScreenIcons';
+import PreviewMenu, { PostPreviewImage } from '@/components/PreviewMenu';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import type { FeedPost } from '@/api';
 import { FONTS } from '@/constants/fonts';
@@ -64,12 +75,15 @@ function GridCell({
   size,
   column,
   onPress,
+  menuOn,
 }: {
   post: FeedPost;
   dark: boolean;
   size: number;
   column: number;
   onPress: () => void;
+  /** Hold to preview (flag context-menu-preview, iPhone, build 11). */
+  menuOn: boolean;
 }) {
   // FlashList reuses cells: forget a previous post's failed image when the post changes.
   const [imgError, setImgError] = useRecyclingState(false, [post.id]);
@@ -79,14 +93,34 @@ function GridCell({
   // Video posts: show the post's still photo (or a video card) and mark it with a video icon.
   const tile = gridTile(post);
   const label = tile.video ? 'video post' : 'post';
+  // FlashList gives each column an equal third of the width; nudging each cell right by a
+  // share of the gap keeps the photos equal with GAP between them.
+  const place = { marginLeft: (column * GAP) / COLS };
 
-  return (
+  // Hold to preview: only posts that open (locked ones have no photo) get the pop-up.
+  const withMenu = menuOn && !!post.image_url;
+  const liked = useSocialStore((s) => s.likedByMe[post.id] ?? post.liked_by_me);
+  const { width: screenW, height: screenH } = useWindowDimensions();
+  const items = withMenu ? gridMenuItems({ liked, canShare: shareTarget(post) != null }) : [];
+  const runAction = (action: string) => {
+    if (!isMenuAction(action)) return;
+    if (action === 'open') onPress();
+    else if (action === 'like' || action === 'unlike') {
+      const userId = useUserStore.getState().profile?.id;
+      if (!userId) return;
+      // Seed the post's liked state first, so the toggle starts from what the grid shows.
+      useSocialStore.getState().initPost(post.id, post.liked_by_me);
+      useSocialStore.getState().toggleLike(post.id, userId);
+    } else if (action === 'share') sharePost(post);
+  };
+
+  const cell = (
     <Pressable
-      // FlashList gives each column an equal third of the width; nudging each cell right by a
-      // share of the gap keeps the photos equal with GAP between them.
       style={({ pressed }) => [
-        styles.cell,
-        { width: size, height: size, marginLeft: (column * GAP) / COLS },
+        // With the pop-up, its host carries the spacing instead.
+        !withMenu && styles.cell,
+        { width: size, height: size },
+        !withMenu && place,
         pressed && { opacity: 0.8 },
       ]}
       onPress={onPress}
@@ -94,6 +128,9 @@ function GridCell({
       accessibilityLabel={
         streak ? `${streak} ${label}` : label.charAt(0).toUpperCase() + label.slice(1)
       }
+      // VoiceOver: the menu's choices as actions (a double tap already opens the post).
+      accessibilityActions={withMenu ? menuA11yActions(items, ['open']) : undefined}
+      onAccessibilityAction={withMenu ? (e) => runAction(e.nativeEvent.actionName) : undefined}
     >
       {tile.video && !tile.uri ? (
         <View style={[styles.videoTile, { width: size, height: size }]}>
@@ -118,6 +155,23 @@ function GridCell({
         </View>
       ) : null}
     </Pressable>
+  );
+
+  if (!withMenu) return cell;
+  return (
+    <PreviewMenu
+      width={size}
+      height={size}
+      style={[styles.cell, place]}
+      dark={dark}
+      items={items}
+      onAction={runAction}
+      previewSize={previewSize({ width: screenW, height: screenH }, 'post')}
+      previewBackground={dark ? COLORS.surfaceDark2 : COLORS.surfaceLight}
+      renderPreview={() => <PostPreviewImage uri={tile.uri} />}
+    >
+      {cell}
+    </PreviewMenu>
   );
 }
 
@@ -148,6 +202,7 @@ export default function ProfileMediaMap({
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
 
   const { posts, isLoading, hasMore, loadMore, refresh } = useProfilePosts(userId);
+  const menuOn = useContextMenuPreview();
   const { width } = useWindowDimensions();
   const cellSize = (width - GAP * (COLS - 1)) / COLS;
 
@@ -193,6 +248,7 @@ export default function ProfileMediaMap({
             column={index % COLS}
             // Locked posts (no photo URL until the viewer posts) don't open.
             onPress={() => item.image_url && onPostPress?.(item)}
+            menuOn={menuOn}
           />
         )}
         showsVerticalScrollIndicator={false}
