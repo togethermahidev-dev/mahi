@@ -233,3 +233,51 @@ export function MessagesIcon({ size, color }: IconProps) {
     </Svg>
   );
 }
+
+/** VideoIcon — a film camera: marks a video in a post or on a profile square. */
+export function VideoIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M15 10l5.5-3.2a.6.6 0 0 1 .9.5v9.4a.6.6 0 0 1-.9.5L15 14"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M3 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+const SPEAKER = 'M11 5L6 9H3v6h3l5 4V5z';
+
+/** SoundOnIcon — a speaker with sound waves (the video is playing with sound). */
+export function SoundOnIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d={SPEAKER} stroke={color} strokeWidth={1.8} strokeLinejoin="round" />
+      <Path
+        d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+/** SoundOffIcon — a speaker with a cross (the video is muted). */
+export function SoundOffIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d={SPEAKER} stroke={color} strokeWidth={1.8} strokeLinejoin="round" />
+      <Path d="M16 9.5l5 5M21 9.5l-5 5" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+    </Svg>
+  );
+}

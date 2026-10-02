@@ -26,7 +26,7 @@ import Reanimated, {
   runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
 import { BlurView } from 'expo-blur';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -64,6 +64,17 @@ import InviteStep from '@/components/InviteStep';
 import InviteShareSheet from '@/components/InviteShareSheet';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { useVideoPosts } from '@/hooks/useVideoPosts';
+import {
+  HOLD_TO_RECORD_MS,
+  VIDEO_RECORDING,
+  recordingLabel,
+  secondsLeft,
+  shutterIntent,
+  shutterLabel,
+  type MediaType,
+  type ShutterPress,
+} from '@/lib/videoPosts';
 import { formatWait } from '@/lib/countdown';
 import { answersATag, reactivePostingGate } from '@/lib/reactivePosting';
 import { nudgeLabel } from '@/lib/tagNudge';
@@ -191,8 +202,11 @@ function findUltraWideLens(lenses: string[]): string | null {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+/** One captured shot: a photo, or (flag `video-posts`) a video of up to 15 s. */
 interface CapturedPhoto {
+  kind: MediaType;
   uri: string;
+  /** The photo's bytes; '' for a video, which is read from its file only when uploading. */
   base64: string;
   /**
    * Captured pixel width / height. > 1 means the shot was taken landscape
@@ -212,6 +226,8 @@ interface CapturedPhoto {
 const PIP_W = 130;
 const PIP_H = 170;
 const PIP_MARGIN = 16;
+/** A recorded video's shape for the preview window (upright phone video). */
+const VIDEO_ASPECT = 9 / 16;
 
 /**
  * A preview pill on glass, with NavRail's fallbacks: Liquid Glass on iOS 26+, a frosted blur on
@@ -1240,6 +1256,45 @@ export default function CameraScreen(): React.JSX.Element {
   const [postInvites, setPostInvites] = useState<InviteItem[]>([]);
   // The first photo, shown in the small window on the live camera until the second is taken.
   const [guidePhotoUri, setGuidePhotoUri] = useState<string | null>(null);
+  const [guideIsVideo, setGuideIsVideo] = useState(false);
+
+  // Video posts: flag on AND this build has the video module. Off = today's photo-only camera.
+  const videoOn = useVideoPosts();
+  // The Photo / Video switch by the shutter: what a tap does. Holding always records.
+  const [shotMode, setShotMode] = useState<MediaType>('photo');
+  // A hold asked for a video while the switch says Photo.
+  const [holdVideo, setHoldVideo] = useState(false);
+  const [recordingSince, setRecordingSince] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  // Read (never asked) once video is on; asked only when someone first records.
+  const [micStatus, setMicStatus] = useState<'unknown' | 'undetermined' | 'granted' | 'denied'>(
+    'unknown'
+  );
+  const recording = recordingSince !== null;
+  const cameraMode = videoOn && (shotMode === 'video' || holdVideo) ? 'video' : 'picture';
+
+  useEffect(() => {
+    if (!videoOn) return;
+    let live = true;
+    Camera.getMicrophonePermissionsAsync()
+      .then((p) => {
+        if (!live) return;
+        setMicStatus(
+          p.granted ? 'granted' : p.status === 'undetermined' ? 'undetermined' : 'denied'
+        );
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [videoOn]);
+
+  // The recording countdown ticks while recording.
+  useEffect(() => {
+    if (recordingSince === null) return;
+    const id = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [recordingSince]);
 
   const streakCount = profile?.streak_current ?? 0;
 
@@ -1355,8 +1410,78 @@ export default function CameraScreen(): React.JSX.Element {
     const h = height || photo.height || 4;
     const aspectRatio = h > 0 ? w / h : 0.75;
     console.log('[CameraScreen] captured', { w, h, aspectRatio });
-    return { uri: normalizedUri, base64, aspectRatio };
+    return { kind: 'photo', uri: normalizedUri, base64, aspectRatio };
   };
+
+  // ── Video (flag `video-posts`, and only on builds with the video module) ──────────────────
+  // The camera stays in photo mode unless the switch says Video or a held shutter asks for a
+  // video; it is muted until the microphone is granted, so turning to video never prompts.
+  const stopRequestedRef = useRef(false);
+  const recordingRef = useRef(false);
+  /** The shutter is being held for a video: letting go stops it (even before it starts). */
+  const heldForVideoRef = useRef(false);
+
+  const recordVideo = async (): Promise<CapturedPhoto | null> => {
+    const cam = cameraRef.current;
+    if (!cam) return null;
+    recordingRef.current = true;
+    const startedAt = Date.now();
+    setRecordingSince(startedAt);
+    setNow(startedAt);
+    try {
+      // A hold from the Photo switch turns the camera to video first. Until that lands the camera
+      // refuses at once ("not ready"), so try again for a moment, while the shutter is held.
+      for (;;) {
+        if (stopRequestedRef.current) return null;
+        const attemptAt = Date.now();
+        try {
+          const result = await cam.recordAsync({
+            maxDuration: VIDEO_RECORDING.maxDuration,
+            maxFileSize: VIDEO_RECORDING.maxFileSize,
+            codec: VIDEO_RECORDING.codec,
+          });
+          if (!result?.uri) return null;
+          // Phones record upright 9:16 unless turned sideways; the preview only needs a guide.
+          return { kind: 'video', uri: result.uri, base64: '', aspectRatio: VIDEO_ASPECT };
+        } catch (err) {
+          const quick = Date.now() - attemptAt < 300;
+          if (!quick || Date.now() - startedAt > 1500) throw err;
+          await new Promise((r) => setTimeout(r, 100));
+        }
+      }
+    } catch (err) {
+      console.log('[CameraScreen] recording failed', err);
+      useToastStore.getState().show("Couldn't record — hold the shutter a little longer");
+      return null;
+    } finally {
+      recordingRef.current = false;
+      setRecordingSince(null);
+      setHoldVideo(false);
+    }
+  };
+
+  const stopVideo = () => {
+    stopRequestedRef.current = true;
+    cameraRef.current?.stopRecording();
+    // A stop that lands just before the recording really began is lost: ask once more.
+    setTimeout(() => {
+      if (recordingRef.current) cameraRef.current?.stopRecording();
+    }, 400);
+  };
+
+  /** The first recording asks for the microphone — never before, and never with video off. */
+  const askMicIfNew = async (): Promise<boolean> => {
+    if (micStatus !== 'undetermined') return false;
+    try {
+      const p = await Camera.requestMicrophonePermissionsAsync();
+      setMicStatus(p.granted ? 'granted' : 'denied');
+    } catch {
+      setMicStatus('denied');
+    }
+    return true;
+  };
+
+  const shoot = (kind: MediaType) => (kind === 'video' ? recordVideo() : takePhoto());
 
   // Two-stage capture: tap 1 takes whichever camera is currently showing,
   // then flips to the other side for tap 2. The user picks their starting
@@ -1364,20 +1489,21 @@ export default function CameraScreen(): React.JSX.Element {
   const firstPhotoRef = useRef<CapturedPhoto | null>(null);
   const firstFacingRef = useRef<'back' | 'front'>('back');
 
-  const captureFirst = async () => {
+  const captureFirst = async (kind: MediaType = 'photo') => {
     if (captureState !== 'idle') return;
 
     // Step 1: capture the current camera side
     setCaptureState('capturing-first');
     firstFacingRef.current = facing;
-    await new Promise((r) => setTimeout(r, 300));
-    const photo = await takePhoto();
+    if (kind === 'photo') await new Promise((r) => setTimeout(r, 300));
+    const photo = await shoot(kind);
     if (!photo) {
       setCaptureState('idle');
       return;
     }
     firstPhotoRef.current = photo;
     setGuidePhotoUri(photo.uri);
+    setGuideIsVideo(photo.kind === 'video');
 
     // Step 2: flip to the other side and wait for the user to tap again
     setCaptureState('switching');
@@ -1386,7 +1512,7 @@ export default function CameraScreen(): React.JSX.Element {
     setCaptureState('awaiting-second');
   };
 
-  const captureSecond = async () => {
+  const captureSecond = async (kind: MediaType = 'photo') => {
     if (captureState !== 'awaiting-second') return;
     const firstPhoto = firstPhotoRef.current;
     if (!firstPhoto) {
@@ -1395,7 +1521,12 @@ export default function CameraScreen(): React.JSX.Element {
     }
 
     setCaptureState('capturing-second');
-    const secondPhoto = await takePhoto();
+    const secondPhoto = await shoot(kind);
+    // A video that didn't record (let go too soon) keeps the first shot: try the second again.
+    if (!secondPhoto && kind === 'video') {
+      setCaptureState('awaiting-second');
+      return;
+    }
     setCaptureState('idle');
     firstPhotoRef.current = null;
     setGuidePhotoUri(null);
@@ -1419,6 +1550,52 @@ export default function CameraScreen(): React.JSX.Element {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       captureSecond();
     }
+  };
+
+  // With video on: a tap does what the switch says (photo, or start / stop a video); a hold
+  // records until let go, or 15 s. Flag off never gets here (today's handleShutterPress runs).
+  const handleShutter = async (press: ShutterPress) => {
+    const intent = shutterIntent({
+      videoOn,
+      mode: shotMode,
+      recording: recordingRef.current,
+      press,
+    });
+    if (intent === 'none') return;
+    if (intent === 'stop-video') {
+      heldForVideoRef.current = false;
+      stopVideo();
+      return;
+    }
+    if (captureState !== 'idle' && captureState !== 'awaiting-second') return;
+    if (intent === 'photo') {
+      handleShutterPress();
+      return;
+    }
+    stopRequestedRef.current = false;
+    heldForVideoRef.current = press === 'hold';
+    if (await askMicIfNew()) {
+      // The microphone question took the finger off the shutter.
+      if (press === 'hold') {
+        heldForVideoRef.current = false;
+        useToastStore.getState().show('Hold the shutter again to record');
+        return;
+      }
+    }
+    // Let go while the microphone question or the switch to video was still going.
+    if (stopRequestedRef.current) return;
+    if (shotMode === 'photo') setHoldVideo(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (captureState === 'idle') captureFirst('video');
+    else captureSecond('video');
+  };
+
+  // Letting go of a held shutter stops its video, even one still starting.
+  const handleShutterRelease = () => {
+    if (!heldForVideoRef.current) return;
+    heldForVideoRef.current = false;
+    const intent = shutterIntent({ videoOn, mode: shotMode, recording: true, press: 'release' });
+    if (intent === 'stop-video') stopVideo();
   };
 
   // Toggle the per-post location opt-in. Turning OFF is instant. Turning ON the
@@ -1478,8 +1655,8 @@ export default function CameraScreen(): React.JSX.Element {
       client_id: null,
       image_path: null,
       pov_image_path: null,
-      rear_media_type: 'photo',
-      front_media_type: 'photo',
+      rear_media_type: rear.kind,
+      front_media_type: front.kind,
       locked: false,
       like_count: 0,
       comment_count: 0,
@@ -1506,11 +1683,20 @@ export default function CameraScreen(): React.JSX.Element {
     let uploadedPaths: string[] = [];
 
     try {
+      // A photo's bytes are already in memory; a video is read from its file only now.
+      const bodyOf = async (shot: CapturedPhoto) =>
+        decode(
+          shot.kind === 'video'
+            ? await FileSystem.readAsStringAsync(shot.uri, {
+                encoding: FileSystem.EncodingType.Base64,
+              })
+            : shot.base64
+        );
       const { data: paths, error: uploadErr } = await uploadPostMedia({
         userId,
         clientId,
-        rear: { shot: { kind: 'photo', uri: rear.uri }, body: decode(rear.base64) },
-        front: { shot: { kind: 'photo', uri: front.uri }, body: decode(front.base64) },
+        rear: { shot: { kind: rear.kind, uri: rear.uri }, body: await bodyOf(rear) },
+        front: { shot: { kind: front.kind, uri: front.uri }, body: await bodyOf(front) },
       });
       if (uploadErr || !paths) throw uploadErr ?? new Error('upload failed');
       uploadedPaths = [paths.rearPath, paths.frontPath];
@@ -1535,6 +1721,8 @@ export default function CameraScreen(): React.JSX.Element {
         inviteCount: inviteCountSnapshot,
         latitude: coords?.latitude,
         longitude: coords?.longitude,
+        rearMediaType: rear.kind,
+        frontMediaType: front.kind,
       });
       if (postErr || !result) throw postErr ?? new Error('post failed');
 
@@ -1553,13 +1741,19 @@ export default function CameraScreen(): React.JSX.Element {
         // The photos on screen are the local captures; the next feed read signs the server copies.
         image_url: rear.uri,
         pov_image_url: front.uri,
+        rear_media_type: rear.kind,
+        front_media_type: front.kind,
         locked: false,
       } satisfies FeedPost);
       // Posting unlocks the feed: read it again so friends' posts appear.
       useFeedStore.getState().sync(true);
-      useProfilePostsStore
-        .getState()
-        .addPost({ ...result.post, image_url: rear.uri, pov_image_url: front.uri });
+      useProfilePostsStore.getState().addPost({
+        ...result.post,
+        image_url: rear.uri,
+        pov_image_url: front.uri,
+        rear_media_type: rear.kind,
+        front_media_type: front.kind,
+      });
 
       const current = useUserStore.getState().profile;
       if (current) {
@@ -1652,14 +1846,20 @@ export default function CameraScreen(): React.JSX.Element {
   };
 
   // Capture state label shown while sequencing. After the switch, `facing` is the second side.
-  const captureLabel = captureLabelFor(captureState, facing);
+  // While recording it counts down the 15 seconds instead.
+  const captureLabel = recording
+    ? recordingLabel(secondsLeft(recordingSince, now))
+    : captureLabelFor(captureState, facing);
 
   // Read each new step out to VoiceOver (iOS has no live regions; Android also gets one below).
+  // A recording is announced once, not every second.
+  const spokenLabel = recording ? 'Recording' : captureLabel;
   useEffect(() => {
-    if (captureLabel) AccessibilityInfo.announceForAccessibility(captureLabel);
-  }, [captureLabel]);
+    if (spokenLabel) AccessibilityInfo.announceForAccessibility(spokenLabel);
+  }, [spokenLabel]);
 
-  // Photos only: the camera never asks for the microphone.
+  // With video posts off the camera never asks for the microphone; with them on, only when
+  // someone first records (askMicIfNew).
   if (!cameraPermission) {
     return <View style={styles.root} />;
   }
@@ -1670,10 +1870,12 @@ export default function CameraScreen(): React.JSX.Element {
   const flipColor = COLORS.white;
 
   const isCapturing = captureState !== 'idle';
-  // The shutter is tappable in 'idle' (start) and 'awaiting-second' (take second shot).
-  // Everything else is mid-capture and should be locked out.
+  // The shutter is tappable in 'idle' (start) and 'awaiting-second' (take second shot), and
+  // while recording (to stop). Everything else is mid-capture and should be locked out.
   const shutterDisabled =
-    blocked || (captureState !== 'idle' && captureState !== 'awaiting-second');
+    blocked || (!recording && captureState !== 'idle' && captureState !== 'awaiting-second');
+  const switchDisabled =
+    recording || (captureState !== 'idle' && captureState !== 'awaiting-second');
 
   if (!cameraGranted) {
     return (
@@ -1733,6 +1935,13 @@ export default function CameraScreen(): React.JSX.Element {
           onResponsiveOrientationChanged={(e) =>
             console.log('[CameraScreen] responsive orientation', e.orientation)
           }
+          // Video posts: video mode only while the switch says Video or a hold is recording.
+          // Muted until the microphone is granted, so turning to video never asks for it.
+          // With video off none of these are passed: the camera is exactly today's.
+          mode={videoOn ? cameraMode : undefined}
+          mute={videoOn ? micStatus !== 'granted' : undefined}
+          videoQuality={videoOn ? VIDEO_RECORDING.quality : undefined}
+          videoBitrate={videoOn ? VIDEO_RECORDING.bitrate : undefined}
         />
 
         <StreakBadge count={streakCount} />
@@ -1745,6 +1954,7 @@ export default function CameraScreen(): React.JSX.Element {
           <CapturePipGuide
             guide={guide}
             photoUri={guidePhotoUri}
+            photoIsVideo={guideIsVideo}
             frame={{
               left: PIP_MARGIN,
               top: previewPipRestTop(SCREEN_HEIGHT, PIP_H),
@@ -1775,44 +1985,90 @@ export default function CameraScreen(): React.JSX.Element {
           device has no ultra-wide lens (Android, or older iPhones), so it never
           offers an option we can't honour. Locked out mid-capture and after
           posting is blocked, matching the shutter gating. Sits just above the
-          shutter row so it reads as a capture-config affordance. */}
-        {facing === 'back' && ultraWideLens && !blocked && (
+          shutter row so it reads as a capture-config affordance. With video
+          posts on, the Photo / Video switch sits beside it in the same row. */}
+        {((facing === 'back' && ultraWideLens) || videoOn) && !blocked && (
           <View style={styles.lensToggleWrap} pointerEvents="box-none">
-            <View style={styles.lensToggle}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.lensOption,
-                  !useUltraWide && styles.lensOptionActive,
-                  pressed && { opacity: 0.8 },
-                ]}
-                disabled={isCapturing}
-                onPress={() => {
-                  if (!useUltraWide) return;
-                  Haptics.selectionAsync();
-                  setUseUltraWide(false);
-                }}
-              >
-                <Text style={[styles.lensOptionText, !useUltraWide && styles.lensOptionTextActive]}>
-                  1×
-                </Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.lensOption,
-                  useUltraWide && styles.lensOptionActive,
-                  pressed && { opacity: 0.8 },
-                ]}
-                disabled={isCapturing}
-                onPress={() => {
-                  if (useUltraWide) return;
-                  Haptics.selectionAsync();
-                  setUseUltraWide(true);
-                }}
-              >
-                <Text style={[styles.lensOptionText, useUltraWide && styles.lensOptionTextActive]}>
-                  0.5×
-                </Text>
-              </Pressable>
+            <View style={styles.toggleRow}>
+              {facing === 'back' && ultraWideLens && (
+                <View style={styles.lensToggle}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.lensOption,
+                      !useUltraWide && styles.lensOptionActive,
+                      pressed && { opacity: 0.8 },
+                    ]}
+                    disabled={isCapturing}
+                    onPress={() => {
+                      if (!useUltraWide) return;
+                      Haptics.selectionAsync();
+                      setUseUltraWide(false);
+                    }}
+                  >
+                    <Text
+                      style={[styles.lensOptionText, !useUltraWide && styles.lensOptionTextActive]}
+                    >
+                      1×
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.lensOption,
+                      useUltraWide && styles.lensOptionActive,
+                      pressed && { opacity: 0.8 },
+                    ]}
+                    disabled={isCapturing}
+                    onPress={() => {
+                      if (useUltraWide) return;
+                      Haptics.selectionAsync();
+                      setUseUltraWide(true);
+                    }}
+                  >
+                    <Text
+                      style={[styles.lensOptionText, useUltraWide && styles.lensOptionTextActive]}
+                    >
+                      0.5×
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+              {videoOn && (
+                <View style={styles.lensToggle} accessibilityRole="radiogroup">
+                  {(['photo', 'video'] as const).map((m) => (
+                    <Pressable
+                      key={m}
+                      style={({ pressed }) => [
+                        styles.lensOption,
+                        shotMode === m && styles.lensOptionActive,
+                        pressed && { opacity: 0.8 },
+                      ]}
+                      disabled={switchDisabled}
+                      accessibilityRole="radio"
+                      accessibilityLabel={m === 'photo' ? 'Photo' : 'Video'}
+                      accessibilityHint={
+                        m === 'photo'
+                          ? 'Tap the shutter for a photo. Hold it to record a video.'
+                          : 'Tap the shutter to start and stop a video of up to 15 seconds.'
+                      }
+                      accessibilityState={{ checked: shotMode === m, disabled: switchDisabled }}
+                      onPress={() => {
+                        if (shotMode === m) return;
+                        Haptics.selectionAsync();
+                        setShotMode(m);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.lensOptionText,
+                          shotMode === m && styles.lensOptionTextActive,
+                        ]}
+                      >
+                        {m === 'photo' ? 'Photo' : 'Video'}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
             </View>
           </View>
         )}
@@ -1837,25 +2093,41 @@ export default function CameraScreen(): React.JSX.Element {
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={
-              captureState === 'awaiting-second' ? 'Take second photo' : 'Take photo'
-            }
+            accessibilityLabel={shutterLabel({
+              videoOn,
+              mode: shotMode,
+              recording,
+              second: captureState === 'awaiting-second',
+            })}
             style={({ pressed }) => [
               styles.shutterOuter,
               {
-                borderColor: shutterRing,
+                borderColor: recording ? COLORS.danger : shutterRing,
                 shadowColor: dark ? COLORS.black : COLORS.offBlack,
                 opacity: shutterDisabled ? 0.3 : 1,
               },
               pressed && { opacity: 0.82 },
             ]}
             disabled={shutterDisabled}
-            onPress={handleShutterPress}
+            // Video off: exactly today's shutter (a tap, no hold).
+            onPress={videoOn ? () => handleShutter('tap') : handleShutterPress}
+            onLongPress={videoOn ? () => handleShutter('hold') : undefined}
+            delayLongPress={videoOn ? HOLD_TO_RECORD_MS : undefined}
+            onPressOut={videoOn ? handleShutterRelease : undefined}
           >
             {gate === 'loading' ? (
               <ActivityIndicator color={shutterRing} />
+            ) : recording ? (
+              <View style={styles.shutterRecording} />
             ) : (
-              <View style={[styles.shutterInner, { backgroundColor: shutterFill }]} />
+              <View
+                style={[
+                  styles.shutterInner,
+                  {
+                    backgroundColor: videoOn && shotMode === 'video' ? COLORS.danger : shutterFill,
+                  },
+                ]}
+              />
             )}
           </Pressable>
 
@@ -1984,6 +2256,19 @@ const styles = StyleSheet.create({
     width: SIZE.z58,
     height: SIZE.z58,
     borderRadius: RADIUS.r29,
+  },
+  // Recording: the round button turns into a small red square (tap or let go to stop).
+  shutterRecording: {
+    width: SIZE.z28,
+    height: SIZE.z28,
+    borderRadius: RADIUS.r8,
+    backgroundColor: COLORS.danger,
+  },
+  // The lens toggle and (video posts) the Photo / Video switch, side by side.
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s12,
   },
   // ── 0.5× / 1× lens toggle ──────────────────────────────────────────────────
   lensToggleWrap: {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { CameraIcon, ProfileIcon } from '@/components/ScreenIcons';
+import PostVideo from '@/components/PostVideo';
 import type { PipGuide } from '@/lib/captureGuide';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -24,15 +25,26 @@ import {
 export default function CapturePipGuide({
   guide,
   photoUri,
+  photoIsVideo = false,
   frame,
 }: {
   guide: PipGuide;
   photoUri: string | null;
+  /** The first shot was a video (video posts): it plays here, muted. */
+  photoIsVideo?: boolean;
   frame: { left: number; top: number; width: number; height: number };
 }) {
   return (
     <View pointerEvents="none" style={[styles.box, frame]}>
-      {guide.kind === 'photo' && photoUri ? (
+      {guide.kind === 'photo' && photoUri && photoIsVideo ? (
+        <PostVideo
+          uri={photoUri}
+          playing
+          muted
+          style={StyleSheet.absoluteFill}
+          accessibilityLabel="Your first video"
+        />
+      ) : guide.kind === 'photo' && photoUri ? (
         <Image
           source={{ uri: photoUri }}
           style={StyleSheet.absoluteFill}
