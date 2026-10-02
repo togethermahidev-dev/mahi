@@ -43,6 +43,10 @@ export const FEATURE_FLAGS = [
   // Look
   'ios-sf-symbols', // iPhone shows Apple's own icons in place of the drawn ones; needs build 11 (default OFF)
 
+  // Dormant in build 11: native pieces are in the build, switched on later by OTA + flag
+  'identity-verification', // Didit identity check (default OFF)
+  'purchases', // RevenueCat in-app purchases and paywall (default OFF)
+
   // Sign-in placeholders — pills on the welcome screen with nothing behind them yet.
   'auth-apple-signin',
   'auth-google-signin',
@@ -59,12 +63,15 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * from drawn to Apple's in front of someone while flags load.
  * `context-menu-preview`: waits for build 11; off, hold to view stays exactly as today.
  * `camera-tap-focus`: needs build 11's native focus, so it waits to be switched on.
+ * `identity-verification` and `purchases`: dormant until the owner sets up Didit / RevenueCat.
  */
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'video-posts',
   'ios-sf-symbols',
   'context-menu-preview',
   'camera-tap-focus',
+  'identity-verification',
+  'purchases',
 ];
 
 /** Whether a flag reads as on before PostHog has answered (true for all but DEFAULT_OFF_FLAGS). */

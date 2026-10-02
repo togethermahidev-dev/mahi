@@ -41,6 +41,13 @@ export const env = {
   /** Sentry DSN — optional. */
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? null,
 
+  /**
+   * RevenueCat public SDK keys (appl_… / goog_…) — optional. Safe to ship (they are public keys).
+   * Without the platform's key, purchases stay unavailable even with the `purchases` flag on.
+   */
+  revenueCatIosKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || null,
+  revenueCatAndroidKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY || null,
+
   /** App environment: 'development' | 'preview' | 'production'. */
   appEnv: process.env.EXPO_PUBLIC_APP_ENV ?? 'development',
 } as const;

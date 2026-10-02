@@ -60,6 +60,8 @@ describe('default-off flags (video-posts, context-menu-preview)', () => {
       'ios-sf-symbols',
       'context-menu-preview',
       'camera-tap-focus',
+      'identity-verification',
+      'purchases',
     ]);
   });
 
