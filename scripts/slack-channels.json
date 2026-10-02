@@ -138,5 +138,50 @@
     "name": "feature-flags",
     "purpose": "Every app switch, what it controls, and whether it's on, off or partly rolled out",
     "summary": "Every switch in the app, what it does, and who has it. Change them in PostHog, on its switches page; a switch that isn't in PostHog counts as off.\n• `onboarding-welcome-cards` — Three welcome cards after first sign-in, also under Settings → Help. *On for everyone (100%).*\n• `auth-password-reset` — \"Forgot password?\" emails a code to set a new one. *On for everyone (100%).*\n• `account-delete` — Delete account in Settings. *On for everyone (100%).*\n• `auth-apple-signin` — \"Continue with Apple\" on the welcome screen (does nothing yet). *On for everyone (100%), should be off until Apple sign-in is built.*\n• `auth-google-signin` — \"Continue with Google\" on the welcome screen (does nothing yet). *On for everyone (100%), should be off until Google sign-in is built.*\n• `camera-pip-guide` — Camera's small window: \"Selfie next\", then the first photo. *On for everyone (100%).*\n• `comment-likes` — Heart and count on each comment, and who liked it. *On for everyone (100%).*\n• `video-posts` — Each shot can be a photo or a video (up to 15 seconds), with sound on/off. *Off for everyone. Needs the next App Store build first.*\n• `tags-invite-step` — \"Invite 3 friends to post\" step and the sent/not sent invite list. *On for everyone (100%).*\n• `invite-links` — Invite buttons on the tag screen and after posting. *On for everyone (100%).*\n• `tag-challenges` — Open-tags banner on the camera. *On for everyone (100%).*\n• `mahi-points` — Points on profiles, the feed and search. *On for everyone (100%).*\n• `feed-lock-explainer` — Locked feed says who tagged you; open feed says how long it stays open. *On for everyone (100%).*\n• `notifications-core` — The notifications bell and list. *On for everyone (100%).*\n• `push-core` — The one-time \"turn on notifications\" prompt. *Off (not created). Waits for phone alerts to be set up.*\n• `nav-glass-rail` — Floating glass bar on the left: Camera, Feed, Messages, Profile. *On for everyone (100%).*\n• `nav-rail-morph` — Glass bar as one pill with a sliding selector; hold and drag to switch. *On for everyone (100%).*\nLast checked 2 October 2026 (afternoon)."
+  },
+  {
+    "name": "apple-icons",
+    "purpose": "Apple's own icon set on iPhone",
+    "summary": "Mahi's icons switch to Apple's own symbols on iPhone, so they match the rest of the phone and scale with the text size people choose. Android keeps today's icons. Ships in the next App Store build and stays switched off until we turn it on.",
+    "invite": [
+      "U0C61CMGGH0",
+      "U0C657NMXMJ"
+    ]
+  },
+  {
+    "name": "hold-to-preview",
+    "purpose": "Hold to pop a post or chat up for a quick look",
+    "summary": "Hold a post in the feed, a square on a profile, or a chat in Messages, and it pops up over a blurred background with a short menu underneath, the way iPhone apps do. On the feed this replaces holding to see just the photo. Ships in the next App Store build and stays switched off until we turn it on.",
+    "invite": [
+      "U0C61CMGGH0",
+      "U0C657NMXMJ"
+    ]
+  },
+  {
+    "name": "camera-features",
+    "purpose": "Flash, tap to focus, better photos and stronger feedback",
+    "summary": "The camera gets a flash for your view and a bright-screen flash for selfies, tap to focus and set brightness where you tap, higher-quality photos with steadier video, and clearer vibrations for the shutter, tags, streaks and the feed lock. Ships in the next App Store build and stays switched off until we turn it on.",
+    "invite": [
+      "U0C61CMGGH0",
+      "U0C657NMXMJ"
+    ]
+  },
+  {
+    "name": "identity-verification",
+    "purpose": "Checking people are who they say they are (Didit)",
+    "summary": "Lets Mahi confirm a person's identity or age with a quick ID and face check through Didit, for example before someone can post or message. The parts that need the App Store go into the next build and stay switched off; turning it on later is an update, once we decide where it applies and set up the Didit account.",
+    "invite": [
+      "U0C61CMGGH0",
+      "U0C657NMXMJ"
+    ]
+  },
+  {
+    "name": "subscriptions",
+    "purpose": "Paid plans and in-app purchases (RevenueCat)",
+    "summary": "Gets Mahi ready to sell subscriptions or one-off purchases through the App Store, managed with RevenueCat. The parts that need the App Store go into the next build and stay switched off; turning it on later is an update, once the plans, prices and RevenueCat account are set up.",
+    "invite": [
+      "U0C61CMGGH0",
+      "U0C657NMXMJ"
+    ]
   }
 ]
