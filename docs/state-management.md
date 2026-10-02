@@ -147,6 +147,8 @@ Manages per-post likes and comments. Owns `likedByMe` booleans and comment array
 |---|---|---|
 | `likedByMe` | `Record<string, boolean>` | Whether the current user has liked each post |
 | `comments` | `Record<string, CommentWithProfile[]>` | Loaded comments per post (loaded lazily on tap) |
+| `commentLikes` | `Record<string, { liked, count }>` | Comment likes by comment id (flag `comment-likes`; a comment's own count, not a post's) |
+| `commentLikesReady` | `Record<string, boolean>` | By post: this opening's comment likes have arrived (the hearts show only then) |
 
 | Action | Description |
 |---|---|
@@ -154,6 +156,9 @@ Manages per-post likes and comments. Owns `likedByMe` booleans and comment array
 | `toggleLike(postId, userId)` | Optimistic flip of `likedByMe` + `patchPost ±1 count`. Single RPC confirm. Rolls back on error. |
 | `loadComments(postId)` | Fetch comments (oldest first) and cache. Idempotent — skips if already loaded. |
 | `addComment(postId, userId, content, profile)` | Optimistic push with temp id, replace with confirmed row, `patchPost comment_count +1`. Rolls back on error. |
+| `loadCommentLikes(postId)` | Read a post's comment likes fresh each time its comments open: not ready → fetch → ready. A failure leaves the hearts hidden. |
+| `toggleCommentLike(commentId)` | Optimistic heart + count, then the server's answer; rolls back with a "Couldn't update like" toast. Ignores comments still being sent (`temp_` ids). |
+| `getCommentLikers(commentId)` | Who liked a comment, straight from the server (`useCommentLikers` holds it while the list is open); never stored. |
 | `subscribeToPost(postId)` | Open a Supabase Realtime channel for the post. Ref-counted — safe to call multiple times per post. |
 | `unsubscribeFromPost(postId)` | Decrement ref count. Channel destroyed only when count reaches 0. |
 | `reset()` | Remove all channels and clear state on sign-out. |

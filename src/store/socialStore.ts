@@ -4,6 +4,10 @@ import {
   toggleLike as apiToggleLike,
   getComments as apiGetComments,
   addComment as apiAddComment,
+  getCommentLikes as apiGetCommentLikes,
+  toggleCommentLike as apiToggleCommentLike,
+  getCommentLikers as apiGetCommentLikers,
+  type CommentLiker,
   type CommentWithProfile,
   type FeedPost,
 } from '@/api';
@@ -34,9 +38,17 @@ function patchCounts(
   useProfilePostsStore.getState().patchPost(postId, partial);
 }
 
+/** A comment's heart: whether you liked it and how many have. */
+export type CommentLike = { liked: boolean; count: number };
+const NO_LIKES: CommentLike = { liked: false, count: 0 };
+
 interface SocialState {
   likedByMe: Record<string, boolean>;
   comments: Record<string, CommentWithProfile[]>;
+  /** Comment likes (flag comment-likes), by comment id. */
+  commentLikes: Record<string, CommentLike>;
+  /** By post id: this opening's comment likes have arrived (hearts show only then). */
+  commentLikesReady: Record<string, boolean>;
 
   /** Seed liked state for a post from the initial feed load. Idempotent. */
   initPost: (postId: string, likedByMe: boolean) => void;
@@ -51,6 +63,16 @@ interface SocialState {
     content: string,
     profile: CommentWithProfile['profiles']
   ) => Promise<void>;
+  /** A comment's heart (none yet reads as not liked, 0). */
+  commentLike: (commentId: string) => CommentLike;
+  /** Read a post's comment likes fresh (each time its comments open); hidden until they arrive. */
+  loadCommentLikes: (postId: string) => Promise<void>;
+  /** Optimistic like / unlike of a comment, then the server's answer; rolls back on failure. */
+  toggleCommentLike: (commentId: string) => Promise<{ error: Error | null }>;
+  /** Who liked a comment, straight from the server — never kept here. */
+  getCommentLikers: (
+    commentId: string
+  ) => Promise<{ data: CommentLiker[] | null; error: Error | null }>;
   /** Subscribe to realtime like/comment changes for a post. Ref-counted — safe to call multiple times. */
   subscribeToPost: (postId: string) => void;
   /** Unsubscribe from realtime for a post. Only destroys channel when ref count reaches 0. */
@@ -61,6 +83,8 @@ interface SocialState {
 export const useSocialStore = create<SocialState>((set, get) => ({
   likedByMe: {},
   comments: {},
+  commentLikes: {},
+  commentLikesReady: {},
 
   initPost: (postId, likedByMe) => {
     // Only seed if not already in store (don't overwrite an already-toggled state)
@@ -142,6 +166,52 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     }
   },
 
+  commentLike: (commentId) => get().commentLikes[commentId] ?? NO_LIKES,
+
+  loadCommentLikes: async (postId) => {
+    set((s) => ({ commentLikesReady: { ...s.commentLikesReady, [postId]: false } }));
+    const { data, error } = await apiGetCommentLikes(postId);
+    if (error || !data) {
+      console.log('[socialStore] loadCommentLikes', error?.message);
+      return;
+    }
+    set((s) => {
+      const next = { ...s.commentLikes };
+      for (const row of data) {
+        next[row.comment_id] = { liked: row.liked_by_me, count: Number(row.like_count) };
+      }
+      return { commentLikes: next, commentLikesReady: { ...s.commentLikesReady, [postId]: true } };
+    });
+  },
+
+  toggleCommentLike: async (commentId) => {
+    // A comment still being sent has no id on the server yet.
+    if (commentId.startsWith('temp_')) return { error: null };
+    const prev = get().commentLike(commentId);
+    const optimistic = {
+      liked: !prev.liked,
+      count: Math.max(0, prev.count + (prev.liked ? -1 : 1)),
+    };
+    set((s) => ({ commentLikes: { ...s.commentLikes, [commentId]: optimistic } }));
+
+    const { data, error } = await apiToggleCommentLike(commentId);
+    if (error || !data) {
+      console.log('[socialStore] toggleCommentLike', error?.message);
+      set((s) => ({ commentLikes: { ...s.commentLikes, [commentId]: prev } }));
+      useToastStore.getState().show("Couldn't update like");
+      return { error: error ?? new Error('no answer') };
+    }
+    set((s) => ({
+      commentLikes: {
+        ...s.commentLikes,
+        [commentId]: { liked: data.liked, count: Number(data.like_count) },
+      },
+    }));
+    return { error: null };
+  },
+
+  getCommentLikers: (commentId) => apiGetCommentLikers(commentId),
+
   subscribeToPost: (postId) => {
     const count = refCounts.get(postId) ?? 0;
     refCounts.set(postId, count + 1);
@@ -209,6 +279,6 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     channels.forEach((ch) => supabase.removeChannel(ch));
     channels.clear();
     refCounts.clear();
-    set({ likedByMe: {}, comments: {} });
+    set({ likedByMe: {}, comments: {}, commentLikes: {}, commentLikesReady: {} });
   },
 }));

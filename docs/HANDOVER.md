@@ -44,6 +44,8 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
   needs a new native build (adds `expo-video`; the microphone text stays, reworded), migration
   `20261002100000_video_posts` pushed, and the `video-posts` flag created in PostHog switched off. Build 10
   stays safe after OTAs: no video module there = video off. Not yet checked on a phone.
+- **Comment likes (built 2026-10-02, flag `comment-likes`):** migration `20261002130000_comment_likes`
+  pushed, then the flag created in PostHog at 100%. No native build needed. Not yet checked on a phone.
 - Next native build: add `expo-symbols` for Apple icons. (The microphone text is kept for video posts.)
 - Parked decision: success targets (#12). (Streak rule #1, existing streaks #10 and rest days #27 were
   decided on 2026-10-01 with reactive posting.)

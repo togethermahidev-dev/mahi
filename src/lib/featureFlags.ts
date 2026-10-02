@@ -36,6 +36,7 @@ export const FEATURE_FLAGS = [
 
   // Posts
   'video-posts', // each shot can be a photo or a video of up to 15 s; feed plays them (default OFF)
+  'comment-likes', // a heart and count on each comment; tap the count to see who liked it
 
   // Sign-in placeholders — pills on the welcome screen with nothing behind them yet.
   'auth-apple-signin',

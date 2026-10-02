@@ -18,6 +18,10 @@ rest-days drop went in that afternoon, after OTA 10.22). **Not pushed yet:**
 `20261002100000_video_posts` (video posts: media type per shot, `create_post` media arguments, `posts`
 bucket limits; test `tests/video_posts_test.sql`, undo `rollbacks/20261002100000_video_posts.rollback.sql`).
 It is safe for every app build already out (they send no media type, so they post photos).
+Also not pushed: `20261002130000_comment_likes` (comment likes: `comment_likes` table, `toggle_comment_like`,
+`get_comment_likes`, `get_comment_likers`; test `tests/comment_likes_test.sql`, undo
+`rollbacks/20261002130000_comment_likes.rollback.sql`). Additive — no app build reads it unless the
+`comment-likes` flag is on, and comments load the same way with or without it.
 Still held back: `deferred/contract_posting.sql`,
 `deferred/contract_messages.sql`, `deferred/private_bucket.sql` — they shut old paths and wait for a
 store build covered by the version gate.
