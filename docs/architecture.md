@@ -253,6 +253,8 @@ Both navigators run on **react-native-gesture-handler + reanimated** (UI thread)
 
 The Profile page is one scrolling list too (2026-10-02), so `HorizontalNavigator` makes a second `Gesture.Native()`, `profileList`, passes it to `ProfileScreen` (`listGesture`), and the sideways pan is `.simultaneousWithExternalGesture(feedList, profileList, verticalSwipe)`. A list lends its scrolling through `ListGestureContext` + `GestureScrollView` (`src/components/GestureScrollView.tsx`, the FlashList `renderScrollComponent`), shared by the Feed, both profile pages and the post viewer. `UserProfileScreen`'s swipe back and `PostViewer`'s sideways close run alongside their own list the same way.
 
+**Hold to view** (2026-10-02, owner: "native hold to preview"): `PostCard`'s press and hold (`Gesture.LongPress`, `POST_CARD.holdMs`) runs alongside its double tap and alongside the list (it reads the list's gesture from `ListGestureContext`), so a finger that moves first is a scroll or a page swipe and the hold never starts; once held, the list can still scroll. Held: a light haptic, and `chromeStore.viewing` fades out (`useChromeFade`) the name and caption, the tags and streak row, the like / comment column, the glass bar and the post viewer's ✕; release brings them back. The small photo stays and stays draggable (its own gesture, on top); a double tap still likes. The page swipes that started under a hold wait for the finger to lift.
+
 Spring for both: `damping: 22, stiffness: 160, mass: 0.9` (Reduce Motion ignored on purpose). Light haptic on a page change. Pages are sized from the live window (`useWindowDimensions`), not fixed constants.
 
 ### Horizontal Navigator (`src/screens/HorizontalNavigator.tsx`)

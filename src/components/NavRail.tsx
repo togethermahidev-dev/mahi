@@ -18,6 +18,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useChromeFade } from '@/hooks/useChrome';
 import {
   CameraIcon,
   FeedIcon,
@@ -93,6 +94,8 @@ export default function NavRail({
   const { colors, navRail } = useAppTheme();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
+  // Holding a post (hold to view) fades the rail away with everything else over the photo.
+  const chrome = useChromeFade();
   const scheme = onDark ? 'dark' : 'light';
   const iconColor = onDark ? colors.offWhite : colors.offBlack;
   const button = navRail.width - SIZE.z8;
@@ -322,8 +325,8 @@ export default function NavRail({
   }
 
   return (
-    <View
-      pointerEvents="box-none"
+    <Animated.View
+      pointerEvents={chrome.viewing ? 'none' : 'box-none'}
       accessibilityRole="tablist"
       onLayout={morph ? measure : undefined}
       style={[
@@ -333,10 +336,11 @@ export default function NavRail({
           top: insets.top,
           bottom: insets.bottom,
         },
+        chrome.style,
       ]}
     >
       {body}
-    </View>
+    </Animated.View>
   );
 }
 
