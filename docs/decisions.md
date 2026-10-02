@@ -57,6 +57,8 @@ open (48 hours) — your very first post is the one exception. Architecture:
 | 28 | When you can post | Reactive posting: only to answer an open tag, plus your first post; no daily limit — one post per tag answered | One post a day | Decided | 2026-10-01 | `create_post` → `reactive_posting_open`, `src/lib/reactivePosting.ts` |
 | 29 | Feed lock | Every post opens the feed for 24 hours. Tagged within them → it locks when they end; not tagged → it stays open until you're tagged, then locks. Miss a tag → locked until a friend tags you again | Open until tagged (2026-09-28 rule) | Decided | 2026-10-01 | `get_feed`, `src/lib/feedLock.ts`, `FeedLockBanner` |
 | 30 | Missing a tag | Streak back to 0; the person who missed gets a `streak_lost` notice ("You missed @x's tag. Your streak is back to 0.") from the tagger | Silent reset | Decided | 2026-10-01 | `mark_missed_tags`, `NotificationsScreen` |
+| 31 | Seeing the welcome cards again | Settings → Help reopens the three cards | Shown once only | Decided | 2026-10-02 | `SettingsPanel`, `WelcomeCardsModal`, flag `onboarding-welcome-cards` |
+| 32 | Settings rows with nothing behind them | Removed (Edit profile, Update bio & link, Safety & privacy, Privacy & data); a row comes back when it's built | Keep as placeholders | Decided | 2026-10-02 | `SettingsPanel` |
 
 ## Fixed by the PRD (not open questions)
 

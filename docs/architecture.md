@@ -266,13 +266,13 @@ Top bar placed from the safe area, `pointerEvents: 'box-none'` so touches pass t
 | `HorizontalNavigator` / `VerticalNavigator` | `src/screens/` | Gesture navigation (above) |
 | `CameraScreen` | `src/screens/CameraScreen.tsx` | **Two-tap** dual-camera capture. `CaptureState` (`src/lib/captureGuide.ts`): `idle → capturing-first → switching → awaiting-second → capturing-second`. With `camera-pip-guide`, `CapturePipGuide` shows what comes second, then the first photo, in the photo-in-photo spot. Then `DualPhotoPreview` (Modal: big photo + draggable pip, tap to swap), caption, tag sheet (page sheet; `InviteStep` when friends can't fill the slots), Post → `InviteShareSheet` when invites were used. Also `OpenTagsBanner` (who tagged you and the time left to answer) and the reactive-posting gate: a spinner while it loads, "No tags to answer" when closed. No microphone |
 | `FeedScreen` | `src/screens/FeedScreen.tsx` | Feed from `useFeed()` (`get_feed`), FlashList; `FeedLockBanner` (flag `feed-lock-explainer`) on top; locked posts say "Answer a tag to see it", with a button only when you can post; dual-photo posts use `DraggablePip`; comments in a native page sheet; avatar → `UserProfileScreen` |
-| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Own profile: stats, avatar (`AvatarPicker`), "Suggested for you" folded away by default, FlashList grid (≥9 squares, "Streak N" badges), `FollowListModal` page sheet, `PostDetailModal`, `SettingsPanel` (Blocked users, Log out, Delete account) |
+| `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Own profile: stats, avatar (`AvatarPicker`), "Suggested for you" folded away by default, FlashList grid (≥9 squares, "Streak N" badges), `FollowListModal` page sheet, `PostDetailModal`, `SettingsPanel` (Blocked users, Delete account, Help = the welcome cards again, Log out; no rows without an action) |
 | `UserProfileScreen` | `src/screens/UserProfileScreen.tsx` | Another person's profile, opened over Feed, search, notifications, messages, friends lists; swipe right (gesture-handler pan) to close; menu and report reasons via `ActionSheetIOS`; Message (spinner while the chat opens) |
 | `MessagesScreen` | `src/screens/MessagesScreen.tsx` | Inbox from `useMessages()`; requests open `MessageRequestsScreen` (page sheet; Deny asks first) |
 | `ConversationScreen` | `src/screens/ConversationScreen.tsx` | Thread; real-time via `useConversation`; request banner (Accept / Deny with confirm) |
 | `NotificationsScreen` | `src/screens/NotificationsScreen.tsx` | Activity list (page sheet); `streak_lost` reads "You missed @x's tag. Your streak is back to 0." |
 
-App-level overlays in `App.tsx`: `WelcomeCards` (flag `onboarding-welcome-cards` — one-time 3-card carousel in a Modal, once per account per device, rules in `src/lib/welcomeCards.ts`), `UpdateRequiredScreen` (forced-update gate), `ToastHost`.
+App-level overlays in `App.tsx`: `WelcomeCards` (flag `onboarding-welcome-cards` — one-time 3-card carousel in a Modal, once per account per device, and again from Settings → Help; rules in `src/lib/welcomeCards.ts`), `UpdateRequiredScreen` (forced-update gate), `ToastHost`.
 
 ---
 
