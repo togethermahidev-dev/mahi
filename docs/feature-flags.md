@@ -18,6 +18,9 @@ they need build 11; they exist in PostHog **switched off** — turn each on only
 (build 10 ignores them either way).
 **`identity-verification` and `purchases` (added 2026-10-02) are default off too:** dormant until Didit and
 RevenueCat are set up (owner steps in [HANDOVER.md](./HANDOVER.md)). Both exist in PostHog **switched off**.
+**`mahi-points` was removed 2026-10-02** (decision #50): Mahi points are the core counter and always show.
+No code reads it any more — delete it in PostHog (id 296003, still at 100% when checked 2026-10-02) once
+the Mahi points update is out; until then the apps on phones still read it.
 
 PostHog project: **EU region, `project_id=130791`**.
 
@@ -51,13 +54,13 @@ if (!showBell) return null;
 
 ## The flags
 
-Twenty-two keys, every one read by code. (Suggested follows have no flag: they are always on.)
+Twenty-one keys, every one read by code. (Suggested follows have no flag: they are always on.)
 
 **Notifications:** `notifications-core` (the bell in the header and the notifications list)
 
 **Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
 are switched in the `app_config` table):
-`push-core` (P1, the one-time "turn on notifications" prompt — **not in PostHog, so off**) · `tag-challenges` (P2, the open-tags banner) · `mahi-points` (P5, points badges) ·
+`push-core` (P1, the one-time "turn on notifications" prompt — **not in PostHog, so off**) · `tag-challenges` (P2, the open-tags banner) ·
 `invite-links` (P7, invite a slot from the tag sheet and share the links after posting; the 6-character
 code works, but links point at `togethermahi.com`, which doesn't resolve yet — see [tag-loop-plan.md](./tag-loop-plan.md) Phase 7)
 `feed-lock-explainer` (the locked feed names who tagged you and how long you have to answer, or, with
@@ -138,7 +141,7 @@ per device, and again from Settings → Help. Off = never shown, and the Help ro
 the code and a new password set it and log you in. Needs the `send-reset-code` and `reset-password`
 functions and migration `20261001100000_password_reset_codes`. Off = no "Forgot password?" link.) ·
 `account-delete` (Settings → "Delete account" asks once, plainly, then deletes the profile, posts,
-photos, messages and streak and logs out. Needs the `delete-account` function. Off = no row.)
+photos, messages and points and logs out. Needs the `delete-account` function. Off = no row.)
 
 **Sign-in placeholders** (pills on the welcome screen with no sign-in behind them yet):
 `auth-apple-signin` · `auth-google-signin`. **Currently on at 100%** — the owner's choice on 2026-09-23 to

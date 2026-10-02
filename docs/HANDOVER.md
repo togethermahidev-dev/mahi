@@ -18,21 +18,27 @@ screens/components → hooks → stores (Zustand, optimistic) → api ({data,err
 Full data flow + the per-layer import contract: [architecture.md](./architecture.md#layering-contract).
 
 **State on 2026-10-01:**
-- **Backend:** every migration in `supabase/migrations/` (through `20261001100100_account_delete_cascade`) is
-  live on production, checked against prod. Edge Functions live: `send-otp`, `verify-otp`, `complete-signup`,
+- **Backend:** every migration in `supabase/migrations/` through `20261002130000_comment_likes` is live on
+  production (checked against prod 2026-10-02); `20261002150000_identity_verifications` and
+  `20261002170000_mahi_points` are waiting. Edge Functions live: `send-otp`, `verify-otp`, `complete-signup`,
   `send-reset-code`, `reset-password`, `delete-account` (JWT on), plus `check-email` (not in this repo).
   `send-push` is built but not deployed. See [supabase/README.md](../supabase/README.md).
 - **App:** native build 10, version `0.1.0`, on the EAS **preview** lane only — nothing is in the stores.
   Changes ship as OTA updates (history in `src/constants/ota.ts`); see the `/version-control` skill.
 - **Built and on (flags in [feature-flags.md](./feature-flags.md)):** the tag loop (3 tags, 48-hour deadlines,
-  locked feed, points, invite links + "Invite 3 friends" step), native-feel update (gesture-handler navigators,
+  locked feed, Mahi points, invite links + "Invite 3 friends" step), native-feel update (gesture-handler navigators,
   glass nav rail with morphing selector, native page sheets and action sheets, welcome cards, locked-feed card,
   camera two-photo guide), password reset by emailed code, in-app Delete account, Inter font, design tokens
   enforced by tests, sentence-case labels. Founder's choices: [decisions.md](./decisions.md).
 - **Reactive posting (decided 2026-10-01):** you post only when a friend has tagged you and the tag is still
-  open (48 hours), except your first post — no daily limit, one post per tag answered. Each answer adds 1 to your streak; a missed tag puts it back to 0
-  (`streak_lost` notice) and keeps the feed locked until a friend tags you again; the best streak stays on
-  show. No rest days, training days or streak calendar. Rules: [architecture.md](./architecture.md#reactive-posting).
+  open (48 hours), except your first post — no daily limit, one post per tag answered. Rules:
+  [architecture.md](./architecture.md#reactive-posting).
+- **Mahi points (decided 2026-10-02, decisions #47–#50):** each post that answers a tag earns 1 Mahi point
+  (only the answerer; no daily cap); a missed tag puts your points back to 0 (`streak_lost` notice: "Your
+  points are back to 0.") and keeps the feed locked until a friend tags you again; Best is never lowered.
+  "This is not streaks" — the word streak is never shown, and there is no daily streak. The old points
+  (tagger point, 3-a-day cap) are retired by migration `20261002170000_mahi_points` (**not pushed yet**);
+  the `mahi-points` flag is gone from the code — delete it in PostHog after the update.
 - **Earlier hardening still in force:** typed `src/lib/env.ts`, `ErrorBoundary`, every store reset on
   sign-out, server-authoritative sign-up codes, Jest + pgTAP + typecheck CI.
 
@@ -78,8 +84,11 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
   - Create both flags in PostHog **switched off**; turn on only after the steps above.
   - Question for you: build 11's camera and microphone texts talk about workouts. Apple may want them to
     mention identity checks once Didit is switched on — reword before that store build?
+- **Mahi points release:** `scripts/db.sh try` the migration with its tests, back up, push (the push also
+  carries `20261002150000_identity_verifications` if it's still waiting — it's additive and safe), then
+  the OTA. Later, once every phone has that OTA: `supabase/deferred/contract_points.sql`.
 - Parked decision: success targets (#12). (Streak rule #1, existing streaks #10 and rest days #27 were
-  decided on 2026-10-01 with reactive posting.)
+  decided on 2026-10-01 with reactive posting; #1 became Mahi points on 2026-10-02.)
 - Store release, then the `supabase/deferred/` contract steps.
 
 ---
