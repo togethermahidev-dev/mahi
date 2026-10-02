@@ -3,7 +3,8 @@
 -- pushes get their old words back ("@sam tagged you. You have 48 hours to post.", "24 hours left
 -- to answer @sam", "@sam posted 3h after your tag").
 -- Queued feed-lock pushes that were not sent yet are deleted; sent ones stay as history.
--- Not undone: the never-sent pushes that were already due when the migration ran stay deleted.
+-- Not undone: pushes already closed as 'stale' stay closed. With the stale rule gone, anything
+-- still queued and overdue is sent the next time the sender runs.
 -- The app keeps working either way: it reads none of this. (Its notifications list says
 -- "You've been tagged by @sam…" from the app's own words, whatever the server sends.)
 begin;
@@ -23,10 +24,40 @@ from public.tag_challenges c
 join public.profiles p on p.id = c.tagger_id
 where o.kind = 'tag_reminder' and o.sent_at is null and o.challenge_id = c.id;
 
+-- claim_push_batch as 20260917111346_push left it (no stale rule). Before its setting goes.
+create or replace function public.claim_push_batch(p_limit int default 500)
+returns table (id bigint, user_id uuid, kind text, body text, data jsonb, tokens text[])
+language sql
+security definer
+set search_path = public
+as $$
+  with due as (
+    select o.id
+    from public.push_outbox o
+    where o.sent_at is null
+      and o.send_after <= now()
+      and (o.claimed_at is null or o.claimed_at < now() - interval '5 minutes')
+    order by o.send_after
+    limit p_limit
+    for update skip locked
+  ),
+  claimed as (
+    update public.push_outbox o
+    set claimed_at = now()
+    from due
+    where o.id = due.id
+    returning o.id, o.user_id, o.kind, o.body, o.data
+  )
+  select c.id, c.user_id, c.kind, c.body, c.data,
+         coalesce((select array_agg(t.token) from public.push_tokens t where t.user_id = c.user_id), '{}')
+  from claimed c;
+$$;
+
 alter table public.app_config
   drop column feed_lock_warning_push,
   drop column feed_lock_warning_lead,
-  drop column feed_locked_push;
+  drop column feed_locked_push,
+  drop column push_stale_after;
 
 -- create_post as 20261002100000_video_posts left it (it queues the reminders itself).
 create or replace function public.create_post(
