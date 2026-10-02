@@ -8,12 +8,16 @@ import Reanimated, {
   runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import PostVideo from '@/components/PostVideo';
 import { PIP_H, PIP_W, clampToZone, snapToCorner, type PipZone } from '@/lib/pip';
 import { COLORS, withAlpha, RADIUS, BORDER_WIDTH, SHADOW_BLUR, SIZE } from '@/constants/tokens';
 
 interface DraggablePipProps {
-  /** The second camera's photo. */
+  /** The second camera's photo (or video). */
   uri: string;
+  /** Video posts: the shot is a video. It plays muted, looping, while `playing`. */
+  video?: boolean;
+  playing?: boolean;
   /** Where the photo may move (see pipZone). It starts bottom-left. */
   zone: PipZone;
   /** Tap: swap the big and small photos. */
@@ -32,6 +36,8 @@ const SNAP = { damping: 16, stiffness: 140, overshootClamping: true };
  */
 export default function DraggablePip({
   uri,
+  video = false,
+  playing = false,
   zone,
   onTap,
   resetKey,
@@ -85,10 +91,14 @@ export default function DraggablePip({
         style={[styles.pip, animStyle]}
         accessible
         accessibilityRole="button"
-        accessibilityLabel="Swap photos"
+        accessibilityLabel={video ? 'Small video. Swap with the big one' : 'Swap photos'}
         accessibilityHint="Press and hold to move it"
       >
-        <Image source={{ uri }} style={styles.image} resizeMode="cover" />
+        {video ? (
+          <PostVideo uri={uri} playing={playing} muted style={styles.image} />
+        ) : (
+          <Image source={{ uri }} style={styles.image} resizeMode="cover" />
+        )}
       </Reanimated.View>
     </GestureDetector>
   );
@@ -114,5 +124,6 @@ const styles = StyleSheet.create({
   image: {
     ...StyleSheet.absoluteFill,
     borderRadius: RADIUS.r10,
+    overflow: 'hidden',
   },
 });

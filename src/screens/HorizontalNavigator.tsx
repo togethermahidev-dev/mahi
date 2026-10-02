@@ -197,6 +197,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
                 feedList={feedList}
                 swipeRef={verticalSwipe}
                 railShown={showRail}
+                isActive={hIndex === 1}
                 onIndexChange={setVIndex}
                 onNavigateLeft={() => navigateHorizontal(0)}
                 onNavigateRight={() => navigateHorizontal(2)}
