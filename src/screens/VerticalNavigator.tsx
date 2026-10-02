@@ -301,6 +301,7 @@ export default function VerticalNavigator({
               {key === 'feed' ? (
                 <FeedScreen
                   onGoToCamera={() => navigateTo(0)}
+                  onFindFriends={() => setSearchVisible(true)}
                   headerAnim={headerAnim}
                   onOverlayChange={setFeedOverlay}
                   listGesture={feedList}
@@ -383,7 +384,7 @@ export default function VerticalNavigator({
           />
         )}
 
-        {/* Global search overlay — triggered by pull-down from Camera screen */}
+        {/* Global search overlay — pull down on Camera, or "Find friends" on an empty feed */}
         <GlobalSearchOverlay
           visible={searchVisible}
           onClose={() => setSearchVisible(false)}
