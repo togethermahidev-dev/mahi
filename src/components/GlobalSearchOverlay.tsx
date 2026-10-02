@@ -72,7 +72,7 @@ function UserRow({
           <Text style={[styles.handle, { color: muted }]}>@{item.username}</Text>
         ) : null}
       </View>
-      <PointsBadge points={item.points} style={[styles.streakText, { color: muted }]} />
+      <PointsBadge points={item.streak_current} style={[styles.points, { color: muted }]} />
     </Pressable>
   );
 }
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.italic,
     fontSize: FONT_SIZE.f13,
   },
-  streakText: {
+  points: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f13,
   },

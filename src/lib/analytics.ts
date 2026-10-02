@@ -21,7 +21,7 @@ export type TagLoopEvents = {
    * arrives, so once per missed tag; `stats.tags_daily` has the number of record.
    */
   tag_missed: { challenge_id: string | null };
-  /** The person who missed the tag lost their streak — their side of the same miss. */
+  /** The person who missed the tag lost their Mahi points — their side of the same miss. */
   streak_lost: { challenge_id: string | null };
   /** An invite link actually reached the share sheet and was sent. */
   invite_shared: Record<string, never>;

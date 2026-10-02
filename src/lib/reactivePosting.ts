@@ -7,7 +7,7 @@ import { msLeft } from './countdown';
 
 type Tag = { expires_at: string };
 
-/** A post now answers a tag (and adds 1 to the streak). */
+/** A post now answers a tag (and earns 1 Mahi point). */
 export function answersATag(openTags: Tag[], serverOffsetMs: number, deviceNow = Date.now()) {
   return openTags.some((t) => msLeft(t.expires_at, serverOffsetMs, deviceNow) > 0);
 }

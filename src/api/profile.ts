@@ -11,26 +11,22 @@ import type { Database } from '@/types';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
-/** A profile plus its Mahi points (`points` is a computed column on the server). */
-export type ProfileWithPoints = ProfileRow & { points: number };
-
-/** Fetch the full profile, with points. */
+/**
+ * Fetch the full profile. Mahi points are `streak_current` (best: `streak_highest`); the
+ * server keeps the old column names so apps already on phones keep working.
+ */
 export async function getProfile(
   userId: string
-): Promise<{ data: ProfileWithPoints | null; error: Error | null }> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*, points')
-    .eq('id', userId)
-    .single();
+): Promise<{ data: ProfileRow | null; error: Error | null }> {
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
   if (error) return { data: null, error: new Error(error.message) };
-  return { data: data as unknown as ProfileWithPoints, error: null };
+  return { data, error: null };
 }
 
 export type ProfileSearchResult = Pick<
   ProfileRow,
   'id' | 'username' | 'display_name' | 'first_name' | 'last_name' | 'avatar_url' | 'streak_current'
-> & { points: number };
+>;
 
 /** Search profiles by username, display name, or first/last name. */
 export async function searchProfiles(
@@ -42,14 +38,14 @@ export async function searchProfiles(
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, display_name, first_name, last_name, avatar_url, streak_current, points')
+    .select('id, username, display_name, first_name, last_name, avatar_url, streak_current')
     .or(
       `username.ilike.%${q}%,display_name.ilike.%${q}%,first_name.ilike.%${q}%,last_name.ilike.%${q}%`
     )
     .limit(limit);
 
   if (error) return { data: null, error: new Error(error.message) };
-  return { data: data as unknown as ProfileSearchResult[], error: null };
+  return { data, error: null };
 }
 
 /** Update a user's avatar URL in the profiles table. */

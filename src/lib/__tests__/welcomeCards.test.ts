@@ -16,9 +16,9 @@ describe('welcome cards', () => {
     ]);
   });
 
-  it('explains answering a tag and the streak on card 1', () => {
+  it('explains answering a tag and Mahi points on card 1', () => {
     expect(WELCOME_CARDS[0].body).toBe(
-      'You have 48 hours to answer with a photo, front and back camera. Each answer adds one to your streak.'
+      'You have 48 hours to answer with a photo, front and back camera. Each answer earns you a Mahi point.'
     );
   });
 

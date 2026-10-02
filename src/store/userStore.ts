@@ -11,16 +11,16 @@ interface UserProfile {
   contact_number: string | null;
   fitness_goals: string[] | null;
   avatar_url: string | null;
+  /** Mahi points: +1 per post that answers a tag, back to 0 on a missed tag. */
   streak_current: number;
+  /** Best Mahi points, never lowered. */
   streak_highest: number;
-  /** Mahi points (server-counted). */
-  points?: number;
 }
 
 interface UserState {
   profile: UserProfile | null;
   setProfile: (profile: UserProfile | null) => void;
-  /** Re-read the signed-in profile from the server (e.g. points after answering tags). */
+  /** Re-read the signed-in profile from the server (e.g. points after a missed tag). */
   refresh: (userId: string) => Promise<void>;
   reset: () => void;
 }

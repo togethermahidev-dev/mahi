@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { useAuthStore, useUserStore } from '@/store';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { pointsStatsLabel } from '@/lib/mahiPoints';
 import { useRailRoom } from '@/hooks/useChrome';
 import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
@@ -56,7 +56,6 @@ export default function ProfileScreen({
 
   const profile = useUserStore((s) => s.profile);
   const setProfile = useUserStore((s) => s.setProfile);
-  const showPoints = useFeatureFlag('mahi-points');
   const userId = useAuthStore((s) => s.user?.id);
 
   // Drive a focus-aware re-sync of the posts grid. ProfileScreen is always
@@ -116,26 +115,21 @@ export default function ProfileScreen({
         <Text style={[styles.statLabel, { color: muted }]}>Friends ›</Text>
       </Pressable>
 
-      {/* Streak stats */}
-      <View style={[styles.statsRow, { marginTop: SPACE.s16 }]}>
+      {/* Mahi points: one per post that answers a tag, back to 0 on a missed tag; Best stays */}
+      <View
+        style={[styles.statsRow, { marginTop: SPACE.s16 }]}
+        accessible
+        accessibilityLabel={pointsStatsLabel(profile?.streak_current, profile?.streak_highest)}
+      >
         <View style={styles.stat}>
           <Text style={[styles.statValue, { color: text }]}>{profile?.streak_current ?? 0}</Text>
-          <Text style={[styles.statLabel, { color: muted }]}>Streak</Text>
+          <Text style={[styles.statLabel, { color: muted }]}>Points</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: muted }]} />
         <View style={styles.stat}>
           <Text style={[styles.statValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
           <Text style={[styles.statLabel, { color: muted }]}>Best</Text>
         </View>
-        {showPoints ? (
-          <>
-            <View style={[styles.statDivider, { backgroundColor: muted }]} />
-            <View style={styles.stat}>
-              <Text style={[styles.statValue, { color: text }]}>{profile?.points ?? 0}</Text>
-              <Text style={[styles.statLabel, { color: muted }]}>Points</Text>
-            </View>
-          </>
-        ) : null}
       </View>
 
       {/* Suggested follows — syncs on mount, renders null when empty */}
@@ -145,7 +139,7 @@ export default function ProfileScreen({
 
   return (
     <View style={[styles.root, { backgroundColor: bg, paddingTop: top }]}>
-      {/* The header and the personal streak photo grid, scrolling as one page */}
+      {/* The header and the personal photo grid, scrolling as one page */}
       {profile && userId ? (
         <ProfileMediaMap
           userId={profile.id}

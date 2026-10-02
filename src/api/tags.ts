@@ -12,6 +12,7 @@ export type TaggableFriend = {
   has_open_tag: boolean;
   /** They tagged you and your post answers it, so you can't tag them back. */
   tagged_you?: boolean;
+  /** Their Mahi points (the server sends `streak_current` under this name). */
   points: number;
   /** When anyone last tagged them; null if never. */
   last_tagged_at: string | null;
