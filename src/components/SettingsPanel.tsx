@@ -16,7 +16,6 @@ import { deleteAccount, signOut } from '@/api/auth';
 import { DELETE_ACCOUNT_CONFIRM } from '@/lib/account';
 import { VERSION_LINE } from '@/lib/appBuild';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
-import { useCoverRail } from '@/hooks/useChrome';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
 import { WelcomeCardsModal } from '@/components/WelcomeCards';
 import { FONTS } from '@/constants/fonts';
@@ -54,8 +53,6 @@ export default function SettingsPanel({
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
   const border = dark ? withAlpha(COLORS.offWhite, 0.08) : withAlpha(COLORS.offBlack, 0.06);
   const panelBg = dark ? COLORS.bgDark : COLORS.white;
-  // The panel slides in from the left, where the glass bar sits: the bar hides while it's open.
-  useCoverRail(visible);
   const backdropColor = dark ? withAlpha(COLORS.black, 0.6) : withAlpha(COLORS.black, 0.4);
   const danger = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
 

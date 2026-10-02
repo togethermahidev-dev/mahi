@@ -292,7 +292,7 @@ Persists sign-up form state across app backgrounding mid-flow. Cleared on comple
 | `useTagStore` | `tagStore.ts` | Open tags (memory only, they expire), `serverOffsetMs`, `openTagsLoaded`, `requiredTags`/`maxTags` from `app_config` |
 | `useInviteStore` | `inviteStore.ts` | The invite token/code the app was opened with (memory only) and its claim |
 | `useToastStore` | `toastStore.ts` | One toast message for failed mutations (imported directly, not from the barrel) |
-| `useChromeStore` | `chromeStore.ts` | What floats over the pages: `covers` (full-screen views open over a page, so the glass bar hides — someone's profile, Settings, search), `viewing` (a post is held: hold to view) and `feedTick` (the feed moved to another post: the Feed icon bounces) |
+| `useChromeStore` | `chromeStore.ts` | What floats over the pages: `covers` (full-screen views open over a page, so the glass bar hides — someone's profile, search) and `viewing` (a post is held: hold to view) |
 
 ---
 

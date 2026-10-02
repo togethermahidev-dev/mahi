@@ -98,7 +98,7 @@ export type VerticalControl = { navigateTo: (index: number) => void };
 
 interface VerticalNavigatorProps {
   controlRef?: React.RefObject<VerticalControl | null>;
-  /** The glass rail is showing: hide the side dots and the header's Profile/Messages pills. */
+  /** The glass rail is on (it shows on the Camera): hide the side dots and the header's Profile/Messages pills. */
   railShown?: boolean;
   onIndexChange?: (index: number) => void;
   onNavigateLeft: () => void; // tap profile pill or swipe right → Profile screen

@@ -1,6 +1,6 @@
 /**
- * What floats over the pages: holding a post hides it all (the glass bar too), full-screen views
- * over a page hide the glass bar, and the Feed icon bounces each time the feed moves on a post.
+ * What floats over the pages: holding a post hides it all, and full-screen views over a page
+ * hide the glass bar.
  */
 import { useChromeStore } from '@/store/chromeStore';
 
@@ -38,34 +38,11 @@ describe('views that cover the glass bar', () => {
   });
 });
 
-describe('the Feed icon bounce', () => {
-  it('counts the first post as no move', () => {
-    state().feedPostShown('a');
-    expect(state().feedTick).toBe(0);
-  });
-
-  it('bumps once per move to another post', () => {
-    state().feedPostShown('a');
-    state().feedPostShown('b');
-    state().feedPostShown('b');
-    state().feedPostShown('a');
-    expect(state().feedTick).toBe(2);
-  });
-
-  it('nothing in view is no move', () => {
-    state().feedPostShown('a');
-    state().feedPostShown(null);
-    expect(state().feedTick).toBe(0);
-  });
-});
-
 describe('sign-out', () => {
   it('reset clears it all', () => {
     state().setViewing(true);
     state().cover();
-    state().feedPostShown('a');
-    state().feedPostShown('b');
     state().reset();
-    expect(state()).toMatchObject({ viewing: false, covers: 0, feedTick: 0 });
+    expect(state()).toMatchObject({ viewing: false, covers: 0 });
   });
 });

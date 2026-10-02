@@ -295,7 +295,7 @@ Both navigators run on **react-native-gesture-handler + reanimated** (UI thread)
 
 The Profile page is one scrolling list too (2026-10-02), so `HorizontalNavigator` makes a second `Gesture.Native()`, `profileList`, passes it to `ProfileScreen` (`listGesture`), and the sideways pan is `.simultaneousWithExternalGesture(feedList, profileList, verticalSwipe)`. A list lends its scrolling through `ListGestureContext` + `GestureScrollView` (`src/components/GestureScrollView.tsx`, the FlashList `renderScrollComponent`), shared by the Feed, both profile pages and the post viewer. `UserProfileScreen`'s swipe back and `PostViewer`'s sideways close run alongside their own list the same way.
 
-**Hold to view** (2026-10-02, owner: "native hold to preview"): `PostCard`'s press and hold (`Gesture.LongPress`, `POST_CARD.holdMs`) runs alongside its double tap and alongside the list (it reads the list's gesture from `ListGestureContext`), so a finger that moves first is a scroll or a page swipe and the hold never starts; once held, the list can still scroll. Held: a light haptic, and `chromeStore.viewing` fades out (`useChromeFade`) the name and caption, the tags and points row, the like / comment column, the glass bar and the post viewer's ✕; release brings them back. The small photo stays and stays draggable (its own gesture, on top); a double tap still likes. The page swipes that started under a hold wait for the finger to lift.
+**Hold to view** (2026-10-02, owner: "native hold to preview"): `PostCard`'s press and hold (`Gesture.LongPress`, `POST_CARD.holdMs`) runs alongside its double tap and alongside the list (it reads the list's gesture from `ListGestureContext`), so a finger that moves first is a scroll or a page swipe and the hold never starts; once held, the list can still scroll. Held: a light haptic, and `chromeStore.viewing` fades out (`useChromeFade`) the name and caption, the tags and points row, the like / comment column and the post viewer's ✕; release brings them back. The small photo stays and stays draggable (its own gesture, on top); a double tap still likes. The page swipes that started under a hold wait for the finger to lift.
 
 **Hold to preview** (flag `context-menu-preview`, default off, iPhone + build 11): `PreviewMenu` (`src/components/PreviewMenu.tsx`) hosts the held content in a SwiftUI `Host` → `ContextMenu` → `RNHostView`, so Apple's own context-menu hold (a `UIContextMenuInteraction`, not a gesture-handler gesture) lifts a `Preview` with menu `Items`. Used by profile grid squares, Messages rows and `PostCard` (where it replaces the `Gesture.LongPress` above: with the flag on `postGesture` is the double tap alone). Nothing in the gesture relations changes: the hosted RN content keeps its gestures (double tap, taps) because the surface's touch handler still dispatches into it; the system hold fails as soon as the finger moves, so list scrolling, the vertical paging and the page swipes win a moving finger, and once the menu is up the system takes the touch. The draggable small photo and the like / comment column sit outside the held area. `@expo/ui` is required lazily (`src/lib/expoUiModule.ts`) so build 10 never loads it. One `Host` per mounted cell (FlashList recycles them: about a screenful), because a context menu must belong to the view that is held; the preview's content mounts only while it shows (`onAppear` / `onDisappear`), so no second picture is decoded per cell.
 
@@ -305,11 +305,11 @@ Spring for both: `damping: 22, stiffness: 160, mass: 0.9` (Reduce Motion ignored
 
 | Index | Panel | Access |
 |---|---|---|
-| 0 | `ProfileScreen` | Swipe right, or the rail's Profile icon (header pill when the rail is off) |
+| 0 | `ProfileScreen` | Swipe right, or the rail's Profile icon on the Camera (header pill when the rail is off) |
 | 1 | `VerticalNavigator` | Default on entry |
-| 2 | `MessagesScreen` | Swipe left, or the rail's Messages icon (header icon when the rail is off) |
+| 2 | `MessagesScreen` | Swipe left, or the rail's Messages icon on the Camera (header icon when the rail is off) |
 
-It also renders the `NavRail` and measures its rectangle for the swipe `exclude`.
+It also renders the `NavRail` (on the Camera only: `railShows`) and measures its rectangle for the swipe `exclude`.
 
 ### Vertical Navigator (`src/screens/VerticalNavigator.tsx`)
 
@@ -326,11 +326,11 @@ Each page is one window tall. It also owns: the `AppHeader` (slid off-screen by 
 
 ### Nav Rail (`src/components/NavRail.tsx`) — flags `nav-glass-rail`, `nav-rail-morph`
 
-A floating glass rail on the **left** edge (owner, 2026-10-02: on every screen, so it never meets the like and comment buttons on the right), inside the safe area and vertically centred, with four icons: Camera, Feed, Messages, Profile (`expo-glass-effect` where available, `BlurView` otherwise). It replaces the side dots and the header's Profile/Messages pills.
-- Nothing on the left sits under it: `useRailRoom()` (`src/hooks/useChrome.ts`) is the room it takes, used by the feed's small photo, the locked post card, the profile header, the inbox rows and the camera's photo-in-photo guide. It hides while a full-screen view is open over a page (someone's profile, Settings, search — `useCoverRail`, `chromeStore.covers`), as it does over the Feed's pop-ups.
+A floating glass rail on the **left** edge of the **Camera only** (owner, 2026-10-02: "the tab bar should only be seen on the camera screen, not others"), inside the safe area and vertically centred, with four icons: Camera, Feed, Messages, Profile (`expo-glass-effect` where available, `BlurView` otherwise). With the flag on, the side dots and the header's Profile/Messages pills are hidden on every screen; Feed, Messages and Profile are left by swiping (Messages also has its back button).
+- Where it shows is one rule: `railShows` in `src/lib/railSelector.ts` (tested), read by `HorizontalNavigator`: the flag is on, the Camera is the screen showing, and no pop-up or full-screen view is open over it (someone's profile, search — `useCoverRail`, `chromeStore.covers`).
+- Nothing on the Camera's left sits under it: `useRailRoom()` (`src/hooks/useChrome.ts`) is the room it takes, used by the camera's photo-in-photo guide. No other screen keeps room for it.
 - `nav-rail-morph` on: the rail reads as one floating pill with an outline and shadow (`NAV_RAIL` tokens); one selector slides and stretches between icons (stretch, then contract; a plain move with Reduce Motion); press and hold or drag along the rail to switch screens live. Geometry and motion plans are pure in `src/lib/railSelector.ts` (tested).
 - A touch that starts on the rail never moves the pages (`exclude` in `swipeRules`).
-- The Feed icon bounces a little (`NAV_RAIL.feedBump*`) each time the feed moves to another post (`chromeStore.feedPostShown`, from the feed's in-view post); not with Reduce Motion.
 - Off: the old dots (`NavigationDots`) and header pills.
 
 ### App Header (`src/components/AppHeader.tsx`)

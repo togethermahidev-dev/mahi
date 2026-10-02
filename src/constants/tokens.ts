@@ -266,12 +266,6 @@ export const NAV_RAIL = {
   outlineOnLight: 0.35,
   /** The soft shadow the pill floats on. */
   shadowOpacity: 0.22,
-  /** The Feed icon's small bounce each time the feed moves to the next post: how big it grows… */
-  feedBumpScale: 1.2,
-  /** …how long it takes to grow (ms)… */
-  feedBumpUpMs: 110,
-  /** …and to settle back (ms). */
-  feedBumpDownMs: 180,
 } as const;
 
 // ─── Full-screen posts (feed and post viewer) ───────────────────────────────────

@@ -28,7 +28,7 @@ export const FEATURE_FLAGS = [
   'tags-invite-step', // tag sheet leads with "Invite 3 friends" when friends can't fill the slots; invite list after posting
 
   // Navigation
-  'nav-glass-rail', // floating glass rail on the left: Camera, Feed, Messages, Profile
+  'nav-glass-rail', // floating glass rail on the Camera's left: Camera, Feed, Messages, Profile
   'nav-rail-morph', // rail as one floating pill with a sliding selector; hold and drag to switch
 
   // Onboarding

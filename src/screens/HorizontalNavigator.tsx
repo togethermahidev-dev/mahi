@@ -17,8 +17,8 @@ import ProfileScreen from '@/screens/ProfileScreen';
 import MessagesScreen from '@/screens/MessagesScreen';
 import NavRail, { type RailTab } from '@/components/NavRail';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { useChromeStore } from '@/store';
+import { railShows } from '@/lib/railSelector';
 import { horizontalRelease, horizontalSwipe, rubberBand, type Rect } from '@/lib/swipeRules';
 
 // ─── Panel registry ───────────────────────────────────────────────────────────
@@ -34,16 +34,17 @@ const SPRING = { damping: 22, stiffness: 160, mass: 0.9, reduceMotion: ReduceMot
 export default function HorizontalNavigator(): React.JSX.Element {
   const showRail = useFeatureFlag('nav-glass-rail');
   const railMorph = useFeatureFlag('nav-rail-morph');
-  const { dark } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
 
   const [hIndex, setHIndex] = useState(DEFAULT_INDEX);
   const [vIndex, setVIndex] = useState(0);
   const [overlay, setOverlay] = useState(false);
-  // A full-screen view the rail would sit on (someone's profile, settings) hides it too.
+  const railTab: RailTab =
+    hIndex === 0 ? 'profile' : hIndex === 2 ? 'messages' : vIndex === 0 ? 'camera' : 'feed';
+  // A full-screen view the rail would sit on (someone's profile, search) hides it too.
   const covered = useChromeStore((s) => s.covers > 0);
-  const railShown = showRail && !overlay && !covered;
+  const railShown = railShows({ on: showRail, tab: railTab, overlay, covered });
   const verticalRef = useRef<VerticalControl | null>(null);
   const blurTargetRef = useRef<View | null>(null);
 
@@ -170,9 +171,6 @@ export default function HorizontalNavigator(): React.JSX.Element {
 
   const tapeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: -page.value * width }] }));
 
-  const railTab: RailTab =
-    hIndex === 0 ? 'profile' : hIndex === 2 ? 'messages' : vIndex === 0 ? 'camera' : 'feed';
-
   const selectTab = (tab: RailTab) => {
     if (tab === 'profile') return navigateHorizontal(0);
     if (tab === 'messages') return navigateHorizontal(2);
@@ -226,7 +224,7 @@ export default function HorizontalNavigator(): React.JSX.Element {
           <NavRail
             active={railTab}
             onSelect={selectTab}
-            onDark={railTab === 'camera' || dark}
+            onDark
             blurTarget={Platform.OS === 'android' ? blurTargetRef : undefined}
             morph={railMorph}
             onRect={
