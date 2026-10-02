@@ -31,6 +31,10 @@ export type TagLoopEvents = {
   feed_unlocked: Record<string, never>;
   /** A push was tapped. */
   push_opened: { route: string };
+  /** The notifications page was answered; `granted` is what the phone's own question got. */
+  push_primer_answered: { choice: 'allow' | 'not_now'; granted: boolean };
+  /** The camera's "turn on notifications" line was tapped ('settings' or 'ask') or dismissed. */
+  push_nudge: { action: 'settings' | 'ask' | 'dismiss' };
 };
 
 /** Send one tag-loop event. Never throws: analytics must not break what the user just did. */

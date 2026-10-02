@@ -21,7 +21,7 @@ export const FEATURE_FLAGS = [
   'account-delete', // Settings -> Delete account (Apple requires in-app deletion)
 
   // Tag loop (see docs/tag-loop-plan.md)
-  'push-core', // P1 push permission prompt (server keeps queueing when off)
+  'push-core', // the "turn on notifications" page and the camera's reminder line (default OFF; server keeps queueing when off)
   'tag-challenges', // P2 open-tags banner (the 3-tag rule is switched in app_config)
   'invite-links', // P7 invite a slot from the tag sheet, share links after posting
   'feed-lock-explainer', // locked feed says why (who tagged you); open feed says how long it stays open
@@ -56,7 +56,9 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
 
 /**
  * Flags that are OFF unless PostHog explicitly says true — while flags load, with no PostHog
- * key, and when the key is missing. `video-posts`: the owner wants it off for everyone, and
+ * key, and when the key is missing. `push-core`: the full-screen notifications page must never
+ * flash up while flags load, nor before push is set up on the server.
+ * `video-posts`: the owner wants it off for everyone, and
  * with it off the app must never ask for the microphone, not even for a moment on cold start.
  * `ios-sf-symbols`: Apple's icons need build 11; off until switched on, so icons never swap
  * from drawn to Apple's in front of someone while flags load.
@@ -65,6 +67,7 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * `identity-verification` and `purchases`: dormant until the owner sets up Didit / RevenueCat.
  */
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
+  'push-core',
   'video-posts',
   'ios-sf-symbols',
   'context-menu-preview',

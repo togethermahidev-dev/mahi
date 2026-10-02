@@ -206,6 +206,9 @@ export default function HorizontalNavigator(): React.JSX.Element {
                 onIndexChange={setVIndex}
                 onNavigateLeft={() => navigateHorizontal(0)}
                 onNavigateRight={() => navigateHorizontal(2)}
+                onNavigateHome={() => {
+                  if (indexSV.value !== 1) navigateHorizontal(1);
+                }}
                 onOverlayChange={(active) => {
                   blockedSV.value = active;
                   setOverlay(active);

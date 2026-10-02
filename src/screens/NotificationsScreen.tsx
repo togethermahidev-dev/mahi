@@ -6,6 +6,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useBlockStore } from '@/store';
 import type { NotificationWithActor } from '@/api';
+import { notificationText } from '@/lib/notificationText';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -122,37 +123,7 @@ export default function NotificationsScreen({
               const name = item.actor.display_name ?? item.actor.username;
               const initials = name[0].toUpperCase();
 
-              // DB CHECK constraint guarantees one of the known types; default covers
-              // the generated-type widening to `string` so `caption` is always set.
-              let caption: string;
-              switch (item.type) {
-                case 'like':
-                  caption = `@${item.actor.username} liked your post`;
-                  break;
-                case 'comment':
-                  caption = `@${item.actor.username} commented on your post`;
-                  break;
-                case 'follow':
-                  caption = `@${item.actor.username} started following you`;
-                  break;
-                case 'tag':
-                  caption = `@${item.actor.username} tagged you in a post`;
-                  break;
-                case 'tag_answered':
-                  caption = `@${item.actor.username} answered your tag`;
-                  break;
-                case 'tag_missed':
-                  caption = `@${item.actor.username} missed your tag`;
-                  break;
-                case 'streak_lost':
-                  caption = `You missed @${item.actor.username}'s tag. Your points are back to 0.`;
-                  break;
-                case 'invite_joined':
-                  caption = `@${item.actor.username} joined Mahi from your invite`;
-                  break;
-                default:
-                  caption = `@${item.actor.username}`;
-              }
+              const caption = notificationText(item.type, item.actor.username);
 
               const handleAvatarPress = () => {
                 markRead(item.id);

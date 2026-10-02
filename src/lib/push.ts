@@ -1,20 +1,17 @@
 /**
  * Push notifications — device side only (permission, Expo token, taps).
  * The server decides what to send and when; see supabase/functions/send-push.
+ * When Mahi asks for the permission is decided in ./pushPrimer.ts.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import type { PushPermission } from './pushPrimer';
+import type { PushData } from './pushRoute';
 
-/** What the server puts in a push's `data`. */
-export type PushData = {
-  route?: 'post' | 'profile' | 'camera';
-  post_id?: string | null;
-  user_id?: string;
-  notification_id?: string;
-};
-
-const PROMPTED_KEY = '@mahi:push_prompted';
+// Device-wide, not per account: the phone's permission belongs to the phone.
+const PRIMER_ANSWERED_KEY = '@mahi:push_primer_answered';
+const NUDGE_DISMISSED_KEY = '@mahi:push_nudge_dismissed_through';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -26,14 +23,11 @@ Notifications.setNotificationHandler({
 });
 
 function isGranted(status: Notifications.NotificationPermissionsStatus): boolean {
-  return (
-    status.granted ||
-    status.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL
-  );
+  return status.granted || status.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
 }
 
-/** 'granted' | 'denied' | 'undetermined' — never prompts. */
-export async function getPushPermission(): Promise<'granted' | 'denied' | 'undetermined'> {
+/** What the phone says about notifications for Mahi — never prompts. */
+export async function getPushPermission(): Promise<PushPermission> {
   const status = await Notifications.getPermissionsAsync();
   if (isGranted(status)) return 'granted';
   return status.canAskAgain ? 'undetermined' : 'denied';
@@ -44,20 +38,37 @@ export async function requestPushPermission(): Promise<boolean> {
   return isGranted(await Notifications.requestPermissionsAsync());
 }
 
-/** Whether this device has already shown Mahi's explainer before the OS prompt. */
-export async function wasPushPrompted(): Promise<boolean> {
+/** Whether Mahi's notifications page has been answered on this device (Allow or Not now). */
+export async function wasPushPrimerAnswered(): Promise<boolean> {
   try {
-    return (await AsyncStorage.getItem(PROMPTED_KEY)) === '1';
+    return (await AsyncStorage.getItem(PRIMER_ANSWERED_KEY)) === '1';
   } catch {
     return false;
   }
 }
 
-export async function markPushPrompted(): Promise<void> {
+export async function markPushPrimerAnswered(): Promise<void> {
   try {
-    await AsyncStorage.setItem(PROMPTED_KEY, '1');
+    await AsyncStorage.setItem(PRIMER_ANSWERED_KEY, '1');
   } catch {
-    // Only means the explainer may show again.
+    // Only means the page may show once more.
+  }
+}
+
+/** The tags the camera's "turn on notifications" line was dismissed for (see nudgeDismissMark). */
+export async function getPushNudgeDismissed(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(NUDGE_DISMISSED_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export async function markPushNudgeDismissed(through: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(NUDGE_DISMISSED_KEY, through);
+  } catch {
+    // Only means the line may show again for the same tag.
   }
 }
 
@@ -101,7 +112,9 @@ export function onPushOpened(cb: (data: PushData) => void): () => void {
     seen.add(id);
     cb((response.notification.request.content.data ?? {}) as PushData);
   };
-  Notifications.getLastNotificationResponseAsync().then(handle).catch(() => {});
+  Notifications.getLastNotificationResponseAsync()
+    .then(handle)
+    .catch(() => {});
   const sub = Notifications.addNotificationResponseReceivedListener(handle);
   return () => sub.remove();
 }

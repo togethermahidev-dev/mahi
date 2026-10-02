@@ -4,6 +4,7 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMinuteTick } from '@/hooks/useMinuteTick';
+import PushNudge from '@/components/PushNudge';
 import { openTagsBanner } from '@/lib/openTagsBanner';
 import { appHeaderHeight } from '@/lib/pip';
 import type { OpenTag } from '@/api';
@@ -11,8 +12,9 @@ import { FONTS } from '@/constants/fonts';
 import { FONT_SIZE, SPACE, RADIUS, BORDER_WIDTH, OFFSET, SIZE } from '@/constants/tokens';
 
 /**
- * Camera overlay: who tagged you and how long is left on the soonest deadline.
- * Renders nothing when there are no open tags.
+ * Camera overlay: who tagged you and how long is left on the soonest deadline, and under it the
+ * "turn on notifications" line for someone who has them off. Renders nothing when there are no
+ * open tags.
  */
 export default function OpenTagsBanner({
   openTags,
@@ -31,13 +33,18 @@ export default function OpenTagsBanner({
   if (!banner) return null;
 
   return (
-    <View style={[styles.wrap, { top }]} pointerEvents="none">
-      <BlurView intensity={40} tint="dark" style={[styles.pill, { borderColor: colors.accent }]}>
-        <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={1}>
-          {banner.who} tagged you ·{' '}
-          <Text style={[styles.time, { color: colors.accent }]}>{banner.left}</Text>
-        </Text>
-      </BlurView>
+    // box-none: touches pass through to the camera except on the notifications line.
+    <View style={[styles.wrap, { top }]} pointerEvents="box-none">
+      <View pointerEvents="none">
+        <BlurView intensity={40} tint="dark" style={[styles.pill, { borderColor: colors.accent }]}>
+          <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={1}>
+            {banner.who} tagged you ·{' '}
+            <Text style={[styles.time, { color: colors.accent }]}>{banner.left}</Text>
+          </Text>
+        </BlurView>
+      </View>
+      {/* Tagged with notifications off: one line to turn them on (flag push-core). */}
+      <PushNudge openTags={openTags} />
     </View>
   );
 }

@@ -103,6 +103,8 @@ interface VerticalNavigatorProps {
   onIndexChange?: (index: number) => void;
   onNavigateLeft: () => void; // tap profile pill or swipe right → Profile screen
   onNavigateRight: () => void; // tap messages icon or swipe left → Messages screen
+  /** Bring this panel to the front when Profile or Messages is showing (a tapped push). */
+  onNavigateHome?: () => void;
   onOverlayChange?: (active: boolean) => void; // true when a fullscreen overlay is open
   /** The Feed list's scrolling as a gesture, made by HorizontalNavigator so its sideways
    *  swipe can run alongside the list too. */
@@ -121,6 +123,7 @@ export default function VerticalNavigator({
   onIndexChange,
   onNavigateLeft,
   onNavigateRight,
+  onNavigateHome,
   onOverlayChange,
   feedList,
   swipeRef,
@@ -142,14 +145,25 @@ export default function VerticalNavigator({
   usePushRegistration();
   usePushRouting({
     openProfile: (uid) => {
+      onNavigateHome?.();
       setNotifOpen(false);
       setProfileUserId(uid);
     },
-    openNotifications: () => setNotifOpen(true),
+    openNotifications: () => {
+      onNavigateHome?.();
+      setNotifOpen(true);
+    },
     openCamera: () => {
+      onNavigateHome?.();
       setNotifOpen(false);
       setProfileUserId(null);
       navigateTo(0);
+    },
+    // A message push: Messages is the page to the right.
+    openMessages: () => {
+      setNotifOpen(false);
+      setProfileUserId(null);
+      onNavigateRight();
     },
   });
 

@@ -53,23 +53,42 @@ function CardIllustration({ icon, color }: { icon: WelcomeCard['icon']; color: s
 /**
  * One-time welcome carousel, shown over the signed-in app until this account has closed it
  * on this device. Settings → Help shows the same cards again (WelcomeCardsModal).
+ * `onSettled` says whether the cards are out of the way (seen before, switched off, or just
+ * closed), so the notifications page never opens on top of them.
  */
-export default function WelcomeCards({ userId }: { userId: string }): React.JSX.Element | null {
+export default function WelcomeCards({
+  userId,
+  onSettled,
+}: {
+  userId: string;
+  onSettled?: (settled: boolean) => void;
+}): React.JSX.Element | null {
   const enabled = useFeatureFlag('onboarding-welcome-cards');
   const [visible, setVisible] = useState(false);
+  // Whether "seen" has been read for this account yet.
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
     AsyncStorage.getItem(welcomeSeenKey(userId))
       .then((seen) => {
-        if (!cancelled && seen !== '1') setVisible(true);
+        if (cancelled) return;
+        if (seen !== '1') setVisible(true);
+        setChecked(true);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setChecked(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [userId, enabled]);
+
+  const settled = !enabled || (checked && !visible);
+  useEffect(() => {
+    onSettled?.(settled);
+  }, [settled, onSettled]);
 
   const close = () => {
     setVisible(false);
