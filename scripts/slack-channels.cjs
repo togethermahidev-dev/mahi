@@ -54,6 +54,11 @@ function plan(channels, existing) {
   });
 }
 
+/** Who to invite: a channel's own `invite` list (member IDs) wins over the SLACK_INVITE list. */
+function inviteFor(channel, globalInvite) {
+  return channel.invite ?? globalInvite;
+}
+
 /** A change summary for one feature channel: short, plain words, and only to a channel we know. */
 function updateMessage(name, text, channels) {
   if (!channels.some((c) => c.name === name)) throw new Error(`unknown channel #${name}`);
@@ -110,9 +115,10 @@ async function apply(token, items, invite) {
       const posted = await slack('chat.postMessage', token, { channel: id, text });
       await slack('pins.add', token, { channel: id, timestamp: posted.ts });
     }
-    if (invite.length) {
+    const who = inviteFor(c, invite);
+    if (who.length) {
       try {
-        await slack('conversations.invite', token, { channel: id, users: invite.join(',') });
+        await slack('conversations.invite', token, { channel: id, users: who.join(',') });
       } catch (e) {
         if (!/already_in_channel|cant_invite_self/.test(e.message)) throw e;
       }
@@ -192,7 +198,7 @@ async function main() {
   await apply(token, items, invite);
 }
 
-module.exports = { plan, pinnedText, needsPurpose, updateMessage };
+module.exports = { plan, pinnedText, needsPurpose, inviteFor, updateMessage };
 
 if (require.main === module) {
   main().catch((e) => {

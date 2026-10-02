@@ -56,3 +56,9 @@ test('an update goes to a known channel as a short, plain summary', () => {
   assert.throws(() => updateMessage('feed', 'x'.repeat(601), channels), /too long/);
   assert.throws(() => updateMessage('feed', 'Added a migration for it', channels), /engineering words/);
 });
+
+test('a channel with its own invite list invites only those people', () => {
+  const { inviteFor } = require('./slack-channels.cjs');
+  assert.deepStrictEqual(inviteFor({ name: 'a', invite: ['U1', 'U2'] }, ['U9']), ['U1', 'U2']);
+  assert.deepStrictEqual(inviteFor({ name: 'b' }, ['U9']), ['U9']);
+});
