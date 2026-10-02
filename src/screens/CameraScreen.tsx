@@ -67,6 +67,7 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { formatWait } from '@/lib/countdown';
 import { answersATag, reactivePostingGate } from '@/lib/reactivePosting';
 import { nudgeLabel } from '@/lib/tagNudge';
+import { cantTagReason } from '@/lib/tagRules';
 import { inviteList, inviteShareMessage, markInvite, type InviteItem } from '@/lib/inviteShare';
 import { tagSheetStep } from '@/lib/inviteStep';
 import {
@@ -900,6 +901,7 @@ function TagUserRow({
   const nudgeDays = useTagStore((s) => s.nudgeDays);
   const { accent } = useAppTheme().colors;
   const nudge = nudgeLabel(item.last_tagged_at, item.has_open_tag, nudgeDays);
+  const reason = cantTagReason(item);
   return (
     <Pressable
       style={({ pressed }) => [
@@ -924,11 +926,7 @@ function TagUserRow({
         </Text>
         <Text style={styles.tagRowHandle}>
           @{item.username}
-          {item.tagged_you
-            ? ' · tagged you, can’t tag back'
-            : item.has_open_tag
-              ? ' · waiting on your last tag'
-              : ''}
+          {reason ? ` · ${reason}` : ''}
         </Text>
         {nudge ? <Text style={[styles.tagRowNudge, { color: accent }]}>{nudge}</Text> : null}
       </View>
@@ -1652,12 +1650,12 @@ export default function CameraScreen(): React.JSX.Element {
   };
 
   // Capture state label shown while sequencing. After the switch, `facing` is the second side.
-  const captureLabel = captureLabelFor(captureState, facing, pipGuideOn);
+  const captureLabel = captureLabelFor(captureState, facing);
 
   // Read each new step out to VoiceOver (iOS has no live regions; Android also gets one below).
   useEffect(() => {
-    if (pipGuideOn && captureLabel) AccessibilityInfo.announceForAccessibility(captureLabel);
-  }, [pipGuideOn, captureLabel]);
+    if (captureLabel) AccessibilityInfo.announceForAccessibility(captureLabel);
+  }, [captureLabel]);
 
   // Photos only: the camera never asks for the microphone.
   if (!cameraPermission) {
@@ -1756,13 +1754,8 @@ export default function CameraScreen(): React.JSX.Element {
 
         {/* Capture progress overlay */}
         {captureLabel && (
-          <View
-            style={styles.captureLabelWrap}
-            accessibilityLiveRegion={pipGuideOn ? 'polite' : undefined}
-          >
-            <Text style={pipGuideOn ? styles.captureLabelPlain : styles.captureLabel}>
-              {captureLabel}
-            </Text>
+          <View style={styles.captureLabelWrap} accessibilityLiveRegion="polite">
+            <Text style={styles.captureLabel}>{captureLabel}</Text>
           </View>
         )}
 
@@ -1931,13 +1924,6 @@ const styles = StyleSheet.create({
     pointerEvents: 'none',
   },
   captureLabel: {
-    color: COLORS.white,
-    fontSize: FONT_SIZE.f18,
-    fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t4,
-    opacity: 0.9,
-  },
-  captureLabelPlain: {
     color: COLORS.white,
     fontSize: FONT_SIZE.f18,
     lineHeight: LINE_HEIGHT.l24,
