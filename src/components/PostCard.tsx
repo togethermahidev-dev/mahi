@@ -28,6 +28,8 @@ import {
   OFFSET,
   SIZE,
   TRACKING,
+  SHADOW_BLUR,
+  POST_CARD,
 } from '@/constants/tokens';
 
 /**
@@ -256,10 +258,14 @@ export default function PostCard({
                 </View>
               ) : null}
             </LinearGradient>
-            {/* Bottom gradient — profile row + caption */}
+            {/* Bottom shade, full width — behind the profile row, caption and the buttons */}
             <LinearGradient
-              colors={['transparent', withAlpha(COLORS.black, 0.7)]}
-              style={styles.captionOverlay}
+              colors={[
+                'transparent',
+                withAlpha(COLORS.black, POST_CARD.shadeMid),
+                withAlpha(COLORS.black, POST_CARD.shadeBottom),
+              ]}
+              style={[styles.captionOverlay, { minHeight: height * POST_CARD.shadeHeight }]}
               pointerEvents="box-none"
             >
               <Pressable
@@ -333,15 +339,17 @@ export default function PostCard({
           />
         )}
 
-        {/* ── Right-side action column (Reels / TikTok style) ── */}
+        {/* ── Right-side action column, at the height TikTok and Reels put it ── */}
         {/* Icon SIZE is decoupled from HIT TARGET: glyphs stay small (~32px)
             while each button is a ≥48×48 tappable area + generous hitSlop so
-            near-miss taps still register. Column raised (bottom OFFSET.o140) so the
-            buttons sit higher and clear of the caption row.
+            near-miss taps still register.
             hitSlop is asymmetric (left OFFSET.o4) on purpose: the left edge faces the
-            draggable PiP's bottom-right snap zone, so we don't extend the hit
+            draggable PiP's right-hand snap zone, so we don't extend the hit
             area that way — it grows up/down/right instead. */}
-        <View style={styles.sideActions} pointerEvents="box-none">
+        <View
+          style={[styles.sideActions, { bottom: height * POST_CARD.actionsBottom }]}
+          pointerEvents="box-none"
+        >
           {primaryKind === 'video' && onToggleMuted ? (
             <SoundButton muted={soundOff} onToggle={onToggleMuted} />
           ) : null}
@@ -460,13 +468,16 @@ const styles = StyleSheet.create({
     width: SIZE.z80,
     height: SIZE.z80,
   },
-  // ── Caption overlay (on image)
+  // ── Caption overlay (on image): the shade runs edge to edge; the text keeps clear of the
+  // like / comment column on the right.
   captionOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
-    right: OFFSET.o70,
-    paddingHorizontal: SPACE.s14,
+    right: 0,
+    justifyContent: 'flex-end',
+    paddingLeft: SPACE.s14,
+    paddingRight: SPACE.s80,
     paddingTop: SPACE.s50,
     paddingBottom: SPACE.s80,
     gap: SPACE.s10,
@@ -479,13 +490,17 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: SIZE.z1 },
     textShadowRadius: 3,
   },
-  // ── Right-side action column (Reels / TikTok style)
+  // ── Right-side action column (Reels / TikTok style). The shadow follows the icons and counts
+  // (the view has no fill), so they read on a light photo.
   sideActions: {
     position: 'absolute',
     right: OFFSET.o12,
-    bottom: OFFSET.o140,
     alignItems: 'center',
     gap: SPACE.s20,
+    shadowColor: COLORS.black,
+    shadowOpacity: POST_CARD.actionsShadow,
+    shadowRadius: SHADOW_BLUR.b3,
+    shadowOffset: { width: 0, height: SIZE.z1 },
   },
   sideActionBtn: {
     // Hit target ≥48×48 (icon glyph stays ~32px, centered) so taps that
@@ -501,9 +516,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
     color: COLORS.white,
-    textShadowColor: withAlpha(COLORS.black, 0.6),
-    textShadowOffset: { width: 0, height: SIZE.z1 },
-    textShadowRadius: 3,
   },
   // ── Empty / error
   nameRow: {
