@@ -402,6 +402,7 @@ export type Database = {
           caption: string | null;
           client_id: string | null;
           created_at: string;
+          front_media_type: string;
           id: string;
           image_path: string | null;
           image_url: string;
@@ -410,6 +411,7 @@ export type Database = {
           post_date: string;
           pov_image_path: string | null;
           pov_image_url: string | null;
+          rear_media_type: string;
           streak_day: number;
           user_id: string;
         };
@@ -417,6 +419,7 @@ export type Database = {
           caption?: string | null;
           client_id?: string | null;
           created_at?: string;
+          front_media_type?: string;
           id?: string;
           image_path?: string | null;
           image_url: string;
@@ -425,6 +428,7 @@ export type Database = {
           post_date?: string;
           pov_image_path?: string | null;
           pov_image_url?: string | null;
+          rear_media_type?: string;
           streak_day: number;
           user_id: string;
         };
@@ -432,6 +436,7 @@ export type Database = {
           caption?: string | null;
           client_id?: string | null;
           created_at?: string;
+          front_media_type?: string;
           id?: string;
           image_path?: string | null;
           image_url?: string;
@@ -440,6 +445,7 @@ export type Database = {
           post_date?: string;
           pov_image_path?: string | null;
           pov_image_url?: string | null;
+          rear_media_type?: string;
           streak_day?: number;
           user_id?: string;
         };
@@ -650,6 +656,8 @@ export type Database = {
           p_longitude?: number | null;
           p_pov_image_path?: string | null;
           p_tagged_ids?: string[];
+          p_rear_media_type?: string;
+          p_front_media_type?: string;
         };
         Returns: Json;
       };

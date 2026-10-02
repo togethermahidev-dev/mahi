@@ -14,6 +14,7 @@ import {
   soundButtonLabel,
   discardTitle,
   shouldPlay,
+  mediaTypeArgs,
 } from '../videoPosts';
 
 describe('videoAvailable — flag on AND the native video module in this build', () => {
@@ -225,6 +226,23 @@ describe('discardTitle', () => {
     expect(discardTitle('video', 'video')).toBe('Discard videos?');
     expect(discardTitle('video', 'photo')).toBe('Discard photo and video?');
     expect(discardTitle('photo', 'video')).toBe('Discard photo and video?');
+  });
+});
+
+describe('mediaTypeArgs — what create_post is told about media', () => {
+  // A photo post must make exactly today's call, so it works before the migration is pushed.
+  it('says nothing for two photos', () => {
+    expect(mediaTypeArgs('photo', 'photo')).toEqual({});
+  });
+  it('names both shots when either is a video', () => {
+    expect(mediaTypeArgs('video', 'photo')).toEqual({
+      p_rear_media_type: 'video',
+      p_front_media_type: 'photo',
+    });
+    expect(mediaTypeArgs('photo', 'video')).toEqual({
+      p_rear_media_type: 'photo',
+      p_front_media_type: 'video',
+    });
   });
 });
 

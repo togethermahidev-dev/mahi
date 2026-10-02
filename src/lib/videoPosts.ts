@@ -144,6 +144,18 @@ export function discardTitle(rear: MediaType, front: MediaType): string {
   return 'Discard photo and video?';
 }
 
+/**
+ * The media arguments for create_post: none for two photos, so a photo post makes exactly
+ * today's call (and works before the video migration is pushed); both when either is a video.
+ */
+export function mediaTypeArgs(
+  rear: MediaType,
+  front: MediaType
+): { p_rear_media_type?: MediaType; p_front_media_type?: MediaType } {
+  if (rear === 'photo' && front === 'photo') return {};
+  return { p_rear_media_type: rear, p_front_media_type: front };
+}
+
 /** A video plays (muted, looping) only while its screen is showing and the post is in view. */
 export function shouldPlay(input: { screenActive: boolean; inView: boolean }): boolean {
   return input.screenActive && input.inView;
