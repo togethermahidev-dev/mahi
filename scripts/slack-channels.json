@@ -25,7 +25,8 @@
     "summary": "A tagged friend has 48 hours to post. Any post they make in that time answers every open tag they hold.\n• Reminders arrive when 24 hours and 2 hours are left, never between 10pm and 7am (once push notifications are switched on).\n• Missed tags are checked every five minutes. The person who tagged hears \"@x missed your tag\"; the person who missed hears \"You missed @x's tag. Your points are back to 0.\" Only the two of them see it.\n• Blocking someone, or an account being deleted, cancels any open tag between you along with its reminders. A cancelled tag never locks anyone's feed."
   },
   {
-    "name": "streak-and-points",
+    "name": "mahi-points",
+    "was": "streak-and-points",
     "purpose": "How Mahi points work, and where they show",
     "summary": "Mahi points: every post that answers a tag on time earns one point, however many tags it answers. Miss a tag's 48 hours and your points go back to nought. Your best never goes down and always shows (\"Best: 48\"). Posts, the profile grid, the tag list and search say \"N points\".\n• Only the person who answers earns: no point for the tagger, and no daily limit.\n• This is not a streak (streaks are a daily thing): there is no daily streak, no training days, rest days or calendars. The only thing that counts is answering the friend who called on you.\n• Only the server can change your points or best; the app can't."
   },
@@ -132,7 +133,7 @@
   {
     "name": "project-planning-strategy",
     "purpose": "Product decisions, priorities and what's next",
-    "summary": "Decisions that shape the product live here. Decided so far: post only when tagged (never to show off), Mahi points (one per answered tag, back to nought on a miss, best always visible; not a streak), no rest days or calendars, and the 24-hour feed rule. Open: what happens to a flagged post, the invite website, push notifications setup, Android."
+    "summary": "Decisions that shape the product live here. Decided so far: post only when tagged (never to show off), Mahi points (one per post that answers a tag, back to nought on a missed tag, best always visible; not a streak, and no daily streak for now), no rest days or calendars, and the 24-hour feed rule. Open: what happens to a flagged post, the invite website, push notifications setup, Android."
   },
   {
     "name": "feature-flags",
