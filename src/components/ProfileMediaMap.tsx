@@ -13,9 +13,20 @@ import Svg, { Path } from 'react-native-svg';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { streakText } from '@/lib/streakText';
+import { gridTile } from '@/lib/videoPosts';
+import { VideoIcon } from '@/components/ScreenIcons';
 import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  OFFSET,
+  SIZE,
+  ICON_SIZE,
+} from '@/constants/tokens';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PLACEHOLDER_IMG = require('../../assets/jogger.png') as number;
@@ -64,6 +75,9 @@ function GridCell({
   const badgeBg = dark ? withAlpha(COLORS.offBlack, 0.75) : withAlpha(COLORS.offWhite, 0.75);
   const badgeText = dark ? COLORS.offWhite : COLORS.offBlack;
   const streak = streakText(post.streak_day);
+  // Video posts: show the post's still photo (or a video card) and mark it with a video icon.
+  const tile = gridTile(post);
+  const label = tile.video ? 'video post' : 'post';
 
   return (
     <Pressable
@@ -76,14 +90,27 @@ function GridCell({
       ]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={streak ? `${streak} post` : 'Post'}
+      accessibilityLabel={
+        streak ? `${streak} ${label}` : label.charAt(0).toUpperCase() + label.slice(1)
+      }
     >
-      <Image
-        source={imgError || !post.image_url ? PLACEHOLDER_IMG : { uri: post.image_url }}
-        style={{ width: size, height: size }}
-        resizeMode="cover"
-        onError={() => setImgError(true)}
-      />
+      {tile.video && !tile.uri ? (
+        <View style={[styles.videoTile, { width: size, height: size }]}>
+          <VideoIcon size={ICON_SIZE.i32} color={COLORS.white} />
+        </View>
+      ) : (
+        <Image
+          source={imgError || !tile.uri ? PLACEHOLDER_IMG : { uri: tile.uri }}
+          style={{ width: size, height: size }}
+          resizeMode="cover"
+          onError={() => setImgError(true)}
+        />
+      )}
+      {tile.video ? (
+        <View style={[styles.videoBadge, { backgroundColor: badgeBg }]}>
+          <VideoIcon size={ICON_SIZE.i16} color={badgeText} />
+        </View>
+      ) : null}
       {streak ? (
         <View style={[styles.badge, { backgroundColor: badgeBg }]}>
           <Text style={[styles.badgeText, { color: badgeText }]}>{streak}</Text>
@@ -182,6 +209,19 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.semiBold,
+  },
+  // Video posts: a square with no still photo, and the small video mark top right.
+  videoTile: {
+    backgroundColor: COLORS.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoBadge: {
+    position: 'absolute',
+    top: OFFSET.o4,
+    right: OFFSET.o4,
+    borderRadius: RADIUS.r50,
+    padding: SPACE.s2,
   },
   emptyTitle: {
     fontSize: FONT_SIZE.f18,

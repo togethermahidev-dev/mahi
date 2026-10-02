@@ -109,6 +109,8 @@ interface VerticalNavigatorProps {
   feedList: NativeGesture;
   /** Filled with this navigator's up/down swipe so HorizontalNavigator's swipe can track the same touch. */
   swipeRef: React.MutableRefObject<GestureType | undefined>;
+  /** This panel is the one showing (not Profile or Messages beside it). */
+  isActive?: boolean;
 }
 
 // ─── VerticalNavigator ────────────────────────────────────────────────────────
@@ -122,6 +124,7 @@ export default function VerticalNavigator({
   onOverlayChange,
   feedList,
   swipeRef,
+  isActive = true,
 }: VerticalNavigatorProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -306,6 +309,7 @@ export default function VerticalNavigator({
                   onOverlayChange={setFeedOverlay}
                   listGesture={feedList}
                   listOffset={feedOffset}
+                  isActive={isActive && activeIndex === i}
                 />
               ) : (
                 <Component />

@@ -47,6 +47,8 @@ import { lockedPostText } from '@/lib/feedLock';
 import PointsBadge from '@/components/PointsBadge';
 import KeyboardInset from '@/components/KeyboardInset';
 import DraggablePip from '@/components/DraggablePip';
+import PostVideo, { SoundButton } from '@/components/PostVideo';
+import { mediaTypeOrPhoto, shouldPlay } from '@/lib/videoPosts';
 import { appHeaderHeight, pipZone } from '@/lib/pip';
 import { atListTop } from '@/lib/swipeRules';
 import type { FeedPost } from '@/api';
@@ -184,6 +186,9 @@ function PostItem({
   onAvatarPress,
   onCommentPress,
   topSpace = 0,
+  playing = false,
+  soundOff = true,
+  onToggleMuted,
 }: {
   item: FeedPost;
   dark: boolean;
@@ -194,6 +199,11 @@ function PostItem({
   onCommentPress: (postId: string) => void;
   /** Room kept at the top for the feed timer over the first post. */
   topSpace?: number;
+  /** Video posts: this card is the one on screen, so its videos play. */
+  playing?: boolean;
+  /** Video posts: the big video's sound (shared across the feed, muted at first). */
+  soundOff?: boolean;
+  onToggleMuted?: () => void;
 }) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
@@ -232,6 +242,13 @@ function PostItem({
   const hasDual = !!item.pov_image_url;
   const primaryUrl = hasDual && !rearIsPrimary ? item.pov_image_url! : item.image_url;
   const pipUrl = hasDual && !rearIsPrimary ? item.image_url : item.pov_image_url;
+  // Video posts: either shot can be a video (older posts and servers: photos).
+  const rearKind = mediaTypeOrPhoto(item.rear_media_type);
+  const frontKind = mediaTypeOrPhoto(item.front_media_type);
+  const primaryKind = hasDual && !rearIsPrimary ? frontKind : rearKind;
+  const pipKind = hasDual && !rearIsPrimary ? rearKind : frontKind;
+  // A video post still uploading says so (its files are large); photo posts show as today.
+  const postingVideo = 'isPending' in item && (rearKind === 'video' || frontKind === 'video');
 
   // ── Draggable PiP (FaceTime-style) — safe zone clears the header + tagged pills ──
   const pipSafeZone = pipZone({ width, height }, headerH + OFFSET.o120 + topSpace);
@@ -333,19 +350,34 @@ function PostItem({
       {/* Post image — double-tap to like */}
       <View style={[styles.imageContainer, { width, flex: 1 }]}>
         <GestureDetector gesture={doubleTap}>
-          <View style={[{ width, flex: 1 }, primaryLandscape && styles.letterbox]}>
-            <Image
-              source={{ uri: primaryUrl }}
-              style={StyleSheet.absoluteFill}
-              resizeMode={primaryLandscape ? 'contain' : 'cover'}
-              onLoad={(e) => {
-                const src = e.nativeEvent?.source;
-                // Landscape (wider than tall) → letterbox; portrait/square stay cover.
-                if (src?.width && src?.height) {
-                  setPrimaryLandscape(src.width / src.height > 1.05);
-                }
-              }}
-            />
+          <View
+            style={[
+              { width, flex: 1 },
+              primaryLandscape && primaryKind === 'photo' && styles.letterbox,
+            ]}
+          >
+            {primaryKind === 'video' ? (
+              <PostVideo
+                uri={primaryUrl}
+                playing={playing}
+                muted={soundOff}
+                style={StyleSheet.absoluteFill}
+                accessibilityLabel={`${name}'s video`}
+              />
+            ) : (
+              <Image
+                source={{ uri: primaryUrl }}
+                style={StyleSheet.absoluteFill}
+                resizeMode={primaryLandscape ? 'contain' : 'cover'}
+                onLoad={(e) => {
+                  const src = e.nativeEvent?.source;
+                  // Landscape (wider than tall) → letterbox; portrait/square stay cover.
+                  if (src?.width && src?.height) {
+                    setPrimaryLandscape(src.width / src.height > 1.05);
+                  }
+                }}
+              />
+            )}
             {/* Top gradient — tagged pills + streak badge inline */}
             <LinearGradient
               colors={[withAlpha(COLORS.black, 0.6), 'transparent']}
@@ -399,7 +431,9 @@ function PostItem({
                     <Text style={styles.usernameOverlay}>{name}</Text>
                     <PointsBadge points={item.profiles.points} style={styles.pointsOverlay} />
                   </View>
-                  <Text style={styles.timeOverlay}>{relativeTime(item.created_at)}</Text>
+                  <Text style={styles.timeOverlay}>
+                    {postingVideo ? 'Posting…' : relativeTime(item.created_at)}
+                  </Text>
                 </View>
               </Pressable>
               {item.caption ? (
@@ -436,6 +470,8 @@ function PostItem({
         {hasDual && pipUrl && (
           <DraggablePip
             uri={pipUrl}
+            video={pipKind === 'video'}
+            playing={playing}
             zone={pipSafeZone}
             resetKey={item.id}
             onTap={() => setRearIsPrimary((p) => !p)}
@@ -451,6 +487,9 @@ function PostItem({
             draggable PiP's bottom-right snap zone, so we don't extend the hit
             area that way — it grows up/down/right instead. */}
         <View style={styles.sideActions} pointerEvents="box-none">
+          {primaryKind === 'video' && onToggleMuted ? (
+            <SoundButton muted={soundOff} onToggle={onToggleMuted} />
+          ) : null}
           <Pressable
             style={({ pressed }) => [styles.sideActionBtn, pressed && { opacity: 0.7 }]}
             onPress={handleLike}
@@ -635,6 +674,8 @@ interface FeedScreenProps {
   listGesture?: NativeGesture;
   /** How far the list is scrolled, kept up to date on the UI thread for the Camera ↕ Feed swipe. */
   listOffset?: SharedValue<number>;
+  /** The Feed is the screen showing (video posts play only then). */
+  isActive?: boolean;
 }
 
 /** Lends the list's scrolling to the Camera ↕ Feed swipe (see FeedScrollView). */
@@ -654,6 +695,7 @@ export default function FeedScreen({
   onOverlayChange,
   listGesture,
   listOffset,
+  isActive = true,
 }: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
   const headerH = appHeaderHeight(useSafeAreaInsets().top);
@@ -690,13 +732,23 @@ export default function FeedScreen({
     () => lockedPostText({ tagged, postedBefore }),
     [tagged, postedBefore]
   );
-  const listExtra = useMemo(() => ({ topSpace, lockedText }), [topSpace, lockedText]);
 
   // Profile overlay, conversation overlay, and comment sheet — lifted to
   // FeedScreen so overlays cover the full screen (not just the PostItem card)
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const currentUserId = useAuthStore((s) => s.user?.id);
+
+  // Video posts: the card in view plays (muted, looping) while the Feed is on screen and no
+  // profile covers it; the sound choice is shared across the feed for this session only.
+  const [inViewId, setInViewId] = useState<string | null>(null);
+  const [feedMuted, setFeedMuted] = useState(true);
+  const toggleFeedMuted = useCallback(() => setFeedMuted((m) => !m), []);
+  const feedOnScreen = isActive && !profileUserId;
+  const listExtra = useMemo(
+    () => ({ topSpace, lockedText, inViewId, feedMuted, feedOnScreen }),
+    [topSpace, lockedText, inViewId, feedMuted, feedOnScreen]
+  );
 
   // Notify parent when a fullscreen overlay (profile) opens/closes
   const feedOverlay = !!profileUserId;
@@ -733,6 +785,7 @@ export default function FeedScreen({
       });
 
       visiblePostIds.current = nowVisible;
+      setInViewId(viewableItems[0]?.key ?? null);
     },
     []
   );
@@ -785,6 +838,9 @@ export default function FeedScreen({
                 onAvatarPress={handleAvatarPress}
                 onCommentPress={setCommentPostId}
                 topSpace={index === 0 ? topSpace : 0}
+                playing={shouldPlay({ screenActive: feedOnScreen, inView: inViewId === item.id })}
+                soundOff={feedMuted}
+                onToggleMuted={toggleFeedMuted}
               />
             )
           }

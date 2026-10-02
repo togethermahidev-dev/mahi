@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import CaptionText from '@/components/CaptionText';
 import DraggablePip from '@/components/DraggablePip';
+import PostVideo, { SoundButton } from '@/components/PostVideo';
+import { mediaTypeOrPhoto } from '@/lib/videoPosts';
 import { appHeaderHeight, pipZone } from '@/lib/pip';
 import { streakText } from '@/lib/streakText';
 import type { Database } from '@/types';
@@ -48,19 +50,34 @@ export default function PostDetailModal({
     >
       {/* A Modal is its own native window: gesture-handler needs its own root here. */}
       <GestureHandlerRootView style={styles.root}>
-        {shown ? <PostDetail key={shown.id} post={shown} onClose={onClose} /> : null}
+        {shown ? <PostDetail key={shown.id} post={shown} open={!!post} onClose={onClose} /> : null}
       </GestureHandlerRootView>
     </Modal>
   );
 }
 
-function PostDetail({ post, onClose }: { post: PostRow; onClose: () => void }): React.JSX.Element {
+function PostDetail({
+  post,
+  open,
+  onClose,
+}: {
+  post: PostRow;
+  /** Still open (videos pause while it fades out). */
+  open: boolean;
+  onClose: () => void;
+}): React.JSX.Element {
   // ── Dual-camera PiP ──────────────────────────────────────────────────────
   const hasDual = !!post.pov_image_url;
   const streak = streakText(post.streak_day);
   const [rearIsPrimary, setRearIsPrimary] = useState(true);
   const primaryUrl = hasDual && !rearIsPrimary ? post.pov_image_url! : post.image_url;
   const pipUrl = hasDual && !rearIsPrimary ? post.image_url : post.pov_image_url;
+  // Video posts: either shot can be a video; it plays muted, looping, with a sound button.
+  const rearKind = mediaTypeOrPhoto(post.rear_media_type);
+  const frontKind = mediaTypeOrPhoto(post.front_media_type);
+  const primaryKind = hasDual && !rearIsPrimary ? frontKind : rearKind;
+  const pipKind = hasDual && !rearIsPrimary ? rearKind : frontKind;
+  const [muted, setMuted] = useState(true);
 
   // ── Draggable PiP (same safe zone as the feed, a little higher: no tagged pills here) ──
   const screen = useWindowDimensions();
@@ -76,12 +93,22 @@ function PostDetail({ post, onClose }: { post: PostRow; onClose: () => void }): 
 
   return (
     <>
-      {/* Fullscreen image */}
-      <Image
-        source={{ uri: primaryUrl ?? undefined }}
-        style={StyleSheet.absoluteFill}
-        resizeMode="cover"
-      />
+      {/* Fullscreen image (or video) */}
+      {primaryKind === 'video' && primaryUrl ? (
+        <PostVideo
+          uri={primaryUrl}
+          playing={open}
+          muted={muted}
+          style={StyleSheet.absoluteFill}
+          accessibilityLabel="Post video"
+        />
+      ) : (
+        <Image
+          source={{ uri: primaryUrl ?? undefined }}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+        />
+      )}
 
       {/* Top gradient — close button + streak badge */}
       <LinearGradient
@@ -97,6 +124,13 @@ function PostDetail({ post, onClose }: { post: PostRow; onClose: () => void }): 
         >
           <Text style={styles.closeX}>✕</Text>
         </Pressable>
+        {primaryKind === 'video' ? (
+          <SoundButton
+            muted={muted}
+            onToggle={() => setMuted((m) => !m)}
+            style={styles.soundButton}
+          />
+        ) : null}
         {streak ? (
           <View style={styles.streakBadge}>
             <Text style={styles.streakText}>{streak}</Text>
@@ -123,7 +157,13 @@ function PostDetail({ post, onClose }: { post: PostRow; onClose: () => void }): 
 
       {/* Draggable PiP */}
       {hasDual && pipUrl && (
-        <DraggablePip uri={pipUrl} zone={pipSafeZone} onTap={() => setRearIsPrimary((p) => !p)} />
+        <DraggablePip
+          uri={pipUrl}
+          video={pipKind === 'video'}
+          playing={open}
+          zone={pipSafeZone}
+          onTap={() => setRearIsPrimary((p) => !p)}
+        />
       )}
     </>
   );
@@ -158,6 +198,11 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
     lineHeight: LINE_HEIGHT.l18,
     color: COLORS.white,
+  },
+  // Video posts: next to the close button; the streak badge stays on the right.
+  soundButton: {
+    marginLeft: SPACE.s12,
+    marginRight: 'auto',
   },
   streakBadge: {
     paddingHorizontal: SPACE.s14,
