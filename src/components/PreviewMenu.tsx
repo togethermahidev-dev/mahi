@@ -19,6 +19,7 @@ import { COLORS, ICON_SIZE } from '@/constants/tokens';
  *   these keeps no second picture per row in memory.
  */
 export default function PreviewMenu({
+  enabled = true,
   width,
   height,
   style,
@@ -30,6 +31,8 @@ export default function PreviewMenu({
   renderPreview,
   children,
 }: {
+  /** False: just `children`, exactly as without the pop-up (no extra views). */
+  enabled?: boolean;
   /** The held content's size. Without `height` it takes its own height (a list row). */
   width: number;
   height?: number;
@@ -46,6 +49,7 @@ export default function PreviewMenu({
   children: React.ReactNode;
 }): React.JSX.Element {
   const [open, setOpen] = useState(false);
+  if (!enabled) return <>{children}</>;
   const swift = loadSwiftUI();
   const size = height == null ? { width } : { width, height };
 
