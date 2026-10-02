@@ -7,6 +7,7 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 10 · 27 — the full-screen notifications page and camera reminder line (hidden until push is switched on); message alerts open Messages (2026-10-02)
  *   build 10 · 26 — Mahi points replace the streak wording (Points and Best, N points badges); glass bar on the camera only (2026-10-02)
  *   build 10 · 25 — tap a comment to open the commenter's profile (2026-10-02)
  *   build 10 · 24 — camera flash and selfie screen flash, sharper photos, richer haptics app-wide; build-11 pieces (Apple icons, hold-to-preview, tap to focus, Didit, RevenueCat) present but off (2026-10-02)
@@ -25,4 +26,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 26;
+export const OTA_NUMBER = 27;
