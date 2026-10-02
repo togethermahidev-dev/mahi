@@ -70,12 +70,23 @@ default-off flag `video-posts`; architecture: [architecture.md](./architecture.m
 | 33 | Video in posts | Each of the two shots (your view = back, selfie = front) can be a photo or a video, whichever the user wants | Photos only · one video per post | Decided | 2026-10-02 | `posts.rear_media_type` / `front_media_type`, `create_post`, `CameraScreen` |
 | 34 | How to record | Both: a Photo / Video switch by the shutter, and press and hold the shutter to record (a tap is a photo, as today). Letting go, or 15 seconds, stops | Switch only · hold only | Decided | 2026-10-02 | `src/lib/videoPosts.ts` (`shutterIntent`), `CameraScreen` |
 | 35 | Longest video | 15 seconds per video | 10 s · 30 s | Decided | 2026-10-02 | `MAX_VIDEO_SECONDS`, `recordAsync({ maxDuration })` |
-| 36 | Playback | Videos start muted, loop while on screen and pause off screen — in the feed, the small window and post detail — with a mute / unmute button | Autoplay with sound · tap to play | Decided | 2026-10-02 | `PostVideo`, `SoundButton`, `FeedScreen`, `PostDetailModal`, `DraggablePip` |
+| 36 | Playback | Videos start muted, loop while on screen and pause off screen — in the feed, the small window and the post viewer — with a mute / unmute button | Autoplay with sound · tap to play | Decided | 2026-10-02 | `PostVideo`, `SoundButton`, `FeedScreen`, `PostViewer`, `DraggablePip` |
 | 37 | Rollout | Everything behind one flag, `video-posts`, OFF for everyone. Off = today's photo-only app, and the microphone is never asked for; on = the microphone is asked for only when someone first records | On for testers first | Decided | 2026-10-02 | `src/lib/featureFlags.ts` (`DEFAULT_OFF_FLAGS`), `useVideoPosts` |
 | 38 | Microphone permission | Keep it in the app; the text becomes "Mahi uses the microphone to record sound in your workout videos." (needs the next native build anyway) | Remove it (the 2026-10-01 plan while posts were photo-only) | Decided | 2026-10-02 | `app.config.js` |
 
 A video post answers tags exactly like a photo post: reactive posting, the streak, tags, invites and
 the feed lock are unchanged (a locked viewer gets no video links).
+
+## Profile pages and viewers (2026-10-02)
+
+Owner's rule for this round: replace the old with the new, never keep both side by side. None of
+these needs a new native module, so they ship as plain updates without a flag.
+
+| # | Decision | Chosen | Other options | Status | Decided | Used in |
+| --- | --- | --- | --- | --- | --- | --- |
+| 39 | Profile scrolling | The whole profile scrolls as one page: the header scrolls away and the grid fills the screen (own and other people's) | Fixed header, grid scrolls below it | Decided | 2026-10-02 | `ProfileMediaMap`, `ProfileScreen`, `UserProfileScreen` |
+| 40 | Opening a post from a profile | Full screen from the tapped post; up/down browses all of that profile's posts, one per screen as in the feed; a swipe left or right closes (like Instagram / TikTok) | One post at a time | Decided | 2026-10-02 | `PostViewer`, `PostCard`, `src/lib/viewer.ts` |
+| 41 | Profile pictures | Tap any profile's picture: full screen, pinch to zoom, swipe to close. Your own keeps its "+" to change it | Fixed-size enlarge, tap to close | Decided | 2026-10-02 | `AvatarViewer`, `AvatarPicker` |
 
 ## Fixed by the PRD (not open questions)
 

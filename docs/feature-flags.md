@@ -67,7 +67,7 @@ your selfie" / "Tap for your view". Off = no window and the old capture labels.)
 **Posts:** `video-posts` (**default off**; owner: off for everyone). On: each of a post's two shots can be a
 photo or a video of up to 15 seconds — a Photo / Video switch by the shutter, and press and hold the shutter
 to record (tap still takes a photo; letting go or 15 seconds stops). The microphone is asked for only the
-first time someone records. Videos in the feed, the small window, post detail and the preview play muted
+first time someone records. Videos in the feed, the small window, the post viewer and the preview play muted
 and looping while on screen, with a "Turn sound on" / "Turn sound off" button; the profile grid marks video
 posts with a video icon. Needs the `expo-video` native module (a new native build) and migration
 `20261002100000_video_posts`. On a build without the native module (build 10) it reads as off. Off = today's

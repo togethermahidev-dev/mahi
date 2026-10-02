@@ -1,6 +1,6 @@
 /**
  * Video posts (flag `video-posts`, default off): each of a post's two shots can be a photo or a
- * video of up to 15 seconds. Pure rules, unit-tested; the camera, preview, feed, post detail and
+ * video of up to 15 seconds. Pure rules, unit-tested; the camera, preview, feed, post viewer and
  * profile grid read these. The native side (is the video module in this build?) lives in
  * `src/lib/videoModule.ts`, kept apart so these stay testable under node.
  */
