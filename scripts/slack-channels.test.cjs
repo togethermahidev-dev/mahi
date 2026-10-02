@@ -42,3 +42,12 @@ test('the pinned message opens with the channel purpose as a heading', () => {
   assert.ok(text.startsWith('*What the feed shows*\n'));
   assert.ok(text.endsWith('Body.'));
 });
+
+test('an update goes to a known channel as a short, plain summary', () => {
+  const { updateMessage } = require('./slack-channels.cjs');
+  assert.strictEqual(updateMessage('feed', 'Likes and comments sit higher up.', channels), 'Likes and comments sit higher up.');
+  assert.throws(() => updateMessage('no-such-channel', 'x', channels), /unknown channel/);
+  assert.throws(() => updateMessage('feed', '   ', channels), /empty/);
+  assert.throws(() => updateMessage('feed', 'x'.repeat(601), channels), /too long/);
+  assert.throws(() => updateMessage('feed', 'Added a migration for it', channels), /engineering words/);
+});
