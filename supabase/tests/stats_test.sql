@@ -33,12 +33,15 @@ create function pg_temp.as_user(p_id uuid) returns void language sql as $$
   select set_config('role', 'authenticated', true),
          set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true);
 $$;
+-- The invite A's post makes below — never somebody else's, on a database with real invites in it.
 create function pg_temp.open_code() returns text language sql security definer as $$
-  select code from public.invites where claimed_at is null order by created_at, token limit 1;
+  select code from public.invites
+  where claimed_at is null and inviter_id = '00000000-0000-0000-0000-00000000e00a'
+  order by created_at, token limit 1;
 $$;
--- These two views group real posts by day and by week, so on a database with history in it
--- they return many rows. Everything below reads this day and this week, and counts the change
--- the test itself makes — which is the same number on an empty database and on a live one.
+-- These views group real rows by day and by week, so on a database with history in it they
+-- return many rows. Everything below reads this day and this week, and counts the change the
+-- test itself makes — which is the same number on an empty database and on a live one.
 create function pg_temp.today() returns date language sql as $$
   select (now() at time zone 'Europe/London')::date;
 $$;
@@ -51,10 +54,26 @@ $$;
 create function pg_temp.week_now() returns stats.users_weekly language sql as $$
   select * from stats.users_weekly where week = pg_temp.this_week();
 $$;
+-- Tags and invites are grouped by the UTC day they were made.
+create function pg_temp.utc_today() returns date language sql as $$
+  select (now() at time zone 'UTC')::date;
+$$;
+create function pg_temp.tags_today() returns stats.tags_daily language sql as $$
+  select * from stats.tags_daily where day = pg_temp.utc_today();
+$$;
+create function pg_temp.invites_today() returns stats.invites_daily language sql as $$
+  select * from stats.invites_daily where day = pg_temp.utc_today();
+$$;
 create table pg_temp.base as
 select coalesce((pg_temp.posts_today()).posts, 0) as posts,
        coalesce((pg_temp.posts_today()).answering_a_tag, 0) as answering,
-       coalesce((pg_temp.week_now()).posted, 0) as posted;
+       coalesce((pg_temp.week_now()).posted, 0) as posted,
+       coalesce((pg_temp.tags_today()).sent, 0) as tags_sent,
+       coalesce((pg_temp.tags_today()).waiting_on_invite, 0) as tags_waiting,
+       coalesce((pg_temp.tags_today()).still_open, 0) as tags_open,
+       coalesce((pg_temp.tags_today()).answered, 0) as tags_answered,
+       coalesce((pg_temp.invites_today()).sent, 0) as invites_sent,
+       coalesce((pg_temp.invites_today()).claimed, 0) as invites_claimed;
 
 -- A posts, tagging B and C and inviting one more.
 select pg_temp.as_user('00000000-0000-0000-0000-00000000e00a');
@@ -65,13 +84,24 @@ select public.create_post('33333333-0000-0000-0000-0000000000a1',
 reset role;
 
 -- 1. Nothing has come back yet.
-select is((select sent from stats.tags_daily), 3, 'three tags went out, the invite included');
-select is((select waiting_on_invite from stats.tags_daily), 1, 'one is waiting on an invite');
-select is((select still_open from stats.tags_daily), 2, 'two are open with someone to answer');
-select is((select answered from stats.tags_daily), 0, 'none answered yet');
-select is((select answered_pct from stats.tags_daily), 0.0, 'the answer rate counts only real tags');
-select is((select sent from stats.invites_daily), 1, 'one invite link went out');
-select is((select claimed_pct from stats.invites_daily), 0.0, 'nobody has claimed it');
+select is((pg_temp.tags_today()).sent - (select tags_sent from pg_temp.base), 3,
+  'three tags went out, the invite included');
+select is((pg_temp.tags_today()).waiting_on_invite - (select tags_waiting from pg_temp.base), 1,
+  'one is waiting on an invite');
+select is((pg_temp.tags_today()).still_open - (select tags_open from pg_temp.base), 2,
+  'two are open with someone to answer');
+select is((pg_temp.tags_today()).answered - (select tags_answered from pg_temp.base), 0,
+  'none answered yet');
+select is(
+  (pg_temp.tags_today()).answered_pct,
+  round(100.0 * (pg_temp.tags_today()).answered
+        / ((pg_temp.tags_today()).sent - (pg_temp.tags_today()).waiting_on_invite), 1),
+  'the answer rate counts only real tags, not the one waiting on an invite'
+);
+select is((pg_temp.invites_today()).sent - (select invites_sent from pg_temp.base), 1,
+  'one invite link went out');
+select is((pg_temp.invites_today()).claimed - (select invites_claimed from pg_temp.base), 0,
+  'nobody has claimed it');
 
 -- 2. A's own post answers nobody, so the posting rate is 0.
 select is((pg_temp.posts_today()).posts - (select posts from pg_temp.base), 1,
@@ -84,10 +114,15 @@ select pg_temp.as_user('00000000-0000-0000-0000-00000000e00b');
 select public.create_post('33333333-0000-0000-0000-0000000000b1',
   '00000000-0000-0000-0000-00000000e00b/b1.jpg', null, null, '{}'::uuid[]);
 reset role;
-select is((select answered from stats.tags_daily), 1, 'one tag came back');
-select is((select answered_pct from stats.tags_daily), 50.0,
-  'one of the two tags with someone in them was answered');
-select ok((select median_answer_seconds from stats.tags_daily) >= 0,
+select is((pg_temp.tags_today()).answered - (select tags_answered from pg_temp.base), 1,
+  'one tag came back');
+select is(
+  (pg_temp.tags_today()).answered_pct,
+  round(100.0 * (pg_temp.tags_today()).answered
+        / ((pg_temp.tags_today()).sent - (pg_temp.tags_today()).waiting_on_invite), 1),
+  'the answer rate is that day''s answered tags over its tags with someone in them'
+);
+select ok((pg_temp.tags_today()).median_answer_seconds >= 0,
   'the median answer time is counted');
 select is((pg_temp.posts_today()).answering_a_tag - (select answering from pg_temp.base), 1,
   'one post answered a tag');
@@ -103,8 +138,10 @@ select hasnt_view('stats', 'points_daily',
 select pg_temp.as_user('00000000-0000-0000-0000-00000000e00d');
 select public.claim_invite(pg_temp.open_code());
 reset role;
-select is((select claimed_pct from stats.invites_daily), 100.0, 'the invite turned into an account');
-select is((select waiting_on_invite from stats.tags_daily), 0, 'its tag now has someone in it');
+select is((pg_temp.invites_today()).claimed - (select invites_claimed from pg_temp.base), 1,
+  'the invite turned into an account');
+select is((pg_temp.tags_today()).waiting_on_invite - (select tags_waiting from pg_temp.base), 0,
+  'its tag now has someone in it');
 
 -- 5. Weekly posting: 4 accounts exist, 2 of them posted.
 select is((pg_temp.week_now()).posted - (select posted from pg_temp.base), 2,
