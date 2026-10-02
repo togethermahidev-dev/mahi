@@ -5,14 +5,34 @@ import {
   getComments as apiGetComments,
   addComment as apiAddComment,
   type CommentWithProfile,
+  type FeedPost,
 } from '@/api';
 import { useFeedStore } from './feedStore';
+import { useProfilePostsStore } from './profilePostsStore';
 import { useToastStore } from './toastStore';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // Channel registry — outside store state so channel changes don't trigger renders
 const channels = new Map<string, RealtimeChannel>();
 const refCounts = new Map<string, number>();
+
+// Cross-store effect: a post's like and comment counts live wherever the post is shown — the
+// feed, and the profile grid's posts (which the post viewer pages through). Read from whichever
+// holds it; write to both.
+function loadedPost(postId: string): FeedPost | undefined {
+  return (
+    useFeedStore.getState().posts.find((p) => p.id === postId) ??
+    useProfilePostsStore.getState().posts.find((p) => p.id === postId)
+  );
+}
+
+function patchCounts(
+  postId: string,
+  partial: Pick<Partial<FeedPost>, 'like_count' | 'comment_count'>
+) {
+  useFeedStore.getState().patchPost(postId, partial);
+  useProfilePostsStore.getState().patchPost(postId, partial);
+}
 
 interface SocialState {
   likedByMe: Record<string, boolean>;
@@ -50,26 +70,23 @@ export const useSocialStore = create<SocialState>((set, get) => ({
 
   toggleLike: async (postId, userId) => {
     const prevLiked = get().likedByMe[postId] ?? false;
-    const feedPost = useFeedStore.getState().posts.find((p) => p.id === postId);
-    const prevCount = feedPost?.like_count ?? 0;
+    const prevCount = loadedPost(postId)?.like_count ?? 0;
 
     // Optimistic update
     set((s) => ({ likedByMe: { ...s.likedByMe, [postId]: !prevLiked } }));
-    useFeedStore.getState().patchPost(postId, {
-      like_count: Math.max(0, prevCount + (prevLiked ? -1 : 1)),
-    });
+    patchCounts(postId, { like_count: Math.max(0, prevCount + (prevLiked ? -1 : 1)) });
 
     const { data, error } = await apiToggleLike(postId, userId);
 
     if (error || !data) {
       // Rollback
       set((s) => ({ likedByMe: { ...s.likedByMe, [postId]: prevLiked } }));
-      useFeedStore.getState().patchPost(postId, { like_count: prevCount });
+      patchCounts(postId, { like_count: prevCount });
       useToastStore.getState().show("Couldn't update like");
     } else {
       // Write authoritative values
       set((s) => ({ likedByMe: { ...s.likedByMe, [postId]: data.liked } }));
-      useFeedStore.getState().patchPost(postId, { like_count: data.like_count });
+      patchCounts(postId, { like_count: data.like_count });
     }
   },
 
@@ -99,9 +116,8 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         [postId]: [...(s.comments[postId] ?? []), optimistic],
       },
     }));
-    const prevCount =
-      useFeedStore.getState().posts.find((p) => p.id === postId)?.comment_count ?? 0;
-    useFeedStore.getState().patchPost(postId, { comment_count: prevCount + 1 });
+    const prevCount = loadedPost(postId)?.comment_count ?? 0;
+    patchCounts(postId, { comment_count: prevCount + 1 });
 
     const { data, error } = await apiAddComment(postId, userId, content);
 
@@ -113,7 +129,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
           [postId]: (s.comments[postId] ?? []).filter((c) => c.id !== tempId),
         },
       }));
-      useFeedStore.getState().patchPost(postId, { comment_count: prevCount });
+      patchCounts(postId, { comment_count: prevCount });
       useToastStore.getState().show("Couldn't post comment");
     } else {
       // Replace temp with confirmed row
@@ -144,7 +160,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             .eq('post_id', postId)
             .then(({ count: c }) => {
               if (c === null) return;
-              useFeedStore.getState().patchPost(postId, { like_count: c });
+              patchCounts(postId, { like_count: c });
             });
         }
       )
@@ -162,14 +178,10 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             const existing = s.comments[postId];
             if (!existing) return s; // not loaded — skip
             if (existing.some((c) => c.id === incoming.id)) return s; // dedup
-            // Only bump the feed count if the post is actually in the feed — otherwise
+            // Only bump the count if the post is actually loaded (feed or profile) — otherwise
             // `?? 0` + 1 would corrupt the count to 1 for a post not currently loaded.
-            const feedPost = useFeedStore.getState().posts.find((p) => p.id === postId);
-            if (feedPost) {
-              useFeedStore
-                .getState()
-                .patchPost(postId, { comment_count: (feedPost.comment_count ?? 0) + 1 });
-            }
+            const post = loadedPost(postId);
+            if (post) patchCounts(postId, { comment_count: (post.comment_count ?? 0) + 1 });
             return { comments: { ...s.comments, [postId]: [...existing, incoming] } };
           });
         }

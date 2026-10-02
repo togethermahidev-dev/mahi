@@ -1771,7 +1771,8 @@ export default function CameraScreen(): React.JSX.Element {
       });
       if (postErr || !result) throw postErr ?? new Error('post failed');
 
-      useFeedStore.getState().confirmPending(tempId, {
+      // The post as the feed shows it; the profile grid (and its post viewer) shows the same.
+      const posted = {
         ...result.post,
         like_count: 0,
         comment_count: 0,
@@ -1789,16 +1790,11 @@ export default function CameraScreen(): React.JSX.Element {
         rear_media_type: rear.kind,
         front_media_type: front.kind,
         locked: false,
-      } satisfies FeedPost);
+      } satisfies FeedPost;
+      useFeedStore.getState().confirmPending(tempId, posted);
       // Posting unlocks the feed: read it again so friends' posts appear.
       useFeedStore.getState().sync(true);
-      useProfilePostsStore.getState().addPost({
-        ...result.post,
-        image_url: rear.uri,
-        pov_image_url: front.uri,
-        rear_media_type: rear.kind,
-        front_media_type: front.kind,
-      });
+      useProfilePostsStore.getState().addPost(posted);
 
       const current = useUserStore.getState().profile;
       if (current) {
