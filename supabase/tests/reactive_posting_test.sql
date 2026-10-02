@@ -112,7 +112,7 @@ select is((select count(*)::int from public.notifications
   'the person who missed gets no tag_missed');
 select is((select body from public.push_outbox
            where kind = 'streak_lost' and user_id = '00000000-0000-0000-0000-0000000057aa'),
-  'You missed @streak_b''s tag. Your streak is back to 0.', 'the streak push says so');
+  'You missed @streak_b''s tag. Your points are back to 0.', 'the push says the points are back to 0');
 select ok((select missed_at is not null from public.tag_challenges
            where tagger_id = '00000000-0000-0000-0000-0000000057bb'
              and tagged_id = '00000000-0000-0000-0000-0000000057aa'
