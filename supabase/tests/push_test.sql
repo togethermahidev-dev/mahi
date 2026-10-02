@@ -65,16 +65,25 @@ reset role;
 select is((select user_id from public.push_tokens where token = 'ExponentPushToken[test-1]'),
   '00000000-0000-0000-0000-00000000b002'::uuid, 'a token re-registered on the same phone moves to the new account');
 
--- The worker claims due rows once and records results.
-update public.push_outbox set send_after = now() - interval '1 minute' where sent_at is null;
-select is((select count(*)::int from public.claim_push_batch(100)), 2, 'due rows are claimed');
-select is((select count(*)::int from public.claim_push_batch(100)), 0, 'claimed rows are not handed out twice');
+-- The worker claims due rows once and records results. Only this test's own rows are counted
+-- and completed, so pushes already waiting in the database don't change the answer.
+create function pg_temp.mine() returns setof public.push_outbox language sql as $$
+  select * from public.push_outbox
+  where user_id in ('00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-00000000b002',
+                    '00000000-0000-0000-0000-00000000b003')
+$$;
+update public.push_outbox set send_after = now() - interval '1 minute'
+where id in (select id from pg_temp.mine()) and sent_at is null;
+select is((select count(*)::int from public.claim_push_batch(100000) c
+           where c.id in (select id from pg_temp.mine())), 2, 'due rows are claimed');
+select is((select count(*)::int from public.claim_push_batch(100000) c
+           where c.id in (select id from pg_temp.mine())), 0, 'claimed rows are not handed out twice');
 
 select public.complete_push(
   (select jsonb_agg(jsonb_build_object('id', id, 'tickets', '[{"ticket":"t1","token":"ExponentPushToken[test-1]"}]'::jsonb))
-   from public.push_outbox where claimed_at is not null)
+   from pg_temp.mine() where claimed_at is not null)
 );
-select is((select count(*)::int from public.push_outbox where sent_at is null), 0, 'completed rows are marked sent');
+select is((select count(*)::int from pg_temp.mine() where sent_at is null), 0, 'completed rows are marked sent');
 
 select public.remove_push_tokens(array['ExponentPushToken[test-1]']);
 select is((select count(*)::int from public.push_tokens where token = 'ExponentPushToken[test-1]'), 0,
