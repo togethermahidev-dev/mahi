@@ -93,7 +93,8 @@ export function shutterIntent(input: {
 }): ShutterIntent {
   const { videoOn, mode, recording, press } = input;
   if (!videoOn) return press === 'tap' ? 'photo' : 'none';
-  if (recording) return press === 'hold' ? 'none' : 'stop-video';
+  // While recording any press stops it: a tap, a hold (a long press sends no tap), or letting go.
+  if (recording) return 'stop-video';
   if (press === 'release') return 'none';
   if (press === 'hold') return 'start-video';
   return mode === 'video' ? 'start-video' : 'photo';
