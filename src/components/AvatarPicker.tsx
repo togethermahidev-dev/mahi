@@ -40,7 +40,6 @@ import {
   Alert,
   Image,
   Linking,
-  Modal,
   Platform,
   StyleSheet,
   Text,
@@ -48,12 +47,12 @@ import {
   View,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 import { updateAvatarUrl } from '@/api/profile';
+import AvatarViewer from '@/components/AvatarViewer';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -257,31 +256,24 @@ export default function AvatarPicker({
   onUpdate,
 }: AvatarPickerProps): React.JSX.Element {
   const { uploading, localUri, handleEditPress } = useAvatarUpload(userId, onUpdate);
-  const insets = useSafeAreaInsets();
 
-  // Full-screen lightbox state — presentation only, so it stays in the component
-  // rather than the upload hook. Only opens when there is a real image to enlarge.
-  const [lightboxOpen, setLightboxOpen] = useState(false);
+  // The full-screen viewer — presentation only, so it stays in the component rather than the
+  // upload hook. Only opens when there is a real image to show.
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   // Show local optimistic preview while uploading, otherwise the persisted URL.
   const displayUri = localUri ?? avatarUrl;
 
-  const openLightbox = useCallback(() => {
-    console.log('[AvatarPicker] open lightbox');
-    setLightboxOpen(true);
-  }, []);
-  const closeLightbox = useCallback(() => setLightboxOpen(false), []);
-
   return (
     <View style={styles.container}>
       {/* Avatar — image or person silhouette placeholder.
-          Tapping a real image opens the full-screen lightbox; the silhouette
-          fallback has nothing meaningful to enlarge, so its tap is disabled. */}
+          Tapping a real image opens it full screen (pinch to zoom, swipe to close); the
+          silhouette fallback has nothing to show, so its tap is disabled. */}
       {displayUri ? (
         <Pressable
           accessibilityRole="imagebutton"
-          accessibilityLabel="Enlarge profile photo"
-          onPress={openLightbox}
+          accessibilityLabel="View profile photo"
+          onPress={() => setViewerOpen(true)}
           style={({ pressed }) => pressed && { opacity: 0.9 }}
         >
           <Image source={{ uri: displayUri }} style={styles.avatar} />
@@ -326,35 +318,8 @@ export default function AvatarPicker({
         </Pressable>
       )}
 
-      {/* Full-screen lightbox — enlarged avatar on a dim scrim.
-          Always dismissable: tap the scrim, tap the ✕, or hardware back. */}
-      {displayUri && (
-        <Modal
-          visible={lightboxOpen}
-          transparent
-          animationType="fade"
-          statusBarTranslucent
-          onRequestClose={closeLightbox}
-        >
-          <Pressable style={styles.lightboxScrim} onPress={closeLightbox}>
-            <Image source={{ uri: displayUri }} style={styles.lightboxImage} resizeMode="contain" />
-            {/* Circular ✕ — independent dismiss affordance. */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Close photo"
-              style={({ pressed }) => [
-                styles.lightboxClose,
-                { top: insets.top + OFFSET.o8 },
-                pressed && { opacity: 0.8 },
-              ]}
-              onPress={closeLightbox}
-              hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
-            >
-              <Text style={styles.lightboxCloseX}>✕</Text>
-            </Pressable>
-          </Pressable>
-        </Modal>
-      )}
+      {/* Full screen: pinch to zoom; swipe away, ✕ or back to close. */}
+      <AvatarViewer uri={viewerOpen ? displayUri : null} onClose={() => setViewerOpen(false)} />
     </View>
   );
 }
@@ -407,38 +372,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f16,
     lineHeight: LINE_HEIGHT.l18,
     color: COLORS.offBlack,
-    fontFamily: FONTS.semiBold,
-  },
-
-  // ── Lightbox ──
-  lightboxScrim: {
-    flex: 1,
-    // Dim scrim, darker than the app's usual backdrops (black at 0.5) so the
-    // enlarged avatar reads as a focused lightbox.
-    backgroundColor: withAlpha(COLORS.black, 0.85),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  lightboxImage: {
-    width: '85%',
-    // Avatars are square (1:1) — keep the aspect so the enlarge stays circular-source.
-    aspectRatio: 1,
-    borderRadius: RADIUS.r16,
-  },
-  lightboxClose: {
-    position: 'absolute',
-    right: OFFSET.o24,
-    width: SIZE.z36,
-    height: SIZE.z36,
-    borderRadius: RADIUS.r18,
-    backgroundColor: withAlpha(COLORS.white, 0.15),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  lightboxCloseX: {
-    fontSize: FONT_SIZE.f18,
-    lineHeight: LINE_HEIGHT.l20,
-    color: COLORS.white,
     fontFamily: FONTS.semiBold,
   },
 });
