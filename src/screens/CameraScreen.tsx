@@ -60,6 +60,7 @@ import OpenTagsBanner from '@/components/OpenTagsBanner';
 import PointsBadge from '@/components/PointsBadge';
 import KeyboardInset from '@/components/KeyboardInset';
 import CapturePipGuide from '@/components/CapturePipGuide';
+import PostVideo, { SoundButton } from '@/components/PostVideo';
 import InviteStep from '@/components/InviteStep';
 import InviteShareSheet from '@/components/InviteShareSheet';
 import { useOpenTags } from '@/hooks/useOpenTags';
@@ -68,6 +69,7 @@ import { useVideoPosts } from '@/hooks/useVideoPosts';
 import {
   HOLD_TO_RECORD_MS,
   VIDEO_RECORDING,
+  discardTitle,
   recordingLabel,
   secondsLeft,
   shutterIntent,
@@ -311,6 +313,8 @@ function DualPhotoPreview({
 
   // Which photo is the full-screen background: 'rear' or 'front'
   const [primaryFacing, setPrimaryFacing] = useState<'rear' | 'front'>('rear');
+  // Video posts: the big video's sound. Every preview starts muted.
+  const [previewMuted, setPreviewMuted] = useState(true);
 
   // Frozen refs so image stays visible during slide-out animation. Declared
   // here (before the PIP layout math) because pipH below reads the pip photo's
@@ -429,6 +433,7 @@ function DualPhotoPreview({
         primaryTransX.value = 0;
         primaryTransY.value = 0;
         setPrimaryFacing('rear');
+        setPreviewMuted(true);
       });
     }
   }, [hasPhotos]);
@@ -569,16 +574,25 @@ function DualPhotoPreview({
     ],
   }));
 
+  // Two photos keep today's wording; a video is named.
+  const discardQuestion = discardTitle(
+    frozenRear.current?.kind ?? 'photo',
+    frozenFront.current?.kind ?? 'photo'
+  );
+
   const handleDiscard = () => {
-    Alert.alert('Discard photos?', '', [
+    Alert.alert(discardQuestion, '', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Discard', style: 'destructive', onPress: onDiscard },
     ]);
   };
 
-  const primaryUri = primaryFacing === 'rear' ? frozenRear.current?.uri : frozenFront.current?.uri;
-
-  const pipUri = primaryFacing === 'rear' ? frozenFront.current?.uri : frozenRear.current?.uri;
+  const primaryShot = primaryFacing === 'rear' ? frozenRear.current : frozenFront.current;
+  const pipShot = primaryFacing === 'rear' ? frozenFront.current : frozenRear.current;
+  const primaryUri = primaryShot?.uri;
+  const pipUri = pipShot?.uri;
+  // Videos play, looping, while the preview is up. Sound only from the big one, muted at first.
+  const previewPlaying = modalOpen && hasPhotos;
 
   return (
     <Modal
@@ -595,11 +609,23 @@ function DualPhotoPreview({
           {primaryUri && (
             <GestureDetector gesture={primaryGesture}>
               <Reanimated.View style={[StyleSheet.absoluteFill, primaryAnimStyle]}>
-                <Image
-                  source={{ uri: primaryUri }}
-                  style={StyleSheet.absoluteFill}
-                  resizeMode="cover"
-                />
+                {primaryShot?.kind === 'video' ? (
+                  <PostVideo
+                    uri={primaryUri}
+                    playing={previewPlaying}
+                    muted={previewMuted}
+                    style={StyleSheet.absoluteFill}
+                    accessibilityLabel={
+                      primaryFacing === 'rear' ? 'Your view video' : 'Selfie video'
+                    }
+                  />
+                ) : (
+                  <Image
+                    source={{ uri: primaryUri }}
+                    style={StyleSheet.absoluteFill}
+                    resizeMode="cover"
+                  />
+                )}
               </Reanimated.View>
             </GestureDetector>
           )}
@@ -617,19 +643,38 @@ function DualPhotoPreview({
           {pipUri && (
             <GestureDetector gesture={pipGesture}>
               <Reanimated.View style={[styles.pip, { height: pipH }, pipAnimStyle]}>
-                <Image
-                  source={{ uri: pipUri }}
-                  style={[StyleSheet.absoluteFill, { borderRadius: RADIUS.r12 }]}
-                  resizeMode="cover"
-                />
+                {pipShot?.kind === 'video' ? (
+                  <PostVideo
+                    uri={pipUri}
+                    playing={previewPlaying}
+                    muted
+                    style={[StyleSheet.absoluteFill, styles.pipVideo]}
+                    accessibilityLabel="Small video. Tap to swap, hold to move."
+                  />
+                ) : (
+                  <Image
+                    source={{ uri: pipUri }}
+                    style={[StyleSheet.absoluteFill, { borderRadius: RADIUS.r12 }]}
+                    resizeMode="cover"
+                  />
+                )}
               </Reanimated.View>
             </GestureDetector>
+          )}
+
+          {/* Sound — top left, when the big shot is a video. */}
+          {primaryShot?.kind === 'video' && (
+            <SoundButton
+              muted={previewMuted}
+              onToggle={() => setPreviewMuted((m) => !m)}
+              style={[styles.previewSound, { top: topRightY(insets.top) }]}
+            />
           )}
 
           {/* Discard — top right */}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Discard photos"
+            accessibilityLabel={discardQuestion.replace('?', '')}
             style={({ pressed }) => [
               styles.discardButton,
               { top: topRightY(insets.top) },
@@ -2328,6 +2373,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: SHADOW_BLUR.b8,
     elevation: 8,
+  },
+  pipVideo: {
+    borderRadius: RADIUS.r12,
+    overflow: 'hidden',
+  },
+  // Video posts: the sound button mirrors the discard ✕, top left.
+  previewSound: {
+    position: 'absolute',
+    left: OFFSET.o24,
   },
   discardButton: {
     position: 'absolute',
