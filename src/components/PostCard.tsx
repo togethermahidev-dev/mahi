@@ -1,5 +1,13 @@
 import React, { useState, useRef, useCallback, useContext, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, Animated, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  Animated,
+  Pressable,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Reanimated from 'react-native-reanimated';
@@ -13,6 +21,7 @@ import {
   useUserStore,
 } from '@/store';
 import { useChromeFade } from '@/hooks/useChrome';
+import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
 import { ListGestureContext } from '@/components/GestureScrollView';
 import { HeartIcon, CommentIcon } from '@/components/ScreenIcons';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
@@ -20,10 +29,20 @@ import CaptionText from '@/components/CaptionText';
 import PointsBadge from '@/components/PointsBadge';
 import DraggablePip from '@/components/DraggablePip';
 import PostVideo, { SoundButton } from '@/components/PostVideo';
+import PreviewMenu, { PostPreviewImage } from '@/components/PreviewMenu';
 import { formatWait } from '@/lib/countdown';
 import { relativeTime } from '@/lib/relativeTime';
 import { streakText } from '@/lib/streakText';
 import { mediaTypeOrPhoto } from '@/lib/videoPosts';
+import {
+  isMenuAction,
+  menuA11yActions,
+  postMenuItems,
+  previewSize,
+  previewStill,
+  shareTarget,
+} from '@/lib/contextMenuPreview';
+import { sharePost } from '@/lib/sharePost';
 import { appHeaderHeight, pipZone } from '@/lib/pip';
 import type { FeedPost } from '@/api';
 import { FONTS } from '@/constants/fonts';
@@ -45,7 +64,9 @@ import {
  * One post, full screen (TikTok-style): photo or video, the second shot in a draggable small
  * window, who posted, tags, caption, double-tap and a button to like, a comments button.
  * Press and hold to see the whole photo: everything over it fades away (the glass bar too) until
- * the finger lifts. Used by the Feed and by the post viewer that opens from a profile grid.
+ * the finger lifts. With hold to preview on (flag context-menu-preview, iPhone, build 11) a hold
+ * instead pops the photo out with Like / Unlike, Comment, Share and View profile (owner: it
+ * replaces hold to view). Used by the Feed and by the post viewer that opens from a profile grid.
  */
 export default function PostCard({
   item,
@@ -217,7 +238,9 @@ export default function PostCard({
     .onStart(startHold)
     .onFinalize(endHold);
   if (list) hold.simultaneousWithExternalGesture(list);
-  const postGesture = Gesture.Simultaneous(doubleTap, hold);
+  // Hold to preview on: Apple's context menu owns the hold, so hold to view steps aside.
+  const menuOn = useContextMenuPreview();
+  const postGesture = menuOn ? doubleTap : Gesture.Simultaneous(doubleTap, hold);
 
   // ── Like handler (action bar tap) ───────────────────────────────────────
   const handleLike = useCallback(() => {
@@ -242,136 +265,182 @@ export default function PostCard({
     onCommentPress(item.id);
   }, [item.id, onCommentPress]);
 
+  // ── Hold to preview (flag context-menu-preview) ──────────────────────────
+  const screen = useWindowDimensions();
+  const menuItems = menuOn
+    ? postMenuItems({ liked: likedByMe, canShare: shareTarget(item) != null })
+    : [];
+  const runMenuAction = (action: string) => {
+    if (!isMenuAction(action)) return;
+    if (action === 'like' || action === 'unlike') handleLike();
+    else if (action === 'comment') handleCommentPress();
+    else if (action === 'share') sharePost(item);
+    else if (action === 'view-profile') onAvatarPress(item.profiles.id);
+  };
+  const previewUri = previewStill([
+    { uri: primaryUrl, kind: primaryKind },
+    { uri: pipUrl, kind: pipKind },
+  ]);
+
+  const media =
+    primaryKind === 'video' ? (
+      <PostVideo
+        uri={primaryUrl}
+        playing={playing}
+        muted={soundOff}
+        style={StyleSheet.absoluteFill}
+        accessibilityLabel={`${name}'s video`}
+      />
+    ) : (
+      <Image
+        source={{ uri: primaryUrl }}
+        style={StyleSheet.absoluteFill}
+        resizeMode={primaryLandscape ? 'contain' : 'cover'}
+        onLoad={(e) => {
+          const src = e.nativeEvent?.source;
+          // Landscape (wider than tall) → letterbox; portrait/square stay cover.
+          if (src?.width && src?.height) {
+            setPrimaryLandscape(src.width / src.height > 1.05);
+          }
+        }}
+      />
+    );
+
   return (
     <View style={[styles.card, { backgroundColor: cardBg, height }]}>
-      {/* Post image — double-tap to like, press and hold to see it whole */}
+      {/* Post image — double-tap to like, press and hold to see it whole (or, with hold to
+          preview on, to pop it out with a menu; off, this wrapper adds nothing) */}
       <View style={[styles.imageContainer, { width, flex: 1 }]}>
-        <GestureDetector gesture={postGesture}>
-          <View
-            style={[
-              { width, flex: 1 },
-              primaryLandscape && primaryKind === 'photo' && styles.letterbox,
-            ]}
-          >
-            {primaryKind === 'video' ? (
-              <PostVideo
-                uri={primaryUrl}
-                playing={playing}
-                muted={soundOff}
-                style={StyleSheet.absoluteFill}
-                accessibilityLabel={`${name}'s video`}
-              />
-            ) : (
-              <Image
-                source={{ uri: primaryUrl }}
-                style={StyleSheet.absoluteFill}
-                resizeMode={primaryLandscape ? 'contain' : 'cover'}
-                onLoad={(e) => {
-                  const src = e.nativeEvent?.source;
-                  // Landscape (wider than tall) → letterbox; portrait/square stay cover.
-                  if (src?.width && src?.height) {
-                    setPrimaryLandscape(src.width / src.height > 1.05);
-                  }
-                }}
-              />
-            )}
-            {/* Everything over the photo; fades away while the post is held */}
-            <Reanimated.View
-              style={[StyleSheet.absoluteFill, chrome.style]}
-              pointerEvents={chrome.viewing ? 'none' : 'box-none'}
+        <PreviewMenu
+          enabled={menuOn}
+          width={width}
+          height={height}
+          dark={dark}
+          items={menuItems}
+          onAction={runMenuAction}
+          previewSize={previewSize(screen, 'post')}
+          previewBackground={cardBg}
+          renderPreview={() => <PostPreviewImage uri={previewUri} />}
+        >
+          <GestureDetector gesture={postGesture}>
+            <View
+              style={[
+                { width, flex: 1 },
+                primaryLandscape && primaryKind === 'photo' && styles.letterbox,
+              ]}
             >
-              {/* Top gradient — tagged pills + streak badge inline */}
-              <LinearGradient
-                colors={[withAlpha(COLORS.black, 0.6), 'transparent']}
-                style={[styles.postOverlay, { paddingTop: headerH + SPACE.s4 + topSpace }]}
-                pointerEvents="box-none"
-              >
-                <TaggedBubbleStack
-                  users={item.tagged_users}
-                  onPressUser={(u) => onAvatarPress(u.user_id)}
-                  style={styles.topTaggedPills}
-                />
-                {streak || item.response ? (
-                  <View style={styles.streakBadge}>
-                    {streak ? <Text style={styles.streakText}>{streak}</Text> : null}
-                    {item.response ? (
-                      <Text style={styles.responseText}>
-                        Answered @{item.response.tagger_username} in{' '}
-                        {formatWait(item.response.seconds)}
-                      </Text>
-                    ) : null}
-                  </View>
-                ) : null}
-              </LinearGradient>
-              {/* Bottom shade, full width — behind the profile row, caption and the buttons */}
-              <LinearGradient
-                colors={[
-                  'transparent',
-                  withAlpha(COLORS.black, POST_CARD.shadeMid),
-                  withAlpha(COLORS.black, POST_CARD.shadeBottom),
-                ]}
-                style={[styles.captionOverlay, { minHeight: height * POST_CARD.shadeHeight }]}
-                pointerEvents="box-none"
-              >
-                <Pressable
-                  style={({ pressed }) => [styles.avatarRow, pressed && { opacity: 0.75 }]}
-                  onPress={() => onAvatarPress(item.profiles.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open ${name}'s profile`}
+              {menuOn ? (
+                // VoiceOver: the post is one element with the menu's choices as actions.
+                <View
+                  style={StyleSheet.absoluteFill}
+                  accessible
+                  accessibilityLabel={`${name}'s ${primaryKind}`}
+                  accessibilityActions={menuA11yActions(menuItems)}
+                  onAccessibilityAction={(e) => runMenuAction(e.nativeEvent.actionName)}
                 >
-                  {item.profiles.avatar_url ? (
-                    <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
-                  ) : (
-                    <View
-                      style={[
-                        styles.avatar,
-                        styles.avatarFallback,
-                        { backgroundColor: withAlpha(COLORS.white, 0.3) },
-                      ]}
-                    >
-                      <Text style={styles.avatarInitial}>{initials}</Text>
-                    </View>
-                  )}
-                  <View style={styles.userInfo}>
-                    <View style={styles.nameRow}>
-                      <Text style={styles.usernameOverlay}>{name}</Text>
-                      <PointsBadge points={item.profiles.points} style={styles.pointsOverlay} />
-                    </View>
-                    <Text style={styles.timeOverlay}>
-                      {postingVideo ? 'Posting…' : relativeTime(item.created_at)}
-                    </Text>
-                  </View>
-                </Pressable>
-                {item.caption ? (
-                  <CaptionText
-                    caption={item.caption}
-                    tagged={item.tagged_users}
-                    style={styles.captionText}
-                    onPressUser={(u) => onAvatarPress(u.user_id)}
-                    numberOfLines={2}
-                  />
-                ) : null}
-              </LinearGradient>
-            </Reanimated.View>
-            {/* Heart burst overlay — shown on double-tap */}
-            {showMedal && (
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.medalBurst,
-                  {
-                    left: medalPos.x - OFFSET.o40,
-                    top: medalPos.y - OFFSET.o40,
-                    transform: [{ scale: medalScale }],
-                    opacity: medalOpacity,
-                  },
-                ]}
+                  {media}
+                </View>
+              ) : (
+                media
+              )}
+              {/* Everything over the photo; fades away while the post is held */}
+              <Reanimated.View
+                style={[StyleSheet.absoluteFill, chrome.style]}
+                pointerEvents={chrome.viewing ? 'none' : 'box-none'}
               >
-                <HeartIcon size={ICON_SIZE.i80} color={COLORS.white} filled />
-              </Animated.View>
-            )}
-          </View>
-        </GestureDetector>
+                {/* Top gradient — tagged pills + streak badge inline */}
+                <LinearGradient
+                  colors={[withAlpha(COLORS.black, 0.6), 'transparent']}
+                  style={[styles.postOverlay, { paddingTop: headerH + SPACE.s4 + topSpace }]}
+                  pointerEvents="box-none"
+                >
+                  <TaggedBubbleStack
+                    users={item.tagged_users}
+                    onPressUser={(u) => onAvatarPress(u.user_id)}
+                    style={styles.topTaggedPills}
+                  />
+                  {streak || item.response ? (
+                    <View style={styles.streakBadge}>
+                      {streak ? <Text style={styles.streakText}>{streak}</Text> : null}
+                      {item.response ? (
+                        <Text style={styles.responseText}>
+                          Answered @{item.response.tagger_username} in{' '}
+                          {formatWait(item.response.seconds)}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
+                </LinearGradient>
+                {/* Bottom shade, full width — behind the profile row, caption and the buttons */}
+                <LinearGradient
+                  colors={[
+                    'transparent',
+                    withAlpha(COLORS.black, POST_CARD.shadeMid),
+                    withAlpha(COLORS.black, POST_CARD.shadeBottom),
+                  ]}
+                  style={[styles.captionOverlay, { minHeight: height * POST_CARD.shadeHeight }]}
+                  pointerEvents="box-none"
+                >
+                  <Pressable
+                    style={({ pressed }) => [styles.avatarRow, pressed && { opacity: 0.75 }]}
+                    onPress={() => onAvatarPress(item.profiles.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open ${name}'s profile`}
+                  >
+                    {item.profiles.avatar_url ? (
+                      <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
+                    ) : (
+                      <View
+                        style={[
+                          styles.avatar,
+                          styles.avatarFallback,
+                          { backgroundColor: withAlpha(COLORS.white, 0.3) },
+                        ]}
+                      >
+                        <Text style={styles.avatarInitial}>{initials}</Text>
+                      </View>
+                    )}
+                    <View style={styles.userInfo}>
+                      <View style={styles.nameRow}>
+                        <Text style={styles.usernameOverlay}>{name}</Text>
+                        <PointsBadge points={item.profiles.points} style={styles.pointsOverlay} />
+                      </View>
+                      <Text style={styles.timeOverlay}>
+                        {postingVideo ? 'Posting…' : relativeTime(item.created_at)}
+                      </Text>
+                    </View>
+                  </Pressable>
+                  {item.caption ? (
+                    <CaptionText
+                      caption={item.caption}
+                      tagged={item.tagged_users}
+                      style={styles.captionText}
+                      onPressUser={(u) => onAvatarPress(u.user_id)}
+                      numberOfLines={2}
+                    />
+                  ) : null}
+                </LinearGradient>
+              </Reanimated.View>
+              {/* Heart burst overlay — shown on double-tap */}
+              {showMedal && (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.medalBurst,
+                    {
+                      left: medalPos.x - OFFSET.o40,
+                      top: medalPos.y - OFFSET.o40,
+                      transform: [{ scale: medalScale }],
+                      opacity: medalOpacity,
+                    },
+                  ]}
+                >
+                  <HeartIcon size={ICON_SIZE.i80} color={COLORS.white} filled />
+                </Animated.View>
+              )}
+            </View>
+          </GestureDetector>
+        </PreviewMenu>
         {/* (Tagged pills moved to top gradient row) */}
         {/* Draggable PIP — uses RNGH so it wins over scroll/navigation gestures */}
         {hasDual && pipUrl && (

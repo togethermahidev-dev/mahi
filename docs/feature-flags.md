@@ -84,9 +84,11 @@ Share (Share sends the photo itself — post links expire within the hour — fe
 for the share sheet and deleted when it closes). A tap still opens the post viewer; locked squares
 don't pop. Messages rows: the latest six messages in that chat, read fresh from the server each time
 it opens (a spinner first, nothing kept on the phone, and peeking doesn't mark them read), with Open and,
-while the chat is unread, Mark as read (no Mute: the server has none). VoiceOver: the same choices are
-actions on the square or row. On build 10 or Android it reads as
-off. Off = today's grid and Messages list exactly.
+while the chat is unread, Mark as read (no Mute: the server has none). Feed posts and the post viewer
+(owner: this REPLACES hold to view): the post's photo pops out with Like / Unlike, Comment, Share and
+View profile; a double tap still likes, the small photo still drags, and holding the like / comment
+column does nothing new. VoiceOver: the same choices are actions on the square, row or post. On build
+10 or Android it reads as off. Off = today's grid, Messages list and hold to view exactly.
 
 **Comments:** `comment-likes` (a heart and a count on each comment in the comments sheet — in the feed
 and the post viewer; a tap likes or unlikes at once and rolls back if the server says no; tap the count
