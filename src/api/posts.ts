@@ -6,6 +6,14 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import {
+  mediaTypeArgs,
+  mediaTypeOrPhoto,
+  postMediaContentType,
+  postMediaPath,
+  type CapturedMediaRef,
+  type MediaType,
+} from '@/lib/videoPosts';
 import type { Database } from '@/types';
 import type { PostInvite } from './invites';
 
@@ -55,6 +63,9 @@ type FeedItem = {
   locked: boolean;
   image_path: string | null;
   pov_image_path: string | null;
+  /** Absent from servers before 20261002100000_video_posts, null while locked: a photo. */
+  rear_media_type?: MediaType | null;
+  front_media_type?: MediaType | null;
   caption: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -66,10 +77,10 @@ type FeedItem = {
   profile: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'> & { points: number };
 };
 
-// Photo links last an hour; the feed re-reads before its unlock ends.
+// Photo and video links last an hour; the feed re-reads before its unlock ends.
 const SIGNED_URL_SECONDS = 3600;
 
-/** Turn server items into posts with short-lived signed photo URLs ('' when hidden). */
+/** Turn server items into posts with short-lived signed photo / video URLs ('' when hidden). */
 async function toPosts(items: FeedItem[]): Promise<FeedPost[]> {
   const paths = items
     .flatMap((i) => [i.image_path, i.pov_image_path])
@@ -96,6 +107,8 @@ async function toPosts(items: FeedItem[]): Promise<FeedPost[]> {
     pov_image_path: i.pov_image_path,
     image_url: (i.image_path && urls.get(i.image_path)) || '',
     pov_image_url: (i.pov_image_path && urls.get(i.pov_image_path)) || null,
+    rear_media_type: mediaTypeOrPhoto(i.rear_media_type),
+    front_media_type: mediaTypeOrPhoto(i.front_media_type),
     like_count: i.like_count,
     comment_count: i.comment_count,
     liked_by_me: i.liked_by_me,
@@ -190,29 +203,39 @@ export type CreatePostResult = {
   replayed: boolean;
 };
 
+/** One shot to upload: what it is (photo or video, and its local file) and its bytes. */
+export type PostShotUpload = { shot: CapturedMediaRef; body: ArrayBuffer };
+
 /**
- * Upload the two photos for a post to `posts/{userId}/{clientId}_*.jpg`.
- * `upsert` makes a retry with the same clientId overwrite instead of duplicating.
+ * Upload a post's two shots to `posts/{userId}/{clientId}_rear|_pov.{jpg|mov|mp4}` (photos keep
+ * today's `.jpg` paths). `upsert` makes a retry with the same clientId overwrite instead of
+ * duplicating.
  */
-export async function uploadPostPhotos(opts: {
+export async function uploadPostMedia(opts: {
   userId: string;
   clientId: string;
-  rear: ArrayBuffer;
-  front: ArrayBuffer;
+  rear: PostShotUpload;
+  front: PostShotUpload;
 }): Promise<{ data: { rearPath: string; frontPath: string } | null; error: Error | null }> {
-  const rearPath = `${opts.userId}/${opts.clientId}_rear.jpg`;
-  const frontPath = `${opts.userId}/${opts.clientId}_pov.jpg`;
+  const rearPath = postMediaPath(opts.userId, opts.clientId, 'rear', opts.rear.shot);
+  const frontPath = postMediaPath(opts.userId, opts.clientId, 'pov', opts.front.shot);
   const bucket = supabase.storage.from('posts');
   const [rear, front] = await Promise.all([
-    bucket.upload(rearPath, opts.rear, { contentType: 'image/jpeg', upsert: true }),
-    bucket.upload(frontPath, opts.front, { contentType: 'image/jpeg', upsert: true }),
+    bucket.upload(rearPath, opts.rear.body, {
+      contentType: postMediaContentType(opts.rear.shot),
+      upsert: true,
+    }),
+    bucket.upload(frontPath, opts.front.body, {
+      contentType: postMediaContentType(opts.front.shot),
+      upsert: true,
+    }),
   ]);
   const err = rear.error ?? front.error;
   if (err) return { data: null, error: new Error(err.message) };
   return { data: { rearPath, frontPath }, error: null };
 }
 
-/** Remove uploaded photos after a post failed. Best effort. */
+/** Remove uploaded photos / videos after a post failed. Best effort. */
 export async function removePostPhotos(paths: string[]): Promise<void> {
   if (paths.length) await supabase.storage.from('posts').remove(paths);
 }
@@ -223,7 +246,7 @@ export async function removePostPhotos(paths: string[]): Promise<void> {
  * this user. Retrying with the same `clientId` returns the same post.
  *
  * Errors: "reactive posting: not tagged" (no open tag and not a first post); "tag N
- * friends" (not enough tags); "cannot tag that person"; "photo not found".
+ * friends" (not enough tags); "cannot tag that person"; "photo not found"; "unsupported media".
  */
 export async function createPost(opts: {
   clientId: string;
@@ -235,6 +258,9 @@ export async function createPost(opts: {
   longitude?: number | null;
   /** Slots filled by an invite link instead of a friend already on Mahi. */
   inviteCount?: number;
+  /** Each shot is a photo unless said otherwise. */
+  rearMediaType?: MediaType;
+  frontMediaType?: MediaType;
 }): Promise<{ data: CreatePostResult | null; error: Error | null }> {
   const { data, error } = await supabase.rpc('create_post', {
     p_client_id: opts.clientId,
@@ -245,6 +271,8 @@ export async function createPost(opts: {
     p_tagged_ids: opts.taggedUserIds ?? [],
     p_latitude: opts.latitude ?? null,
     p_longitude: opts.longitude ?? null,
+    // Only for a post with a video: a photo post makes exactly today's call.
+    ...mediaTypeArgs(opts.rearMediaType ?? 'photo', opts.frontMediaType ?? 'photo'),
   });
   if (error) return { data: null, error: new Error(error.message) };
   return { data: data as unknown as CreatePostResult, error: null };

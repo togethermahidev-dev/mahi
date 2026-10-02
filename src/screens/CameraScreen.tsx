@@ -49,7 +49,7 @@ import {
   createPost,
   getTaggableFriends,
   removePostPhotos,
-  uploadPostPhotos,
+  uploadPostMedia,
   type TaggedUser,
   type FeedPost,
   type TaggableFriend,
@@ -1478,6 +1478,8 @@ export default function CameraScreen(): React.JSX.Element {
       client_id: null,
       image_path: null,
       pov_image_path: null,
+      rear_media_type: 'photo',
+      front_media_type: 'photo',
       locked: false,
       like_count: 0,
       comment_count: 0,
@@ -1504,11 +1506,11 @@ export default function CameraScreen(): React.JSX.Element {
     let uploadedPaths: string[] = [];
 
     try {
-      const { data: paths, error: uploadErr } = await uploadPostPhotos({
+      const { data: paths, error: uploadErr } = await uploadPostMedia({
         userId,
         clientId,
-        rear: decode(rear.base64),
-        front: decode(front.base64),
+        rear: { shot: { kind: 'photo', uri: rear.uri }, body: decode(rear.base64) },
+        front: { shot: { kind: 'photo', uri: front.uri }, body: decode(front.base64) },
       });
       if (uploadErr || !paths) throw uploadErr ?? new Error('upload failed');
       uploadedPaths = [paths.rearPath, paths.frontPath];

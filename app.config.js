@@ -39,7 +39,7 @@ const config = {
       'expo-camera',
       {
         cameraPermission: 'Mahi uses the camera to power your fitness accountability features.',
-        microphonePermission: 'Mahi uses the microphone to record your workout sessions.',
+        microphonePermission: 'Mahi uses the microphone to record sound in your workout videos.',
       },
     ],
     [
@@ -80,7 +80,7 @@ const config = {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
         'Mahi uses the camera to power your fitness accountability features.',
-      NSMicrophoneUsageDescription: 'Mahi uses the microphone to record your workout sessions.',
+      NSMicrophoneUsageDescription: 'Mahi uses the microphone to record sound in your workout videos.',
       NSPhotoLibraryUsageDescription:
         'Mahi uses your photo library to let you share workout photos.',
       NSLocationWhenInUseUsageDescription:
