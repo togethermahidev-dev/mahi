@@ -58,6 +58,39 @@ Owner, 2026-10-02 ([decisions.md](./decisions.md#video-posts-2026-10-02) #33–#
 - **Uploads:** a video is read from its file only when posting (`uploadPostMedia`); the feed shows the
   pending post with "Posting…" until it's saved. Nothing new is kept on the device.
 
+## Identity checks and purchases (dormant)
+
+Prepared 2026-10-02 so build 11 carries the native pieces; switching either on later is an OTA plus its
+flag. Both flags are **default off** (`DEFAULT_OFF_FLAGS`). No screen uses them yet. Owner steps:
+[HANDOVER.md](./HANDOVER.md) (pending list).
+
+- **OTA safety:** OTA updates also reach build 10, which has neither SDK. Nothing imports them at the top
+  level. `src/lib/diditModule.ts` checks `TurboModuleRegistry.get('SdkReactNative')` (the package itself
+  calls `getEnforcing`, which throws without the module) and `src/lib/purchasesModule.ts` checks
+  `NativeModules.RNPurchases` / `RNPaywalls`; only then is the package required. No module = off. Tested in
+  `src/lib/__tests__/nativeLoaders.test.ts` (the package is never required when the module is missing).
+- **Identity checks (Didit, flag `identity-verification`):** config plugin in `app.config.js` with the
+  `autodetection` variant on both platforms (automatic capture, no NFC — so no NFC capability, entitlement
+  or usage text; camera, microphone, photos and location texts already exist). Flow: hook
+  `useIdentityVerification` → `identityStore.startIdentityCheck` → `didit-session` function (checks the
+  caller's token; already approved → no new session; at most 5 sessions a day; `POST /v3/session/` with
+  `x-api-key`, the workflow and `vendor_data` = user id; stores a `pending` row) → the SDK's
+  `startVerification(token)` → reload the status. What the phone saw is only a hint (`sdkResultHint`). The
+  real result comes from `didit-webhook` (no JWT; HMAC-SHA256 `X-Signature` over the raw body or
+  `X-Signature-V2` over the canonical JSON, `X-Timestamp` within 5 minutes) into `identity_verifications`
+  via `record_identity_verification` (service role only; idempotent; an older event arriving late changes
+  nothing; a session stays with the person who started it). Statuses: `pending`, `in_review`, `approved`,
+  `declined`, `expired` (Didit's ten mapped in `supabase/functions/_shared/didit.ts`). `decision` keeps
+  statuses only — names, document numbers, dates of birth and images stay at Didit. People read only their
+  own rows; nothing is kept on the device. Migration `20261002150000_identity_verifications`.
+- **Purchases (RevenueCat, flag `purchases`):** public keys `EXPO_PUBLIC_REVENUECAT_IOS_KEY` /
+  `_ANDROID_KEY` through `src/lib/env.ts`. `purchasesAvailability` = flag on AND native module AND key.
+  Hook `usePurchases()` (availability, current offering, `hasEntitlement(id)`, `purchase(pkg)`,
+  `restore()`, `presentPaywall()` via react-native-purchases-ui); mounting it configures RevenueCat once
+  per app run with app user id = Supabase user id, and a different account logs in. Sign-out calls
+  `usePurchasesStore.reset()`, which logs RevenueCat out only if it was configured. No server pieces yet:
+  entitlements come from RevenueCat's SDK.
+
 ## Tech Stack
 
 | Layer | Tool | Version |
@@ -74,6 +107,8 @@ Owner, 2026-10-02 ([decisions.md](./decisions.md#video-posts-2026-10-02) #33–#
 | Glass / Blur | expo-glass-effect, expo-blur | ~57 |
 | Gradients | expo-linear-gradient | ~57.0.2 |
 | Video playback | expo-video (loaded only when the build has it) | ~57.0.5 |
+| Identity checks | @didit-protocol/sdk-react-native (dormant, loaded only when the build has it) | 4.9.0 |
+| In-app purchases | react-native-purchases (+ -ui) (dormant, loaded only when the build has it) | 10.11.0 |
 | Analytics | PostHog | ^4.74.0 |
 | Error Tracking | Sentry | ^8.26.0 |
 
