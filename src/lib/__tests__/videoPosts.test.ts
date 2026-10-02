@@ -135,6 +135,12 @@ describe('shutterIntent — what a tap or a hold on the shutter does', () => {
     expect(shutterIntent({ ...base, mode: 'video', press: 'hold' })).toBe('start-video');
   });
 
+  it('while recording, holding the shutter stops too (a long press sends no tap)', () => {
+    expect(shutterIntent({ ...base, mode: 'video', recording: true, press: 'hold' })).toBe(
+      'stop-video'
+    );
+  });
+
   it('letting go stops a held recording; it never takes a photo while recording', () => {
     expect(shutterIntent({ ...base, mode: 'photo', recording: true, press: 'release' })).toBe(
       'stop-video'
