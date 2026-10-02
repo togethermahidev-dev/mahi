@@ -1,4 +1,10 @@
-import { resolveFlag, FEATURE_FLAGS, type FeatureFlag } from '@/lib/featureFlags';
+import {
+  resolveFlag,
+  flagDefaultOn,
+  DEFAULT_OFF_FLAGS,
+  FEATURE_FLAGS,
+  type FeatureFlag,
+} from '@/lib/featureFlags';
 
 describe('resolveFlag — default-on feature-flag resolution', () => {
   describe('analytics disabled (no PostHog key configured)', () => {
@@ -40,5 +46,32 @@ describe('FEATURE_FLAGS registry', () => {
   it('includes the demo-gate flag wired into AppHeader', () => {
     const demoGate: FeatureFlag = 'notifications-core';
     expect(FEATURE_FLAGS).toContain(demoGate);
+  });
+});
+
+describe('default-off flags (video-posts)', () => {
+  it('lists video-posts in the registry', () => {
+    expect(FEATURE_FLAGS).toContain('video-posts');
+  });
+
+  it('only video-posts defaults off', () => {
+    expect(DEFAULT_OFF_FLAGS).toEqual(['video-posts']);
+  });
+
+  // Owner: off for everyone, and the app never asks for the microphone while it is off.
+  // So it stays off until PostHog says true — while flags load and with no PostHog key.
+  it('stays off while flags load, with no PostHog key, and when false', () => {
+    expect(resolveFlag(undefined, true, false)).toBe(false);
+    expect(resolveFlag(true, false, false)).toBe(false);
+    expect(resolveFlag(false, true, false)).toBe(false);
+  });
+
+  it('is on only when PostHog says true', () => {
+    expect(resolveFlag(true, true, false)).toBe(true);
+  });
+
+  it('flagDefaultOn tells the two kinds apart', () => {
+    expect(flagDefaultOn('video-posts')).toBe(false);
+    expect(flagDefaultOn('notifications-core')).toBe(true);
   });
 });

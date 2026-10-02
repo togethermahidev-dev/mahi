@@ -34,6 +34,9 @@ export const FEATURE_FLAGS = [
   // Onboarding
   'onboarding-welcome-cards', // one-time 3-card carousel teaching the post / tag / feed loop
 
+  // Posts
+  'video-posts', // each shot can be a photo or a video of up to 15 s; feed plays them (default OFF)
+
   // Sign-in placeholders — pills on the welcome screen with nothing behind them yet.
   'auth-apple-signin',
   'auth-google-signin',
@@ -43,7 +46,20 @@ export const FEATURE_FLAGS = [
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
 
 /**
- * Resolve a raw PostHog flag value to a boolean, default-on.
+ * Flags that are OFF unless PostHog explicitly says true — while flags load, with no PostHog
+ * key, and when the key is missing. `video-posts`: the owner wants it off for everyone, and
+ * with it off the app must never ask for the microphone, not even for a moment on cold start.
+ */
+export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = ['video-posts'];
+
+/** Whether a flag reads as on before PostHog has answered (true for all but DEFAULT_OFF_FLAGS). */
+export function flagDefaultOn(flag: FeatureFlag): boolean {
+  return !DEFAULT_OFF_FLAGS.includes(flag);
+}
+
+/**
+ * Resolve a raw PostHog flag value to a boolean, default-on (or default-off when
+ * `defaultOn` is false: then only an explicit `true` with analytics on turns it on).
  *
  * - `analyticsEnabled === false` (no PostHog key configured) → always `true`:
  *   the app behaves as "everything on" when analytics degrades gracefully,
@@ -56,7 +72,12 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  *
  * Pure and SDK-free so it can be unit-tested in isolation.
  */
-export function resolveFlag(value: boolean | undefined, analyticsEnabled: boolean): boolean {
+export function resolveFlag(
+  value: boolean | undefined,
+  analyticsEnabled: boolean,
+  defaultOn = true
+): boolean {
+  if (!defaultOn) return analyticsEnabled && value === true;
   if (!analyticsEnabled) return true;
   return value ?? true;
 }

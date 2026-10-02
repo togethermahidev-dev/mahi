@@ -11,6 +11,8 @@ The seven added 2026-10-01 (`onboarding-welcome-cards`, `feed-lock-explainer`, `
 been created (`nav-glass-rail`, `invite-links`, `tag-challenges`, `mahi-points`) were created that day.
 **`push-core` is deliberately not created**, so it reads as off, until push notifications are set up on
 the server (Apple/Google push credentials, `send-push` deployed — see [go-live-runbook.md](./go-live-runbook.md)).
+**`video-posts` (added 2026-10-02) is the one default-off flag:** the owner wants it OFF for everyone.
+Create it in PostHog **switched off** (or at 0%); it reads as off until PostHog says true.
 
 PostHog project: **EU region, `project_id=130791`**.
 
@@ -34,12 +36,16 @@ if (!showBell) return null;
   a missing key). So every new flag must be created in PostHog, at 100%, before the update that uses it ships —
   found 2026-10-01, when seven new features stayed hidden on the test phones until their flags were created.
   This pure logic is unit-tested in [`src/lib/__tests__/featureFlags.test.ts`](../src/lib/__tests__/featureFlags.test.ts).
+- **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`, today only `video-posts`): off while flags
+  load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns `true`. Use this
+  for a feature that must never show, even for a moment on cold start (video posts would otherwise be able to
+  ask for the microphone before flags load).
 - Reference gate: the notifications bell in [`src/components/AppHeader.tsx`](../src/components/AppHeader.tsx) is
   gated by `notifications-core`.
 
 ## The flags
 
-Fifteen keys, every one read by code. (Suggested follows have no flag: they are always on.)
+Sixteen keys, every one read by code. (Suggested follows have no flag: they are always on.)
 
 **Notifications:** `notifications-core` (the bell in the header and the notifications list)
 
@@ -57,6 +63,15 @@ or, if you're tagged, when it locks. Off = the plain locked post cards.)
 spot says what comes second — "Selfie next" / "Your view next"; after it, the window shows the photo just
 taken while the screen switches to the other camera. Status reads "Taking photo…", "Switching…", "Tap for
 your selfie" / "Tap for your view". Off = no window and the old capture labels.)
+
+**Posts:** `video-posts` (**default off**; owner: off for everyone). On: each of a post's two shots can be a
+photo or a video of up to 15 seconds — a Photo / Video switch by the shutter, and press and hold the shutter
+to record (tap still takes a photo; letting go or 15 seconds stops). The microphone is asked for only the
+first time someone records. Videos in the feed, the small window, post detail and the preview play muted
+and looping while on screen, with a "Turn sound on" / "Turn sound off" button; the profile grid marks video
+posts with a video icon. Needs the `expo-video` native module (a new native build) and migration
+`20261002100000_video_posts`. On a build without the native module (build 10) it reads as off. Off = today's
+photo-only camera exactly, and the app never asks for the microphone.)
 
 **Navigation:** `nav-glass-rail` (floating glass rail on the right with Camera, Feed, Messages and
 Profile; replaces the side dots and the header's Profile/Messages pills. Off = the old dots and pills.)
