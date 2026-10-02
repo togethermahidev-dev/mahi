@@ -327,3 +327,17 @@ export const VIEWER = {
   zoomMax: 4,
   zoomDoubleTap: 2.5,
 } as const;
+
+// ─── Live camera: the flash button and tap to focus (flag camera-tap-focus) ─────
+export const CAMERA = {
+  /** A tap to focus shows a square that lands this much bigger and settles to its size… */
+  focusStartScale: 1.35,
+  /** …over this long (ms)… */
+  focusSettleMs: 200,
+  /** …stays this long (ms)… */
+  focusHoldMs: 800,
+  /** …and fades over this long (ms). With Reduce Motion it only appears and fades. */
+  focusFadeMs: 300,
+  /** With tap to focus on, a second tap within this long (ms) flips the camera instead. */
+  doubleTapMs: 280,
+} as const;
