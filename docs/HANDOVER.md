@@ -38,7 +38,7 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
   points are back to 0.") and keeps the feed locked until a friend tags you again; Best is never lowered.
   "This is not streaks" — the word streak is never shown, and there is no daily streak. The old points
   (tagger point, 3-a-day cap) are retired by migration `20261002170000_mahi_points` (**not pushed yet**);
-  the `mahi-points` flag is gone from the code — delete it in PostHog after the update.
+  the `mahi-points` flag is gone from the code and from PostHog (deleted 2026-10-02, after OTA 10.26).
 - **Earlier hardening still in force:** typed `src/lib/env.ts`, `ErrorBoundary`, every store reset on
   sign-out, server-authoritative sign-up codes, Jest + pgTAP + typecheck CI.
 
