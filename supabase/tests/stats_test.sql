@@ -1,6 +1,6 @@
 -- The numbers of record: a known week of tag-loop activity, counted by the stats views.
 begin;
-select plan(20);
+select plan(19);
 
 -- Invite links off unless a section turns them on: fewer friends excuses the difference.
 update public.app_config set invite_links_enabled = false;
@@ -96,8 +96,8 @@ select is(
   round(100.0 * (pg_temp.posts_today()).answering_a_tag / (pg_temp.posts_today()).posts, 1),
   'the share that answered a tag is that day''s own two numbers'
 );
-select is((select points from stats.points_daily), 2, 'the answerer and the tagger each earned one');
-select is((select to_taggers from stats.points_daily), 1, 'one of those went to the tagger');
+select hasnt_view('stats', 'points_daily',
+  'no points view: Mahi points live on profiles (20261002170000_mahi_points)');
 
 -- 4. N joins from the link.
 select pg_temp.as_user('00000000-0000-0000-0000-00000000e00d');

@@ -12,24 +12,24 @@ The files are production's own migration history, downloaded from
 policies that had been created in the dashboard. Every live table, column, function, trigger, policy,
 index and bucket was checked against these files; nothing else was missing.
 
-Every later migration, through `20261001170000_drop_rest_days`, has been pushed by the owner and
-is live (checked against prod 2026-10-01; reactive posting, the profile column grants and the
-rest-days drop went in that afternoon, after OTA 10.22). **Not pushed yet:**
-`20261002100000_video_posts` (video posts: media type per shot, `create_post` media arguments, `posts`
-bucket limits; test `tests/video_posts_test.sql`, undo `rollbacks/20261002100000_video_posts.rollback.sql`).
-It is safe for every app build already out (they send no media type, so they post photos).
-Also not pushed: `20261002130000_comment_likes` (comment likes: `comment_likes` table, `toggle_comment_like`,
-`get_comment_likes`, `get_comment_likers`; test `tests/comment_likes_test.sql`, undo
-`rollbacks/20261002130000_comment_likes.rollback.sql`). Additive — no app build reads it unless the
-`comment-likes` flag is on, and comments load the same way with or without it.
-Also not pushed: `20261002150000_identity_verifications` (identity checks with Didit: the
+Every later migration, through `20261002130000_comment_likes`, has been pushed by the owner and is
+live (checked against prod 2026-10-02: video posts and comment likes went in that morning).
+**Not pushed yet:** `20261002150000_identity_verifications` (identity checks with Didit: the
 `identity_verifications` table — people read only their own rows — and `record_identity_verification`,
 service role only; test `tests/identity_verifications_test.sql`, undo
 `rollbacks/20261002150000_identity_verifications.rollback.sql`). Additive — nothing reads it unless the
 `identity-verification` flag is on. Push it before deploying `didit-session` / `didit-webhook`.
+Also not pushed: `20261002170000_mahi_points` (Mahi points replace the old points: no tagger point,
+no daily cap, the `point_events` ledger, `award_point`, `app_config.daily_point_cap` and
+`stats.points_daily` dropped; `points` in the profile, feed items and the tag list now carries
+`streak_current`; the missed-tag push says "points"; test `tests/mahi_points_test.sql`, undo
+`rollbacks/20261002170000_mahi_points.rollback.sql`). Safe for every app already on phones: they read
+`points` and `streak_current`, and both still exist (`point_events` was empty on prod, checked
+2026-10-02).
 Still held back: `deferred/contract_posting.sql`,
 `deferred/contract_messages.sql`, `deferred/private_bucket.sql` — they shut old paths and wait for a
-store build covered by the version gate.
+store build covered by the version gate — and `deferred/contract_points.sql`, which drops the
+profile's `points` column once every phone has the Mahi points update.
 
 Rules (enforced by `.claude/hooks/guard.cjs`):
 
