@@ -1,8 +1,5 @@
 import { create } from 'zustand';
-import { getUserPosts, type ProfilePostCursor } from '@/api';
-import type { Database } from '@/types';
-
-type PostRow = Database['public']['Tables']['posts']['Row'];
+import { getUserPosts, type FeedPost, type ProfilePostCursor } from '@/api';
 
 const PAGE_SIZE = 30;
 
@@ -36,7 +33,8 @@ export function shouldResync(args: {
 
 interface ProfilePostsState {
   userId: string | null;
-  posts: PostRow[];
+  /** Posts as the feed shows them (counts, tags, poster), so the post viewer can show them too. */
+  posts: FeedPost[];
   cursor: ProfilePostCursor | undefined;
   hasMore: boolean;
   isSyncing: boolean;
@@ -45,7 +43,9 @@ interface ProfilePostsState {
 
   sync: (userId: string, force?: boolean) => Promise<void>;
   loadMore: (userId: string) => Promise<void>;
-  addPost: (post: PostRow) => void;
+  addPost: (post: FeedPost) => void;
+  /** Like and comment counts changed (socialStore keeps them in step with the feed's). */
+  patchPost: (id: string, partial: Partial<FeedPost>) => void;
   reset: () => void;
 }
 
@@ -114,6 +114,9 @@ export const useProfilePostsStore = create<ProfilePostsState>((set, get) => ({
   addPost: (post) =>
     // No daily limit: only a retry of the same post replaces it.
     set((s) => ({ posts: [post, ...s.posts.filter((p) => p.id !== post.id)] })),
+
+  patchPost: (id, partial) =>
+    set((s) => ({ posts: s.posts.map((p) => (p.id === id ? { ...p, ...partial } : p)) })),
 
   reset: () =>
     set({
