@@ -43,11 +43,11 @@
   the user taps Post on the preview screen. Microphone permission is never requested (the native
   usage string in `app.config.js` goes at the next native build)
 - Photo preview renders in a `Modal` that slides in from the right — never use `absoluteFillObject` inside the camera slot (conflicts with VerticalNavigator `overflow: hidden` and AppHeader overlay)
-- Optimistic updates (`addPending`, streak increment) fire at Post confirmation, not at shutter
+- Optimistic updates (`addPending`, the Mahi points increment) fire at Post confirmation, not at shutter
 - Upload order: `uploadPostPhotos` (`posts/{userId}/{clientId}_rear.jpg` / `_pov.jpg`, upsert) →
-  `createPost` = the `create_post` RPC, one server call that dates the post, records the streak and
+  `createPost` = the `create_post` RPC, one server call that dates the post, records the Mahi points and
   saves tags, deadlines and pushes. A retry with the same `clientId` returns the same post
-- On any failure: remove pending post, revert streak, and `removePostPhotos` the uploaded paths
+- On any failure: remove pending post, revert the points, and `removePostPhotos` the uploaded paths
 - `posts` storage bucket is still **public** (`supabase/deferred/private_bucket.sql` makes it private later)
 - Reactive posting (below): `create_post` checks `reactive_posting_open` and raises `'reactive posting: not tagged'`;
   the camera mirrors it with `reactivePostingGate()` (`src/lib/reactivePosting.ts`), fed by the feed store's
@@ -75,16 +75,21 @@
 - Only the resend cooldown timestamp is kept on the device (`src/lib/otp.ts`); codes are server-only
 - When writing back to profile after async work, always read from `useUserStore.getState().profile` — never spread a closure snapshot
 
-## Reactive posting and the streak
+## Reactive posting and Mahi points
 - You can post only while you have an open tag you can still answer (48 hours + 10 minutes grace); your very
   first post is free. No daily limit — the one-a-day unique index is dropped (`20261001120000_reactive_posting`)
 - Server rule: `public.reactive_posting_open(user)`, checked inside `create_post`. App rule: `reactivePostingGate()`
   in `src/lib/reactivePosting.ts`
-- Streak: +1 per post that answers at least one tag; a missed tag resets `streak_current` to 0
-  (`break_missed_streaks`, run from the `mark_missed_tags` cron and inside `create_post`); `streak_highest` is
-  never lowered; `posts.streak_day` = the streak after that post. Badges read "Streak N" (`src/lib/streakText.ts`),
-  hidden at 0
-- Notifications: `streak_lost` to the person who missed (actor = the tagger); `tag_missed` only to the tagger
+- Mahi points (founder, 2026-10-02: "This is not streaks"): +1 per post that answers at least one tag, only for
+  the person answering, no daily cap; a missed tag puts them back to 0; Best is never lowered. People only ever
+  see "points" and "Best" — never the word streak. There is no daily streak (parked)
+- The database keeps the old names: `profiles.streak_current` = Mahi points, `streak_highest` = Best,
+  `posts.streak_day` = the points after that post, `break_missed_streaks` (run from the `mark_missed_tags` cron
+  and inside `create_post`) does the reset. Badges read "N points" (`src/lib/mahiPoints.ts`), hidden at 0
+- The old separate points (a point for the tagger, 3 a day, a total that never reset) are gone
+  (`20261002170000_mahi_points`); there is no `mahi-points` flag — points always show
+- Notifications: `streak_lost` (internal name; its words say "Your points are back to 0") to the person who
+  missed (actor = the tagger); `tag_missed` only to the tagger
 - Gone: rest days, training days, `fitness_routine`, `streak_logs`, `record_upload_streak`, the streak calendar.
   `20261001170000_drop_rest_days` removes the columns and table once every phone has the new app
 
@@ -100,7 +105,7 @@
 - Every colour, text size, spacing, radius, shadow, size, offset, icon size, letter spacing, line height and
   border width comes from `src/constants/tokens.ts` (`withAlpha` for opacity). `designTokens.test.ts` fails on
   a raw value anywhere else — need a new value? add a token first
-- UI copy is sentence case ("Log in", "Streak N", "No tags to answer"). No all-caps, letter-spaced labels;
+- UI copy is sentence case ("Log in", "12 points", "No tags to answer"). No all-caps, letter-spaced labels;
   the MAHI wordmark is the only exception (owner, 2026-10-01)
 - Dark/light mode via `useAppTheme()` (the user's stored choice) — always support both
 - Pop-ups are native: page sheets (`presentationStyle="pageSheet"`) for comments, tags, notifications,
