@@ -54,14 +54,25 @@ describe('default-off flags (video-posts, context-menu-preview)', () => {
     expect(FEATURE_FLAGS).toContain('video-posts');
   });
 
-  it('only video-posts, ios-sf-symbols and context-menu-preview default off', () => {
-    expect(DEFAULT_OFF_FLAGS).toEqual(['video-posts', 'ios-sf-symbols', 'context-menu-preview']);
+  it('only the build-11 and video flags default off', () => {
+    expect(DEFAULT_OFF_FLAGS).toEqual([
+      'video-posts',
+      'ios-sf-symbols',
+      'context-menu-preview',
+      'camera-tap-focus',
+    ]);
   });
 
   // Apple's icons need build 11; off until PostHog says true, so nothing swaps icons on cold start.
   it('lists ios-sf-symbols in the registry, default off', () => {
     expect(FEATURE_FLAGS).toContain('ios-sf-symbols');
     expect(flagDefaultOn('ios-sf-symbols' as FeatureFlag)).toBe(false);
+  });
+
+  // Tap to focus needs build 11's native focus; it must not switch on by itself while flags load.
+  it('lists camera-tap-focus in the registry, off by default', () => {
+    expect(FEATURE_FLAGS).toContain('camera-tap-focus');
+    expect(flagDefaultOn('camera-tap-focus' as FeatureFlag)).toBe(false);
   });
 
   // Owner: off for everyone, and the app never asks for the microphone while it is off.
