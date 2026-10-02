@@ -41,6 +41,42 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      comment_likes: {
+        Row: {
+          comment_id: string;
+          created_at: string;
+          id: string;
+          user_id: string;
+        };
+        Insert: {
+          comment_id: string;
+          created_at?: string;
+          id?: string;
+          user_id: string;
+        };
+        Update: {
+          comment_id?: string;
+          created_at?: string;
+          id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'comment_likes_comment_id_fkey';
+            columns: ['comment_id'];
+            isOneToOne: false;
+            referencedRelation: 'post_comments';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'comment_likes_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       conversation_reads: {
         Row: {
           conversation_id: string;
@@ -771,6 +807,31 @@ export type Database = {
         Returns: {
           like_count: number;
           liked: boolean;
+        }[];
+      };
+      toggle_comment_like: {
+        Args: { p_comment_id: string };
+        Returns: {
+          like_count: number;
+          liked: boolean;
+        }[];
+      };
+      get_comment_likes: {
+        Args: { p_post_id: string };
+        Returns: {
+          comment_id: string;
+          like_count: number;
+          liked_by_me: boolean;
+        }[];
+      };
+      get_comment_likers: {
+        Args: { p_comment_id: string };
+        Returns: {
+          avatar_url: string | null;
+          display_name: string | null;
+          liked_at: string;
+          user_id: string;
+          username: string;
         }[];
       };
     };

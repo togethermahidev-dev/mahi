@@ -91,3 +91,46 @@ export async function addComment(
   if (error) return { data: null, error: new Error(error.message) };
   return { data: data as unknown as CommentWithProfile, error: null };
 }
+
+// ─── Comment likes (flag comment-likes) ──────────────────────────────────────
+
+/** One comment's like count and whether the signed-in person liked it. */
+export type CommentLikes = { comment_id: string; like_count: number; liked_by_me: boolean };
+
+/** Someone who liked a comment (people blocked either way and banned profiles are left out). */
+export type CommentLiker = {
+  user_id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  liked_at: string;
+};
+
+/** Every comment on a post with its like count and whether you liked it. */
+export async function getCommentLikes(
+  postId: string
+): Promise<{ data: CommentLikes[] | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('get_comment_likes', { p_post_id: postId });
+  if (error) return { data: null, error: new Error(error.message) };
+  return { data: (data as CommentLikes[] | null) ?? [], error: null };
+}
+
+/** Like a comment, or take the like back (as yourself). Returns where it ended up and the count. */
+export async function toggleCommentLike(
+  commentId: string
+): Promise<{ data: { liked: boolean; like_count: number } | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('toggle_comment_like', { p_comment_id: commentId });
+  if (error) return { data: null, error: new Error(error.message) };
+  const row = (data as { liked: boolean; like_count: number }[] | null)?.[0];
+  if (!row) return { data: null, error: new Error('toggle_comment_like returned no rows') };
+  return { data: row, error: null };
+}
+
+/** Who liked a comment, newest first. Read fresh each time; never kept on the device. */
+export async function getCommentLikers(
+  commentId: string
+): Promise<{ data: CommentLiker[] | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('get_comment_likers', { p_comment_id: commentId });
+  if (error) return { data: null, error: new Error(error.message) };
+  return { data: (data as CommentLiker[] | null) ?? [], error: null };
+}

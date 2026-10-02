@@ -12,8 +12,12 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { useFeedStore, useProfilePostsStore, useSocialStore, useUserStore } from '@/store';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import KeyboardInset from '@/components/KeyboardInset';
+import CommentLikersSheet from '@/components/CommentLikersSheet';
+import { HeartIcon } from '@/components/ScreenIcons';
 import { relativeTime } from '@/lib/relativeTime';
 import type { CommentWithProfile } from '@/api/social';
 import { FONTS } from '@/constants/fonts';
@@ -26,13 +30,32 @@ import {
   BORDER_WIDTH,
   SIZE,
   TRACKING,
+  ICON_SIZE,
+  OFFSET,
 } from '@/constants/tokens';
 
-function CommentRow({ comment, dark }: { comment: CommentWithProfile; dark: boolean }) {
+function CommentRow({
+  comment,
+  dark,
+  showLikes,
+  onShowLikers,
+}: {
+  comment: CommentWithProfile;
+  dark: boolean;
+  /** Comment likes (flag comment-likes), once this opening's numbers have arrived. */
+  showLikes: boolean;
+  /** Tap on the count: who liked it. */
+  onShowLikers: (commentId: string) => void;
+}) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
   const name = comment.profiles.display_name ?? comment.profiles.username;
   const initials = (comment.profiles.username ?? '?')[0].toUpperCase();
+  const like = useSocialStore((s) => s.commentLikes[comment.id]);
+  const liked = like?.liked ?? false;
+  const count = like?.count ?? 0;
+  // A comment still being sent has nothing on the server to like yet.
+  const sending = comment.id.startsWith('temp_');
 
   return (
     <View style={styles.commentRow}>
@@ -48,6 +71,35 @@ function CommentRow({ comment, dark }: { comment: CommentWithProfile; dark: bool
         <Text style={[styles.commentText, { color: text }]}>{comment.content}</Text>
       </View>
       <Text style={[styles.commentTime, { color: muted }]}>{relativeTime(comment.created_at)}</Text>
+      {showLikes ? (
+        <View style={styles.likeCol}>
+          <Pressable
+            style={({ pressed }) => [styles.likeBtn, pressed && { opacity: 0.6 }]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              useSocialStore.getState().toggleCommentLike(comment.id);
+            }}
+            disabled={sending}
+            hitSlop={OFFSET.o8}
+            accessibilityRole="button"
+            accessibilityLabel={liked ? `Unlike ${name}'s comment` : `Like ${name}'s comment`}
+            accessibilityState={{ selected: liked, disabled: sending }}
+          >
+            <HeartIcon size={ICON_SIZE.i16} color={liked ? text : muted} filled={liked} />
+          </Pressable>
+          {count > 0 ? (
+            <Pressable
+              onPress={() => onShowLikers(comment.id)}
+              hitSlop={OFFSET.o8}
+              accessibilityRole="button"
+              accessibilityLabel={`${count} ${count === 1 ? 'like' : 'likes'}`}
+              accessibilityHint="Shows who liked it"
+            >
+              <Text style={[styles.likeCount, { color: muted }]}>{count}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -120,6 +172,20 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
     useSocialStore.getState().loadComments(postId);
   }, [postId]);
 
+  // Comment likes (flag comment-likes): read fresh each time the comments open; the hearts show
+  // once they've arrived, so a count never jumps from an old number to a new one.
+  const likesOn = useFeatureFlag('comment-likes');
+  const likesReady = useSocialStore((s) => s.commentLikesReady[postId] === true);
+  const showLikes = likesOn && likesReady;
+  useEffect(() => {
+    if (likesOn) useSocialStore.getState().loadCommentLikes(postId);
+  }, [likesOn, postId]);
+  const [likersFor, setLikersFor] = useState<string | null>(null);
+  const showLikers = useCallback((commentId: string) => {
+    Keyboard.dismiss();
+    setLikersFor(commentId);
+  }, []);
+
   const handleSubmitComment = useCallback(() => {
     const trimmed = commentText.trim();
     if (!trimmed || !currentUser) return;
@@ -145,7 +211,15 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
           <FlashList
             data={comments}
             keyExtractor={(c) => c.id}
-            renderItem={({ item: comment }) => <CommentRow comment={comment} dark={dark} />}
+            extraData={showLikes}
+            renderItem={({ item: comment }) => (
+              <CommentRow
+                comment={comment}
+                dark={dark}
+                showLikes={showLikes}
+                onShowLikers={showLikers}
+              />
+            )}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
           />
@@ -192,6 +266,9 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
         </Pressable>
       </View>
       <KeyboardInset />
+
+      {/* Who liked a comment — a page sheet over this one */}
+      <CommentLikersSheet commentId={likersFor} dark={dark} onClose={() => setLikersFor(null)} />
     </>
   );
 }
@@ -235,6 +312,21 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f10,
     fontFamily: FONTS.italic,
     paddingTop: SPACE.s2,
+  },
+  // ── Comment likes: a heart with its count under it, on the right of each comment
+  likeCol: {
+    alignItems: 'center',
+    minWidth: SIZE.z32,
+  },
+  likeBtn: {
+    width: SIZE.z32,
+    height: SIZE.z24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  likeCount: {
+    fontSize: FONT_SIZE.f10,
+    fontFamily: FONTS.semiBold,
   },
   commentInputRow: {
     flexDirection: 'row',

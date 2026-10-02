@@ -45,7 +45,7 @@ if (!showBell) return null;
 
 ## The flags
 
-Sixteen keys, every one read by code. (Suggested follows have no flag: they are always on.)
+Seventeen keys, every one read by code. (Suggested follows have no flag: they are always on.)
 
 **Notifications:** `notifications-core` (the bell in the header and the notifications list)
 
@@ -72,6 +72,13 @@ and looping while on screen, with a "Turn sound on" / "Turn sound off" button; t
 posts with a video icon. Needs the `expo-video` native module (a new native build) and migration
 `20261002100000_video_posts`. On a build without the native module (build 10) it reads as off. Off = today's
 photo-only camera exactly, and the app never asks for the microphone.)
+
+**Comments:** `comment-likes` (a heart and a count on each comment in the comments sheet — in the feed
+and the post viewer; a tap likes or unlikes at once and rolls back if the server says no; tap the count
+to open "Likes", who liked it, newest first, with a tap on a name opening their profile. People blocked
+either way can't like each other's comments and don't show in the list. Counts and the list are read
+fresh from the server each time; nothing is kept on the device. Needs migration
+`20261002130000_comment_likes`. Off = comments exactly as before, no hearts.)
 
 **Navigation:** `nav-glass-rail` (floating glass rail on the left with Camera, Feed, Messages and
 Profile; replaces the side dots and the header's Profile/Messages pills. Off = the old dots and pills.)
