@@ -4,11 +4,13 @@
 //
 //   node scripts/slack-channels.cjs            show the plan, change nothing
 //   node scripts/slack-channels.cjs --apply    create missing channels, update purposes and pinned summaries
+//   node scripts/slack-channels.cjs --tidy [--apply]   delete the bot's "set the channel description" notices
 //   node scripts/slack-channels.cjs --post <channel> "<summary>" [--apply]
 //                                              post a short update on what changed (shows it unless --apply)
 //
 // Token: SLACK_BOT_TOKEN, or the git-ignored .slack-token file at the repo root. The bot needs
-// channels:manage, channels:read, groups:write, groups:read, chat:write, pins:write and pins:read.
+// channels:manage, channels:read, groups:write, groups:read, chat:write, pins:write and pins:read
+// (--tidy also needs groups:history).
 // People to invite into every channel: SLACK_INVITE=U0123,U0456 (Slack member IDs).
 // Re-running is safe: an existing channel keeps its history; only its purpose and the pinned
 // summary are brought up to date.
@@ -31,16 +33,23 @@ async function slack(method, token, body) {
   return json;
 }
 
-/** The pinned message: the purpose as a bold heading, then the summary. */
+/** The pinned message goes straight into the summary: the channel description already says what it's for. */
 function pinnedText(channel) {
-  return `*${channel.purpose}*\n${channel.summary}`;
+  return channel.summary;
+}
+
+/** Setting a description makes Slack post "set the channel description", so only set it when it changed. */
+function needsPurpose(channel, currentPurpose) {
+  return channel.action === 'create' || currentPurpose !== channel.purpose;
 }
 
 /** What to do for each channel, given the channels the bot can already see (name → {id, purpose}). */
 function plan(channels, existing) {
   return channels.map((c) => {
     const found = existing.get(c.name);
-    return found ? { ...c, action: 'update', id: found.id } : { ...c, action: 'create' };
+    return found
+      ? { ...c, action: 'update', id: found.id, currentPurpose: found.purpose }
+      : { ...c, action: 'create' };
   });
 }
 
@@ -89,7 +98,9 @@ async function apply(token, items, invite) {
         continue;
       }
     }
-    await slack('conversations.setPurpose', token, { channel: id, purpose: c.purpose });
+    if (needsPurpose(c, c.currentPurpose)) {
+      await slack('conversations.setPurpose', token, { channel: id, purpose: c.purpose });
+    }
     const text = pinnedText(c);
     const pinned = await pinnedByBot(token, id, me.user_id);
     if (pinned) {
@@ -131,11 +142,35 @@ async function postUpdate(argv, channels, token, applyIt) {
   console.log('posted');
 }
 
+/** Delete the "set the channel description" notices the bot left in each channel (needs groups:history). */
+async function tidy(channels, token, applyIt) {
+  if (!token) throw new Error('No token: set SLACK_BOT_TOKEN or create .slack-token');
+  const me = await slack('auth.test', token);
+  const existing = await listExisting(token);
+  let count = 0;
+  for (const c of channels) {
+    const found = existing.get(c.name);
+    if (!found) continue;
+    let cursor;
+    do {
+      const page = await slack('conversations.history', token, { channel: found.id, limit: 200, cursor });
+      for (const m of page.messages) {
+        if (m.subtype !== 'channel_purpose' || m.user !== me.user_id) continue;
+        count += 1;
+        if (applyIt) await slack('chat.delete', token, { channel: found.id, ts: m.ts });
+      }
+      cursor = page.response_metadata?.next_cursor || undefined;
+    } while (cursor);
+  }
+  console.log(`${count} "set the channel description" notice(s) ${applyIt ? 'deleted' : 'found (run with --apply to delete)'}`);
+}
+
 async function main() {
   const applyIt = process.argv.includes('--apply');
   const channels = require('./slack-channels.json');
   const token = readToken();
   if (process.argv.includes('--post')) return postUpdate(process.argv, channels, token, applyIt);
+  if (process.argv.includes('--tidy')) return tidy(channels, token, applyIt);
   const invite = (process.env.SLACK_INVITE ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
   const existing = token ? await listExisting(token) : new Map();
@@ -153,7 +188,7 @@ async function main() {
   await apply(token, items, invite);
 }
 
-module.exports = { plan, pinnedText, updateMessage };
+module.exports = { plan, pinnedText, needsPurpose, updateMessage };
 
 if (require.main === module) {
   main().catch((e) => {

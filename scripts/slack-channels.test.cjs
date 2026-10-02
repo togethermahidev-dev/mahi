@@ -37,10 +37,15 @@ test('the plan creates missing channels and updates the rest', () => {
   assert.strictEqual(out[0].id, 'C1');
 });
 
-test('the pinned message opens with the channel purpose as a heading', () => {
-  const text = pinnedText({ name: 'feed', purpose: 'What the feed shows', summary: 'Body.' });
-  assert.ok(text.startsWith('*What the feed shows*\n'));
-  assert.ok(text.endsWith('Body.'));
+test('the pinned message goes straight into the summary, with no heading', () => {
+  assert.strictEqual(pinnedText({ name: 'feed', purpose: 'What the feed shows', summary: 'Body.' }), 'Body.');
+});
+
+test('the channel description is only set when it is new or has changed', () => {
+  const { needsPurpose } = require('./slack-channels.cjs');
+  assert.strictEqual(needsPurpose({ action: 'create', purpose: 'p' }, undefined), true);
+  assert.strictEqual(needsPurpose({ action: 'update', purpose: 'p' }, 'p'), false);
+  assert.strictEqual(needsPurpose({ action: 'update', purpose: 'new' }, 'old'), true);
 });
 
 test('an update goes to a known channel as a short, plain summary', () => {
