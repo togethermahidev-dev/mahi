@@ -1,7 +1,7 @@
 /**
  * The two-photo capture on the Camera screen: what the status line says, and what the small
  * photo-in-photo window on the live camera shows. Pure so it can be unit-tested; CameraScreen
- * reads these. `guideOn` is the `camera-pip-guide` flag — off keeps the old labels and no window.
+ * reads these. `guideOn` is the `camera-pip-guide` flag — off hides the window.
  */
 
 export type CaptureState =
@@ -17,22 +17,17 @@ export type CameraSide = 'back' | 'front';
  * The status line. `facing` is the camera showing now — after the switch, that's the side the
  * second photo comes from.
  */
-export function captureLabel(
-  state: CaptureState,
-  facing: CameraSide,
-  guideOn: boolean
-): string | null {
+export function captureLabel(state: CaptureState, facing: CameraSide): string | null {
   switch (state) {
     case 'idle':
       return null;
     case 'capturing-first':
     case 'capturing-second':
-      return guideOn ? 'Taking photo…' : 'CAPTURING...';
+      return 'Taking photo…';
     case 'switching':
-      return guideOn ? 'Switching…' : 'SWITCHING...';
+      return 'Switching…';
     case 'awaiting-second':
-      if (guideOn) return facing === 'front' ? 'Tap for your selfie' : 'Tap for your view';
-      return `TAP FOR ${facing === 'back' ? 'POV' : 'SELFIE'}`;
+      return facing === 'front' ? 'Tap for your selfie' : 'Tap for your view';
   }
 }
 

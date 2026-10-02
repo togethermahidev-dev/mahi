@@ -1,54 +1,41 @@
 import { captureLabel, pipGuide, previewPipRestTop, type CaptureState } from '../captureGuide';
 
 describe('captureLabel — the status line while taking the two photos', () => {
-  describe('guide on: short, plain, sentence case', () => {
-    it('says it is taking the photo, for both photos', () => {
-      expect(captureLabel('capturing-first', 'back', true)).toBe('Taking photo…');
-      expect(captureLabel('capturing-second', 'front', true)).toBe('Taking photo…');
-    });
-
-    it('says it is switching camera after the first photo', () => {
-      expect(captureLabel('switching', 'front', true)).toBe('Switching…');
-    });
-
-    it('asks for the selfie when the front camera is up second', () => {
-      expect(captureLabel('awaiting-second', 'front', true)).toBe('Tap for your selfie');
-    });
-
-    it('asks for your view when the back camera is up second', () => {
-      expect(captureLabel('awaiting-second', 'back', true)).toBe('Tap for your view');
-    });
-
-    it('says nothing before the first tap', () => {
-      expect(captureLabel('idle', 'back', true)).toBeNull();
-    });
-
-    it('never shows an all-caps label', () => {
-      const states: CaptureState[] = [
-        'capturing-first',
-        'switching',
-        'awaiting-second',
-        'capturing-second',
-      ];
-      for (const state of states) {
-        for (const side of ['back', 'front'] as const) {
-          const label = captureLabel(state, side, true);
-          expect(label).not.toBeNull();
-          expect(label).not.toBe(label!.toUpperCase());
-        }
-      }
-    });
+  it('says it is taking the photo, for both photos', () => {
+    expect(captureLabel('capturing-first', 'back')).toBe('Taking photo…');
+    expect(captureLabel('capturing-second', 'front')).toBe('Taking photo…');
   });
 
-  describe('guide off: exactly the labels from before', () => {
-    it('keeps the old wording', () => {
-      expect(captureLabel('idle', 'back', false)).toBeNull();
-      expect(captureLabel('capturing-first', 'back', false)).toBe('CAPTURING...');
-      expect(captureLabel('switching', 'front', false)).toBe('SWITCHING...');
-      expect(captureLabel('awaiting-second', 'front', false)).toBe('TAP FOR SELFIE');
-      expect(captureLabel('awaiting-second', 'back', false)).toBe('TAP FOR POV');
-      expect(captureLabel('capturing-second', 'front', false)).toBe('CAPTURING...');
-    });
+  it('says it is switching camera after the first photo', () => {
+    expect(captureLabel('switching', 'front')).toBe('Switching…');
+  });
+
+  it('asks for the selfie when the front camera is up second', () => {
+    expect(captureLabel('awaiting-second', 'front')).toBe('Tap for your selfie');
+  });
+
+  it('asks for your view when the back camera is up second', () => {
+    expect(captureLabel('awaiting-second', 'back')).toBe('Tap for your view');
+  });
+
+  it('says nothing before the first tap', () => {
+    expect(captureLabel('idle', 'back')).toBeNull();
+  });
+
+  it('never shows an all-caps label', () => {
+    const states: CaptureState[] = [
+      'capturing-first',
+      'switching',
+      'awaiting-second',
+      'capturing-second',
+    ];
+    for (const state of states) {
+      for (const side of ['back', 'front'] as const) {
+        const label = captureLabel(state, side);
+        expect(label).not.toBeNull();
+        expect(label).not.toBe(label!.toUpperCase());
+      }
+    }
   });
 });
 
