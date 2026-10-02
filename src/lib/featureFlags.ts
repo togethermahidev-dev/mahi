@@ -37,6 +37,7 @@ export const FEATURE_FLAGS = [
   // Posts
   'video-posts', // each shot can be a photo or a video of up to 15 s; feed plays them (default OFF)
   'comment-likes', // a heart and count on each comment; tap the count to see who liked it
+  'context-menu-preview', // iPhone hold-to-preview pop-up on grid, Messages, feed (build 11, default OFF)
 
   // Look
   'ios-sf-symbols', // iPhone shows Apple's own icons in place of the drawn ones; needs build 11 (default OFF)
@@ -55,8 +56,13 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * with it off the app must never ask for the microphone, not even for a moment on cold start.
  * `ios-sf-symbols`: Apple's icons need build 11; off until switched on, so icons never swap
  * from drawn to Apple's in front of someone while flags load.
+ * `context-menu-preview`: waits for build 11; off, hold to view stays exactly as today.
  */
-export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = ['video-posts', 'ios-sf-symbols'];
+export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
+  'video-posts',
+  'ios-sf-symbols',
+  'context-menu-preview',
+];
 
 /** Whether a flag reads as on before PostHog has answered (true for all but DEFAULT_OFF_FLAGS). */
 export function flagDefaultOn(flag: FeatureFlag): boolean {

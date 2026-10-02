@@ -49,13 +49,13 @@ describe('FEATURE_FLAGS registry', () => {
   });
 });
 
-describe('default-off flags (video-posts)', () => {
+describe('default-off flags (video-posts, context-menu-preview)', () => {
   it('lists video-posts in the registry', () => {
     expect(FEATURE_FLAGS).toContain('video-posts');
   });
 
-  it('only video-posts and ios-sf-symbols default off', () => {
-    expect(DEFAULT_OFF_FLAGS).toEqual(['video-posts', 'ios-sf-symbols']);
+  it('only video-posts, ios-sf-symbols and context-menu-preview default off', () => {
+    expect(DEFAULT_OFF_FLAGS).toEqual(['video-posts', 'ios-sf-symbols', 'context-menu-preview']);
   });
 
   // Apple's icons need build 11; off until PostHog says true, so nothing swaps icons on cold start.
@@ -78,6 +78,7 @@ describe('default-off flags (video-posts)', () => {
 
   it('flagDefaultOn tells the two kinds apart', () => {
     expect(flagDefaultOn('video-posts')).toBe(false);
+    expect(flagDefaultOn('context-menu-preview')).toBe(false);
     expect(flagDefaultOn('notifications-core')).toBe(true);
   });
 });

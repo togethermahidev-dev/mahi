@@ -15,6 +15,8 @@ the server (Apple/Google push credentials, `send-push` deployed — see [go-live
 Create it in PostHog **switched off** (or at 0%); it reads as off until PostHog says true.
 **`ios-sf-symbols` (added 2026-10-02) is also default-off:** create it in PostHog **switched off**; turn it
 on only once build 11 is on the phones (build 10 ignores it either way).
+**`context-menu-preview` (added 2026-10-02) is default-off too:** it needs build 11; create it in PostHog
+**switched off** and turn it on only once build 11 is out.
 
 PostHog project: **EU region, `project_id=130791`**.
 
@@ -38,7 +40,7 @@ if (!showBell) return null;
   a missing key). So every new flag must be created in PostHog, at 100%, before the update that uses it ships —
   found 2026-10-01, when seven new features stayed hidden on the test phones until their flags were created.
   This pure logic is unit-tested in [`src/lib/__tests__/featureFlags.test.ts`](../src/lib/__tests__/featureFlags.test.ts).
-- **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`, today `video-posts` and `ios-sf-symbols`): off while flags
+- **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `video-posts`, `ios-sf-symbols` and `context-menu-preview`): off while flags
   load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns `true`. Use this
   for a feature that must never show, even for a moment on cold start (video posts would otherwise be able to
   ask for the microphone before flags load).
@@ -74,6 +76,14 @@ and looping while on screen, with a "Turn sound on" / "Turn sound off" button; t
 posts with a video icon. Needs the `expo-video` native module (a new native build) and migration
 `20261002100000_video_posts`. On a build without the native module (build 10) it reads as off. Off = today's
 photo-only camera exactly, and the app never asks for the microphone.)
+
+**Hold to preview:** `context-menu-preview` (**default off**; iPhone only; needs build 11, which carries
+`@expo/ui`). On: press and hold and the content pops out over a blurred background with a short menu
+below (Apple's own context menu). Profile grid squares: the post's photo, with Open, Like / Unlike and
+Share (Share sends the photo itself — post links expire within the hour — fetched to the phone only
+for the share sheet and deleted when it closes). A tap still opens the post viewer; locked squares
+don't pop. VoiceOver: the same choices are actions on the square. On build 10 or Android it reads as
+off. Off = today's grid exactly.
 
 **Comments:** `comment-likes` (a heart and a count on each comment in the comments sheet — in the feed
 and the post viewer; a tap likes or unlikes at once and rolls back if the server says no; tap the count
