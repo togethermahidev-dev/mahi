@@ -14,7 +14,11 @@ index and bucket was checked against these files; nothing else was missing.
 
 Every later migration, through `20261001170000_drop_rest_days`, has been pushed by the owner and
 is live (checked against prod 2026-10-01; reactive posting, the profile column grants and the
-rest-days drop went in that afternoon, after OTA 10.22). Still held back: `deferred/contract_posting.sql`,
+rest-days drop went in that afternoon, after OTA 10.22). **Not pushed yet:**
+`20261002100000_video_posts` (video posts: media type per shot, `create_post` media arguments, `posts`
+bucket limits; test `tests/video_posts_test.sql`, undo `rollbacks/20261002100000_video_posts.rollback.sql`).
+It is safe for every app build already out (they send no media type, so they post photos).
+Still held back: `deferred/contract_posting.sql`,
 `deferred/contract_messages.sql`, `deferred/private_bucket.sql` — they shut old paths and wait for a
 store build covered by the version gate.
 

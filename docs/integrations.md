@@ -112,8 +112,9 @@ describe the older functions, still live for old builds until `supabase/deferred
 
 **Bucket: `posts`** (public — images served via CDN)
 
-- Upload paths: `{userId}/{clientId}_rear.jpg` and `{userId}/{clientId}_pov.jpg` (`uploadPostPhotos`, `upsert: true`, so a retry overwrites)
-- Both images are uploaded in parallel via `Promise.all`
+- Upload paths: `{userId}/{clientId}_rear.jpg` and `{userId}/{clientId}_pov.jpg` (`uploadPostMedia`, `upsert: true`, so a retry overwrites). A video shot (flag `video-posts`) is `_rear|_pov.mov` (iPhone) or `.mp4` (Android)
+- Limits (migration `20261002100000_video_posts`): `image/jpeg`, `video/quicktime`, `video/mp4`, up to 50 MB a file
+- Both shots are uploaded in parallel via `Promise.all`
 - Public URL: `supabase.storage.from('posts').getPublicUrl(path)` — works correctly because bucket is public
 - Storage policies: users can insert/delete their own files; SELECT is open (public reads)
 - On post failure after storage succeeds: `removePostPhotos(paths)` removes both
