@@ -12,6 +12,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
+import { useChromeFade } from '@/hooks/useChrome';
 import { useAuthStore } from '@/store';
 import PostCard from '@/components/PostCard';
 import CommentSheet from '@/components/CommentSheet';
@@ -104,6 +105,8 @@ function ViewerPages({
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const myId = useAuthStore((s) => s.user?.id);
+  // Holding a post (hold to view) fades the ✕ away with everything else over the photo.
+  const chrome = useChromeFade();
 
   const { posts: all, hasMore, loadMore } = useProfilePosts(userId);
   const posts = useMemo(() => openablePosts(all), [all]);
@@ -210,16 +213,21 @@ function ViewerPages({
       </GestureDetector>
 
       {/* Close — top-left, in the room each post keeps above its tags */}
-      <Pressable
-        style={({ pressed }) => [styles.closeBtn, { top: insets.top }, pressed && { opacity: 0.2 }]}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="Close"
-        accessibilityHint="Or swipe left or right"
-        hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+      <Reanimated.View
+        style={[styles.closeWrap, { top: insets.top }, chrome.style]}
+        pointerEvents={chrome.viewing ? 'none' : 'box-none'}
       >
-        <Text style={styles.closeX}>✕</Text>
-      </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.2 }]}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          accessibilityHint="Or swipe left or right"
+          hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+        >
+          <Text style={styles.closeX}>✕</Text>
+        </Pressable>
+      </Reanimated.View>
 
       {/* Comments — the same native page sheet as the feed's */}
       <CommentSheet postId={commentPostId} dark={dark} onClose={() => setCommentPostId(null)} />
@@ -234,9 +242,11 @@ const styles = StyleSheet.create({
   backdrop: {
     backgroundColor: COLORS.black,
   },
-  closeBtn: {
+  closeWrap: {
     position: 'absolute',
     left: OFFSET.o16,
+  },
+  closeBtn: {
     width: SIZE.z36,
     height: SIZE.z36,
     borderRadius: RADIUS.r18,

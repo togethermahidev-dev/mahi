@@ -1,10 +1,19 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useContext, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, Animated, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import Reanimated from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { useFeedStore, useProfilePostsStore, useSocialStore, useUserStore } from '@/store';
+import {
+  useChromeStore,
+  useFeedStore,
+  useProfilePostsStore,
+  useSocialStore,
+  useUserStore,
+} from '@/store';
+import { useChromeFade } from '@/hooks/useChrome';
+import { ListGestureContext } from '@/components/GestureScrollView';
 import { HeartIcon, CommentIcon } from '@/components/ScreenIcons';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import CaptionText from '@/components/CaptionText';
@@ -35,7 +44,8 @@ import {
 /**
  * One post, full screen (TikTok-style): photo or video, the second shot in a draggable small
  * window, who posted, tags, caption, double-tap and a button to like, a comments button.
- * Used by the Feed and by the post viewer that opens from a profile grid.
+ * Press and hold to see the whole photo: everything over it fades away (the glass bar too) until
+ * the finger lifts. Used by the Feed and by the post viewer that opens from a profile grid.
  */
 export default function PostCard({
   item,
@@ -182,6 +192,33 @@ export default function PostCard({
       handleDoubleTap(e.x, e.y);
     });
 
+  // ── Hold to view ─────────────────────────────────────────────────────────
+  // Press and hold (still) → a light tap, and the name, caption, tags, streak, buttons and glass
+  // bar fade out; lifting brings them back. A finger that moves first is a scroll or a swipe, so
+  // the hold never starts; once held, the list can still scroll alongside it.
+  const list = useContext(ListGestureContext);
+  const chrome = useChromeFade();
+  const holding = useRef(false);
+  const startHold = useCallback(() => {
+    holding.current = true;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    useChromeStore.getState().setViewing(true);
+  }, []);
+  const endHold = useCallback(() => {
+    if (!holding.current) return;
+    holding.current = false;
+    useChromeStore.getState().setViewing(false);
+  }, []);
+  // A card recycled or closed mid-hold brings everything back.
+  useEffect(() => endHold, [endHold]);
+  const hold = Gesture.LongPress()
+    .minDuration(POST_CARD.holdMs)
+    .runOnJS(true)
+    .onStart(startHold)
+    .onFinalize(endHold);
+  if (list) hold.simultaneousWithExternalGesture(list);
+  const postGesture = Gesture.Simultaneous(doubleTap, hold);
+
   // ── Like handler (action bar tap) ───────────────────────────────────────
   const handleLike = useCallback(() => {
     console.log(
@@ -207,9 +244,9 @@ export default function PostCard({
 
   return (
     <View style={[styles.card, { backgroundColor: cardBg, height }]}>
-      {/* Post image — double-tap to like */}
+      {/* Post image — double-tap to like, press and hold to see it whole */}
       <View style={[styles.imageContainer, { width, flex: 1 }]}>
-        <GestureDetector gesture={doubleTap}>
+        <GestureDetector gesture={postGesture}>
           <View
             style={[
               { width, flex: 1 },
@@ -238,78 +275,84 @@ export default function PostCard({
                 }}
               />
             )}
-            {/* Top gradient — tagged pills + streak badge inline */}
-            <LinearGradient
-              colors={[withAlpha(COLORS.black, 0.6), 'transparent']}
-              style={[styles.postOverlay, { paddingTop: headerH + SPACE.s4 + topSpace }]}
-              pointerEvents="box-none"
+            {/* Everything over the photo; fades away while the post is held */}
+            <Reanimated.View
+              style={[StyleSheet.absoluteFill, chrome.style]}
+              pointerEvents={chrome.viewing ? 'none' : 'box-none'}
             >
-              <TaggedBubbleStack
-                users={item.tagged_users}
-                onPressUser={(u) => onAvatarPress(u.user_id)}
-                style={styles.topTaggedPills}
-              />
-              {streak || item.response ? (
-                <View style={styles.streakBadge}>
-                  {streak ? <Text style={styles.streakText}>{streak}</Text> : null}
-                  {item.response ? (
-                    <Text style={styles.responseText}>
-                      Answered @{item.response.tagger_username} in{' '}
-                      {formatWait(item.response.seconds)}
-                    </Text>
-                  ) : null}
-                </View>
-              ) : null}
-            </LinearGradient>
-            {/* Bottom shade, full width — behind the profile row, caption and the buttons */}
-            <LinearGradient
-              colors={[
-                'transparent',
-                withAlpha(COLORS.black, POST_CARD.shadeMid),
-                withAlpha(COLORS.black, POST_CARD.shadeBottom),
-              ]}
-              style={[styles.captionOverlay, { minHeight: height * POST_CARD.shadeHeight }]}
-              pointerEvents="box-none"
-            >
-              <Pressable
-                style={({ pressed }) => [styles.avatarRow, pressed && { opacity: 0.75 }]}
-                onPress={() => onAvatarPress(item.profiles.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`Open ${name}'s profile`}
+              {/* Top gradient — tagged pills + streak badge inline */}
+              <LinearGradient
+                colors={[withAlpha(COLORS.black, 0.6), 'transparent']}
+                style={[styles.postOverlay, { paddingTop: headerH + SPACE.s4 + topSpace }]}
+                pointerEvents="box-none"
               >
-                {item.profiles.avatar_url ? (
-                  <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
-                ) : (
-                  <View
-                    style={[
-                      styles.avatar,
-                      styles.avatarFallback,
-                      { backgroundColor: withAlpha(COLORS.white, 0.3) },
-                    ]}
-                  >
-                    <Text style={styles.avatarInitial}>{initials}</Text>
-                  </View>
-                )}
-                <View style={styles.userInfo}>
-                  <View style={styles.nameRow}>
-                    <Text style={styles.usernameOverlay}>{name}</Text>
-                    <PointsBadge points={item.profiles.points} style={styles.pointsOverlay} />
-                  </View>
-                  <Text style={styles.timeOverlay}>
-                    {postingVideo ? 'Posting…' : relativeTime(item.created_at)}
-                  </Text>
-                </View>
-              </Pressable>
-              {item.caption ? (
-                <CaptionText
-                  caption={item.caption}
-                  tagged={item.tagged_users}
-                  style={styles.captionText}
+                <TaggedBubbleStack
+                  users={item.tagged_users}
                   onPressUser={(u) => onAvatarPress(u.user_id)}
-                  numberOfLines={2}
+                  style={styles.topTaggedPills}
                 />
-              ) : null}
-            </LinearGradient>
+                {streak || item.response ? (
+                  <View style={styles.streakBadge}>
+                    {streak ? <Text style={styles.streakText}>{streak}</Text> : null}
+                    {item.response ? (
+                      <Text style={styles.responseText}>
+                        Answered @{item.response.tagger_username} in{' '}
+                        {formatWait(item.response.seconds)}
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : null}
+              </LinearGradient>
+              {/* Bottom shade, full width — behind the profile row, caption and the buttons */}
+              <LinearGradient
+                colors={[
+                  'transparent',
+                  withAlpha(COLORS.black, POST_CARD.shadeMid),
+                  withAlpha(COLORS.black, POST_CARD.shadeBottom),
+                ]}
+                style={[styles.captionOverlay, { minHeight: height * POST_CARD.shadeHeight }]}
+                pointerEvents="box-none"
+              >
+                <Pressable
+                  style={({ pressed }) => [styles.avatarRow, pressed && { opacity: 0.75 }]}
+                  onPress={() => onAvatarPress(item.profiles.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${name}'s profile`}
+                >
+                  {item.profiles.avatar_url ? (
+                    <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
+                  ) : (
+                    <View
+                      style={[
+                        styles.avatar,
+                        styles.avatarFallback,
+                        { backgroundColor: withAlpha(COLORS.white, 0.3) },
+                      ]}
+                    >
+                      <Text style={styles.avatarInitial}>{initials}</Text>
+                    </View>
+                  )}
+                  <View style={styles.userInfo}>
+                    <View style={styles.nameRow}>
+                      <Text style={styles.usernameOverlay}>{name}</Text>
+                      <PointsBadge points={item.profiles.points} style={styles.pointsOverlay} />
+                    </View>
+                    <Text style={styles.timeOverlay}>
+                      {postingVideo ? 'Posting…' : relativeTime(item.created_at)}
+                    </Text>
+                  </View>
+                </Pressable>
+                {item.caption ? (
+                  <CaptionText
+                    caption={item.caption}
+                    tagged={item.tagged_users}
+                    style={styles.captionText}
+                    onPressUser={(u) => onAvatarPress(u.user_id)}
+                    numberOfLines={2}
+                  />
+                ) : null}
+              </LinearGradient>
+            </Reanimated.View>
             {/* Heart burst overlay — shown on double-tap */}
             {showMedal && (
               <Animated.View
@@ -349,9 +392,9 @@ export default function PostCard({
             hitSlop is asymmetric (left OFFSET.o4) on purpose: the left edge faces the
             draggable PiP's right-hand snap zone, so we don't extend the hit
             area that way — it grows up/down/right instead. */}
-        <View
-          style={[styles.sideActions, { bottom: height * POST_CARD.actionsBottom }]}
-          pointerEvents="box-none"
+        <Reanimated.View
+          style={[styles.sideActions, { bottom: height * POST_CARD.actionsBottom }, chrome.style]}
+          pointerEvents={chrome.viewing ? 'none' : 'box-none'}
         >
           {primaryKind === 'video' && onToggleMuted ? (
             <SoundButton muted={soundOff} onToggle={onToggleMuted} />
@@ -377,7 +420,7 @@ export default function PostCard({
             <CommentIcon size={ICON_SIZE.i32} color={COLORS.white} />
             <Text style={styles.sideActionCount}>{commentCount}</Text>
           </Pressable>
-        </View>
+        </Reanimated.View>
       </View>
     </View>
   );
