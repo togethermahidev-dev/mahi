@@ -25,6 +25,12 @@
       "ios": {
         "resourceClass": "m-medium"
       }
+    },
+    "testflight": {
+      "extends": "preview",
+      "distribution": "store",
+      "environment": "preview",
+      "channel": "preview"
     }
   },
   "submit": {
@@ -32,6 +38,9 @@
       "ios": {
         "appleTeamId": "733RLXDJNY"
       }
+    },
+    "testflight": {
+      "extends": "production"
     }
   }
 }
