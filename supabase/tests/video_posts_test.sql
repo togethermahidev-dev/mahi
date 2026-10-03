@@ -57,10 +57,10 @@ select is((select count(*)::int from pg_proc
            where proname = 'create_post' and pronamespace = 'public'::regnamespace), 1,
   'there is exactly one create_post');
 select ok(has_function_privilege('authenticated',
-  'public.create_post(uuid, text, text, text, uuid[], double precision, double precision, int, text, text)',
+  'public.create_post(uuid, text, text, text, uuid[], double precision, double precision, int, text, text, uuid[])',
   'execute'), 'signed-in people can call create_post');
 select ok(not has_function_privilege('anon',
-  'public.create_post(uuid, text, text, text, uuid[], double precision, double precision, int, text, text)',
+  'public.create_post(uuid, text, text, text, uuid[], double precision, double precision, int, text, text, uuid[])',
   'execute'), 'signed-out callers cannot');
 
 -- 3. An older build's call (no media types) still posts, as photos.

@@ -120,7 +120,8 @@ select is((select count(*)::int from public.push_outbox
 select is((select count(*)::int from pg_temp.queued('d', 'tag_reminder')), 2, 'the reminders still go');
 
 -- 3. C answers (3 hours after the tag): everything queued for that tag goes.
-update public.tag_challenges set created_at = now() - interval '3 hours' where id = (pg_temp.tag('a', 'c')).id;
+update public.tag_challenges set created_at = now() - interval '3 hours', started_at = now() - interval '3 hours'
+  where id = (pg_temp.tag('a', 'c')).id;
 select lives_ok($$select pg_temp.post('c', 2)$$, 'C posts their answer');
 reset role;
 select is((select count(*)::int from public.push_outbox

@@ -107,7 +107,7 @@ select ok((select count(*) from public.push_outbox
 
 -- 2. B answers A's tag (3 hours later). B's only friend is A, who can't be tagged back,
 --    so no tags are needed.
-update public.tag_challenges set created_at = now() - interval '3 hours'
+update public.tag_challenges set created_at = now() - interval '3 hours', started_at = now() - interval '3 hours'
 where id = (pg_temp.challenge('tag_a', 'tag_b')).id;
 select pg_temp.as_user('00000000-0000-0000-0000-00000000c00b');
 select is((select count(*)::int from public.get_open_tags()), 1, 'B sees one open tag');
