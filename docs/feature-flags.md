@@ -48,7 +48,8 @@ if (!showBell) return null;
   found 2026-10-01, when seven new features stayed hidden on the test phones until their flags were created.
   This pure logic is unit-tested in [`src/lib/__tests__/featureFlags.test.ts`](../src/lib/__tests__/featureFlags.test.ts).
 - **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `push-core`, `video-posts`,
-  `ios-sf-symbols`, `context-menu-preview`, `camera-tap-focus`, `identity-verification` and `purchases`): off
+  `ios-sf-symbols`, `context-menu-preview`, `camera-tap-focus`, `identity-verification`, `purchases` and
+  `tag-slots`): off
   while flags load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns
   `true`. Use this for a feature that must never show, even for a moment on cold start (video posts would
   otherwise be able to ask for the microphone before flags load; the full-screen notifications page would
@@ -78,6 +79,13 @@ code works, but links point at `togethermahi.com`, which doesn't resolve yet —
 no open tag, says you can post again when a friend tags you; the open feed says how long it stays open,
 or, if you're tagged, when it locks. Off = the plain locked post cards.)
 `tags-invite-step` (when friends can't fill a post's tag slots, the tag sheet leads with "Invite N friends to post", a big invite button and a count of slots filled; after posting, a list of the invite links shows which are sent and lets each be sent again. Off = the small + stepper and share sheets one after another.)
+`tag-slots` (**default off**; added 2026-10-03; needs migration `20261003120000_tag_slots` applied first). On:
+one "Tag 3 friends" screen. Three slots at the top, each showing where it's at (tagged, invite sent,
+accepted, link ready, shared, joined). Search finds anyone on Mahi: a friend is tagged; someone who isn't
+a friend gets an in-app invite ("@x wants to tag you", Accept / Not now in their notifications). A share
+row (WhatsApp, Messages, Copy or more) makes a personal link on tap and fills a slot. Friends first:
+invites wait until every friend you could tag is tagged. Live while open; nothing kept on the phone.
+Off = today's tag sheet (with `tags-invite-step`). The caption's `@` still picks one friend either way.
 
 **Camera:** `camera-pip-guide` (before the first photo, a small window in the preview's photo-in-photo
 spot says what comes second — "Selfie next" / "Your view next"; after it, the window shows the photo just

@@ -26,6 +26,7 @@ export const FEATURE_FLAGS = [
   'invite-links', // P7 invite a slot from the tag sheet, share links after posting
   'feed-lock-explainer', // locked feed says why (who tagged you); open feed says how long it stays open
   'tags-invite-step', // tag sheet leads with "Invite 3 friends" when friends can't fill the slots; invite list after posting
+  'tag-slots', // one tag screen: tag friends, invite anyone on Mahi, share links on tap; each slot shows its state (default OFF)
 
   // Navigation
   'nav-glass-rail', // floating glass rail on the Camera's left: Camera, Feed, Messages, Profile
@@ -65,6 +66,8 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * `context-menu-preview`: waits for build 11; off, hold to view stays exactly as today.
  * `camera-tap-focus`: needs build 11's native focus, so it waits to be switched on.
  * `identity-verification` and `purchases`: dormant until the owner sets up Didit / RevenueCat.
+ * `tag-slots`: needs migration 20261003120000_tag_slots on the server first; off, the tag sheet
+ * stays exactly as today.
  */
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'push-core',
@@ -74,6 +77,7 @@ export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'camera-tap-focus',
   'identity-verification',
   'purchases',
+  'tag-slots',
 ];
 
 /** Whether a flag reads as on before PostHog has answered (true for all but DEFAULT_OFF_FLAGS). */

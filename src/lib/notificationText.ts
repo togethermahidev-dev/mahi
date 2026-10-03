@@ -23,6 +23,10 @@ export function notificationText(type: string, username: string): string {
       return `You missed ${who}'s tag. Your points are back to 0.`;
     case 'invite_joined':
       return `${who} joined Mahi from your invite`;
+    case 'tag_invite':
+      return `${who} wants to tag you`;
+    case 'tag_invite_accepted':
+      return `${who} accepted your tag`;
     default:
       return who;
   }

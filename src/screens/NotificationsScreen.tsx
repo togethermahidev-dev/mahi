@@ -1,12 +1,15 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Image, Modal, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useBlockStore } from '@/store';
-import type { NotificationWithActor } from '@/api';
+import { useBlockStore, useTagStore } from '@/store';
+import { useToastStore } from '@/store/toastStore';
+import { getTagInviteRows, respondTagInvite, type NotificationWithActor } from '@/api';
 import { notificationText } from '@/lib/notificationText';
+import { slotErrorText, tagInviteState } from '@/lib/tagSlots';
+import { track } from '@/lib/analytics';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -26,6 +29,15 @@ interface NotificationsScreenProps {
   onOpenPost: (postId: string) => void;
   onOpenProfile: (userId: string) => void;
 }
+
+/** Where an in-app invite to you is at; 'loading' until the server has said. */
+type InviteState = 'loading' | 'open' | 'accepted' | 'declined' | 'ended';
+
+const INVITE_STATE_TEXT: Record<Exclude<InviteState, 'loading' | 'open'>, string> = {
+  accepted: 'Accepted — you’re friends now',
+  declined: 'Not now',
+  ended: 'This invite has ended',
+};
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -71,6 +83,60 @@ export default function NotificationsScreen({
   const handleClose = () => {
     markAllRead();
     onClose();
+  };
+
+  // In-app invites ("@sam wants to tag you"): read where each is at, fresh, every time the list
+  // shows them. Buttons appear only once the server has answered.
+  const [inviteStates, setInviteStates] = useState<Record<string, InviteState>>({});
+  const inviteIds = useMemo(
+    () =>
+      filteredItems
+        .filter((n) => n.type === 'tag_invite' && n.challenge_id)
+        .map((n) => n.challenge_id as string),
+    [filteredItems]
+  );
+  const inviteKey = inviteIds.join(',');
+  useEffect(() => {
+    if (!visible || inviteIds.length === 0) return;
+    let stale = false;
+    setInviteStates((s) => {
+      const next = { ...s };
+      for (const id of inviteIds) if (!next[id]) next[id] = 'loading';
+      return next;
+    });
+    (async () => {
+      const { data } = await getTagInviteRows(inviteIds);
+      if (stale || !data) return;
+      const now = Date.now();
+      setInviteStates((s) => {
+        const next = { ...s };
+        for (const id of inviteIds) {
+          const row = data.find((r) => r.id === id);
+          // A row you can no longer read has gone (blocked, deleted): the invite has ended.
+          next[id] = row ? tagInviteState(row, now) : 'ended';
+        }
+        return next;
+      });
+    })();
+    return () => {
+      stale = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, inviteKey]);
+
+  // Your answer shows at once; if the server says no, it goes back (or ends) with a reason.
+  const answerInvite = async (challengeId: string, accept: boolean) => {
+    setInviteStates((s) => ({ ...s, [challengeId]: accept ? 'accepted' : 'declined' }));
+    const { error } = await respondTagInvite(challengeId, accept);
+    if (error) {
+      const ended = error.message.includes('no longer open');
+      setInviteStates((s) => ({ ...s, [challengeId]: ended ? 'ended' : 'open' }));
+      useToastStore.getState().show(slotErrorText(error.message));
+      return;
+    }
+    track('tag_invite_answered', { accepted: accept });
+    // A yes can land a tag at once: the camera shows it.
+    if (accept) void useTagStore.getState().syncOpenTags();
   };
 
   return (
@@ -184,6 +250,15 @@ export default function NotificationsScreen({
                     <Text style={[styles.rowTime, { color: muted }]}>
                       {relativeTime(item.created_at)}
                     </Text>
+                    {item.type === 'tag_invite' && item.challenge_id ? (
+                      <InviteAnswer
+                        state={inviteStates[item.challenge_id] ?? 'loading'}
+                        text={text}
+                        muted={muted}
+                        border={border}
+                        onAnswer={(accept) => answerInvite(item.challenge_id as string, accept)}
+                      />
+                    ) : null}
                   </Pressable>
 
                   {item.is_read === false ? <View style={styles.unreadDot} /> : null}
@@ -204,9 +279,83 @@ export default function NotificationsScreen({
   );
 }
 
+function InviteAnswer({
+  state,
+  text,
+  muted,
+  border,
+  onAnswer,
+}: {
+  state: InviteState;
+  text: string;
+  muted: string;
+  border: string;
+  onAnswer: (accept: boolean) => void;
+}) {
+  if (state === 'loading') {
+    return <ActivityIndicator color={muted} style={styles.inviteLoading} />;
+  }
+  if (state !== 'open') {
+    return <Text style={[styles.inviteDone, { color: muted }]}>{INVITE_STATE_TEXT[state]}</Text>;
+  }
+  return (
+    <View style={styles.inviteButtons}>
+      <Pressable
+        accessibilityRole="button"
+        style={({ pressed }) => [styles.inviteAccept, pressed && styles.pressed]}
+        onPress={() => onAnswer(true)}
+      >
+        <Text style={styles.inviteAcceptText}>Accept</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        style={({ pressed }) => [styles.inviteLater, { borderColor: border }, pressed && styles.pressed]}
+        onPress={() => onAnswer(false)}
+      >
+        <Text style={[styles.inviteLaterText, { color: text }]}>Not now</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   pressed: {
     opacity: 0.7,
+  },
+  inviteLoading: {
+    alignSelf: 'flex-start',
+    marginTop: SPACE.s6,
+  },
+  inviteDone: {
+    fontSize: FONT_SIZE.f12,
+    fontFamily: FONTS.italic,
+    marginTop: SPACE.s4,
+  },
+  inviteButtons: {
+    flexDirection: 'row',
+    gap: SPACE.s8,
+    marginTop: SPACE.s8,
+  },
+  inviteAccept: {
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.r50,
+    paddingVertical: SPACE.s6,
+    paddingHorizontal: SPACE.s16,
+  },
+  inviteAcceptText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.semiBold,
+  },
+  inviteLater: {
+    borderWidth: BORDER_WIDTH.w1,
+    borderRadius: RADIUS.r50,
+    paddingVertical: SPACE.s6,
+    paddingHorizontal: SPACE.s16,
+  },
+  inviteLaterText: {
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.semiBold,
   },
   root: {
     flex: 1,

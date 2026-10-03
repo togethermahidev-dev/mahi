@@ -243,6 +243,7 @@ export type Database = {
       notifications: {
         Row: {
           actor_id: string;
+          challenge_id: string | null;
           comment_id: string | null;
           created_at: string;
           id: string;
@@ -253,6 +254,7 @@ export type Database = {
         };
         Insert: {
           actor_id: string;
+          challenge_id?: string | null;
           comment_id?: string | null;
           created_at?: string;
           id?: string;
@@ -263,6 +265,7 @@ export type Database = {
         };
         Update: {
           actor_id?: string;
+          challenge_id?: string | null;
           comment_id?: string | null;
           created_at?: string;
           id?: string;

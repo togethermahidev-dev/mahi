@@ -245,7 +245,8 @@ export async function removePostPhotos(paths: string[]): Promise<void> {
  * this user. Retrying with the same `clientId` returns the same post.
  *
  * Errors: "reactive posting: not tagged" (no open tag and not a first post); "tag N
- * friends" (not enough tags); "cannot tag that person"; "photo not found"; "unsupported media".
+ * friends" (not enough tags); "cannot tag that person"; "photo not found"; "unsupported media";
+ * "tag your friends first" (an invite while a friend is free); "that invite is no longer open".
  */
 export async function createPost(opts: {
   clientId: string;
@@ -257,6 +258,8 @@ export async function createPost(opts: {
   longitude?: number | null;
   /** Slots filled by an invite link instead of a friend already on Mahi. */
   inviteCount?: number;
+  /** Slots filled on the tag screen before posting (flag `tag-slots`). */
+  slotIds?: string[];
   /** Each shot is a photo unless said otherwise. */
   rearMediaType?: MediaType;
   frontMediaType?: MediaType;
@@ -272,6 +275,8 @@ export async function createPost(opts: {
     p_longitude: opts.longitude ?? null,
     // Only for a post with a video: a photo post makes exactly today's call.
     ...mediaTypeArgs(opts.rearMediaType ?? 'photo', opts.frontMediaType ?? 'photo'),
+    // Only when there are slots: without them it is the call a server before tag slots knows.
+    ...(opts.slotIds?.length ? { p_slot_ids: opts.slotIds } : {}),
   });
   if (error) return { data: null, error: new Error(error.message) };
   return { data: data as unknown as CreatePostResult, error: null };

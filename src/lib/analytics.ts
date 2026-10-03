@@ -23,8 +23,12 @@ export type TagLoopEvents = {
   tag_missed: { challenge_id: string | null };
   /** The person who missed the tag lost their Mahi points — their side of the same miss. */
   streak_lost: { challenge_id: string | null };
-  /** An invite link actually reached the share sheet and was sent. */
-  invite_shared: Record<string, never>;
+  /** An invite link actually reached the share sheet and was sent (`via`: where, on the tag screen). */
+  invite_shared: { via?: 'whatsapp' | 'messages' | 'more' };
+  /** An in-app invite went to someone on Mahi who isn't a friend yet (flag `tag-slots`). */
+  tag_invite_sent: Record<string, never>;
+  /** Someone answered an in-app invite. */
+  tag_invite_answered: { accepted: boolean };
   /** Someone joined from a link and their 48 hours started. */
   invite_claimed: { inviter_id: string };
   /** The feed went from locked to open for this user. */

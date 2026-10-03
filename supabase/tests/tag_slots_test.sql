@@ -2,7 +2,7 @@
 -- slot's state. Every check reads only this test's own people, so it also runs on a database with
 -- history.
 begin;
-select plan(53);
+select plan(55);
 
 update public.app_config set invite_links_enabled = true, tags_required = true, tag_count = 3,
   max_open_invites = 10;
@@ -115,6 +115,15 @@ update public.tag_challenges set created_at = now() - interval '31 hours',
 where id = (select id from pg_temp.ids where name = 'req');
 
 -- 4. A pending invite is nobody's tag yet.
+select pg_temp.as_user('00000000-0000-0000-0000-00000000f50c');
+select ok(
+  (select requested_at is not null and accepted_at is null from public.tag_challenges
+   where id = (select id from pg_temp.ids where name = 'req')),
+  'C can read where the invite is at (the notifications list)');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000f50d');
+select is(
+  (select count(*)::int from public.tag_challenges where id = (select id from pg_temp.ids where name = 'req')),
+  0, 'nobody else can');
 select pg_temp.as_user('00000000-0000-0000-0000-00000000f50c');
 select is((select count(*)::int from public.get_open_tags()), 0, 'C has no tag to answer yet');
 reset role;

@@ -11,6 +11,11 @@ describe('notification list wording', () => {
     expect(notificationText('invite_joined', 'sam')).toBe('@sam joined Mahi from your invite');
   });
 
+  it('an in-app invite and its yes match their pushes', () => {
+    expect(notificationText('tag_invite', 'sam')).toBe('@sam wants to tag you');
+    expect(notificationText('tag_invite_accepted', 'sam')).toBe('@sam accepted your tag');
+  });
+
   it('a tag says who tagged you and the 48 hours', () => {
     expect(notificationText('tag', 'sam')).toBe(
       "You've been tagged by @sam. 48 hours to post your Mahi!"

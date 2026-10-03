@@ -54,7 +54,7 @@ describe('default-off flags (video-posts, context-menu-preview)', () => {
     expect(FEATURE_FLAGS).toContain('video-posts');
   });
 
-  it('only the push, video and build-11 flags default off', () => {
+  it('only the push, video, build-11 and tag-slots flags default off', () => {
     expect(DEFAULT_OFF_FLAGS).toEqual([
       'push-core',
       'video-posts',
@@ -63,7 +63,15 @@ describe('default-off flags (video-posts, context-menu-preview)', () => {
       'camera-tap-focus',
       'identity-verification',
       'purchases',
+      'tag-slots',
     ]);
+  });
+
+  // The new tag screen needs its server change applied first, and must never swap in front of
+  // someone while flags load: off until PostHog says true.
+  it('keeps tag-slots off until switched on', () => {
+    expect(FEATURE_FLAGS).toContain('tag-slots');
+    expect(flagDefaultOn('tag-slots')).toBe(false);
   });
 
   // The full-screen notifications page must never flash up while flags load, or before push is

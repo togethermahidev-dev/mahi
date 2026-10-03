@@ -66,6 +66,9 @@ import CapturePipGuide from '@/components/CapturePipGuide';
 import PostVideo, { SoundButton } from '@/components/PostVideo';
 import InviteStep from '@/components/InviteStep';
 import InviteShareSheet from '@/components/InviteShareSheet';
+import TagSlotsSheet from '@/components/TagSlotsSheet';
+import { getTagSlots } from '@/api/tagSlots';
+import type { ScreenSlot } from '@/lib/tagSlots';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useVideoPosts } from '@/hooks/useVideoPosts';
@@ -279,10 +282,12 @@ function GlassPill({ active, children }: { active?: boolean; children: React.Rea
   return <View style={fill}>{children}</View>;
 }
 
-function tagPillLabel(tagged: TaggedUser[]): string {
-  if (tagged.length === 0) return '＋ Tag people';
-  if (tagged.length === 1) return `@${tagged[0].username}`;
-  return `@${tagged[0].username} +${tagged.length - 1}`;
+/** `others`: slots filled by an invite or a link (flag `tag-slots`). */
+function tagPillLabel(tagged: TaggedUser[], others = 0): string {
+  if (tagged.length === 0 && others === 0) return '＋ Tag people';
+  if (tagged.length === 0) return others === 1 ? '1 invite' : `${others} invites`;
+  const more = tagged.length - 1 + others;
+  return more > 0 ? `@${tagged[0].username} +${more}` : `@${tagged[0].username}`;
 }
 
 interface DualPhotoPreviewProps {
@@ -298,6 +303,10 @@ interface DualPhotoPreviewProps {
   /** Slots filled by an invite link for someone not on Mahi. */
   inviteCount: number;
   onInviteCountChange: (n: number) => void;
+  /** Flag `tag-slots`: the tag screen fills slots before posting (links, in-app invites). */
+  slotsOn: boolean;
+  slots: ScreenSlot[];
+  onSlotsChange: (slots: ScreenSlot[]) => void;
   /** Tags this post needs before POST unlocks (server enforces the same rule). */
   requiredTags: number;
   /** Per-post location toggle. Default OFF — explicit opt-in, never silent. */
@@ -320,6 +329,9 @@ function DualPhotoPreview({
   onTaggedUsersChange,
   inviteCount,
   onInviteCountChange,
+  slotsOn,
+  slots,
+  onSlotsChange,
   requiredTags,
   locationEnabled,
   onToggleLocation,
@@ -327,7 +339,10 @@ function DualPhotoPreview({
   const maxTags = useTagStore((s) => s.maxTags);
   const insets = useSafeAreaInsets();
   // An invite fills a slot just as a friend does.
-  const tagsMissing = Math.max(0, requiredTags - taggedUsers.length - inviteCount);
+  const tagsMissing = Math.max(
+    0,
+    requiredTags - taggedUsers.length - inviteCount - slots.length
+  );
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -730,12 +745,12 @@ function DualPhotoPreview({
                   <Text
                     style={[
                       styles.captionPillText,
-                      taggedUsers.length > 0 && { color: COLORS.white },
+                      taggedUsers.length + slots.length > 0 && { color: COLORS.white },
                     ]}
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
-                    {tagPillLabel(taggedUsers)}
+                    {tagPillLabel(taggedUsers, slots.length)}
                   </Text>
                 </GlassPill>
               </Pressable>
@@ -836,8 +851,21 @@ function DualPhotoPreview({
           }}
         />
 
+        {slotsOn ? (
+          <TagSlotsSheet
+            visible={activeSheet === 'tag' && captionAtIndex === null}
+            maxTags={maxTags}
+            initialFriends={taggedUsers}
+            onClose={(friends, filledSlots) => {
+              onTaggedUsersChange(friends);
+              onSlotsChange(filledSlots);
+              setActiveSheet('none');
+            }}
+          />
+        ) : null}
+
         <TagSheet
-          visible={activeSheet === 'tag'}
+          visible={activeSheet === 'tag' && (!slotsOn || captionAtIndex !== null)}
           initialSelected={taggedUsers}
           initialInvites={inviteCount}
           singleShot={captionAtIndex !== null}
@@ -866,7 +894,7 @@ function DualPhotoPreview({
 
               const already = taggedUsers.some((u) => u.user_id === picked.user_id);
               if (!already) {
-                if (taggedUsers.length + inviteCount >= maxTags) {
+                if (taggedUsers.length + inviteCount + slots.length >= maxTags) {
                   haptic('warning');
                 } else {
                   onTaggedUsersChange([...taggedUsers, picked]);
@@ -1326,6 +1354,10 @@ export default function CameraScreen(): React.JSX.Element {
   const showTagBanner = useFeatureFlag('tag-challenges');
   const pipGuideOn = useFeatureFlag('camera-pip-guide');
   const inviteStepOn = useFeatureFlag('tags-invite-step');
+  // Flag `tag-slots`: slots filled on the tag screen before posting. Read fresh from the server
+  // whenever a preview opens — never kept on the phone (they expire).
+  const tagSlotsOn = useFeatureFlag('tag-slots');
+  const [slots, setSlots] = useState<ScreenSlot[]>([]);
   // The last post's invite links and which are sent. In memory only — links expire.
   const [postInvites, setPostInvites] = useState<InviteItem[]>([]);
   // The first photo, shown in the small window on the live camera until the second is taken.
@@ -1739,6 +1771,7 @@ export default function CameraScreen(): React.JSX.Element {
     const captionValue = caption || null;
     const taggedUsersSnapshot = taggedUsers;
     const inviteCountSnapshot = inviteCount;
+    const slotsSnapshot = tagSlotsOn ? slots : [];
     // Snapshot the location opt-in for THIS post before we reset UI state below.
     const locationEnabledSnapshot = locationEnabled;
 
@@ -1785,6 +1818,7 @@ export default function CameraScreen(): React.JSX.Element {
     setCaption('');
     setTaggedUsers([]);
     setInviteCount(0);
+    setSlots([]);
     setLocationEnabled(false);
     setIsUploading(false);
 
@@ -1828,6 +1862,7 @@ export default function CameraScreen(): React.JSX.Element {
         caption: captionValue,
         taggedUserIds: taggedUsersSnapshot.map((u) => u.user_id),
         inviteCount: inviteCountSnapshot,
+        slotIds: slotsSnapshot.map((s) => s.challenge_id),
         latitude: coords?.latitude,
         longitude: coords?.longitude,
         rearMediaType: rear.kind,
@@ -1859,7 +1894,7 @@ export default function CameraScreen(): React.JSX.Element {
       // Tags reached friends, then (when the server says so) a Mahi point was earned.
       hapticSequence(
         postedMoments({
-          tags: taggedUsersSnapshot.length + inviteCountSnapshot,
+          tags: taggedUsersSnapshot.length + inviteCountSnapshot + slotsSnapshot.length,
           pointsBefore: profile.streak_current,
           pointsAfter: result.streak.streak_current,
         })
@@ -1880,7 +1915,7 @@ export default function CameraScreen(): React.JSX.Element {
       track('tag_sent', {
         post_id: result.post.id,
         tag_count: taggedUsersSnapshot.length,
-        invite_count: inviteCountSnapshot,
+        invite_count: inviteCountSnapshot + slotsSnapshot.length,
       });
       for (const answered of result.answered) {
         track('tag_answered', { tagger_id: answered.tagger_id, seconds: answered.seconds });
@@ -1897,7 +1932,9 @@ export default function CameraScreen(): React.JSX.Element {
           );
       }
       useTagStore.getState().syncOpenTags();
-      if (inviteStepOn) {
+      if (tagSlotsOn) {
+        // Links were shared on the tag screen; nothing is left to send.
+      } else if (inviteStepOn) {
         // A list to send them from, one share sheet each, so none is silently lost.
         setPostInvites(inviteList(result.invites));
       } else {
@@ -1916,7 +1953,7 @@ export default function CameraScreen(): React.JSX.Element {
       if (message.includes('reactive posting')) {
         useToastStore.getState().show(NO_TAGS_TITLE);
         useTagStore.getState().syncOpenTags();
-      } else if (message.includes('tag')) {
+      } else if (message.includes('tag') || message.includes('no longer open')) {
         useToastStore.getState().show('Your tags changed — pick your friends again');
         useTagStore.getState().loadRequirement();
       } else {
@@ -1935,6 +1972,17 @@ export default function CameraScreen(): React.JSX.Element {
   useEffect(() => {
     if (hasPreview) useTagStore.getState().loadRequirement();
   }, [hasPreview]);
+  // Slots made earlier (still open on the server) fill this post's slots too.
+  useEffect(() => {
+    if (!hasPreview || !tagSlotsOn) return;
+    let stale = false;
+    getTagSlots().then(({ data }) => {
+      if (!stale && data) setSlots(data);
+    });
+    return () => {
+      stale = true;
+    };
+  }, [hasPreview, tagSlotsOn]);
 
   // One share sheet for one invite link; only a link that actually went somewhere counts as sent.
   const sendInvite = async (token: string) => {
@@ -1956,6 +2004,7 @@ export default function CameraScreen(): React.JSX.Element {
     setCaption('');
     setTaggedUsers([]);
     setInviteCount(0);
+    setSlots([]);
     setLocationEnabled(false);
   };
 
@@ -2289,6 +2338,9 @@ export default function CameraScreen(): React.JSX.Element {
           onTaggedUsersChange={setTaggedUsers}
           inviteCount={inviteCount}
           onInviteCountChange={setInviteCount}
+          slotsOn={tagSlotsOn}
+          slots={slots}
+          onSlotsChange={setSlots}
           requiredTags={requiredTags}
           locationEnabled={locationEnabled}
           onToggleLocation={handleToggleLocation}
