@@ -128,3 +128,44 @@ test('per-platform gates are found too', () => {
   ]);
   assert.deepStrictEqual(found.map((g) => g.version), ['0.0.0', '0.2.0']);
 });
+
+// ─── Lanes (pingmee-v2's per-profile checks, 2026-10-03) ─────────────────────
+const { laneProblems } = require('./release-check.cjs');
+
+const goodEas = {
+  build: {
+    development: { channel: 'development', distribution: 'internal', environment: 'development' },
+    preview: { channel: 'preview', distribution: 'internal', environment: 'preview' },
+    testflight: { extends: 'preview', distribution: 'store' },
+    production: { channel: 'production', distribution: 'store', environment: 'production' },
+  },
+};
+
+test('the four lanes as set up have nothing wrong', () => {
+  assert.deepStrictEqual(laneProblems(goodEas, 'e05bad51', 'e05bad51'), []);
+});
+
+test('every lane names its EAS environment (directly or through extends)', () => {
+  const eas = structuredClone(goodEas);
+  delete eas.build.preview.environment;
+  assert.match(laneProblems(eas, 'p', 'p').join(' '), /preview.*environment/);
+});
+
+test('only the production lane may use the production channel or environment', () => {
+  const eas = structuredClone(goodEas);
+  eas.build.testflight.channel = 'production';
+  assert.match(laneProblems(eas, 'p', 'p').join(' '), /testflight/);
+  const eas2 = structuredClone(goodEas);
+  eas2.build.preview.environment = 'production';
+  assert.match(laneProblems(eas2, 'p', 'p').join(' '), /preview/);
+});
+
+test('the production lane uses the production channel and environment', () => {
+  const eas = structuredClone(goodEas);
+  eas.build.production.environment = 'preview';
+  assert.match(laneProblems(eas, 'p', 'p').join(' '), /production/);
+});
+
+test('the app points at this EAS project', () => {
+  assert.match(laneProblems(goodEas, 'e05bad51', 'other').join(' '), /project/);
+});

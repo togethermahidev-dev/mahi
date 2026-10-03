@@ -14,6 +14,8 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const MIGRATIONS = path.join(ROOT, 'supabase', 'migrations');
+/** Mahi's EAS project (togethermahis-organization). */
+const EAS_PROJECT_ID = 'e05bad51-f352-464e-b344-78d7d60b5ce4';
 
 /** [major, minor, patch], or null when it isn't a version. */
 function parse(v) {
@@ -111,6 +113,41 @@ function numberProblems(n, { release = false } = {}) {
   return out;
 }
 
+/** A build profile with everything it inherits through `extends`. */
+function resolveProfile(build, name, seen = new Set()) {
+  const p = build[name] || {};
+  if (!p.extends || seen.has(name)) return p;
+  seen.add(name);
+  return { ...resolveProfile(build, p.extends, seen), ...p, extends: undefined };
+}
+
+/**
+ * The lane rules (pingmee-v2's per-profile preflight): every lane names its EAS environment, only
+ * the production lane touches the production channel or environment, the production lane uses
+ * both, and the app points at the EAS project it was set up with.
+ */
+function laneProblems(eas, expectedProjectId, configProjectId) {
+  const out = [];
+  const build = (eas && eas.build) || {};
+  for (const name of Object.keys(build)) {
+    const p = resolveProfile(build, name);
+    if (!p.environment)
+      out.push(`eas.json lane "${name}" has no environment. Name it (development / preview / production).`);
+    if (name !== 'production' && (p.channel === 'production' || p.environment === 'production'))
+      out.push(
+        `eas.json lane "${name}" uses production. Only the production lane may use the production channel or environment.`
+      );
+  }
+  if (build.production) {
+    const p = resolveProfile(build, 'production');
+    if (p.channel !== 'production' || p.environment !== 'production')
+      out.push('eas.json production lane must use the production channel and the production environment.');
+  }
+  if (expectedProjectId !== configProjectId)
+    out.push(`app.config.js points at EAS project ${configProjectId}, not ${expectedProjectId}.`);
+  return out;
+}
+
 function main() {
   const config = require(path.join(ROOT, 'app.config.js'));
   const files = fs
@@ -144,6 +181,8 @@ function main() {
     )
   );
 
+  found.push(...laneProblems(eas, EAS_PROJECT_ID, config.extra?.eas?.projectId));
+
   const highest = gates.reduce((a, b) => (compare(b.version, a) > 0 ? b.version : a), '0.0.0');
   console.log(`app version ........ ${config.version}`);
   console.log(`runtime version .... ${JSON.stringify(config.runtimeVersion)}`);
@@ -160,6 +199,6 @@ function main() {
   process.exitCode = 1;
 }
 
-module.exports = { parse, compare, findGates, problems, numberProblems };
+module.exports = { parse, compare, findGates, problems, numberProblems, laneProblems };
 
 if (require.main === module) main();
