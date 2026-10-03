@@ -225,18 +225,26 @@ Google until there is an Android build.
 ```bash
 cd ~/workspace/mahi
 scripts/db.sh try supabase/migrations/20261002190000_tag_and_feed_pushes.sql \
+  supabase/migrations/20261003120000_tag_slots.sql supabase/tests/tag_slots_test.sql \
   supabase/tests/tag_feed_pushes_test.sql supabase/tests/push_test.sql \
   supabase/tests/tag_challenges_test.sql supabase/tests/invites_test.sql \
   supabase/tests/reactive_posting_test.sql supabase/tests/mahi_points_test.sql \
   supabase/tests/feed_lock_test.sql supabase/tests/video_posts_test.sql supabase/tests/stats_test.sql
 scripts/db.sh backup
 scripts/db.sh push --dry-run          # expect exactly: 20261002190000_tag_and_feed_pushes.sql
+                                      #            and: 20261003120000_tag_slots.sql
 scripts/db.sh push
 ```
 
+The push sends every waiting migration, so the tag slots change (2026-10-03, switch `tag-slots`)
+goes with this one; it is built on top of it. It changes nothing for the app on phones until
+`tag-slots` is turned on — except that a post can no longer fill a slot with an invite while a
+friend is free to tag (the owner's friends-first rule).
+
 **Expect** from `try`: only `ok` lines (nothing is kept — it rolls itself back). Any `not ok` or
-`ERROR`: stop and send the output. Safe for the app on phones: nothing the app reads changes.
-Undo: `supabase/rollbacks/20261002190000_tag_and_feed_pushes.rollback.sql`.
+`ERROR`: stop and send the output. (Checked against prod 2026-10-03: all ten files passed.)
+Undo, newest first: `supabase/rollbacks/20261003120000_tag_slots.rollback.sql`, then
+`supabase/rollbacks/20261002190000_tag_and_feed_pushes.rollback.sql`.
 
 ### 3. The function and its secret
 
