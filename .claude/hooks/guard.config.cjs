@@ -9,4 +9,8 @@ module.exports = {
   backupDir: 'supabase/backups',
   backupMaxAgeMinutes: 60,
   migrationsDir: 'supabase/migrations',
+  // Pre-launch only (owner, 2026-10-03): working against production (scripts/db.sh try) and the
+  // preview lane pointing at production are allowed for now. The moment the owner says
+  // "change it", set this to false — and never back to true.
+  prodTestingAllowed: true,
 };
