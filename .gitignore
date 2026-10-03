@@ -62,6 +62,7 @@ supabase/backups/
 
 # local planning notes, not for the repo
 docs/next-features-plan.md
+docs/tag-slots-plan.md
 
 # web/ build copy made by web/scripts/netlify-build.sh
 /.web-deploy/
