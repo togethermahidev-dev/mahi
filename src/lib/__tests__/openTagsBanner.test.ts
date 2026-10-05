@@ -45,4 +45,24 @@ describe('openTagsBanner', () => {
   it('shows nothing without open tags', () => {
     expect(openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow })).toBeNull();
   });
+
+  it('a first post needs no tag: says so when nothing is open', () => {
+    expect(openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow, firstPost: true })).toEqual(
+      { who: 'First post', left: 'no tag needed', firstPost: true }
+    );
+    expect(
+      openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow, firstPost: false })
+    ).toBeNull();
+  });
+
+  it('open tags win over the first-post pill', () => {
+    expect(
+      openTagsBanner({
+        openTags: [tag('sam', 41 * HOUR)],
+        serverOffsetMs: 0,
+        deviceNow,
+        firstPost: true,
+      })?.who
+    ).toBe('@sam');
+  });
 });

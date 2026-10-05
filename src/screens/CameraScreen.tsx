@@ -2238,7 +2238,12 @@ export default function CameraScreen({
         <PointsCounter count={pointsCountNow} />
 
         {showTagBanner && !blocked && (
-          <OpenTagsBanner openTags={openTags} serverOffsetMs={serverOffsetMs} />
+          <OpenTagsBanner
+            openTags={openTags}
+            serverOffsetMs={serverOffsetMs}
+            // Never posted (the feed has no open window yet): "First post · no tag needed".
+            firstPost={feedLoaded && unlockedUntil === null && tagsLoaded}
+          />
         )}
 
         {guide && (
