@@ -273,8 +273,6 @@ export const LAYER = {
   header: 200,
   /** The floating glass rail. */
   rail: 300,
-  /** The Settings panel. */
-  panel: 400,
   /** Search over a page. */
   overlay: 500,
   /** Someone's profile, opened over search. */
@@ -433,8 +431,6 @@ export const LAYOUT = {
   toastLines: 3,
   /** Pages of someone's posts read past the first to find a post a notification opens. */
   viewerExtraPages: 2,
-  /** The Settings panel's width, as a share of the screen. */
-  settingsWidth: 0.82,
   /** Search results' height at most, as a share of the window. */
   searchResultsHeight: 0.55,
   /** The camera's small photo never gets shorter than this share of its width. */

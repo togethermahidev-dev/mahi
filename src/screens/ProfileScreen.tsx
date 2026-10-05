@@ -199,7 +199,7 @@ export default function ProfileScreen({
         header
       )}
 
-      {/* Settings panel — slides in from left */}
+      {/* Settings, in a page sheet */}
       <SettingsPanel visible={settingsOpen} onClose={() => setSettingsOpen(false)} dark={dark} />
 
       {/* Friends list */}

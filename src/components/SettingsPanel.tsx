@@ -1,17 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
-  Alert,
-  Animated,
-  BackHandler,
-  Dimensions,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+  SafeAreaInsetsContext,
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { deleteAccount, signOut } from '@/api/auth';
 import { DELETE_ACCOUNT_CONFIRM } from '@/lib/account';
 import { VERSION_LINE } from '@/lib/appBuild';
@@ -23,29 +16,13 @@ import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
-  DURATION,
-  ELEVATION,
   FONT_SIZE,
-  LAYER,
-  LAYOUT,
-  OFFSET,
   RADIUS,
-  SHADOW_BLUR,
   SIZE,
   SPACE,
-  SPRING,
   TRACKING,
-  VIEWER,
-  withAlpha,
 } from '@/constants/tokens';
-import { useCoverRail } from '@/hooks/useChrome';
 import { themeColors } from '@/hooks/useAppTheme';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-const PANEL_WIDTH = SCREEN_WIDTH * LAYOUT.settingsWidth;
-// A left swipe past a third of the panel, or a quick flick, closes it.
-const SWIPE_CLOSE_DISTANCE = PANEL_WIDTH / 3;
 
 interface SettingsPanelProps {
   visible: boolean;
@@ -53,129 +30,50 @@ interface SettingsPanelProps {
   dark: boolean;
 }
 
-function ChevronIcon({ open, color }: { open: Animated.Value; color: string }) {
-  const rotate = open.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '180deg'],
-  });
-  return (
-    <Animated.Text
-      style={[
-        { color, fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular, transform: [{ rotate }] },
-      ]}
-    >
-      ▼
-    </Animated.Text>
-  );
-}
-
+/** Settings, in a native page sheet (swipe down or Android back to close). */
 export default function SettingsPanel({
   visible,
   onClose,
   dark,
-}: SettingsPanelProps): React.JSX.Element | null {
-  // A full-screen panel: the tab bar hides while it is open.
-  useCoverRail(visible);
+}: SettingsPanelProps): React.JSX.Element {
+  // The screen's insets, read outside the sheet: Help's cards fill the whole screen, not the sheet.
+  const screenInsets = useSafeAreaInsets();
+  const bg = dark ? COLORS.bgDark : COLORS.white;
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      {/* A Modal is its own native window, with its own insets. It mounts on open, so a
+          half-finished delete or an open list never carries over to the next open. */}
+      <SafeAreaProvider style={{ backgroundColor: bg }}>
+        <Sheet onClose={onClose} dark={dark} screenInsets={screenInsets} />
+      </SafeAreaProvider>
+    </Modal>
+  );
+}
+
+function Sheet({
+  onClose,
+  dark,
+  screenInsets,
+}: Omit<SettingsPanelProps, 'visible'> & {
+  screenInsets: ReturnType<typeof useSafeAreaInsets>;
+}) {
+  const insets = useSafeAreaInsets();
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const { muted } = themeColors(dark);
-  const border = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a08)
-    : withAlpha(COLORS.offBlack, ALPHA.a06);
-  const panelBg = dark ? COLORS.bgDark : COLORS.white;
-  const backdropColor = dark
-    ? withAlpha(COLORS.black, ALPHA.a60)
-    : withAlpha(COLORS.black, ALPHA.a40);
+  const { muted, border } = themeColors(dark);
+  const bg = dark ? COLORS.bgDark : COLORS.white;
   const danger = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
 
-  const slideAnim = useRef(new Animated.Value(-PANEL_WIDTH)).current;
-  const backdropAnim = useRef(new Animated.Value(0)).current;
-
-  const [accountOpen, setAccountOpen] = useState(false);
-  const accountAnim = useRef(new Animated.Value(0)).current;
-
-  const [mounted, setMounted] = useState(false);
   const [blockedListOpen, setBlockedListOpen] = useState(false);
   const deleteEnabled = useFeatureFlag('account-delete');
   // Help shows the welcome cards again, so it follows their switch.
   const helpEnabled = useFeatureFlag('onboarding-welcome-cards');
   const [helpOpen, setHelpOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const insets = useSafeAreaInsets();
-
-  // Android back closes the drawer (the blocked-users sheet handles its own back press).
-  useEffect(() => {
-    if (!visible) return;
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      onClose();
-      return true;
-    });
-    return () => sub.remove();
-  }, [visible, onClose]);
-
-  // Swipe left to close: the panel follows the finger, then closes or springs back.
-  const swipeToClose = Gesture.Pan()
-    .runOnJS(true)
-    .activeOffsetX(-SPACE.s12)
-    .failOffsetY([-SPACE.s12, SPACE.s12])
-    .onUpdate((e) => {
-      slideAnim.setValue(Math.min(0, e.translationX));
-    })
-    .onEnd((e) => {
-      if (e.translationX < -SWIPE_CLOSE_DISTANCE || e.velocityX < -VIEWER.closeVelocity) {
-        onClose();
-        return;
-      }
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        ...SPRING.page,
-        useNativeDriver: true,
-      }).start();
-    });
-
-  useEffect(() => {
-    if (visible) {
-      setMounted(true);
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          ...SPRING.page,
-          useNativeDriver: true,
-        }),
-        Animated.timing(backdropAnim, {
-          toValue: 1,
-          duration: DURATION.d200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: -PANEL_WIDTH,
-          duration: DURATION.d200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(backdropAnim, {
-          toValue: 0,
-          duration: DURATION.d180,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setMounted(false);
-        setAccountOpen(false);
-        accountAnim.setValue(0);
-      });
-    }
-  }, [visible]);
-
-  const toggleAccount = () => {
-    const next = !accountOpen;
-    setAccountOpen(next);
-    Animated.spring(accountAnim, {
-      toValue: next ? 1 : 0,
-      ...SPRING.page,
-      useNativeDriver: false,
-    }).start();
-  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -222,205 +120,134 @@ export default function SettingsPanel({
     );
   };
 
-  if (!mounted && !visible) return null;
+  const rowStyle = ({ pressed }: { pressed: boolean }) => [
+    styles.row,
+    { borderBottomColor: border },
+    pressed && styles.pressed,
+  ];
 
   // Every row here does something: a row with nothing behind it stays out until it's built.
-  const accountSubItems = ['Blocked users', ...(deleteEnabled ? ['Delete account'] : [])];
-
   return (
-    <View
-      style={StyleSheet.absoluteFill}
-      pointerEvents="box-none"
-      accessibilityViewIsModal={visible}
-      onAccessibilityEscape={onClose}
-    >
-      {/* Backdrop */}
-      <Animated.View
-        style={[styles.backdrop, { backgroundColor: backdropColor, opacity: backdropAnim }]}
-        pointerEvents={visible ? 'auto' : 'none'}
+    <View style={[styles.root, { backgroundColor: bg }]}>
+      <View
+        style={[styles.header, { borderBottomColor: border, paddingTop: insets.top + SPACE.s16 }]}
       >
+        <Text style={[styles.title, { color: text }]} accessibilityRole="header">
+          Settings
+        </Text>
         <Pressable
-          style={StyleSheet.absoluteFill}
           onPress={onClose}
           accessibilityRole="button"
           accessibilityLabel="Close settings"
-        />
-      </Animated.View>
-
-      {/* Panel */}
-      <GestureDetector gesture={swipeToClose}>
-        <Animated.View
-          style={[
-            styles.panel,
-            { backgroundColor: panelBg, transform: [{ translateX: slideAnim }] },
-          ]}
+          style={({ pressed }) => [styles.closeBtn, pressed && styles.pressed]}
         >
-          {/* Close button */}
-          <View
-            style={[
-              styles.closeRow,
-              { borderBottomColor: border, paddingTop: insets.top + SPACE.s8 },
-            ]}
-          >
-            <Text style={[styles.panelTitle, { color: text }]} accessibilityRole="header">
-              Settings
-            </Text>
-            <Pressable
-              onPress={onClose}
-              accessibilityRole="button"
-              accessibilityLabel="Close settings"
-              style={({ pressed }) => [
-                styles.closeBtn,
-                { borderColor: muted },
-                pressed && styles.pressed,
-              ]}
-              hitSlop={OFFSET.o8}
-            >
-              <Text style={[styles.closeBtnText, { color: muted }]}>×</Text>
-            </Pressable>
+          <View style={[styles.closeRing, { borderColor: muted }]}>
+            <Text style={[styles.closeText, { color: muted }]}>×</Text>
           </View>
+        </Pressable>
+      </View>
 
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + SPACE.s24 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Pressable
+          style={rowStyle}
+          onPress={() => setBlockedListOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Blocked users"
+        >
+          <Text style={[styles.rowLabel, { color: text }]}>Blocked users</Text>
+        </Pressable>
+
+        {helpEnabled ? (
+          <Pressable
+            style={rowStyle}
+            onPress={() => setHelpOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Help"
+            accessibilityHint="Shows how Mahi works"
           >
-            {/* ── Account Settings accordion ── */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.sectionRow,
-                { borderBottomColor: border },
-                pressed && styles.pressed,
-              ]}
-              onPress={toggleAccount}
-              accessibilityRole="button"
-              accessibilityLabel="Account settings"
-              accessibilityState={{ expanded: accountOpen }}
-            >
-              <Text style={[styles.sectionLabel, { color: text }]}>Account settings</Text>
-              <ChevronIcon open={accountAnim} color={muted} />
-            </Pressable>
+            <Text style={[styles.rowLabel, { color: text }]}>Help</Text>
+          </Pressable>
+        ) : null}
 
-            <Animated.View
-              style={{
-                maxHeight: accountAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, accountSubItems.length * SIZE.z50],
-                }),
-                overflow: 'hidden',
-              }}
-            >
-              {accountSubItems.map((item) => {
-                const isDelete = item === 'Delete account';
-                return (
-                  <Pressable
-                    key={item}
-                    style={({ pressed }) => [
-                      styles.subRow,
-                      { borderBottomColor: border },
-                      pressed && styles.pressed,
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel={item}
-                    accessibilityState={
-                      isDelete ? { disabled: deleting, busy: deleting } : undefined
-                    }
-                    disabled={isDelete && deleting}
-                    onPress={() => {
-                      if (item === 'Blocked users') setBlockedListOpen(true);
-                      if (isDelete) handleDeleteAccount();
-                    }}
-                  >
-                    <Text style={[styles.subLabel, { color: isDelete ? danger : muted }]}>
-                      {isDelete && deleting ? 'Deleting your account…' : item}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </Animated.View>
+        <View style={styles.spacer} />
 
-            {/* ── Help: the welcome cards again ── */}
-            {helpEnabled ? (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.sectionRow,
-                  { borderBottomColor: border },
-                  pressed && styles.pressed,
-                ]}
-                onPress={() => setHelpOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Help"
-                accessibilityHint="Shows how Mahi works"
-              >
-                <Text style={[styles.sectionLabel, { color: text }]}>Help</Text>
-              </Pressable>
-            ) : null}
+        <Pressable
+          style={({ pressed }) => [
+            styles.logoutBtn,
+            { borderColor: muted },
+            pressed && styles.pressedMore,
+          ]}
+          onPress={handleLogout}
+          accessibilityRole="button"
+          accessibilityLabel="Log out"
+        >
+          <Text style={[styles.logoutText, { color: muted }]}>Log out</Text>
+        </Pressable>
 
-            {/* Spacer */}
-            <View style={styles.spacer} />
+        {deleteEnabled ? (
+          <Pressable
+            style={({ pressed }) => [styles.deleteBtn, pressed && styles.pressed]}
+            onPress={handleDeleteAccount}
+            disabled={deleting}
+            accessibilityRole="button"
+            accessibilityLabel="Delete account"
+            accessibilityState={{ disabled: deleting, busy: deleting }}
+          >
+            <Text style={[styles.deleteText, { color: danger }]}>
+              {deleting ? 'Deleting your account…' : 'Delete account'}
+            </Text>
+          </Pressable>
+        ) : null}
 
-            {/* Log Out */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.logoutBtn,
-                { borderColor: muted },
-                pressed && styles.pressedMore,
-              ]}
-              onPress={handleLogout}
-              accessibilityRole="button"
-              accessibilityLabel="Log out"
-            >
-              <Text style={[styles.logoutText, { color: muted }]}>Log out</Text>
-            </Pressable>
+        {/* Version line: v{runtime} {build}.{OTA} — see the version-control skill */}
+        <Text style={[styles.versionText, { color: muted }]}>{VERSION_LINE}</Text>
+      </ScrollView>
 
-            {/* Version line: v{runtime} {build}.{OTA} — see the version-control skill */}
-            <Text style={[styles.versionText, { color: muted }]}>{VERSION_LINE}</Text>
-          </ScrollView>
-        </Animated.View>
-      </GestureDetector>
-
-      {/* Blocked users list — opened from Account settings */}
+      {/* Opened from inside this sheet so they present over it. */}
       <BlockedUsersSheet
         visible={blockedListOpen}
         onClose={() => setBlockedListOpen(false)}
         dark={dark}
       />
 
-      {helpOpen ? <WelcomeCardsModal onClose={() => setHelpOpen(false)} /> : null}
+      {helpOpen ? (
+        <SafeAreaInsetsContext.Provider value={screenInsets}>
+          <WelcomeCardsModal onClose={() => setHelpOpen(false)} />
+        </SafeAreaInsetsContext.Provider>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFill,
+  root: {
+    flex: 1,
   },
-  panel: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: PANEL_WIDTH,
-    height: SCREEN_HEIGHT,
-    zIndex: LAYER.panel,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: SIZE.z4, height: 0 },
-    shadowOpacity: ALPHA.a20,
-    shadowRadius: SHADOW_BLUR.b12,
-    elevation: ELEVATION.e12,
-  },
-  closeRow: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACE.s24,
-    paddingBottom: SPACE.s16,
+    paddingLeft: SPACE.s24,
+    paddingRight: SPACE.s16,
+    paddingBottom: SPACE.s12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  panelTitle: {
+  title: {
     fontFamily: FONTS.bold,
     fontSize: FONT_SIZE.f17,
   },
+  // A 44-point tap area around the 36-point ring.
   closeBtn: {
+    width: SIZE.z44,
+    height: SIZE.z44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeRing: {
     width: SIZE.z36,
     height: SIZE.z36,
     borderRadius: RADIUS.r18,
@@ -428,43 +255,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  closeText: {
+    fontSize: FONT_SIZE.f14,
+    fontFamily: FONTS.regular,
+  },
   pressed: {
     opacity: ALPHA.a70,
   },
   pressedMore: {
     opacity: ALPHA.a60,
   },
-  closeBtnText: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
+  content: {
+    flexGrow: 1,
   },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: SPACE.s40,
-  },
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  row: {
     paddingVertical: SPACE.s18,
     paddingHorizontal: SPACE.s24,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  sectionLabel: {
+  rowLabel: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f15,
-  },
-  subRow: {
-    paddingVertical: SPACE.s15,
-    paddingLeft: SPACE.s40,
-    paddingRight: SPACE.s24,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  subLabel: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f14,
   },
   spacer: {
     flex: 1,
@@ -472,7 +283,7 @@ const styles = StyleSheet.create({
   },
   logoutBtn: {
     marginHorizontal: SPACE.s24,
-    marginBottom: SPACE.s16,
+    marginBottom: SPACE.s8,
     paddingVertical: SPACE.s14,
     borderRadius: RADIUS.r50,
     borderWidth: BORDER_WIDTH.w1,
@@ -482,12 +293,20 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f15,
   },
+  deleteBtn: {
+    marginHorizontal: SPACE.s24,
+    paddingVertical: SPACE.s14,
+    alignItems: 'center',
+  },
+  deleteText: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZE.f15,
+  },
   versionText: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f11,
     textAlign: 'center',
     marginTop: SPACE.s12,
-    marginBottom: SPACE.s24,
     letterSpacing: TRACKING.t1,
   },
 });
