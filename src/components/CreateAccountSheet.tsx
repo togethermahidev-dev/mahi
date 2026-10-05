@@ -24,9 +24,12 @@ import { typedInvite } from '@/lib/inviteLink';
 import {
   getPasswordStrength,
   MIN_PASSWORD_LENGTH,
+  PASSWORD_HINT,
+  PASSWORD_PLACEHOLDER,
   PASSWORD_RULES,
   type Strength,
 } from '@/lib/password';
+import { authErrorText, WEAK_PASSWORD_MESSAGE } from '@/lib/account';
 import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { env } from '@/lib/env';
@@ -240,12 +243,9 @@ export default function CreateAccountSheet({
       setError('Password is required.');
       return;
     }
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-      return;
-    }
-    if (getPasswordStrength(password) === 'low') {
-      setError('Password is too weak. Add uppercase letters, numbers, or symbols.');
+    // One rule, said the same way as the hint under the field.
+    if (password.length < MIN_PASSWORD_LENGTH || getPasswordStrength(password) === 'low') {
+      setError(WEAK_PASSWORD_MESSAGE);
       return;
     }
     setError('');
@@ -271,7 +271,7 @@ export default function CreateAccountSheet({
         tags: { flow: 'signup', step: 'send_otp' },
         extra: { email: email.trim().toLowerCase() },
       });
-      setError(e.message ?? 'Failed to send verification email.');
+      setError(authErrorText(e?.message, 'send-code'));
     } finally {
       setLoading(false);
     }
@@ -298,7 +298,7 @@ export default function CreateAccountSheet({
       setStep(3);
     } catch (e: any) {
       posthog.capture('signup_otp_rejected');
-      setError(e.message ?? 'Could not check the code.');
+      setError(authErrorText(e?.message, 'check-code'));
       setOtp('');
       otpRef.current?.focus();
     } finally {
@@ -317,7 +317,7 @@ export default function CreateAccountSheet({
       setEnteredCode('');
       setCodeSentAt(Date.now());
     } catch (e: any) {
-      setError(e.message ?? 'Failed to resend code.');
+      setError(authErrorText(e?.message, 'send-code'));
     } finally {
       setLoading(false);
     }
@@ -351,16 +351,14 @@ export default function CreateAccountSheet({
       setError('That username is already taken.');
       return;
     }
-    if (usernameStatus === 'checking') {
-      setError('Checking username…');
-      return;
-    }
+    // Still checking: the note under the field already says so (not an error).
+    if (usernameStatus === 'checking') return;
     if (fitnessGoals.length === 0) {
       setError('Select at least one fitness goal.');
       return;
     }
     if (enteredCode.length < OTP_LENGTH) {
-      setError('Verification code missing — please go back and re-enter it.');
+      setError('Go back and enter the code from your email again.');
       return;
     }
     setError('');
@@ -410,7 +408,7 @@ export default function CreateAccountSheet({
         tags: { flow: 'signup', step: 'create_account' },
         extra: { email: email.trim().toLowerCase(), username: username.trim() },
       });
-      setError(e.message ?? 'Something went wrong.');
+      setError(authErrorText(e?.message, 'create'));
     } finally {
       setLoading(false);
     }
@@ -594,7 +592,7 @@ export default function CreateAccountSheet({
                   }}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
-                  placeholder={`Min. ${MIN_PASSWORD_LENGTH} characters`}
+                  placeholder={PASSWORD_PLACEHOLDER}
                   placeholderTextColor={muted}
                   secureTextEntry={!showPassword}
                   textContentType="newPassword"
@@ -616,6 +614,9 @@ export default function CreateAccountSheet({
                   </Text>
                 </Pressable>
               </View>
+
+              {/* The rule, from the start, so the placeholder and the check agree */}
+              <Text style={[styles.passwordHint, { color: muted }]}>{PASSWORD_HINT}</Text>
 
               {/* Password strength bar */}
               {password.length > 0 && (
@@ -1068,6 +1069,7 @@ const styles = StyleSheet.create({
 
   fieldNote: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, marginTop: -SPACE.s4 },
   errorText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, marginTop: SPACE.s4 },
+  passwordHint: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular, marginTop: -SPACE.s4 },
 
   atSign: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.semiBold, paddingRight: SPACE.s2 },
   optionalTag: { fontSize: FONT_SIZE.f11, fontFamily: FONTS.regular },
