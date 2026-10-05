@@ -58,7 +58,7 @@
   {
     "name": "search-people",
     "purpose": "Finding people by name or username",
-    "summary": "Pull down on the camera, or tap the magnifier in Messages, to get a frosted full-screen search. It matches part of a username, display name, first name or last name, and shows points. Blocked people are hidden. Tapping a result opens their profile, where you can follow or message them."
+    "summary": "Tap the magnifier in Messages, or \"Find friends\" on an empty feed, to get a frosted full-screen search. It matches part of a username, display name, first name or last name, and shows points. Blocked people are hidden. Tapping a result opens their profile, where you can follow or message them."
   },
   {
     "name": "messages",
@@ -88,7 +88,7 @@
   {
     "name": "navigation-and-design",
     "purpose": "Swipes, the glass bar, sheets, fonts, colours and the design values",
-    "summary": "Mahi opens on the camera and everything else is one swipe away: up for the feed, left for your profile, right for messages, pull down to search. Pages snap into place with a light tap you can feel.\n• On the camera, a floating glass bar on the left jumps to any of the four screens; hold and drag along it to switch. The bar shows on the camera only: the feed, messages and your profile have no bar, and you swipe back from them. Sheets slide up and swipe down to close; menus and date pickers are the iPhone's own; passwords and codes fill themselves in.\n• Inter font throughout, all wording in sentence case. Calm off-white and off-black with a cyan accent for anything you can tap and gold for points, in light and dark mode. Every colour, size and spacing comes from one shared set of values, so the app and the website stay consistent.\n• Apple's own icons come with the next App Store build."
+    "summary": "Mahi opens on the camera, and the other screens sit beside it in one row: the feed, then your profile, then messages. Swipe left to move along the row and right to come back; there is no up or down swiping. Pages snap into place with a light tap you can feel.\n• On the newest App Store build, the phone's own tab bar sits along the bottom in the same order: tap a tab to jump there, and it follows your swipes. Older builds have a floating glass bar on the left of the camera instead; hold and drag along it to switch. Sheets slide up and swipe down to close; menus and date pickers are the iPhone's own; passwords and codes fill themselves in.\n• Inter font throughout, all wording in sentence case. Calm off-white and off-black with a cyan accent for anything you can tap and gold for points, in light and dark mode. Every colour, size and spacing comes from one shared set of values, so the app and the website stay consistent.\n• Apple's own icons come with the next App Store build."
   },
   {
     "name": "server-and-numbers",
