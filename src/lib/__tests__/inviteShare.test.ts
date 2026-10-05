@@ -1,3 +1,4 @@
+import { slotShareMessage } from '../tagSlots';
 import {
   inviteList,
   inviteListSummary,
@@ -77,11 +78,12 @@ describe('inviteListSummary', () => {
 });
 
 describe('inviteShareMessage', () => {
-  it('carries the link and the 48 hours, and no code (people already on Mahi cannot use one)', () => {
-    const message = inviteShareMessage('https://togethermahi.com/i/t1');
-    expect(message).toBe(
-      "I tagged you on Mahi — you've got 48 hours to post back.\nhttps://togethermahi.com/i/t1"
-    );
-    expect(message).not.toMatch(/code/i);
+  // The invite page isn't live, so a link opens nothing yet: the code is how a new person gets
+  // linked to you (review, 2026-10-05: the code was missing, so no invite could be claimed).
+  it('carries the link and the code, the same words as the tag screen', () => {
+    const message = inviteShareMessage('https://togethermahi.com/i/t1', 'ABC234');
+    expect(message).toContain('https://togethermahi.com/i/t1');
+    expect(message).toContain('ABC234');
+    expect(message).toBe(slotShareMessage('https://togethermahi.com/i/t1', 'ABC234'));
   });
 });

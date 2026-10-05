@@ -47,3 +47,40 @@ export function parseInviteLink(url: string | null | undefined): string | null {
   if (TOKEN.test(raw)) return raw.toLowerCase();
   return normaliseInviteCode(raw);
 }
+
+/**
+ * What was typed or pasted into the sign-up screen's invite field: a code (forgiving spaces,
+ * dashes and case) or a whole invite link. Null when it is neither.
+ */
+export function typedInvite(input: string | null | undefined): string | null {
+  return parseInviteLink(input) ?? normaliseInviteCode(input);
+}
+
+/**
+ * The note after joining from an invite. A slot that is already on a post starts its 48 hours
+ * now; one shared before posting (`expiresAt` null) makes you friends, and its tag starts when
+ * they post.
+ */
+export function claimedText({
+  inviter,
+  expiresAt,
+}: {
+  inviter: string;
+  expiresAt: string | null;
+}): string {
+  return expiresAt
+    ? `@${inviter} tagged you — you have 48 hours to post`
+    : `You're friends with @${inviter}. Their tag starts when they post.`;
+}
+
+/** Why an invite couldn't be used, in plain words (the server's refusal in `message`). */
+export function claimFailText(message: string, inviter: string | null): string {
+  if (message.includes('new accounts')) {
+    return `That invite is for people new to Mahi. Ask ${inviter ? `@${inviter}` : 'them'} to invite you in the app.`;
+  }
+  if (message.includes('been used')) return 'That invite has already been used.';
+  if (message.includes('expired')) return 'That invite has expired.';
+  if (message.includes('your own')) return "That's your own invite.";
+  if (message.includes('not valid')) return "That invite code isn't right.";
+  return "Couldn't use that invite. Try again.";
+}

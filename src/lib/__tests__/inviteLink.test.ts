@@ -1,4 +1,10 @@
-import { parseInviteLink, normaliseInviteCode } from '@/lib/inviteLink';
+import {
+  parseInviteLink,
+  normaliseInviteCode,
+  typedInvite,
+  claimedText,
+  claimFailText,
+} from '@/lib/inviteLink';
 
 const TOKEN = '48bafaef17afd63e5c8c6390e2dee7f5';
 
@@ -53,5 +59,56 @@ describe('normaliseInviteCode', () => {
     expect(normaliseInviteCode('0ACWLH')).toBeNull();
     expect(normaliseInviteCode('IACWLH')).toBeNull();
     expect(normaliseInviteCode('')).toBeNull();
+  });
+});
+
+// Review, 2026-10-05: the sign-up field took only a code (a pasted link was cut off), and
+// joining said nothing when it didn't work.
+describe('typedInvite', () => {
+  it('takes a code, however it was typed', () => {
+    expect(typedInvite(' abc-234 ')).toBe('ABC234');
+  });
+
+  it('takes a pasted link', () => {
+    const token = 'a'.repeat(32);
+    expect(typedInvite(`https://togethermahi.com/i/${token}`)).toBe(token);
+  });
+
+  it('is null for anything else', () => {
+    expect(typedInvite('hello')).toBeNull();
+    expect(typedInvite('')).toBeNull();
+  });
+});
+
+describe('claimedText', () => {
+  it('a tag that started: the 48 hours', () => {
+    expect(claimedText({ inviter: 'sam', expiresAt: '2026-10-07T12:00:00Z' })).toBe(
+      '@sam tagged you — you have 48 hours to post'
+    );
+  });
+
+  it('no post yet: friends now, the tag starts when they post', () => {
+    expect(claimedText({ inviter: 'sam', expiresAt: null })).toBe(
+      "You're friends with @sam. Their tag starts when they post."
+    );
+  });
+});
+
+describe('claimFailText', () => {
+  it('an older account: ask for an in-app invite', () => {
+    expect(claimFailText('invites are for new accounts', 'sam')).toBe(
+      'That invite is for people new to Mahi. Ask @sam to invite you in the app.'
+    );
+  });
+
+  it('used, expired, or not a real invite', () => {
+    expect(claimFailText('that invite has been used', 'sam')).toBe('That invite has already been used.');
+    expect(claimFailText('that invite has expired', null)).toBe('That invite has expired.');
+    expect(claimFailText('that invite is not valid', null)).toBe("That invite code isn't right.");
+    expect(claimFailText('that invite is your own', null)).toBe("That's your own invite.");
+  });
+
+  it('anything else: a plain try-again', () => {
+    expect(claimFailText('network', null)).toBe("Couldn't use that invite. Try again.");
   });
 });

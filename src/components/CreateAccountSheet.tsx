@@ -20,7 +20,7 @@ import { sendOTP, verifyOTP, clearOTP, getOTPState, OTP_LENGTH } from '@/lib/otp
 import { sanitiseOtp, reusableCode, codeTimes } from '@/lib/otpCode';
 import { completeSignup } from '@/api/auth';
 import { useSignUpStore, useInviteStore } from '@/store';
-import { normaliseInviteCode } from '@/lib/inviteLink';
+import { typedInvite } from '@/lib/inviteLink';
 import {
   getPasswordStrength,
   MIN_PASSWORD_LENGTH,
@@ -31,7 +31,16 @@ import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { env } from '@/lib/env';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, FONT_SIZE, SPACE, RADIUS, BORDER_WIDTH, SIZE, TRACKING, LINE_HEIGHT } from '@/constants/tokens';
+import {
+  COLORS,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  BORDER_WIDTH,
+  SIZE,
+  TRACKING,
+  LINE_HEIGHT,
+} from '@/constants/tokens';
 
 const SUPABASE_URL = env.supabaseUrl;
 
@@ -72,6 +81,7 @@ export default function CreateAccountSheet({
   // An invite the app was opened with, or one typed in below. Claimed after sign-up.
   const invitePreview = useInviteStore((s) => s.preview);
   const pendingInvite = useInviteStore((s) => s.pendingToken);
+  const inviteChecked = useInviteStore((s) => s.previewChecked);
   const [codeInput, setCodeInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -479,7 +489,7 @@ export default function CreateAccountSheet({
                       : 'That invite has already been used, but you can still sign up.'}
                   </Text>
                 </View>
-              ) : pendingInvite ? null : (
+              ) : pendingInvite && !codeInput && !inviteChecked ? null : (
                 <>
                   <Text style={[styles.label, { color: muted }]}>Got an invite code?</Text>
                   <TextInput
@@ -491,18 +501,24 @@ export default function CreateAccountSheet({
                     ]}
                     value={codeInput}
                     onChangeText={(v) => {
-                      setCodeInput(v.toUpperCase());
-                      const code = normaliseInviteCode(v);
-                      if (code) useInviteStore.getState().setPending(code);
+                      // A code, or a whole invite link pasted in.
+                      setCodeInput(v);
+                      useInviteStore.getState().setPending(typedInvite(v));
                     }}
                     onFocus={() => setFocusedField('inviteCode')}
                     onBlur={() => setFocusedField(null)}
-                    placeholder="6 characters, optional"
+                    placeholder="6 characters or the link, optional"
                     placeholderTextColor={muted}
                     autoCapitalize="characters"
                     autoCorrect={false}
-                    maxLength={8}
                   />
+                  {codeInput.trim().length >= 6 && (!pendingInvite || inviteChecked) ? (
+                    <Text style={[styles.inviteWhat, { color: muted }]}>
+                      {pendingInvite
+                        ? "That invite code isn't right. Check it and try again."
+                        : 'An invite code is 6 letters and numbers.'}
+                    </Text>
+                  ) : null}
                 </>
               )}
 
@@ -646,8 +662,7 @@ export default function CreateAccountSheet({
                 >
                   {Array.from({ length: OTP_LENGTH }, (_, i) => {
                     const digit = otp[i] ?? '';
-                    const current =
-                      otpFocused && i === Math.min(otp.length, OTP_LENGTH - 1);
+                    const current = otpFocused && i === Math.min(otp.length, OTP_LENGTH - 1);
                     return (
                       <View
                         key={i}
@@ -756,9 +771,7 @@ export default function CreateAccountSheet({
                       accessibilityLabel="Date of birth"
                     />
                   </View>
-                  {!dobSet && (
-                    <Text style={[styles.dobHint, { color: muted }]}>Tap to choose</Text>
-                  )}
+                  {!dobSet && <Text style={[styles.dobHint, { color: muted }]}>Tap to choose</Text>}
                 </View>
               ) : (
                 <Pressable
@@ -842,8 +855,7 @@ export default function CreateAccountSheet({
               )}
 
               <Text style={[styles.label, { color: muted }]}>
-                Display name{' '}
-                <Text style={[styles.optionalTag, { color: muted }]}>(optional)</Text>
+                Display name <Text style={[styles.optionalTag, { color: muted }]}>(optional)</Text>
               </Text>
               <TextInput
                 style={[
@@ -962,7 +974,12 @@ const styles = StyleSheet.create({
   content: { padding: SPACE.s32, gap: SPACE.s12 },
   step: { gap: SPACE.s12 },
 
-  title: { fontSize: FONT_SIZE.f32, fontFamily: FONTS.bold, letterSpacing: TRACKING.t2, marginBottom: SPACE.s8 },
+  title: {
+    fontSize: FONT_SIZE.f32,
+    fontFamily: FONTS.bold,
+    letterSpacing: TRACKING.t2,
+    marginBottom: SPACE.s8,
+  },
   subtitle: {
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.italic,
@@ -990,11 +1007,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  inputInner: { flex: 1, fontSize: FONT_SIZE.f16, fontFamily: FONTS.semiBold, paddingVertical: SPACE.s10 },
+  inputInner: {
+    flex: 1,
+    fontSize: FONT_SIZE.f16,
+    fontFamily: FONTS.semiBold,
+    paddingVertical: SPACE.s10,
+  },
   toggle: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, paddingHorizontal: SPACE.s4 },
 
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s8, marginTop: SPACE.s4 },
-  pill: { borderWidth: BORDER_WIDTH.w1_5, borderRadius: RADIUS.r50, paddingHorizontal: SPACE.s14, paddingVertical: SPACE.s8 },
+  pill: {
+    borderWidth: BORDER_WIDTH.w1_5,
+    borderRadius: RADIUS.r50,
+    paddingHorizontal: SPACE.s14,
+    paddingVertical: SPACE.s8,
+  },
   pillText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
 
   strengthRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s6, marginTop: -SPACE.s4 },
@@ -1027,7 +1054,12 @@ const styles = StyleSheet.create({
   // Near-zero (not zero) opacity keeps the field tappable and open to autofill.
   otpInput: { ...StyleSheet.absoluteFill, opacity: 0.01 },
 
-  inviteCard: { borderRadius: RADIUS.r14, paddingHorizontal: SPACE.s16, paddingVertical: SPACE.s14, gap: SPACE.s4 },
+  inviteCard: {
+    borderRadius: RADIUS.r14,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s14,
+    gap: SPACE.s4,
+  },
   inviteWho: { fontSize: FONT_SIZE.f15, fontFamily: FONTS.bold, letterSpacing: TRACKING.t1 },
   inviteWhat: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.italic, lineHeight: LINE_HEIGHT.l18 },
   inviteCodeInput: { letterSpacing: TRACKING.t4 },

@@ -111,10 +111,15 @@ export default function TagSlotsSheet({
 
   const filled = friends.length + slots.length;
   const freeFriends = (friendList ?? []).filter(
-    (p) =>
-      personAction(p, false).action === 'tag' && !friends.some((f) => f.user_id === p.id)
+    (p) => personAction(p, false).action === 'tag' && !friends.some((f) => f.user_id === p.id)
   ).length;
   const blocked = inviteBlockedReason({ freeFriends, filled, maxTags });
+  // A friend became free after invites went out (they answered, or an invite was declined):
+  // the server wants friends first, so say which way round to fix it.
+  const openInvites = slots.filter((s) =>
+    ['link_ready', 'shared', 'invite_sent'].includes(s.state)
+  ).length;
+  const friendFreedUp = freeFriends > 0 && openInvites > 0 && filled >= maxTags;
 
   const refreshSlots = useCallback(async () => {
     const { data } = await getTagSlots();
@@ -133,7 +138,7 @@ export default function TagSlotsSheet({
     setLoaded(false);
     let stale = false;
     (async () => {
-      const [slotRes, friendRes] = await Promise.all([getTagSlots(), searchTagPeople('')]);
+      const [slotRes, friendRes] = await Promise.all([getTagSlots(), searchTagPeople('', 100)]);
       if (stale) return;
       if (slotRes.error || friendRes.error) {
         setNotice('Couldn’t load your tags. Close and try again.');
@@ -197,7 +202,11 @@ export default function TagSlotsSheet({
     setNotice(text);
   };
 
-  const close = () => onClose(friends, slots.filter((s) => !s.pending));
+  const close = () =>
+    onClose(
+      friends,
+      slots.filter((s) => !s.pending)
+    );
 
   const addPending = (over: Partial<ScreenSlot>): string => {
     pendingCount.current += 1;
@@ -209,11 +218,13 @@ export default function TagSlotsSheet({
   const replaceSlot = (id: string, over: Partial<ScreenSlot>) =>
     setSlots((list) =>
       list
-        .filter((s) => !(over.challenge_id && s.challenge_id === over.challenge_id && s.challenge_id !== id))
+        .filter(
+          (s) =>
+            !(over.challenge_id && s.challenge_id === over.challenge_id && s.challenge_id !== id)
+        )
         .map((s) => (s.challenge_id === id ? { ...s, ...over } : s))
     );
-  const dropSlot = (id: string) =>
-    setSlots((list) => list.filter((s) => s.challenge_id !== id));
+  const dropSlot = (id: string) => setSlots((list) => list.filter((s) => s.challenge_id !== id));
 
   const tagFriend = (p: TagPerson) => {
     if (friends.some((f) => f.user_id === p.id)) {
@@ -225,7 +236,12 @@ export default function TagSlotsSheet({
     setNotice(null);
     setFriends((list) => [
       ...list,
-      { user_id: p.id, username: p.username, display_name: p.display_name, avatar_url: p.avatar_url },
+      {
+        user_id: p.id,
+        username: p.username,
+        display_name: p.display_name,
+        avatar_url: p.avatar_url,
+      },
     ]);
   };
 
@@ -259,7 +275,9 @@ export default function TagSlotsSheet({
       if (target === 'more') {
         shared = (await Share.share({ message })).action === Share.sharedAction;
       } else {
-        await Linking.openURL(shareAppUrl(target, message, Platform.OS === 'ios' ? 'ios' : 'android'));
+        await Linking.openURL(
+          shareAppUrl(target, message, Platform.OS === 'ios' ? 'ios' : 'android')
+        );
         shared = true;
       }
     } catch {
@@ -307,7 +325,12 @@ export default function TagSlotsSheet({
 
   return (
     // The system page sheet: swipe down (or ✕) closes; onRequestClose fires for both.
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={close}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={close}
+    >
       <View style={styles.panel}>
         <View style={styles.headerRow}>
           <Text style={styles.title} accessibilityRole="header">
@@ -346,7 +369,9 @@ export default function TagSlotsSheet({
                       state="Tagged"
                       avatarUrl={friend.avatar_url}
                       initial={(friend.display_name ?? friend.username)[0]}
-                      onRemove={() => setFriends((l) => l.filter((f) => f.user_id !== friend.user_id))}
+                      onRemove={() =>
+                        setFriends((l) => l.filter((f) => f.user_id !== friend.user_id))
+                      }
                     />
                   );
                 }
@@ -355,12 +380,17 @@ export default function TagSlotsSheet({
                     .filter((s) => s.kind === 'link')
                     .findIndex((s) => s.challenge_id === slot.challenge_id);
                   const canReshare =
-                    slot.kind === 'link' && (slot.state === 'link_ready' || slot.state === 'shared');
+                    slot.kind === 'link' &&
+                    (slot.state === 'link_ready' || slot.state === 'shared');
                   return (
                     <SlotCircle
                       key={slot.challenge_id}
                       name={slotLabel(slot, Math.max(linkIndex, 0))}
-                      state={slot.pending && slot.kind === 'link' ? 'Making link…' : slotStateText(slot.state)}
+                      state={
+                        slot.pending && slot.kind === 'link'
+                          ? 'Making link…'
+                          : slotStateText(slot.state)
+                      }
                       avatarUrl={slot.avatar_url}
                       initial={slot.username ? (slot.display_name ?? slot.username)[0] : '↗'}
                       busy={slot.pending}
@@ -375,7 +405,9 @@ export default function TagSlotsSheet({
 
             <View style={styles.shareBlock}>
               <Text style={styles.shareLabel}>
-                {blocked ?? 'Not on Mahi? Send them a link — it fills a slot.'}
+                {friendFreedUp
+                  ? 'A friend is free to tag. Remove an invite and tag them first.'
+                  : (blocked ?? 'Not on Mahi? Send them a link — it fills a slot.')}
               </Text>
               <View style={styles.shareRow}>
                 {SHARE_TARGETS.map(({ target, label }) => (

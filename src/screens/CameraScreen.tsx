@@ -69,7 +69,7 @@ import InviteStep from '@/components/InviteStep';
 import InviteShareSheet from '@/components/InviteShareSheet';
 import TagSlotsSheet from '@/components/TagSlotsSheet';
 import { getTagSlots } from '@/api/tagSlots';
-import type { ScreenSlot } from '@/lib/tagSlots';
+import { inviteBlockedReason, postRefusal, type ScreenSlot } from '@/lib/tagSlots';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useVideoPosts } from '@/hooks/useVideoPosts';
@@ -345,10 +345,7 @@ function DualPhotoPreview({
   const maxTags = useTagStore((s) => s.maxTags);
   const insets = useSafeAreaInsets();
   // An invite fills a slot just as a friend does.
-  const tagsMissing = Math.max(
-    0,
-    requiredTags - taggedUsers.length - inviteCount - slots.length
-  );
+  const tagsMissing = Math.max(0, requiredTags - taggedUsers.length - inviteCount - slots.length);
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -1086,6 +1083,22 @@ function TagSheet({
   const filled = selected.length + invites;
   // Friends who can be tagged right now (from the unfiltered list); null until it has loaded.
   const [availableFriends, setAvailableFriends] = useState<number | null>(null);
+  // Friends first (the server's rule since 2026-10-03): an invite only fills a slot no free
+  // friend can, so it waits until every free friend is picked.
+  const inviteBlocked = inviteBlockedReason({
+    freeFriends: Math.max(0, (availableFriends ?? 0) - selected.length),
+    filled,
+    maxTags,
+  });
+  const addInvite = () => {
+    if (inviteBlocked) {
+      haptic('warning');
+      useToastStore.getState().show(inviteBlocked);
+      return;
+    }
+    haptic('selection');
+    setInvites((n) => n + 1);
+  };
   const step = tagSheetStep({
     flagOn: inviteStepOn,
     canInvite,
@@ -1198,11 +1211,7 @@ function TagSheet({
             availableFriends={availableFriends}
             friends={selected.length}
             invites={invites}
-            onAdd={() => {
-              if (filled >= maxTags) return;
-              haptic('selection');
-              setInvites((n) => n + 1);
-            }}
+            onAdd={addInvite}
             onRemove={() => setInvites((n) => Math.max(0, n - 1))}
           />
         ) : null}
@@ -1253,7 +1262,9 @@ function TagSheet({
             <Text style={styles.inviteLabel}>
               {invites > 0
                 ? `${invites} to invite — you'll get ${invites > 1 ? 'links' : 'a link'} to share after posting`
-                : 'Not on Mahi yet? Invite them instead.'}
+                : inviteBlocked && filled < maxTags
+                  ? `Not on Mahi yet? ${inviteBlocked}, then invite them.`
+                  : 'Not on Mahi yet? Invite them instead.'}
             </Text>
             <View style={styles.inviteSteppers}>
               {invites > 0 ? (
@@ -1271,7 +1282,7 @@ function TagSheet({
                   pressed && { opacity: 0.7 },
                 ]}
                 disabled={filled >= maxTags}
-                onPress={() => setInvites((n) => n + 1)}
+                onPress={addInvite}
               >
                 <Text style={styles.inviteStepText}>+</Text>
               </Pressable>
@@ -1301,7 +1312,7 @@ function TagSheet({
 async function shareInvites(invites: PostInvite[]): Promise<void> {
   for (const invite of invites) {
     try {
-      const result = await Share.share({ message: inviteShareMessage(invite.url) });
+      const result = await Share.share({ message: inviteShareMessage(invite.url, invite.code) });
       // Only a link that actually went somewhere counts as shared.
       if (result.action === Share.sharedAction) track('invite_shared', {});
     } catch {
@@ -1967,19 +1978,26 @@ export default function CameraScreen({
       if (current) setProfile({ ...current, streak_current: profile.streak_current });
       removePostPhotos(uploadedPaths).catch(() => {});
 
-      // Reactive posting: the server says there's no open tag to answer.
-      if (message.includes('reactive posting')) {
-        useToastStore.getState().show(NO_TAGS_TITLE);
-        useTagStore.getState().syncOpenTags();
-      } else if (message.includes('tag') || message.includes('no longer open')) {
-        useToastStore.getState().show('Your tags changed — pick your friends again');
+      // Say what to change, and give the photos back so the post can go again — except when
+      // there's no tag to answer (reactive posting), which the preview can't fix.
+      const refusal = postRefusal(message);
+      useToastStore.getState().show(refusal.text, 5000);
+      if (refusal.keepPhotos) {
+        setFrontPhoto(front);
+        setRearPhoto(rear);
+        setCaption(captionValue ?? '');
+        setTaggedUsers(taggedUsersSnapshot);
+        setInviteCount(inviteCountSnapshot);
+        setLocationEnabled(locationEnabledSnapshot);
         useTagStore.getState().loadRequirement();
       } else {
+        useTagStore.getState().syncOpenTags();
+      }
+      if (refusal.report) {
         Sentry.captureException(err, {
           tags: { flow: 'camera', action: 'upload' },
           extra: { userId },
         });
-        useToastStore.getState().show("Couldn't post — please try again");
       }
     } finally {
       uploadingRef.current = false;
@@ -2012,7 +2030,7 @@ export default function CameraScreen({
     const invite = postInvites.find((i) => i.token === token);
     if (!invite) return;
     try {
-      const result = await Share.share({ message: inviteShareMessage(invite.url) });
+      const result = await Share.share({ message: inviteShareMessage(invite.url, invite.code) });
       const shared = result.action === Share.sharedAction;
       if (shared) track('invite_shared', {});
       setPostInvites((list) => markInvite(list, token, shared));

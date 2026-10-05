@@ -80,7 +80,9 @@ export function inviteBlockedReason({
 }): string | null {
   if (filled >= maxTags) return `All ${maxTags} filled`;
   if (freeFriends > 0) {
-    return freeFriends === 1 ? 'Tag your free friend first' : `Tag your ${freeFriends} free friends first`;
+    return freeFriends === 1
+      ? 'Tag your free friend first'
+      : `Tag your ${freeFriends} free friends first`;
   }
   return null;
 }
@@ -130,12 +132,12 @@ export function shareAppUrl(
  */
 export function mergeSlots(server: TagSlot[], local: ScreenSlot[]): ScreenSlot[] {
   const known = new Set(server.map((s) => s.challenge_id));
-  const sharedHere = new Set(
-    local.filter((s) => s.state === 'shared').map((s) => s.challenge_id)
-  );
+  const sharedHere = new Set(local.filter((s) => s.state === 'shared').map((s) => s.challenge_id));
   return [
     ...server.map((s) =>
-      s.state === 'link_ready' && sharedHere.has(s.challenge_id) ? { ...s, state: 'shared' as const } : s
+      s.state === 'link_ready' && sharedHere.has(s.challenge_id)
+        ? { ...s, state: 'shared' as const }
+        : s
     ),
     ...local.filter((s) => s.pending && !known.has(s.challenge_id)),
   ];
@@ -143,7 +145,8 @@ export function mergeSlots(server: TagSlot[], local: ScreenSlot[]): ScreenSlot[]
 
 /** A server refusal, in plain words. */
 export function slotErrorText(message: string): string {
-  if (message.includes('too many open invites')) return 'Too many invites waiting. Remove one first.';
+  if (message.includes('too many open invites'))
+    return 'Too many invites waiting. Remove one first.';
   if (message.includes('already friends')) return 'You’re friends already. Tag them instead.';
   if (message.includes('already invited')) return 'Invite already sent.';
   if (message.includes('cannot invite that person')) return 'You can’t invite them.';
@@ -171,4 +174,45 @@ export function tagInviteState(
   if (row.cancelled_at) return 'ended';
   if (!row.requested_at || Date.parse(row.requested_at) + INVITE_OPEN_MS < now) return 'ended';
   return 'open';
+}
+
+/**
+ * What to say when the server refuses a post, and whether to give the photos back so it can be
+ * posted again (review, 2026-10-05: a refusal used to throw them away). Only "no tag to answer"
+ * can't be fixed from the preview.
+ */
+export function postRefusal(message: string): {
+  text: string;
+  keepPhotos: boolean;
+  report: boolean;
+} {
+  if (message.includes('reactive posting')) {
+    return { text: 'No tags to answer', keepPhotos: false, report: false };
+  }
+  if (message.includes('friends first')) {
+    return {
+      text: 'Tag your free friends first. Invites only fill the slots friends can’t.',
+      keepPhotos: true,
+      report: false,
+    };
+  }
+  if (message.includes('no longer open')) {
+    return {
+      text: 'One of your invites has ended. Check your tags and post again.',
+      keepPhotos: true,
+      report: false,
+    };
+  }
+  if (message.includes('tag')) {
+    return {
+      text: 'Your tags changed. Check them and post again.',
+      keepPhotos: true,
+      report: false,
+    };
+  }
+  return {
+    text: 'Couldn’t post. Your photos are still here, try again.',
+    keepPhotos: true,
+    report: true,
+  };
 }

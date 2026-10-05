@@ -1,6 +1,7 @@
 import {
   inviteBlockedReason,
   mergeSlots,
+  postRefusal,
   personAction,
   shareAppUrl,
   slotErrorText,
@@ -177,5 +178,44 @@ describe('tagInviteState (the invited person’s side)', () => {
         now
       )
     ).toBe('declined');
+  });
+});
+
+// Review, 2026-10-05: a refused post threw the photos away and blamed "your tags changed".
+describe('postRefusal', () => {
+  it('no tag to answer: nothing to keep, the post cannot happen', () => {
+    expect(postRefusal('reactive posting: not tagged')).toEqual({
+      text: 'No tags to answer',
+      keepPhotos: false,
+      report: false,
+    });
+  });
+
+  it('friends first: says so, and keeps the photos to post again', () => {
+    expect(postRefusal('tag your friends first')).toEqual({
+      text: 'Tag your free friends first. Invites only fill the slots friends can’t.',
+      keepPhotos: true,
+      report: false,
+    });
+  });
+
+  it('an invite that ended, or tags that changed: keeps the photos', () => {
+    expect(postRefusal('that invite is no longer open').keepPhotos).toBe(true);
+    expect(postRefusal('that invite is no longer open').text).toBe(
+      'One of your invites has ended. Check your tags and post again.'
+    );
+    expect(postRefusal('cannot tag that person')).toEqual({
+      text: 'Your tags changed. Check them and post again.',
+      keepPhotos: true,
+      report: false,
+    });
+  });
+
+  it('anything else: keeps the photos and is reported', () => {
+    expect(postRefusal('network request failed')).toEqual({
+      text: 'Couldn’t post. Your photos are still here, try again.',
+      keepPhotos: true,
+      report: true,
+    });
   });
 });
