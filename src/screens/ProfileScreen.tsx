@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Alert, View, Text, StyleSheet, Pressable } from 'react-native';
 import type { NativeGesture } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
@@ -37,12 +37,23 @@ interface ProfileScreenProps {
   listGesture?: NativeGesture;
   /** Open people search (the magnifier, top right; founder, 2026-10-05). */
   onSearch?: () => void;
+  /** Go to the Camera page (the empty grid's "Open camera"); without it the grid only explains. */
+  onOpenCamera?: () => void;
+}
+
+/** The rule behind Points and Best (#47), in the app's words. */
+function explainPoints() {
+  Alert.alert(
+    'Mahi points',
+    'You earn 1 point each time you post an answer to a tag. Miss a tag’s 48 hours and your points go back to 0. Your best always stays.'
+  );
 }
 
 export default function ProfileScreen({
   isActive = true,
   listGesture,
   onSearch,
+  onOpenCamera,
 }: ProfileScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const top = useSafeAreaInsets().top;
@@ -128,22 +139,44 @@ export default function ProfileScreen({
         <Text style={[styles.statLabel, { color: muted }]}>Friends ›</Text>
       </Pressable>
 
-      {/* Mahi points: one per post that answers a tag, back to 0 on a missed tag; Best stays */}
-      <View
-        style={[styles.statsRow, { marginTop: SPACE.s16 }]}
-        accessible
-        accessibilityLabel={pointsStatsLabel(profile?.streak_current, profile?.streak_highest)}
+      {/* Mahi points: one per post that answers a tag, back to 0 on a missed tag; Best stays.
+          A dash until the profile has loaded, so a real number never swaps in over a 0.
+          Tap for the rule. */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.statsRow,
+          { marginTop: SPACE.s16 },
+          pressed && { opacity: ALPHA.a70 },
+        ]}
+        onPress={explainPoints}
+        accessibilityRole="button"
+        accessibilityLabel={
+          profile
+            ? pointsStatsLabel(profile.streak_current, profile.streak_highest)
+            : 'Mahi points loading'
+        }
+        accessibilityHint="Explains Mahi points"
       >
         <View style={styles.stat}>
-          <Text style={[styles.statValue, { color: text }]}>{profile?.streak_current ?? 0}</Text>
+          <Text style={[styles.statValue, { color: profile ? text : muted }]}>
+            {profile ? (profile.streak_current ?? 0) : '–'}
+          </Text>
           <Text style={[styles.statLabel, { color: muted }]}>Points</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: muted }]} />
         <View style={styles.stat}>
-          <Text style={[styles.statValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
+          <Text style={[styles.statValue, { color: profile ? text : muted }]}>
+            {profile ? (profile.streak_highest ?? 0) : '–'}
+          </Text>
           <Text style={[styles.statLabel, { color: muted }]}>Best</Text>
         </View>
-      </View>
+      </Pressable>
+      {/* A newcomer's 0 · 0 says how to earn the first point. */}
+      {profile && !profile.streak_current && !profile.streak_highest ? (
+        <Text style={[styles.pointsHint, { color: muted }]}>
+          Answer your first tag to earn your first point.
+        </Text>
+      ) : null}
 
       {/* Suggested follows — syncs on mount, renders null when empty */}
       <SuggestedFollowsStrip onPressUser={setProfileUserId} excludeUserId={userId} />
@@ -160,6 +193,7 @@ export default function ProfileScreen({
           header={header}
           onPostPress={(post) => setViewerPostId(post.id)}
           listGesture={listGesture}
+          onOpenCamera={onOpenCamera}
         />
       ) : (
         header
@@ -256,6 +290,12 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
+  },
+  pointsHint: {
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.regular,
+    textAlign: 'center',
+    marginTop: SPACE.s8,
   },
   statDivider: {
     width: SIZE.z1,

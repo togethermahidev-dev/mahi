@@ -26,7 +26,8 @@ import {
 } from '@/lib/contextMenuPreview';
 import { sharePost } from '@/lib/sharePost';
 import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
-import { useSocialStore, useUserStore } from '@/store';
+import { useProfilePostsStore, useSocialStore, useUserStore } from '@/store';
+import { useToastStore } from '@/store/toastStore';
 import { VideoIcon } from '@/components/ScreenIcons';
 import PreviewMenu, { PostPreviewImage } from '@/components/PreviewMenu';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
@@ -72,6 +73,31 @@ function CameraIcon({ color }: { color: string }) {
   );
 }
 
+/** A padlock, drawn like CameraIcon: the square for a post that opens once you answer a tag. */
+function LockIcon({ color }: { color: string }) {
+  return (
+    <Svg width={ICON_SIZE.i22} height={ICON_SIZE.i22} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M7 11V8a5 5 0 0 1 10 0v3"
+        stroke={color}
+        strokeWidth={STROKE.s2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M5 13a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7z"
+        stroke={color}
+        strokeWidth={STROKE.s2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** Said when a locked square is tapped, and read by VoiceOver on it. */
+const LOCKED_HINT = 'Opens when you answer a friend’s tag.';
+
 function GridCell({
   post,
   dark,
@@ -98,6 +124,9 @@ function GridCell({
   // Video posts: show the post's still photo (or a video card) and mark it with a video icon.
   const tile = gridTile(post);
   const label = tile.video ? 'video post' : 'post';
+  // Locked: the server sent no photo (the viewer hasn't answered a tag lately).
+  const locked = !post.image_url;
+  const { muted } = themeColors(dark);
   // FlashList gives each column an equal third of the width; nudging each cell right by a
   // share of the gap keeps the photos equal with GAP between them.
   const place = { marginLeft: (column * GAP) / LAYOUT.profileColumns };
@@ -128,19 +157,37 @@ function GridCell({
         !withMenu && place,
         pressed && { opacity: ALPHA.a80 },
       ]}
-      onPress={onPress}
+      onPress={locked ? () => useToastStore.getState().show(LOCKED_HINT) : onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${label.charAt(0).toUpperCase() + label.slice(1)}${points ? `, ${points}` : ''}`}
+      accessibilityLabel={
+        locked
+          ? `Locked post. ${LOCKED_HINT}`
+          : `${label.charAt(0).toUpperCase() + label.slice(1)}${points ? `, ${points}` : ''}`
+      }
       // VoiceOver: the menu's choices as actions (a double tap already opens the post).
       accessibilityActions={withMenu ? menuA11yActions(items, ['open']) : undefined}
       onAccessibilityAction={withMenu ? (e) => runAction(e.nativeEvent.actionName) : undefined}
     >
-      {tile.video && !tile.uri ? (
+      {locked ? (
+        <View
+          style={[
+            styles.lockedTile,
+            {
+              width: size,
+              height: size,
+              backgroundColor: dark ? COLORS.surfaceDark : COLORS.surfaceLight2,
+            },
+          ]}
+        >
+          <LockIcon color={muted} />
+        </View>
+      ) : tile.video && !tile.uri ? (
         <View style={[styles.videoTile, { width: size, height: size }]}>
           <VideoIcon size={ICON_SIZE.i32} color={COLORS.white} />
         </View>
       ) : (
         <Image
+          // The stock photo only stands in for a picture that failed to load.
           source={imgError || !tile.uri ? PLACEHOLDER_IMG : { uri: tile.uri }}
           style={{ width: size, height: size }}
           resizeMode="cover"
@@ -189,6 +236,10 @@ interface ProfileMediaMapProps {
   onPostPress?: (post: FeedPost) => void;
   /** The list's scrolling as a gesture, so a page swipe around it can run alongside it. */
   listGesture?: NativeGesture;
+  /** Someone else's @username, for their empty grid ("@sam hasn't posted yet."). */
+  username?: string | null;
+  /** Your own empty grid: a button to the camera, when the screen can open it. */
+  onOpenCamera?: () => void;
 }
 
 /** A profile page as one scrolling list: the header, then the posts three to a row. */
@@ -198,6 +249,8 @@ export default function ProfileMediaMap({
   header,
   onPostPress,
   listGesture,
+  username,
+  onOpenCamera,
 }: ProfileMediaMapProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
@@ -206,7 +259,17 @@ export default function ProfileMediaMap({
   const tabRoom = useTabBarRoom();
   const { muted } = themeColors(dark);
 
-  const { posts, isLoading, hasMore, loadMore, refresh } = useProfilePosts(userId);
+  const { posts, hasMore, loadMore, refresh } = useProfilePosts(userId);
+  // Loading, failed and empty are three states. The store keeps the last good read's time, so:
+  // nothing read yet for this person → loading; a read that ended without one → failed.
+  const storeUserId = useProfilePostsStore((s) => s.userId);
+  const isSyncing = useProfilePostsStore((s) => s.isSyncing);
+  const lastSyncedAt = useProfilePostsStore((s) => s.lastSyncedAt);
+  // Until this screen's first read has started, a leftover failed read isn't shown as an error.
+  const [started, setStarted] = useState(false);
+  if (isSyncing && !started) setStarted(true);
+  const isLoading = posts.length === 0 && (!started || isSyncing || storeUserId !== userId);
+  const failed = posts.length === 0 && !isLoading && lastSyncedAt === null;
   const menuOn = useContextMenuPreview();
   const { width } = useWindowDimensions();
   const cellSize = (width - GAP * (LAYOUT.profileColumns - 1)) / LAYOUT.profileColumns;
@@ -223,15 +286,42 @@ export default function ProfileMediaMap({
     <View style={styles.centered}>
       <ActivityIndicator color={muted} accessibilityLabel="Loading posts" />
     </View>
+  ) : failed ? (
+    <View style={styles.centered}>
+      <Text style={[styles.emptyTitle, { color: text }]}>Couldn’t load posts</Text>
+      <Text style={[styles.emptySubtitle, { color: muted }]}>
+        Check your connection and try again.
+      </Text>
+      <Pressable
+        style={({ pressed }) => [styles.emptyButton, pressed && { opacity: ALPHA.a75 }]}
+        onPress={() => void refresh()}
+        accessibilityRole="button"
+      >
+        <Text style={styles.emptyButtonText}>Try again</Text>
+      </Pressable>
+    </View>
   ) : (
     <View style={styles.centered}>
       <CameraIcon color={muted} />
       <Text style={[styles.emptyTitle, { color: text }]}>
-        {isSelf ? 'Upload your first workout' : 'No posts yet'}
+        {isSelf ? 'Your posts show up here' : 'No posts yet'}
       </Text>
       <Text style={[styles.emptySubtitle, { color: muted }]}>
-        {isSelf ? 'Snap a photo and it will appear here.' : "This user hasn't posted yet."}
+        {isSelf
+          ? 'Your first post needs no tag. Any workout counts.'
+          : username
+            ? `@${username} hasn’t posted yet.`
+            : 'Nothing posted yet.'}
       </Text>
+      {isSelf && onOpenCamera ? (
+        <Pressable
+          style={({ pressed }) => [styles.emptyButton, pressed && { opacity: ALPHA.a75 }]}
+          onPress={onOpenCamera}
+          accessibilityRole="button"
+        >
+          <Text style={styles.emptyButtonText}>Open camera</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 
@@ -252,8 +342,8 @@ export default function ProfileMediaMap({
             dark={dark}
             size={cellSize}
             column={index % LAYOUT.profileColumns}
-            // Locked posts (no photo URL until the viewer posts) don't open.
-            onPress={() => item.image_url && onPostPress?.(item)}
+            // Locked posts (no photo URL) never reach here: their square explains itself.
+            onPress={() => onPostPress?.(item)}
             menuOn={menuOn}
           />
         )}
@@ -295,6 +385,11 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
   },
+  // A locked post: a plain square with a padlock (not a stranger's photo).
+  lockedTile: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   // Video posts: a square with no still photo, and the small video mark top right.
   videoTile: {
     backgroundColor: COLORS.ink,
@@ -317,5 +412,19 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.regular,
     textAlign: 'center',
+  },
+  emptyButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.pill,
+    minHeight: SIZE.z44,
+    justifyContent: 'center',
+    paddingVertical: SPACE.s12,
+    paddingHorizontal: SPACE.s24,
+    marginTop: SPACE.s8,
+  },
+  emptyButtonText: {
+    color: COLORS.offBlack,
+    fontSize: FONT_SIZE.f15,
+    fontFamily: FONTS.bold,
   },
 });
