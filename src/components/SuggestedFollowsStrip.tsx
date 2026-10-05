@@ -84,6 +84,12 @@ export default function SuggestedFollowsStrip({
         <Text style={[styles.chevron, { color: muted }, open && styles.chevronOpen]}>›</Text>
       </Pressable>
       {open ? (
+        // The one rule that turns a follow into tagging, said where people follow.
+        <Text style={[styles.rule, { color: muted }]}>
+          Follow each other and you can tag each other.
+        </Text>
+      ) : null}
+      {open ? (
         <FlashList<SuggestedUser>
           data={data}
           horizontal
@@ -131,6 +137,8 @@ export default function SuggestedFollowsStrip({
                     pressed && { opacity: ALPHA.a75 },
                   ]}
                   onPress={() => follow(item.id)}
+                  // About 30 points tall; the slop makes it 46 without reaching the name above.
+                  hitSlop={{ top: SPACE.s8, bottom: SPACE.s8 }}
                   accessibilityRole="button"
                   accessibilityLabel={`Follow @${item.username ?? displayName}`}
                 >
@@ -166,6 +174,13 @@ const styles = StyleSheet.create({
   chevron: {
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.semiBold,
+  },
+  rule: {
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.regular,
+    textAlign: 'center',
+    paddingHorizontal: SPACE.s24,
+    marginBottom: SPACE.s12,
   },
   chevronOpen: {
     transform: [{ rotate: '90deg' }],
