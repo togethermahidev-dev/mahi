@@ -30,28 +30,32 @@ export default function CaptionText({ caption, tagged, style, onPressUser, numbe
   const re = new RegExp(`@(${escaped.join('|')})\\b`, 'g');
   const byName = new Map(tagged.map((u) => [u.username, u]));
 
-  const parts: React.ReactNode[] = [];
+  // The caption split into plain text and tagged names, in order.
+  const parts: { start: number; text: string; user?: TaggedUser }[] = [];
   let last = 0;
   for (const m of caption.matchAll(re)) {
     const start = m.index ?? 0;
-    if (start > last) parts.push(caption.slice(last, start));
-    const user = byName.get(m[1]);
-    parts.push(
-      <Text
-        key={`${start}-${m[1]}`}
-        style={{ color: COLORS.accent }}
-        onPress={user && onPressUser ? () => onPressUser(user) : undefined}
-      >
-        {m[0]}
-      </Text>
-    );
+    if (start > last) parts.push({ start: last, text: caption.slice(last, start) });
+    parts.push({ start, text: m[0], user: byName.get(m[1]) });
     last = start + m[0].length;
   }
-  if (last < caption.length) parts.push(caption.slice(last));
+  if (last < caption.length) parts.push({ start: last, text: caption.slice(last) });
 
   return (
     <Text style={style} numberOfLines={numberOfLines}>
-      {parts}
+      {parts.map(({ start, text, user }) =>
+        user ? (
+          <Text
+            key={start}
+            style={{ color: COLORS.accent }}
+            onPress={onPressUser ? () => onPressUser(user) : undefined}
+          >
+            {text}
+          </Text>
+        ) : (
+          text
+        )
+      )}
     </Text>
   );
 }

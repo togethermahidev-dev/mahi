@@ -346,7 +346,7 @@ export default function TagSlotsSheet({
               style={({ pressed }) => [styles.closeX, pressed && styles.pressed]}
               onPress={close}
             >
-              <Text style={styles.closeXText}>✕</Text>
+              <Text style={styles.closeXText}>×</Text>
             </Pressable>
           </View>
         </View>
@@ -549,7 +549,7 @@ function SlotCircle({
           style={({ pressed }) => [styles.slotRemove, pressed && styles.pressed]}
           onPress={onRemove}
         >
-          <Text style={styles.slotRemoveText}>✕</Text>
+          <Text style={styles.slotRemoveText}>×</Text>
         </Pressable>
       ) : null}
       <Text style={styles.slotName} numberOfLines={1}>
@@ -631,7 +631,7 @@ const styles = StyleSheet.create({
   counter: {
     color: withAlpha(COLORS.offWhite, 0.45),
     fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
   closeX: { width: SIZE.z28, height: SIZE.z28, alignItems: 'center', justifyContent: 'center' },
   closeXText: {
@@ -672,7 +672,7 @@ const styles = StyleSheet.create({
   },
   slotRemoveText: { color: COLORS.offWhite, fontSize: FONT_SIZE.f10, fontFamily: FONTS.semiBold },
   slotName: { color: COLORS.offWhite, fontSize: FONT_SIZE.f12, fontFamily: FONTS.semiBold },
-  slotState: { color: COLORS.accent, fontSize: FONT_SIZE.f11, fontFamily: FONTS.italic },
+  slotState: { color: COLORS.accent, fontSize: FONT_SIZE.f11, fontFamily: FONTS.regular },
   shareBlock: {
     gap: SPACE.s8,
     paddingVertical: SPACE.s12,
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
   shareLabel: {
     color: withAlpha(COLORS.offWhite, 0.6),
     fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
   shareRow: { flexDirection: 'row', gap: SPACE.s8 },
   shareButton: {
@@ -695,12 +695,12 @@ const styles = StyleSheet.create({
   },
   shareButtonOff: { opacity: 0.35 },
   shareButtonText: { color: COLORS.offWhite, fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
-  notice: { color: COLORS.amber, fontSize: FONT_SIZE.f12, fontFamily: FONTS.italic },
+  notice: { color: COLORS.amber, fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular },
   search: {
     height: SIZE.z44,
     color: COLORS.offWhite,
     fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     paddingHorizontal: SPACE.s14,
     borderRadius: RADIUS.r50,
     backgroundColor: withAlpha(COLORS.white, 0.08),
@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
   empty: {
     color: withAlpha(COLORS.offWhite, 0.45),
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     textAlign: 'center',
     paddingVertical: SPACE.s16,
   },
@@ -734,7 +734,7 @@ const styles = StyleSheet.create({
   rowHandle: {
     color: withAlpha(COLORS.offWhite, 0.45),
     fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     marginTop: SPACE.s1,
   },
   rowCheck: { color: COLORS.accent, fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },

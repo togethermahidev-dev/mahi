@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     lineHeight: LINE_HEIGHT.l22,
   },
   headerName: {
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   },
   requestText: {
     fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     textAlign: 'center',
   },
   requestActions: {
@@ -400,12 +400,12 @@ const styles = StyleSheet.create({
   },
   bubbleText: {
     fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     lineHeight: LINE_HEIGHT.l20,
   },
   bubbleTime: {
     fontSize: FONT_SIZE.f10,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     paddingHorizontal: SPACE.s4,
   },
   dayHeader: {
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
   },
   dayHeaderText: {
     fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     letterSpacing: TRACKING.t1,
   },
   emptyWrap: {
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
   inputBar: {
     flexDirection: 'row',
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
     paddingVertical: SPACE.s8,
     fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     maxHeight: SIZE.z100,
   },
   sendBtn: {

@@ -309,7 +309,11 @@ function InviteAnswer({
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        style={({ pressed }) => [styles.inviteLater, { borderColor: border }, pressed && styles.pressed]}
+        style={({ pressed }) => [
+          styles.inviteLater,
+          { borderColor: border },
+          pressed && styles.pressed,
+        ]}
         onPress={() => onAnswer(false)}
       >
         <Text style={[styles.inviteLaterText, { color: text }]}>Not now</Text>
@@ -328,7 +332,7 @@ const styles = StyleSheet.create({
   },
   inviteDone: {
     fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     marginTop: SPACE.s4,
   },
   inviteButtons: {
@@ -379,7 +383,7 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     lineHeight: LINE_HEIGHT.l22,
   },
   headerName: {
@@ -425,12 +429,12 @@ const styles = StyleSheet.create({
   },
   rowCaption: {
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     lineHeight: LINE_HEIGHT.l18,
   },
   rowTime: {
     fontSize: FONT_SIZE.f10,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
   unreadDot: {
     width: SIZE.z8,
@@ -447,6 +451,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
 });

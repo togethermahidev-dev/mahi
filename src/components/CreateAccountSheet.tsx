@@ -982,7 +982,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     marginTop: -SPACE.s4,
     marginBottom: SPACE.s4,
   },
@@ -1036,7 +1036,7 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     textAlign: 'center',
     marginTop: SPACE.s4,
   },
@@ -1061,14 +1061,14 @@ const styles = StyleSheet.create({
     gap: SPACE.s4,
   },
   inviteWho: { fontSize: FONT_SIZE.f15, fontFamily: FONTS.bold, letterSpacing: TRACKING.t1 },
-  inviteWhat: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.italic, lineHeight: LINE_HEIGHT.l18 },
+  inviteWhat: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.regular, lineHeight: LINE_HEIGHT.l18 },
   inviteCodeInput: { letterSpacing: TRACKING.t4 },
 
   fieldNote: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, marginTop: -SPACE.s4 },
   errorText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, marginTop: SPACE.s4 },
 
   atSign: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.semiBold, paddingRight: SPACE.s2 },
-  optionalTag: { fontSize: FONT_SIZE.f11, fontFamily: FONTS.italic },
+  optionalTag: { fontSize: FONT_SIZE.f11, fontFamily: FONTS.regular },
 
   goalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s10, marginTop: SPACE.s4 },
   goalPill: { borderRadius: RADIUS.r50, paddingHorizontal: SPACE.s18, paddingVertical: SPACE.s12 },
@@ -1087,7 +1087,7 @@ const styles = StyleSheet.create({
   },
   // Until a date is picked the field shows a placeholder date, so it is dimmed.
   dobUnset: { opacity: 0.4 },
-  dobHint: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.italic },
+  dobHint: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.regular },
 
   // Pressed feedback, matching the old TouchableOpacity activeOpacity values.
   pressed: { opacity: 0.7 },

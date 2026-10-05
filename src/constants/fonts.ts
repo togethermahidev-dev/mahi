@@ -4,7 +4,6 @@
  */
 export const FONTS = {
   regular: 'Inter_400Regular',
-  italic: 'Inter_400Regular_Italic',
   semiBold: 'Inter_600SemiBold',
   bold: 'Inter_700Bold',
 } as const;

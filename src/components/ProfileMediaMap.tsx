@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     textAlign: 'center',
   },
 });

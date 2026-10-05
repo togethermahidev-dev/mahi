@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   },
   handle: {
     fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     marginBottom: SPACE.s16,
   },
   statsRow: {

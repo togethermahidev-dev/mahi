@@ -290,7 +290,7 @@ function GlassPill({ active, children }: { active?: boolean; children: React.Rea
 
 /** `others`: slots filled by an invite or a link (flag `tag-slots`). */
 function tagPillLabel(tagged: TaggedUser[], others = 0): string {
-  if (tagged.length === 0 && others === 0) return '＋ Tag people';
+  if (tagged.length === 0 && others === 0) return '+ Tag people';
   if (tagged.length === 0) return others === 1 ? '1 invite' : `${others} invites`;
   const more = tagged.length - 1 + others;
   return more > 0 ? `@${tagged[0].username} +${more}` : `@${tagged[0].username}`;
@@ -721,7 +721,7 @@ function DualPhotoPreview({
             onPress={handleDiscard}
             disabled={isUploading}
           >
-            <Text style={styles.discardX}>✕</Text>
+            <Text style={styles.discardX}>×</Text>
           </Pressable>
 
           {/* Post — bottom center */}
@@ -772,7 +772,7 @@ function DualPhotoPreview({
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
-                    {caption.trim() || '＋ Add a caption'}
+                    {caption.trim() || '+ Add a caption'}
                   </Text>
                 </GlassPill>
               </Pressable>
@@ -807,7 +807,7 @@ function DualPhotoPreview({
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
-                    {locationEnabled ? '📍 Location on' : '📍 Add location'}
+                    {locationEnabled ? 'Location on' : '+ Add location'}
                   </Text>
                 </GlassPill>
               </Pressable>
@@ -1200,7 +1200,7 @@ function TagSheet({
               style={({ pressed }) => [styles.sheetCloseX, pressed && { opacity: 0.7 }]}
               onPress={onCancel}
             >
-              <Text style={styles.sheetCloseXText}>✕</Text>
+              <Text style={styles.sheetCloseXText}>×</Text>
             </Pressable>
           </View>
         </View>
@@ -2659,7 +2659,7 @@ const styles = StyleSheet.create({
   captionPillText: {
     color: withAlpha(COLORS.white, 0.75),
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
   // Location pill in its opted-in (ON) state — fills with the accent so the
   // explicit opt-in reads at a glance. Mirrors lensOptionActive's accent fill.
@@ -2721,14 +2721,14 @@ const styles = StyleSheet.create({
   sheetCounter: {
     color: withAlpha(COLORS.offWhite, 0.45),
     fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
   sheetInput: {
     minHeight: SIZE.z96,
     maxHeight: SIZE.z160,
     color: COLORS.offWhite,
     fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     paddingVertical: SPACE.s8,
     paddingHorizontal: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -2747,7 +2747,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: withAlpha(COLORS.offWhite, 0.6),
     fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
   inviteSteppers: {
     flexDirection: 'row',
@@ -2796,7 +2796,7 @@ const styles = StyleSheet.create({
     height: SIZE.z44,
     color: COLORS.offWhite,
     fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     paddingHorizontal: SPACE.s14,
     borderRadius: RADIUS.r50,
     backgroundColor: withAlpha(COLORS.white, 0.08),
@@ -2807,7 +2807,7 @@ const styles = StyleSheet.create({
   tagEmptyText: {
     color: withAlpha(COLORS.offWhite, 0.45),
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     textAlign: 'center',
     paddingVertical: SPACE.s16,
   },
@@ -2845,7 +2845,7 @@ const styles = StyleSheet.create({
   tagRowHandle: {
     color: withAlpha(COLORS.offWhite, 0.45),
     fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     marginTop: SPACE.s1,
   },
   tagRowNudge: {
@@ -2869,7 +2869,7 @@ const styles = StyleSheet.create({
   deniedMessage: {
     color: COLORS.white,
     fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     textAlign: 'center',
     opacity: 0.8,
     paddingHorizontal: SPACE.s32,

@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     opacity: 0.7,
   },
   gap: { height: SIZE.z55 },

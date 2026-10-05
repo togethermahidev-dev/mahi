@@ -11,7 +11,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { PageSizeContext, TabBarRoomContext } from '@/hooks/useChrome';
 import HorizontalNavigator, { type TabBarLink } from '@/screens/HorizontalNavigator';
-import { NATIVE_TABS, movesPages, type TabKey } from '@/lib/nativeTabs';
+import { NATIVE_TABS, TAB_TITLE_APPEARANCE, movesPages, type TabKey } from '@/lib/nativeTabs';
 import { loadScreens } from '@/lib/screensModule';
 import { loadExpoSymbols } from '@/lib/symbolModule';
 import { COLORS, ICON_SIZE, SIZE } from '@/constants/tokens';
@@ -115,12 +115,14 @@ export default function TabsNavigator(): React.JSX.Element | null {
             ios={{
               icon: { type: 'sfSymbol', name: t.icon },
               selectedIcon: { type: 'sfSymbol', name: t.selectedIcon },
+              standardAppearance: TAB_TITLE_APPEARANCE.ios,
             }}
-            android={
-              androidIcons?.[t.key]
+            android={{
+              standardAppearance: TAB_TITLE_APPEARANCE.android,
+              ...(androidIcons?.[t.key]
                 ? { icon: { type: 'imageSource', imageSource: androidIcons[t.key] } }
-                : undefined
-            }
+                : {}),
+            }}
           >
             <EmptyTabPage background={pageBg(t.key)} onRoom={onRoom} />
           </Tabs.Screen>

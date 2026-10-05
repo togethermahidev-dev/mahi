@@ -69,6 +69,6 @@ const styles = StyleSheet.create({
   bubbleText: {
     color: COLORS.white,
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
 });

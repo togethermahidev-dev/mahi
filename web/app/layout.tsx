@@ -4,11 +4,11 @@ import { COLORS } from '../../src/constants/tokens';
 import './globals.css';
 
 // The app's one typeface. Weights and styles match FONTS in src/constants/fonts.ts
-// (regular, italic, semi-bold, bold); scripts/check-tokens.mjs fails the build if they drift.
+// (regular, semi-bold, bold; no italic); scripts/check-tokens.mjs fails the build if they drift.
 const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '600', '700'],
-  style: ['normal', 'italic'],
+  style: ['normal'],
   variable: '--font-inter',
   display: 'swap',
 });

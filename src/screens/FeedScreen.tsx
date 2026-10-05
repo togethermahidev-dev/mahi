@@ -1,13 +1,5 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import {
-  View,
-  Text,
-  Image,
-  RefreshControl,
-  StyleSheet,
-  Animated,
-  Pressable,
-} from 'react-native';
+import { View, Text, Image, RefreshControl, StyleSheet, Animated, Pressable } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeGesture } from 'react-native-gesture-handler';
@@ -431,7 +423,7 @@ const styles = StyleSheet.create({
   },
   lockedHint: {
     fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     textAlign: 'center',
   },
   lockedButton: {
@@ -459,7 +451,7 @@ const styles = StyleSheet.create({
   },
   emptySub: {
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     textAlign: 'center',
     paddingHorizontal: SPACE.s32,
   },
@@ -470,6 +462,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: SPACE.s16,
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
 });

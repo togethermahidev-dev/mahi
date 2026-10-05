@@ -158,7 +158,6 @@ export function LikeIcon({
         y={discCy + fontSize * 0.38}
         textAnchor="middle"
         fontSize={fontSize}
-        fontWeight="bold"
         fill={textColor}
         fontFamily={FONTS.bold}
       >

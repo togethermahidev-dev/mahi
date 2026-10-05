@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f15,
   },
   cancelBtn: {
@@ -408,11 +408,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s24,
   },
   emptyText: {
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f15,
   },
   hintText: {
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f14,
     letterSpacing: TRACKING.t0_5,
   },
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     letterSpacing: TRACKING.t1,
   },
   handle: {
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f13,
   },
   points: {

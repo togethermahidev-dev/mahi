@@ -78,7 +78,7 @@ export default function PushNudge({
         hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, right: OFFSET.o8 }}
         style={({ pressed }) => [styles.close, pressed && styles.pressed]}
       >
-        <Text style={[styles.closeText, { color: colors.offWhite }]}>✕</Text>
+        <Text style={[styles.closeText, { color: colors.offWhite }]}>×</Text>
       </Pressable>
     </BlurView>
   );

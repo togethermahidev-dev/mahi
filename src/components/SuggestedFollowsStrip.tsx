@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   handle: {
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f12,
     marginTop: SPACE.s2,
     marginBottom: SPACE.s12,

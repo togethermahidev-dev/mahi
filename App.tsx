@@ -8,7 +8,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
   Inter_400Regular,
-  Inter_400Regular_Italic,
   Inter_600SemiBold,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
@@ -121,7 +120,6 @@ export default function App(): React.JSX.Element {
   const [welcomeSettled, setWelcomeSettled] = useState(false);
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
-    Inter_400Regular_Italic,
     Inter_600SemiBold,
     Inter_700Bold,
   });

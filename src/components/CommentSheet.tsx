@@ -347,11 +347,11 @@ const styles = StyleSheet.create({
   },
   commentText: {
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
   commentTime: {
     fontSize: FONT_SIZE.f10,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     paddingTop: SPACE.s2,
   },
   // ── Comment likes: a heart with its count under it, on the right of each comment
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s14,
     paddingVertical: 0,
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
   commentSubmit: {
     borderRadius: RADIUS.r50,
@@ -418,6 +418,6 @@ const styles = StyleSheet.create({
   },
   sheetEmptyText: {
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
 });

@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.s16,
   },
   body: {
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f16,
     textAlign: 'center',
     lineHeight: LINE_HEIGHT.l24,

@@ -5,8 +5,10 @@ import {
   nativeTabsAvailable,
   pageTab,
   SWIPE_PAGES,
+  TAB_TITLE_APPEARANCE,
   tabPage,
 } from '@/lib/nativeTabs';
+import { FONTS } from '@/constants/fonts';
 
 describe('NATIVE_TABS', () => {
   // Founder, 2026-10-05: the bar reads in the swipe order, Messages last.
@@ -24,6 +26,23 @@ describe('NATIVE_TABS', () => {
       expect(t.selectedIcon).toBeTruthy();
       expect(t.androidIcon).toBeTruthy();
     }
+  });
+});
+
+describe('tab titles', () => {
+  // Owner, 2026-10-05: Inter everywhere, the phone's own tab bar included.
+  it('sets Inter on iPhone for every layout and state', () => {
+    for (const layout of ['stacked', 'inline', 'compactInline'] as const) {
+      for (const state of ['normal', 'selected'] as const) {
+        expect(TAB_TITLE_APPEARANCE.ios[layout][state].tabBarItemTitleFontFamily).toBe(
+          FONTS.semiBold
+        );
+      }
+    }
+  });
+
+  it('sets Inter on Android', () => {
+    expect(TAB_TITLE_APPEARANCE.android.tabBarItemTitleFontFamily).toBe(FONTS.semiBold);
   });
 });
 

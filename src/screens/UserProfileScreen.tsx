@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     lineHeight: LINE_HEIGHT.l22,
   },
   ellipsisBtn: {
@@ -723,7 +723,7 @@ const styles = StyleSheet.create({
   },
   handle: {
     fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     marginBottom: SPACE.s16,
   },
   statsRow: {
@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
   },
   blockedSubtitle: {
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     textAlign: 'center',
     paddingHorizontal: SPACE.s16,
   },

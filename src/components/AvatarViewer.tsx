@@ -197,7 +197,7 @@ function ZoomablePhoto({ uri, onClose }: { uri: string; onClose: () => void }) {
         onPress={onClose}
         hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
       >
-        <Text style={styles.closeX}>✕</Text>
+        <Text style={styles.closeX}>×</Text>
       </Pressable>
     </View>
   );

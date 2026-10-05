@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   titleWrapper: { position: 'relative', marginBottom: SPACE.s12 },
   title: { fontSize: FONT_SIZE.f56, fontFamily: FONTS.bold, letterSpacing: TRACKING.t10 },
   titleEcho: { position: 'absolute', color: COLORS.accent, top: OFFSET.o4, left: OFFSET.o4 },
-  subtitle: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.italic, opacity: 0.7 },
+  subtitle: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.regular, opacity: 0.7 },
   gap: { height: SIZE.z55 },
   bottomSheet: {
     flex: 1,

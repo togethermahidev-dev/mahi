@@ -7,6 +7,7 @@
  */
 import type { AndroidSymbol } from 'expo-symbols';
 import type { SFSymbolName } from '@/lib/sfSymbols';
+import { FONTS } from '@/constants/fonts';
 
 export type TabKey = 'camera' | 'feed' | 'messages' | 'profile';
 
@@ -51,6 +52,16 @@ export const NATIVE_TABS: readonly {
     androidIcon: 'chat_bubble',
   },
 ];
+
+/** The tab titles in Inter, like every other word in the app (owner, 2026-10-05). */
+const TAB_TITLE = { tabBarItemTitleFontFamily: FONTS.semiBold };
+const TAB_TITLE_STATES = { normal: TAB_TITLE, selected: TAB_TITLE };
+
+/** The bar's `standardAppearance` on each platform: only the title face; the rest stays the phone's. */
+export const TAB_TITLE_APPEARANCE = {
+  ios: { stacked: TAB_TITLE_STATES, inline: TAB_TITLE_STATES, compactInline: TAB_TITLE_STATES },
+  android: TAB_TITLE,
+};
 
 /**
  * The native tab bar shows on iPhone and Android, on every build that has the native tabs

@@ -10,11 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Reanimated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import Reanimated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { LinearGradient } from 'expo-linear-gradient';
 import { haptic } from '@/lib/haptics';
@@ -618,7 +614,7 @@ const styles = StyleSheet.create({
   },
   timeOverlay: {
     fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     color: withAlpha(COLORS.white, 0.75),
   },
   pointsBadge: {
@@ -667,7 +663,7 @@ const styles = StyleSheet.create({
   },
   captionText: {
     fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     color: COLORS.white,
     textShadowColor: withAlpha(COLORS.black, 0.5),
     textShadowOffset: { width: 0, height: SIZE.z1 },

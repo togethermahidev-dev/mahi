@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     lineHeight: LINE_HEIGHT.l22,
   },
   headerTitle: {
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     letterSpacing: TRACKING.t1,
   },
   handle: {
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f13,
   },
   unfollowBtn: {
@@ -318,6 +318,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
 });

@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     lineHeight: LINE_HEIGHT.l22,
   },
   title: {
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   note: {
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
   listContent: {
     paddingHorizontal: SPACE.s20,
@@ -258,6 +258,6 @@ const styles = StyleSheet.create({
   },
   handle: {
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
 });

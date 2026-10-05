@@ -19,7 +19,18 @@ import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE, BORDER_WIDTH, LINE_HEIGHT, TRACKING } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  OFFSET,
+  SIZE,
+  BORDER_WIDTH,
+  LINE_HEIGHT,
+  TRACKING,
+} from '@/constants/tokens';
 
 interface BlockedUsersSheetProps {
   visible: boolean;
@@ -129,12 +140,18 @@ function Sheet({ onClose, dark }: Omit<BlockedUsersSheetProps, 'visible'>) {
     <>
       <View style={[styles.root, { backgroundColor: bg }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: border, paddingTop: insets.top + SPACE.s16 }]}>
+        <View
+          style={[styles.header, { borderBottomColor: border, paddingTop: insets.top + SPACE.s16 }]}
+        >
           <Pressable
             onPress={onClose}
             accessibilityRole="button"
             accessibilityLabel="Back"
-            style={({ pressed }) => [styles.backBtn, { borderColor: border }, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.backBtn,
+              { borderColor: border },
+              pressed && styles.pressed,
+            ]}
             hitSlop={OFFSET.o8}
           >
             <Text style={[styles.backArrow, { color: text }]}>{'\u2039'}</Text>
@@ -283,7 +300,7 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     lineHeight: LINE_HEIGHT.l22,
   },
   headerTitle: {
@@ -301,7 +318,7 @@ const styles = StyleSheet.create({
     height: SIZE.z40,
     borderRadius: RADIUS.r20,
     paddingHorizontal: SPACE.s16,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f14,
   },
   loadingWrap: {
@@ -348,7 +365,7 @@ const styles = StyleSheet.create({
     letterSpacing: TRACKING.t1,
   },
   handle: {
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f13,
   },
   unblockBtn: {
@@ -372,6 +389,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
   },
 });

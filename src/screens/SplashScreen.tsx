@@ -34,5 +34,11 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
     letterSpacing: TRACKING.t8,
   },
-  version: { color: TEXT_COLOR, fontSize: FONT_SIZE.f11, position: 'absolute', bottom: OFFSET.o40 },
+  version: {
+    color: TEXT_COLOR,
+    fontSize: FONT_SIZE.f11,
+    fontFamily: FONTS.regular,
+    position: 'absolute',
+    bottom: OFFSET.o40,
+  },
 });

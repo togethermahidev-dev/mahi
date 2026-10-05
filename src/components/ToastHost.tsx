@@ -3,6 +3,7 @@ import { AccessibilityInfo, Animated, StyleSheet, Text, View } from 'react-nativ
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useToastStore } from '@/store/toastStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
   FONT_SIZE,
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: FONT_SIZE.f14,
-    fontWeight: '600',
+    fontFamily: FONTS.semiBold,
     textAlign: 'center',
   },
 });

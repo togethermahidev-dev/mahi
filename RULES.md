@@ -100,8 +100,10 @@
 - Sentry only enabled in production (`EXPO_PUBLIC_APP_ENV === 'production'`)
 
 ## Design System
-- Font: Inter, only through `FONTS` in `src/constants/fonts.ts` (`Inter_400Regular`, `Inter_400Regular_Italic`,
-  `Inter_600SemiBold`, `Inter_700Bold`, loaded in `App.tsx`). `fonts.test.ts` fails on a typed-out font name
+- Font: Inter only, through `FONTS` in `src/constants/fonts.ts` (`Inter_400Regular`, `Inter_600SemiBold`,
+  `Inter_700Bold`, loaded in `App.tsx`; no italic, no `fontWeight`/`fontStyle` — the face is the weight). The
+  native tab bar titles use it too. `fonts.test.ts` fails on a typed-out font name, text without an Inter face,
+  or a character Inter can't draw (✕ → ×, no emoji in UI copy)
 - Every colour, text size, spacing, radius, shadow, size, offset, icon size, letter spacing, line height and
   border width comes from `src/constants/tokens.ts` (`withAlpha` for opacity). `designTokens.test.ts` fails on
   a raw value anywhere else — need a new value? add a token first

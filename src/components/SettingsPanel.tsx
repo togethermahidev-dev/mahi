@@ -54,7 +54,11 @@ function ChevronIcon({ open, color }: { open: Animated.Value; color: string }) {
     outputRange: ['0deg', '180deg'],
   });
   return (
-    <Animated.Text style={[{ color, fontSize: FONT_SIZE.f12, transform: [{ rotate }] }]}>
+    <Animated.Text
+      style={[
+        { color, fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular, transform: [{ rotate }] },
+      ]}
+    >
       ▼
     </Animated.Text>
   );
@@ -269,7 +273,7 @@ export default function SettingsPanel({
               ]}
               hitSlop={OFFSET.o8}
             >
-              <Text style={[styles.closeBtnText, { color: muted }]}>✕</Text>
+              <Text style={[styles.closeBtnText, { color: muted }]}>×</Text>
             </Pressable>
           </View>
 
@@ -429,6 +433,7 @@ const styles = StyleSheet.create({
   },
   closeBtnText: {
     fontSize: FONT_SIZE.f14,
+    fontFamily: FONTS.regular,
   },
   scroll: {
     flex: 1,
@@ -455,7 +460,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   subLabel: {
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f14,
   },
   spacer: {
@@ -475,7 +480,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f15,
   },
   versionText: {
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f10,
     textAlign: 'center',
     marginTop: SPACE.s12,

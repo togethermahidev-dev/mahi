@@ -158,8 +158,7 @@ export default function ForgotPasswordSheet({
           ) : (
             <>
               <Text style={[styles.subtitle, { color: muted }]}>
-                If {email.trim()} has a Mahi account, a code is on its way. It works for 10
-                minutes.
+                If {email.trim()} has a Mahi account, a code is on its way. It works for 10 minutes.
               </Text>
 
               <Text style={[styles.label, { color: muted }]}>Code</Text>
@@ -283,7 +282,7 @@ const styles = StyleSheet.create({
     letterSpacing: TRACKING.t2,
     marginBottom: SPACE.s4,
   },
-  subtitle: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.italic, marginBottom: SPACE.s4 },
+  subtitle: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.regular, marginBottom: SPACE.s4 },
   label: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
@@ -311,9 +310,9 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s10,
   },
   // Kept in the form for iOS autofill only; takes no room and is not seen.
-  hiddenUsername: { height: 0, opacity: 0, padding: 0 },
+  hiddenUsername: { height: 0, opacity: 0, padding: 0, fontFamily: FONTS.regular },
   toggle: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, paddingHorizontal: SPACE.s4 },
-  hint: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.italic, marginTop: -SPACE.s4 },
+  hint: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular, marginTop: -SPACE.s4 },
   errorText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
   button: {
     borderRadius: RADIUS.r50,
@@ -324,7 +323,7 @@ const styles = StyleSheet.create({
   buttonText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
   link: {
     fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     textAlign: 'center',
     marginTop: SPACE.s4,
   },

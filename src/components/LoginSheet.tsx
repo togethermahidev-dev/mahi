@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   buttonText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
   forgot: {
     fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.italic,
+    fontFamily: FONTS.regular,
     textAlign: 'center',
     marginTop: SPACE.s4,
   },
