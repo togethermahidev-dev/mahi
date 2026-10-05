@@ -7,6 +7,7 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 06 — search magnifier on the Profile screen (2026-10-05)
  *   build 12 · 05 — pinch to zoom on post photos, for everyone (2026-10-05)
  *   build 12 · 04 — profile picture as a circle (tap outside to close), smooth swipe off a profile, like/comment higher, live feed countdown, no-tags card, invites carry their code, refused posts keep their photos; pinch to zoom built but off (2026-10-05)
  *   build 12 · 03 — Messages is the last swipe page: Camera ⇄ Feed ⇄ Profile ⇄ Messages (2026-10-05)
@@ -31,4 +32,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 5;
+export const OTA_NUMBER = 6;
