@@ -10,7 +10,7 @@
 // If step 1 fails nothing else happens, so the app can simply try again.
 // Deploy WITH JWT verification (the default). Secrets: the built-in SUPABASE_URL /
 // SUPABASE_SERVICE_ROLE_KEY.
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.116.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.117.2";
 import { admin, bearerToken, json } from "../_shared/otp.ts";
 
 const BUCKETS = ["posts", "avatars"];

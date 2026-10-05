@@ -1,7 +1,7 @@
 // Shared pieces of the emailed-code flows: sign-up (send-otp, verify-otp, complete-signup) and
 // password reset (send-reset-code, reset-password).
 // Codes live hashed in public.otp_codes; see migration 20260923230000_signup_codes.
-import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.116.0";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.117.2";
 
 export const MAX_ATTEMPTS = 5;
 export const CODE_TTL_MS = 10 * 60 * 1000;
