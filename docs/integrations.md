@@ -215,9 +215,9 @@ Installed as `~57.0.3`. `expo-glass-effect` (`~57.0.4`) draws the nav rail's gla
 
 All drag gestures use RNGH `Gesture.Pan` + Reanimated shared values, running on the UI thread — the full-screen navigators as well as localised drag surfaces.
 
-**Navigators** — `HorizontalNavigator` and `VerticalNavigator` page between screens with a manually-activated `Gesture.Pan`. Every activate/fail decision, release target and rubber-band comes from the worklet rules in `src/lib/swipeRules.ts` (tested in `swipeRules.test.ts`): axis ownership, system-edge exclusion, pull-down for search. The vertical pan runs alongside the Feed list's native scroll and reads its offset on the UI thread: a downward drag at the top of Feed (`atListTop`) goes to the navigator, and once the list has scrolled under the finger (`listMoved`) the drag stays with the list.
+**Navigator** — `HorizontalNavigator` pages sideways between Camera ⇄ Feed ⇄ Profile ⇄ Messages with one manually-activated `Gesture.Pan` (no up/down page swiping since 2026-10-05, decision #60). Every activate/fail decision, release target and rubber-band comes from the worklet rules in `src/lib/swipeRules.ts` (tested in `swipeRules.test.ts`): sideways only, system-edge exclusion, the rail's rectangle.
 
-**Simultaneous-gesture rule (owner-verified on a phone, OTA 10.21):** the sideways pan, the up/down pan and the Feed list's `Gesture.Native()` must all be allowed to track the same touch. `HorizontalNavigator` makes `feedList` and a ref (`swipeRef`) and passes both to `VerticalNavigator`, whose pan fills the ref with `.withRef()` and is `.simultaneousWithExternalGesture(feedList)`; the sideways pan is `.simultaneousWithExternalGesture(feedList, verticalSwipe)`. The swipe rules keep them apart by axis — the up/down pan fails at once on a sideways drag. Leave out either relation and iOS hands the touch to the inner gesture, so sideways swipes on Camera or Feed silently stop working.
+**Simultaneous-gesture rule (owner-verified on a phone, OTA 10.21):** the page pan and each page's list (`Gesture.Native()`: `feedList`, `profileList`, `messagesList`) must be allowed to track the same touch — the pan is `.simultaneousWithExternalGesture(feedList, profileList, messagesList)`. Leave a list out and iOS hands the touch to it, so sideways swipes on that page silently stop working.
 
 **RNGH `Gesture.Pan` + Reanimated** — localised drag surfaces:
 
@@ -229,9 +229,9 @@ All drag gestures use RNGH `Gesture.Pan` + Reanimated shared values, running on 
 | Profile swipe-back | `src/screens/UserProfileScreen.tsx` | Pan to close a profile. |
 | Settings drawer | `src/components/SettingsPanel.tsx` | Swipe left to close. |
 
-**Feed list:** its scrolling is an RNGH `Gesture.Native()` made in `HorizontalNavigator` and shared with `VerticalNavigator`; both navigator pans are `simultaneousWithExternalGesture` with it. A vertical UIScrollView starts tracking after ~10pt in any direction, so without that relation it cancels a navigator pan before the 20px decision.
+**Page lists:** the Feed, Profile and Messages lists' scrolling is each an RNGH `Gesture.Native()` made in `HorizontalNavigator` and lent to the list through `ListGestureContext` / `GestureScrollView`; the page pan is `simultaneousWithExternalGesture` with all three. A vertical UIScrollView starts tracking after ~10pt in any direction, so without that relation it cancels the page pan before the 20px decision.
 
-**Coexistence rule:** the navigators' pans activate only after their swipe rules decide (20px), so a nested `GestureDetector` (pip drag, profile swipe-back, settings swipe-to-close, the rail) that activates first keeps the touch.
+**Coexistence rule:** the page pan activates only after their swipe rules decide (20px), so a nested `GestureDetector` (pip drag, profile swipe-back, settings swipe-to-close, the rail) that activates first keeps the touch.
 
 **Root wrapping** — `App.tsx` wraps the whole tree in `GestureHandlerRootView` (required by RNGH). Components that render inside native `<Modal>` windows (e.g. `CameraScreen`'s `DualPhotoPreview`, `PostViewer`, `AvatarViewer`, `FollowListModal`, `BlockedUsersSheet`) must wrap their own root because a Modal is a separate native window and the app-level root does not cross that boundary. Components that render as plain absolute overlays (e.g. `GlobalSearchOverlay`, `UserProfileScreen`) rely on the app-level root and do **not** need their own.
 

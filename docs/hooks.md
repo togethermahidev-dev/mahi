@@ -33,7 +33,7 @@ All values come from `src/constants/tokens.ts`; anything not here, import from t
 
 **Navigation usage:**
 - `CameraScreen` uses `dark` to set shutter ring/fill colour and overlay text contrast
-- `VerticalNavigator` uses `dark` to select background palette for off-screen placeholders
+- `HorizontalNavigator` uses `dark` to pick the Feed page's background
 - `AppHeader` receives `isDark` as a prop (forced `true` on Camera — always dark background)
 - `MessagesScreen` and `ProfileScreen` call `useAppTheme()` directly
 - Use `dark` (boolean) rather than `colorScheme` (string) for contrast decisions
@@ -100,9 +100,9 @@ Each `FeedPost` includes `like_count: number`, `comment_count: number`, `liked_b
 
 **Zero-skeleton guarantee:** once the store has any data, `isLoading` is always `false` across re-mounts. `FeedScreen` never shows a skeleton after first load.
 
-**`FeedScreen` props** (set by `VerticalNavigator`):
-- `headerAnim?: Animated.Value` — scroll-driven value (0–header height) that `VerticalNavigator` uses to translate the `AppHeader` off-screen on scroll-down
-- `listGesture` — the shared `feedList` `Gesture.Native()` wrapping the list's scrolling, so the page swipes can run alongside it; `listOffset` — the list's scroll offset on the UI thread, for the top-of-list rule (see [integrations.md](./integrations.md#react-native-gesture-handler--react-native-reanimated))
+**`FeedScreen` props** (set by `HorizontalNavigator`):
+- `headerAnim?: Animated.Value` — scroll-driven value (0–header height) that `HorizontalNavigator` uses to translate the Feed's `AppHeader` off-screen on scroll-down
+- `listGesture` — the `feedList` `Gesture.Native()` wrapping the list's scrolling, so the sideways page swipe can run alongside it (see [integrations.md](./integrations.md#react-native-gesture-handler--react-native-reanimated))
 - `onGoToCamera` (the locked-feed card's button) and `onOverlayChange` (a pop-up is open, so the pages must not move)
 
 **Double-tap gesture:** uses `Gesture.Tap().numberOfTaps(2).runOnJS(true)` — `.runOnJS(true)` is required so the callback runs on the JS thread where Zustand store references are accessible.
@@ -165,7 +165,7 @@ Thin wrapper over `useConversationStore` (`open` on mount, `close` on unmount).
 
 ## `usePushRegistration` — `src/hooks/usePushRegistration.ts`
 
-Mounted once in `VerticalNavigator`. When signed in, and again each time the app comes back to the
+Mounted once in `HorizontalNavigator`. When signed in, and again each time the app comes back to the
 front, it calls `usePushStore.refresh()`: that reads the phone's permission and what this device
 remembers (page answered, line dismissed) and registers the push token once permission is granted —
 so switching notifications on in Settings is picked up without a restart. Re-registers when the OS

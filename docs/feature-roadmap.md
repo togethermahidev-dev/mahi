@@ -24,7 +24,8 @@ every other feature does.
 - **No `process.env`** — read config from `src/lib/env.ts`. **No hardcoded values** — use `src/constants/tokens.ts` (and `useAppTheme()` for light/dark). **Every new store's `reset()` must be wired into the `App.tsx` sign-out branch.**
 
 > ⚠ **Codebase fact that overrides any tooling suggestion:** this app uses **hand-rolled gesture navigation**
-> (`HorizontalNavigator` × `VerticalNavigator`). There is **no `react-navigation`**. Do NOT introduce
+> (`HorizontalNavigator`: one row of swipe pages, Camera ⇄ Feed ⇄ Profile ⇄ Messages, with the phone's tab bar
+> around it on build 12+ — `TabsNavigator`). There is **no `react-navigation`**. Do NOT introduce
 > `useFocusEffect`, `@react-navigation/*`, or a router. "Focus" = the navigator's active-index changing.
 
 ---
@@ -57,7 +58,9 @@ Goal: make existing features findable and fix navigation feel. All UI-only, no b
 
 **Problem:** *"People don't know where to search for users — add it to messages."* (stated twice)
 
-**Current behavior:** search lives **only** behind a pull-down gesture on `CameraScreen` → `GlobalSearchOverlay` ([mounted VerticalNavigator.tsx:318-322](../src/screens/VerticalNavigator.tsx#L318-L322), opens on `dy>80`). The overlay already does `searchProfiles()` and opens `UserProfileScreen`, and **already filters blocked users** ([GlobalSearchOverlay.tsx:141-143](../src/components/GlobalSearchOverlay.tsx#L141-L143)).
+**Status (2026-10-05):** built — Messages has its own magnifier. The Camera's pull-down went with up/down swiping (decision #60), so search is reached from Messages and the empty feed's "Find friends"; a header search button is open (#64).
+
+**Behavior when written (2026-09-23):** search lived **only** behind a pull-down gesture on `CameraScreen` → `GlobalSearchOverlay` (mounted in the up/down navigator, since removed; opened on `dy>80`). The overlay already does `searchProfiles()` and opens `UserProfileScreen`, and **already filters blocked users** ([GlobalSearchOverlay.tsx:141-143](../src/components/GlobalSearchOverlay.tsx#L141-L143)).
 
 **Approach:** add a search entry point (a header search pill/icon) to `MessagesScreen` that mounts the **existing** `GlobalSearchOverlay` — reuse, don't rebuild. No new search logic.
 
@@ -93,7 +96,7 @@ Goal: make existing features findable and fix navigation feel. All UI-only, no b
 
 **Problem:** *"In notifications, when you press their icon, the profile should swipe in from the right instead of just appearing."*
 
-**Current behavior:** notification avatar tap → `onOpenProfile(actor_id)` ([NotificationsScreen.tsx:114-118](../src/screens/NotificationsScreen.tsx#L114-L118)) → `setProfileUserId` ([VerticalNavigator.tsx:290-293](../src/screens/VerticalNavigator.tsx#L290-L293)) → `UserProfileScreen` renders **instantly** at `zIndex 510` with no entry animation. FeedScreen and GlobalSearchOverlay open it the same instant way. The swipe-right spring already exists in `HorizontalNavigator` ([:42-48](../src/screens/HorizontalNavigator.tsx#L42-L48)).
+**Current behavior:** notification avatar tap → `onOpenProfile(actor_id)` ([NotificationsScreen.tsx:114-118](../src/screens/NotificationsScreen.tsx#L114-L118)) → `setProfileUserId` (in `HorizontalNavigator` since 2026-10-05) → `UserProfileScreen` renders **instantly** at `zIndex 510` with no entry animation. FeedScreen and GlobalSearchOverlay open it the same instant way. The swipe-right spring already exists in `HorizontalNavigator` (`SPRING`).
 
 **Approach:** give `UserProfileScreen` a reusable entry animation — an `Animated.Value` translateX from `SCREEN_WIDTH`→0 on mount using the HorizontalNavigator spring params. Apply it to **all** overlay opens (notifications, feed, search) so the motion is consistent, not a one-off.
 
@@ -151,7 +154,7 @@ Goal: make existing features findable and fix navigation feel. All UI-only, no b
 
 **Problem:** *"There's a glitch where sometimes swiping to your profile doesn't show older posts."*
 
-**Current behavior / hypothesis:** `ProfileScreen` is **always mounted** in `HorizontalNavigator` ([:94](../src/screens/HorizontalNavigator.tsx#L94)) and never unmounts. `useProfilePosts` ([src/hooks/useProfilePosts.ts:10-12](../src/hooks/useProfilePosts.ts#L10-L12)) calls `sync()` once in a `userId`-keyed `useEffect`; `userId` is constant (own profile), so it runs **once on mount**. If that first sync raced (ran before profile/session was ready and returned empty) or the grid's `loadMore`/`onEndReached` isn't firing, older pages never (re)load.
+**Current behavior / hypothesis:** `ProfileScreen` is **always mounted** in `HorizontalNavigator` and never unmounts. `useProfilePosts` ([src/hooks/useProfilePosts.ts:10-12](../src/hooks/useProfilePosts.ts#L10-L12)) calls `sync()` once in a `userId`-keyed `useEffect`; `userId` is constant (own profile), so it runs **once on mount**. If that first sync raced (ran before profile/session was ready and returned empty) or the grid's `loadMore`/`onEndReached` isn't firing, older pages never (re)load.
 
 **Approach (confirm root cause first, then minimal fix):**
 1. **Reproduce + confirm** which failure it is (empty-first-sync vs loadMore-not-firing) — add a temporary log of `posts.length / hasMore / isSyncing` on profile focus.
@@ -295,7 +298,7 @@ Native capability work. Ship in this order (lowest risk first): **pinch-zoom →
 | Thin hook (sync on mount) | `src/hooks/useFeed.ts` |
 | Thin hook (subscription) | `src/hooks/useNotifications.ts` |
 | Slide-in panel + spring | was `StreakGridPanel.tsx` / `TrainingDaysScreen.tsx` (`damping:22, stiffness:160, mass:0.9`); both gone, pop-ups are native page sheets now |
-| Swipe page spring | `src/screens/HorizontalNavigator.tsx:42-48` |
+| Swipe page spring | `SPRING` in `src/screens/HorizontalNavigator.tsx` |
 | Reusable search overlay | `src/components/GlobalSearchOverlay.tsx` (already block-filtered) |
 | Profile overlay open pattern | `src/screens/FeedScreen.tsx` avatar→`UserProfileScreen` |
 | AsyncStorage consent cache | `src/lib/otp.ts` |

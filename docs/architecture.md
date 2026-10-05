@@ -100,7 +100,8 @@ for iPhone (build 10 has `expo-notifications` and the push entitlement).
   pause — or switching push on for the first time — never sends a backlog. Receipts are checked every
   15 minutes and dead device tokens removed.
 - **Tapping** a push: `pushDestination()` (`src/lib/pushRoute.ts`) → `usePushRouting` in
-  `VerticalNavigator`, which first brings the main panel forward if Profile or Messages is showing.
+  `HorizontalNavigator`, which moves the pages to the Camera or Messages, or opens the profile or
+  the notifications over them.
 - **Later:** a live countdown on the lock screen (iOS Live Activity) — researched, not built; it needs
   a native build.
 
@@ -206,7 +207,7 @@ mahi-fitness/
 │   ├── store/          # Zustand global state (feedStore, messagesStore, tagStore, inviteStore, …)
 │   ├── hooks/          # Thin store wrappers + utility hooks (useFeed, useOpenTags, useFeatureFlag, …)
 │   ├── types/          # TypeScript types — database.ts is the source of truth for DB shapes
-│   ├── components/     # Shared UI (AppHeader, NavRail, NavigationDots, WelcomeCards, FeedLockBanner,
+│   ├── components/     # Shared UI (AppHeader, NavRail, WelcomeCards, FeedLockBanner, TagSlotsSheet,
 │   │                   #   CapturePipGuide, InviteStep, InviteShareSheet, DraggablePip,
 │   │                   #   LoginSheet, CreateAccountSheet, ForgotPasswordSheet, OtpCodeInput, SettingsPanel,
 │   │                   #   BlockedUsersSheet, KeyboardInset, GlobalSearchOverlay, …)
@@ -339,68 +340,63 @@ All barrel-exported from `src/api/index.ts`.
 
 ## Navigation
 
-The app uses **state-driven navigation** — no React Navigation, no router (don't add one). Transitions are handled by conditional rendering in `App.tsx` and by two gesture-driven navigators. Pop-ups are native: page sheets (`<Modal presentationStyle="pageSheet">`) for comments, tags, notifications, requests, blocked users and friends; `ActionSheetIOS` for menus (profile menu, report reasons).
+The app uses **state-driven navigation** — no React Navigation, no router (don't add one). Transitions are handled by conditional rendering in `App.tsx` and by one gesture-driven navigator (with the phone's tab bar around it on build 12+). Pop-ups are native: page sheets (`<Modal presentationStyle="pageSheet">`) for comments, tags, notifications, requests, blocked users and friends; `ActionSheetIOS` for menus (profile menu, report reasons).
 
-### 2D Navigation Overview
+### The swipe pages
+
+One row, sideways only, in the tab bar's order (founder, 2026-10-05, decisions #60–#64). No up/down
+page swiping; the Camera's pull-down for search is gone with it.
 
 ```
-           ← swipe right ←          → swipe left →
-┌─────────────────────┬──────────────────────┬──────────────────────┐
-│   ProfileScreen     │  VerticalNavigator   │   MessagesScreen     │
-│  (horizontal left)  │  (center, default)   │ (horizontal right)   │
-│                     │  ↕ swipe up/down ↕   │                      │
-│                     │  Camera (index 0)    │                      │
-│                     │  FeedScreen (index 1)│                      │
-└─────────────────────┴──────────────────────┴──────────────────────┘
+     swipe right ←                                              → swipe left
+┌──────────────┬──────────────┬──────────────┬──────────────┐
+│ CameraScreen │  FeedScreen  │ ProfileScreen│MessagesScreen│
+│  (index 0,   │  (index 1)   │  (index 2)   │  (index 3)   │
+│   on entry)  │              │              │              │
+└──────────────┴──────────────┴──────────────┴──────────────┘
 ```
 
-Both navigators run on **react-native-gesture-handler + reanimated** (UI thread): one manually-activated `Gesture.Pan` each, whose every decision comes from the pure worklet rules in `src/lib/swipeRules.ts` (tested in `swipeRules.test.ts`):
-- `horizontalSwipe` / `verticalSwipe` — the finger must move 20px (`SLOP`) mostly along the swipe's own axis; the other axis fails it. Touches that start in the phone's own strips (status bar, home bar, and the 24px side edges for sideways swipes) are left to the phone. `blocked` (a pop-up is open) fails both.
-- `exclude` — a sideways swipe never starts inside the nav rail's rectangle (left edge); the rail owns those touches. The 24px left edge strip stays the phone's, beside the rail too.
-- `atListTop` — on Feed, a downward swipe back to Camera only starts at the top of the list (`y <= 2`); once the list has scrolled under the finger, the drag stays with the list.
-- `horizontalRelease` / `verticalRelease` / `rubberBand` — where a release lands (60px or 0.4 velocity), the rubber band at the ends, and the pull-down from Camera that opens search.
+The order is `SWIPE_PAGES` in `src/lib/nativeTabs.ts` (= the tab bar's `NATIVE_TABS`, tested).
 
-**Gesture relations (the rule that makes swipes work):** the sideways pan, the up/down pan and the Feed list's scrolling (`Gesture.Native()`, made in `HorizontalNavigator` and passed down as `feedList`) must all be allowed to track the same touch. `HorizontalNavigator` passes a ref (`swipeRef`) that `VerticalNavigator`'s pan fills with `.withRef()`; the sideways pan is `.simultaneousWithExternalGesture(feedList, verticalSwipe)` and the up/down pan is `.simultaneousWithExternalGesture(feedList)`. The swipe rules keep them apart by axis (the up/down pan fails at once on a sideways drag). Without this, iOS hands the touch to the inner pan and sideways swipes on Camera or Feed do nothing (fixed 2026-10-01, OTA 10.15 / 10.16 / 10.21).
+The swipe runs on **react-native-gesture-handler + reanimated** (UI thread): one manually-activated `Gesture.Pan`, whose every decision comes from the pure worklet rules in `src/lib/swipeRules.ts` (tested in `swipeRules.test.ts`):
+- `horizontalSwipe` — the finger must move 20px (`SLOP`) mostly sideways; an up/down move fails it and is left to the lists. Touches that start in the phone's own strips (status bar, home bar, and the 24px side edges) are left to the phone. `blocked` (a pop-up is open) fails it.
+- `exclude` — a swipe never starts inside the nav rail's rectangle (left edge); the rail owns those touches. The 24px left edge strip stays the phone's, beside the rail too.
+- `horizontalRelease` / `rubberBand` — where a release lands (60px or 0.4 velocity) and the rubber band at the ends.
+- `atListTop` — the Feed header shows only at the top of the list.
 
-The Profile page is one scrolling list too (2026-10-02), so `HorizontalNavigator` makes a second `Gesture.Native()`, `profileList`, passes it to `ProfileScreen` (`listGesture`), and the sideways pan is `.simultaneousWithExternalGesture(feedList, profileList, verticalSwipe)`. A list lends its scrolling through `ListGestureContext` + `GestureScrollView` (`src/components/GestureScrollView.tsx`, the FlashList `renderScrollComponent`), shared by the Feed, both profile pages and the post viewer. `UserProfileScreen`'s swipe back and `PostViewer`'s sideways close run alongside their own list the same way.
+**Gesture relations (the rule that makes swipes work):** a vertical list starts tracking after ~10pt of movement in any direction, before the page swipe decides at 20pt; unless the swipe may run alongside the list, the list wins and sideways swipes on it do nothing. So `HorizontalNavigator` makes a `Gesture.Native()` for each page that is one scrolling list — `feedList`, `profileList`, `messagesList` — passes each to its screen (`listGesture`), and the pan is `.simultaneousWithExternalGesture(feedList, profileList, messagesList)`. A list lends its scrolling through `ListGestureContext` + `GestureScrollView` (`src/components/GestureScrollView.tsx`, the FlashList `renderScrollComponent`), shared by the Feed, Messages, both profile pages and the post viewer. `UserProfileScreen`'s swipe back and `PostViewer`'s sideways close run alongside their own list the same way.
 
 **Hold to view** (2026-10-02, owner: "native hold to preview"): `PostCard`'s press and hold (`Gesture.LongPress`, `POST_CARD.holdMs`) runs alongside its double tap and alongside the list (it reads the list's gesture from `ListGestureContext`), so a finger that moves first is a scroll or a page swipe and the hold never starts; once held, the list can still scroll. Held: a light haptic, and `chromeStore.viewing` fades out (`useChromeFade`) the name and caption, the tags and points row, the like / comment column and the post viewer's ✕; release brings them back. The small photo stays and stays draggable (its own gesture, on top); a double tap still likes. The page swipes that started under a hold wait for the finger to lift.
 
-**Hold to preview** (flag `context-menu-preview`, default off, iPhone + build 11): `PreviewMenu` (`src/components/PreviewMenu.tsx`) hosts the held content in a SwiftUI `Host` → `ContextMenu` → `RNHostView`, so Apple's own context-menu hold (a `UIContextMenuInteraction`, not a gesture-handler gesture) lifts a `Preview` with menu `Items`. Used by profile grid squares, Messages rows and `PostCard` (where it replaces the `Gesture.LongPress` above: with the flag on `postGesture` is the double tap alone). Nothing in the gesture relations changes: the hosted RN content keeps its gestures (double tap, taps) because the surface's touch handler still dispatches into it; the system hold fails as soon as the finger moves, so list scrolling, the vertical paging and the page swipes win a moving finger, and once the menu is up the system takes the touch. The draggable small photo and the like / comment column sit outside the held area. `@expo/ui` is required lazily (`src/lib/expoUiModule.ts`) so build 10 never loads it. One `Host` per mounted cell (FlashList recycles them: about a screenful), because a context menu must belong to the view that is held; the preview's content mounts only while it shows (`onAppear` / `onDisappear`), so no second picture is decoded per cell.
+**Hold to preview** (flag `context-menu-preview`, default off, iPhone + build 11): `PreviewMenu` (`src/components/PreviewMenu.tsx`) hosts the held content in a SwiftUI `Host` → `ContextMenu` → `RNHostView`, so Apple's own context-menu hold (a `UIContextMenuInteraction`, not a gesture-handler gesture) lifts a `Preview` with menu `Items`. Used by profile grid squares, Messages rows and `PostCard` (where it replaces the `Gesture.LongPress` above: with the flag on `postGesture` is the double tap alone). Nothing in the gesture relations changes: the hosted RN content keeps its gestures (double tap, taps) because the surface's touch handler still dispatches into it; the system hold fails as soon as the finger moves, so list scrolling and the page swipes win a moving finger, and once the menu is up the system takes the touch. The draggable small photo and the like / comment column sit outside the held area. `@expo/ui` is required lazily (`src/lib/expoUiModule.ts`) so build 10 never loads it. One `Host` per mounted cell (FlashList recycles them: about a screenful), because a context menu must belong to the view that is held; the preview's content mounts only while it shows (`onAppear` / `onDisappear`), so no second picture is decoded per cell.
 
-Spring for both: `damping: 22, stiffness: 160, mass: 0.9` (Reduce Motion ignored on purpose). Light haptic on a page change. Pages are sized from the live window (`useWindowDimensions`), not fixed constants.
+Spring: `damping: 22, stiffness: 160, mass: 0.9` (Reduce Motion ignored on purpose). Light haptic on a page change. Pages are sized from `usePageSize()` (`src/hooks/useChrome.ts`): the live window, or with the phone's tab bar the space above it — so each page, and each Feed post, is one page tall.
 
 ### Horizontal Navigator (`src/screens/HorizontalNavigator.tsx`)
 
-| Index | Panel | Access |
+The swipe pages above, plus what they share: an `AppHeader` on the Camera and on the Feed (the Feed's slides off-screen by `headerAnim` as the list scrolls down), `NotificationsScreen`, a `UserProfileScreen` opened from notifications or a push, `GlobalSearchOverlay` (the empty feed's "Find friends"; Messages has its own magnifier), the `NavRail`, and the push hooks `usePushRegistration` and `usePushRouting` ([Push notifications](#push-notifications)). Messages' back button goes to Profile.
+
+| Index | Page | Also reached by |
 |---|---|---|
-| 0 | `ProfileScreen` | Swipe right, or the rail's Profile icon on the Camera (header pill when the rail is off) |
-| 1 | `VerticalNavigator` | Default on entry |
-| 2 | `MessagesScreen` | Swipe left, or the rail's Messages icon on the Camera (header icon when the rail is off) |
+| 0 | `CameraScreen` | Entry page; the tab bar / rail |
+| 1 | `FeedScreen` | The tab bar / rail |
+| 2 | `ProfileScreen` | The tab bar / rail; the header pill when neither shows |
+| 3 | `MessagesScreen` | The tab bar / rail; the header icon when neither shows; a message push |
 
-It also renders the `NavRail` (on the Camera only: `railShows`) and measures its rectangle for the swipe `exclude`.
+**Global Search:** `GlobalSearchOverlay` — a frosted-glass overlay (`BlurView`). It searches with `searchProfiles()`; tapping a result opens `UserProfileScreen` over it, from which Message opens `ConversationScreen`. Tapping your own profile is a no-op. All state resets when the overlay closes. Opened from the empty feed's "Find friends"; whether the header gets a search button is open (#64).
 
-### Vertical Navigator (`src/screens/VerticalNavigator.tsx`)
+### The phone's tab bar (`src/screens/TabsNavigator.tsx`) — build 12+, no switch
 
-| Index | Screen |
-|---|---|
-| 0 | `CameraScreen` |
-| 1 | `FeedScreen` |
+On builds with react-native-screens (build 12+; `loadScreens()` probes first, so build 10 never loads it) `App.tsx` renders `TabsNavigator` instead of `HorizontalNavigator` alone: the phone's own tab bar at the bottom (Apple's on iPhone, Material's on Android) — Camera, Feed, Profile, Messages — with `HorizontalNavigator` filling the screen above it. The bar's own tab pages are empty; they only measure the room the bar takes. A tap on a tab moves the swipe pages there (`movesPages`); a swipe moves the bar's highlight (`onTabChange`). The pages always end above the bar and never resize (the Feed would jump), so the bar stays visible under profiles, search and settings; it hides only under the post preview. Inside the pages `TabBarRoomContext` is 0 and `PageSizeContext` is the space above the bar. With the tab bar there is no glass rail and no header pills.
 
-Each page is one window tall. It also owns: the `AppHeader` (slid off-screen by `headerAnim` as the Feed scrolls down), `NotificationsScreen`, a `UserProfileScreen` opened from notifications, `NavigationDots` (only when the rail is off), `GlobalSearchOverlay`, and the push hooks `usePushRegistration` and `usePushRouting` ([Push notifications](#push-notifications)).
+### Nav Rail (`src/components/NavRail.tsx`) — flags `nav-glass-rail`, `nav-rail-morph`; builds without the tab bar
 
-**Global Search:** pulling down on `CameraScreen` opens `GlobalSearchOverlay` — a frosted-glass overlay (`BlurView`). It searches with `searchProfiles()`; tapping a result opens `UserProfileScreen` over it, from which Message opens `ConversationScreen`. Tapping your own profile is a no-op. All state resets when the overlay closes.
-
-`FeedScreen` receives `headerAnim` (an `Animated.Value`, 0–header height, driven by its scroll) and the shared `feedList` gesture for its list.
-
-### Nav Rail (`src/components/NavRail.tsx`) — flags `nav-glass-rail`, `nav-rail-morph`
-
-A floating glass rail on the **left** edge of the **Camera only** (owner, 2026-10-02: "the tab bar should only be seen on the camera screen, not others"), inside the safe area and vertically centred, with four icons: Camera, Feed, Messages, Profile (`expo-glass-effect` where available, `BlurView` otherwise). With the flag on, the side dots and the header's Profile/Messages pills are hidden on every screen; Feed, Messages and Profile are left by swiping (Messages also has its back button).
+A floating glass rail on the **left** edge of the **Camera only** (owner, 2026-10-02: "the tab bar should only be seen on the camera screen, not others"), inside the safe area and vertically centred, with four icons: Camera, Feed, Messages, Profile (`expo-glass-effect` where available, `BlurView` otherwise). With the flag on, the header's Profile/Messages pills are hidden on every screen; the other pages are left by swiping (Messages also has its back button).
 - Where it shows is one rule: `railShows` in `src/lib/railSelector.ts` (tested), read by `HorizontalNavigator`: the flag is on, the Camera is the screen showing, and no pop-up or full-screen view is open over it (someone's profile, search — `useCoverRail`, `chromeStore.covers`).
 - Nothing on the Camera's left sits under it: `useRailRoom()` (`src/hooks/useChrome.ts`) is the room it takes, used by the camera's photo-in-photo guide. No other screen keeps room for it.
 - `nav-rail-morph` on: the rail reads as one floating pill with an outline and shadow (`NAV_RAIL` tokens); one selector slides and stretches between icons (stretch, then contract; a plain move with Reduce Motion); press and hold or drag along the rail to switch screens live. Geometry and motion plans are pure in `src/lib/railSelector.ts` (tested).
 - A touch that starts on the rail never moves the pages (`exclude` in `swipeRules`).
-- Off: the old dots (`NavigationDots`) and header pills.
+- Off: the header pills.
 
 ### App Header (`src/components/AppHeader.tsx`)
 
@@ -413,7 +409,7 @@ Top bar placed from the safe area, `pointerEvents: 'box-none'` so touches pass t
 | `SplashScreen` | `src/screens/SplashScreen.tsx` | Custom JS splash with the version line |
 | `WelcomeScreen` | `src/screens/WelcomeScreen.tsx` | Log in (`LoginSheet`, with "Forgot password?" → `ForgotPasswordSheet`) / Create account (`CreateAccountSheet`; code typed in `OtpCodeInput`, autofill from email). Apple/Google pills are placeholders |
 | `InAppAnimationScreen` | `src/screens/InAppAnimationScreen.tsx` | Post-login entry animation |
-| `HorizontalNavigator` / `VerticalNavigator` | `src/screens/` | Gesture navigation (above) |
+| `HorizontalNavigator` / `TabsNavigator` | `src/screens/` | Swipe pages and the phone's tab bar (above) |
 | `CameraScreen` | `src/screens/CameraScreen.tsx` | **Two-tap** dual-camera capture. `CaptureState` (`src/lib/captureGuide.ts`): `idle → capturing-first → switching → awaiting-second → capturing-second`. With `camera-pip-guide`, `CapturePipGuide` shows what comes second, then the first photo, in the photo-in-photo spot. Then `DualPhotoPreview` (Modal: big photo + draggable pip, tap to swap), caption, tag sheet (page sheet; `InviteStep` when friends can't fill the slots), Post → `InviteShareSheet` when invites were used. Also `OpenTagsBanner` (who tagged you and the time left to answer) and the reactive-posting gate: a spinner while it loads, "No tags to answer" when closed. Flash button (off → on → auto, kept for the app session; the selfie side lights the screen) and photo quality (`src/lib/cameraCapture.ts`). With `camera-tap-focus` (build 11+, iPhone): one tap focuses and exposes there (`FocusSquare`, native `focusAt` from `patches/expo-camera.patch`); two taps still flip. Haptics come from `haptic(moment)` in `src/lib/haptics.ts`. No microphone |
 | `FeedScreen` | `src/screens/FeedScreen.tsx` | Feed from `useFeed()` (`get_feed`), FlashList; `FeedLockBanner` (flag `feed-lock-explainer`) on top; locked posts say "Answer a tag to see it", with a button only when you can post; each post is a `PostCard` (`src/components/PostCard.tsx`; dual-photo posts use `DraggablePip`); comments in `CommentSheet`, a native page sheet (with `comment-likes`: a heart and count per comment, read fresh on each opening and shown once they arrive; the count opens `CommentLikersSheet`, a page sheet of who liked it — loading, then the live list, nothing kept); avatar → `UserProfileScreen` |
 | `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Own profile as one scrolling list (`ProfileMediaMap`: the header — settings, theme, avatar, stats, "Suggested for you" folded away by default — scrolls away, then the 3-column grid with "N points" badges; pull to refresh). Avatar (`AvatarPicker`: "+" changes it, a tap opens `AvatarViewer`), `FollowListModal` page sheet, `PostViewer`, `SettingsPanel` (Blocked users, Delete account, Help = the welcome cards again, Log out; no rows without an action) |
@@ -528,7 +524,8 @@ App launch
           notifications and blocks sync in the background
         posthog.identify + reloadFeatureFlagsAsync
         → <InAppAnimationScreen onComplete → showCamera=true>
-        → <HorizontalNavigator />  + <WelcomeCards /> (once per account per device)
+        → <TabsNavigator /> on build 12+ (tab bar + swipe pages), else <HorizontalNavigator />
+                                   + <WelcomeCards /> (once per account per device)
                                    + <PushPrimer /> (once per device, after the cards; flag push-core)
 
     → no session:

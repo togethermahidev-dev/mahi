@@ -42,7 +42,7 @@
 - Two taps, two photos (the second tap stays; no auto timer). Shutter captures only — no upload until
   the user taps Post on the preview screen. Microphone permission is never requested (the native
   usage string in `app.config.js` goes at the next native build)
-- Photo preview renders in a `Modal` that slides in from the right — never use `absoluteFillObject` inside the camera slot (conflicts with VerticalNavigator `overflow: hidden` and AppHeader overlay)
+- Photo preview renders in a `Modal` that slides in from the right — never use `absoluteFillObject` inside the camera slot (conflicts with the swipe page's `overflow: hidden` and AppHeader overlay)
 - Optimistic updates (`addPending`, the Mahi points increment) fire at Post confirmation, not at shutter
 - Upload order: `uploadPostPhotos` (`posts/{userId}/{clientId}_rear.jpg` / `_pov.jpg`, upsert) →
   `createPost` = the `create_post` RPC, one server call that dates the post, records the Mahi points and

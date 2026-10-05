@@ -147,8 +147,8 @@ restore and RevenueCat's paywall. No screen uses it yet. Needs the RevenueCat na
 and RevenueCat is never started.)
 
 **Navigation:** `nav-glass-rail` (floating glass rail on the left of the Camera only, with Camera, Feed,
-Messages and Profile; replaces the side dots and the header's Profile/Messages pills. Off = the old dots
-and pills.)
+Messages and Profile; replaces the header's Profile/Messages pills. Off = the pills. Builds without the
+phone's tab bar only: on build 12+ the tab bar takes its place, no switch.)
 `nav-rail-morph` (the rail reads as one floating pill with an outline and shadow; one selector slides
 and stretches between icons; press and hold or drag along the rail to switch screens live. A touch that
 starts on the rail never moves the pages. Off = today's rail.)

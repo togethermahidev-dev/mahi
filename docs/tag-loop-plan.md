@@ -239,7 +239,7 @@ nothing sends; flag `push-core` is absent from PostHog (off).* Files: `supabase/
 - `src/api/push.ts` — `registerPushToken()`, `unregisterPushToken()`.
 - `src/store/pushStore.ts` — `register()`, `requestAndRegister()`, `reset()` (wired into sign-out).
 - `src/hooks/usePushRegistration.ts` and `src/hooks/usePushRouting.ts`, both mounted in
-  `VerticalNavigator`. A tapped push marks its notification read and opens the actor's profile
+  `HorizontalNavigator` (`VerticalNavigator` until 2026-10-05). A tapped push marks its notification read and opens the actor's profile
   (follows) or the notifications list (everything else).
 - `src/api/auth.ts` `signOut()` unregisters the token first, while still signed in.
 - Permission is asked with a one-time explainer alert for new and existing users alike, instead of a
