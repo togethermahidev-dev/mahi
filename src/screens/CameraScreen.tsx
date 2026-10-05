@@ -142,8 +142,9 @@ import {
 } from '@/constants/tokens';
 import { themeColors } from '@/lib/themeColors';
 
-/** Said on the camera and in the toast when there's no open tag to answer. */
-const NO_TAGS_TITLE = 'No tags to answer';
+/** The camera when there's no open tag to answer (the refusal toast's words live in postRefusal). */
+const NO_TAGS_TITLE = 'You’re all caught up';
+const NO_TAGS_LINE = 'When a friend tags you, you’ll have 48 hours to answer.';
 
 /** The flash setting, kept for this app session only (never saved on the phone). */
 let flashThisSession: FlashChoice = 'off';
@@ -1042,7 +1043,7 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
             onSelectionChange={(e) => {
               cursorRef.current = e.nativeEvent.selection.end;
             }}
-            placeholder="What's the story?"
+            placeholder="What did you do? Any workout counts."
             placeholderTextColor={themeColors(true).muted}
             multiline
             maxLength={200}
@@ -1287,7 +1288,7 @@ function TagSheet({
           style={styles.tagSearchInput}
           value={query}
           onChangeText={setQuery}
-          placeholder="Search friends who follow you back"
+          placeholder="Search your friends"
           placeholderTextColor={themeColors(true).muted}
           autoFocus={!inviteStepOn}
           autoCapitalize="none"
@@ -1309,8 +1310,8 @@ function TagSheet({
                 {query.trim()
                   ? 'No friends found.'
                   : step === 'invite'
-                    ? 'Friends who follow you back show up here.'
-                    : 'Only friends who follow you back can be tagged.'}
+                    ? 'Friends who follow you show up here once you follow them back.'
+                    : 'Follow each other and you can tag each other.'}
               </Text>
             )
           }
@@ -1327,7 +1328,7 @@ function TagSheet({
           <View style={styles.inviteRow}>
             <Text style={styles.inviteLabel}>
               {invites > 0
-                ? `${invites} to invite — you'll get ${invites > 1 ? 'links' : 'a link'} to share after posting`
+                ? `${invites} to invite. You’ll get ${invites > 1 ? 'links' : 'a link'} to share after posting.`
                 : inviteBlocked && filled < maxTags
                   ? `Not on Mahi yet? ${inviteBlocked}, then invite them.`
                   : 'Not on Mahi yet? Invite them instead.'}
@@ -2189,18 +2190,27 @@ export default function CameraScreen({
     recording || (captureState !== 'idle' && captureState !== 'awaiting-second');
 
   if (!cameraGranted) {
+    const cameraDenied = cameraPermission.status === 'denied';
     return (
       <View style={styles.root}>
         <View style={styles.permissionCenter}>
           <Text style={styles.deniedMessage}>
-            Mahi needs camera access to power your fitness experience.
+            {cameraDenied && !cameraPermission.canAskAgain
+              ? 'Mahi needs your camera to post your workouts. Turn it on in your phone’s settings.'
+              : 'Mahi needs your camera to post your workouts.'}
           </Text>
-          {!cameraPermission.canAskAgain && (
+          {/* Only once refused (not while the phone's own question is on its way): always a way on. */}
+          {cameraDenied && (
             <Pressable
+              accessibilityRole="button"
               style={({ pressed }) => [styles.permissionButton, pressed && { opacity: ALPHA.a80 }]}
-              onPress={() => Linking.openSettings()}
+              onPress={() =>
+                cameraPermission.canAskAgain ? requestCameraPermission() : Linking.openSettings()
+              }
             >
-              <Text style={styles.permissionButtonText}>Open settings</Text>
+              <Text style={styles.permissionButtonText}>
+                {cameraPermission.canAskAgain ? 'Allow camera' : 'Open settings'}
+              </Text>
             </Pressable>
           )}
         </View>
@@ -2325,15 +2335,13 @@ export default function CameraScreen({
               style={styles.noTagsCard}
               accessible
               accessibilityRole="text"
-              accessibilityLabel={`${NO_TAGS_TITLE}. When a friend tags you, you'll have 48 hours to post.`}
+              accessibilityLabel={`${NO_TAGS_TITLE}. ${NO_TAGS_LINE}`}
             >
               <View style={styles.noTagsIcon}>
                 <CameraIcon size={ICON_SIZE.i24} color={COLORS.accent} />
               </View>
               <Text style={styles.postedTitle}>{NO_TAGS_TITLE}</Text>
-              <Text style={styles.postedSub}>
-                When a friend tags you, you'll have 48 hours to post.
-              </Text>
+              <Text style={styles.postedSub}>{NO_TAGS_LINE}</Text>
             </View>
           </BlurView>
         )}
