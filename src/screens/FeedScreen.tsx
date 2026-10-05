@@ -7,13 +7,13 @@ import {
   StyleSheet,
   Animated,
   Pressable,
-  useWindowDimensions,
 } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeGesture } from 'react-native-gesture-handler';
 import { useAnimatedRef, useScrollOffset, type SharedValue } from 'react-native-reanimated';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { usePageSize } from '@/hooks/useChrome';
 import { useFeed } from '@/hooks/useFeed';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useOpenTags } from '@/hooks/useOpenTags';
@@ -143,8 +143,8 @@ export default function FeedScreen({
 }: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
   const headerH = appHeaderHeight(useSafeAreaInsets().top);
-  // TikTok-style snap: each card fills the full screen height.
-  const { width: screenWidth, height: cardHeight } = useWindowDimensions();
+  // TikTok-style snap: each card fills the page (the screen, or the space above the tab bar).
+  const { width: screenWidth, height: cardHeight } = usePageSize();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);

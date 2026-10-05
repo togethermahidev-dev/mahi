@@ -8,6 +8,7 @@ const nativeModules: Record<string, unknown> = {};
 const diditRequired = jest.fn();
 const purchasesRequired = jest.fn();
 const purchasesUiRequired = jest.fn();
+const screensRequired = jest.fn();
 
 jest.mock('react-native', () => ({
   TurboModuleRegistry: { get: (name: string) => turboGet(name) },
@@ -21,6 +22,10 @@ jest.mock('react-native-purchases', () => {
   purchasesRequired();
   return { __esModule: true, default: { configure: jest.fn() } };
 });
+jest.mock('react-native-screens', () => {
+  screensRequired();
+  return { Tabs: { Host: jest.fn(), Screen: jest.fn() } };
+});
 jest.mock('react-native-purchases-ui', () => {
   purchasesUiRequired();
   return { __esModule: true, default: { presentPaywall: jest.fn() } };
@@ -32,6 +37,7 @@ beforeEach(() => {
   diditRequired.mockReset();
   purchasesRequired.mockReset();
   purchasesUiRequired.mockReset();
+  screensRequired.mockReset();
   for (const k of Object.keys(nativeModules)) delete nativeModules[k];
 });
 
@@ -110,5 +116,46 @@ describe('RevenueCat loader', () => {
     nativeModules.RNPaywalls = {};
     expect(loadPurchasesModule().loadPurchasesUi()).not.toBeNull();
     expect(purchasesUiRequired).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('react-native-screens loader (native tab bar)', () => {
+  function loadScreensModule(): typeof import('../screensModule') {
+    let mod!: typeof import('../screensModule');
+    jest.isolateModules(() => {
+      mod = jest.requireActual('../screensModule');
+    });
+    return mod;
+  }
+
+  it('looks for the TurboModule by its native name', () => {
+    turboGet.mockReturnValue(null);
+    loadScreensModule().hasNativeScreens();
+    expect(turboGet).toHaveBeenCalledWith('RNSModule');
+  });
+
+  it('never requires the package on a build without the module', () => {
+    turboGet.mockReturnValue(null);
+    const m = loadScreensModule();
+    expect(m.hasNativeScreens()).toBe(false);
+    expect(m.loadScreens()).toBeNull();
+    expect(screensRequired).not.toHaveBeenCalled();
+  });
+
+  it('treats a lookup that throws as missing', () => {
+    turboGet.mockImplementation(() => {
+      throw new Error('no');
+    });
+    const m = loadScreensModule();
+    expect(m.hasNativeScreens()).toBe(false);
+    expect(m.loadScreens()).toBeNull();
+  });
+
+  it('requires the package once when the module is there', () => {
+    turboGet.mockReturnValue({});
+    const m = loadScreensModule();
+    expect(m.loadScreens()).not.toBeNull();
+    m.loadScreens();
+    expect(screensRequired).toHaveBeenCalledTimes(1);
   });
 });

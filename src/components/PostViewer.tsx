@@ -12,7 +12,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
-import { useChromeFade } from '@/hooks/useChrome';
+import { TabBarRoomContext, useChromeFade } from '@/hooks/useChrome';
 import { useAuthStore } from '@/store';
 import PostCard from '@/components/PostCard';
 import CommentSheet from '@/components/CommentSheet';
@@ -72,16 +72,19 @@ export default function PostViewer({
     >
       {/* A Modal is its own native window: gesture-handler needs its own root here. */}
       <GestureHandlerRootView style={styles.root}>
-        {shown ? (
-          <ViewerPages
-            key={shown.opening}
-            userId={userId}
-            startPostId={shown.postId}
-            open={!!postId}
-            onClose={onClose}
-            onOpenProfile={onOpenProfile}
-          />
-        ) : null}
+        {/* No tab bar in here, even when opened from a tab. */}
+        <TabBarRoomContext.Provider value={null}>
+          {shown ? (
+            <ViewerPages
+              key={shown.opening}
+              userId={userId}
+              startPostId={shown.postId}
+              open={!!postId}
+              onClose={onClose}
+              onOpenProfile={onOpenProfile}
+            />
+          ) : null}
+        </TabBarRoomContext.Provider>
       </GestureHandlerRootView>
     </Modal>
   );

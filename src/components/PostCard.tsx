@@ -20,7 +20,7 @@ import {
   useSocialStore,
   useUserStore,
 } from '@/store';
-import { useChromeFade } from '@/hooks/useChrome';
+import { useChromeFade, useTabBarRoom } from '@/hooks/useChrome';
 import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
 import { ListGestureContext } from '@/components/GestureScrollView';
 import { HeartIcon, CommentIcon } from '@/components/ScreenIcons';
@@ -216,6 +216,8 @@ export default function PostCard({
   // the hold never starts; once held, the list can still scroll alongside it.
   const list = useContext(ListGestureContext);
   const chrome = useChromeFade();
+  // Apple's tab bar floats over the bottom of the post: the caption block ends above it.
+  const tabRoom = useTabBarRoom();
   const holding = useRef(false);
   const startHold = useCallback(() => {
     holding.current = true;
@@ -375,7 +377,11 @@ export default function PostCard({
                     withAlpha(COLORS.black, POST_CARD.shadeMid),
                     withAlpha(COLORS.black, POST_CARD.shadeBottom),
                   ]}
-                  style={[styles.captionOverlay, { minHeight: height * POST_CARD.shadeHeight }]}
+                  style={[
+                    styles.captionOverlay,
+                    { minHeight: height * POST_CARD.shadeHeight },
+                    tabRoom > 0 && { paddingBottom: Math.max(SPACE.s80, tabRoom + SPACE.s16) },
+                  ]}
                   pointerEvents="box-none"
                 >
                   <Pressable

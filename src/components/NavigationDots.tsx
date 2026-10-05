@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { IconProps } from '@/components/ScreenIcons';
-import { COLORS, SPACE, ICON_SIZE, OFFSET } from '@/constants/tokens';
+import { COLORS, SPACE, ICON_SIZE, OFFSET, LAYER } from '@/constants/tokens';
 
 interface NavigationDotsProps {
   count: number;
@@ -56,7 +56,10 @@ export default function NavigationDots({
         let y: Animated.AnimatedInterpolation<number> | Animated.AnimatedAddition<number> =
           anim.interpolate({ inputRange: [0, 1], outputRange: [base, base + GROWTH / 2] });
         for (let j = 0; j < k; j++) {
-          y = Animated.add(y, dotAnims[j].interpolate({ inputRange: [0, 1], outputRange: [0, GROWTH] }));
+          y = Animated.add(
+            y,
+            dotAnims[j].interpolate({ inputRange: [0, 1], outputRange: [0, GROWTH] })
+          );
         }
         return y;
       }),
@@ -137,7 +140,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 100,
+    zIndex: LAYER.dots,
   },
   slot: {
     position: 'absolute',

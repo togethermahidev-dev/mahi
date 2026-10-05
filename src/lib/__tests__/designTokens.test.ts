@@ -54,6 +54,8 @@ describe('design tokens', () => {
     ['letter spacing', 'letterSpacing'],
     ['line height', 'lineHeight'],
     ['border width', 'border[A-Za-z]*Width'],
+    ['stacking order', 'zIndex'],
+    ['Android shadow depth', 'elevation'],
   ])('no %s is typed out by hand', (_kind, key) => {
     expect(offenders(raw(key))).toEqual([]);
   });

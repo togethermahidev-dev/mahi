@@ -3,7 +3,16 @@ import { AccessibilityInfo, Animated, StyleSheet, Text, View } from 'react-nativ
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useToastStore } from '@/store/toastStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { COLORS, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE, SHADOW_BLUR } from '@/constants/tokens';
+import {
+  COLORS,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  OFFSET,
+  SIZE,
+  SHADOW_BLUR,
+  ELEVATION,
+} from '@/constants/tokens';
 
 /**
  * Single, app-wide toast sink. Subscribes to toastStore and renders a small
@@ -99,7 +108,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: SHADOW_BLUR.b8,
     shadowOffset: { width: 0, height: SIZE.z2 },
-    elevation: 4,
+    elevation: ELEVATION.e4,
   },
   text: {
     fontSize: FONT_SIZE.f14,

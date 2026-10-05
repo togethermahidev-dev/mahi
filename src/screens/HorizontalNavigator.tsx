@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, type GestureType } from 'react-native-gesture-handler';
 import Animated, {
   ReduceMotion,
@@ -18,6 +18,8 @@ import MessagesScreen from '@/screens/MessagesScreen';
 import NavRail, { type RailTab } from '@/components/NavRail';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useChromeStore } from '@/store';
+import { usePageSize } from '@/hooks/useChrome';
+import { pageTab } from '@/lib/nativeTabs';
 import { railShows } from '@/lib/railSelector';
 import { horizontalRelease, horizontalSwipe, rubberBand, type Rect } from '@/lib/swipeRules';
 
@@ -31,20 +33,41 @@ const SPRING = { damping: 22, stiffness: 160, mass: 0.9, reduceMotion: ReduceMot
 
 // ─── HorizontalNavigator ──────────────────────────────────────────────────────
 
-export default function HorizontalNavigator(): React.JSX.Element {
-  const showRail = useFeatureFlag('nav-glass-rail');
+/**
+ * With the phone's tab bar (build 11+, TabsNavigator): the bar replaces the glass rail, the dots
+ * and the header's Profile / Messages pills; the swipes stay exactly as they are.
+ */
+export type TabBarLink = {
+  /** The page showing changed (a swipe, or a tap that moved the pages). */
+  onTabChange: (tab: RailTab) => void;
+  /** Filled with the way to move the pages to a tab, for the bar's taps. */
+  selectRef: React.MutableRefObject<((tab: RailTab) => void) | null>;
+  /** The Camera's post preview opened or closed (the bar hides under it). */
+  onComposingChange: (open: boolean) => void;
+};
+
+export default function HorizontalNavigator({
+  tabBar,
+}: { tabBar?: TabBarLink } = {}): React.JSX.Element {
+  const showRail = useFeatureFlag('nav-glass-rail') && !tabBar;
   const railMorph = useFeatureFlag('nav-rail-morph');
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
+  // Each panel is one page wide: the window, or with the tab bar the space above it.
+  const { width, height } = usePageSize();
 
   const [hIndex, setHIndex] = useState(DEFAULT_INDEX);
   const [vIndex, setVIndex] = useState(0);
   const [overlay, setOverlay] = useState(false);
-  const railTab: RailTab =
-    hIndex === 0 ? 'profile' : hIndex === 2 ? 'messages' : vIndex === 0 ? 'camera' : 'feed';
+  const railTab: RailTab = pageTab(hIndex, vIndex);
   // A full-screen view the rail would sit on (someone's profile, search) hides it too.
   const covered = useChromeStore((s) => s.covers > 0);
   const railShown = railShows({ on: showRail, tab: railTab, overlay, covered });
+
+  // The tab bar follows the pages.
+  const onTabChange = tabBar?.onTabChange;
+  useEffect(() => {
+    onTabChange?.(railTab);
+  }, [railTab, onTabChange]);
   const verticalRef = useRef<VerticalControl | null>(null);
   const blurTargetRef = useRef<View | null>(null);
 
@@ -179,6 +202,8 @@ export default function HorizontalNavigator(): React.JSX.Element {
     verticalRef.current?.navigateTo(tab === 'camera' ? 0 : 1);
   };
 
+  if (tabBar) tabBar.selectRef.current = selectTab;
+
   // Android blurs a BlurTargetView's content; iOS blurs whatever is behind natively.
   const Tape = Platform.OS === 'android' ? BlurTargetView : View;
   const panel = { width };
@@ -201,8 +226,10 @@ export default function HorizontalNavigator(): React.JSX.Element {
                 controlRef={verticalRef}
                 feedList={feedList}
                 swipeRef={verticalSwipe}
-                railShown={showRail}
+                // The tab bar, like the rail, stands in for the dots and the header pills.
+                railShown={showRail || !!tabBar}
                 isActive={hIndex === 1}
+                onComposingChange={tabBar?.onComposingChange}
                 onIndexChange={setVIndex}
                 onNavigateLeft={() => navigateHorizontal(0)}
                 onNavigateRight={() => navigateHorizontal(2)}

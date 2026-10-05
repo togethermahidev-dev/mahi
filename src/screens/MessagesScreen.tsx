@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, Image, Modal, useWindowDimensions } 
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useTabBarRoom } from '@/hooks/useChrome';
 import { useMessages } from '@/hooks/useMessages';
 import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
 import { useAuthStore, useConversationStore } from '@/store';
@@ -164,6 +165,8 @@ interface MessagesScreenProps {
 
 export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): React.JSX.Element {
   const { dark, colors } = useAppTheme();
+  // The last row scrolls clear of the phone's tab bar.
+  const tabRoom = useTabBarRoom();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const muted = dark ? withAlpha(COLORS.offWhite, 0.4) : withAlpha(COLORS.offBlack, 0.4);
@@ -254,6 +257,7 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
       <FlashList
         data={inbox}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={tabRoom > 0 ? { paddingBottom: tabRoom } : undefined}
         // Rows re-render when hold to preview changes.
         extraData={menuOn}
         renderItem={({ item }) => (

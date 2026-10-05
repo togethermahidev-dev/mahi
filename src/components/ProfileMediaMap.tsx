@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { FlashList, useRecyclingState } from '@shopify/flash-list';
+import { useTabBarRoom } from '@/hooks/useChrome';
 import type { NativeGesture } from 'react-native-gesture-handler';
 import Svg, { Path } from 'react-native-svg';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -197,6 +198,8 @@ export default function ProfileMediaMap({
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
+  // The last row scrolls clear of the phone's tab bar.
+  const tabRoom = useTabBarRoom();
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
 
   const { posts, isLoading, hasMore, loadMore, refresh } = useProfilePosts(userId);
@@ -238,6 +241,7 @@ export default function ProfileMediaMap({
         style={{ ...styles.list, backgroundColor: bg }}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
+        contentContainerStyle={tabRoom > 0 ? { paddingBottom: tabRoom } : undefined}
         renderItem={({ item, index }) => (
           <GridCell
             post={item}

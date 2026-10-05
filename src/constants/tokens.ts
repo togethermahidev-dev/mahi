@@ -215,11 +215,40 @@ export const OFFSET = {
 } as const;
 
 // ─── Icon sizes (the size prop) ──────────────────────────────────────────────
+/** Stacking order of things that float over the pages, lowest first. */
+export const LAYER = {
+  /** Lifted just above its neighbours. */
+  raised: 1,
+  /** The Camera / Feed dots on the right edge. */
+  dots: 100,
+  /** The top header (MAHI, bell). */
+  header: 200,
+  /** The floating glass rail. */
+  rail: 300,
+  /** The Settings panel. */
+  panel: 400,
+  /** Search over a page. */
+  overlay: 500,
+  /** Someone's profile, opened over search. */
+  profile: 510,
+} as const;
+
+/** Android shadow depth (elevation), lowest first. */
+export const ELEVATION = {
+  e3: 3,
+  e4: 4,
+  e6: 6,
+  e8: 8,
+  e12: 12,
+} as const;
+
 export const ICON_SIZE = {
   i14: 14,
   i16: 16,
   i20: 20,
   i22: 22,
+  /** Material's standard tab bar icon (Android's native tab bar). */
+  i24: 24,
   i32: 32,
   i80: 80,
 } as const;

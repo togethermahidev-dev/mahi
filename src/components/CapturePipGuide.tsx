@@ -15,6 +15,7 @@ import {
   LINE_HEIGHT,
   BORDER_WIDTH,
   SHADOW_BLUR,
+  ELEVATION,
 } from '@/constants/tokens';
 
 /**
@@ -77,7 +78,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: SIZE.z4 },
     shadowOpacity: 0.4,
     shadowRadius: SHADOW_BLUR.b8,
-    elevation: 8,
+    elevation: ELEVATION.e8,
   },
   placeholder: {
     flex: 1,

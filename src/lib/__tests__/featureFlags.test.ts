@@ -111,3 +111,10 @@ describe('default-off flags (video-posts, context-menu-preview)', () => {
     expect(flagDefaultOn('notifications-core')).toBe(true);
   });
 });
+
+// The native tab bar has no switch (owner, 2026-10-03): build 11 decides who gets it.
+describe('nav-native-tabs', () => {
+  it('is not a PostHog switch', () => {
+    expect(FEATURE_FLAGS as readonly string[]).not.toContain('nav-native-tabs');
+  });
+});

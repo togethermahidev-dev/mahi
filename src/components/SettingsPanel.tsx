@@ -19,7 +19,21 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
 import { WelcomeCardsModal } from '@/components/WelcomeCards';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SHADOW_BLUR, SIZE, OFFSET, TRACKING, BORDER_WIDTH } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  FONT_SIZE,
+  SPACE,
+  RADIUS,
+  SHADOW_BLUR,
+  SIZE,
+  OFFSET,
+  TRACKING,
+  BORDER_WIDTH,
+  ELEVATION,
+  LAYER,
+} from '@/constants/tokens';
+import { useCoverRail } from '@/hooks/useChrome';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -40,7 +54,9 @@ function ChevronIcon({ open, color }: { open: Animated.Value; color: string }) {
     outputRange: ['0deg', '180deg'],
   });
   return (
-    <Animated.Text style={[{ color, fontSize: FONT_SIZE.f12, transform: [{ rotate }] }]}>▼</Animated.Text>
+    <Animated.Text style={[{ color, fontSize: FONT_SIZE.f12, transform: [{ rotate }] }]}>
+      ▼
+    </Animated.Text>
   );
 }
 
@@ -49,6 +65,8 @@ export default function SettingsPanel({
   onClose,
   dark,
 }: SettingsPanelProps): React.JSX.Element | null {
+  // A full-screen panel: the tab bar hides while it is open.
+  useCoverRail(visible);
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
   const border = dark ? withAlpha(COLORS.offWhite, 0.08) : withAlpha(COLORS.offBlack, 0.06);
@@ -225,7 +243,10 @@ export default function SettingsPanel({
       {/* Panel */}
       <GestureDetector gesture={swipeToClose}>
         <Animated.View
-          style={[styles.panel, { backgroundColor: panelBg, transform: [{ translateX: slideAnim }] }]}
+          style={[
+            styles.panel,
+            { backgroundColor: panelBg, transform: [{ translateX: slideAnim }] },
+          ]}
         >
           {/* Close button */}
           <View
@@ -241,7 +262,11 @@ export default function SettingsPanel({
               onPress={onClose}
               accessibilityRole="button"
               accessibilityLabel="Close settings"
-              style={({ pressed }) => [styles.closeBtn, { borderColor: muted }, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.closeBtn,
+                { borderColor: muted },
+                pressed && styles.pressed,
+              ]}
               hitSlop={OFFSET.o8}
             >
               <Text style={[styles.closeBtnText, { color: muted }]}>✕</Text>
@@ -255,7 +280,11 @@ export default function SettingsPanel({
           >
             {/* ── Account Settings accordion ── */}
             <Pressable
-              style={({ pressed }) => [styles.sectionRow, { borderBottomColor: border }, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.sectionRow,
+                { borderBottomColor: border },
+                pressed && styles.pressed,
+              ]}
               onPress={toggleAccount}
               accessibilityRole="button"
               accessibilityLabel="Account settings"
@@ -279,10 +308,16 @@ export default function SettingsPanel({
                 return (
                   <Pressable
                     key={item}
-                    style={({ pressed }) => [styles.subRow, { borderBottomColor: border }, pressed && styles.pressed]}
+                    style={({ pressed }) => [
+                      styles.subRow,
+                      { borderBottomColor: border },
+                      pressed && styles.pressed,
+                    ]}
                     accessibilityRole="button"
                     accessibilityLabel={item}
-                    accessibilityState={isDelete ? { disabled: deleting, busy: deleting } : undefined}
+                    accessibilityState={
+                      isDelete ? { disabled: deleting, busy: deleting } : undefined
+                    }
                     disabled={isDelete && deleting}
                     onPress={() => {
                       if (item === 'Blocked users') setBlockedListOpen(true);
@@ -300,7 +335,11 @@ export default function SettingsPanel({
             {/* ── Help: the welcome cards again ── */}
             {helpEnabled ? (
               <Pressable
-                style={({ pressed }) => [styles.sectionRow, { borderBottomColor: border }, pressed && styles.pressed]}
+                style={({ pressed }) => [
+                  styles.sectionRow,
+                  { borderBottomColor: border },
+                  pressed && styles.pressed,
+                ]}
                 onPress={() => setHelpOpen(true)}
                 accessibilityRole="button"
                 accessibilityLabel="Help"
@@ -315,7 +354,11 @@ export default function SettingsPanel({
 
             {/* Log Out */}
             <Pressable
-              style={({ pressed }) => [styles.logoutBtn, { borderColor: muted }, pressed && styles.pressedMore]}
+              style={({ pressed }) => [
+                styles.logoutBtn,
+                { borderColor: muted },
+                pressed && styles.pressedMore,
+              ]}
               onPress={handleLogout}
               accessibilityRole="button"
               accessibilityLabel="Log out"
@@ -351,12 +394,12 @@ const styles = StyleSheet.create({
     left: 0,
     width: PANEL_WIDTH,
     height: SCREEN_HEIGHT,
-    zIndex: 400,
+    zIndex: LAYER.panel,
     shadowColor: COLORS.black,
     shadowOffset: { width: SIZE.z4, height: 0 },
     shadowOpacity: 0.2,
     shadowRadius: SHADOW_BLUR.b12,
-    elevation: 12,
+    elevation: ELEVATION.e12,
   },
   closeRow: {
     flexDirection: 'row',

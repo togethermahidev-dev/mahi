@@ -72,7 +72,8 @@ import type { ScreenSlot } from '@/lib/tagSlots';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useVideoPosts } from '@/hooks/useVideoPosts';
-import { useRailRoom } from '@/hooks/useChrome';
+import { usePageSize, useRailRoom, useTabBarRoom } from '@/hooks/useChrome';
+import { cameraLift } from '@/lib/nativeTabs';
 import {
   HOLD_TO_RECORD_MS,
   VIDEO_RECORDING,
@@ -121,6 +122,7 @@ import {
   BORDER_WIDTH,
   SHADOW_BLUR,
   CAMERA,
+  ELEVATION,
 } from '@/constants/tokens';
 
 /** Said on the camera and in the toast when there's no open tag to answer. */
@@ -226,6 +228,8 @@ function findUltraWideLens(lenses: string[]): string | null {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+/** The lens switch's bottom edge: above the shutter row (the shutter is 72 tall). */
+const LENS_TOGGLE_BOTTOM = OFFSET.o32 + OFFSET.o72 + OFFSET.o20;
 
 /** One captured shot: a photo, or (flag `video-posts`) a video of up to 15 s. */
 interface CapturedPhoto {
@@ -1307,12 +1311,24 @@ async function shareInvites(invites: PostInvite[]): Promise<void> {
 
 // ─── CameraScreen ─────────────────────────────────────────────────────────────
 
-export default function CameraScreen(): React.JSX.Element {
+interface CameraScreenProps {
+  /** Apple's tab bar: the post preview opened or closed (the bar hides while it is open). */
+  onComposingChange?: (open: boolean) => void;
+}
+
+export default function CameraScreen({
+  onComposingChange,
+}: CameraScreenProps = {}): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const { dark } = useAppTheme();
   // The glass bar sits on the left, level with the small window's spot: the window starts past it.
   const railRoom = useRailRoom();
+  // Apple's tab bar at the bottom: the shutter row, the lens switch and the small window sit
+  // this much higher so they clear it. 0 without the tab bar.
+  const lift = cameraLift(useTabBarRoom(), OFFSET.o32, SPACE.s16);
+  // The page's height: the screen, or above the tab bar, where the shutter row sits higher.
+  const pageHeight = usePageSize().height;
 
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [captureState, setCaptureState] = useState<CaptureState>('idle');
@@ -1983,6 +1999,11 @@ export default function CameraScreen(): React.JSX.Element {
       stale = true;
     };
   }, [hasPreview, tagSlotsOn]);
+  const onComposingRef = useRef(onComposingChange);
+  onComposingRef.current = onComposingChange;
+  useEffect(() => {
+    onComposingRef.current?.(hasPreview);
+  }, [hasPreview]);
 
   // One share sheet for one invite link; only a link that actually went somewhere counts as sent.
   const sendInvite = async (token: string) => {
@@ -2144,7 +2165,7 @@ export default function CameraScreen(): React.JSX.Element {
             photoIsVideo={guideIsVideo}
             frame={{
               left: Math.max(PIP_MARGIN, railRoom),
-              top: previewPipRestTop(SCREEN_HEIGHT, PIP_H),
+              top: previewPipRestTop(pageHeight, PIP_H) - lift,
               width: PIP_W,
               height: PIP_H,
             }}
@@ -2175,7 +2196,10 @@ export default function CameraScreen(): React.JSX.Element {
           shutter row so it reads as a capture-config affordance. With video
           posts on, the Photo / Video switch sits beside it in the same row. */}
         {((facing === 'back' && ultraWideLens) || videoOn) && !blocked && (
-          <View style={styles.lensToggleWrap} pointerEvents="box-none">
+          <View
+            style={[styles.lensToggleWrap, lift > 0 && { bottom: LENS_TOGGLE_BOTTOM + lift }]}
+            pointerEvents="box-none"
+          >
             <View style={styles.toggleRow}>
               {facing === 'back' && ultraWideLens && (
                 <View style={styles.lensToggle}>
@@ -2260,7 +2284,7 @@ export default function CameraScreen(): React.JSX.Element {
           </View>
         )}
 
-        <View style={styles.controlsRow}>
+        <View style={[styles.controlsRow, lift > 0 && { bottom: OFFSET.o32 + lift }]}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Switch camera"
@@ -2444,7 +2468,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: SIZE.z4 },
     shadowOpacity: 0.25,
     shadowRadius: SHADOW_BLUR.b10,
-    elevation: 8,
+    elevation: ELEVATION.e8,
   },
   shutterInner: {
     width: SIZE.z58,
@@ -2467,7 +2491,7 @@ const styles = StyleSheet.create({
   // ── 0.5× / 1× lens toggle ──────────────────────────────────────────────────
   lensToggleWrap: {
     position: 'absolute',
-    bottom: OFFSET.o32 + OFFSET.o72 + OFFSET.o20, // above the shutter row (shutter is 72 tall)
+    bottom: LENS_TOGGLE_BOTTOM,
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -2521,7 +2545,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: SIZE.z4 },
     shadowOpacity: 0.4,
     shadowRadius: SHADOW_BLUR.b8,
-    elevation: 8,
+    elevation: ELEVATION.e8,
   },
   pipVideo: {
     borderRadius: RADIUS.r12,

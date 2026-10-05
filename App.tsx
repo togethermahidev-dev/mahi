@@ -17,6 +17,9 @@ import SplashScreenComponent from '@/screens/SplashScreen';
 import WelcomeScreen from '@/screens/WelcomeScreen';
 import InAppAnimationScreen from '@/screens/InAppAnimationScreen';
 import HorizontalNavigator from '@/screens/HorizontalNavigator';
+import TabsNavigator from '@/screens/TabsNavigator';
+import { nativeTabsAvailable } from '@/lib/nativeTabs';
+import { hasNativeScreens } from '@/lib/screensModule';
 import { supabase } from '@/lib/supabase';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -52,6 +55,15 @@ import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastHost } from '@/components/ToastHost';
+
+/** The phone's own tab bar on builds that have it (build 11+), else the swipe pages. */
+function MainNavigator(): React.JSX.Element {
+  return nativeTabsAvailable(Platform.OS, hasNativeScreens()) ? (
+    <TabsNavigator />
+  ) : (
+    <HorizontalNavigator />
+  );
+}
 
 // Prevent the native OS splash from auto-hiding before our custom one is drawn.
 SplashScreen.preventAutoHideAsync();
@@ -237,7 +249,7 @@ export default function App(): React.JSX.Element {
   } else if (session && showCamera) {
     content = (
       <>
-        <HorizontalNavigator />
+        <MainNavigator />
         {/* One-time welcome cards, after the intro animation, over the app. */}
         <WelcomeCards userId={session.user.id} onSettled={setWelcomeSettled} />
         {/* One-time "turn on notifications" page, once the cards are out of the way. */}

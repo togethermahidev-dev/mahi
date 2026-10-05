@@ -33,6 +33,7 @@ import {
   SIZE,
   ICON_SIZE,
   TRACKING,
+  LAYER,
 } from '@/constants/tokens';
 import { useCoverRail } from '@/hooks/useChrome';
 
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
   },
   root: {
     ...StyleSheet.absoluteFill,
-    zIndex: 500,
+    zIndex: LAYER.overlay,
   },
   content: {
     flex: 1,

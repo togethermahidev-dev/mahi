@@ -35,6 +35,7 @@ import {
   SIZE,
   SPACE,
   withAlpha,
+  LAYER,
 } from '@/constants/tokens';
 import {
   followSpan,
@@ -57,7 +58,11 @@ const TABS: { key: RailTab; label: string; Icon: React.ComponentType<IconProps> 
 
 // ─── Selector motion (nav-rail-morph) ─────────────────────────────────────────
 /** The leading edge reaching the new icon while the trailing edge holds: the stretch. */
-const STRETCH = { duration: 140, easing: Easing.out(Easing.cubic), reduceMotion: ReduceMotion.Never };
+const STRETCH = {
+  duration: 140,
+  easing: Easing.out(Easing.cubic),
+  reduceMotion: ReduceMotion.Never,
+};
 /** The trailing edge catching up: the contract onto the new icon. */
 const CONTRACT = { damping: 18, stiffness: 240, mass: 0.7, reduceMotion: ReduceMotion.Never };
 /** Following a dragging finger: the leading edge keeps up, the trailing edge lags a little. */
@@ -137,7 +142,10 @@ export default function NavRail({
       bottom.value = withTiming(plan.settle.bottom, MOVE);
       return;
     }
-    top.value = withSequence(withTiming(plan.stretch.top, STRETCH), withSpring(plan.settle.top, CONTRACT));
+    top.value = withSequence(
+      withTiming(plan.stretch.top, STRETCH),
+      withSpring(plan.settle.top, CONTRACT)
+    );
     bottom.value = withSequence(
       withTiming(plan.stretch.bottom, STRETCH),
       withSpring(plan.settle.bottom, CONTRACT)
@@ -351,7 +359,7 @@ const styles = StyleSheet.create({
   anchor: {
     position: 'absolute',
     justifyContent: 'center',
-    zIndex: 300,
+    zIndex: LAYER.rail,
   },
   rail: {
     alignItems: 'center',

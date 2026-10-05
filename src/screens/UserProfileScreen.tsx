@@ -46,6 +46,7 @@ import {
   SIZE,
   LINE_HEIGHT,
   TRACKING,
+  LAYER,
 } from '@/constants/tokens';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
@@ -622,7 +623,7 @@ export default function UserProfileScreen({
 const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFill,
-    zIndex: 510,
+    zIndex: LAYER.profile,
     flex: 1,
   },
   // Loading or blocked: no list, just the top buttons and a message.
@@ -634,7 +635,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: OFFSET.o24,
-    zIndex: 1,
+    zIndex: LAYER.raised,
     width: SIZE.z36,
     height: SIZE.z36,
     borderRadius: RADIUS.r18,
@@ -651,7 +652,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: OFFSET.o24,
-    zIndex: 1,
+    zIndex: LAYER.raised,
     width: SIZE.z36,
     height: SIZE.z36,
     borderRadius: RADIUS.r18,

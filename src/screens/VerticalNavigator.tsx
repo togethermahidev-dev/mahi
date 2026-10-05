@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import {
   Gesture,
   GestureDetector,
@@ -20,6 +20,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptic } from '@/lib/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { usePageSize } from '@/hooks/useChrome';
 import NavigationDots from '@/components/NavigationDots';
 import AppHeader from '@/components/AppHeader';
 import GlobalSearchOverlay from '@/components/GlobalSearchOverlay';
@@ -32,14 +33,14 @@ import { useNotificationsStore } from '@/store';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
 import { atListTop, rubberBand, verticalRelease, verticalSwipe } from '@/lib/swipeRules';
-import { COLORS, RADIUS, SIZE } from '@/constants/tokens';
+import { COLORS, RADIUS, SIZE, LAYER } from '@/constants/tokens';
 
 // ─── Screen registry ──────────────────────────────────────────────────────────
 // Ordered top → bottom. Index 0 (Camera) is the entry screen.
 // Profile is not in the vertical tape — it lives in the horizontal layer.
 const SCREENS = [
-  { key: 'camera', Component: CameraScreen, Icon: CameraIcon },
-  { key: 'feed', Component: FeedScreen, Icon: FeedIcon },
+  { key: 'camera', Icon: CameraIcon },
+  { key: 'feed', Icon: FeedIcon },
 ] as const;
 
 const SCREEN_ICONS = SCREENS.map((s) => s.Icon);
@@ -113,6 +114,8 @@ interface VerticalNavigatorProps {
   swipeRef: React.MutableRefObject<GestureType | undefined>;
   /** This panel is the one showing (not Profile or Messages beside it). */
   isActive?: boolean;
+  /** The post preview opened or closed on the Camera (the phone's tab bar hides under it). */
+  onComposingChange?: (open: boolean) => void;
 }
 
 // ─── VerticalNavigator ────────────────────────────────────────────────────────
@@ -128,11 +131,12 @@ export default function VerticalNavigator({
   feedList,
   swipeRef,
   isActive = true,
+  onComposingChange,
 }: VerticalNavigatorProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const insets = useSafeAreaInsets();
-  // Each screen is one window tall.
-  const { width, height } = useWindowDimensions();
+  // Each screen is one page tall: the window, or the space above the phone's tab bar.
+  const { width, height } = usePageSize();
   // AppHeader height = top inset + 36 pill + 12 padding. Used to slide it away on scroll.
   const appHeaderH = insets.top + SIZE.z48;
   const unreadNotifications = useNotificationsStore((s) => s.unreadCount);
@@ -306,7 +310,7 @@ export default function VerticalNavigator({
       <View style={styles.root}>
         {/* Tape — all screens stacked vertically, moved by `page` */}
         <Reanimated.View style={[{ height: SCREENS.length * height, width }, tapeStyle]}>
-          {SCREENS.map(({ key, Component }, i) => (
+          {SCREENS.map(({ key }, i) => (
             <Slot
               key={key}
               index={i}
@@ -326,7 +330,7 @@ export default function VerticalNavigator({
                   isActive={isActive && activeIndex === i}
                 />
               ) : (
-                <Component />
+                <CameraScreen onComposingChange={onComposingChange} />
               )}
             </Slot>
           ))}
@@ -341,7 +345,7 @@ export default function VerticalNavigator({
             top: 0,
             left: 0,
             right: 0,
-            zIndex: 200,
+            zIndex: LAYER.header,
             transform: [
               {
                 translateY: headerAnim.interpolate({

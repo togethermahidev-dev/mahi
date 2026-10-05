@@ -10,7 +10,15 @@ import Reanimated, {
 import { haptic } from '@/lib/haptics';
 import PostVideo from '@/components/PostVideo';
 import { PIP_H, PIP_W, clampToZone, snapToCorner, type PipZone } from '@/lib/pip';
-import { COLORS, withAlpha, RADIUS, BORDER_WIDTH, SHADOW_BLUR, SIZE } from '@/constants/tokens';
+import {
+  COLORS,
+  withAlpha,
+  RADIUS,
+  BORDER_WIDTH,
+  SHADOW_BLUR,
+  SIZE,
+  ELEVATION,
+} from '@/constants/tokens';
 
 interface DraggablePipProps {
   /** The second camera's photo (or video). */
@@ -119,7 +127,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: SIZE.z3 },
     shadowOpacity: 0.35,
     shadowRadius: SHADOW_BLUR.b6,
-    elevation: 6,
+    elevation: ELEVATION.e6,
   },
   image: {
     ...StyleSheet.absoluteFill,

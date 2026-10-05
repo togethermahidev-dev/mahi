@@ -64,6 +64,7 @@ import {
   OFFSET,
   SHADOW_BLUR,
   LINE_HEIGHT,
+  ELEVATION,
 } from '@/constants/tokens';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -362,7 +363,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
+    elevation: ELEVATION.e3,
     shadowColor: COLORS.black,
     shadowOpacity: 0.25,
     shadowRadius: SHADOW_BLUR.b3,
