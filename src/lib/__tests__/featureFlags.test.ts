@@ -118,3 +118,10 @@ describe('nav-native-tabs', () => {
     expect(FEATURE_FLAGS as readonly string[]).not.toContain('nav-native-tabs');
   });
 });
+
+// Pinch to zoom ships to everyone with no switch (founder, 2026-10-05: "no posthog flag needed").
+describe('pinch-zoom', () => {
+  it('is not a PostHog switch', () => {
+    expect(FEATURE_FLAGS as readonly string[]).not.toContain('pinch-zoom');
+  });
+});

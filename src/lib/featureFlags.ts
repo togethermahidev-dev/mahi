@@ -38,7 +38,6 @@ export const FEATURE_FLAGS = [
   // Posts
   'video-posts', // each shot can be a photo or a video of up to 15 s; feed plays them (default OFF)
   'comment-likes', // a heart and count on each comment; tap the count to see who liked it
-  'pinch-zoom', // pinch to zoom in on a post's photo in the feed and the post viewer; letting go springs back
   'context-menu-preview', // iPhone hold-to-preview pop-up on grid, Messages, feed (build 11, default OFF)
 
   // Look

@@ -166,7 +166,7 @@ for the invite fixes waits for Q1–Q5 and Q8 so it goes in as one.
 | 71 | Q7 · The share message: "I tagged you on Mahi. Join and you've got 48 hours to post your workout, then tag 3 mates. [link] Or use code ABC123 when you sign up." | Yes · other words | Open (built with these words) | 2026-10-05 | `slotShareMessage`, `inviteShareMessage` |
 | 72 | Q8 · A friend who joined or accepted, then unfollows you before you post: does their slot still count? | Yes · no, drop it | Open | 2026-10-05 | `start_tag`, `create_post` |
 | 64 | Q9 · A search button in the header (same as #64 above) | Yes · no | Open | 2026-10-05 | `AppHeader` |
-| 73 | Q10 · Switch pinch to zoom on for everyone (switch `pinch-zoom`, not created yet) | Yes · not yet | Open | 2026-10-05 | `PostCard` |
+| 73 | Q10 · Pinch to zoom for everyone | Yes, for everyone, with no switch ("no posthog flag needed it can just go out in the update") · not yet | Decided | 2026-10-05 | `PostCard` (OTA 12.05) |
 
 Fixed from the same review without a question (2026-10-05, on main): the invite code goes with
 every link; sign-up takes a code or a pasted link and says when it's wrong; joining says what

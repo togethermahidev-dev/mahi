@@ -27,7 +27,6 @@ import {
 } from '@/store';
 import { useChromeFade, useTabBarRoom } from '@/hooks/useChrome';
 import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { pinchOffset } from '@/lib/viewer';
 import { ListGestureContext } from '@/components/GestureScrollView';
 import { HeartIcon, CommentIcon } from '@/components/ScreenIcons';
@@ -245,11 +244,10 @@ export default function PostCard({
     .onStart(startHold)
     .onFinalize(endHold);
   if (list) hold.simultaneousWithExternalGesture(list);
-  // ── Pinch to zoom (flag pinch-zoom; founder, 2026-10-05) ─────────────────
+  // ── Pinch to zoom (founder, 2026-10-05; for everyone, no switch) ─────────
   // Two fingers zoom in on the photo around the point between them; letting go springs it back,
   // as on Instagram. While pinching, everything over the post fades and the list and the page
   // swipes hold still (`chromeStore.zooming`).
-  const pinchOn = useFeatureFlag('pinch-zoom');
   const zoom = useSharedValue(1);
   const zoomX = useSharedValue(0);
   const zoomY = useSharedValue(0);
@@ -267,7 +265,6 @@ export default function PostCard({
   // A card recycled or closed mid-pinch lets the pages move again.
   useEffect(() => endZoom, [endZoom]);
   const pinch = Gesture.Pinch()
-    .enabled(pinchOn)
     .onStart((e) => {
       'worklet';
       pinchStartX.value = e.focalX;
