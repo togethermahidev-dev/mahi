@@ -35,13 +35,13 @@ const config = {
     [
       'expo-image-picker',
       {
-        photosPermission: 'Mahi uses your photo library to let you share workout photos.',
+        photosPermission: 'Mahi uses your photos so you can pick a profile photo.',
       },
     ],
     [
       'expo-camera',
       {
-        cameraPermission: 'Mahi uses the camera to power your fitness accountability features.',
+        cameraPermission: 'Mahi uses your camera to take your workout photos and videos.',
         microphonePermission: 'Mahi uses the microphone to record sound in your workout videos.',
       },
     ],
@@ -89,11 +89,10 @@ const config = {
     associatedDomains: ['applinks:togethermahi.com', 'applinks:www.togethermahi.com'],
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
-      NSCameraUsageDescription:
-        'Mahi uses the camera to power your fitness accountability features.',
-      NSMicrophoneUsageDescription: 'Mahi uses the microphone to record sound in your workout videos.',
-      NSPhotoLibraryUsageDescription:
-        'Mahi uses your photo library to let you share workout photos.',
+      NSCameraUsageDescription: 'Mahi uses your camera to take your workout photos and videos.',
+      NSMicrophoneUsageDescription:
+        'Mahi uses the microphone to record sound in your workout videos.',
+      NSPhotoLibraryUsageDescription: 'Mahi uses your photos so you can pick a profile photo.',
       NSLocationWhenInUseUsageDescription:
         'Mahi uses your location to optionally tag where a post was taken.',
       NSUserTrackingUsageDescription: 'Mahi uses analytics to improve your fitness experience.',
