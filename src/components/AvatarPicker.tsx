@@ -25,7 +25,7 @@
  *
  * ## Permissions
  * - If permission is denied and `canAskAgain` is true, requests it before opening the picker.
- * - If permanently denied, shows an Alert with an "Open Settings" deep-link.
+ * - If permanently denied, shows an Alert in plain words with an "Open settings" deep-link.
  *
  * ## Related files
  * - `@/api/profile`   — `updateAvatarUrl(userId, url)` writes to `profiles` table
@@ -86,6 +86,24 @@ interface AvatarPickerProps {
   onUpdate: (newUrl: string) => void;
 }
 
+type PermissionKind = 'camera' | 'photos';
+
+/** What the refused-permission alert says, in plain words (lower-case "settings", as the buttons). */
+const PERMISSION_TEXT: Record<PermissionKind, { title: string; message: string }> = {
+  camera: {
+    title: 'Mahi can’t use your camera',
+    message: 'To take a profile photo, let Mahi use your camera in settings.',
+  },
+  photos: {
+    title: 'Mahi can’t see your photos',
+    message: 'To add a profile photo, let Mahi use your photos in settings.',
+  },
+};
+
+/** Said when you pick a new profile photo: it needn't be your face, and who can see it. */
+const PHOTO_HINT =
+  'Any photo that’s you: your face, your trainers, your dog. Everyone on Mahi can see it.';
+
 // ─── Hook: useAvatarUpload ────────────────────────────────────────────────────
 
 /**
@@ -102,16 +120,17 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
   const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
   const [libraryPermission, requestLibraryPermission] = ImagePicker.useMediaLibraryPermissions();
 
-  /** Shows a non-blocking alert directing the user to open Settings. */
-  const showPermissionAlert = useCallback((type: 'Camera' | 'Media library') => {
-    Alert.alert(
-      `${type} access required`,
-      `Mahi needs ${type.toLowerCase()} access to update your profile photo. Please enable it in Settings.`,
-      [
-        { text: 'Not now', style: 'cancel' },
-        { text: 'Open settings', onPress: () => Linking.openSettings() },
-      ]
-    );
+  /**
+   * Shows a non-blocking alert directing the user to the phone's settings. Only shown once the
+   * phone won't ask again, so "in settings" is the one way left. Words use the names the phone
+   * uses ("camera", "photos"), not "media library".
+   */
+  const showPermissionAlert = useCallback((type: PermissionKind) => {
+    const { title, message } = PERMISSION_TEXT[type];
+    Alert.alert(title, message, [
+      { text: 'Not now', style: 'cancel' },
+      { text: 'Open settings', onPress: () => Linking.openSettings() },
+    ]);
   }, []);
 
   /**
@@ -160,7 +179,7 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
           // Non-blocking — ignore cleanup failure
         }
         setLocalUri(null);
-        Alert.alert('Upload failed', 'Could not update your profile photo. Please try again.');
+        Alert.alert('Couldn’t update your photo', 'Check your connection and try again.');
       } finally {
         setUploading(false);
       }
@@ -176,7 +195,7 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
     async (
       permission: ImagePicker.PermissionResponse | null,
       request: () => Promise<ImagePicker.PermissionResponse>,
-      type: 'Camera' | 'Media library'
+      type: PermissionKind
     ): Promise<boolean> => {
       let perm = permission;
       if (!perm?.granted) {
@@ -195,12 +214,15 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
 
   /** Opens the native camera. Awaits upload to prevent parallel requests. */
   const handleCamera = useCallback(async () => {
-    const ok = await ensurePermission(cameraPermission, requestCameraPermission, 'Camera');
+    const ok = await ensurePermission(cameraPermission, requestCameraPermission, 'camera');
     if (!ok) return;
 
+    // The same square crop as the library, so the circle shows what was framed.
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: 'images',
       quality: 0.8,
+      allowsEditing: true,
+      aspect: [1, 1],
     });
     if (!result.canceled && result.assets[0]) {
       await processAndUpload(result.assets[0].uri);
@@ -209,7 +231,7 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
 
   /** Opens the native media library with a 1:1 crop. Awaits upload to prevent parallel requests. */
   const handleLibrary = useCallback(async () => {
-    const ok = await ensurePermission(libraryPermission, requestLibraryPermission, 'Media library');
+    const ok = await ensurePermission(libraryPermission, requestLibraryPermission, 'photos');
     if (!ok) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -230,14 +252,18 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
   const handleEditPress = useCallback(() => {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
-        { options: ['Cancel', 'Take photo', 'Choose from library'], cancelButtonIndex: 0 },
+        {
+          message: PHOTO_HINT,
+          options: ['Cancel', 'Take photo', 'Choose from library'],
+          cancelButtonIndex: 0,
+        },
         (i) => {
           if (i === 1) handleCamera();
           else if (i === 2) handleLibrary();
         }
       );
     } else {
-      Alert.alert('Update photo', '', [
+      Alert.alert('Profile photo', PHOTO_HINT, [
         { text: 'Take photo', onPress: handleCamera },
         { text: 'Choose from library', onPress: handleLibrary },
         { text: 'Cancel', style: 'cancel' },
@@ -269,8 +295,8 @@ export default function AvatarPicker({
   return (
     <View style={styles.container}>
       {/* Avatar — image or person silhouette placeholder.
-          Tapping a real image opens it full screen (pinch to zoom, swipe to close); the
-          silhouette fallback has nothing to show, so its tap is disabled. */}
+          Tapping a real image opens it full screen (pinch to zoom, swipe to close). The
+          silhouette has nothing to show: on your own profile it adds a photo instead. */}
       {displayUri ? (
         <Pressable
           accessibilityRole="imagebutton"
@@ -281,7 +307,19 @@ export default function AvatarPicker({
           <Image source={{ uri: displayUri }} style={styles.avatar} />
         </Pressable>
       ) : (
-        <View style={[styles.avatar, styles.fallback, { backgroundColor: colors.muted }]}>
+        <Pressable
+          disabled={!isSelf || uploading}
+          onPress={handleEditPress}
+          accessible={isSelf}
+          accessibilityRole="button"
+          accessibilityLabel="Add profile photo"
+          style={({ pressed }) => [
+            styles.avatar,
+            styles.fallback,
+            { backgroundColor: colors.muted },
+            pressed && { opacity: ALPHA.a90 },
+          ]}
+        >
           <Svg width={SIZE.z48} height={SIZE.z48} viewBox="0 0 24 24" fill="none">
             <Path
               d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12Z"
@@ -294,7 +332,7 @@ export default function AvatarPicker({
               opacity={ALPHA.a90}
             />
           </Svg>
-        </View>
+        </Pressable>
       )}
 
       {/* Upload spinner overlay */}
@@ -311,10 +349,11 @@ export default function AvatarPicker({
       {isSelf && !uploading && (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Change profile photo"
+          accessibilityLabel={displayUri ? 'Change profile photo' : 'Add profile photo'}
           style={({ pressed }) => [styles.editButton, pressed && { opacity: ALPHA.a80 }]}
           onPress={handleEditPress}
-          hitSlop={{ top: OFFSET.o6, bottom: OFFSET.o6, left: OFFSET.o6, right: OFFSET.o6 }}
+          // Ten points of slop all round make the small button 44 pt to tap.
+          hitSlop={OFFSET.o10}
         >
           <Text style={styles.editPlus}>+</Text>
         </Pressable>
