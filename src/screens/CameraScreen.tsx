@@ -146,6 +146,13 @@ import { themeColors } from '@/lib/themeColors';
 const NO_TAGS_TITLE = 'You’re all caught up';
 const NO_TAGS_LINE = 'When a friend tags you, you’ll have 48 hours to answer.';
 
+/** 36-tall pills and buttons reach 44 with 4 above and below (rows sit 12 apart, so no overlap). */
+const SLOP_PILL = { top: OFFSET.o4, bottom: OFFSET.o4 };
+/** The 28-wide sheet close × reaches 44 all round. */
+const SLOP_CLOSE = { top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 };
+/** The 30-tall lens options reach 44 (no side slop: the two options touch). */
+const SLOP_LENS = { top: OFFSET.o8, bottom: OFFSET.o6 };
+
 /** The flash setting, kept for this app session only (never saved on the phone). */
 let flashThisSession: FlashChoice = 'off';
 
@@ -804,6 +811,15 @@ function DualPhotoPreview({
               }}
             >
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  taggedUsers.length + slots.length > 0
+                    ? `Tagged: ${tagPillLabel(taggedUsers, slots.length)}`
+                    : 'Tag people'
+                }
+                accessibilityHint="Opens the tag list"
+                accessibilityState={{ disabled: isUploading }}
+                hitSlop={SLOP_PILL}
                 disabled={isUploading}
                 onPress={() => setActiveSheet('tag')}
                 style={({ pressed }) => [
@@ -826,6 +842,10 @@ function DualPhotoPreview({
               </Pressable>
 
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={caption.trim() ? `Caption: ${caption.trim()}` : 'Add a caption'}
+                accessibilityState={{ disabled: isUploading }}
+                hitSlop={SLOP_PILL}
                 disabled={isUploading}
                 onPress={() => setActiveSheet('caption')}
                 style={({ pressed }) => [
@@ -863,7 +883,8 @@ function DualPhotoPreview({
               <Pressable
                 accessibilityRole="switch"
                 accessibilityLabel="Add location"
-                accessibilityState={{ checked: locationEnabled }}
+                accessibilityState={{ checked: locationEnabled, disabled: isUploading }}
+                hitSlop={SLOP_PILL}
                 disabled={isUploading}
                 onPress={onToggleLocation}
                 style={({ pressed }) => [{ flex: 1 }, pressed && { opacity: ALPHA.a85 }]}
@@ -881,6 +902,10 @@ function DualPhotoPreview({
             </View>
 
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={tagsMissing > 0 ? `Tag ${tagsMissing} more` : 'Post'}
+              accessibilityHint={tagsMissing > 0 ? 'Opens the tag list' : undefined}
+              accessibilityState={{ disabled: isUploading, busy: isUploading }}
               style={({ pressed }) => [
                 styles.postButton,
                 (isUploading || tagsMissing > 0) && { opacity: ALPHA.a50 },
@@ -1029,7 +1054,13 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
       onRequestClose={commit}
     >
       <View style={styles.sheetFlex}>
-        <Pressable style={styles.sheetScrim} onPress={commit} />
+        {/* Tapping outside saves, like Done; Done is the one VoiceOver reads. */}
+        <Pressable
+          style={styles.sheetScrim}
+          onPress={commit}
+          accessible={false}
+          importantForAccessibility="no"
+        />
         <View style={styles.sheetPanel}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetLabelRow}>
@@ -1052,6 +1083,7 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
             textAlignVertical="top"
           />
           <Pressable
+            accessibilityRole="button"
             style={({ pressed }) => [styles.sheetDone, pressed && { opacity: ALPHA.a85 }]}
             onPress={commit}
           >
@@ -1083,6 +1115,9 @@ function TagUserRow({
   const reason = cantTagReason(item);
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${display}, @${item.username}${reason ? `, ${reason}` : ''}`}
+      accessibilityState={{ selected, disabled: item.has_open_tag }}
       style={({ pressed }) => [
         styles.tagRow,
         selected && styles.tagRowSelected,
@@ -1264,6 +1299,7 @@ function TagSheet({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close"
+              hitSlop={SLOP_CLOSE}
               style={({ pressed }) => [styles.sheetCloseX, pressed && { opacity: ALPHA.a70 }]}
               onPress={onCancel}
             >
@@ -1336,22 +1372,34 @@ function TagSheet({
             <View style={styles.inviteSteppers}>
               {invites > 0 ? (
                 <Pressable
-                  style={({ pressed }) => [styles.inviteStep, pressed && { opacity: ALPHA.a70 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove an invite"
+                  style={({ pressed }) => [
+                    styles.inviteStepTarget,
+                    pressed && { opacity: ALPHA.a70 },
+                  ]}
                   onPress={() => setInvites((n) => Math.max(0, n - 1))}
                 >
-                  <Text style={styles.inviteStepText}>−</Text>
+                  <View style={styles.inviteStep}>
+                    <Text style={styles.inviteStepText}>−</Text>
+                  </View>
                 </Pressable>
               ) : null}
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add an invite"
+                accessibilityState={{ disabled: filled >= maxTags }}
                 style={({ pressed }) => [
-                  styles.inviteStep,
+                  styles.inviteStepTarget,
                   { opacity: filled >= maxTags ? ALPHA.a30 : 1 },
                   pressed && { opacity: ALPHA.a70 },
                 ]}
                 disabled={filled >= maxTags}
                 onPress={addInvite}
               >
-                <Text style={styles.inviteStepText}>+</Text>
+                <View style={styles.inviteStep}>
+                  <Text style={styles.inviteStepText}>+</Text>
+                </View>
               </Pressable>
             </View>
           </View>
@@ -1359,6 +1407,7 @@ function TagSheet({
 
         {singleShot ? null : (
           <Pressable
+            accessibilityRole="button"
             style={({ pressed }) => [styles.sheetDone, pressed && { opacity: ALPHA.a85 }]}
             onPress={() => onCommit(selected, invites)}
           >
@@ -2359,8 +2408,16 @@ export default function CameraScreen({
           >
             <View style={styles.toggleRow}>
               {facing === 'back' && ultraWideLens && (
-                <View style={styles.lensToggle}>
+                <View
+                  style={styles.lensToggle}
+                  accessibilityRole="radiogroup"
+                  accessibilityLabel="Lens"
+                >
                   <Pressable
+                    accessibilityRole="radio"
+                    accessibilityLabel="Normal lens, 1×"
+                    accessibilityState={{ checked: !useUltraWide, disabled: isCapturing }}
+                    hitSlop={SLOP_LENS}
                     style={({ pressed }) => [
                       styles.lensOption,
                       !useUltraWide && styles.lensOptionActive,
@@ -2380,6 +2437,10 @@ export default function CameraScreen({
                     </Text>
                   </Pressable>
                   <Pressable
+                    accessibilityRole="radio"
+                    accessibilityLabel="Wide lens, 0.5×"
+                    accessibilityState={{ checked: useUltraWide, disabled: isCapturing }}
+                    hitSlop={SLOP_LENS}
                     style={({ pressed }) => [
                       styles.lensOption,
                       useUltraWide && styles.lensOptionActive,
@@ -2401,7 +2462,11 @@ export default function CameraScreen({
                 </View>
               )}
               {videoOn && (
-                <View style={styles.lensToggle} accessibilityRole="radiogroup">
+                <View
+                  style={styles.lensToggle}
+                  accessibilityRole="radiogroup"
+                  accessibilityLabel="Photo or video"
+                >
                   {(['photo', 'video'] as const).map((m) => (
                     <Pressable
                       key={m}
@@ -2411,6 +2476,7 @@ export default function CameraScreen({
                         pressed && { opacity: ALPHA.a80 },
                       ]}
                       disabled={switchDisabled}
+                      hitSlop={SLOP_LENS}
                       accessibilityRole="radio"
                       accessibilityLabel={m === 'photo' ? 'Photo' : 'Video'}
                       accessibilityHint={
@@ -2689,7 +2755,7 @@ const styles = StyleSheet.create({
   },
   lensOption: {
     minWidth: SIZE.z44,
-    height: SIZE.z30,
+    minHeight: SIZE.z30,
     paddingHorizontal: SPACE.s12,
     borderRadius: RADIUS.r17,
     alignItems: 'center',
@@ -2774,7 +2840,8 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   captionPill: {
-    height: SIZE.z36,
+    minHeight: SIZE.z36,
+    paddingVertical: SPACE.s8,
     borderRadius: RADIUS.r18,
     paddingHorizontal: SPACE.s18,
     alignItems: 'center',
@@ -2884,6 +2951,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: SPACE.s8,
   },
+  /** The −/+ tap area: 44 square, transparent; the 32 circle sits inside it. */
+  inviteStepTarget: {
+    width: SIZE.z44,
+    height: SIZE.z44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   inviteStep: {
     width: SIZE.z32,
     height: SIZE.z32,
@@ -2924,7 +2998,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   tagSearchInput: {
-    height: SIZE.z44,
+    minHeight: SIZE.z44,
     color: COLORS.offWhite,
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.regular,

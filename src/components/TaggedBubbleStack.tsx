@@ -36,8 +36,11 @@ export default function TaggedBubbleStack({ users, onPressUser, style }: Props) 
           key={u.user_id}
           disabled={!onPressUser}
           onPress={() => onPressUser?.(u)}
-          accessibilityRole="link"
-          accessibilityLabel={`@${u.username}`}
+          // A 44-point target; the bubbles' gap fits both slops, so they meet but never overlap.
+          hitSlop={{ top: OFFSET.o4, bottom: OFFSET.o4 }}
+          accessibilityRole={onPressUser ? 'link' : 'text'}
+          accessibilityLabel={`Tagged @${u.username}`}
+          accessibilityHint={onPressUser ? 'Opens their profile' : undefined}
         >
           <BlurView intensity={BLUR_INTENSITY.i40} tint="dark" style={styles.bubble}>
             <Text style={styles.bubbleText} numberOfLines={1} ellipsizeMode="tail">
@@ -60,11 +63,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: OFFSET.o16,
     bottom: OFFSET.o16,
-    gap: SPACE.s6,
+    gap: SPACE.s8,
     alignItems: 'flex-start',
   },
   bubble: {
-    height: SIZE.z32,
+    // Grows with the text size instead of clipping it.
+    minHeight: SIZE.z36,
     borderRadius: RADIUS.r16,
     paddingHorizontal: SPACE.s14,
     alignItems: 'center',
