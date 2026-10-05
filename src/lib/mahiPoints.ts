@@ -24,3 +24,38 @@ export function pointsStatsLabel(
   const n = points ?? 0;
   return `${n} Mahi ${n === 1 ? 'point' : 'points'}. Best, ${pointsCount(best)}.`;
 }
+
+/**
+ * The number on the camera and profile: a dash until it has loaded, so a 0 never shows and then
+ * changes (owner rule: never show data that then swaps).
+ */
+export function pointsValue(points: number | null | undefined): string {
+  return points === null || points === undefined ? '–' : String(points);
+}
+
+/**
+ * The toast after every post. A post that answers no tag (the first post) opens the feed for 24
+ * hours (#29); one that answers at least one tag earns one point (#47), however many it answers.
+ * `points` is the total after the post (null when the server sent none); `bestBefore` the best
+ * before it. No speed, no streak.
+ */
+export function postedToast({
+  answered,
+  points,
+  bestBefore,
+}: {
+  answered: string[];
+  points: number | null;
+  bestBefore: number | null;
+}): string {
+  if (answered.length === 0) return 'Posted. Your feed is open for 24 hours.';
+  const others = answered.length - 1;
+  const more = others > 0 ? ` and ${others} ${others === 1 ? 'other' : 'others'}` : '';
+  const who = `Answered @${answered[0]}${more}.`;
+  if (points === null) return `${who} +1 Mahi point.`;
+  if (bestBefore === 0 && points === 1) return `${who} You earned your first Mahi point.`;
+  if (bestBefore !== null && bestBefore >= 1 && points > bestBefore) {
+    return `${who} +1 Mahi point. New best: ${points}.`;
+  }
+  return `${who} +1 Mahi point. You have ${points}.`;
+}

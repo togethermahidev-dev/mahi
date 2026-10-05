@@ -24,6 +24,7 @@ import Reanimated, {
   useAnimatedStyle,
   withSpring,
   runOnJS,
+  useReducedMotion,
 } from 'react-native-reanimated';
 import { haptic, hapticSequence, postedMoments } from '@/lib/haptics';
 import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
@@ -59,7 +60,7 @@ import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import OpenTagsBanner from '@/components/OpenTagsBanner';
 import PointsBadge from '@/components/PointsBadge';
 import { CameraIcon } from '@/components/ScreenIcons';
-import { pointsCount } from '@/lib/mahiPoints';
+import { pointsCount, pointsValue, postedToast } from '@/lib/mahiPoints';
 import KeyboardInset from '@/components/KeyboardInset';
 import FlashButton from '@/components/FlashButton';
 import FocusSquare, { FOCUS_SQUARE_SIZE, type FocusTap } from '@/components/FocusSquare';
@@ -86,7 +87,6 @@ import {
   type MediaType,
   type ShutterPress,
 } from '@/lib/videoPosts';
-import { formatWait } from '@/lib/countdown';
 import {
   PHOTO_CAPTURE,
   flashMode,
@@ -150,26 +150,53 @@ function topRightY(insetTop: number): number {
   return insetTop + OFFSET.o48;
 }
 
-/** Your Mahi points, in the top-right corner of the live camera. */
-function PointsCounter({ count }: { count: number }) {
+/**
+ * Your Mahi points, in the top-right corner of the live camera. `null` until your profile has
+ * loaded: a muted dash, never a 0 that then changes. The number lands (zoom + fade) the first
+ * time it's known, and pops a little when it goes up; with Reduce Motion it only fades.
+ */
+function PointsCounter({ count }: { count: number | null }) {
   const insets = useSafeAreaInsets();
-  const scaleAnim = useRef(new Animated.Value(SCALE.s4)).current;
+  const reduceMotion = useReducedMotion();
+  const scaleAnim = useRef(new Animated.Value(reduceMotion ? 1 : SCALE.s4)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const lastCount = useRef<number | null>(null);
+  const known = count !== null;
 
+  // The landing: once, when the number is first known (the dash just fades in before that).
   useEffect(() => {
+    if (!known) {
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: DURATION.d180,
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
+    opacityAnim.setValue(0);
+    if (reduceMotion) scaleAnim.setValue(1);
     Animated.parallel([
       Animated.timing(opacityAnim, {
         toValue: 1,
         duration: DURATION.d180,
         useNativeDriver: true,
       }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        ...SPRING.land,
-        useNativeDriver: true,
-      }),
+      ...(reduceMotion
+        ? []
+        : [Animated.spring(scaleAnim, { toValue: 1, ...SPRING.land, useNativeDriver: true })]),
     ]).start();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [known]);
+
+  // A point earned: a small pop from the number (none with Reduce Motion).
+  useEffect(() => {
+    const before = lastCount.current;
+    lastCount.current = count;
+    if (count === null || before === null || count <= before || reduceMotion) return;
+    scaleAnim.setValue(SCALE.s1_3);
+    Animated.spring(scaleAnim, { toValue: 1, ...SPRING.land, useNativeDriver: true }).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [count]);
 
   return (
     <Animated.View
@@ -178,9 +205,11 @@ function PointsCounter({ count }: { count: number }) {
         { top: topRightY(insets.top), transform: [{ scale: scaleAnim }], opacity: opacityAnim },
       ]}
       accessible
-      accessibilityLabel={`Mahi points: ${pointsCount(count)}`}
+      accessibilityLabel={known ? `Mahi points: ${pointsCount(count)}` : 'Mahi points loading'}
     >
-      <Text style={styles.pointsNumber}>{count}</Text>
+      <Text style={[styles.pointsNumber, !known && { color: themeColors(true).muted }]}>
+        {pointsValue(count)}
+      </Text>
       <Text style={styles.pointsLabel}>Points</Text>
     </Animated.View>
   );
@@ -445,20 +474,44 @@ function DualPhotoPreview({
   // tag pill and commits/cancels go straight back to 'none'.
   const [captionAtIndex, setCaptionAtIndex] = useState<number | null>(null);
 
+  // Reduce Motion: the preview fades in and out instead of sliding (owner approved 2026-10-05).
+  const reduceMotion = useReducedMotion();
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     if (hasPhotos) {
       setModalOpen(true);
+      if (reduceMotion) {
+        slideAnim.setValue(0);
+        fadeAnim.setValue(0);
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: DURATION.d200,
+          useNativeDriver: true,
+        }).start();
+        return;
+      }
+      fadeAnim.setValue(1);
       Animated.spring(slideAnim, {
         toValue: 0,
         ...SPRING.page,
         useNativeDriver: true,
       }).start();
     } else {
-      Animated.spring(slideAnim, {
-        toValue: SCREEN_WIDTH,
-        ...SPRING.page,
-        useNativeDriver: true,
-      }).start(() => {
+      const close = reduceMotion
+        ? Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: DURATION.d200,
+            useNativeDriver: true,
+          })
+        : Animated.spring(slideAnim, {
+            toValue: SCREEN_WIDTH,
+            ...SPRING.page,
+            useNativeDriver: true,
+          });
+      close.start(() => {
+        slideAnim.setValue(SCREEN_WIDTH);
+        fadeAnim.setValue(1);
         frozenFront.current = null;
         frozenRear.current = null;
         setModalOpen(false);
@@ -644,7 +697,12 @@ function DualPhotoPreview({
       onRequestClose={handleDiscard}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <Animated.View style={[styles.previewPanel, { transform: [{ translateX: slideAnim }] }]}>
+        <Animated.View
+          style={[
+            styles.previewPanel,
+            { transform: [{ translateX: slideAnim }], opacity: fadeAnim },
+          ]}
+        >
           {/* Primary full-screen photo — pinch to zoom, drag to pan when
             zoomed, double-tap to reset. Lives behind the PIP/pills. */}
           {primaryUri && (
@@ -1434,7 +1492,8 @@ export default function CameraScreen({
     return () => clearInterval(id);
   }, [recordingSince]);
 
-  const pointsCountNow = profile?.streak_current ?? 0;
+  // Null until the profile has loaded: the counter shows a dash, never a 0 that then changes.
+  const pointsCountNow = profile ? profile.streak_current : null;
 
   // Reactive posting: your first post, then only while a friend's tag is open. The feed already
   // knows whether you've posted: its `unlockedUntil` is null until your first post (and the feed
@@ -1953,16 +2012,17 @@ export default function CameraScreen({
         track('tag_answered', { tagger_id: answered.tagger_id, seconds: answered.seconds });
       }
 
-      const firstAnswered = result.answered[0];
-      if (firstAnswered) {
-        useUserStore.getState().refresh(userId);
-        const more = result.answered.length > 1 ? ` +${result.answered.length - 1}` : '';
-        useToastStore
-          .getState()
-          .show(
-            `Answered @${firstAnswered.username}${more} in ${formatWait(firstAnswered.seconds)}`
-          );
-      }
+      if (result.answered.length > 0) useUserStore.getState().refresh(userId);
+      // Every post says it worked: the first post opens the feed; an answer earns the point.
+      useToastStore.getState().show(
+        postedToast({
+          answered: result.answered.map((a) => a.username),
+          points: result.streak.streak_current,
+          // The best before this post (`profile` was read before posting).
+          bestBefore: profile.streak_highest,
+        }),
+        WAIT.toastLong
+      );
       useTagStore.getState().syncOpenTags();
       if (tagSlotsOn) {
         // Links were shared on the tag screen; nothing is left to send.
