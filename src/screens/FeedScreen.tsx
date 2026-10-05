@@ -18,7 +18,7 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { answersATag } from '@/lib/reactivePosting';
 import FeedLockBanner from '@/components/FeedLockBanner';
-import { useSocialStore, useAuthStore } from '@/store';
+import { useSocialStore, useAuthStore, useChromeStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import PostCard from '@/components/PostCard';
@@ -139,6 +139,8 @@ export default function FeedScreen({
 }: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
   const headerH = appHeaderHeight(useSafeAreaInsets().top);
+  // A photo being pinched holds the list still.
+  const zooming = useChromeStore((s) => s.zooming);
   // TikTok-style snap: each card fills the page (the screen, or the space above the tab bar).
   const { width: screenWidth, height: cardHeight } = usePageSize();
   const bg = dark ? COLORS.bgDark : COLORS.white;
@@ -259,6 +261,7 @@ export default function FeedScreen({
     <View style={[styles.root, { backgroundColor: bg }]}>
       <ListGestureContext.Provider value={listGesture}>
         <FlashList
+          scrollEnabled={!zooming}
           renderScrollComponent={GestureScrollView}
           data={posts}
           keyExtractor={(item) => item.id}

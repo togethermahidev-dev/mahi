@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { TabBarRoomContext, useChromeFade } from '@/hooks/useChrome';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useChromeStore } from '@/store';
 import PostCard from '@/components/PostCard';
 import CommentSheet from '@/components/CommentSheet';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
@@ -110,6 +110,8 @@ function ViewerPages({
   const myId = useAuthStore((s) => s.user?.id);
   // Holding a post (hold to view) fades the ✕ away with everything else over the photo.
   const chrome = useChromeFade();
+  // A photo being pinched holds the list and the close swipe still.
+  const zooming = useChromeStore((s) => s.zooming);
 
   const { posts: all, hasMore, loadMore } = useProfilePosts(userId);
   const posts = useMemo(() => openablePosts(all), [all]);
@@ -146,6 +148,8 @@ function ViewerPages({
   const list = useMemo(() => Gesture.Native(), []);
   const dx = useSharedValue(0);
   const swipe = Gesture.Pan()
+    .enabled(!zooming)
+    .maxPointers(1)
     .activeOffsetX([-VIEWER.swipeSlop, VIEWER.swipeSlop])
     .failOffsetY([-VIEWER.swipeSlop, VIEWER.swipeSlop])
     .simultaneousWithExternalGesture(list)
@@ -181,6 +185,7 @@ function ViewerPages({
         <Reanimated.View style={[styles.root, pagesStyle]}>
           <ListGestureContext.Provider value={list}>
             <FlashList
+              scrollEnabled={!zooming}
               renderScrollComponent={GestureScrollView}
               data={posts}
               keyExtractor={(item) => item.id}

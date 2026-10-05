@@ -2,8 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActionSheetIOS,
   Alert,
-  Animated,
-  Dimensions,
   View,
   Text,
   Image,
@@ -11,8 +9,19 @@ import {
   Platform,
   Pressable,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import Reanimated, {
+  ReduceMotion,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+import { backSwipeCloses, backSwipeX } from '@/lib/swipeRules';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   getProfile,
@@ -47,17 +56,15 @@ import {
   LINE_HEIGHT,
   TRACKING,
   LAYER,
+  VIEWER,
 } from '@/constants/tokens';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
-
 /** How far the finger moves sideways before the swipe takes over (up/down that far cancels it). */
 const SWIPE_SLOP = 20;
-/** A swipe closes the profile past this distance (px) or speed (px/s). */
-const SWIPE_CLOSE_PX = 60;
-const SWIPE_CLOSE_VX = 400;
+/** The page swipe's spring (HorizontalNavigator), in and back. Runs even with Reduce Motion on. */
+const SPRING = { damping: 22, stiffness: 160, mass: 0.9, reduceMotion: ReduceMotion.Never };
 
 interface UserProfileScreenProps {
   userId: string;
@@ -93,10 +100,19 @@ export default function UserProfileScreen({
   const onBackRef = useRef(onBack);
   onBackRef.current = onBack;
 
-  // Entrance animation: spring the overlay in from the right (SCREEN_WIDTH → 0)
-  // on mount so every caller (notifications, feed, search) gets the same motion
-  // for free. Same spring params as HorizontalNavigator page changes.
-  const translateX = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+  // Slides in from the right on open (every caller gets the same motion), follows the finger on a
+  // swipe right, and slides back out to close — on the UI thread, like the page swipes.
+  const { width } = useWindowDimensions();
+  const x = useSharedValue(width);
+  const startX = useSharedValue(0);
+  const closing = useSharedValue(false);
+  const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
+  const close = () => {
+    closing.value = true;
+    x.value = withTiming(width, { duration: VIEWER.closeMs }, (done) => {
+      if (done) scheduleOnRN(onBackRef.current);
+    });
+  };
 
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -112,32 +128,41 @@ export default function UserProfileScreen({
   // a vertical list grabs a touch after ~10pt in any direction, before the swipe decides.
   const pageList = useMemo(() => Gesture.Native(), []);
 
-  // Swipe sideways to close. The pan only takes over once the finger has clearly moved
-  // sideways, so taps and up/down scrolls stay with the buttons and lists inside. Off while a
-  // screen opened from here is on top, so a swipe there closes that one only.
+  // Swipe right to close. The pan only takes over once the finger has clearly moved right, so
+  // taps and up/down scrolls stay with the buttons and lists inside. Off while a screen opened
+  // from here is on top, so a swipe there closes that one only.
   const swipeBack = Gesture.Pan()
-    .runOnJS(true)
     .enabled(!suggestedUserId && !activeConvo)
     .simultaneousWithExternalGesture(pageList)
-    .activeOffsetX([-SWIPE_SLOP, SWIPE_SLOP])
+    .activeOffsetX(SWIPE_SLOP)
+    .failOffsetX(-SWIPE_SLOP)
     .failOffsetY([-SWIPE_SLOP, SWIPE_SLOP])
-    // A swipe during the entrance spring freezes it where it is, so the screen doesn't jump.
-    .onStart(() => translateX.stopAnimation())
+    .onStart(() => {
+      'worklet';
+      // A swipe during the slide in takes it from where it is, so the screen doesn't jump.
+      cancelAnimation(x);
+      startX.value = x.value;
+    })
+    .onUpdate((e) => {
+      'worklet';
+      if (!closing.value) x.value = backSwipeX(startX.value, e.translationX);
+    })
     .onEnd((e) => {
-      if (Math.abs(e.translationX) > SWIPE_CLOSE_PX || Math.abs(e.velocityX) > SWIPE_CLOSE_VX) {
-        onBackRef.current();
+      'worklet';
+      if (closing.value) return;
+      if (backSwipeCloses(e.translationX, e.velocityX / 1000)) {
+        closing.value = true;
+        x.value = withTiming(width, { duration: VIEWER.closeMs }, (done) => {
+          if (done) scheduleOnRN(onBackRef.current);
+        });
+      } else {
+        x.value = withSpring(0, SPRING);
       }
     });
 
   useEffect(() => {
-    Animated.spring(translateX, {
-      toValue: 0,
-      damping: 22,
-      stiffness: 160,
-      mass: 0.9,
-      useNativeDriver: true,
-    }).start();
-  }, [translateX]);
+    x.value = withSpring(0, SPRING);
+  }, [x]);
 
   useEffect(() => {
     if (currentUserId) loadFollowData(currentUserId, userId);
@@ -385,7 +410,7 @@ export default function UserProfileScreen({
           { borderColor: muted },
           pressed && { opacity: 0.2 },
         ]}
-        onPress={onBack}
+        onPress={close}
         accessibilityRole="button"
         accessibilityLabel="Back"
         hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
@@ -526,9 +551,7 @@ export default function UserProfileScreen({
 
   return (
     <GestureDetector gesture={swipeBack}>
-      <Animated.View
-        style={[styles.root, { backgroundColor: bg, paddingTop: top, transform: [{ translateX }] }]}
-      >
+      <Reanimated.View style={[styles.root, { backgroundColor: bg, paddingTop: top }, slideStyle]}>
         {loading ? (
           <View style={styles.page}>
             {topButtons}
@@ -615,7 +638,7 @@ export default function UserProfileScreen({
             dark={dark}
           />
         ) : null}
-      </Animated.View>
+      </Reanimated.View>
     </GestureDetector>
   );
 }

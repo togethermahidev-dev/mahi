@@ -82,6 +82,8 @@ export default function HorizontalNavigator({
   const tab: RailTab = pageTab(index);
   // A full-screen view the rail would sit on (someone's profile, search) hides it too.
   const covered = useChromeStore((s) => s.covers > 0);
+  // A post's photo being pinched holds the pages still.
+  const zooming = useChromeStore((s) => s.zooming);
   const railShown = railShows({ on: showRail, tab, overlay, covered });
   const blurTargetRef = useRef<View | null>(null);
 
@@ -93,8 +95,8 @@ export default function HorizontalNavigator({
   const indexSV = useSharedValue(CAMERA);
   const blockedSV = useSharedValue(false);
   useEffect(() => {
-    blockedSV.value = overlay;
-  }, [overlay, blockedSV]);
+    blockedSV.value = overlay || zooming;
+  }, [overlay, zooming, blockedSV]);
   // Where the strip sits, in pages (0 = Camera); fractional mid-swipe.
   const page = useSharedValue(CAMERA);
   const startX = useSharedValue(0);
@@ -187,6 +189,12 @@ export default function HorizontalNavigator({
       'worklet';
       const t = e.allTouches[0];
       if (decided.value || !t) return;
+      // A second finger (a pinch) is never a page swipe.
+      if (e.numberOfTouches > 1) {
+        decided.value = true;
+        manager.fail();
+        return;
+      }
       const decision = horizontalSwipe({
         startX: startX.value,
         startY: startY.value,

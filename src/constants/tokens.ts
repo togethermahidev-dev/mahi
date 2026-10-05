@@ -299,8 +299,9 @@ export const NAV_RAIL = {
 
 // ─── Full-screen posts (feed and post viewer) ───────────────────────────────────
 export const POST_CARD = {
-  /** The like / comment column's bottom edge, as a share of the post's height (TikTok, Reels). */
-  actionsBottom: 0.3,
+  /** The like / comment column's bottom edge, as a share of the post's height: near the middle,
+   *  in line with Reels (founder, 2026-10-05: "move further up a bit"; was 0.3). */
+  actionsBottom: 0.4,
   /** The shade behind the name, caption and buttons covers this share of the post, full width… */
   shadeHeight: 0.5,
   /** …darkening to this opacity part-way down (behind the buttons)… */
@@ -349,6 +350,11 @@ export const VIEWER = {
   zoomMin: 1,
   zoomMax: 4,
   zoomDoubleTap: 2.5,
+  /** A profile picture opens as a circle this share of the screen's short side (founder: a big
+   *  square was too invasive). */
+  avatarShare: 0.72,
+  /** Pinch to zoom on a post's photo: the most it allows; letting go springs it back. */
+  pinchMax: 4,
 } as const;
 
 // ─── Live camera: the flash button and tap to focus (flag camera-tap-focus) ─────

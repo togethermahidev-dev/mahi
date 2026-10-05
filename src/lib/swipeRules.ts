@@ -92,3 +92,23 @@ export function horizontalRelease(index: number, count: number, dx: number, vx: 
   if ((dx < -H_SWIPE_PX || vx < -H_SWIPE_V) && index < count - 1) next = index + 1;
   return next;
 }
+
+// ─── Closing a profile opened over a page ─────────────────────────────────────
+// It follows the finger to the right and closes like a page swipe (founder, 2026-10-05: "the
+// swipe needs to be clean like every other swipe on the app").
+
+/** Where the profile sits while dragged: right of where it started, never left of the screen. */
+export function backSwipeX(startX: number, dx: number): number {
+  'worklet';
+  return Math.max(0, startX + dx);
+}
+
+/**
+ * Whether letting go closes it: the drag or flick that turns a page (`horizontalRelease`), to the
+ * right. A flick back to the left keeps it open.
+ */
+export function backSwipeCloses(dx: number, vx: number): boolean {
+  'worklet';
+  if (vx < -H_SWIPE_V) return false;
+  return dx > H_SWIPE_PX || vx > H_SWIPE_V;
+}

@@ -53,3 +53,45 @@ export function clampPan(offset: number, scale: number, size: number): number {
   if (max <= 0) return 0;
   return Math.min(max, Math.max(-max, offset));
 }
+
+/**
+ * A profile picture opens as a circle, a share of the screen's short side (founder, 2026-10-05:
+ * a big square was too invasive).
+ */
+export function avatarCircleSize(width: number, height: number): number {
+  return Math.round(Math.min(width, height) * VIEWER.avatarShare);
+}
+
+/** A tap on the dark space around the picture closes it; a tap on the picture does not. */
+export function avatarTapCloses(t: {
+  x: number;
+  y: number;
+  cx: number;
+  cy: number;
+  size: number;
+  scale: number;
+}): boolean {
+  'worklet';
+  return Math.hypot(t.x - t.cx, t.y - t.cy) > (t.size / 2) * t.scale;
+}
+
+/**
+ * Pinch to zoom on a post's photo: how far to move it so the point between the fingers stays
+ * under them while it grows (it scales about its centre), plus however far the fingers have
+ * moved since the pinch began. `startX/Y` is where the fingers were then, `focalX/Y` now.
+ */
+export function pinchOffset(p: {
+  width: number;
+  height: number;
+  scale: number;
+  focalX: number;
+  focalY: number;
+  startX: number;
+  startY: number;
+}): { x: number; y: number } {
+  'worklet';
+  return {
+    x: (p.startX - p.width / 2) * (1 - p.scale) + (p.focalX - p.startX),
+    y: (p.startY - p.height / 2) * (1 - p.scale) + (p.focalY - p.startY),
+  };
+}

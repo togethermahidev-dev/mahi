@@ -3,6 +3,8 @@ import {
   horizontalRelease,
   horizontalSwipe,
   rubberBand,
+  backSwipeX,
+  backSwipeCloses,
 } from '../swipeRules';
 
 describe('swipe rules', () => {
@@ -96,6 +98,24 @@ describe('swipe rules', () => {
     });
   });
 
+  // A profile opened over a page follows the finger right and closes like a page swipe
+  // (founder, 2026-10-05: "the swipe needs to be clean like every other swipe on the app").
+  describe('backSwipeX / backSwipeCloses (closing a profile opened over a page)', () => {
+    it('follows the finger right, never past where it started', () => {
+      expect(backSwipeX(0, 120)).toBe(120);
+      expect(backSwipeX(0, -50)).toBe(0);
+      expect(backSwipeX(30, 20)).toBe(50);
+    });
+    it('closes after the same drag or flick that turns a page', () => {
+      expect(backSwipeCloses(61, 0)).toBe(true);
+      expect(backSwipeCloses(10, 0.5)).toBe(true);
+      expect(backSwipeCloses(60, 0.4)).toBe(false);
+    });
+    it('a flick back left keeps it open', () => {
+      expect(backSwipeCloses(120, -0.5)).toBe(false);
+    });
+  });
+
   // The navigator runs these on the UI thread inside gesture callbacks.
   it('every rule is marked to run on the UI thread', () => {
     for (const fn of [
@@ -103,6 +123,8 @@ describe('swipe rules', () => {
       atListTop,
       rubberBand,
       horizontalRelease,
+      backSwipeX,
+      backSwipeCloses,
     ]) {
       expect(fn.toString()).toContain("'worklet'");
     }

@@ -10,7 +10,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Reanimated from 'react-native-reanimated';
+import Reanimated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { LinearGradient } from 'expo-linear-gradient';
 import { haptic } from '@/lib/haptics';
 import {
@@ -22,6 +27,8 @@ import {
 } from '@/store';
 import { useChromeFade, useTabBarRoom } from '@/hooks/useChrome';
 import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { pinchOffset } from '@/lib/viewer';
 import { ListGestureContext } from '@/components/GestureScrollView';
 import { HeartIcon, CommentIcon } from '@/components/ScreenIcons';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
@@ -57,6 +64,7 @@ import {
   TRACKING,
   SHADOW_BLUR,
   POST_CARD,
+  VIEWER,
 } from '@/constants/tokens';
 
 /**
@@ -237,9 +245,68 @@ export default function PostCard({
     .onStart(startHold)
     .onFinalize(endHold);
   if (list) hold.simultaneousWithExternalGesture(list);
+  // ── Pinch to zoom (flag pinch-zoom; founder, 2026-10-05) ─────────────────
+  // Two fingers zoom in on the photo around the point between them; letting go springs it back,
+  // as on Instagram. While pinching, everything over the post fades and the list and the page
+  // swipes hold still (`chromeStore.zooming`).
+  const pinchOn = useFeatureFlag('pinch-zoom');
+  const zoom = useSharedValue(1);
+  const zoomX = useSharedValue(0);
+  const zoomY = useSharedValue(0);
+  const pinchStartX = useSharedValue(0);
+  const pinchStartY = useSharedValue(0);
+  const mediaH = useSharedValue(height);
+  const startZoom = useCallback(() => {
+    useChromeStore.getState().setZooming(true);
+    useChromeStore.getState().setViewing(true);
+  }, []);
+  const endZoom = useCallback(() => {
+    useChromeStore.getState().setZooming(false);
+    if (!holding.current) useChromeStore.getState().setViewing(false);
+  }, []);
+  // A card recycled or closed mid-pinch lets the pages move again.
+  useEffect(() => endZoom, [endZoom]);
+  const pinch = Gesture.Pinch()
+    .enabled(pinchOn)
+    .onStart((e) => {
+      'worklet';
+      pinchStartX.value = e.focalX;
+      pinchStartY.value = e.focalY;
+      scheduleOnRN(startZoom);
+    })
+    .onUpdate((e) => {
+      'worklet';
+      const scale = Math.min(VIEWER.pinchMax, Math.max(VIEWER.zoomMin, e.scale));
+      const offset = pinchOffset({
+        width,
+        height: mediaH.value,
+        scale,
+        focalX: e.focalX,
+        focalY: e.focalY,
+        startX: pinchStartX.value,
+        startY: pinchStartY.value,
+      });
+      zoom.value = scale;
+      zoomX.value = offset.x;
+      zoomY.value = offset.y;
+    })
+    .onFinalize(() => {
+      'worklet';
+      zoom.value = withSpring(VIEWER.zoomMin, VIEWER.snapBack);
+      zoomX.value = withSpring(0, VIEWER.snapBack);
+      zoomY.value = withSpring(0, VIEWER.snapBack);
+      scheduleOnRN(endZoom);
+    });
+  if (list) pinch.simultaneousWithExternalGesture(list);
+  const zoomStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: zoomX.value }, { translateY: zoomY.value }, { scale: zoom.value }],
+  }));
+
   // Hold to preview on: Apple's context menu owns the hold, so hold to view steps aside.
   const menuOn = useContextMenuPreview();
-  const postGesture = menuOn ? doubleTap : Gesture.Simultaneous(doubleTap, hold);
+  const postGesture = menuOn
+    ? Gesture.Simultaneous(doubleTap, pinch)
+    : Gesture.Simultaneous(doubleTap, hold, pinch);
 
   // ── Like handler (action bar tap) ───────────────────────────────────────
   const handleLike = useCallback(() => {
@@ -327,7 +394,13 @@ export default function PostCard({
                 { width, flex: 1 },
                 primaryLandscape && primaryKind === 'photo' && styles.letterbox,
               ]}
+              onLayout={(e) => {
+                mediaH.value = e.nativeEvent.layout.height;
+              }}
             >
+              <Reanimated.View style={[StyleSheet.absoluteFill, zoomStyle]} pointerEvents="none">
+                {menuOn ? null : media}
+              </Reanimated.View>
               {menuOn ? (
                 // VoiceOver: the post is one element with the menu's choices as actions.
                 <View
@@ -339,9 +412,7 @@ export default function PostCard({
                 >
                   {media}
                 </View>
-              ) : (
-                media
-              )}
+              ) : null}
               {/* Everything over the photo; fades away while the post is held */}
               <Reanimated.View
                 style={[StyleSheet.absoluteFill, chrome.style]}

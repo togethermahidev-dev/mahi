@@ -46,3 +46,21 @@ describe('sign-out', () => {
     expect(state()).toMatchObject({ viewing: false, covers: 0 });
   });
 });
+
+// Pinch to zoom on a post (founder, 2026-10-05): the list and the page swipes hold still while
+// a photo is pinched, and everything over it fades as when held.
+describe('pinch to zoom', () => {
+  it('zooming holds the pages still until the pinch ends', () => {
+    expect(state().zooming).toBe(false);
+    state().setZooming(true);
+    expect(state().zooming).toBe(true);
+    state().setZooming(false);
+    expect(state().zooming).toBe(false);
+  });
+
+  it('a reset (signing out) ends it', () => {
+    state().setZooming(true);
+    state().reset();
+    expect(state().zooming).toBe(false);
+  });
+});

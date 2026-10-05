@@ -9,7 +9,15 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { backdropOpacity, clampPan, clampZoom, doubleTapZoom, swipeCloses } from '@/lib/viewer';
+import {
+  avatarCircleSize,
+  avatarTapCloses,
+  backdropOpacity,
+  clampPan,
+  clampZoom,
+  doubleTapZoom,
+  swipeCloses,
+} from '@/lib/viewer';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -29,9 +37,10 @@ interface AvatarViewerProps {
 }
 
 /**
- * A profile picture, full screen: pinch (or double tap) to zoom, drag a zoomed photo around, and
- * swipe it away in any direction to close — or the ✕, or the back gesture. Opened by tapping the
- * picture on your own profile or anyone else's.
+ * A profile picture, as a circle in the middle of a dark screen (founder, 2026-10-05: a big
+ * square was too invasive): pinch (or double tap) to zoom, drag a zoomed photo around. To close:
+ * tap the dark space around it, drag it away in any direction, the ✕, or the back gesture.
+ * Opened by tapping the picture on your own profile or anyone else's.
  */
 export default function AvatarViewer({ uri, onClose }: AvatarViewerProps): React.JSX.Element {
   // Keep showing the photo while the viewer fades out after `uri` goes null.
@@ -57,8 +66,8 @@ export default function AvatarViewer({ uri, onClose }: AvatarViewerProps): React
 function ZoomablePhoto({ uri, onClose }: { uri: string; onClose: () => void }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  // Profile pictures are square: as wide as the screen allows.
-  const size = Math.min(width, height);
+  // A circle, a share of the screen's short side.
+  const size = avatarCircleSize(width, height);
   const far = Math.max(width, height);
 
   const scale = useSharedValue<number>(VIEWER.zoomMin);
@@ -131,6 +140,25 @@ function ZoomablePhoto({ uri, onClose }: { uri: string; onClose: () => void }) {
       y.value = withSpring(0, VIEWER.snapBack);
     });
 
+  // A tap on the dark space around the picture closes it; on the picture it does nothing.
+  const tapOutside = Gesture.Tap()
+    .numberOfTaps(1)
+    .onEnd((e) => {
+      'worklet';
+      if (
+        avatarTapCloses({
+          x: e.absoluteX,
+          y: e.absoluteY,
+          cx: width / 2 + x.value,
+          cy: height / 2 + y.value,
+          size,
+          scale: scale.value,
+        })
+      ) {
+        scheduleOnRN(onClose);
+      }
+    });
+
   const photoStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: x.value }, { translateY: y.value }, { scale: scale.value }],
   }));
@@ -142,16 +170,16 @@ function ZoomablePhoto({ uri, onClose }: { uri: string; onClose: () => void }) {
   return (
     <View style={styles.root} accessibilityViewIsModal onAccessibilityEscape={onClose}>
       <Reanimated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]} />
-      <GestureDetector gesture={Gesture.Simultaneous(pinch, pan, doubleTap)}>
+      <GestureDetector gesture={Gesture.Simultaneous(pinch, pan, doubleTap, tapOutside)}>
         <View style={styles.stage}>
           <Reanimated.View style={photoStyle}>
             <Image
               source={{ uri }}
-              style={{ width: size, height: size }}
+              style={{ width: size, height: size, borderRadius: size / 2 }}
               resizeMode="cover"
               accessibilityRole="image"
               accessibilityLabel="Profile photo"
-              accessibilityHint="Pinch to zoom, swipe to close"
+              accessibilityHint="Pinch to zoom. Tap outside it or swipe it away to close"
             />
           </Reanimated.View>
         </View>

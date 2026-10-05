@@ -1,5 +1,8 @@
 import {
+  avatarCircleSize,
+  avatarTapCloses,
   backdropOpacity,
+  pinchOffset,
   clampPan,
   clampZoom,
   doubleTapZoom,
@@ -72,5 +75,66 @@ describe('profile picture zoom', () => {
     expect(clampPan(40, 2, 300)).toBe(40);
     // Fitted, it doesn't move at all.
     expect(clampPan(40, 1, 300)).toBe(0);
+  });
+});
+
+// Founder, 2026-10-05: a profile picture opens as a smaller circle, not a big square (too
+// invasive); a tap on the dark space around it closes it, as does dragging it away.
+describe('avatarCircleSize', () => {
+  it('is a share of the screen width, not the whole of it', () => {
+    expect(avatarCircleSize(400, 800)).toBe(Math.round(400 * VIEWER.avatarShare));
+    expect(avatarCircleSize(400, 800)).toBeLessThan(400);
+  });
+
+  it('fits the short side when the phone is on its side', () => {
+    expect(avatarCircleSize(800, 400)).toBe(Math.round(400 * VIEWER.avatarShare));
+  });
+});
+
+describe('avatarTapCloses', () => {
+  const circle = { cx: 200, cy: 400, size: 280, scale: 1 };
+
+  it('a tap on the dark space closes it', () => {
+    expect(avatarTapCloses({ ...circle, x: 20, y: 60 })).toBe(true);
+    expect(avatarTapCloses({ ...circle, x: 200, y: 400 + 141 })).toBe(true);
+  });
+
+  it('a tap on the picture does not', () => {
+    expect(avatarTapCloses({ ...circle, x: 200, y: 400 })).toBe(false);
+    expect(avatarTapCloses({ ...circle, x: 200, y: 400 + 139 })).toBe(false);
+  });
+
+  it('a zoomed picture covers more, so a tap there stays on it', () => {
+    expect(avatarTapCloses({ ...circle, scale: 2, x: 200, y: 400 + 200 })).toBe(false);
+  });
+});
+
+// Founder, 2026-10-05: pinch to zoom in on photos in the feed and on profiles.
+describe('pinchOffset', () => {
+  const page = { width: 400, height: 800 };
+
+  it('stays put at normal size', () => {
+    expect(pinchOffset({ ...page, scale: 1, focalX: 50, focalY: 90, startX: 50, startY: 90 })).toEqual({
+      x: 0,
+      y: 0,
+    });
+  });
+
+  it('zooms in on the point between the fingers', () => {
+    // Pinching on the top-left corner keeps that corner where it is.
+    expect(pinchOffset({ ...page, scale: 2, focalX: 0, focalY: 0, startX: 0, startY: 0 })).toEqual({
+      x: 200,
+      y: 400,
+    });
+    // Pinching in the middle just grows it.
+    expect(
+      pinchOffset({ ...page, scale: 2, focalX: 200, focalY: 400, startX: 200, startY: 400 })
+    ).toEqual({ x: 0, y: 0 });
+  });
+
+  it('follows the fingers as they move', () => {
+    expect(
+      pinchOffset({ ...page, scale: 2, focalX: 230, focalY: 420, startX: 200, startY: 400 })
+    ).toEqual({ x: 30, y: 20 });
   });
 });
