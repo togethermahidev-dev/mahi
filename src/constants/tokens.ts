@@ -431,6 +431,8 @@ export const LAYOUT = {
   taggedBubbles: 3,
   /** The most lines a toast wraps to before it is cut. */
   toastLines: 3,
+  /** Pages of someone's posts read past the first to find a post a notification opens. */
+  viewerExtraPages: 2,
   /** The Settings panel's width, as a share of the screen. */
   settingsWidth: 0.82,
   /** Search results' height at most, as a share of the window. */

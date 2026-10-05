@@ -4,11 +4,19 @@ import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useBlockStore, useTagStore } from '@/store';
+import { useAuthStore, useBlockStore, useTagStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { getTagInviteRows, respondTagInvite, type NotificationWithActor } from '@/api';
-import { notificationText } from '@/lib/notificationText';
+import ListState from '@/components/ListState';
+import {
+  notificationSections,
+  notificationTarget,
+  notificationText,
+  type NotificationListItem,
+  type NotificationTarget,
+} from '@/lib/notificationText';
 import { relativeTime } from '@/lib/relativeTime';
+import { msLeft } from '@/lib/countdown';
 import { slotErrorText, tagInviteState } from '@/lib/tagSlots';
 import { track } from '@/lib/analytics';
 import { FONTS } from '@/constants/fonts';
@@ -28,24 +36,46 @@ import {
 interface NotificationsScreenProps {
   visible: boolean;
   onClose: () => void;
-  onOpenPost: (postId: string) => void;
+  /** A row about a post: open it full screen (with its comments for a comment row). */
+  onOpenPost: (ownerId: string, postId: string, comments: boolean) => void;
   onOpenProfile: (userId: string) => void;
+  /** An open tag: go to the camera to answer it. */
+  onOpenCamera: () => void;
+  /** The sheet has finished sliding away (iPhone), so another full-screen view can open. */
+  onDismissed?: () => void;
 }
 
 /** Where an in-app invite to you is at; 'loading' until the server has said. */
 type InviteState = 'loading' | 'open' | 'accepted' | 'declined' | 'ended';
 
 const INVITE_STATE_TEXT: Record<Exclude<InviteState, 'loading' | 'open'>, string> = {
-  accepted: 'Accepted — you’re friends now',
+  accepted: 'Accepted. You’re friends now.',
   declined: 'Not now',
-  ended: 'This invite has ended',
+  ended: 'That invite has ended.',
 };
+
+/**
+ * What Accept does, under an open tag request. True whether or not their post exists yet: the
+ * 48 hours start once it does (respond_tag_invite → start_tag).
+ */
+const ACCEPT_LINE = 'Accept and you’re friends. You’ll have 48 hours to answer their tag.';
+
+/** Read out with each row: where a tap goes. */
+function targetHint(target: NotificationTarget, username: string): string {
+  if (target.to === 'camera') return 'Opens the camera';
+  if (target.to === 'post') {
+    return target.comments ? 'Opens the post and its comments' : 'Opens the post';
+  }
+  return `Opens @${username}’s profile`;
+}
 
 export default function NotificationsScreen({
   visible,
   onClose,
   onOpenPost,
   onOpenProfile,
+  onOpenCamera,
+  onDismissed,
 }: NotificationsScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
@@ -57,6 +87,9 @@ export default function NotificationsScreen({
     : withAlpha(COLORS.offBlack, ALPHA.a08);
 
   const { items, isLoading, refresh, markRead, markAllRead } = useNotifications();
+  const myId = useAuthStore((s) => s.user?.id);
+  const openTags = useTagStore((s) => s.openTags);
+  const serverOffsetMs = useTagStore((s) => s.serverOffsetMs);
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const handleRefresh = async () => {
@@ -67,6 +100,12 @@ export default function NotificationsScreen({
       setRefreshing(false);
     }
   };
+  // Read fresh each time the list opens.
+  useEffect(() => {
+    if (visible) void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
   const blockedSet = useBlockStore((s) => s.blockedSet);
   const filteredItems = useMemo(
     () => items.filter((n) => !blockedSet.has(n.actor_id)),
@@ -132,6 +171,112 @@ export default function NotificationsScreen({
     if (accept) void useTagStore.getState().syncOpenTags();
   };
 
+  // A tag row is still open while its tag (or, without one, a tag from the same person) has time.
+  const tagOpen = (n: NotificationWithActor) =>
+    n.type === 'tag' &&
+    openTags.some(
+      (t) =>
+        (n.challenge_id ? t.challenge_id === n.challenge_id : t.tagger_id === n.actor_id) &&
+        msLeft(t.expires_at, serverOffsetMs) > 0
+    );
+  const needsAnswer = (n: NotificationWithActor) =>
+    tagOpen(n) ||
+    (n.type === 'tag_invite' && !!n.challenge_id && inviteStates[n.challenge_id] === 'open');
+
+  const listItems = notificationSections(filteredItems, needsAnswer);
+
+  const renderRow = (item: NotificationWithActor) => {
+    const name = item.actor.display_name ?? item.actor.username;
+    const initials = name[0].toUpperCase();
+    const username = item.actor.username;
+    const caption = notificationText(item.type, username);
+    const time = relativeTime(item.created_at);
+    const target = notificationTarget(item, myId ?? '', tagOpen(item));
+    const inviteState =
+      item.type === 'tag_invite' && item.challenge_id
+        ? (inviteStates[item.challenge_id] ?? 'loading')
+        : null;
+
+    // The @name in semibold, the rest regular; the words themselves are unchanged.
+    const handle = `@${username}`;
+    const at = caption.indexOf(handle);
+
+    const handleAvatarPress = () => {
+      markRead(item.id);
+      onOpenProfile(item.actor_id);
+      onClose();
+    };
+
+    const handleContentPress = () => {
+      markRead(item.id);
+      if (target.to === 'post') onOpenPost(target.ownerId, target.postId, target.comments);
+      else if (target.to === 'camera') onOpenCamera();
+      else onOpenProfile(target.userId);
+      onClose();
+    };
+
+    return (
+      <View style={[styles.row, { borderBottomColor: border }]}>
+        <Pressable
+          style={({ pressed }) => pressed && styles.pressed}
+          onPress={handleAvatarPress}
+          accessibilityRole="button"
+          accessibilityLabel={`${name}'s profile`}
+          hitSlop={{
+            top: OFFSET.o4,
+            bottom: OFFSET.o4,
+            left: OFFSET.o4,
+            right: OFFSET.o4,
+          }}
+        >
+          {item.actor.avatar_url ? (
+            <Image source={{ uri: item.actor.avatar_url }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}>
+              <Text style={[styles.avatarInitials, { color: text }]}>{initials}</Text>
+            </View>
+          )}
+        </Pressable>
+
+        {/* The row's text and its Accept / Not now are siblings, so a screen reader reaches each. */}
+        <View style={styles.rowText}>
+          <Pressable
+            style={({ pressed }) => [styles.rowContent, pressed && styles.pressed]}
+            onPress={handleContentPress}
+            accessibilityRole="button"
+            accessibilityLabel={`${caption}. ${time}${item.is_read === false ? '. Unread' : ''}`}
+            accessibilityHint={targetHint(target, username)}
+          >
+            <Text style={[styles.rowCaption, { color: text }]} numberOfLines={2}>
+              {at >= 0 ? (
+                <>
+                  {caption.slice(0, at)}
+                  <Text style={styles.rowName}>{handle}</Text>
+                  {caption.slice(at + handle.length)}
+                </>
+              ) : (
+                caption
+              )}
+            </Text>
+            <Text style={[styles.rowTime, { color: muted }]}>{time}</Text>
+          </Pressable>
+          {inviteState && item.challenge_id ? (
+            <InviteAnswer
+              state={inviteState}
+              username={username}
+              text={text}
+              muted={muted}
+              border={border}
+              onAnswer={(accept) => answerInvite(item.challenge_id as string, accept)}
+            />
+          ) : null}
+        </View>
+
+        {item.is_read === false ? <View style={styles.unreadDot} /> : null}
+      </View>
+    );
+  };
+
   return (
     // Page sheet: slides up, and a swipe down closes it (which calls onRequestClose).
     <Modal
@@ -139,6 +284,7 @@ export default function NotificationsScreen({
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
+      onDismiss={onDismissed}
     >
       <View style={[styles.root, { backgroundColor: bg }]}>
         {/* Header */}
@@ -163,107 +309,37 @@ export default function NotificationsScreen({
           <View style={styles.backBtn} />
         </View>
 
-        {/* Notification list */}
+        {/* Notification list: what needs your answer first, then the rest. */}
         {isLoading ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator color={muted} />
-          </View>
+          <ListState kind="loading" dark={dark} />
         ) : (
           <FlashList
-            data={filteredItems}
-            keyExtractor={(item) => item.id}
+            data={listItems}
+            keyExtractor={(entry) => (entry.kind === 'row' ? entry.item.id : entry.title)}
+            getItemType={(entry) => entry.kind}
+            extraData={inviteStates}
             contentContainerStyle={[
               styles.listContent,
               { paddingBottom: insets.bottom + SPACE.s12 },
             ]}
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            renderItem={({ item }: { item: NotificationWithActor }) => {
-              const name = item.actor.display_name ?? item.actor.username;
-              const initials = name[0].toUpperCase();
-
-              const caption = notificationText(item.type, item.actor.username);
-
-              const handleAvatarPress = () => {
-                markRead(item.id);
-                onOpenProfile(item.actor_id);
-                onClose();
-              };
-
-              const handleContentPress = () => {
-                markRead(item.id);
-                if (item.type === 'follow') {
-                  onOpenProfile(item.actor_id);
-                } else if (item.post_id) {
-                  onOpenPost(item.post_id);
-                } else {
-                  onOpenProfile(item.actor_id);
-                }
-                onClose();
-              };
-
-              return (
-                <View style={[styles.row, { borderBottomColor: border }]}>
-                  <Pressable
-                    style={({ pressed }) => pressed && styles.pressed}
-                    onPress={handleAvatarPress}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${name}'s profile`}
-                    hitSlop={{
-                      top: OFFSET.o4,
-                      bottom: OFFSET.o4,
-                      left: OFFSET.o4,
-                      right: OFFSET.o4,
-                    }}
-                  >
-                    {item.actor.avatar_url ? (
-                      <Image source={{ uri: item.actor.avatar_url }} style={styles.avatar} />
-                    ) : (
-                      <View
-                        style={[
-                          styles.avatar,
-                          styles.avatarFallback,
-                          { backgroundColor: avatarBg },
-                        ]}
-                      >
-                        <Text style={[styles.avatarInitials, { color: text }]}>{initials}</Text>
-                      </View>
-                    )}
-                  </Pressable>
-
-                  <Pressable
-                    style={({ pressed }) => [styles.rowText, pressed && styles.pressed]}
-                    onPress={handleContentPress}
-                    accessibilityRole="button"
-                    accessibilityLabel={caption}
-                  >
-                    <Text style={[styles.rowCaption, { color: text }]} numberOfLines={2}>
-                      {caption}
-                    </Text>
-                    <Text style={[styles.rowTime, { color: muted }]}>
-                      {relativeTime(item.created_at)}
-                    </Text>
-                    {item.type === 'tag_invite' && item.challenge_id ? (
-                      <InviteAnswer
-                        state={inviteStates[item.challenge_id] ?? 'loading'}
-                        text={text}
-                        muted={muted}
-                        border={border}
-                        onAnswer={(accept) => answerInvite(item.challenge_id as string, accept)}
-                      />
-                    ) : null}
-                  </Pressable>
-
-                  {item.is_read === false ? <View style={styles.unreadDot} /> : null}
-                </View>
-              );
-            }}
+            renderItem={({ item: entry }: { item: NotificationListItem<NotificationWithActor> }) =>
+              entry.kind === 'header' ? (
+                <Text style={[styles.sectionLabel, { color: muted }]} accessibilityRole="header">
+                  {entry.title}
+                </Text>
+              ) : (
+                renderRow(entry.item)
+              )
+            }
             ListEmptyComponent={
-              !isLoading ? (
-                <View style={styles.emptyWrap}>
-                  <Text style={[styles.emptyText, { color: muted }]}>No notifications yet</Text>
-                </View>
-              ) : null
+              <ListState
+                kind="empty"
+                dark={dark}
+                title="Nothing here yet"
+                line="Tags, likes and comments from friends show up here."
+              />
             }
           />
         )}
@@ -274,12 +350,14 @@ export default function NotificationsScreen({
 
 function InviteAnswer({
   state,
+  username,
   text,
   muted,
   border,
   onAnswer,
 }: {
   state: InviteState;
+  username: string;
   text: string;
   muted: string;
   border: string;
@@ -291,26 +369,34 @@ function InviteAnswer({
   if (state !== 'open') {
     return <Text style={[styles.inviteDone, { color: muted }]}>{INVITE_STATE_TEXT[state]}</Text>;
   }
+  const slop = { top: OFFSET.o4, bottom: OFFSET.o4, left: OFFSET.o4, right: OFFSET.o4 };
   return (
-    <View style={styles.inviteButtons}>
-      <Pressable
-        accessibilityRole="button"
-        style={({ pressed }) => [styles.inviteAccept, pressed && styles.pressed]}
-        onPress={() => onAnswer(true)}
-      >
-        <Text style={styles.inviteAcceptText}>Accept</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        style={({ pressed }) => [
-          styles.inviteLater,
-          { borderColor: border },
-          pressed && styles.pressed,
-        ]}
-        onPress={() => onAnswer(false)}
-      >
-        <Text style={[styles.inviteLaterText, { color: text }]}>Not now</Text>
-      </Pressable>
+    <View>
+      <Text style={[styles.inviteDone, { color: muted }]}>{ACCEPT_LINE}</Text>
+      <View style={styles.inviteButtons}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Accept @${username}’s tag request`}
+          hitSlop={slop}
+          style={({ pressed }) => [styles.inviteAccept, pressed && styles.pressed]}
+          onPress={() => onAnswer(true)}
+        >
+          <Text style={styles.inviteAcceptText}>Accept</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Not now, @${username}’s tag request`}
+          hitSlop={slop}
+          style={({ pressed }) => [
+            styles.inviteLater,
+            { borderColor: border },
+            pressed && styles.pressed,
+          ]}
+          onPress={() => onAnswer(false)}
+        >
+          <Text style={[styles.inviteLaterText, { color: text }]}>Not now</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -336,7 +422,8 @@ const styles = StyleSheet.create({
   inviteAccept: {
     backgroundColor: COLORS.accent,
     borderRadius: RADIUS.r50,
-    paddingVertical: SPACE.s6,
+    minHeight: SIZE.z36,
+    justifyContent: 'center',
     paddingHorizontal: SPACE.s16,
   },
   inviteAcceptText: {
@@ -347,7 +434,8 @@ const styles = StyleSheet.create({
   inviteLater: {
     borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r50,
-    paddingVertical: SPACE.s6,
+    minHeight: SIZE.z36,
+    justifyContent: 'center',
     paddingHorizontal: SPACE.s16,
   },
   inviteLaterText: {
@@ -385,15 +473,17 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
   },
-  loadingWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   listContent: {
     paddingHorizontal: SPACE.s16,
     paddingVertical: SPACE.s12,
     flexGrow: 1,
+  },
+  sectionLabel: {
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.semiBold,
+    paddingHorizontal: SPACE.s16,
+    paddingTop: SPACE.s16,
+    paddingBottom: SPACE.s4,
   },
   row: {
     flexDirection: 'row',
@@ -418,12 +508,17 @@ const styles = StyleSheet.create({
   },
   rowText: {
     flex: 1,
+  },
+  rowContent: {
     gap: SPACE.s2,
   },
   rowCaption: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.regular,
     lineHeight: LINE_HEIGHT.l18,
+  },
+  rowName: {
+    fontFamily: FONTS.semiBold,
   },
   rowTime: {
     fontSize: FONT_SIZE.f11,
@@ -435,15 +530,5 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r4,
     backgroundColor: COLORS.accent,
     marginLeft: 'auto',
-  },
-  emptyWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: SPACE.s60,
-  },
-  emptyText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
   },
 });

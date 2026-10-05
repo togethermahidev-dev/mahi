@@ -31,13 +31,14 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
-import { useChromeStore, useNotificationsStore } from '@/store';
+import PostViewer from '@/components/PostViewer';
+import { useAuthStore, useChromeStore, useNotificationsStore, useProfilePostsStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { usePageSize } from '@/hooks/useChrome';
 import { SWIPE_PAGES, pageTab, tabPage } from '@/lib/nativeTabs';
 import { railShows } from '@/lib/railSelector';
 import { horizontalRelease, horizontalSwipe, rubberBand, type Rect } from '@/lib/swipeRules';
-import { COLORS, LAYER, SIZE, SPRING } from '@/constants/tokens';
+import { COLORS, LAYER, LAYOUT, SIZE, SPRING } from '@/constants/tokens';
 
 // ─── Pages ────────────────────────────────────────────────────────────────────
 // One row, left to right, in the tab bar's order (founder, 2026-10-05): Camera ⇄ Feed ⇄ Profile ⇄
@@ -100,9 +101,18 @@ export default function HorizontalNavigator({
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   // A full-screen view inside the Feed (someone's profile).
   const [feedOverlay, setFeedOverlay] = useState(false);
+  // A post opened from a notification, and whether the notifications sheet is still on screen
+  // (iPhone won't show a new full-screen view while a sheet is sliding away).
+  const [viewer, setViewer] = useState<{ ownerId: string; postId: string } | null>(null);
+  const [notifShown, setNotifShown] = useState(false);
+  useEffect(() => {
+    if (notifOpen) setNotifShown(true);
+    // Android has no "dismissed" moment: the sheet is gone as soon as it closes.
+    else if (Platform.OS !== 'ios') setNotifShown(false);
+  }, [notifOpen]);
 
   // Something is open over the pages: they must not move under it.
-  const overlay = searchVisible || notifOpen || !!profileUserId || feedOverlay;
+  const overlay = searchVisible || notifOpen || !!profileUserId || feedOverlay || !!viewer;
   const tab: RailTab = pageTab(index);
   // A full-screen view the rail would sit on (someone's profile, search) hides it too.
   const covered = useChromeStore((s) => s.covers > 0);
@@ -151,6 +161,50 @@ export default function HorizontalNavigator({
   const navigate = (next: number) => {
     settle(next);
     page.value = withSpring(next, PAGE_SPRING);
+  };
+
+  // A notification about a post opens that post full screen. The post viewer pages through one
+  // person's posts from the shared profile-posts list and picks its start post once, so that
+  // list is read for the post's owner first; a post that's locked or gone gets a toast instead.
+  const myId = useAuthStore((s) => s.user?.id);
+  const openPostFromNotification = async (ownerId: string, postId: string) => {
+    const posts = useProfilePostsStore;
+    const settled = () =>
+      new Promise<void>((resolve) => {
+        if (!posts.getState().isSyncing) return resolve();
+        const stop = posts.subscribe((s) => {
+          if (s.isSyncing) return;
+          stop();
+          resolve();
+        });
+      });
+    await settled();
+    await posts.getState().sync(ownerId, true);
+    await settled();
+    const find = () => posts.getState().posts.find((p) => p.id === postId);
+    // An older post may be a page or two further down.
+    for (let page = 0; page < LAYOUT.viewerExtraPages && !find(); page++) {
+      const s = posts.getState();
+      if (!s.hasMore || s.userId !== ownerId) break;
+      await s.loadMore(ownerId);
+    }
+    const toast = useToastStore.getState().show;
+    const s = posts.getState();
+    if (s.userId !== ownerId || s.lastSyncedAt === null) {
+      toast('Couldn’t open that post. Try again.');
+      return;
+    }
+    const post = find();
+    if (!post) toast('That post isn’t available any more.');
+    else if (!post.image_url) toast('Opens when you answer a friend’s tag.');
+    else setViewer({ ownerId, postId });
+  };
+  const closeViewer = () => {
+    // Put your own posts back in the shared list for the Profile page.
+    if (viewer && myId && viewer.ownerId !== myId) {
+      void useProfilePostsStore.getState().sync(myId, true);
+    }
+    setViewer(null);
   };
 
   usePushRegistration();
@@ -373,9 +427,29 @@ export default function HorizontalNavigator({
         <NotificationsScreen
           visible={notifOpen}
           onClose={() => setNotifOpen(false)}
-          onOpenPost={() => setNotifOpen(false)}
+          onOpenPost={(ownerId, postId) => {
+            setNotifOpen(false);
+            void openPostFromNotification(ownerId, postId);
+          }}
           onOpenProfile={(uid) => {
             setNotifOpen(false);
+            setProfileUserId(uid);
+          }}
+          onOpenCamera={() => {
+            setNotifOpen(false);
+            setProfileUserId(null);
+            navigate(CAMERA);
+          }}
+          onDismissed={() => setNotifShown(false)}
+        />
+
+        {/* A post a notification is about, full screen — once the sheet has gone. */}
+        <PostViewer
+          userId={viewer?.ownerId ?? ''}
+          postId={viewer && !notifShown ? viewer.postId : null}
+          onClose={closeViewer}
+          onOpenProfile={(uid) => {
+            setViewer(null);
             setProfileUserId(uid);
           }}
         />
