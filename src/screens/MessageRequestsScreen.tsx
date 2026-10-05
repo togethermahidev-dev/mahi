@@ -51,6 +51,7 @@ function RequestRow({
   muted: string;
   border: string;
 }) {
+  const { colors } = useAppTheme();
   const name = item.other_profile.display_name ?? item.other_profile.username;
   const initials = (item.other_profile.username ?? '?')[0].toUpperCase();
   const preview = item.last_message?.content
@@ -113,12 +114,16 @@ function RequestRow({
               <Text style={[styles.actionBtnText, { color: text }]}>Accept</Text>
             </Pressable>
             <Pressable
-              style={({ pressed }) => [styles.actionBtn, styles.denyBtn, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.actionBtn,
+                { borderColor: colors.dangerText },
+                pressed && styles.pressed,
+              ]}
               onPress={onDeny}
               accessibilityRole="button"
               accessibilityLabel={`Deny request from ${name}`}
             >
-              <Text style={[styles.actionBtnText, styles.denyText]}>Deny</Text>
+              <Text style={[styles.actionBtnText, { color: colors.dangerText }]}>Deny</Text>
             </Pressable>
           </View>
         </View>
@@ -137,9 +142,7 @@ export default function MessageRequestsScreen({
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a40)
-    : withAlpha(COLORS.offBlack, ALPHA.a40);
+  const { muted } = themeColors(dark);
   const { border } = themeColors(dark);
 
   const { requests, isLoading, refresh, accept, deny } = useMessages();
@@ -318,15 +321,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s12,
     paddingVertical: SPACE.s4,
   },
-  denyBtn: {
-    borderColor: COLORS.danger,
-  },
   actionBtnText: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-  },
-  denyText: {
-    color: COLORS.danger,
   },
   pendingLabel: {
     fontSize: FONT_SIZE.f12,

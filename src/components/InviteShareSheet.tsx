@@ -14,6 +14,7 @@ import {
   SPACE,
   withAlpha,
 } from '@/constants/tokens';
+import { themeColors } from '@/lib/themeColors';
 
 /**
  * After posting (flag `tags-invite-step`): the post's invite links, one row each, showing which
@@ -161,7 +162,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
   },
   count: {
-    color: withAlpha(COLORS.offWhite, ALPHA.a60),
+    color: themeColors(true).muted,
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.semiBold,
   },
@@ -189,7 +190,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   rowStatus: {
-    color: withAlpha(COLORS.offWhite, ALPHA.a60),
+    color: themeColors(true).muted,
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.regular,
   },
@@ -221,7 +222,7 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s4,
   },
   mainText: {
-    color: COLORS.white,
+    color: COLORS.offBlack,
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.semiBold,
   },

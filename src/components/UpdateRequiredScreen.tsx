@@ -36,7 +36,7 @@ export default function UpdateRequiredScreen({
           <Text style={[styles.buttonText, { color: colors.bg }]}>Update now</Text>
         </Pressable>
       ) : null}
-      <Text style={[styles.version, { color: colors.accent }]}>
+      <Text style={[styles.version, { color: colors.accentText }]}>
         {VERSION_LINE} · needs {minimum}
       </Text>
     </View>

@@ -7,6 +7,7 @@
 :root {
   /* COLORS */
   --mahi-color-accent: #59C2D7;
+  --mahi-color-accent-text: #227A8C;
   --mahi-color-gold: #FFC93B;
   --mahi-color-white: #FFFFFF;
   --mahi-color-paper: #FAFAF8;
@@ -36,8 +37,8 @@
   --mahi-color-ios-blue: #007AFF;
   --mahi-color-amber: #D4963A;
   --mahi-color-amber-deep: #B07020;
+  --mahi-color-amber-text: #A5691E;
   /* FONT_SIZE */
-  --mahi-font-size-f10: 0.625rem;
   --mahi-font-size-f11: 0.6875rem;
   --mahi-font-size-f12: 0.75rem;
   --mahi-font-size-f13: 0.8125rem;
@@ -252,6 +253,7 @@
   --font-*: initial;
   /* COLORS */
   --color-accent: var(--mahi-color-accent);
+  --color-accent-text: var(--mahi-color-accent-text);
   --color-gold: var(--mahi-color-gold);
   --color-white: var(--mahi-color-white);
   --color-paper: var(--mahi-color-paper);
@@ -281,8 +283,8 @@
   --color-ios-blue: var(--mahi-color-ios-blue);
   --color-amber: var(--mahi-color-amber);
   --color-amber-deep: var(--mahi-color-amber-deep);
+  --color-amber-text: var(--mahi-color-amber-text);
   /* FONT_SIZE */
-  --text-f10: var(--mahi-font-size-f10);
   --text-f11: var(--mahi-font-size-f11);
   --text-f12: var(--mahi-font-size-f12);
   --text-f13: var(--mahi-font-size-f13);

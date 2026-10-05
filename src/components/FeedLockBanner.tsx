@@ -127,7 +127,7 @@ function OpenTimer({
         <Text style={[styles.timerText, { color: colors.text }]} numberOfLines={2}>
           {timer.label}
           {timer.ms !== null ? (
-            <Text style={[styles.clock, { color: colors.accent }]}> {clockText(timer.ms)}</Text>
+            <Text style={[styles.clock, { color: colors.accentText }]}> {clockText(timer.ms)}</Text>
           ) : null}
         </Text>
       </BlurView>

@@ -7,6 +7,7 @@
 
 export const COLORS = {
   accent: "#59C2D7",
+  accentText: "#227A8C",
   gold: "#FFC93B",
   white: "#FFFFFF",
   paper: "#FAFAF8",
@@ -36,10 +37,10 @@ export const COLORS = {
   iosBlue: "#007AFF",
   amber: "#D4963A",
   amberDeep: "#B07020",
+  amberText: "#A5691E",
 } as const;
 
 export const FONT_SIZE = {
-  f10: 10,
   f11: 11,
   f12: 12,
   f13: 13,

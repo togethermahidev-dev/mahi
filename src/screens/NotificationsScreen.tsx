@@ -60,9 +60,7 @@ export default function NotificationsScreen({
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a40)
-    : withAlpha(COLORS.offBlack, ALPHA.a40);
+  const { muted } = themeColors(dark);
   const { border } = themeColors(dark);
   const avatarBg = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a10)
@@ -352,7 +350,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
   },
   inviteAcceptText: {
-    color: COLORS.white,
+    color: COLORS.offBlack,
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
   },
@@ -438,7 +436,7 @@ const styles = StyleSheet.create({
     lineHeight: LINE_HEIGHT.l18,
   },
   rowTime: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.regular,
   },
   unreadDot: {

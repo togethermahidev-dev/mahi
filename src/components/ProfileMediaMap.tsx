@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s6,
   },
   badgeText: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
   },
   // Video posts: a square with no still photo, and the small video mark top right.

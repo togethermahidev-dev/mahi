@@ -12,6 +12,7 @@ import {
   SPACE,
   withAlpha,
 } from '@/constants/tokens';
+import { themeColors } from '@/hooks/useAppTheme';
 
 /**
  * A chat's hold-to-preview pop-up (flag `context-menu-preview`): the latest few messages, read
@@ -30,9 +31,7 @@ export default function ChatPreview({
   dark: boolean;
 }): React.JSX.Element {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a40)
-    : withAlpha(COLORS.offBlack, ALPHA.a40);
+  const { muted } = themeColors(dark);
   const ownBubble = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a15)
     : withAlpha(COLORS.offBlack, ALPHA.a10);

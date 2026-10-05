@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r13,
   },
   commentAvatarInitial: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.bold,
   },
   commentBody: {
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.regular,
   },
   commentTime: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.regular,
     paddingTop: SPACE.s2,
   },
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   likeCount: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
   },
   commentInputRow: {
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   commentSubmitText: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-    color: COLORS.white,
+    color: COLORS.offBlack,
   },
   // ── Comment sheet (native page sheet)
   sheet: {

@@ -12,6 +12,7 @@ import {
   SPACE,
   withAlpha,
 } from '@/constants/tokens';
+import { themeColors } from '@/lib/themeColors';
 
 /**
  * The tag sheet's lead when friends can't fill the post's slots (flag `tags-invite-step`):
@@ -69,7 +70,9 @@ export default function InviteStep({
           pressed && { opacity: ALPHA.a85 },
         ]}
       >
-        <Text style={styles.buttonText}>{copy.button}</Text>
+        <Text style={[styles.buttonText, !copy.canAdd && styles.buttonDoneText]}>
+          {copy.button}
+        </Text>
       </Pressable>
 
       {invites > 0 ? (
@@ -139,21 +142,25 @@ const styles = StyleSheet.create({
     backgroundColor: withAlpha(COLORS.accent, ALPHA.a35),
   },
   buttonText: {
-    color: COLORS.white,
+    color: COLORS.offBlack,
     fontSize: FONT_SIZE.f17,
     fontFamily: FONTS.semiBold,
+  },
+  /** Done: the faint button sits on the dark sheet, so its words stay light. */
+  buttonDoneText: {
+    color: COLORS.white,
   },
   remove: {
     alignSelf: 'center',
     paddingVertical: SPACE.s4,
   },
   removeText: {
-    color: withAlpha(COLORS.offWhite, ALPHA.a60),
+    color: themeColors(true).muted,
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
   },
   after: {
-    color: withAlpha(COLORS.offWhite, ALPHA.a45),
+    color: themeColors(true).muted,
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
     textAlign: 'center',

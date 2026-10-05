@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
-import { COLORS, withAlpha } from '@/constants/tokens';
+import { COLORS, FONT_SIZE, withAlpha } from '@/constants/tokens';
+import { themeColors } from '@/lib/themeColors';
 
 // Every colour, text size, spacing and corner radius comes from src/constants/tokens.ts.
 // A value of 0 is fine as it is (nothing to name), and so is scaling a token (`/ 2`, `* 2`).
@@ -120,8 +121,58 @@ describe('design tokens', () => {
     expect(used.length).toBe(new Set(used.map((c) => c.toLowerCase())).size);
   });
 
+  // Apple's and Google's accessibility guidance: text at least 11 pt, and 4.5:1 contrast.
+  it('draws no text in a faint see-through colour (use themeColors().muted)', () => {
+    expect(
+      offenders(
+        /(?:color|placeholderTextColor)[:=]\s*\{?\s*withAlpha\([^,]+, ALPHA\.a(?:[0-5]\d|6[0-4])\)/
+      )
+    ).toEqual([]);
+  });
+
+  it('has no text size below 11', () => {
+    expect(Math.min(...Object.values(FONT_SIZE))).toBeGreaterThanOrEqual(11);
+  });
+
+  it('keeps secondary text and coloured words readable (4.5:1)', () => {
+    for (const dark of [false, true]) {
+      const { muted, bg } = themeColors(dark);
+      expect(contrast(blend(muted, bg), bg)).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(contrast(COLORS.offBlack, COLORS.accent)).toBeGreaterThanOrEqual(4.5);
+    for (const word of [COLORS.accentText, COLORS.dangerDeep, COLORS.amberText])
+      expect(contrast(word, COLORS.white)).toBeGreaterThanOrEqual(4.5);
+  });
+
   it('withAlpha turns a token into an rgba colour', () => {
     expect(withAlpha(COLORS.offWhite, 0.45)).toBe('rgba(232,232,227,0.45)');
     expect(withAlpha(COLORS.accent, 0.5)).toBe('rgba(89,194,215,0.5)');
   });
 });
+
+/** WCAG contrast ratio between two #rrggbb colours. */
+function contrast(a: string, b: string): number {
+  const lum = (hex: string) => {
+    const [r, g, bl] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+    const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(bl);
+  };
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** An rgba(...) colour laid over a #rrggbb background, as #rrggbb. */
+function blend(rgba: string, bg: string): string {
+  const [r, g, b, a] = rgba.match(/[\d.]+/g)!.map(Number);
+  const under = [1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16));
+  return (
+    '#' +
+    [r, g, b]
+      .map((c, i) =>
+        Math.round(c * a + under[i] * (1 - a))
+          .toString(16)
+          .padStart(2, '0')
+      )
+      .join('')
+  );
+}

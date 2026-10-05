@@ -217,6 +217,6 @@ const styles = StyleSheet.create({
   followBtnText: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.bold,
-    color: COLORS.white,
+    color: COLORS.offBlack,
   },
 });

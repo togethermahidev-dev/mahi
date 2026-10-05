@@ -135,6 +135,7 @@ import {
   WAIT,
   withAlpha,
 } from '@/constants/tokens';
+import { themeColors } from '@/lib/themeColors';
 
 /** Said on the camera and in the toast when there's no open tag to answer. */
 const NO_TAGS_TITLE = 'No tags to answer';
@@ -805,7 +806,7 @@ function DualPhotoPreview({
               >
                 <GlassPill active={locationEnabled}>
                   <Text
-                    style={[styles.captionPillText, locationEnabled && { color: COLORS.white }]}
+                    style={[styles.captionPillText, locationEnabled && { color: COLORS.offBlack }]}
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
@@ -979,7 +980,7 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
               cursorRef.current = e.nativeEvent.selection.end;
             }}
             placeholder="What's the story?"
-            placeholderTextColor={withAlpha(COLORS.offWhite, ALPHA.a45)}
+            placeholderTextColor={themeColors(true).muted}
             multiline
             maxLength={200}
             autoFocus
@@ -1224,7 +1225,7 @@ function TagSheet({
           value={query}
           onChangeText={setQuery}
           placeholder="Search friends who follow you back"
-          placeholderTextColor={withAlpha(COLORS.offWhite, ALPHA.a45)}
+          placeholderTextColor={themeColors(true).muted}
           autoFocus={!inviteStepOn}
           autoCapitalize="none"
           autoCorrect={false}
@@ -2576,7 +2577,7 @@ const styles = StyleSheet.create({
     letterSpacing: TRACKING.t1,
   },
   lensOptionTextActive: {
-    color: COLORS.white,
+    color: COLORS.offBlack,
   },
   // ── Preview panel ─────────────────────────────────────────────────────────
   previewPanel: {
@@ -2721,7 +2722,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   sheetCounter: {
-    color: withAlpha(COLORS.offWhite, ALPHA.a45),
+    color: themeColors(true).muted,
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
   },
@@ -2747,7 +2748,7 @@ const styles = StyleSheet.create({
   },
   inviteLabel: {
     flex: 1,
-    color: withAlpha(COLORS.offWhite, ALPHA.a60),
+    color: themeColors(true).muted,
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
   },
@@ -2778,7 +2779,7 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s4,
   },
   sheetDoneText: {
-    color: COLORS.white,
+    color: COLORS.offBlack,
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.semiBold,
   },
@@ -2790,7 +2791,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sheetCloseXText: {
-    color: withAlpha(COLORS.offWhite, ALPHA.a60),
+    color: themeColors(true).muted,
     fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.semiBold,
   },
@@ -2807,7 +2808,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tagEmptyText: {
-    color: withAlpha(COLORS.offWhite, ALPHA.a45),
+    color: themeColors(true).muted,
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.regular,
     textAlign: 'center',
@@ -2845,7 +2846,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   tagRowHandle: {
-    color: withAlpha(COLORS.offWhite, ALPHA.a45),
+    color: themeColors(true).muted,
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
     marginTop: SPACE.s1,

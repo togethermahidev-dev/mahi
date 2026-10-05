@@ -128,7 +128,7 @@ export default function AppHeader({
             accessibilityRole="button"
             accessibilityLabel="Messages"
           >
-            <MessagesIcon size={ICON_SIZE.i16} color={pillIcon} />
+            <MessagesIcon size={ICON_SIZE.i16} color={COLORS.offBlack} />
           </Pressable>
         )}
       </View>

@@ -26,6 +26,7 @@ import {
   SPACE,
   TRACKING,
 } from '@/constants/tokens';
+import { themeColors } from '@/hooks/useAppTheme';
 
 const DOMAINS = ['gmail.com', 'icloud.com', 'outlook.com', 'yahoo.com'];
 
@@ -44,7 +45,7 @@ export default function LoginSheet({
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.white : COLORS.inkDeep;
   const inputBg = dark ? COLORS.surfaceDark : COLORS.surfaceLight;
-  const muted = dark ? COLORS.grey888 : COLORS.grey999;
+  const { muted } = themeColors(dark);
   const red = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
 
   const [email, setEmail] = useState('');

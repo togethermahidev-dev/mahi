@@ -12,6 +12,8 @@
 export const COLORS = {
   // Brand
   accent: '#59C2D7',
+  /** The accent for words on light backgrounds (the bright accent is too faint there: 2:1). */
+  accentText: '#227A8C',
   gold: '#FFC93B',
 
   // Neutrals, light → dark
@@ -45,6 +47,8 @@ export const COLORS = {
   iosBlue: '#007AFF',
   amber: '#D4963A',
   amberDeep: '#B07020',
+  /** Amber words on light backgrounds (readable at 4.5:1). */
+  amberText: '#A5691E',
 } as const;
 
 /** A token colour at the given opacity: withAlpha(COLORS.offWhite, ALPHA.a45). */
@@ -76,6 +80,7 @@ export const ALPHA = {
   a50: 0.5,
   a55: 0.55,
   a60: 0.6,
+  a65: 0.65,
   a70: 0.7,
   a72: 0.72,
   a75: 0.75,
@@ -89,7 +94,6 @@ export const ALPHA = {
 
 // ─── Text sizes ──────────────────────────────────────────────────────────────
 export const FONT_SIZE = {
-  f10: 10,
   f11: 11,
   f12: 12,
   f13: 13,

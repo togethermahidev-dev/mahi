@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f11,
     textAlign: 'center',
     marginTop: SPACE.s12,
     marginBottom: SPACE.s24,

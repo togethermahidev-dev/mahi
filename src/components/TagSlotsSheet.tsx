@@ -51,6 +51,7 @@ import {
   WAIT,
   withAlpha,
 } from '@/constants/tokens';
+import { themeColors } from '@/lib/themeColors';
 
 type ShareTarget = 'whatsapp' | 'messages' | 'more';
 
@@ -442,7 +443,7 @@ export default function TagSlotsSheet({
               value={query}
               onChangeText={setQuery}
               placeholder="Search friends or anyone on Mahi"
-              placeholderTextColor={withAlpha(COLORS.offWhite, ALPHA.a45)}
+              placeholderTextColor={themeColors(true).muted}
               autoCapitalize="none"
               autoCorrect={false}
               autoComplete="off"
@@ -631,13 +632,13 @@ const styles = StyleSheet.create({
   title: { color: COLORS.offWhite, fontSize: FONT_SIZE.f17, fontFamily: FONTS.semiBold },
   headerEnd: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s8 },
   counter: {
-    color: withAlpha(COLORS.offWhite, ALPHA.a45),
+    color: themeColors(true).muted,
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
   },
   closeX: { width: SIZE.z28, height: SIZE.z28, alignItems: 'center', justifyContent: 'center' },
   closeXText: {
-    color: withAlpha(COLORS.offWhite, ALPHA.a60),
+    color: themeColors(true).muted,
     fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.semiBold,
   },
@@ -672,7 +673,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  slotRemoveText: { color: COLORS.offWhite, fontSize: FONT_SIZE.f10, fontFamily: FONTS.semiBold },
+  slotRemoveText: { color: COLORS.offWhite, fontSize: FONT_SIZE.f11, fontFamily: FONTS.semiBold },
   slotName: { color: COLORS.offWhite, fontSize: FONT_SIZE.f12, fontFamily: FONTS.semiBold },
   slotState: { color: COLORS.accent, fontSize: FONT_SIZE.f11, fontFamily: FONTS.regular },
   shareBlock: {
@@ -683,7 +684,7 @@ const styles = StyleSheet.create({
     borderColor: withAlpha(COLORS.offWhite, ALPHA.a12),
   },
   shareLabel: {
-    color: withAlpha(COLORS.offWhite, ALPHA.a60),
+    color: themeColors(true).muted,
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
   },
@@ -709,7 +710,7 @@ const styles = StyleSheet.create({
   },
   list: { flex: 1 },
   empty: {
-    color: withAlpha(COLORS.offWhite, ALPHA.a45),
+    color: themeColors(true).muted,
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.regular,
     textAlign: 'center',
@@ -734,7 +735,7 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   rowName: { color: COLORS.offWhite, fontSize: FONT_SIZE.f14, fontFamily: FONTS.semiBold },
   rowHandle: {
-    color: withAlpha(COLORS.offWhite, ALPHA.a45),
+    color: themeColors(true).muted,
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
     marginTop: SPACE.s1,
@@ -748,5 +749,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: SPACE.s4,
   },
-  doneText: { color: COLORS.white, fontSize: FONT_SIZE.f16, fontFamily: FONTS.semiBold },
+  doneText: { color: COLORS.offBlack, fontSize: FONT_SIZE.f16, fontFamily: FONTS.semiBold },
 });

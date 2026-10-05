@@ -177,9 +177,7 @@ export default function MessagesScreen({
   const tabRoom = useTabBarRoom();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a40)
-    : withAlpha(COLORS.offBlack, ALPHA.a40);
+  const { muted } = themeColors(dark);
   const { border } = themeColors(dark);
   const accent = colors.accent;
   const insets = useSafeAreaInsets();
@@ -406,7 +404,7 @@ const styles = StyleSheet.create({
     height: SIZE.z20,
     borderRadius: RADIUS.r10,
     paddingHorizontal: SPACE.s6,
-    backgroundColor: COLORS.danger,
+    backgroundColor: COLORS.dangerDeep,
     alignItems: 'center',
     justifyContent: 'center',
   },

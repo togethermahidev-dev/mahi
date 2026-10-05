@@ -19,6 +19,7 @@ import { posthog } from '@/lib/posthog';
 import OtpCodeInput from '@/components/OtpCodeInput';
 import { FONTS } from '@/constants/fonts';
 import { COLORS, ALPHA, FONT_SIZE, RADIUS, SPACE, TRACKING } from '@/constants/tokens';
+import { themeColors } from '@/hooks/useAppTheme';
 
 interface Props {
   visible: boolean;
@@ -44,7 +45,7 @@ export default function ForgotPasswordSheet({
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.white : COLORS.inkDeep;
   const inputBg = dark ? COLORS.surfaceDark : COLORS.surfaceLight;
-  const muted = dark ? COLORS.grey888 : COLORS.grey999;
+  const { muted } = themeColors(dark);
   const red = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
 
   const [step, setStep] = useState<'email' | 'code'>('email');

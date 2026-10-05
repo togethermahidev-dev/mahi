@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   responseText: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
     color: COLORS.white,
     marginTop: SPACE.s2,

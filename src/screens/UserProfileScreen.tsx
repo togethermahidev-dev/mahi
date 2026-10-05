@@ -520,7 +520,7 @@ export default function UserProfileScreen({
             accessibilityLabel={`Follow @${profile?.username ?? displayName}`}
             accessibilityState={{ selected: isFollowing }}
           >
-            <Text style={[styles.followBtnText, { color: isFollowing ? text : COLORS.white }]}>
+            <Text style={[styles.followBtnText, { color: isFollowing ? text : COLORS.offBlack }]}>
               {isFollowing ? 'Following' : 'Follow'}
             </Text>
           </Pressable>

@@ -48,10 +48,8 @@ export default function ConversationScreen({
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a40)
-    : withAlpha(COLORS.offBlack, ALPHA.a40);
-  const { border } = themeColors(dark);
+  const { muted } = themeColors(dark);
+  const { border, dangerText } = themeColors(dark);
   const ownBubble = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a15)
     : withAlpha(COLORS.offBlack, ALPHA.a10);
@@ -186,13 +184,14 @@ export default function ConversationScreen({
                 style={({ pressed }) => [
                   styles.requestBtn,
                   styles.denyBtn,
+                  { borderColor: dangerText },
                   pressed && styles.pressed,
                 ]}
                 onPress={handleDeny}
                 accessibilityRole="button"
                 accessibilityLabel="Deny request"
               >
-                <Text style={[styles.requestBtnText, styles.denyText]}>Deny</Text>
+                <Text style={[styles.requestBtnText, { color: dangerText }]}>Deny</Text>
               </Pressable>
             </View>
           </View>
@@ -363,15 +362,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s20,
     paddingVertical: SPACE.s6,
   },
-  denyBtn: {
-    borderColor: COLORS.danger,
-  },
+  denyBtn: {},
   requestBtnText: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-  },
-  denyText: {
-    color: COLORS.danger,
   },
   loadingWrap: {
     flex: 1,
@@ -411,7 +405,7 @@ const styles = StyleSheet.create({
     lineHeight: LINE_HEIGHT.l20,
   },
   bubbleTime: {
-    fontSize: FONT_SIZE.f10,
+    fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.regular,
     paddingHorizontal: SPACE.s4,
   },
