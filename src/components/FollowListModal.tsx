@@ -1,10 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, Image, Modal, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import {
+  Alert,
+  View,
+  Text,
+  Image,
+  Modal,
+  StyleSheet,
+  Pressable,
+  ActivityIndicator,
+} from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import { getFollowList, getFriends, type FollowListUser } from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
+import { useToastStore } from '@/store/toastStore';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -49,11 +59,14 @@ export default function FollowListModal({
 
   const [users, setUsers] = useState<FollowListUser[]>([]);
   const [loading, setLoading] = useState(true);
+  /** The list couldn't be read: say so (never "No friends yet"), with Try again. */
+  const [failed, setFailed] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const fetchList = useCallback(async () => {
-    const { data } =
+    const { data, error } =
       type === 'friends' ? await getFriends(userId) : await getFollowList(userId, type);
+    setFailed(!!error || !data);
     const filtered = (data ?? []).filter((u) => !useBlockStore.getState().isBlocked(u.id));
     setUsers(filtered);
     setLoading(false);
@@ -64,6 +77,7 @@ export default function FollowListModal({
     if (!visible) {
       setUsers([]);
       setLoading(true);
+      setFailed(false);
       setProfileUserId(null);
       return;
     }
@@ -76,25 +90,43 @@ export default function FollowListModal({
     return unsubscribe;
   }, [visible, userId, type, currentUserId, fetchList, subscribeToFollows]);
 
-  const handleUnfollow = useCallback(
-    async (targetUserId: string) => {
+  const runUnfollow = useCallback(
+    async (targetUserId: string, handle: string) => {
       if (!currentUserId) return;
       // Optimistic removal from list
       setUsers((prev) => prev.filter((u) => u.id !== targetUserId));
       const { error } = await toggleFollow(currentUserId, targetUserId);
       if (error) {
-        // Rollback — re-fetch the list
+        // Rollback — re-fetch the list, and say why the row came back
         fetchList();
+        useToastStore.getState().show(`Couldn’t unfollow ${handle}. Try again.`);
       }
     },
     [currentUserId, toggleFollow, fetchList]
   );
 
+  // Ask first: an unfollow can end tagging each other.
+  const handleUnfollow = (targetUserId: string, handle: string) => {
+    Alert.alert(`Unfollow ${handle}?`, 'Only friends who follow each other can tag each other.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Unfollow',
+        style: 'destructive',
+        onPress: () => void runUnfollow(targetUserId, handle),
+      },
+    ]);
+  };
+
+  const retry = () => {
+    setLoading(true);
+    void fetchList();
+  };
+
   const title = { followers: 'Followers', following: 'Following', friends: 'Friends' }[type];
   const emptyMessage = {
     followers: 'No followers yet',
     following: 'Not following anyone yet',
-    friends: 'No friends yet — friends are people who follow each other',
+    friends: 'No friends yet. Follow each other and you can tag each other.',
   }[type];
 
   // Show unfollow button only on the current user's own "following" list
@@ -138,7 +170,26 @@ export default function FollowListModal({
             {/* Content */}
             {loading ? (
               <View style={styles.loadingWrap}>
-                <ActivityIndicator color={muted} />
+                <ActivityIndicator color={muted} accessibilityLabel="Loading" />
+              </View>
+            ) : failed && users.length === 0 ? (
+              <View style={styles.emptyWrap}>
+                <Text style={[styles.failedTitle, { color: text }]}>Couldn’t load this list</Text>
+                <Text style={[styles.emptyText, { color: muted }]}>
+                  Check your connection and try again.
+                </Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.unfollowBtn,
+                    styles.retryBtn,
+                    { borderColor: text },
+                    pressed && { opacity: ALPHA.a75 },
+                  ]}
+                  onPress={retry}
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.unfollowBtnText, { color: text }]}>Try again</Text>
+                </Pressable>
               </View>
             ) : (
               <FlashList
@@ -190,9 +241,16 @@ export default function FollowListModal({
                             { borderColor: text },
                             pressed && { opacity: ALPHA.a75 },
                           ]}
-                          onPress={() => handleUnfollow(item.id)}
+                          onPress={() =>
+                            handleUnfollow(
+                              item.id,
+                              item.username ? `@${item.username}` : displayName
+                            )
+                          }
                           accessibilityRole="button"
-                          accessibilityLabel={`Unfollow @${item.username ?? displayName}`}
+                          accessibilityLabel={`Following @${item.username ?? displayName}`}
+                          accessibilityHint="Double tap to unfollow"
+                          hitSlop={OFFSET.o8}
                         >
                           <Text style={[styles.unfollowBtnText, { color: text }]}>Following</Text>
                         </Pressable>
@@ -321,5 +379,17 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.regular,
+    textAlign: 'center',
+    paddingHorizontal: SPACE.s32,
+  },
+  failedTitle: {
+    fontSize: FONT_SIZE.f16,
+    fontFamily: FONTS.bold,
+    marginBottom: SPACE.s8,
+  },
+  retryBtn: {
+    minHeight: SIZE.z44,
+    justifyContent: 'center',
+    marginTop: SPACE.s16,
   },
 });
