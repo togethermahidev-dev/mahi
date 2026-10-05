@@ -1,0 +1,199 @@
+/*
+ * GENERATED — DO NOT EDIT.
+ * Built by scripts/email-tokens.mjs from the app's src/constants/tokens.ts and
+ * src/constants/fonts.ts. Change a token there, run `pnpm tokens:email`, then redeploy
+ * send-otp and send-reset-code. Lengths are numbers: write ${SPACE.s16}px.
+ */
+
+export const COLORS = {
+  accent: "#59C2D7",
+  gold: "#FFC93B",
+  white: "#FFFFFF",
+  paper: "#FAFAF8",
+  surfaceLight: "#F5F5F0",
+  surfaceLight2: "#F0F0ED",
+  offWhite: "#E8E8E3",
+  iosSeparator: "#E5E5EA",
+  grey999: "#999999",
+  grey888: "#888888",
+  borderDark: "#3A3A37",
+  iosGreyDark: "#3A3A3C",
+  surfaceDark: "#2A2A27",
+  surfaceDark2: "#252521",
+  bgDark: "#1C1C19",
+  offBlack: "#1A1A17",
+  inkSoft: "#121210",
+  ink: "#111111",
+  inkDeep: "#0F0F0D",
+  black: "#000000",
+  danger: "#FF6B6B",
+  dangerSoft: "#E06060",
+  dangerAlt: "#E05A5A",
+  dangerDeep: "#C03030",
+  success: "#5DB075",
+  successDeep: "#2D7A4F",
+  info: "#4FA8FF",
+  iosBlue: "#007AFF",
+  amber: "#D4963A",
+  amberDeep: "#B07020",
+} as const;
+
+export const FONT_SIZE = {
+  f10: 10,
+  f11: 11,
+  f12: 12,
+  f13: 13,
+  f14: 14,
+  f15: 15,
+  f16: 16,
+  f17: 17,
+  f18: 18,
+  f20: 20,
+  f22: 22,
+  f24: 24,
+  f28: 28,
+  f32: 32,
+  f38: 38,
+  f48: 48,
+  f56: 56,
+} as const;
+
+export const SPACE = {
+  s1: 1,
+  s2: 2,
+  s3: 3,
+  s4: 4,
+  s5: 5,
+  s6: 6,
+  s7: 7,
+  s8: 8,
+  s9: 9,
+  s10: 10,
+  s12: 12,
+  s14: 14,
+  s15: 15,
+  s16: 16,
+  s18: 18,
+  s20: 20,
+  s22: 22,
+  s24: 24,
+  s28: 28,
+  s32: 32,
+  s34: 34,
+  s36: 36,
+  s40: 40,
+  s48: 48,
+  s50: 50,
+  s56: 56,
+  s60: 60,
+  s64: 64,
+  s80: 80,
+  s96: 96,
+  s120: 120,
+} as const;
+
+export const SIZE = {
+  z1: 1,
+  z2: 2,
+  z3: 3,
+  z4: 4,
+  z8: 8,
+  z10: 10,
+  z20: 20,
+  z24: 24,
+  z26: 26,
+  z28: 28,
+  z30: 30,
+  z32: 32,
+  z36: 36,
+  z38: 38,
+  z40: 40,
+  z42: 42,
+  z44: 44,
+  z46: 46,
+  z48: 48,
+  z52: 52,
+  z55: 55,
+  z56: 56,
+  z58: 58,
+  z60: 60,
+  z72: 72,
+  z80: 80,
+  z88: 88,
+  z96: 96,
+  z100: 100,
+  z160: 160,
+  z180: 180,
+  z400: 400,
+  z420: 420,
+  z800: 800,
+} as const;
+
+export const RADIUS = {
+  r2: 2,
+  r4: 4,
+  r8: 8,
+  r10: 10,
+  r12: 12,
+  r13: 13,
+  r14: 14,
+  r16: 16,
+  r17: 17,
+  r18: 18,
+  r19: 19,
+  r20: 20,
+  r21: 21,
+  r22: 22,
+  r24: 24,
+  r28: 28,
+  r29: 29,
+  r36: 36,
+  r40: 40,
+  r44: 44,
+  r48: 48,
+  r50: 50,
+  pill: 999,
+} as const;
+
+export const TRACKING = {
+  t0_5: 0.5,
+  t1: 1,
+  t1_5: 1.5,
+  t2: 2,
+  t2_5: 2.5,
+  t3: 3,
+  t4: 4,
+  t5: 5,
+  t8: 8,
+  t10: 10,
+} as const;
+
+export const LINE_HEIGHT = {
+  l11: 11,
+  l14: 14,
+  l16: 16,
+  l18: 18,
+  l20: 20,
+  l22: 22,
+  l24: 24,
+  l28: 28,
+  l38: 38,
+} as const;
+
+export const BORDER_WIDTH = {
+  w1: 1,
+  w1_5: 1.5,
+  w2: 2,
+} as const;
+
+export const FONT_WEIGHT = {
+  regular: 400,
+  semiBold: 600,
+  bold: 700,
+} as const;
+
+/** Inter first; mail apps that don't load web fonts (Gmail) fall back along the list. */
+export const FONT_STACK = "Inter, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
+
+/** Loads Inter in the weights above (Apple Mail, iOS Mail). */
+export const FONT_LINK = "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap";

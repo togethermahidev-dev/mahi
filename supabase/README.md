@@ -81,7 +81,9 @@ The build plan is [docs/tag-loop-plan.md](../docs/tag-loop-plan.md).
 Didit pieces live in `functions/_shared/didit.ts` (`deno test functions/_shared/didit_test.ts`).
 Sign-up and reset codes share `otp_codes`, kept apart by `purpose` (migration
 `20261001100000_password_reset_codes`). Shared code lives in `functions/_shared/otp.ts` and
-`functions/_shared/email.ts` (`deno test functions/_shared/`). The
+`functions/_shared/email.ts` (`deno test functions/_shared/`). The code email's colours, sizes and
+font come from `functions/_shared/emailTokens.ts`, generated from the app's tokens by
+`pnpm tokens:email` — never edit it by hand; `pnpm test:scripts` fails when it drifts. The
 Before User Created auth hook `hook_require_verified_signup` (migration `20260923230000_signup_codes`)
 refuses email sign-ups without a fresh `verified_at`, which closes the public sign-up endpoint. It is
 switched on in the Dashboard (Authentication → Hooks), not by the migration.
