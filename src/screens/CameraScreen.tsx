@@ -71,7 +71,7 @@ import InviteStep from '@/components/InviteStep';
 import InviteShareSheet from '@/components/InviteShareSheet';
 import TagSlotsSheet from '@/components/TagSlotsSheet';
 import { getTagSlots } from '@/api/tagSlots';
-import { inviteBlockedReason, postRefusal, type ScreenSlot } from '@/lib/tagSlots';
+import { inviteBlockedReason, postButtonLabel, postRefusal, type ScreenSlot } from '@/lib/tagSlots';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useVideoPosts } from '@/hooks/useVideoPosts';
@@ -396,6 +396,10 @@ function DualPhotoPreview({
   const insets = useSafeAreaInsets();
   // An invite fills a slot just as a friend does.
   const tagsMissing = Math.max(0, requiredTags - taggedUsers.length - inviteCount - slots.length);
+  const postLabel = postButtonLabel(
+    tagsMissing,
+    taggedUsers.length + inviteCount + slots.length > 0
+  );
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -903,12 +907,12 @@ function DualPhotoPreview({
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={tagsMissing > 0 ? `Tag ${tagsMissing} more` : 'Post'}
+              accessibilityLabel={postLabel}
               accessibilityHint={tagsMissing > 0 ? 'Opens the tag list' : undefined}
               accessibilityState={{ disabled: isUploading, busy: isUploading }}
               style={({ pressed }) => [
                 styles.postButton,
-                (isUploading || tagsMissing > 0) && { opacity: ALPHA.a50 },
+                isUploading && { opacity: ALPHA.a50 },
                 pressed && { opacity: ALPHA.a82 },
               ]}
               disabled={isUploading}
@@ -923,9 +927,7 @@ function DualPhotoPreview({
                 }
               }}
             >
-              <Text style={styles.postButtonText}>
-                {tagsMissing > 0 ? `Tag ${tagsMissing} more` : 'Post'}
-              </Text>
+              <Text style={styles.postButtonText}>{postLabel}</Text>
             </Pressable>
           </View>
         </Animated.View>
@@ -1443,10 +1445,13 @@ async function shareInvites(invites: PostInvite[]): Promise<void> {
 interface CameraScreenProps {
   /** Apple's tab bar: the post preview opened or closed (the bar hides while it is open). */
   onComposingChange?: (open: boolean) => void;
+  /** Go to the Feed page (the caught-up card's "See your feed", shown while the feed is open). */
+  onSeeFeed?: () => void;
 }
 
 export default function CameraScreen({
   onComposingChange,
+  onSeeFeed,
 }: CameraScreenProps = {}): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
@@ -1555,6 +1560,7 @@ export default function CameraScreen({
   // is re-read after every post). Nothing here is kept on the device.
   const feedLoaded = useFeedStore((s) => s.loaded);
   const unlockedUntil = useFeedStore((s) => s.unlockedUntil);
+  const feedOpen = useFeedStore((s) => s.loaded && !s.locked);
   const gate = reactivePostingGate({
     hasPosted: feedLoaded ? unlockedUntil !== null : null,
     tagsLoaded,
@@ -2380,17 +2386,30 @@ export default function CameraScreen({
         {/* Reactive posting: nothing to answer, so no shutter. */}
         {gate === 'closed' && (
           <BlurView intensity={BLUR_INTENSITY.i60} tint="dark" style={styles.postedOverlay}>
-            <View
-              style={styles.noTagsCard}
-              accessible
-              accessibilityRole="text"
-              accessibilityLabel={`${NO_TAGS_TITLE}. ${NO_TAGS_LINE}`}
-            >
-              <View style={styles.noTagsIcon}>
-                <CameraIcon size={ICON_SIZE.i24} color={COLORS.accent} />
+            <View style={styles.noTagsCard}>
+              {/* The words read as one; the button is its own element. */}
+              <View
+                style={styles.noTagsWords}
+                accessible
+                accessibilityRole="text"
+                accessibilityLabel={`${NO_TAGS_TITLE}. ${NO_TAGS_LINE}`}
+              >
+                <View style={styles.noTagsIcon}>
+                  <CameraIcon size={ICON_SIZE.i24} color={COLORS.accent} />
+                </View>
+                <Text style={styles.postedTitle}>{NO_TAGS_TITLE}</Text>
+                <Text style={styles.postedSub}>{NO_TAGS_LINE}</Text>
               </View>
-              <Text style={styles.postedTitle}>{NO_TAGS_TITLE}</Text>
-              <Text style={styles.postedSub}>{NO_TAGS_LINE}</Text>
+              {feedOpen && onSeeFeed ? (
+                <Pressable
+                  style={({ pressed }) => [styles.seeFeedButton, pressed && { opacity: ALPHA.a70 }]}
+                  onPress={onSeeFeed}
+                  accessibilityRole="button"
+                  accessibilityLabel="See your feed"
+                >
+                  <Text style={styles.seeFeedText}>See your feed</Text>
+                </Pressable>
+              ) : null}
             </View>
           </BlurView>
         )}
@@ -2667,6 +2686,25 @@ const styles = StyleSheet.create({
     borderColor: withAlpha(COLORS.accent, ALPHA.a50),
     backgroundColor: withAlpha(COLORS.black, ALPHA.a35),
   },
+  noTagsWords: {
+    alignItems: 'center',
+    gap: SPACE.s12,
+  },
+  // The app's one main-button style (ListState's): accent pill, dark words.
+  seeFeedButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.pill,
+    paddingVertical: SPACE.s12,
+    paddingHorizontal: SPACE.s24,
+    minHeight: SIZE.z44,
+    justifyContent: 'center',
+    marginTop: SPACE.s8,
+  },
+  seeFeedText: {
+    color: COLORS.offBlack,
+    fontSize: FONT_SIZE.f15,
+    fontFamily: FONTS.bold,
+  },
   noTagsIcon: {
     width: SIZE.z56,
     height: SIZE.z56,
@@ -2832,7 +2870,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: RADIUS.r50,
     paddingVertical: SPACE.s20,
-    paddingHorizontal: SPACE.s56,
+    // Room for the longest label ("Tag 2 more friends to post") on a small phone.
+    paddingHorizontal: SPACE.s32,
   },
   postButtonText: {
     color: COLORS.ink,

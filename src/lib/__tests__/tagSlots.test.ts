@@ -3,6 +3,7 @@ import {
   mergeSlots,
   postRefusal,
   personAction,
+  postButtonLabel,
   shareAppUrl,
   slotErrorText,
   slotLabel,
@@ -220,5 +221,22 @@ describe('postRefusal', () => {
       keepPhotos: true,
       report: true,
     });
+  });
+});
+
+describe('postButtonLabel', () => {
+  it('says Post when nothing is missing', () => {
+    expect(postButtonLabel(0, true)).toBe('Post');
+    expect(postButtonLabel(0, false)).toBe('Post');
+  });
+
+  it('says how many friends to tag when none are tagged yet', () => {
+    expect(postButtonLabel(3, false)).toBe('Tag 3 friends to post');
+    expect(postButtonLabel(1, false)).toBe('Tag 1 friend to post');
+  });
+
+  it('says how many more once some are tagged', () => {
+    expect(postButtonLabel(1, true)).toBe('Tag 1 more friend to post');
+    expect(postButtonLabel(2, true)).toBe('Tag 2 more friends to post');
   });
 });

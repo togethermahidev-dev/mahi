@@ -352,7 +352,10 @@ export default function HorizontalNavigator({
           <Animated.View style={[styles.strip, { width: width * PAGE_COUNT }, stripStyle]}>
             {/* Camera — the entry page, always dark. */}
             <View style={[styles.page, pageStyle, { backgroundColor: COLORS.ink }]}>
-              <CameraScreen onComposingChange={handleComposingChange} />
+              <CameraScreen
+                onComposingChange={handleComposingChange}
+                onSeeFeed={() => navigate(FEED)}
+              />
               <View pointerEvents="box-none" style={styles.header}>
                 {header(true)}
               </View>
