@@ -2,18 +2,29 @@
  * Top of the feed, under the app header (flag 'feed-lock-explainer'):
  * - locked → one card saying why (who tagged you, or that you haven't posted) and, when there's
  *   something you can post, a button to the camera;
- * - open → a quiet line saying how long it stays open (or, if you're tagged, when it locks).
+ * - open → a live countdown to when the feed would lock (or, if you're tagged, to when it locks),
+ *   in the camera banner's style (founder, 2026-10-05).
  * Lock state and open tags expire, so both come fresh from the server each session (never saved
  * on the phone); the card waits for this session's first read of open tags rather than guessing.
  */
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useMinuteTick } from '@/hooks/useMinuteTick';
-import { feedTimerText, lockExplainer } from '@/lib/feedLock';
+import { useSecondTick } from '@/hooks/useSecondTick';
+import { clockText, feedCountdown, lockExplainer } from '@/lib/feedLock';
 import { FONTS } from '@/constants/fonts';
-import { FONT_SIZE, LINE_HEIGHT, RADIUS, SPACE, withAlpha } from '@/constants/tokens';
+import {
+  BORDER_WIDTH,
+  FONT_SIZE,
+  LINE_HEIGHT,
+  RADIUS,
+  SIZE,
+  SPACE,
+  withAlpha,
+} from '@/constants/tokens';
 
 interface FeedLockBannerProps {
   locked: boolean;
@@ -90,21 +101,34 @@ function OpenTimer({
 }: FeedLockBannerProps): React.JSX.Element | null {
   const { dark, colors } = useAppTheme();
   const { openTags, loaded } = useOpenTags();
-  const deviceNow = useMinuteTick();
-  // Wait for this session's open tags, so the line doesn't swap once they land.
+  // Ticks every second while there is a clock to show.
+  const counting = loaded && !locked && !!unlockedUntil;
+  const deviceNow = useSecondTick(counting);
+  // Wait for this session's open tags, so the pill doesn't swap once they land.
   if (!loaded) return null;
-  const text = feedTimerText({ locked, unlockedUntil, openTags, serverOffsetMs, deviceNow });
-  if (!text) return null;
+  const timer = feedCountdown({ locked, unlockedUntil, openTags, serverOffsetMs, deviceNow });
+  if (!timer) return null;
 
   return (
     <View
       pointerEvents="none"
-      style={[styles.timer, { backgroundColor: dark ? colors.glassOnDark : colors.glassOnLight }]}
+      style={styles.timerWrap}
       accessible
       accessibilityRole="text"
-      accessibilityLabel={text}
+      accessibilityLabel={timer.spoken}
     >
-      <Text style={[styles.timerText, { color: colors.text }]}>{text}</Text>
+      <BlurView
+        intensity={40}
+        tint={dark ? 'dark' : 'light'}
+        style={[styles.timer, { borderColor: colors.accent }]}
+      >
+        <Text style={[styles.timerText, { color: colors.text }]} numberOfLines={2}>
+          {timer.label}
+          {timer.ms !== null ? (
+            <Text style={[styles.clock, { color: colors.accent }]}> {clockText(timer.ms)}</Text>
+          ) : null}
+        </Text>
+      </BlurView>
     </View>
   );
 }
@@ -136,15 +160,28 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.bold,
   },
-  timer: {
+  // The camera's open-tags pill (OpenTagsBanner): frosted, an accent outline, the time in bold
+  // accent. The digits keep their width, so the pill doesn't wobble as they tick.
+  timerWrap: {
     alignSelf: 'center',
-    borderRadius: RADIUS.pill,
-    paddingVertical: SPACE.s6,
-    paddingHorizontal: SPACE.s12,
+  },
+  timer: {
+    minHeight: SIZE.z36,
+    borderRadius: RADIUS.r18,
+    borderWidth: BORDER_WIDTH.w1,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s8,
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   timerText: {
-    fontSize: FONT_SIZE.f13,
+    fontSize: FONT_SIZE.f14,
     lineHeight: LINE_HEIGHT.l18,
     fontFamily: FONTS.semiBold,
+    textAlign: 'center',
+  },
+  clock: {
+    fontFamily: FONTS.bold,
+    fontVariant: ['tabular-nums'],
   },
 });

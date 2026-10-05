@@ -1,4 +1,4 @@
-import { feedTimerText, lockExplainer, lockedPostText, timeLeftText } from '../feedLock';
+import { clockText, feedCountdown, lockExplainer, lockedPostText, timeLeftText } from '../feedLock';
 
 const HOUR = 3600 * 1000;
 const MIN = 60 * 1000;
@@ -82,17 +82,34 @@ describe('lockExplainer', () => {
   });
 });
 
-describe('feedTimerText', () => {
-  const base = { locked: false, serverOffsetMs: 0, deviceNow, openTags: [] };
-
-  it('within the 24 hours: how many hours are left', () => {
-    expect(feedTimerText({ ...base, unlockedUntil: at(18 * HOUR + 20 * MIN) })).toBe(
-      'Your feed is open for 18 more hours.'
-    );
+// Founder, 2026-10-05: the open feed shows a live countdown in the camera banner's style, not a
+// line of hours.
+describe('clockText', () => {
+  it('reads hours, minutes and seconds, always two digits', () => {
+    expect(clockText(3 * 1000 + 2 * MIN + HOUR)).toBe('01:02:03');
+    expect(clockText(24 * HOUR)).toBe('24:00:00');
   });
 
-  it('under an hour: minutes', () => {
-    expect(feedTimerText({ ...base, unlockedUntil: at(12 * MIN) })).toBe(
+  it('rounds up a part second, and stops at zero', () => {
+    expect(clockText(1)).toBe('00:00:01');
+    expect(clockText(0)).toBe('00:00:00');
+    expect(clockText(-5000)).toBe('00:00:00');
+  });
+});
+
+describe('feedCountdown', () => {
+  const base = { locked: false, serverOffsetMs: 0, deviceNow, openTags: [] };
+
+  it('within the 24 hours: a clock, and the hours in words for VoiceOver', () => {
+    expect(feedCountdown({ ...base, unlockedUntil: at(18 * HOUR + 20 * MIN) })).toEqual({
+      label: 'Feed open',
+      ms: 18 * HOUR + 20 * MIN,
+      spoken: 'Your feed is open for 18 more hours.',
+    });
+  });
+
+  it('under an hour: minutes in words', () => {
+    expect(feedCountdown({ ...base, unlockedUntil: at(12 * MIN) })?.spoken).toBe(
       'Your feed is open for 12 more minutes.'
     );
   });
@@ -100,47 +117,55 @@ describe('feedTimerText', () => {
   it('counts on the server clock, not the phone clock', () => {
     // Phone is 2 hours slow: the server is 2 hours further along.
     expect(
-      feedTimerText({ ...base, serverOffsetMs: 2 * HOUR, unlockedUntil: at(5 * HOUR + MIN) })
-    ).toBe('Your feed is open for 3 more hours.');
+      feedCountdown({ ...base, serverOffsetMs: 2 * HOUR, unlockedUntil: at(5 * HOUR + MIN) })?.ms
+    ).toBe(3 * HOUR + MIN);
   });
 
-  it('after the 24 hours but not locked: open until a tag', () => {
-    expect(feedTimerText({ ...base, unlockedUntil: at(-MIN) })).toBe(
-      'Your feed stays open until a friend tags you.'
-    );
+  it('after the 24 hours but not locked: open until a tag, no clock', () => {
+    expect(feedCountdown({ ...base, unlockedUntil: at(-MIN) })).toEqual({
+      label: 'Your feed stays open until a friend tags you.',
+      ms: null,
+      spoken: 'Your feed stays open until a friend tags you.',
+    });
   });
 
-  it('tagged while open: who tagged you and when the feed locks', () => {
+  it('tagged while open: who tagged you, and the clock to the lock', () => {
     expect(
-      feedTimerText({
+      feedCountdown({
         ...base,
         unlockedUntil: at(18 * HOUR + 20 * MIN),
         openTags: [tag('sam', 40 * HOUR)],
       })
-    ).toBe('@sam tagged you. Your feed locks in 18 hours unless you post your answer.');
+    ).toEqual({
+      label: '@sam tagged you · locks in',
+      ms: 18 * HOUR + 20 * MIN,
+      spoken: '@sam tagged you. Your feed locks in 18 hours unless you post your answer.',
+    });
   });
 
   it('tagged by several: names the soonest deadline, counts the rest', () => {
     expect(
-      feedTimerText({
+      feedCountdown({
         ...base,
         unlockedUntil: at(12 * MIN),
         openTags: [tag('alex', 46 * HOUR), tag('sam', 30 * HOUR)],
-      })
-    ).toBe(
-      '@sam and 1 other tagged you. Your feed locks in 12 minutes unless you post your answer.'
-    );
+      })?.label
+    ).toBe('@sam and 1 other tagged you · locks in');
   });
 
-  it('tagged after the 24 hours ended: no time to give', () => {
+  it('tagged after the 24 hours ended: no clock to give', () => {
     expect(
-      feedTimerText({ ...base, unlockedUntil: at(-MIN), openTags: [tag('sam', 47 * HOUR)] })
-    ).toBe('@sam tagged you. Your feed locks unless you post your answer.');
+      feedCountdown({ ...base, unlockedUntil: at(-MIN), openTags: [tag('sam', 47 * HOUR)] })
+    ).toEqual({
+      label: '@sam tagged you. Your feed locks unless you post your answer.',
+      ms: null,
+      spoken: '@sam tagged you. Your feed locks unless you post your answer.',
+    });
   });
 
   it('says nothing when locked or when there is no window', () => {
-    expect(feedTimerText({ ...base, locked: true, unlockedUntil: at(HOUR) })).toBeNull();
-    expect(feedTimerText({ ...base, unlockedUntil: null })).toBeNull();
+    expect(feedCountdown({ ...base, locked: true, unlockedUntil: at(HOUR) })).toBeNull();
+    expect(feedCountdown({ ...base, unlockedUntil: null })).toBeNull();
   });
 });
 

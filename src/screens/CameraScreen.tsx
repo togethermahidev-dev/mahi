@@ -58,6 +58,7 @@ import {
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import OpenTagsBanner from '@/components/OpenTagsBanner';
 import PointsBadge from '@/components/PointsBadge';
+import { CameraIcon } from '@/components/ScreenIcons';
 import { pointsCount } from '@/lib/mahiPoints';
 import KeyboardInset from '@/components/KeyboardInset';
 import FlashButton from '@/components/FlashButton';
@@ -123,6 +124,7 @@ import {
   SHADOW_BLUR,
   CAMERA,
   ELEVATION,
+  ICON_SIZE,
 } from '@/constants/tokens';
 
 /** Said on the camera and in the toast when there's no open tag to answer. */
@@ -2182,10 +2184,20 @@ export default function CameraScreen({
         {/* Reactive posting: nothing to answer, so no shutter. */}
         {gate === 'closed' && (
           <BlurView intensity={60} tint="dark" style={styles.postedOverlay}>
-            <Text style={styles.postedTitle}>{NO_TAGS_TITLE}</Text>
-            <Text style={styles.postedSub}>
-              When a friend tags you, you'll have 48 hours to post.
-            </Text>
+            <View
+              style={styles.noTagsCard}
+              accessible
+              accessibilityRole="text"
+              accessibilityLabel={`${NO_TAGS_TITLE}. When a friend tags you, you'll have 48 hours to post.`}
+            >
+              <View style={styles.noTagsIcon}>
+                <CameraIcon size={ICON_SIZE.i24} color={COLORS.accent} />
+              </View>
+              <Text style={styles.postedTitle}>{NO_TAGS_TITLE}</Text>
+              <Text style={styles.postedSub}>
+                When a friend tags you, you'll have 48 hours to post.
+              </Text>
+            </View>
           </BlurView>
         )}
 
@@ -2426,21 +2438,43 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: SPACE.s32,
+  },
+  // Reactive posting closed: one card in the middle, in the app's card style (the locked feed's
+  // card, and the camera's open-tags pill: frosted, an accent outline, the accent for the icon).
+  noTagsCard: {
+    alignItems: 'center',
     gap: SPACE.s12,
+    paddingVertical: SPACE.s24,
+    paddingHorizontal: SPACE.s24,
+    borderRadius: RADIUS.r24,
+    borderWidth: BORDER_WIDTH.w1,
+    borderColor: withAlpha(COLORS.accent, 0.5),
+    backgroundColor: withAlpha(COLORS.black, 0.35),
+  },
+  noTagsIcon: {
+    width: SIZE.z56,
+    height: SIZE.z56,
+    borderRadius: RADIUS.r28,
+    borderWidth: BORDER_WIDTH.w1_5,
+    borderColor: COLORS.accent,
+    backgroundColor: withAlpha(COLORS.accent, 0.12),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   postedTitle: {
     color: COLORS.white,
     fontSize: FONT_SIZE.f22,
+    lineHeight: LINE_HEIGHT.l28,
     fontFamily: FONTS.bold,
     textAlign: 'center',
   },
   postedSub: {
-    color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.italic,
+    color: withAlpha(COLORS.offWhite, 0.8),
+    fontSize: FONT_SIZE.f15,
+    lineHeight: LINE_HEIGHT.l22,
+    fontFamily: FONTS.regular,
     textAlign: 'center',
-    opacity: 0.55,
-    letterSpacing: TRACKING.t1,
   },
   controlsRow: {
     position: 'absolute',

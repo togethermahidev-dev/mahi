@@ -88,21 +88,53 @@ export function lockedPostText({
   return { hint: 'Answer a tag to see it' };
 }
 
-/** The quiet line at the top of an open feed; null when locked or there's no window. */
-export function feedTimerText({
+/** A live countdown, "05:12:33": hours, minutes and seconds, two digits each; a part second
+ *  rounds up, so it reads 00:00:00 only when the time is up. */
+export function clockText(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const two = (n: number) => String(n).padStart(2, '0');
+  return `${two(Math.floor(total / 3600))}:${two(Math.floor(total / 60) % 60)}:${two(total % 60)}`;
+}
+
+/**
+ * The countdown at the top of an open feed (founder, 2026-10-05: a live timer in the camera
+ * banner's style, not a line of hours). `label` sits before the clock; `ms` is what the clock
+ * counts down, or null when there is no clock (the 24 hours are over); `spoken` is the same in
+ * words for VoiceOver, minute by minute. Null when locked or there's no window.
+ */
+export function feedCountdown({
   locked,
   unlockedUntil,
   openTags,
   serverOffsetMs,
   deviceNow = Date.now(),
-}: Clock & { locked: boolean; unlockedUntil: string | null; openTags: OpenTags }): string | null {
+}: Clock & { locked: boolean; unlockedUntil: string | null; openTags: OpenTags }): {
+  label: string;
+  ms: number | null;
+  spoken: string;
+} | null {
   if (locked || !unlockedUntil) return null;
-  const left = timeLeftText(msLeft(unlockedUntil, serverOffsetMs, deviceNow));
+  const ms = msLeft(unlockedUntil, serverOffsetMs, deviceNow);
+  const left = timeLeftText(ms);
   if (openTags.length > 0) {
     const { who } = whoTagged(openTags);
-    return `${who} tagged you. Your feed locks ${left ? `in ${left} ` : ''}unless you post your answer.`;
+    if (!left) {
+      const line = `${who} tagged you. Your feed locks unless you post your answer.`;
+      return { label: line, ms: null, spoken: line };
+    }
+    return {
+      label: `${who} tagged you · locks in`,
+      ms,
+      spoken: `${who} tagged you. Your feed locks in ${left} unless you post your answer.`,
+    };
   }
-  return left
-    ? `Your feed is open for ${left.replace(' ', ' more ')}.`
-    : 'Your feed stays open until a friend tags you.';
+  if (!left) {
+    const line = 'Your feed stays open until a friend tags you.';
+    return { label: line, ms: null, spoken: line };
+  }
+  return {
+    label: 'Feed open',
+    ms,
+    spoken: `Your feed is open for ${left.replace(' ', ' more ')}.`,
+  };
 }
