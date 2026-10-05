@@ -18,6 +18,11 @@ import {
   TRACKING,
   withAlpha,
 } from '@/constants/tokens';
+import { TAP_AREA, tapSlop } from '@/lib/tapArea';
+
+// The pills are drawn 36 across; each taps as 44. The bell and Messages sit 8 apart, so 4 of
+// slop on each meets exactly in the middle and never overlaps.
+const PILL_SLOP = tapSlop(SIZE.z36, TAP_AREA.ios);
 
 interface AppHeaderProps {
   // true on Camera screen (always dark bg) → white text/icons
@@ -76,6 +81,7 @@ export default function AppHeader({
               pressed && styles.pressed,
             ]}
             onPress={onProfilePress}
+            hitSlop={PILL_SLOP}
             accessibilityRole="button"
             accessibilityLabel="Profile"
           >
@@ -108,6 +114,7 @@ export default function AppHeader({
               pressed && styles.pressed,
             ]}
             onPress={onNotificationsPress}
+            hitSlop={PILL_SLOP}
             accessibilityRole="button"
             accessibilityLabel={
               unreadNotifications > 0
@@ -125,6 +132,7 @@ export default function AppHeader({
           <Pressable
             style={({ pressed }) => [styles.messagesPill, pressed && styles.pressed]}
             onPress={onMessagesPress}
+            hitSlop={PILL_SLOP}
             accessibilityRole="button"
             accessibilityLabel="Messages"
           >

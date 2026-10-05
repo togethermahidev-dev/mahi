@@ -50,6 +50,7 @@ import {
   type RailTab,
 } from '@/lib/railSelector';
 import type { Rect } from '@/lib/swipeRules';
+import { TAP_AREA, tapSlop } from '@/lib/tapArea';
 
 export type { RailTab };
 
@@ -114,6 +115,9 @@ export default function NavRail({
   const scheme = onDark ? 'dark' : 'light';
   const iconColor = onDark ? colors.offWhite : colors.offBlack;
   const button = navRail.width - SIZE.z8;
+  // Buttons are 44 (Apple's size). On Android each taps as 48: 2 of slop a side stays inside the
+  // rail's 4 of padding and the 6 between buttons, so no two overlap.
+  const buttonSlop = Platform.OS === 'android' ? tapSlop(button, TAP_AREA.android) : undefined;
 
   const geometry: RailGeometry = {
     padding: SPACE.s4,
@@ -255,6 +259,7 @@ export default function NavRail({
         accessibilityRole="tab"
         accessibilityLabel={label}
         accessibilityState={{ selected }}
+        hitSlop={buttonSlop}
         onPress={() => {
           if (selected) return;
           haptic('selection');

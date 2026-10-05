@@ -28,6 +28,10 @@ import {
   TRACKING,
   withAlpha,
 } from '@/constants/tokens';
+import { TAP_AREA, tapSlop } from '@/lib/tapArea';
+
+// The settings and search icons are drawn 22 across; each taps as 44.
+const ICON_SLOP = tapSlop(ICON_SIZE.i22, TAP_AREA.ios);
 
 interface ProfileScreenProps {
   // True when this panel is the active panel in HorizontalNavigator (index 0).
@@ -90,7 +94,7 @@ export default function ProfileScreen({
           onPress={() => setSettingsOpen(true)}
           accessibilityRole="button"
           accessibilityLabel="Settings"
-          hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+          hitSlop={ICON_SLOP}
         >
           <SettingsIcon size={ICON_SIZE.i22} color={toggleColor} />
         </Pressable>
@@ -105,7 +109,7 @@ export default function ProfileScreen({
             onPress={onSearch}
             accessibilityRole="button"
             accessibilityLabel="Search people"
-            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+            hitSlop={ICON_SLOP}
           >
             <SearchIcon size={ICON_SIZE.i22} color={toggleColor} />
           </Pressable>
@@ -253,7 +257,8 @@ const styles = StyleSheet.create({
     right: OFFSET.o24,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACE.s20,
+    // Search taps as 44 and the toggle as 48: their slop (11 and 13) meets in this gap, no overlap.
+    gap: SPACE.s24,
   },
   header: {
     alignItems: 'center',

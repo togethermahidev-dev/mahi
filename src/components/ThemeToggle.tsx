@@ -5,16 +5,19 @@
  *   Blue Cloud + Sun — Light mode  (bright, daytime)
  *   Moon            — Dark mode   (night)
  *
- * A spring pulse animation plays on every tap.
+ * A spring pulse animation plays on every tap (not with Reduce Motion on).
+ * It taps as 48 across whatever size it is drawn (Google's 48, more than Apple's 44).
  * Sits on the camera feed so default color is white.
  */
 
 import React, { useRef } from 'react';
 import { Pressable, Animated, StyleSheet } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import Svg, { Path, Circle, G } from 'react-native-svg';
 import { useThemeStore } from '@/store';
 import type { ThemeMode } from '@/store/themeStore';
-import { COLORS, ICON_SIZE, OFFSET, SCALE, SPRING, STROKE } from '@/constants/tokens';
+import { COLORS, ICON_SIZE, SCALE, SPRING, STROKE } from '@/constants/tokens';
+import { TAP_AREA, tapSlop } from '@/lib/tapArea';
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 
@@ -95,23 +98,26 @@ export default function ThemeToggle({
   const mode = useThemeStore((s) => s.mode);
   const cycleMode = useThemeStore((s) => s.cycleMode);
   const scale = useRef(new Animated.Value(1)).current;
+  const reduceMotion = useReducedMotion();
 
   const Icon = MODE_ICON[mode];
 
   const handlePress = () => {
     // Compress then spring back — confirms the tap and switches the icon
-    Animated.sequence([
-      Animated.spring(scale, {
-        toValue: SCALE.s0_68,
-        ...SPRING.press,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scale, {
-        toValue: 1,
-        ...SPRING.bounce,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    if (!reduceMotion) {
+      Animated.sequence([
+        Animated.spring(scale, {
+          toValue: SCALE.s0_68,
+          ...SPRING.press,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scale, {
+          toValue: 1,
+          ...SPRING.bounce,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
 
     cycleMode();
   };
@@ -122,7 +128,7 @@ export default function ThemeToggle({
       accessibilityRole="switch"
       accessibilityLabel="Dark mode"
       accessibilityState={{ checked: mode === 'dark' }}
-      hitSlop={OFFSET.o12}
+      hitSlop={tapSlop(size, TAP_AREA.android)}
       style={styles.button}
     >
       <Animated.View style={{ transform: [{ scale }] }}>
