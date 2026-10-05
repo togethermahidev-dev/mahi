@@ -49,6 +49,7 @@ export default function CaptionText({ caption, tagged, style, onPressUser, numbe
             key={start}
             style={{ color: COLORS.accent }}
             onPress={onPressUser ? () => onPressUser(user) : undefined}
+            accessibilityRole={onPressUser ? 'link' : undefined}
           >
             {text}
           </Text>

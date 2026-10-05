@@ -28,6 +28,7 @@ import {
   OFFSET,
   RADIUS,
   SIZE,
+  SPACE,
   SWIPE,
   VIEWER,
   withAlpha,
@@ -130,9 +131,19 @@ function ViewerPages({
     [inViewId, muted, open, commentPostId]
   );
 
-  const onViewable = useCallback(({ viewableItems }: { viewableItems: { key: string }[] }) => {
-    setInViewId(viewableItems[0]?.key ?? null);
-  }, []);
+  // A quiet "Swipe up for more" while the first post shown has another after it; gone after the
+  // first swipe, so it's a hint, not a fixture.
+  const [swiped, setSwiped] = useState(false);
+  const moreHint = !swiped && (startIndex < posts.length - 1 || hasMore);
+
+  const onViewable = useCallback(
+    ({ viewableItems }: { viewableItems: { key: string }[] }) => {
+      const id = viewableItems[0]?.key ?? null;
+      setInViewId(id);
+      if (id && id !== startPostId) setSwiped(true);
+    },
+    [startPostId]
+  );
 
   // A tap on the poster goes back to their profile (where the viewer came from); a tap on someone
   // else opens theirs. Your own name in someone's post does nothing, as in the feed.
@@ -239,6 +250,15 @@ function ViewerPages({
         </Pressable>
       </Reanimated.View>
 
+      {moreHint ? (
+        <Reanimated.View
+          style={[styles.moreWrap, { top: insets.top }, chrome.style]}
+          pointerEvents="none"
+        >
+          <Text style={styles.moreText}>Swipe up for more</Text>
+        </Reanimated.View>
+      ) : null}
+
       {/* Comments — the same native page sheet as the feed's */}
       <CommentSheet postId={commentPostId} dark={dark} onClose={() => setCommentPostId(null)} />
     </View>
@@ -263,6 +283,20 @@ const styles = StyleSheet.create({
     backgroundColor: withAlpha(COLORS.black, ALPHA.a40),
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  moreWrap: {
+    position: 'absolute',
+    right: OFFSET.o16,
+    minHeight: SIZE.z36,
+    justifyContent: 'center',
+    paddingHorizontal: SPACE.s14,
+    borderRadius: RADIUS.r18,
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a40),
+  },
+  moreText: {
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.white,
   },
   closeX: {
     fontSize: FONT_SIZE.f16,
