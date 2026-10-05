@@ -58,7 +58,7 @@
   {
     "name": "search-people",
     "purpose": "Finding people by name or username",
-    "summary": "Tap the magnifier in Messages, or \"Find friends\" on an empty feed, to get a frosted full-screen search. It matches part of a username, display name, first name or last name, and shows points. Blocked people are hidden. Tapping a result opens their profile, where you can follow or message them."
+    "summary": "Tap the magnifier on your profile or in Messages, or \"Find friends\" on an empty feed, to get a frosted full-screen search. It matches part of a username, display name, first name or last name, and shows points. Blocked people are hidden. Tapping a result opens their profile, where you can follow or message them."
   },
   {
     "name": "messages",

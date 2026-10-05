@@ -58,7 +58,7 @@ Goal: make existing features findable and fix navigation feel. All UI-only, no b
 
 **Problem:** *"People don't know where to search for users — add it to messages."* (stated twice)
 
-**Status (2026-10-05):** built — Messages has its own magnifier. The Camera's pull-down went with up/down swiping (decision #60), so search is reached from Messages and the empty feed's "Find friends"; a header search button is open (#64).
+**Status (2026-10-05):** built — Messages has its own magnifier. The Camera's pull-down went with up/down swiping (decision #60), so search is reached from the magnifier on the Profile screen (decision #64), Messages, and the empty feed's "Find friends".
 
 **Behavior when written (2026-09-23):** search lived **only** behind a pull-down gesture on `CameraScreen` → `GlobalSearchOverlay` (mounted in the up/down navigator, since removed; opened on `dy>80`). The overlay already does `searchProfiles()` and opens `UserProfileScreen`, and **already filters blocked users** ([GlobalSearchOverlay.tsx:141-143](../src/components/GlobalSearchOverlay.tsx#L141-L143)).
 

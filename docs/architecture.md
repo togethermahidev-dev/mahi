@@ -385,7 +385,7 @@ The swipe pages above, plus what they share: an `AppHeader` on the Camera and on
 | 2 | `ProfileScreen` | The tab bar / rail; the header pill when neither shows |
 | 3 | `MessagesScreen` | The tab bar / rail; the header icon when neither shows; a message push |
 
-**Global Search:** `GlobalSearchOverlay` — a frosted-glass overlay (`BlurView`). It searches with `searchProfiles()`; tapping a result opens `UserProfileScreen` over it, from which Message opens `ConversationScreen`. Tapping your own profile is a no-op. All state resets when the overlay closes. Opened from the empty feed's "Find friends"; whether the header gets a search button is open (#64).
+**Global Search:** `GlobalSearchOverlay` — a frosted-glass overlay (`BlurView`). It searches with `searchProfiles()`; tapping a result opens `UserProfileScreen` over it, from which Message opens `ConversationScreen`. Tapping your own profile is a no-op. All state resets when the overlay closes. Opened from the magnifier on your Profile screen (`ProfileScreen` `onSearch`, decision #64) and the empty feed's "Find friends"; Messages has its own magnifier.
 
 ### The phone's tab bar (`src/screens/TabsNavigator.tsx`) — build 12+, no switch
 

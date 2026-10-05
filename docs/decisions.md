@@ -147,7 +147,7 @@ old swipe pages back under it).
 | 61 | Messages | The last swipe page, after Profile; also its tab, the glass rail and the header button. Its back button goes to Profile | Off the row, opening over the pages (OTA 12.02) | Decided | 2026-10-05 | `HorizontalNavigator`, `MessagesScreen` |
 | 62 | Tab bar order | The swipe order, Messages last: Camera, Feed, Profile, Messages | Camera, Feed, Messages, Profile (2026-10-03) | Decided | 2026-10-05 | `NATIVE_TABS` |
 | 63 | Tab bar and swipes together | The phone's own tab bar (build 12+) with the swipe pages above it: tap a tab and the pages move, swipe and the tab follows. The bar hides only under the post preview | Tab bar only, no swipes (2026-10-03) | Decided | 2026-10-05 | `TabsNavigator` |
-| 64 | A way into search | The Camera's pull-down went with up/down swiping; search is now reached from the empty feed's "Find friends" | A search button in the header | Open — the founder to say | — | `AppHeader`, `GlobalSearchOverlay` |
+| 64 | A way into search | A magnifier on your Profile screen, top right beside the light/dark toggle (founder, 2026-10-05: people couldn't reach search once the feed had posts). Also: the magnifier in Messages, and "Find friends" on an empty feed. The Camera's pull-down went with up/down swiping | A search button in the header | Decided | 2026-10-05 | `ProfileScreen` (`onSearch`), `HorizontalNavigator`, `GlobalSearchOverlay` |
 
 ## Open questions (asked 2026-10-05 in Slack #questions-and-answers)
 
@@ -165,7 +165,7 @@ for the invite fixes waits for Q1–Q5 and Q8 so it goes in as one.
 | 70 | Q6 · Joining from a link before the friend posts: "You're friends with @x. Their tag starts when they post." | Yes · other words | Open (built with these words) | 2026-10-05 | `claimedText` in `src/lib/inviteLink.ts` |
 | 71 | Q7 · The share message: "I tagged you on Mahi. Join and you've got 48 hours to post your workout, then tag 3 mates. [link] Or use code ABC123 when you sign up." | Yes · other words | Open (built with these words) | 2026-10-05 | `slotShareMessage`, `inviteShareMessage` |
 | 72 | Q8 · A friend who joined or accepted, then unfollows you before you post: does their slot still count? | Yes · no, drop it | Open | 2026-10-05 | `start_tag`, `create_post` |
-| 64 | Q9 · A search button in the header (same as #64 above) | Yes · no | Open | 2026-10-05 | `AppHeader` |
+| 64 | Q9 · A search button (same as #64 above) | Answered: a magnifier on the Profile screen, not in the header | Decided | 2026-10-05 | `ProfileScreen` |
 | 73 | Q10 · Pinch to zoom for everyone | Yes, for everyone, with no switch ("no posthog flag needed it can just go out in the update") · not yet | Decided | 2026-10-05 | `PostCard` (OTA 12.05) |
 
 Fixed from the same review without a question (2026-10-05, on main): the invite code goes with

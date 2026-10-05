@@ -315,7 +315,11 @@ export default function HorizontalNavigator({
 
             {/* Profile — always mounted; `isActive` re-syncs its posts when it comes into view. */}
             <View style={[styles.page, pageStyle]}>
-              <ProfileScreen isActive={index === PROFILE} listGesture={profileList} />
+              <ProfileScreen
+                isActive={index === PROFILE}
+                listGesture={profileList}
+                onSearch={() => setSearchVisible(true)}
+              />
             </View>
 
             {/* Messages — the last page; its back button goes to the page on its left. */}

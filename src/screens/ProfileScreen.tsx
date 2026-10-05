@@ -10,7 +10,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostViewer from '@/components/PostViewer';
 import SettingsPanel from '@/components/SettingsPanel';
-import { SettingsIcon } from '@/components/ScreenIcons';
+import { SearchIcon, SettingsIcon } from '@/components/ScreenIcons';
 import AvatarPicker from '@/components/AvatarPicker';
 import FollowListModal from '@/components/FollowListModal';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
@@ -34,11 +34,14 @@ interface ProfileScreenProps {
   isActive?: boolean;
   /** The page list's scrolling as a gesture, so the sideways page swipe can run alongside it. */
   listGesture?: NativeGesture;
+  /** Open people search (the magnifier, top right; founder, 2026-10-05). */
+  onSearch?: () => void;
 }
 
 export default function ProfileScreen({
   isActive = true,
   listGesture,
+  onSearch,
 }: ProfileScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const top = useSafeAreaInsets().top;
@@ -81,8 +84,20 @@ export default function ProfileScreen({
         </Pressable>
       </View>
 
-      {/* Theme toggle — top-right */}
+      {/* Search, then the theme toggle — top-right. Search finds anyone on Mahi by name or
+          username (the Camera's pull-down went with up/down swiping). */}
       <View style={styles.headerRight}>
+        {onSearch ? (
+          <Pressable
+            style={({ pressed }) => pressed && { opacity: 0.2 }}
+            onPress={onSearch}
+            accessibilityRole="button"
+            accessibilityLabel="Search people"
+            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+          >
+            <SearchIcon size={ICON_SIZE.i22} color={toggleColor} />
+          </Pressable>
+        ) : null}
         <ThemeToggle color={toggleColor} size={ICON_SIZE.i22} />
       </View>
 
@@ -201,6 +216,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: OFFSET.o24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s20,
   },
   header: {
     alignItems: 'center',
