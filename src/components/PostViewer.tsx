@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -42,6 +42,8 @@ interface PostViewerProps {
   onClose: () => void;
   /** Someone else was tapped (a tagged friend): close and open their profile. */
   onOpenProfile: (userId: string) => void;
+  /** Open with the start post's comments up (a comment notification). */
+  openComments?: boolean;
 }
 
 /**
@@ -55,6 +57,7 @@ export default function PostViewer({
   postId,
   onClose,
   onOpenProfile,
+  openComments = false,
 }: PostViewerProps): React.JSX.Element {
   // Keep showing the last posts while the viewer fades out after `postId` goes null. Each opening
   // is a fresh viewer (new start post, back in place after a swipe closed the last one).
@@ -64,6 +67,8 @@ export default function PostViewer({
     setOpenId(postId);
     if (postId) setShown({ postId, opening: (shown?.opening ?? 0) + 1 });
   }
+  // Which opening has finished appearing: the comment sheet can only slide up over it after that.
+  const [presented, setPresented] = useState(0);
 
   return (
     <Modal
@@ -72,6 +77,7 @@ export default function PostViewer({
       transparent
       statusBarTranslucent
       onRequestClose={onClose}
+      onShow={() => setPresented(shown?.opening ?? 0)}
     >
       {/* A Modal is its own native window: gesture-handler needs its own root here. */}
       <GestureHandlerRootView style={styles.root}>
@@ -85,6 +91,7 @@ export default function PostViewer({
               open={!!postId}
               onClose={onClose}
               onOpenProfile={onOpenProfile}
+              commentsUp={openComments && presented === shown.opening}
             />
           ) : null}
         </TabBarRoomContext.Provider>
@@ -99,6 +106,7 @@ function ViewerPages({
   open,
   onClose,
   onOpenProfile,
+  commentsUp,
 }: {
   userId: string;
   startPostId: string;
@@ -106,6 +114,8 @@ function ViewerPages({
   open: boolean;
   onClose: () => void;
   onOpenProfile: (userId: string) => void;
+  /** Bring the start post's comments up (once, when this turns true). */
+  commentsUp: boolean;
 }): React.JSX.Element {
   const { dark } = useAppTheme();
   const { width, height } = useWindowDimensions();
@@ -126,6 +136,12 @@ function ViewerPages({
   const [muted, setMuted] = useState(true);
   const toggleMuted = useCallback(() => setMuted((m) => !m), []);
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
+  const commentsShown = useRef(false);
+  useEffect(() => {
+    if (!commentsUp || commentsShown.current) return;
+    commentsShown.current = true;
+    setCommentPostId(startPostId);
+  }, [commentsUp, startPostId]);
   const extra = useMemo(
     () => ({ inViewId, muted, open, commenting: !!commentPostId }),
     [inViewId, muted, open, commentPostId]

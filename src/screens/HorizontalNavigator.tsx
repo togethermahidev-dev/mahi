@@ -101,9 +101,13 @@ export default function HorizontalNavigator({
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   // A full-screen view inside the Feed (someone's profile).
   const [feedOverlay, setFeedOverlay] = useState(false);
-  // A post opened from a notification, and whether the notifications sheet is still on screen
+  // A post opened from a notification (a comment one with its comments up), and whether the notifications sheet is still on screen
   // (iPhone won't show a new full-screen view while a sheet is sliding away).
-  const [viewer, setViewer] = useState<{ ownerId: string; postId: string } | null>(null);
+  const [viewer, setViewer] = useState<{
+    ownerId: string;
+    postId: string;
+    comments: boolean;
+  } | null>(null);
   const [notifShown, setNotifShown] = useState(false);
   useEffect(() => {
     if (notifOpen) setNotifShown(true);
@@ -167,7 +171,7 @@ export default function HorizontalNavigator({
   // person's posts from the shared profile-posts list and picks its start post once, so that
   // list is read for the post's owner first; a post that's locked or gone gets a toast instead.
   const myId = useAuthStore((s) => s.user?.id);
-  const openPostFromNotification = async (ownerId: string, postId: string) => {
+  const openPostFromNotification = async (ownerId: string, postId: string, comments: boolean) => {
     const posts = useProfilePostsStore;
     const settled = () =>
       new Promise<void>((resolve) => {
@@ -197,7 +201,7 @@ export default function HorizontalNavigator({
     const post = find();
     if (!post) toast('That post isn’t available any more.');
     else if (!post.image_url) toast('Opens when you answer a friend’s tag.');
-    else setViewer({ ownerId, postId });
+    else setViewer({ ownerId, postId, comments });
   };
   const closeViewer = () => {
     // Put your own posts back in the shared list for the Profile page.
@@ -428,9 +432,9 @@ export default function HorizontalNavigator({
         <NotificationsScreen
           visible={notifOpen}
           onClose={() => setNotifOpen(false)}
-          onOpenPost={(ownerId, postId) => {
+          onOpenPost={(ownerId, postId, comments) => {
             setNotifOpen(false);
-            void openPostFromNotification(ownerId, postId);
+            void openPostFromNotification(ownerId, postId, comments);
           }}
           onOpenProfile={(uid) => {
             setNotifOpen(false);
@@ -449,6 +453,7 @@ export default function HorizontalNavigator({
           userId={viewer?.ownerId ?? ''}
           postId={viewer && !notifShown ? viewer.postId : null}
           onClose={closeViewer}
+          openComments={viewer?.comments}
           onOpenProfile={(uid) => {
             setViewer(null);
             setProfileUserId(uid);
