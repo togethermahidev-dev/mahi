@@ -31,9 +31,9 @@ describe('cantTagReason — why a friend is greyed out in the tag list', () => {
     );
   });
 
-  it('you tagged them: says when they are free again', () => {
+  it('you tagged them: says when you can tag them again', () => {
     expect(cantTagReason({ has_open_tag: true })).toBe(
-      'you tagged them, free again when they post or their 48 hours end'
+      'you tagged them. You can tag them again once they post or their time is up.'
     );
   });
 });

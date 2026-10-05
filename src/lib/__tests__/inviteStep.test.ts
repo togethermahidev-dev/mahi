@@ -63,7 +63,7 @@ describe('inviteStepCopy', () => {
   it('asks a newcomer with no friends to invite all 3', () => {
     expect(inviteStepCopy({ maxTags: 3, availableFriends: 0, friends: 0, invites: 0 })).toEqual({
       headline: 'Invite 3 friends to post',
-      why: "Every post challenges 3 friends. Invite people to train with you — they'll get 48 hours to answer.",
+      why: 'Every post tags 3 friends. Invite people you’d like to train with. They’ll get 48 hours to answer, and any workout counts.',
       button: 'Invite a friend',
       canAdd: true,
       count: '0 of 3 filled',
@@ -79,7 +79,7 @@ describe('inviteStepCopy', () => {
   it('stops offering more invites once every slot is filled', () => {
     const copy = inviteStepCopy({ maxTags: 3, availableFriends: 0, friends: 0, invites: 3 });
     expect(copy.canAdd).toBe(false);
-    expect(copy.button).toBe('All 3 filled');
+    expect(copy.button).toBe('All 3 tags used');
     expect(copy.count).toBe('3 of 3 filled · 3 invites');
   });
 });

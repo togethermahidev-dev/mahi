@@ -51,9 +51,9 @@ describe('inviteRow', () => {
     });
     expect(inviteRow({ ...first, status: 'sent' }, 0)).toEqual({
       title: 'Invite 1',
-      status: 'Sent',
-      button: 'Send again',
-      a11y: 'Send invite 1 again',
+      status: 'Sent · waiting for them to join',
+      button: 'Resend to the same person',
+      a11y: 'Resend invite 1 to the same person',
     });
   });
 });

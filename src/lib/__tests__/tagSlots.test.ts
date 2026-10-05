@@ -32,16 +32,16 @@ const slot = (over: Partial<ScreenSlot> = {}): ScreenSlot => ({
 describe('slotStateText', () => {
   it('says where each slot is at, in plain words', () => {
     expect(slotStateText('link_ready')).toBe('Link ready');
-    expect(slotStateText('shared')).toBe('Shared');
+    expect(slotStateText('shared')).toBe('Sent');
     expect(slotStateText('joined')).toBe('Joined');
-    expect(slotStateText('invite_sent')).toBe('Invite sent');
+    expect(slotStateText('invite_sent')).toBe('Request sent');
     expect(slotStateText('accepted')).toBe('Accepted');
     expect(slotStateText('tagged')).toBe('Tagged');
     expect(slotStateText('answered')).toBe('Answered');
     expect(slotStateText('missed')).toBe('Missed');
     expect(slotStateText('declined')).toBe('Not now');
-    expect(slotStateText('expired')).toBe('Expired');
-    expect(slotStateText('cancelled')).toBe('Cancelled');
+    expect(slotStateText('expired')).toBe('Ended');
+    expect(slotStateText('cancelled')).toBe('Ended');
   });
 });
 
@@ -58,15 +58,15 @@ describe('slotLabel', () => {
 describe('inviteBlockedReason (friends first, as the server enforces)', () => {
   it('blocks an invite while a friend could still be tagged', () => {
     expect(inviteBlockedReason({ freeFriends: 1, filled: 1, maxTags: 3 })).toBe(
-      'Tag your free friend first'
+      'Tag your friend first'
     );
     expect(inviteBlockedReason({ freeFriends: 2, filled: 0, maxTags: 3 })).toBe(
-      'Tag your 2 free friends first'
+      'Tag your 2 friends first'
     );
   });
 
   it('blocks once every slot is filled', () => {
-    expect(inviteBlockedReason({ freeFriends: 0, filled: 3, maxTags: 3 })).toBe('All 3 filled');
+    expect(inviteBlockedReason({ freeFriends: 0, filled: 3, maxTags: 3 })).toBe('All 3 tags used');
   });
 
   it('allows an invite when no friend is free', () => {
@@ -94,10 +94,13 @@ describe('personAction', () => {
       action: 'none',
       note: 'tagged you, can’t tag back',
     });
-    expect(personAction({ ...p, has_open_tag: true }, false).action).toBe('none');
+    expect(personAction({ ...p, has_open_tag: true }, false)).toEqual({
+      action: 'none',
+      note: 'you tagged them. You can tag them again once they post or their time is up.',
+    });
     expect(personAction({ ...p, is_friend: false, has_open_tag: true }, false)).toEqual({
       action: 'none',
-      note: 'invite sent',
+      note: 'request sent',
     });
   });
 });
@@ -105,7 +108,7 @@ describe('personAction', () => {
 describe('slotShareMessage', () => {
   it('carries the link and the code, so it works before links open the app', () => {
     expect(slotShareMessage('https://togethermahi.com/i/t1', 'ABC234')).toBe(
-      'I tagged you on Mahi. Join and you’ve got 48 hours to post your workout, then tag 3 mates.\n' +
+      'I tagged you on Mahi. Join and you’ve got 48 hours to post any workout, then tag 3 friends.\n' +
         'https://togethermahi.com/i/t1\nOr use code ABC234 when you sign up.'
     );
   });
@@ -146,10 +149,10 @@ describe('slotErrorText', () => {
       'Too many invites waiting. Remove one first.'
     );
     expect(slotErrorText('already friends')).toBe('You’re friends already. Tag them instead.');
-    expect(slotErrorText('already invited')).toBe('Invite already sent.');
+    expect(slotErrorText('already invited')).toBe('Tag request already sent.');
     expect(slotErrorText('cannot invite that person')).toBe('You can’t invite them.');
     expect(slotErrorText('that invite is no longer open')).toBe('That invite has ended.');
-    expect(slotErrorText('tag your friends first')).toBe('Tag your free friends first.');
+    expect(slotErrorText('tag your friends first')).toBe('Tag your friends first.');
     expect(slotErrorText('network down')).toBe('Couldn’t do that. Try again.');
   });
 });
@@ -185,7 +188,7 @@ describe('tagInviteState (the invited person’s side)', () => {
 describe('postRefusal', () => {
   it('no tag to answer: nothing to keep, the post cannot happen', () => {
     expect(postRefusal('reactive posting: not tagged')).toEqual({
-      text: 'No tags to answer',
+      text: 'Your tag has ended, so this can’t be posted. You can post again when a friend tags you.',
       keepPhotos: false,
       report: false,
     });
@@ -193,7 +196,7 @@ describe('postRefusal', () => {
 
   it('friends first: says so, and keeps the photos to post again', () => {
     expect(postRefusal('tag your friends first')).toEqual({
-      text: 'Tag your free friends first. Invites only fill the slots friends can’t.',
+      text: 'Tag your friends first. A link only fills a tag your friends can’t.',
       keepPhotos: true,
       report: false,
     });

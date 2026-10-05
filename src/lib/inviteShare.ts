@@ -32,9 +32,9 @@ export function inviteRow(
   const sent = item.status === 'sent';
   return {
     title: `Invite ${n}`,
-    status: sent ? 'Sent' : 'Not sent yet',
-    button: sent ? 'Send again' : 'Send',
-    a11y: sent ? `Send invite ${n} again` : `Send invite ${n}`,
+    status: sent ? 'Sent · waiting for them to join' : 'Not sent yet',
+    button: sent ? 'Resend to the same person' : 'Send',
+    a11y: sent ? `Resend invite ${n} to the same person` : `Send invite ${n}`,
   };
 }
 

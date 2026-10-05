@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Linking,
@@ -45,6 +46,7 @@ import {
   ALPHA,
   BORDER_WIDTH,
   FONT_SIZE,
+  OFFSET,
   RADIUS,
   SIZE,
   SPACE,
@@ -59,7 +61,7 @@ const SHARE_TARGETS: { target: ShareTarget; label: string }[] = [
   { target: 'whatsapp', label: 'WhatsApp' },
   { target: 'messages', label: 'Messages' },
   // The phone's own sheet: Copy, Instagram and every other app.
-  { target: 'more', label: 'Copy or more' },
+  { target: 'more', label: 'More…' },
 ];
 
 const emptySlot = (challengeId: string, over: Partial<ScreenSlot>): ScreenSlot => ({
@@ -234,7 +236,7 @@ export default function TagSlotsSheet({
       setFriends((list) => list.filter((f) => f.user_id !== p.id));
       return;
     }
-    if (filled >= maxTags) return say(`All ${maxTags} filled`);
+    if (filled >= maxTags) return say(`All ${maxTags} tags used`);
     haptic('selection');
     setNotice(null);
     setFriends((list) => [
@@ -312,6 +314,15 @@ export default function TagSlotsSheet({
     await share(emptySlot(data.challenge_id, made), target);
   };
 
+  // A link or a tag request may already be with someone: ask before taking it back (the bigger
+  // × makes a stray tap likelier).
+  const confirmRemove = (slot: ScreenSlot) => {
+    Alert.alert('Take back this invite?', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Take back', style: 'destructive', onPress: () => void removeSlot(slot) },
+    ]);
+  };
+
   const removeSlot = async (slot: ScreenSlot) => {
     if (slot.pending) return;
     haptic('selection');
@@ -341,11 +352,12 @@ export default function TagSlotsSheet({
           </Text>
           <View style={styles.headerEnd}>
             <Text style={styles.counter}>
-              {filled}/{maxTags}
+              {filled} of {maxTags}
             </Text>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close"
+              hitSlop={{ top: OFFSET.o8, right: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8 }}
               style={({ pressed }) => [styles.closeX, pressed && styles.pressed]}
               onPress={close}
             >
@@ -398,19 +410,19 @@ export default function TagSlotsSheet({
                       initial={slot.username ? (slot.display_name ?? slot.username)[0] : '↗'}
                       busy={slot.pending}
                       onPress={canReshare && !slot.pending ? () => share(slot, 'more') : undefined}
-                      onRemove={slot.pending ? undefined : () => removeSlot(slot)}
+                      onRemove={slot.pending ? undefined : () => confirmRemove(slot)}
                     />
                   );
                 }
-                return <SlotCircle key={`empty:${i}`} name="Open" state="" empty />;
+                return <SlotCircle key={`empty:${i}`} name="Add" state="" empty />;
               })}
             </View>
 
             <View style={styles.shareBlock}>
               <Text style={styles.shareLabel}>
                 {friendFreedUp
-                  ? 'A friend is free to tag. Remove an invite and tag them first.'
-                  : (blocked ?? 'Not on Mahi? Send them a link — it fills a slot.')}
+                  ? 'A friend can be tagged now. Remove a link and tag them first.'
+                  : (blocked ?? 'Not on Mahi? Send them a link. A link fills a tag.')}
               </Text>
               <View style={styles.shareRow}>
                 {SHARE_TARGETS.map(({ target, label }) => (
@@ -463,7 +475,7 @@ export default function TagSlotsSheet({
                   <Text style={styles.empty}>
                     {query.trim()
                       ? 'No one found.'
-                      : 'No friends to tag yet. Search for people on Mahi, or send a link.'}
+                      : 'No friends to tag yet. Follow each other to tag each other, or send a link.'}
                   </Text>
                 )
               }
@@ -548,7 +560,7 @@ function SlotCircle({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Remove ${name}`}
-          hitSlop={SPACE.s8}
+          hitSlop={{ top: OFFSET.o12, right: OFFSET.o12, bottom: OFFSET.o12, left: OFFSET.o12 }}
           style={({ pressed }) => [styles.slotRemove, pressed && styles.pressed]}
           onPress={onRemove}
         >

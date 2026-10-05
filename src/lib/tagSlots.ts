@@ -44,16 +44,16 @@ export type ScreenSlot = TagSlot & { pending?: boolean };
 
 const STATE_TEXT: Record<SlotState, string> = {
   link_ready: 'Link ready',
-  shared: 'Shared',
+  shared: 'Sent',
   joined: 'Joined',
-  invite_sent: 'Invite sent',
+  invite_sent: 'Request sent',
   accepted: 'Accepted',
   tagged: 'Tagged',
   answered: 'Answered',
   missed: 'Missed',
   declined: 'Not now',
-  expired: 'Expired',
-  cancelled: 'Cancelled',
+  expired: 'Ended',
+  cancelled: 'Ended',
 };
 
 export function slotStateText(state: SlotState): string {
@@ -78,11 +78,9 @@ export function inviteBlockedReason({
   filled: number;
   maxTags: number;
 }): string | null {
-  if (filled >= maxTags) return `All ${maxTags} filled`;
+  if (filled >= maxTags) return `All ${maxTags} tags used`;
   if (freeFriends > 0) {
-    return freeFriends === 1
-      ? 'Tag your free friend first'
-      : `Tag your ${freeFriends} free friends first`;
+    return freeFriends === 1 ? 'Tag your friend first' : `Tag your ${freeFriends} friends first`;
   }
   return null;
 }
@@ -96,8 +94,11 @@ export function personAction(
   if (person.tagged_you) return { action: 'none', note: 'tagged you, can’t tag back' };
   if (person.has_open_tag) {
     return person.is_friend
-      ? { action: 'none', note: 'you tagged them, free again when they post or their 48 hours end' }
-      : { action: 'none', note: 'invite sent' };
+      ? {
+          action: 'none',
+          note: 'you tagged them. You can tag them again once they post or their time is up.',
+        }
+      : { action: 'none', note: 'request sent' };
   }
   return person.is_friend
     ? { action: 'tag', note: null }
@@ -110,7 +111,7 @@ export function personAction(
  */
 export function slotShareMessage(url: string, code: string): string {
   return (
-    'I tagged you on Mahi. Join and you’ve got 48 hours to post your workout, then tag 3 mates.\n' +
+    'I tagged you on Mahi. Join and you’ve got 48 hours to post any workout, then tag 3 friends.\n' +
     `${url}\nOr use code ${code} when you sign up.`
   );
 }
@@ -148,10 +149,10 @@ export function slotErrorText(message: string): string {
   if (message.includes('too many open invites'))
     return 'Too many invites waiting. Remove one first.';
   if (message.includes('already friends')) return 'You’re friends already. Tag them instead.';
-  if (message.includes('already invited')) return 'Invite already sent.';
+  if (message.includes('already invited')) return 'Tag request already sent.';
   if (message.includes('cannot invite that person')) return 'You can’t invite them.';
   if (message.includes('no longer open')) return 'That invite has ended.';
-  if (message.includes('friends first')) return 'Tag your free friends first.';
+  if (message.includes('friends first')) return 'Tag your friends first.';
   if (message.includes('invite links are off')) return 'Invites are switched off right now.';
   return 'Couldn’t do that. Try again.';
 }
@@ -187,11 +188,15 @@ export function postRefusal(message: string): {
   report: boolean;
 } {
   if (message.includes('reactive posting')) {
-    return { text: 'No tags to answer', keepPhotos: false, report: false };
+    return {
+      text: 'Your tag has ended, so this can’t be posted. You can post again when a friend tags you.',
+      keepPhotos: false,
+      report: false,
+    };
   }
   if (message.includes('friends first')) {
     return {
-      text: 'Tag your free friends first. Invites only fill the slots friends can’t.',
+      text: 'Tag your friends first. A link only fills a tag your friends can’t.',
       keepPhotos: true,
       report: false,
     };
