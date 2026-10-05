@@ -4,6 +4,12 @@ export type Strength = 'low' | 'medium' | 'high';
 
 export const MIN_PASSWORD_LENGTH = 8;
 
+/** The password field's placeholder: the start of the rule, so the two never disagree. */
+export const PASSWORD_PLACEHOLDER = `At least ${MIN_PASSWORD_LENGTH} characters`;
+
+/** The rule, shown under the password field from the start (what getPasswordStrength enforces). */
+export const PASSWORD_HINT = `${PASSWORD_PLACEHOLDER}, with two of: a capital letter, a number, a symbol.`;
+
 const SPECIAL = /[!@#$%^&*()\-_=+[\]{};:'",.<>/?\\|`~]/;
 
 /** 'low' (blocked at sign-up) unless 8+ characters with at least two of: upper case, digit, symbol. */

@@ -16,6 +16,7 @@ import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import ForgotPasswordSheet from '@/components/ForgotPasswordSheet';
+import { authErrorText } from '@/lib/account';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -78,7 +79,8 @@ export default function LoginSheet({
         extra: { email: email.trim().toLowerCase() },
       });
       posthog.capture('login_failed', { error: signInError.message });
-      setError(signInError.message);
+      // Plain words, never the server's own text.
+      setError(authErrorText(signInError.message, 'login', { canReset: resetEnabled }));
       return;
     }
     posthog.capture('login_success', { user_id: data.user?.id });

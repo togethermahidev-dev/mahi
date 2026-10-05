@@ -12,9 +12,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { resetPassword, sendResetCode, signIn } from '@/api/auth';
-import { CODE_LENGTH, resetFormError } from '@/lib/account';
+import { authErrorText, CODE_LENGTH, PASSWORD_CHANGED_NOTICE, resetFormError } from '@/lib/account';
 import { RESEND_AFTER_MS } from '@/lib/otpCode';
-import { MIN_PASSWORD_LENGTH, PASSWORD_RULES } from '@/lib/password';
+import { PASSWORD_HINT, PASSWORD_PLACEHOLDER, PASSWORD_RULES } from '@/lib/password';
 import { posthog } from '@/lib/posthog';
 import OtpCodeInput from '@/components/OtpCodeInput';
 import { FONTS } from '@/constants/fonts';
@@ -55,6 +55,8 @@ export default function ForgotPasswordSheet({
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  /** Good news (the password changed), shown in the muted style, not the red error one. */
+  const [notice, setNotice] = useState('');
   const [resendReady, setResendReady] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
@@ -76,7 +78,7 @@ export default function ForgotPasswordSheet({
     const { error: sendError } = await sendResetCode(email);
     setLoading(false);
     if (sendError) {
-      setError(sendError.message);
+      setError(authErrorText(sendError.message, 'send-code'));
       return;
     }
     posthog.capture('password_reset_code_sent');
@@ -98,7 +100,7 @@ export default function ForgotPasswordSheet({
     if (resetError) {
       setLoading(false);
       posthog.capture('password_reset_failed', { error: resetError.message });
-      setError(resetError.message);
+      setError(authErrorText(resetError.message, 'reset'));
       return;
     }
     posthog.capture('password_reset_done');
@@ -106,7 +108,7 @@ export default function ForgotPasswordSheet({
     setLoading(false);
     if (signInError) {
       // Rare: the password did change. Back to the log-in sheet to use it.
-      setError('Your password is changed. Log in with your new password.');
+      setNotice(PASSWORD_CHANGED_NOTICE);
       return;
     }
     onLoggedIn();
@@ -160,6 +162,7 @@ export default function ForgotPasswordSheet({
             <>
               <Text style={[styles.subtitle, { color: muted }]}>
                 If {email.trim()} has a Mahi account, a code is on its way. It works for 10 minutes.
+                Not there? Check your spam folder.
               </Text>
 
               <Text style={[styles.label, { color: muted }]}>Code</Text>
@@ -197,7 +200,7 @@ export default function ForgotPasswordSheet({
                     setPassword(v);
                     setError('');
                   }}
-                  placeholder={`Min. ${MIN_PASSWORD_LENGTH} characters`}
+                  placeholder={PASSWORD_PLACEHOLDER}
                   placeholderTextColor={muted}
                   secureTextEntry={!showPassword}
                   textContentType="newPassword"
@@ -219,13 +222,16 @@ export default function ForgotPasswordSheet({
                   </Text>
                 </Pressable>
               </View>
-              <Text style={[styles.hint, { color: muted }]}>
-                Two of: a capital letter, a number, a symbol.
-              </Text>
+              <Text style={[styles.hint, { color: muted }]}>{PASSWORD_HINT}</Text>
             </>
           )}
 
           {error !== '' && <Text style={[styles.errorText, { color: red }]}>{error}</Text>}
+          {notice !== '' && error === '' && (
+            <Text style={[styles.errorText, { color: text }]} accessibilityLiveRegion="polite">
+              {notice}
+            </Text>
+          )}
 
           <Pressable
             style={({ pressed }) => [

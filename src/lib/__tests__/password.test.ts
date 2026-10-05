@@ -1,4 +1,10 @@
-import { getPasswordStrength, MIN_PASSWORD_LENGTH, PASSWORD_RULES } from '../password';
+import {
+  getPasswordStrength,
+  MIN_PASSWORD_LENGTH,
+  PASSWORD_HINT,
+  PASSWORD_PLACEHOLDER,
+  PASSWORD_RULES,
+} from '../password';
 
 describe('getPasswordStrength', () => {
   it.each([
@@ -41,5 +47,18 @@ describe('PASSWORD_RULES (iOS strong-password generator)', () => {
 
   it('a password shaped like a generated one is rated high', () => {
     expect(getPasswordStrength('xukbem-Qojty3-gafmyx')).toBe('high');
+  });
+});
+
+describe('PASSWORD_HINT and PASSWORD_PLACEHOLDER (what the field says up front)', () => {
+  it('states the whole rule the strength check enforces', () => {
+    expect(PASSWORD_HINT).toBe(
+      `At least ${MIN_PASSWORD_LENGTH} characters, with two of: a capital letter, a number, a symbol.`
+    );
+  });
+
+  it('has a placeholder that agrees with the rule (never "Min. 8 characters" alone)', () => {
+    expect(PASSWORD_PLACEHOLDER).toBe(`At least ${MIN_PASSWORD_LENGTH} characters`);
+    expect(PASSWORD_HINT.startsWith(PASSWORD_PLACEHOLDER)).toBe(true);
   });
 });
