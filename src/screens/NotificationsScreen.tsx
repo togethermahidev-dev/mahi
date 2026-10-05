@@ -8,6 +8,7 @@ import { useBlockStore, useTagStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { getTagInviteRows, respondTagInvite, type NotificationWithActor } from '@/api';
 import { notificationText } from '@/lib/notificationText';
+import { relativeTime } from '@/lib/relativeTime';
 import { slotErrorText, tagInviteState } from '@/lib/tagSlots';
 import { track } from '@/lib/analytics';
 import { FONTS } from '@/constants/fonts';
@@ -39,17 +40,6 @@ const INVITE_STATE_TEXT: Record<Exclude<InviteState, 'loading' | 'open'>, string
   declined: 'Not now',
   ended: 'This invite has ended',
 };
-
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const secs = Math.floor(diff / 1_000);
-  if (secs < 60) return `${secs}s ago`;
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
 
 export default function NotificationsScreen({
   visible,

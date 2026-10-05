@@ -16,10 +16,14 @@ describe('msLeft', () => {
 
 describe('formatWait', () => {
   it.each([
-    [0, '1m'],
-    [45 * 60, '45m'],
-    [3 * 3600 + 59 * 60, '3h'],
-    [26 * 3600, '1d 2h'],
+    [0, '1 minute'],
+    [45 * 60, '45 minutes'],
+    [3600, '1 hour'],
+    [3 * 3600 + 59 * 60, '3 hours'],
+    [86400, '1 day'],
+    [26 * 3600, '1 day 2 hours'],
+    [2 * 86400 + 3600, '2 days 1 hour'],
+    [2 * 86400, '2 days'],
   ])('%i seconds reads as %s', (seconds, expected) => {
     expect(formatWait(seconds)).toBe(expected);
   });
