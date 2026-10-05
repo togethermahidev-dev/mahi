@@ -5,15 +5,15 @@ import { Wordmark } from './_components/Wordmark';
 const STEPS = [
   {
     title: 'Post',
-    body: 'When a friend tags you, answer within 48 hours with a workout photo, taken with your front and back camera at once.',
+    body: 'Take a photo of your view with the back camera, then a selfie. Your first post needs no tag. After that, you post when a friend tags you, within 48 hours.',
   },
   {
     title: 'Tag',
-    body: "Every post tags three friends. They've got 48 hours to answer with a workout of their own, and their feed stays locked until they do.",
+    body: "Every post tags 3 friends. They've got 48 hours to post a workout back, and posting is what keeps their feed open.",
   },
   {
     title: 'Keep each other going',
-    body: "Every answer on time earns you a Mahi point. Miss a tag and your points go back to 0, but your best stays. It's easier to turn up when your friends are counting on you.",
+    body: "Each post that answers a tag earns one Mahi point. Miss a tag and your points go back to 0, but your best stays. It's easier to turn up when your friends are counting on you.",
   },
 ];
 
@@ -25,12 +25,12 @@ export default function Home() {
           <div className="flex flex-col items-start gap-s24">
             <Wordmark />
             <h1 className="mt-s8 text-f32 leading-l38 font-bold text-ink-deep">
-              Work out when a friend tags you, and keep each other honest.
+              Work out with your friends, one tag at a time.
             </h1>
             <p className="text-f17 leading-l28 text-ios-grey-dark">
-              Mahi is a fitness accountability app. When a friend tags you, you&apos;ve got 48 hours
-              to answer with a workout photo, and every answer earns you a Mahi point. Coming to
-              iPhone and Android.
+              Mahi is a fitness accountability app. Post your first workout and tag 3 friends.
+              They&apos;ve got 48 hours to post one back. Any workout counts: the gym, a run, a walk, a
+              class or stretching at home. Coming to iPhone and Android.
             </p>
           </div>
 

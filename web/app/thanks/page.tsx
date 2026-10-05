@@ -18,6 +18,9 @@ export default function Thanks() {
           <p className="mt-s8 text-f16 leading-l24 text-ios-grey-dark">
             Thanks for signing up. We&apos;ll email you as soon as Mahi&apos;s ready to download.
           </p>
+          <p className="mt-s8 text-f16 leading-l24 text-ios-grey-dark">
+            Mahi works best with friends. Send this site to the people you&apos;d like to train with.
+          </p>
           <Link
             href="/"
             className="mt-s24 inline-block rounded-r4 text-f16 leading-l24 font-semi-bold text-ink-deep underline decoration-accent decoration-w2 underline-offset-o4 hover:decoration-ink-deep focus-visible:outline-solid focus-visible:outline-w2 focus-visible:outline-accent focus-visible:outline-offset-o3"

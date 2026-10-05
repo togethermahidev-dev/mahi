@@ -7,7 +7,16 @@ import { useRef, useState, type FormEvent } from 'react';
 // browser posts the form and Netlify sends the visitor to /thanks/.
 const FORM_NAME = 'waitlist';
 
-const TRAINING = ['Gym', 'Running', 'Home workouts', 'Classes', 'Sport', 'Something else'];
+const TRAINING = [
+  'Gym',
+  'Running',
+  'Walking',
+  'Home workouts',
+  'Classes',
+  'Sport',
+  'Just starting out',
+  'Something else',
+];
 
 type Status = 'idle' | 'sending' | 'done' | 'error';
 
@@ -74,6 +83,9 @@ export function WaitlistForm() {
         </h2>
         <p className="text-f16 leading-l24 text-ios-grey-dark">
           Thanks for signing up. We&apos;ll email you as soon as Mahi&apos;s ready to download.
+        </p>
+        <p className="text-f16 leading-l24 text-ios-grey-dark">
+          Mahi works best with friends. Send this site to the people you&apos;d like to train with.
         </p>
       </div>
     );
