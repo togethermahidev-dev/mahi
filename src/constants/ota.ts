@@ -7,6 +7,7 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 01 — phone's own tab bar on build 12 with the swipe pages kept (tap a tab or swipe); new tag screen and in-app invites built but off (2026-10-05)
  *   build 10 · 27 — the full-screen notifications page and camera reminder line (hidden until push is switched on); message alerts open Messages (2026-10-02)
  *   build 10 · 26 — Mahi points replace the streak wording (Points and Best, N points badges); glass bar on the camera only (2026-10-02)
  *   build 10 · 25 — tap a comment to open the commenter's profile (2026-10-02)
@@ -26,4 +27,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 0;
+export const OTA_NUMBER = 1;
