@@ -169,8 +169,9 @@ export default function GlobalSearchOverlay({
       inputRef.current?.blur();
       Animated.parallel([
         Animated.timing(fadeAnim, { toValue: 0, duration: DURATION.d180, useNativeDriver: true }),
+        // Reduce Motion: it fades out where it is, no slide up.
         Animated.timing(slideAnim, {
-          toValue: -OFFSET.o24,
+          toValue: reduceMotion ? 0 : -OFFSET.o24,
           duration: DURATION.d180,
           useNativeDriver: true,
         }),
