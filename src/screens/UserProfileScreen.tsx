@@ -16,6 +16,7 @@ import Reanimated, {
   ReduceMotion,
   cancelAnimation,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withSpring,
   withTiming,
@@ -31,7 +32,8 @@ import {
   type ReportReason,
 } from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
-import { pointsStatsLabel } from '@/lib/mahiPoints';
+import { useToastStore } from '@/store/toastStore';
+import { pointsCount } from '@/lib/mahiPoints';
 import { useCoverRail } from '@/hooks/useChrome';
 import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
@@ -48,6 +50,7 @@ import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
+  DURATION,
   FONT_SIZE,
   LAYER,
   LINE_HEIGHT,
@@ -68,6 +71,8 @@ type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 /** How far the finger moves sideways before the swipe takes over (up/down that far cancels it). */
 /** The page swipe's spring (HorizontalNavigator), in and back. Runs even with Reduce Motion on. */
 const PAGE_SPRING = { ...SPRING.page, reduceMotion: ReduceMotion.Never };
+/** With Reduce Motion on, the screen fades in and out instead of sliding (a fade is not motion). */
+const FADE = { duration: DURATION.d200, reduceMotion: ReduceMotion.Never };
 
 interface UserProfileScreenProps {
   userId: string;
@@ -105,20 +110,36 @@ export default function UserProfileScreen({
 
   // Slides in from the right on open (every caller gets the same motion), follows the finger on a
   // swipe right, and slides back out to close — on the UI thread, like the page swipes.
+  // With Reduce Motion on, it fades in and out instead (the finger-driven swipe still follows
+  // the finger).
   const { width } = useWindowDimensions();
-  const x = useSharedValue(width);
+  const reduceMotion = useReducedMotion();
+  const x = useSharedValue(reduceMotion ? 0 : width);
+  const fade = useSharedValue(reduceMotion ? 0 : 1);
   const startX = useSharedValue(0);
   const closing = useSharedValue(false);
-  const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
+  const slideStyle = useAnimatedStyle(() => ({
+    opacity: fade.value,
+    transform: [{ translateX: x.value }],
+  }));
   const close = () => {
     closing.value = true;
+    if (reduceMotion) {
+      fade.value = withTiming(0, FADE, (done) => {
+        if (done) scheduleOnRN(onBackRef.current);
+      });
+      return;
+    }
     x.value = withTiming(width, { duration: VIEWER.closeMs }, (done) => {
       if (done) scheduleOnRN(onBackRef.current);
     });
   };
+  const toast = (message: string) => useToastStore.getState().show(message);
 
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
+  /** Bumped by "Try again" after a failed load, to read the profile again. */
+  const [attempt, setAttempt] = useState(0);
   const [messaging, setMessaging] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [reporting, setReporting] = useState(false);
@@ -164,8 +185,9 @@ export default function UserProfileScreen({
     });
 
   useEffect(() => {
-    x.value = withSpring(0, PAGE_SPRING);
-  }, [x]);
+    if (reduceMotion) fade.value = withTiming(1, FADE);
+    else x.value = withSpring(0, PAGE_SPRING);
+  }, [x, fade, reduceMotion]);
 
   useEffect(() => {
     if (currentUserId) loadFollowData(currentUserId, userId);
@@ -177,8 +199,10 @@ export default function UserProfileScreen({
       message: `User profile opened: ${userId}`,
       level: 'info',
     });
+    let live = true;
     getProfile(userId)
       .then(({ data, error }) => {
+        if (!live) return;
         if (error) {
           Sentry.captureMessage(error.message, {
             level: 'warning',
@@ -190,14 +214,25 @@ export default function UserProfileScreen({
         setLoading(false);
       })
       .catch((e) => {
+        if (!live) return;
         Sentry.captureException(e, { tags: { flow: 'profile', step: 'fetch' }, extra: { userId } });
         setProfile(null);
         setLoading(false);
       });
-  }, [userId]);
+    return () => {
+      live = false;
+    };
+  }, [userId, attempt]);
 
-  const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
+  const retryLoad = () => {
+    setLoading(true);
+    setAttempt((n) => n + 1);
+  };
+
+  const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '';
   const initials = displayName[0]?.toUpperCase() ?? '?';
+  // How they're named in messages: @username, or their name before the profile has one.
+  const handle = profile?.username ? `@${profile.username}` : displayName || 'them';
   const isSelf = currentUserId === userId;
 
   const handleMessage = async () => {
@@ -211,25 +246,28 @@ export default function UserProfileScreen({
     try {
       const { data, error } = await createOrGetConversation(currentUserId, userId);
       setMessaging(false);
-      if (error) {
-        Sentry.captureMessage(error.message, {
-          level: 'warning',
-          tags: { flow: 'profile', step: 'message' },
-          extra: { userId },
-        });
+      if (error || !data) {
+        if (error) {
+          Sentry.captureMessage(error.message, {
+            level: 'warning',
+            tags: { flow: 'profile', step: 'message' },
+            extra: { userId },
+          });
+        }
+        toast(`Couldn’t open a chat with ${handle}. Try again.`);
         return;
       }
-      if (data) {
-        setActiveConvo(data);
-      }
+      setActiveConvo(data);
     } catch (e) {
       Sentry.captureException(e, { tags: { flow: 'profile', step: 'message' }, extra: { userId } });
       setMessaging(false);
+      toast(`Couldn’t open a chat with ${handle}. Try again.`);
     }
   };
 
-  const handleFollow = async () => {
+  const runFollow = async () => {
     if (!currentUserId) return;
+    const wasFollowing = isFollowing;
     Sentry.addBreadcrumb({
       category: 'profile',
       message: `Follow toggled: ${userId}`,
@@ -240,16 +278,34 @@ export default function UserProfileScreen({
       Sentry.captureMessage(error.message, {
         level: 'warning',
         tags: { flow: 'profile', step: 'follow' },
-        extra: { userId, action: isFollowing ? 'unfollow' : 'follow' },
+        extra: { userId, action: wasFollowing ? 'unfollow' : 'follow' },
       });
+      // The button has already gone back; say why.
+      toast(
+        wasFollowing
+          ? `Couldn’t unfollow ${handle}. Try again.`
+          : `Couldn’t follow ${handle}. Try again.`
+      );
     }
+  };
+
+  // Following → ask first: an unfollow can end tagging each other.
+  const handleFollow = () => {
+    if (!isFollowing) {
+      void runFollow();
+      return;
+    }
+    Alert.alert(`Unfollow ${handle}?`, 'Only friends who follow each other can tag each other.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Unfollow', style: 'destructive', onPress: () => void runFollow() },
+    ]);
   };
 
   const handleBlock = () => {
     if (!currentUserId || !profile) return;
     Alert.alert(
       `Block @${profile.username}?`,
-      "They won't be able to see your posts, message you, or follow you.",
+      'You’ll stop following each other, and they won’t be able to see your posts or message you.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -269,6 +325,9 @@ export default function UserProfileScreen({
                 tags: { flow: 'moderation', step: 'block' },
                 extra: { userId },
               });
+              // Stay here: they aren't blocked.
+              toast(`Couldn’t block ${handle}. Try again.`);
+              return;
             }
             onBack();
           },
@@ -281,7 +340,7 @@ export default function UserProfileScreen({
     if (!currentUserId || !profile) return;
     Alert.alert(
       `Unblock @${profile.username}?`,
-      'They will be able to see your posts and message you again. You will need to re-follow each other.',
+      'They’ll be able to see your posts and message you again. To tag each other, you’ll both need to follow again.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -300,6 +359,7 @@ export default function UserProfileScreen({
                 tags: { flow: 'moderation', step: 'unblock' },
                 extra: { userId },
               });
+              toast(`Couldn’t unblock ${handle}. Try again.`);
             }
           },
         },
@@ -349,6 +409,7 @@ export default function UserProfileScreen({
           tags: { flow: 'moderation', step: 'report' },
           extra: { userId, reason: r.value },
         });
+        toast('Couldn’t send your report. Try again.');
       } else {
         Alert.alert('Report submitted', 'Thank you for helping keep the community safe.');
       }
@@ -434,7 +495,7 @@ export default function UserProfileScreen({
           accessibilityLabel="More options"
           hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
-          <Text style={[styles.ellipsisText, { color: muted }]}>...</Text>
+          <Text style={[styles.ellipsisText, { color: muted }]}>…</Text>
         </Pressable>
       ) : null}
     </>
@@ -487,17 +548,13 @@ export default function UserProfileScreen({
         <Text style={[styles.statLabel, { color: muted }]}>Friends ›</Text>
       </Pressable>
 
-      {/* Mahi points: one per post that answers a tag, back to 0 on a missed tag; Best stays */}
+      {/* Someone else's Mahi points: Best only, so a missed tag (points back to 0) isn't shown
+          to everyone. Your own profile shows Points and Best. */}
       <View
         style={[styles.statsRow, { marginTop: SPACE.s16 }]}
         accessible
-        accessibilityLabel={pointsStatsLabel(profile?.streak_current, profile?.streak_highest)}
+        accessibilityLabel={`Best, ${pointsCount(profile?.streak_highest)}`}
       >
-        <View style={styles.stat}>
-          <Text style={[styles.statValue, { color: text }]}>{profile?.streak_current ?? 0}</Text>
-          <Text style={[styles.statLabel, { color: muted }]}>Points</Text>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: muted }]} />
         <View style={styles.stat}>
           <Text style={[styles.statValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
           <Text style={[styles.statLabel, { color: muted }]}>Best</Text>
@@ -517,7 +574,8 @@ export default function UserProfileScreen({
             ]}
             onPress={handleFollow}
             accessibilityRole="button"
-            accessibilityLabel={`Follow @${profile?.username ?? displayName}`}
+            accessibilityLabel={isFollowing ? `Following ${handle}` : `Follow ${handle}`}
+            accessibilityHint={isFollowing ? 'Double tap to unfollow' : undefined}
             accessibilityState={{ selected: isFollowing }}
           >
             <Text style={[styles.followBtnText, { color: isFollowing ? text : COLORS.offBlack }]}>
@@ -533,7 +591,7 @@ export default function UserProfileScreen({
             ]}
             onPress={handleMessage}
             accessibilityRole="button"
-            accessibilityLabel={`Message @${profile?.username ?? displayName}`}
+            accessibilityLabel={`Message ${handle}`}
             accessibilityState={{ busy: messaging, disabled: messaging }}
             disabled={messaging}
           >
@@ -544,6 +602,11 @@ export default function UserProfileScreen({
             {messaging ? <ActivityIndicator color={text} style={StyleSheet.absoluteFill} /> : null}
           </Pressable>
         </View>
+      ) : null}
+      {!isSelf ? (
+        <Text style={[styles.followHint, { color: muted }]}>
+          Follow each other and you can tag each other.
+        </Text>
       ) : null}
 
       {/* Suggested follows — syncs on mount, renders null when empty.
@@ -564,9 +627,9 @@ export default function UserProfileScreen({
           <View style={styles.page}>
             {topButtons}
             <View style={styles.blockedWrap}>
-              <Text style={[styles.blockedTitle, { color: text }]}>User unavailable</Text>
+              <Text style={[styles.blockedTitle, { color: text }]}>Profile unavailable</Text>
               <Text style={[styles.blockedSubtitle, { color: muted }]}>
-                {isBlockedByMe ? 'You have blocked this user.' : 'This content is not available.'}
+                {isBlockedByMe ? `You’ve blocked ${handle}.` : 'You can’t see this profile.'}
               </Text>
               {isBlockedByMe ? (
                 <Pressable
@@ -591,9 +654,30 @@ export default function UserProfileScreen({
             header={header}
             onPostPress={(post) => setViewerPostId(post.id)}
             listGesture={pageList}
+            username={profile.username}
           />
         ) : (
-          header
+          // The read failed: say so, with a way to try again (never a blank "0 points" profile).
+          <View style={styles.page}>
+            {topButtons}
+            <View style={styles.blockedWrap}>
+              <Text style={[styles.blockedTitle, { color: text }]}>Couldn’t load this profile</Text>
+              <Text style={[styles.blockedSubtitle, { color: muted }]}>
+                Check your connection and try again.
+              </Text>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.unblockBtn,
+                  { borderColor: text },
+                  pressed && { opacity: ALPHA.a75 },
+                ]}
+                onPress={retryLoad}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.unblockBtnText, { color: text }]}>Try again</Text>
+              </Pressable>
+            </View>
+          </View>
         )}
 
         {/* Friends list */}
@@ -747,10 +831,11 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
   },
-  statDivider: {
-    width: SIZE.z1,
-    height: SIZE.z40,
-    opacity: ALPHA.a30,
+  followHint: {
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.regular,
+    textAlign: 'center',
+    marginTop: SPACE.s12,
   },
   actionRow: {
     flexDirection: 'row',
@@ -758,6 +843,8 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s20,
   },
   followBtn: {
+    minHeight: SIZE.z44,
+    justifyContent: 'center',
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s28,
     paddingVertical: SPACE.s9,
@@ -767,6 +854,8 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
   },
   messageBtn: {
+    minHeight: SIZE.z44,
+    justifyContent: 'center',
     borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s28,
@@ -792,6 +881,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
   },
   unblockBtn: {
+    minHeight: SIZE.z44,
+    justifyContent: 'center',
     borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s28,
