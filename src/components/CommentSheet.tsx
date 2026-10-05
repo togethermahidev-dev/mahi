@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Keyboard,
   Modal,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -97,7 +98,6 @@ function CommentRow({
               useSocialStore.getState().toggleCommentLike(comment.id);
             }}
             disabled={sending}
-            hitSlop={OFFSET.o8}
             accessibilityRole="button"
             accessibilityLabel={liked ? `Unlike ${name}'s comment` : `Like ${name}'s comment`}
             accessibilityState={{ selected: liked, disabled: sending }}
@@ -107,7 +107,8 @@ function CommentRow({
           {count > 0 ? (
             <Pressable
               onPress={() => onShowLikers(comment.id)}
-              hitSlop={OFFSET.o8}
+              // Wider and lower only: the heart above is already 44 pt.
+              hitSlop={{ top: 0, bottom: OFFSET.o8, left: OFFSET.o6, right: OFFSET.o6 }}
               accessibilityRole="button"
               accessibilityLabel={`${count} ${count === 1 ? 'like' : 'likes'}`}
               accessibilityHint="Shows who liked it"
@@ -189,10 +190,32 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
     (s) => s.posts.find((p) => p.id === postId)?.comment_count
   );
   const commentCount = feedCount ?? profileCount ?? 0;
+  // Whose post it is: the box cheers them on ("Cheer @sam on…"), not yourself.
+  const poster = useFeedStore((s) => s.posts.find((p) => p.id === postId)?.profiles);
+  const profilePoster = useProfilePostsStore((s) => s.posts.find((p) => p.id === postId)?.profiles);
+  const posterName = (poster ?? profilePoster)?.username ?? null;
+  const ownPost = !!currentUser && (poster ?? profilePoster)?.id === currentUser.id;
+  const cheerName = !ownPost && posterName ? `@${posterName}` : null;
 
-  useEffect(() => {
-    useSocialStore.getState().loadComments(postId);
+  // Loading, failed and empty are three states. The store keeps nothing on a failed read, so a
+  // read that ends with no comments for this post is a failure.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const fetchComments = useCallback(() => {
+    void useSocialStore
+      .getState()
+      .loadComments(postId)
+      .then(() => {
+        if (useSocialStore.getState().comments[postId] === undefined) setLoadFailed(true);
+      });
   }, [postId]);
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
+  const load = () => {
+    setLoadFailed(false);
+    fetchComments();
+  };
+  const inputRef = useRef<TextInput>(null);
 
   // Comment likes (flag comment-likes): read fresh each time the comments open; the hearts show
   // once they've arrived, so a count never jumps from an old number to a new one.
@@ -213,18 +236,27 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
     setLikersFor(commentId);
   }, []);
 
-  const handleSubmitComment = useCallback(() => {
+  const handleSubmitComment = useCallback(async () => {
     const trimmed = commentText.trim();
     if (!trimmed || !currentUser) return;
-    useSocialStore.getState().addComment(postId, currentUser.id, trimmed, {
+    // Your sent copies of these words: one more after a send means it went through.
+    const sentCopies = () =>
+      (useSocialStore.getState().comments[postId] ?? []).filter(
+        (c) => c.user_id === currentUser.id && c.content === trimmed && !c.id.startsWith('temp_')
+      ).length;
+    const before = sentCopies();
+    setCommentText('');
+    Keyboard.dismiss();
+    await useSocialStore.getState().addComment(postId, currentUser.id, trimmed, {
       id: currentUser.id,
       username: currentUser.username,
       display_name: currentUser.display_name ?? null,
       avatar_url: currentUser.avatar_url ?? null,
     });
-    setCommentText('');
-    Keyboard.dismiss();
+    // It didn't send: put the words back (unless something new has been typed since).
+    if (sentCopies() <= before) setCommentText((now) => (now ? now : trimmed));
   }, [commentText, postId, currentUser]);
+  const canSend = commentText.trim().length > 0;
 
   return (
     <>
@@ -234,7 +266,27 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
 
       {/* Comment list */}
       <View style={styles.sheetList}>
-        {comments && comments.length > 0 ? (
+        {comments === undefined ? (
+          loadFailed ? (
+            <View style={styles.sheetEmpty}>
+              <Text style={[styles.sheetEmptyTitle, { color: text }]}>Couldn’t load comments</Text>
+              <Text style={[styles.sheetEmptyText, { color: muted }]}>
+                Check your connection and try again.
+              </Text>
+              <Pressable
+                style={({ pressed }) => [styles.retryBtn, pressed && { opacity: ALPHA.a75 }]}
+                onPress={load}
+                accessibilityRole="button"
+              >
+                <Text style={styles.retryBtnText}>Try again</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.sheetEmpty}>
+              <ActivityIndicator color={muted} accessibilityLabel="Loading comments" />
+            </View>
+          )
+        ) : comments.length > 0 ? (
           <FlashList
             data={comments}
             keyExtractor={(c) => c.id}
@@ -252,9 +304,20 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
             keyboardDismissMode="interactive"
           />
         ) : (
-          <View style={styles.sheetEmpty}>
-            <Text style={[styles.sheetEmptyText, { color: muted }]}>No comments yet</Text>
-          </View>
+          // Empty: a nudge to cheer them on; a tap opens the keyboard.
+          <Pressable
+            style={styles.sheetEmpty}
+            onPress={() => inputRef.current?.focus()}
+            accessibilityRole="button"
+            accessibilityHint="Opens the keyboard"
+          >
+            <Text style={[styles.sheetEmptyTitle, { color: text }]}>No comments yet</Text>
+            {cheerName ? (
+              <Text style={[styles.sheetEmptyText, { color: muted }]}>
+                Be the first to cheer {cheerName} on. Say what they did, not how they look.
+              </Text>
+            ) : null}
+          </Pressable>
         )}
       </View>
 
@@ -269,26 +332,30 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
         ]}
       >
         <TextInput
+          ref={inputRef}
           style={[styles.commentInput, { color: text, borderColor: border }]}
-          placeholder="Add a comment…"
+          placeholder={cheerName ? `Cheer ${cheerName} on…` : 'Add a comment…'}
           placeholderTextColor={muted}
           value={commentText}
           onChangeText={setCommentText}
           returnKeyType="send"
-          onSubmitEditing={handleSubmitComment}
+          onSubmitEditing={() => void handleSubmitComment()}
           autoCapitalize="sentences"
           enablesReturnKeyAutomatically
-          autoFocus
         />
+        {/* Dimmed and off while the box is empty, as in messages. */}
         <Pressable
           style={({ pressed }) => [
             styles.commentSubmit,
-            { backgroundColor: COLORS.accent },
-            pressed && { opacity: ALPHA.a75 },
+            { backgroundColor: COLORS.accent, opacity: canSend ? 1 : ALPHA.a35 },
+            pressed && canSend && { opacity: ALPHA.a75 },
           ]}
-          onPress={handleSubmitComment}
+          onPress={() => void handleSubmitComment()}
+          disabled={!canSend}
+          hitSlop={{ top: OFFSET.o4, bottom: OFFSET.o4, left: OFFSET.o4, right: OFFSET.o8 }}
           accessibilityRole="button"
           accessibilityLabel="Send comment"
+          accessibilityState={{ disabled: !canSend }}
         >
           <Text style={styles.commentSubmitText}>Send</Text>
         </Pressable>
@@ -354,18 +421,18 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.regular,
   },
   commentTime: {
-    fontSize: FONT_SIZE.f11,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
     paddingTop: SPACE.s2,
   },
   // ── Comment likes: a heart with its count under it, on the right of each comment
   likeCol: {
     alignItems: 'center',
-    minWidth: SIZE.z32,
+    minWidth: SIZE.z44,
   },
   likeBtn: {
-    width: SIZE.z32,
-    height: SIZE.z24,
+    width: SIZE.z44,
+    height: SIZE.z44,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -383,15 +450,17 @@ const styles = StyleSheet.create({
   },
   commentInput: {
     flex: 1,
-    height: SIZE.z36,
+    minHeight: SIZE.z36,
     borderRadius: RADIUS.r50,
     borderWidth: BORDER_WIDTH.w1,
     paddingHorizontal: SPACE.s14,
-    paddingVertical: 0,
+    paddingVertical: SPACE.s8,
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.regular,
   },
   commentSubmit: {
+    minHeight: SIZE.z36,
+    justifyContent: 'center',
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s14,
     paddingVertical: SPACE.s7,
@@ -419,9 +488,30 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: SPACE.s8,
+    paddingHorizontal: SPACE.s32,
+  },
+  sheetEmptyTitle: {
+    fontSize: FONT_SIZE.f16,
+    fontFamily: FONTS.semiBold,
+    textAlign: 'center',
   },
   sheetEmptyText: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.regular,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.pill,
+    minHeight: SIZE.z44,
+    justifyContent: 'center',
+    paddingHorizontal: SPACE.s24,
+    marginTop: SPACE.s8,
+  },
+  retryBtnText: {
+    color: COLORS.offBlack,
+    fontSize: FONT_SIZE.f15,
+    fontFamily: FONTS.bold,
   },
 });
