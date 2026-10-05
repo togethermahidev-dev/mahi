@@ -118,7 +118,7 @@ describe('liking a comment', () => {
     const result = await social().toggleCommentLike('c1');
     expect(likesOf('c1')).toEqual({ liked: false, count: 2 });
     expect(result.error).toBeInstanceOf(Error);
-    expect(useToastStore.getState().message).toBe("Couldn't update like");
+    expect(useToastStore.getState().message).toBe('Couldn’t like that comment. Try again.');
   });
 
   it('a comment still being sent cannot be liked yet', async () => {

@@ -106,7 +106,12 @@ export const useSocialStore = create<SocialState>((set, get) => ({
       // Rollback
       set((s) => ({ likedByMe: { ...s.likedByMe, [postId]: prevLiked } }));
       patchCounts(postId, { like_count: prevCount });
-      useToastStore.getState().show("Couldn't update like");
+      // Words follow the glossary: "Couldn’t [verb] [thing]. Try again." Liking gets a button.
+      if (prevLiked) useToastStore.getState().show('Couldn’t remove your like. Try again.');
+      else
+        useToastStore.getState().show('Couldn’t like that post.', {
+          action: { label: 'Try again', onPress: () => void get().toggleLike(postId, userId) },
+        });
     } else {
       // Write authoritative values
       set((s) => ({ likedByMe: { ...s.likedByMe, [postId]: data.liked } }));
@@ -154,7 +159,8 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         },
       }));
       patchCounts(postId, { comment_count: prevCount });
-      useToastStore.getState().show("Couldn't post comment");
+      // The sheet puts the words back in the box (CommentSheet).
+      useToastStore.getState().show('Couldn’t post your comment. Your words are still in the box.');
     } else {
       // Replace temp with confirmed row
       set((s) => ({
@@ -198,7 +204,13 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     if (error || !data) {
       console.log('[socialStore] toggleCommentLike', error?.message);
       set((s) => ({ commentLikes: { ...s.commentLikes, [commentId]: prev } }));
-      useToastStore.getState().show("Couldn't update like");
+      useToastStore
+        .getState()
+        .show(
+          prev.liked
+            ? 'Couldn’t remove your like. Try again.'
+            : 'Couldn’t like that comment. Try again.'
+        );
       return { error: error ?? new Error('no answer') };
     }
     set((s) => ({

@@ -24,7 +24,7 @@ export async function sharePost(post: FeedPost): Promise<void> {
     }
     await Share.share({ url });
   } catch {
-    useToastStore.getState().show("Couldn't share this post");
+    useToastStore.getState().show('Couldn’t open sharing. Try again.');
   } finally {
     if (temp) FileSystem.deleteAsync(temp, { idempotent: true }).catch(() => {});
   }

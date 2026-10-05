@@ -2184,7 +2184,7 @@ export default function CameraScreen({
       if (shared) track('invite_shared', {});
       setPostInvites((list) => markInvite(list, token, shared));
     } catch {
-      useToastStore.getState().show("Couldn't open sharing — please try again");
+      useToastStore.getState().show('Couldn’t open sharing. Try again.');
     }
   };
 
