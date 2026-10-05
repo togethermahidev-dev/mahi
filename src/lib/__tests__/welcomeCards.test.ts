@@ -16,19 +16,31 @@ describe('welcome cards', () => {
     ]);
   });
 
-  it('explains answering a tag and Mahi points on card 1', () => {
+  // Design review 2026-10-05 (Q1): a newcomer read "post when a friend tags you" and waited for a
+  // tag that couldn't come, so card 1 says the first post needs no tag and any workout counts,
+  // and says what a miss costs.
+  it('card 1: the first post needs no tag, any workout counts, and a miss resets points', () => {
     expect(WELCOME_CARDS[0].body).toBe(
-      'You have 48 hours to answer with a photo, front and back camera. Each answer earns you a Mahi point.'
+      'Your first post needs no tag. After that, you post when a friend tags you: 48 hours to answer with a photo, back camera then selfie. Any workout counts. Each answer earns a Mahi point. Miss a tag and your points go back to 0, but your best stays.'
     );
   });
 
-  it('explains friends on card 2 and how the feed opens and locks on card 3', () => {
+  it('card 2 says friends the same way as the rest of the app', () => {
     expect(WELCOME_CARDS[1].body).toBe(
-      'They have 48 hours to answer with a workout of their own. Friends are people who follow each other.'
+      'They have 48 hours to answer with a workout of their own. Follow each other and you can tag each other.'
     );
+  });
+
+  it('card 3: a tag in the 24 hours locks the feed when they end, not at once', () => {
     expect(WELCOME_CARDS[2].body).toBe(
-      'Posting your answer opens your feed for 24 hours. If a friend tags you, it locks until you answer.'
+      'Posting your answer opens your feed for 24 hours. Get tagged in that time and it locks when they end, until you answer.'
     );
+  });
+
+  it('never says streak and never shouts', () => {
+    for (const card of WELCOME_CARDS) {
+      expect(`${card.title} ${card.body}`).not.toMatch(/streak|!/i);
+    }
   });
 
   it('remembers "seen" per account', () => {

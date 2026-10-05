@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, Dimensions } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import LoginSheet from '@/components/LoginSheet';
@@ -31,6 +32,9 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
 
   const topY = useRef(new Animated.Value(0)).current;
   const botY = useRef(new Animated.Value(0)).current;
+  // Reduce Motion: the two halves fade away instead of sliding apart.
+  const reduceMotion = useReducedMotion();
+  const [fade] = useState(() => new Animated.Value(1));
 
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
@@ -41,6 +45,12 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
   const handleAuthComplete = () => {
     setShowLogin(false);
     setShowSignup(false);
+    if (reduceMotion) {
+      Animated.timing(fade, { toValue: 0, duration: DURATION.d300, useNativeDriver: true }).start(
+        () => onAuthComplete()
+      );
+      return;
+    }
     Animated.parallel([
       Animated.timing(topY, { toValue: -height, duration: DURATION.d400, useNativeDriver: true }),
       Animated.timing(botY, { toValue: height, duration: DURATION.d400, useNativeDriver: true }),
@@ -50,7 +60,10 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
   return (
     <View style={styles.root}>
       <Animated.View
-        style={[styles.topSheet, { backgroundColor: sheetBg, transform: [{ translateY: topY }] }]}
+        style={[
+          styles.topSheet,
+          { backgroundColor: sheetBg, opacity: fade, transform: [{ translateY: topY }] },
+        ]}
       >
         <View style={styles.titles}>
           <View style={styles.titleWrapper}>
@@ -93,7 +106,7 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
       <Animated.View
         style={[
           styles.bottomSheet,
-          { backgroundColor: sheetBg, transform: [{ translateY: botY }] },
+          { backgroundColor: sheetBg, opacity: fade, transform: [{ translateY: botY }] },
         ]}
       >
         {showApple || showGoogle ? (

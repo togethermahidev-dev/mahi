@@ -14,17 +14,17 @@ export const WELCOME_CARDS: readonly WelcomeCard[] = [
   {
     icon: 'camera',
     title: 'Post when a friend tags you.',
-    body: 'You have 48 hours to answer with a photo, front and back camera. Each answer earns you a Mahi point.',
+    body: 'Your first post needs no tag. After that, you post when a friend tags you: 48 hours to answer with a photo, back camera then selfie. Any workout counts. Each answer earns a Mahi point. Miss a tag and your points go back to 0, but your best stays.',
   },
   {
     icon: 'people',
     title: 'Every post tags 3 friends.',
-    body: 'They have 48 hours to answer with a workout of their own. Friends are people who follow each other.',
+    body: 'They have 48 hours to answer with a workout of their own. Follow each other and you can tag each other.',
   },
   {
     icon: 'feed',
     title: 'Post to open your feed.',
-    body: 'Posting your answer opens your feed for 24 hours. If a friend tags you, it locks until you answer.',
+    body: 'Posting your answer opens your feed for 24 hours. Get tagged in that time and it locks when they end, until you answer.',
   },
 ];
 

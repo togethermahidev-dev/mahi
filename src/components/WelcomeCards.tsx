@@ -149,16 +149,24 @@ export function WelcomeCardsModal({ onClose }: { onClose: () => void }): React.J
           style={styles.scroller}
         >
           {WELCOME_CARDS.map((card, i) => (
-            <View
+            // Each card scrolls up and down on its own, so long words at large text sizes are
+            // never cut off; at normal sizes it fits and sits in the middle.
+            <ScrollView
               key={card.title}
-              style={[styles.card, { width }]}
-              accessible
-              accessibilityLabel={`${cardPositionLabel(i, COUNT)}. ${card.title} ${card.body}`}
+              style={{ width }}
+              contentContainerStyle={styles.card}
+              showsVerticalScrollIndicator={false}
             >
-              <CardIllustration icon={card.icon} color={colors.accent} />
-              <Text style={[styles.title, { color: colors.text }]}>{card.title}</Text>
-              <Text style={[styles.body, { color: colors.text }]}>{card.body}</Text>
-            </View>
+              <View
+                style={styles.cardContent}
+                accessible
+                accessibilityLabel={`${cardPositionLabel(i, COUNT)}. ${card.title} ${card.body}`}
+              >
+                <CardIllustration icon={card.icon} color={colors.accent} />
+                <Text style={[styles.title, { color: colors.text }]}>{card.title}</Text>
+                <Text style={[styles.body, { color: colors.text }]}>{card.body}</Text>
+              </View>
+            </ScrollView>
           ))}
         </ScrollView>
 
@@ -206,10 +214,13 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   card: {
-    flex: 1,
-    alignItems: 'center',
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: SPACE.s32,
+    paddingVertical: SPACE.s24,
+  },
+  cardContent: {
+    alignItems: 'center',
   },
   people: {
     flexDirection: 'row',
