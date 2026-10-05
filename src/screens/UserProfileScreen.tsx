@@ -61,6 +61,7 @@ import {
   VIEWER,
   withAlpha,
 } from '@/constants/tokens';
+import { themeColors } from '@/hooks/useAppTheme';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
@@ -86,9 +87,7 @@ export default function UserProfileScreen({
 
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a45)
-    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const { muted } = themeColors(dark);
 
   const isFollowing = useFollowStore((s) => s.followingByMe[userId] ?? false);
   const loadFollowData = useFollowStore((s) => s.loadFollowData);

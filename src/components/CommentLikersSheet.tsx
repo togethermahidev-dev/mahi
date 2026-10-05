@@ -19,6 +19,7 @@ import {
   SPACE,
   withAlpha,
 } from '@/constants/tokens';
+import { themeColors } from '@/hooks/useAppTheme';
 
 /**
  * Who liked a comment (flag comment-likes), in a native page sheet over the comments: names and
@@ -80,12 +81,8 @@ function Likers({
 
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a45)
-    : withAlpha(COLORS.offBlack, ALPHA.a45);
-  const border = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a12)
-    : withAlpha(COLORS.offBlack, ALPHA.a12);
+  const { muted } = themeColors(dark);
+  const { border } = themeColors(dark);
   const avatarBg = dark ? COLORS.surfaceDark : COLORS.offWhite;
 
   return (

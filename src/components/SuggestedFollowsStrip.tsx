@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, Image, StyleSheet, Pressable, LayoutAnimation } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useSuggestedFollows } from '@/hooks/useSuggestedFollows';
 import type { SuggestedUser } from '@/api';
 import { FONTS } from '@/constants/fonts';
@@ -46,9 +46,7 @@ export default function SuggestedFollowsStrip({
 
   // Surfaces follow the established translucent offWhite/offBlack convention
   // rather than introducing new opaque hex.
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a45)
-    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const { muted } = themeColors(dark);
   const cardBg = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a06)
     : withAlpha(COLORS.offBlack, ALPHA.a04);

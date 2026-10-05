@@ -32,6 +32,7 @@ import {
   TRACKING,
   withAlpha,
 } from '@/constants/tokens';
+import { themeColors } from '@/hooks/useAppTheme';
 
 interface BlockedUsersSheetProps {
   visible: boolean;
@@ -73,12 +74,8 @@ function Sheet({ onClose, dark }: Omit<BlockedUsersSheetProps, 'visible'>) {
 
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a45)
-    : withAlpha(COLORS.offBlack, ALPHA.a45);
-  const border = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a12)
-    : withAlpha(COLORS.offBlack, ALPHA.a12);
+  const { muted } = themeColors(dark);
+  const { border } = themeColors(dark);
   const avatarBg = dark ? COLORS.surfaceDark : COLORS.offWhite;
   const inputBg = dark ? COLORS.surfaceDark : COLORS.surfaceLight2;
 

@@ -4,7 +4,7 @@ import { FlashList } from '@shopify/flash-list';
 import type { NativeGesture } from 'react-native-gesture-handler';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useTabBarRoom } from '@/hooks/useChrome';
 import { useMessages } from '@/hooks/useMessages';
 import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
@@ -180,9 +180,7 @@ export default function MessagesScreen({
   const muted = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a40)
     : withAlpha(COLORS.offBlack, ALPHA.a40);
-  const border = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a12)
-    : withAlpha(COLORS.offBlack, ALPHA.a12);
+  const { border } = themeColors(dark);
   const accent = colors.accent;
   const insets = useSafeAreaInsets();
 

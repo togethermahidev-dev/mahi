@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import KeyboardInset from '@/components/KeyboardInset';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useConversation } from '@/hooks/useConversation';
 import { useMessages } from '@/hooks/useMessages';
 import { groupMessagesByDate, type GroupedRow } from '@/lib/groupMessages';
@@ -51,9 +51,7 @@ export default function ConversationScreen({
   const muted = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a40)
     : withAlpha(COLORS.offBlack, ALPHA.a40);
-  const border = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a12)
-    : withAlpha(COLORS.offBlack, ALPHA.a12);
+  const { border } = themeColors(dark);
   const ownBubble = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a15)
     : withAlpha(COLORS.offBlack, ALPHA.a10);

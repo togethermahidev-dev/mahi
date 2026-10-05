@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import type { NativeGesture } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { useAuthStore, useUserStore } from '@/store';
 import { pointsStatsLabel } from '@/lib/mahiPoints';
@@ -52,9 +52,7 @@ export default function ProfileScreen({
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a45)
-    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const { muted } = themeColors(dark);
   const toggleColor = dark ? COLORS.offWhite : COLORS.offBlack;
 
   const profile = useUserStore((s) => s.profile);

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Image, Modal, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useBlockStore, useTagStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
@@ -63,9 +63,7 @@ export default function NotificationsScreen({
   const muted = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a40)
     : withAlpha(COLORS.offBlack, ALPHA.a40);
-  const border = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a12)
-    : withAlpha(COLORS.offBlack, ALPHA.a12);
+  const { border } = themeColors(dark);
   const avatarBg = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a10)
     : withAlpha(COLORS.offBlack, ALPHA.a08);

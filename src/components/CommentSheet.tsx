@@ -36,6 +36,7 @@ import {
   TRACKING,
   withAlpha,
 } from '@/constants/tokens';
+import { themeColors } from '@/hooks/useAppTheme';
 
 function CommentRow({
   comment,
@@ -54,9 +55,7 @@ function CommentRow({
   onOpenProfile: (userId: string) => void;
 }) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a45)
-    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const { muted } = themeColors(dark);
   const name = comment.profiles.display_name ?? comment.profiles.username;
   const initials = (comment.profiles.username ?? '?')[0].toUpperCase();
   const like = useSocialStore((s) => s.commentLikes[comment.id]);
@@ -160,9 +159,7 @@ export default function CommentSheet({
 
 function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a45)
-    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const { muted } = themeColors(dark);
   const border = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a10)
     : withAlpha(COLORS.offBlack, ALPHA.a10);

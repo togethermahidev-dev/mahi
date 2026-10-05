@@ -65,6 +65,7 @@ import {
   VIEWER,
   withAlpha,
 } from '@/constants/tokens';
+import { themeColors } from '@/hooks/useAppTheme';
 
 /**
  * One post, full screen (TikTok-style): photo or video, the second shot in a draggable small
@@ -102,9 +103,7 @@ export default function PostCard({
   onToggleMuted?: () => void;
 }) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a45)
-    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const { muted } = themeColors(dark);
   const border = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a10)
     : withAlpha(COLORS.offBlack, ALPHA.a10);

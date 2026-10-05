@@ -42,6 +42,7 @@ import {
   withAlpha,
 } from '@/constants/tokens';
 import { useCoverRail } from '@/hooks/useChrome';
+import { themeColors } from '@/hooks/useAppTheme';
 
 function UserRow({
   item,
@@ -53,9 +54,7 @@ function UserRow({
   onPress: () => void;
 }) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a45)
-    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const { muted } = themeColors(dark);
   const avatarBg = dark ? COLORS.surfaceDark : COLORS.offWhite;
 
   const displayName = item.display_name ?? item.first_name ?? item.username ?? '—';
@@ -106,9 +105,7 @@ export default function GlobalSearchOverlay({
   useCoverRail(visible);
 
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a45)
-    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const { muted } = themeColors(dark);
   const inputBg = dark ? withAlpha(COLORS.white, ALPHA.a12) : withAlpha(COLORS.black, ALPHA.a08);
   const tint = dark ? 'dark' : 'light';
 

@@ -13,7 +13,7 @@ import { FlashList, useRecyclingState } from '@shopify/flash-list';
 import { useTabBarRoom } from '@/hooks/useChrome';
 import type { NativeGesture } from 'react-native-gesture-handler';
 import Svg, { Path } from 'react-native-svg';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { pointsBadgeText } from '@/lib/mahiPoints';
 import { gridTile } from '@/lib/videoPosts';
@@ -204,9 +204,7 @@ export default function ProfileMediaMap({
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   // The last row scrolls clear of the phone's tab bar.
   const tabRoom = useTabBarRoom();
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a45)
-    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const { muted } = themeColors(dark);
 
   const { posts, isLoading, hasMore, loadMore, refresh } = useProfilePosts(userId);
   const menuOn = useContextMenuPreview();

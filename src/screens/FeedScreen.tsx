@@ -3,7 +3,7 @@ import { View, Text, Image, RefreshControl, StyleSheet, Animated, Pressable } fr
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeGesture } from 'react-native-gesture-handler';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { usePageSize } from '@/hooks/useChrome';
 import { useFeed } from '@/hooks/useFeed';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
@@ -139,9 +139,7 @@ export default function FeedScreen({
   const { width: screenWidth, height: cardHeight } = usePageSize();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a45)
-    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const { muted } = themeColors(dark);
 
   const {
     posts,

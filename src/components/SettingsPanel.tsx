@@ -39,6 +39,7 @@ import {
   withAlpha,
 } from '@/constants/tokens';
 import { useCoverRail } from '@/hooks/useChrome';
+import { themeColors } from '@/hooks/useAppTheme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -76,9 +77,7 @@ export default function SettingsPanel({
   // A full-screen panel: the tab bar hides while it is open.
   useCoverRail(visible);
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a45)
-    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const { muted } = themeColors(dark);
   const border = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a08)
     : withAlpha(COLORS.offBlack, ALPHA.a06);

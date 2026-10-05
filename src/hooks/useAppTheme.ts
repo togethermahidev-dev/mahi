@@ -13,6 +13,10 @@ export interface AppTheme {
   colors: {
     bg: string;
     text: string;
+    /** Secondary text: handles, times, hints. */
+    muted: string;
+    /** Hairlines between rows and around fields. */
+    border: string;
     offWhite: string;
     offBlack: string;
     /** Brand cyan used for the shutter and highlights. */
@@ -32,6 +36,22 @@ export interface AppTheme {
   };
 }
 
+/** The light or dark colours every screen shares (also for parts handed `dark` as a prop). */
+export function themeColors(dark: boolean): AppTheme['colors'] {
+  const ink = dark ? COLORS.offWhite : COLORS.offBlack;
+  return {
+    bg: dark ? COLORS.bgDark : COLORS.white,
+    text: ink,
+    muted: withAlpha(ink, ALPHA.a45),
+    border: withAlpha(ink, ALPHA.a12),
+    offWhite: COLORS.offWhite,
+    offBlack: COLORS.offBlack,
+    accent: COLORS.accent,
+    glassOnDark: withAlpha(COLORS.bgDark, ALPHA.a72),
+    glassOnLight: withAlpha(COLORS.white, ALPHA.a72),
+  };
+}
+
 /**
  * Drop-in replacement for `useColorScheme()` across the app.
  * Respects the user's stored preference (light / dark).
@@ -48,15 +68,7 @@ export function useAppTheme(): AppTheme {
     mode,
     colorScheme,
     dark,
-    colors: {
-      bg: dark ? COLORS.bgDark : COLORS.white,
-      text: dark ? COLORS.offWhite : COLORS.offBlack,
-      offWhite: COLORS.offWhite,
-      offBlack: COLORS.offBlack,
-      accent: COLORS.accent,
-      glassOnDark: withAlpha(COLORS.bgDark, ALPHA.a72),
-      glassOnLight: withAlpha(COLORS.white, ALPHA.a72),
-    },
+    colors: themeColors(dark),
     navRail: { width: SIZE.z52, edgeGap: SPACE.s10, gap: SPACE.s6 },
   };
 }

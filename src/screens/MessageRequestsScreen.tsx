@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, Image, Alert } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useMessages } from '@/hooks/useMessages';
 import { useAuthStore } from '@/store';
 import ConversationScreen from '@/screens/ConversationScreen';
@@ -140,9 +140,7 @@ export default function MessageRequestsScreen({
   const muted = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a40)
     : withAlpha(COLORS.offBlack, ALPHA.a40);
-  const border = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a12)
-    : withAlpha(COLORS.offBlack, ALPHA.a12);
+  const { border } = themeColors(dark);
 
   const { requests, isLoading, refresh, accept, deny } = useMessages();
   const userId = useAuthStore((s) => s.user?.id);
