@@ -13,16 +13,23 @@ export type CameraSide = 'back' | 'front';
  * The status line. `facing` is the camera showing now — after the switch, that's the side the
  * second photo comes from.
  */
-export function captureLabel(state: CaptureState, facing: CameraSide): string | null {
+export function captureLabel(
+  state: CaptureState,
+  facing: CameraSide,
+  /** What a tap on the shutter makes (flag `video-posts`'s Photo / Video switch); photo by default. */
+  mode: 'photo' | 'video' = 'photo'
+): string | null {
+  const video = mode === 'video';
   switch (state) {
     case 'idle':
       return null;
     case 'capturing-first':
     case 'capturing-second':
-      return 'Taking photo…';
+      return video ? 'Starting video…' : 'Taking photo…';
     case 'switching':
       return 'Switching…';
     case 'awaiting-second':
+      if (video) return facing === 'front' ? 'Tap to film your selfie' : 'Tap to film your view';
       return facing === 'front' ? 'Tap for your selfie' : 'Tap for your view';
   }
 }

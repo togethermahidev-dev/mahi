@@ -29,8 +29,12 @@ export const VIDEO_RECORDING = {
   maxFileSize: 40 * 1024 * 1024,
 } as const;
 
-/** How long the shutter must be held before it records instead of taking a photo. */
-export const HOLD_TO_RECORD_MS = 300;
+/**
+ * How long the shutter must be held before it records instead of taking a photo. Half a second,
+ * iOS's own long press: at 300 ms a slow or firm tap (older hands, gloves, sweaty fingers) turned
+ * into a surprise video and a microphone question (design review 2026-10-05).
+ */
+export const HOLD_TO_RECORD_MS = 500;
 
 /**
  * Video is offered only with the flag on AND the native video module in this build. OTA updates
@@ -78,7 +82,42 @@ export function secondsLeft(startedAt: number, now: number): number {
 
 /** The camera's status line while recording. */
 export function recordingLabel(left: number): string {
-  return `Recording… ${left} s left`;
+  return `Recording · ${left} ${left === 1 ? 'second' : 'seconds'} left`;
+}
+
+/** Under this long, a recording that didn't save was let go too soon, not a camera fault. */
+const TOO_SHORT_SECONDS = 1;
+
+/**
+ * The toast when a video didn't save. Says what to do next without blaming: a too-short clip
+ * gets the fix for how it was started (a hold, or a tap in Video mode); anything longer is the
+ * phone's fault, so it just offers another go.
+ */
+export function recordingFailedText(input: { press: 'hold' | 'tap'; seconds: number }): string {
+  if (input.seconds >= TOO_SHORT_SECONDS) return 'Couldn’t save that video. Try again.';
+  return input.press === 'hold'
+    ? 'That video was too short to save. Hold the shutter a little longer.'
+    : 'That video was too short to save. Tap stop after a second or two.';
+}
+
+/**
+ * The first-time line on the live camera that says what the shutter does: nothing on screen
+ * otherwise tells a sighted person they can hold to record, or that Video mode's tap to start,
+ * tap to stop is the hands-free way to film yourself. Null with video off.
+ */
+export function shutterHint(input: { videoOn: boolean; mode: MediaType }): string | null {
+  if (!input.videoOn) return null;
+  return input.mode === 'photo'
+    ? 'Tap for a photo · hold for a video'
+    : `Tap to start, tap to stop · up to ${MAX_VIDEO_SECONDS} seconds. Prop your phone up to film yourself.`;
+}
+
+/** The hint shows until the shutter has been used this many times (per account, per phone). */
+export const SHUTTER_HINT_TIMES = 2;
+
+/** AsyncStorage key: how many times this account has used the shutter with video on, here. */
+export function shutterHintKey(userId: string): string {
+  return `@mahi:shutter_hint_uses:${userId}`;
 }
 
 export type ShutterPress = 'tap' | 'hold' | 'release';

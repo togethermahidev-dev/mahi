@@ -18,6 +18,19 @@ describe('captureLabel — the status line while taking the two photos', () => {
     expect(captureLabel('awaiting-second', 'back')).toBe('Tap for your view');
   });
 
+  it('in Video mode, asks you to film the second shot', () => {
+    expect(captureLabel('awaiting-second', 'front', 'video')).toBe('Tap to film your selfie');
+    expect(captureLabel('awaiting-second', 'back', 'video')).toBe('Tap to film your view');
+  });
+
+  it('in Video mode, says it is starting the video rather than taking a photo', () => {
+    expect(captureLabel('capturing-first', 'back', 'video')).toBe('Starting video…');
+  });
+
+  it('Photo mode reads as before', () => {
+    expect(captureLabel('awaiting-second', 'front', 'photo')).toBe('Tap for your selfie');
+  });
+
   it('says nothing before the first tap', () => {
     expect(captureLabel('idle', 'back')).toBeNull();
   });

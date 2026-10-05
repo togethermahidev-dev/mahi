@@ -18,6 +18,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Reanimated, {
   useSharedValue,
@@ -80,8 +81,12 @@ import {
   HOLD_TO_RECORD_MS,
   VIDEO_RECORDING,
   discardTitle,
+  recordingFailedText,
   recordingLabel,
   secondsLeft,
+  shutterHint,
+  shutterHintKey,
+  SHUTTER_HINT_TIMES,
   shutterIntent,
   shutterLabel,
   type MediaType,
@@ -1651,6 +1656,30 @@ export default function CameraScreen({
   const recordingRef = useRef(false);
   /** The shutter is being held for a video: letting go stops it (even before it starts). */
   const heldForVideoRef = useRef(false);
+  /** This video was started by a hold (kept after letting go, for the "too short" wording). */
+  const videoByHoldRef = useRef(false);
+
+  // The first-time line that says what the shutter does (hold to record). Read from the phone
+  // once video is on; null until read, so it never shows and then vanishes.
+  const [hintUses, setHintUses] = useState<number | null>(null);
+  useEffect(() => {
+    if (!videoOn || !userId) return;
+    let live = true;
+    AsyncStorage.getItem(shutterHintKey(userId))
+      .then((v) => {
+        if (live) setHintUses(Number(v) || 0);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [videoOn, userId]);
+  const countShutterHint = () => {
+    if (!userId || hintUses === null || hintUses >= SHUTTER_HINT_TIMES) return;
+    const next = hintUses + 1;
+    setHintUses(next);
+    AsyncStorage.setItem(shutterHintKey(userId), String(next)).catch(() => {});
+  };
 
   const recordVideo = async (): Promise<CapturedPhoto | null> => {
     const cam = cameraRef.current;
@@ -1682,7 +1711,12 @@ export default function CameraScreen({
       }
     } catch (err) {
       console.log('[CameraScreen] recording failed', err);
-      useToastStore.getState().show("Couldn't record — hold the shutter a little longer");
+      useToastStore.getState().show(
+        recordingFailedText({
+          press: videoByHoldRef.current ? 'hold' : 'tap',
+          seconds: (Date.now() - startedAt) / 1000,
+        })
+      );
       return null;
     } finally {
       recordingRef.current = false;
@@ -1733,6 +1767,7 @@ export default function CameraScreen({
       return;
     }
     firstPhotoRef.current = photo;
+    if (videoOn) countShutterHint();
     setGuidePhotoUri(photo.uri);
     setGuideIsVideo(photo.kind === 'video');
 
@@ -1805,11 +1840,12 @@ export default function CameraScreen({
     }
     stopRequestedRef.current = false;
     heldForVideoRef.current = press === 'hold';
+    videoByHoldRef.current = press === 'hold';
     if (await askMicIfNew()) {
       // The microphone question took the finger off the shutter.
       if (press === 'hold') {
         heldForVideoRef.current = false;
-        useToastStore.getState().show('Hold the shutter again to record');
+        useToastStore.getState().show('Hold the shutter again to record.');
         return;
       }
     }
@@ -2116,7 +2152,15 @@ export default function CameraScreen({
   // While recording it counts down the 15 seconds instead.
   const captureLabel = recording
     ? recordingLabel(secondsLeft(recordingSince, now))
-    : captureLabelFor(captureState, facing);
+    : captureLabelFor(captureState, facing, videoOn ? shotMode : 'photo');
+  const hintText =
+    !captureLabel &&
+    captureState === 'idle' &&
+    gate === 'open' &&
+    hintUses !== null &&
+    hintUses < SHUTTER_HINT_TIMES
+      ? shutterHint({ videoOn, mode: shotMode })
+      : null;
 
   // Read each new step out to VoiceOver (iOS has no live regions; Android also gets one below).
   // A recording is announced once, not every second.
@@ -2264,6 +2308,13 @@ export default function CameraScreen({
         {captureLabel && (
           <View style={styles.captureLabelWrap} accessibilityLiveRegion="polite">
             <Text style={styles.captureLabel}>{captureLabel}</Text>
+          </View>
+        )}
+
+        {/* The first two times: what a tap and a hold on the shutter do (video posts only). */}
+        {hintText && (
+          <View style={styles.captureLabelWrap}>
+            <Text style={[styles.captureLabel, styles.shutterHint]}>{hintText}</Text>
           </View>
         )}
 
@@ -2519,6 +2570,10 @@ const styles = StyleSheet.create({
     lineHeight: LINE_HEIGHT.l24,
     fontFamily: FONTS.semiBold,
     opacity: ALPHA.a90,
+  },
+  shutterHint: {
+    textAlign: 'center',
+    paddingHorizontal: SPACE.s32,
   },
   postedOverlay: {
     ...StyleSheet.absoluteFill,

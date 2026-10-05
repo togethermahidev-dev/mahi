@@ -15,6 +15,9 @@ import {
   discardTitle,
   shouldPlay,
   mediaTypeArgs,
+  HOLD_TO_RECORD_MS,
+  recordingFailedText,
+  shutterHint,
 } from '../videoPosts';
 
 describe('videoAvailable — flag on AND the native video module in this build', () => {
@@ -110,7 +113,8 @@ describe('secondsLeft / recordingLabel', () => {
   });
 
   it('says it is recording and how long is left, in sentence case', () => {
-    expect(recordingLabel(12)).toBe('Recording… 12 s left');
+    expect(recordingLabel(12)).toBe('Recording · 12 seconds left');
+    expect(recordingLabel(1)).toBe('Recording · 1 second left');
     const label = recordingLabel(3);
     expect(label).not.toBe(label.toUpperCase());
   });
@@ -263,5 +267,60 @@ describe('shouldPlay — a video plays only while it is on screen', () => {
   it('pauses off screen', () => {
     expect(shouldPlay({ screenActive: false, inView: true })).toBe(false);
     expect(shouldPlay({ screenActive: true, inView: false })).toBe(false);
+  });
+});
+
+describe('HOLD_TO_RECORD_MS', () => {
+  // A slow tap (older hands, gloves, a firm press) must stay a photo: iOS's own long press is 500 ms.
+  it('is half a second, so a slow tap is still a photo', () => {
+    expect(HOLD_TO_RECORD_MS).toBe(500);
+  });
+});
+
+describe('recordingFailedText — a video that did not save', () => {
+  it('too short from a hold: says how to hold, without blaming', () => {
+    expect(recordingFailedText({ press: 'hold', seconds: 0.4 })).toBe(
+      'That video was too short to save. Hold the shutter a little longer.'
+    );
+  });
+
+  it('too short from a tap in Video mode: says to tap stop later, not to hold', () => {
+    expect(recordingFailedText({ press: 'tap', seconds: 0.4 })).toBe(
+      'That video was too short to save. Tap stop after a second or two.'
+    );
+  });
+
+  it('a longer recording that failed is the phone, not the person', () => {
+    expect(recordingFailedText({ press: 'hold', seconds: 4 })).toBe(
+      'Couldn’t save that video. Try again.'
+    );
+  });
+
+  it('no em dashes, always a full stop', () => {
+    for (const press of ['hold', 'tap'] as const) {
+      for (const seconds of [0, 5]) {
+        const text = recordingFailedText({ press, seconds });
+        expect(text).not.toMatch(/—/);
+        expect(text.endsWith('.')).toBe(true);
+      }
+    }
+  });
+});
+
+describe('shutterHint — the first-time line that says you can hold to record', () => {
+  it('says nothing with video off', () => {
+    expect(shutterHint({ videoOn: false, mode: 'photo' })).toBeNull();
+  });
+
+  it('Photo: tap for a photo, hold for a video', () => {
+    expect(shutterHint({ videoOn: true, mode: 'photo' })).toBe(
+      'Tap for a photo · hold for a video'
+    );
+  });
+
+  it('Video: tap to start and stop, and how to film yourself', () => {
+    expect(shutterHint({ videoOn: true, mode: 'video' })).toBe(
+      'Tap to start, tap to stop · up to 15 seconds. Prop your phone up to film yourself.'
+    );
   });
 });
