@@ -78,14 +78,14 @@ function RequestRow({
         <View style={styles.convoInfo}>
           <Text style={[styles.convoName, { color: text }]}>{name}</Text>
           {preview ? <Text style={[styles.convoPreview, { color: muted }]}>{preview}</Text> : null}
+          {showAccept ? null : (
+            <Text style={[styles.pendingLabel, { color: muted }]}>
+              Waiting for @{item.other_profile.username} to accept
+            </Text>
+          )}
         </View>
 
-        {showAccept ? null : (
-          <View style={styles.convoRight}>
-            {time}
-            <Text style={[styles.pendingLabel, { color: muted }]}>Pending</Text>
-          </View>
-        )}
+        {showAccept ? null : <View style={styles.convoRight}>{time}</View>}
       </Pressable>
 
       {showAccept ? (
@@ -158,7 +158,7 @@ export default function MessageRequestsScreen({
         >
           <Text style={[styles.backArrow, { color: text }]}>‹</Text>
         </Pressable>
-        <Text style={[styles.headerTitle, { color: text }]}>Requests</Text>
+        <Text style={[styles.headerTitle, { color: text }]}>Message requests</Text>
         <View style={styles.backSpacer} />
       </View>
 

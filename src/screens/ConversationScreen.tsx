@@ -165,7 +165,7 @@ export default function ConversationScreen({
         {isRequest && isReceiver ? (
           <View style={[styles.requestBanner, { borderBottomColor: border, backgroundColor: bg }]}>
             <Text style={[styles.requestText, { color: muted }]}>
-              Message request from @{conversation.other_profile.username}
+              @{conversation.other_profile.username} wants to message you. Accept to chat.
             </Text>
             <View style={styles.requestActions}>
               <Pressable
@@ -194,6 +194,16 @@ export default function ConversationScreen({
                 <Text style={[styles.requestBtnText, { color: dangerText }]}>Deny</Text>
               </Pressable>
             </View>
+          </View>
+        ) : null}
+
+        {/* The sender of a request is told where it went, so silence doesn't read as being ignored. */}
+        {isRequest && !isReceiver ? (
+          <View style={[styles.requestBanner, { borderBottomColor: border, backgroundColor: bg }]}>
+            <Text style={[styles.requestText, { color: muted }]}>
+              @{conversation.other_profile.username} will see this in their message requests. You
+              can chat once they accept.
+            </Text>
           </View>
         ) : null}
 
@@ -252,7 +262,9 @@ export default function ConversationScreen({
             ListEmptyComponent={
               !isLoading ? (
                 <View style={styles.emptyWrap}>
-                  <Text style={[styles.emptyText, { color: muted }]}>No messages yet</Text>
+                  <Text style={[styles.emptyText, { color: muted }]}>
+                    Say hi to @{conversation.other_profile.username}.
+                  </Text>
                 </View>
               ) : null
             }

@@ -16,6 +16,7 @@ import GlobalSearchOverlay from '@/components/GlobalSearchOverlay';
 import { SearchIcon } from '@/components/ScreenIcons';
 import PreviewMenu from '@/components/PreviewMenu';
 import ChatPreview from '@/components/ChatPreview';
+import ListState from '@/components/ListState';
 import {
   isMenuAction,
   menuA11yActions,
@@ -219,7 +220,7 @@ export default function MessagesScreen({
           style={({ pressed }) => [styles.headerIconBtn, pressed && styles.pressed]}
           onPress={() => setSearchVisible(true)}
           accessibilityRole="button"
-          accessibilityLabel="Search"
+          accessibilityLabel="Find someone to message"
           hitSlop={{ top: OFFSET.o10, bottom: OFFSET.o10, left: OFFSET.o10, right: OFFSET.o10 }}
         >
           <SearchIcon size={ICON_SIZE.i22} color={text} />
@@ -283,10 +284,14 @@ export default function MessagesScreen({
           onRefresh={refresh}
           ListEmptyComponent={
             !isLoading ? (
-              <View style={styles.placeholder}>
-                <Text style={[styles.placeholderTitle, { color: text }]}>Inbox</Text>
-                <Text style={[styles.placeholderSub, { color: muted }]}>No messages yet</Text>
-              </View>
+              <ListState
+                kind="empty"
+                dark={dark}
+                title="No messages yet"
+                line="Message a friend from their profile to cheer them on."
+                actionLabel="Find friends"
+                onAction={() => setSearchVisible(true)}
+              />
             ) : null
           }
         />
@@ -392,7 +397,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     minWidth: SIZE.z20,
-    height: SIZE.z20,
+    minHeight: SIZE.z20,
     borderRadius: RADIUS.r10,
     paddingHorizontal: SPACE.s6,
     backgroundColor: COLORS.dangerDeep,
@@ -462,20 +467,5 @@ const styles = StyleSheet.create({
     width: SIZE.z8,
     height: SIZE.z8,
     borderRadius: RADIUS.r4,
-  },
-  placeholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: SPACE.s60,
-    gap: SPACE.s8,
-  },
-  placeholderTitle: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.bold,
-  },
-  placeholderSub: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
   },
 });
