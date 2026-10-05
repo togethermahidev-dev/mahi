@@ -6,6 +6,7 @@
  * `src/lib/expoUiModule.ts`, kept apart so these stay testable under node.
  */
 import { PREVIEW_MENU } from '@/constants/tokens';
+import type { SFSymbolName } from '@/lib/sfSymbols';
 import { gridTile, mediaTypeOrPhoto, type MediaType } from '@/lib/videoPosts';
 
 /**
@@ -36,7 +37,7 @@ export type MenuAction = (typeof MENU_ACTIONS)[number];
 export interface MenuItem {
   action: MenuAction;
   label: string;
-  systemImage: string;
+  systemImage: SFSymbolName;
 }
 
 const OPEN: MenuItem = {

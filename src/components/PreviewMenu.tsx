@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Image, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
-import type { ButtonProps } from '@expo/ui/swift-ui';
 import { VideoIcon } from '@/components/ScreenIcons';
 import { loadSwiftUI } from '@/lib/expoUiModule';
 import type { MenuAction, MenuItem } from '@/lib/contextMenuPreview';
@@ -91,7 +90,7 @@ export default function PreviewMenu({
             <Button
               key={item.action}
               label={item.label}
-              systemImage={item.systemImage as ButtonProps['systemImage']}
+              systemImage={item.systemImage}
               onPress={() => onAction(item.action)}
             />
           ))}
