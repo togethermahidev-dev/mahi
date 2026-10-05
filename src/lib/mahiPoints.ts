@@ -11,9 +11,18 @@ export function pointsCount(points: number | null | undefined): string {
   return `${n} ${n === 1 ? 'point' : 'points'}`;
 }
 
-/** The badge on a post: its poster's points after that post, or nothing at 0. */
+/** "1 Mahi point", "12 Mahi points" (unknown reads as 0): the one full wording for the points. */
+export function mahiPointsCount(points: number | null | undefined): string {
+  const n = points ?? 0;
+  return `${n} Mahi ${n === 1 ? 'point' : 'points'}`;
+}
+
+/**
+ * The badge on a post (feed, full-screen post, profile grid): its poster's points after that post,
+ * named in full so "12 points" can't be read as a score for the photo; nothing at 0.
+ */
 export function pointsBadgeText(points: number | null | undefined): string | null {
-  return points && points > 0 ? pointsCount(points) : null;
+  return points && points > 0 ? mahiPointsCount(points) : null;
 }
 
 /** What VoiceOver reads for the profile's Points / Best pair. */
@@ -21,8 +30,7 @@ export function pointsStatsLabel(
   points: number | null | undefined,
   best: number | null | undefined
 ): string {
-  const n = points ?? 0;
-  return `${n} Mahi ${n === 1 ? 'point' : 'points'}. Best, ${pointsCount(best)}.`;
+  return `${mahiPointsCount(points)}. Best, ${pointsCount(best)}.`;
 }
 
 /**

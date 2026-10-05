@@ -69,7 +69,7 @@ function LockedPostItem({
   const { colors } = useAppTheme();
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
-  const points = pointsBadgeText(item.streak_day)?.replace('point', 'Mahi point') ?? null;
+  const points = pointsBadgeText(item.streak_day);
   return (
     <View
       style={[

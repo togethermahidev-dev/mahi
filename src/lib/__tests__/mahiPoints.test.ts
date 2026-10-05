@@ -1,4 +1,5 @@
 import {
+  mahiPointsCount,
   pointsBadgeText,
   pointsCount,
   pointsStatsLabel,
@@ -19,10 +20,23 @@ describe('pointsCount', () => {
   });
 });
 
+describe('mahiPointsCount', () => {
+  it('names the points in full: "N Mahi points", "1 Mahi point"', () => {
+    expect(mahiPointsCount(0)).toBe('0 Mahi points');
+    expect(mahiPointsCount(1)).toBe('1 Mahi point');
+    expect(mahiPointsCount(12)).toBe('12 Mahi points');
+  });
+
+  it('reads 0 when the number is unknown', () => {
+    expect(mahiPointsCount(null)).toBe('0 Mahi points');
+    expect(mahiPointsCount(undefined)).toBe('0 Mahi points');
+  });
+});
+
 describe('pointsBadgeText', () => {
-  it('reads "N points" on a post that carries points', () => {
-    expect(pointsBadgeText(1)).toBe('1 point');
-    expect(pointsBadgeText(12)).toBe('12 points');
+  it('reads "N Mahi points" on a post that carries points (feed, post and grid alike)', () => {
+    expect(pointsBadgeText(1)).toBe('1 Mahi point');
+    expect(pointsBadgeText(12)).toBe('12 Mahi points');
   });
 
   it('shows nothing at 0 or when unknown', () => {

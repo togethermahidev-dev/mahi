@@ -117,9 +117,8 @@ export default function PostCard({
 
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
-  // The poster's Mahi points after this post (one number per card, so none by the name), named
-  // in full so "12 points" can't be read as a score for the photo.
-  const points = pointsBadgeText(item.streak_day)?.replace('point', 'Mahi point') ?? null;
+  // The poster's Mahi points after this post (one number per card, so none by the name).
+  const points = pointsBadgeText(item.streak_day);
   const reduceMotion = useReducedMotion();
 
   const [rearIsPrimary, setRearIsPrimary] = useState(true);
