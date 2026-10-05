@@ -282,6 +282,11 @@ function findUltraWideLens(lenses: string[]): string | null {
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 /** The lens switch's bottom edge: above the shutter row (the shutter is 72 tall). */
 const LENS_TOGGLE_BOTTOM = OFFSET.o32 + OFFSET.o72 + OFFSET.o20;
+/**
+ * How far the camera's controls reach up from the bottom of the page: the lens switch's row (36
+ * tall) on top of the shutter row. Toasts on the Camera page sit above this.
+ */
+export const CAMERA_CONTROLS_TOP = LENS_TOGGLE_BOTTOM + SIZE.z36;
 
 /** One captured shot: a photo, or (flag `video-posts`) a video of up to 15 s. */
 interface CapturedPhoto {

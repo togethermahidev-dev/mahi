@@ -18,7 +18,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { BlurTargetView } from 'expo-blur';
 import { haptic } from '@/lib/haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import CameraScreen from '@/screens/CameraScreen';
+import CameraScreen, { CAMERA_CONTROLS_TOP } from '@/screens/CameraScreen';
 import FeedScreen from '@/screens/FeedScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
 import MessagesScreen from '@/screens/MessagesScreen';
@@ -96,6 +96,11 @@ export default function HorizontalNavigator({
   const unreadNotifications = useNotificationsStore((s) => s.unreadCount);
 
   const [index, setIndex] = useState(CAMERA);
+  // On the Camera page, toasts keep clear of its shutter row and lens switch.
+  useEffect(() => {
+    useToastStore.getState().setRoom({ camera: index === CAMERA ? CAMERA_CONTROLS_TOP : 0 });
+    return () => useToastStore.getState().setRoom({ camera: 0 });
+  }, [index]);
   const [searchVisible, setSearchVisible] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);

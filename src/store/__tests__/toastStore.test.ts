@@ -39,9 +39,16 @@ describe('showing a toast', () => {
 
 describe('where it sits', () => {
   it('above the tab bar, and at the top while the post preview is up', () => {
-    expect(state().room).toEqual({ tabBar: 0, top: false });
+    expect(state().room).toEqual({ tabBar: 0, camera: 0, top: false });
     state().setRoom({ tabBar: 83 });
     state().setRoom({ top: true });
-    expect(state().room).toEqual({ tabBar: 83, top: true });
+    expect(state().room).toEqual({ tabBar: 83, camera: 0, top: true });
+  });
+
+  it('keeps clear of the camera controls while the Camera page shows', () => {
+    state().setRoom({ camera: 160 });
+    expect(state().room.camera).toBe(160);
+    state().reset();
+    expect(state().room.camera).toBe(0);
   });
 });

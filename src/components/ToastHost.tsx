@@ -106,10 +106,13 @@ export function ToastHost(): React.JSX.Element | null {
 
   if (message == null) return null;
 
-  // Above the tab bar when it shows; at the top, under the preview's ×, while composing.
+  // Above the tab bar when it shows, and above the Camera's shutter row and lens switch on the
+  // Camera page; at the top, under the preview's ×, while composing.
   const place = room.top
     ? { top: insets.top + OFFSET.o48 + SIZE.z36 + SPACE.s12 }
-    : { bottom: room.tabBar > 0 ? room.tabBar + SPACE.s8 : insets.bottom + OFFSET.o14 };
+    : room.camera > 0
+      ? { bottom: room.tabBar + room.camera + SPACE.s8 }
+      : { bottom: room.tabBar > 0 ? room.tabBar + SPACE.s8 : insets.bottom + OFFSET.o14 };
 
   const toast = (
     <View pointerEvents={action ? 'box-none' : 'none'} style={[styles.container, place]}>

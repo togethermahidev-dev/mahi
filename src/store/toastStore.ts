@@ -11,10 +11,14 @@ export interface ToastOptions {
   action?: ToastAction;
 }
 
-/** Where the toast must keep clear of: the phone's tab bar, and the post preview's controls. */
+/** Where the toast must keep clear of: the phone's tab bar, the camera's controls, and the post
+ * preview's controls. */
 export interface ToastRoom {
   /** The room the tab bar takes at the bottom of the screen (0 = no bar showing). */
   tabBar: number;
+  /** While the Camera page shows: how far its controls (shutter row, lens switch) reach up from
+   * the bottom of the page (0 on other pages). */
+  camera: number;
   /** The post preview is up: the toast sits at the top, clear of its Post button. */
   top: boolean;
 }
@@ -36,7 +40,7 @@ interface ToastState {
   reset: () => void;
 }
 
-const NO_ROOM: ToastRoom = { tabBar: 0, top: false };
+const NO_ROOM: ToastRoom = { tabBar: 0, camera: 0, top: false };
 
 export const useToastStore = create<ToastState>((set) => ({
   message: null,
