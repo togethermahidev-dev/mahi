@@ -17,6 +17,19 @@ screens/components → hooks → stores (Zustand, optimistic) → api ({data,err
 
 Full data flow + the per-layer import contract: [architecture.md](./architecture.md#layering-contract).
 
+**State on 2026-10-05, late (on main, not on phones yet):**
+- **Design system tidy-up, committed on main, not pushed, not in any update yet** (84377ac…3dd23a0):
+  Inter on every word, the tab bar titles too, no italic; × for close buttons; camera pills read
+  "+ Tag people", "+ Add a caption", "+ Add location" / "Location on" (no emoji); sentence case in the
+  photo and report pop-ups; every see-through amount, line width, blur, animation, swipe, wait and
+  layout share from tokens; one shared muted and border colour (`themeColors`). Tests now enforce all
+  of it (`fonts.test.ts`, `designTokens.test.ts`, `sentenceCase.test.ts`). Phones still run 12.06 —
+  these reach them with the next update to preview, then a phone check.
+- **Code email:** the sign-up and reset code email now uses Inter and the app's tokens
+  (`emailTokens.ts`). **Not live** until the owner redeploys `send-otp` and `send-reset-code`
+  (`--no-verify-jwt`, Mahi access token). Visible changes: a narrower card, the gradient ends in blue.
+- **Website:** `web/app/tokens.css` regenerated; the live site changes only on a web deploy (owner).
+
 **State on 2026-10-05 (newest first; older notes below):**
 - **Phones:** build 12 (there is no build 11 — the numbers went 10 → 12) on the preview iPhones and
   TestFlight, both on the `preview` channel; latest update 12.06. Build 12 carries everything the
@@ -136,9 +149,10 @@ These are non-negotiable on every change, by anyone (human or agent):
 5. **Config through `src/lib/env.ts`.** Never read `process.env.*` directly.
 6. **Every new store's `reset()` is wired into the `App.tsx` sign-out branch.** (Forgetting this is the exact bug that leaked one user's state into the next.)
 7. **Security is server-side.** RLS is the only authorization layer — every new table/RPC must have correct, owner-scoped policies, version-controlled in `supabase/migrations/`. Anything a malicious client could forge (verification, counts, ownership) lives in an RLS policy or a `SECURITY DEFINER` RPC, never in the client.
-8. **Styles from tokens** — every colour, size, spacing, radius and font from `src/constants/tokens.ts` /
-   `fonts.ts` (`designTokens.test.ts` and `fonts.test.ts` fail otherwise). Light/dark via `useAppTheme()`.
-   UI copy in sentence case; no all-caps letter-spaced labels (MAHI wordmark excepted).
+8. **Styles from tokens** — every colour, size, spacing, radius, opacity, motion, swipe, wait and font from
+   `src/constants/tokens.ts` / `fonts.ts` (`designTokens.test.ts` and `fonts.test.ts` fail otherwise). Inter
+   only, no italic. Light/dark via `useAppTheme()` / `themeColors(dark)`. UI copy in sentence case; no
+   all-caps letter-spaced labels (MAHI wordmark excepted) — `sentenceCase.test.ts` fails otherwise.
 9. **`{ data, error }` contract** on every `api/` function (wrap PostgrestError as `new Error(error.message)`).
 10. **Every feature behind a PostHog flag**, created in PostHog at 100% **before** the update that reads it
     ships — a missing flag reads as off ([feature-flags.md](./feature-flags.md)).
@@ -160,7 +174,7 @@ Adding a full-stack feature is a mechanical copy of proven files — full recipe
 | DB table + RLS + RPC | `follows` table + `get_follow_data` in `supabase/migrations/` |
 | User-facing failure feedback | `useToastStore.getState().show(...)` |
 | Native page sheet | `BlockedUsersSheet.tsx` (`<Modal presentationStyle="pageSheet">`) |
-| Page swipe / spring | `HorizontalNavigator.tsx` + `src/lib/swipeRules.ts` (`damping:22, stiffness:160, mass:0.9`) |
+| Page swipe / spring | `HorizontalNavigator.tsx` + `src/lib/swipeRules.ts` (`SPRING.page`, `SWIPE` in tokens) |
 | Pure, tested UI rules | `src/lib/feedLock.ts` + `src/lib/__tests__/feedLock.test.ts` |
 | Gate a feature behind a flag | `useFeatureFlag('flag-key')` (keys in `src/lib/featureFlags.ts`; see [feature-flags.md](./feature-flags.md)) |
 
@@ -205,7 +219,9 @@ VERIFY + CHECKPOINT. Security-critical SQL/auth changes get an adversarial revie
 
 ```bash
 pnpm typecheck      # tsc --noEmit (CI gate; supabase/ is excluded — it's Deno)
-pnpm test           # jest (pure-logic tests, design-token and font guards)
+pnpm test           # jest (pure-logic tests, design-token, font and sentence-case guards)
+pnpm test:scripts   # script, guard-hook and email-token tests
+pnpm tokens:email   # regenerate the code email's tokens after a token change (then redeploy its functions)
 scripts/db.sh local # replay every migration on a throwaway local Postgres and run the pgTAP tests
 pnpm lint           # eslint src
 pnpm format         # prettier --write src

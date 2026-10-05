@@ -42,7 +42,7 @@ The founder's answers during the native-feel work (OTA 10.14 onwards). Flags are
 | 23 | First post with no friends | A clear "Invite 3 friends" step on the tag sheet | Lower the tag minimum | Decided | 2026-10-01 | `InviteStep`, `InviteShareSheet`, flag `tags-invite-step` |
 | 24 | Sign-up fields | Date of birth and phone number stay required | Make them optional | Decided | 2026-10-01 | `CreateAccountSheet` |
 | 25 | Account basics | Password reset by emailed code; in-app Delete account (App Store requirement) | — | Decided | 2026-10-01 | flags `auth-password-reset`, `account-delete` |
-| 26 | Label style | Every ALL-CAPS label to sentence case; MAHI wordmark excepted | Keep caps | Decided | 2026-10-01 | All screens; `src/constants/tokens.ts` |
+| 26 | Label style | Every ALL-CAPS label to sentence case; MAHI wordmark excepted | Keep caps | Decided | 2026-10-01 | All screens, pop-ups and menus; `src/constants/tokens.ts`; enforced by `sentenceCase.test.ts` (2026-10-05) |
 | 27 | Does a skipped rest day protect the streak | No rest days at all: the streak counts answered tags, not days (#1) | — | Decided | 2026-10-01 | `record_upload_streak` rest-day rule retired, Phase 5 |
 
 ## Reactive posting (2026-10-01)
@@ -86,7 +86,7 @@ these needs a new native module, so they ship as plain updates without a flag.
 | --- | --- | --- | --- | --- | --- | --- |
 | 39 | Profile scrolling | The whole profile scrolls as one page: the header scrolls away and the grid fills the screen (own and other people's) | Fixed header, grid scrolls below it | Decided | 2026-10-02 | `ProfileMediaMap`, `ProfileScreen`, `UserProfileScreen` |
 | 40 | Opening a post from a profile | Full screen from the tapped post; up/down browses all of that profile's posts, one per screen as in the feed; a swipe left or right closes (like Instagram / TikTok) | One post at a time | Decided | 2026-10-02 | `PostViewer`, `PostCard`, `src/lib/viewer.ts` |
-| 41 | Profile pictures | Tap any profile's picture: a circle in the middle of a dark screen (2026-10-05, founder: a big square was too invasive), pinch to zoom; tap the dark space, drag it away, or ✕ to close. Your own keeps its "+" to change it | Fixed-size enlarge, tap to close | Decided | 2026-10-02 | `AvatarViewer`, `AvatarPicker` |
+| 41 | Profile pictures | Tap any profile's picture: a circle in the middle of a dark screen (2026-10-05, founder: a big square was too invasive), pinch to zoom; tap the dark space, drag it away, or × to close. Your own keeps its "+" to change it | Fixed-size enlarge, tap to close | Decided | 2026-10-02 | `AvatarViewer`, `AvatarPicker` |
 
 ## Feed polish and comment likes (2026-10-02)
 
@@ -148,6 +148,13 @@ old swipe pages back under it).
 | 62 | Tab bar order | The swipe order, Messages last: Camera, Feed, Profile, Messages | Camera, Feed, Messages, Profile (2026-10-03) | Decided | 2026-10-05 | `NATIVE_TABS` |
 | 63 | Tab bar and swipes together | The phone's own tab bar (build 12+) with the swipe pages above it: tap a tab and the pages move, swipe and the tab follows. The bar hides only under the post preview | Tab bar only, no swipes (2026-10-03) | Decided | 2026-10-05 | `TabsNavigator` |
 | 64 | A way into search | A magnifier on your Profile screen, top right beside the light/dark toggle (founder, 2026-10-05: people couldn't reach search once the feed had posts). Also: the magnifier in Messages, and "Find friends" on an empty feed. The Camera's pull-down went with up/down swiping | A search button in the header | Decided | 2026-10-05 | `ProfileScreen` (`onSearch`), `HorizontalNavigator`, `GlobalSearchOverlay` |
+
+The owner's design-system rules (2026-10-05), enforced by tests so they can't drift back.
+
+| # | Decision | Chosen | Other options | Status | Decided | Used in |
+| --- | --- | --- | --- | --- | --- | --- |
+| 74 | Font | Inter on every word: screens, the phone's tab bar titles, toasts, the splash version line and the code email. No italic (italic text reads as regular). Only characters Inter can draw: × to close, no emoji in the camera pills ("+ Tag people", "+ Add location") | The phone's own font in places · keep italic | Decided | 2026-10-05 | `src/constants/fonts.ts`, `TAB_TITLE_APPEARANCE`, `fonts.test.ts` |
+| 75 | Shared design values | Every see-through amount, line width, blur, animation time, spring, swipe distance, wait and layout share comes from the shared tokens, as colours and sizes already did; one muted and one border colour for light/dark; the brand colour named once in the app config; the code email and the website take the same values from generated files | Values typed per screen | Decided | 2026-10-05 | `src/constants/tokens.ts`, `themeColors`, `designTokens.test.ts`, `emailTokens.ts`, `web/app/tokens.css` |
 
 ## Open questions (asked 2026-10-05 in Slack #questions-and-answers)
 

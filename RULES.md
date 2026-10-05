@@ -105,11 +105,21 @@
   native tab bar titles use it too. `fonts.test.ts` fails on a typed-out font name, text without an Inter face,
   or a character Inter can't draw (✕ → ×, no emoji in UI copy)
 - Every colour, text size, spacing, radius, shadow, size, offset, icon size, letter spacing, line height and
-  border width comes from `src/constants/tokens.ts` (`withAlpha` for opacity). `designTokens.test.ts` fails on
-  a raw value anywhere else — need a new value? add a token first
-- UI copy is sentence case ("Log in", "12 points", "No tags to answer"). No all-caps, letter-spaced labels;
-  the MAHI wordmark is the only exception (owner, 2026-10-01)
-- Dark/light mode via `useAppTheme()` (the user's stored choice) — always support both
+  border width comes from `src/constants/tokens.ts` (`withAlpha` for opacity). So do the shared values:
+  `ALPHA` (see-through amounts, also shadow strength), `STROKE` (icon line widths), `BLUR_INTENSITY`,
+  `DURATION` and `SPRING` (motion), `SCALE`, `WAIT` (search wait, toast times), `SWIPE` (when a drag counts,
+  moves or closes) and `LAYOUT` (columns, counts, screen shares). `designTokens.test.ts` fails on a raw value
+  anywhere else, a numeric constant in a screen or raw layout maths — need a new value? add a token first.
+  `app.config.js` can't import tokens, so the brand colour is typed once there (`ACCENT`) and the test checks it
+  matches `COLORS.accent`
+- UI copy is sentence case ("Log in", "12 points", "No tags to answer", "Take photo"). No all-caps,
+  letter-spaced labels; the MAHI wordmark is the only exception (owner, 2026-10-01). `sentenceCase.test.ts`
+  fails on Title Case in on-screen text, pop-ups, menu options and labels (names like Apple keep capitals)
+- Dark/light mode via `useAppTheme()` (the user's stored choice) — always support both. Parts handed `dark` as a
+  prop use `themeColors(dark)` from the same file; both give the shared `muted` text and `border` colours
+- The code email (`supabase/functions/_shared/email.ts`) uses the same tokens through the generated
+  `emailTokens.ts` (`pnpm tokens:email`, never edited by hand; `pnpm test:scripts` fails on drift). The waitlist
+  site reads them through the generated `web/app/tokens.css`
 - Pop-ups are native: page sheets (`presentationStyle="pageSheet"`) for comments, tags, notifications,
   requests, blocked users and friends; `ActionSheetIOS` for menus
 - The keyboard never covers a sheet, field or button — see CLAUDE.md (`KeyboardInset`)

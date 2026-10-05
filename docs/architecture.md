@@ -53,7 +53,7 @@ for iPhone (build 10 has `expo-notifications` and the push entitlement).
   phone "Don't allow" sees, while they hold an open tag, one line under the camera's open-tags pill
   (`PushNudge`, inside `OpenTagsBanner`): "Turn on notifications so you never miss a tag". A tap opens
   Mahi in the phone's Settings — or, if the phone was never asked, brings up its question (Settings has
-  no notifications row until it has). The ✕ hides it until the next tag. The rules are pure and tested:
+  no notifications row until it has). The × hides it until the next tag. The rules are pure and tested:
   `shouldShowPushPrimer`, `pushNudge`, `nudgeDismissMark` in `src/lib/pushPrimer.ts`. State lives in
   `pushStore` (`permission`, `primerAnswered`, `nudgeDismissedThrough`); `usePushRegistration` refreshes
   it on sign-in and on every return to the front, and registers the device once allowed — so switching
@@ -180,7 +180,7 @@ flag. Both flags are **default off** (`DEFAULT_OFF_FLAGS`). No screen uses them 
 | List Rendering | @shopify/flash-list | 2.0.2 |
 | Gestures | react-native-gesture-handler | ~2.32.0 |
 | UI Animation | react-native-reanimated | 4.5.1 |
-| Font | @expo-google-fonts/inter | ^0.4.2 |
+| Font | @expo-google-fonts/inter — Inter only (Regular, SemiBold, Bold; no italic), also the tab bar titles; the code email loads Inter from Google Fonts | ^0.4.2 |
 | Glass / Blur | expo-glass-effect, expo-blur | ~57 |
 | Gradients | expo-linear-gradient | ~57.0.2 |
 | Video playback | expo-video (loaded only when the build has it) | ~57.0.5 |
@@ -203,7 +203,9 @@ mahi-fitness/
 │   │                   #   (swipeRules, railSelector, feedLock, captureGuide, inviteStep, inviteShare,
 │   │                   #    reactivePosting, mahiPoints, welcomeCards, featureFlags, versionGate, …;
 │   │                   #    tests in __tests__/)
-│   ├── constants/      # tokens.ts (design tokens), fonts.ts (Inter), ota.ts (OTA counter + history)
+│   ├── constants/      # tokens.ts (design tokens: colours, sizes, ALPHA, STROKE, BLUR_INTENSITY, DURATION,
+│   │                   #   SPRING, SCALE, WAIT, SWIPE, LAYOUT, …), fonts.ts (Inter only, no italic),
+│   │                   #   ota.ts (OTA counter + history)
 │   ├── store/          # Zustand global state (feedStore, messagesStore, tagStore, inviteStore, …)
 │   ├── hooks/          # Thin store wrappers + utility hooks (useFeed, useOpenTags, useFeatureFlag, …)
 │   ├── types/          # TypeScript types — database.ts is the source of truth for DB shapes
@@ -213,6 +215,8 @@ mahi-fitness/
 │   │                   #   BlockedUsersSheet, KeyboardInset, GlobalSearchOverlay, …)
 │   └── screens/        # Screen-level components (navigators, Camera, Feed, Profile, UserProfile, …)
 ├── supabase/           # migrations, rollbacks, pgTAP tests, Edge Functions (see supabase/README.md)
+├── scripts/            # release checks, build/OTA numbers, db.sh, Slack channels, email-tokens.mjs
+│                       #   (writes supabase/functions/_shared/emailTokens.ts; tests: pnpm test:scripts)
 ├── docs/               # Project documentation
 ├── assets/             # Images, icons, splash
 ├── App.tsx             # Root component — auth subscription + store hydration
@@ -359,20 +363,20 @@ page swiping; the Camera's pull-down for search is gone with it.
 The order is `SWIPE_PAGES` in `src/lib/nativeTabs.ts` (= the tab bar's `NATIVE_TABS`, tested).
 
 The swipe runs on **react-native-gesture-handler + reanimated** (UI thread): one manually-activated `Gesture.Pan`, whose every decision comes from the pure worklet rules in `src/lib/swipeRules.ts` (tested in `swipeRules.test.ts`):
-- `horizontalSwipe` — the finger must move 20px (`SLOP`) mostly sideways; an up/down move fails it and is left to the lists. Touches that start in the phone's own strips (status bar, home bar, and the 24px side edges) are left to the phone. `blocked` (a pop-up is open) fails it.
+- `horizontalSwipe` — the finger must move 20px (`SWIPE.slop`) mostly sideways; an up/down move fails it and is left to the lists. Touches that start in the phone's own strips (status bar, home bar, and the 24px side edges) are left to the phone. `blocked` (a pop-up is open) fails it.
 - `exclude` — a swipe never starts inside the nav rail's rectangle (left edge); the rail owns those touches. The 24px left edge strip stays the phone's, beside the rail too.
-- `horizontalRelease` / `rubberBand` — where a release lands (60px or 0.4 velocity) and the rubber band at the ends.
+- `horizontalRelease` / `rubberBand` — where a release lands (`SWIPE.distance` 60px or `SWIPE.velocity` 0.4) and the rubber band at the ends.
 - `atListTop` — the Feed header shows only at the top of the list.
 
 **Gesture relations (the rule that makes swipes work):** a vertical list starts tracking after ~10pt of movement in any direction, before the page swipe decides at 20pt; unless the swipe may run alongside the list, the list wins and sideways swipes on it do nothing. So `HorizontalNavigator` makes a `Gesture.Native()` for each page that is one scrolling list — `feedList`, `profileList`, `messagesList` — passes each to its screen (`listGesture`), and the pan is `.simultaneousWithExternalGesture(feedList, profileList, messagesList)`. A list lends its scrolling through `ListGestureContext` + `GestureScrollView` (`src/components/GestureScrollView.tsx`, the FlashList `renderScrollComponent`), shared by the Feed, Messages, both profile pages and the post viewer. `UserProfileScreen`'s swipe back and `PostViewer`'s sideways close run alongside their own list the same way.
 
-**Hold to view** (2026-10-02, owner: "native hold to preview"): `PostCard`'s press and hold (`Gesture.LongPress`, `POST_CARD.holdMs`) runs alongside its double tap and alongside the list (it reads the list's gesture from `ListGestureContext`), so a finger that moves first is a scroll or a page swipe and the hold never starts; once held, the list can still scroll. Held: a light haptic, and `chromeStore.viewing` fades out (`useChromeFade`) the name and caption, the tags and points row, the like / comment column and the post viewer's ✕; release brings them back. The small photo stays and stays draggable (its own gesture, on top); a double tap still likes. The page swipes that started under a hold wait for the finger to lift.
+**Hold to view** (2026-10-02, owner: "native hold to preview"): `PostCard`'s press and hold (`Gesture.LongPress`, `POST_CARD.holdMs`) runs alongside its double tap and alongside the list (it reads the list's gesture from `ListGestureContext`), so a finger that moves first is a scroll or a page swipe and the hold never starts; once held, the list can still scroll. Held: a light haptic, and `chromeStore.viewing` fades out (`useChromeFade`) the name and caption, the tags and points row, the like / comment column and the post viewer's ×; release brings them back. The small photo stays and stays draggable (its own gesture, on top); a double tap still likes. The page swipes that started under a hold wait for the finger to lift.
 
 **Pinch to zoom** (2026-10-05, for everyone, no switch): `PostCard`'s photo also takes a `Gesture.Pinch` (with the double tap and the hold, alongside the list). Two fingers zoom around the point between them (`pinchOffset` in `src/lib/viewer.ts`, up to `VIEWER.pinchMax`); letting go springs back. While pinching, `chromeStore.zooming` holds the Feed and post-viewer lists still and blocks the page swipe (which also fails on a second finger), and `viewing` fades everything over the post.
 
 **Hold to preview** (flag `context-menu-preview`, default off, iPhone + build 11): `PreviewMenu` (`src/components/PreviewMenu.tsx`) hosts the held content in a SwiftUI `Host` → `ContextMenu` → `RNHostView`, so Apple's own context-menu hold (a `UIContextMenuInteraction`, not a gesture-handler gesture) lifts a `Preview` with menu `Items`. Used by profile grid squares, Messages rows and `PostCard` (where it replaces the `Gesture.LongPress` above: with the flag on `postGesture` is the double tap alone). Nothing in the gesture relations changes: the hosted RN content keeps its gestures (double tap, taps) because the surface's touch handler still dispatches into it; the system hold fails as soon as the finger moves, so list scrolling and the page swipes win a moving finger, and once the menu is up the system takes the touch. The draggable small photo and the like / comment column sit outside the held area. `@expo/ui` is required lazily (`src/lib/expoUiModule.ts`) so build 10 never loads it. One `Host` per mounted cell (FlashList recycles them: about a screenful), because a context menu must belong to the view that is held; the preview's content mounts only while it shows (`onAppear` / `onDisappear`), so no second picture is decoded per cell.
 
-Spring: `damping: 22, stiffness: 160, mass: 0.9` (Reduce Motion ignored on purpose). Light haptic on a page change. Pages are sized from `usePageSize()` (`src/hooks/useChrome.ts`): the live window, or with the phone's tab bar the space above it — so each page, and each Feed post, is one page tall.
+Spring: `SPRING.page` (`damping: 22, stiffness: 160, mass: 0.9`; Reduce Motion ignored on purpose). Light haptic on a page change. Pages are sized from `usePageSize()` (`src/hooks/useChrome.ts`): the live window, or with the phone's tab bar the space above it — so each page, and each Feed post, is one page tall.
 
 ### Horizontal Navigator (`src/screens/HorizontalNavigator.tsx`)
 
@@ -389,7 +393,7 @@ The swipe pages above, plus what they share: an `AppHeader` on the Camera and on
 
 ### The phone's tab bar (`src/screens/TabsNavigator.tsx`) — build 12+, no switch
 
-On builds with react-native-screens (build 12+; `loadScreens()` probes first, so build 10 never loads it) `App.tsx` renders `TabsNavigator` instead of `HorizontalNavigator` alone: the phone's own tab bar at the bottom (Apple's on iPhone, Material's on Android) — Camera, Feed, Profile, Messages — with `HorizontalNavigator` filling the screen above it. The bar's own tab pages are empty; they only measure the room the bar takes. A tap on a tab moves the swipe pages there (`movesPages`); a swipe moves the bar's highlight (`onTabChange`). The pages always end above the bar and never resize (the Feed would jump), so the bar stays visible under profiles, search and settings; it hides only under the post preview. Inside the pages `TabBarRoomContext` is 0 and `PageSizeContext` is the space above the bar. With the tab bar there is no glass rail and no header pills.
+On builds with react-native-screens (build 12+; `loadScreens()` probes first, so build 10 never loads it) `App.tsx` renders `TabsNavigator` instead of `HorizontalNavigator` alone: the phone's own tab bar at the bottom (Apple's on iPhone, Material's on Android) — Camera, Feed, Profile, Messages — with `HorizontalNavigator` filling the screen above it. The bar's own tab pages are empty; they only measure the room the bar takes. A tap on a tab moves the swipe pages there (`movesPages`); a swipe moves the bar's highlight (`onTabChange`). The pages always end above the bar and never resize (the Feed would jump), so the bar stays visible under profiles, search and settings; it hides only under the post preview. Inside the pages `TabBarRoomContext` is 0 and `PageSizeContext` is the space above the bar. With the tab bar there is no glass rail and no header pills. The tab titles are Inter like every other word (`TAB_TITLE_APPEARANCE` in `src/lib/nativeTabs.ts`, passed as the bar's `standardAppearance`); the rest of the bar stays the phone's.
 
 ### Nav Rail (`src/components/NavRail.tsx`) — flags `nav-glass-rail`, `nav-rail-morph`; builds without the tab bar
 
@@ -416,8 +420,8 @@ Top bar placed from the safe area, `pointerEvents: 'box-none'` so touches pass t
 | `FeedScreen` | `src/screens/FeedScreen.tsx` | Feed from `useFeed()` (`get_feed`), FlashList; `FeedLockBanner` (flag `feed-lock-explainer`) on top; locked posts say "Answer a tag to see it", with a button only when you can post; each post is a `PostCard` (`src/components/PostCard.tsx`; dual-photo posts use `DraggablePip`); comments in `CommentSheet`, a native page sheet (with `comment-likes`: a heart and count per comment, read fresh on each opening and shown once they arrive; the count opens `CommentLikersSheet`, a page sheet of who liked it — loading, then the live list, nothing kept); avatar → `UserProfileScreen` |
 | `ProfileScreen` | `src/screens/ProfileScreen.tsx` | Own profile as one scrolling list (`ProfileMediaMap`: the header — settings, theme, avatar, stats, "Suggested for you" folded away by default — scrolls away, then the 3-column grid with "N points" badges; pull to refresh). Avatar (`AvatarPicker`: "+" changes it, a tap opens `AvatarViewer`), `FollowListModal` page sheet, `PostViewer`, `SettingsPanel` (Blocked users, Delete account, Help = the welcome cards again, Log out; no rows without an action) |
 | `UserProfileScreen` | `src/screens/UserProfileScreen.tsx` | Another person's profile, opened over Feed, search, notifications, messages, friends lists; one scrolling list like your own (back and menu scroll away with the header); swipe right to close — it follows the finger and slides away like a page swipe (`backSwipeX` / `backSwipeCloses` in `swipeRules`, reanimated on the UI thread); tap the photo → `AvatarViewer`; tap a post → `PostViewer`; menu and report reasons via `ActionSheetIOS`; Message (spinner while the chat opens) |
-| `PostViewer` | `src/components/PostViewer.tsx` | A tapped grid post, full screen, in a Modal: up/down pages through all of that profile's posts (only those the grid opens — the feed lock's rule, `openablePosts` in `src/lib/viewer.ts`), each drawn by `PostCard` (videos play on screen); a swipe left or right closes (`swipeCloses`), as do ✕ and back. Owner, 2026-10-02 |
-| `AvatarViewer` | `src/components/AvatarViewer.tsx` | A profile picture as a circle (`avatarCircleSize`, `VIEWER.avatarShare` of the short side): pinch or double tap to zoom (`clampZoom`, `clampPan`); a tap on the dark space (`avatarTapCloses`), a drag away in any direction, ✕ or back closes it |
+| `PostViewer` | `src/components/PostViewer.tsx` | A tapped grid post, full screen, in a Modal: up/down pages through all of that profile's posts (only those the grid opens — the feed lock's rule, `openablePosts` in `src/lib/viewer.ts`), each drawn by `PostCard` (videos play on screen); a swipe left or right closes (`swipeCloses`), as do × and back. Owner, 2026-10-02 |
+| `AvatarViewer` | `src/components/AvatarViewer.tsx` | A profile picture as a circle (`avatarCircleSize`, `VIEWER.avatarShare` of the short side): pinch or double tap to zoom (`clampZoom`, `clampPan`); a tap on the dark space (`avatarTapCloses`), a drag away in any direction, × or back closes it |
 | `MessagesScreen` | `src/screens/MessagesScreen.tsx` | Inbox from `useMessages()`; requests open `MessageRequestsScreen` (page sheet; Deny asks first) |
 | `ConversationScreen` | `src/screens/ConversationScreen.tsx` | Thread; real-time via `useConversation`; request banner (Accept / Deny with confirm) |
 | `NotificationsScreen` | `src/screens/NotificationsScreen.tsx` | Activity list (page sheet); each row's words come from `notificationText()` and match the push for the same thing (a tag: "You've been tagged by @x. 48 hours to post your Mahi!"; `streak_lost`: "You missed @x's tag. Your points are back to 0.") |
@@ -444,7 +448,7 @@ Users attach an optional caption and must fill the post's tag slots (3, `tagStor
 
 ### Preview UI (`DualPhotoPreview`)
 
-Above the Post button sits one row of glass pills: tag (`tagPillLabel` — `'＋ Tag people'`, `'@username'`, `'@user1 +N'`), caption (`'＋ Add a caption'`), and location. The Post button reads `Tag N more` until every slot is filled (tapping it then opens the tag sheet with a warning haptic), then `Post`. The draggable pip may paint over the pill row.
+Above the Post button sits one row of glass pills: tag (`tagPillLabel` — `'+ Tag people'`, `'@username'`, `'@user1 +N'`), caption (`'+ Add a caption'`), and location (`'+ Add location'` / `'Location on'`). The Post button reads `Tag N more` until every slot is filled (tapping it then opens the tag sheet with a warning haptic), then `Post`. The draggable pip may paint over the pill row.
 
 ### Sheet state machine
 
@@ -465,9 +469,9 @@ Only one sheet renders at a time (their `visible` props derive from `activeSheet
 | `'caption'` | user types `@` | `'tag'` | `onCaptionChange(currentText)` + `captionAtIndex = cursor-1` |
 | `'caption'` | DONE / scrim / back | `'none'` | `onCaptionChange(draft.trim())` |
 | `'tag'` | DONE | `'none'` | `onTaggedUsersChange(selected)` |
-| `'tag'` | ✕ / scrim / back (pill flow) | `'none'` | — |
+| `'tag'` | × / scrim / back (pill flow) | `'none'` | — |
 | `'tag'` | user tapped (singleShot, `@` flow) | `'caption'` | splice `@username ` at `captionAtIndex+1` into caption; append picked user to `taggedUsers` (deduped, capped at `maxTags`) |
-| `'tag'` | ✕ / scrim / back (`@` flow) | `'caption'` | leave the typed `@` in place |
+| `'tag'` | × / scrim / back (`@` flow) | `'caption'` | leave the typed `@` in place |
 
 ### `CaptionSheet` (`@` bridge)
 
@@ -475,9 +479,9 @@ Extends the simple `CaptionSheet` from the caption feature with one extra prop, 
 
 ### `TagSheet`
 
-Defined in `CameraScreen.tsx`; a native page sheet (`presentationStyle="pageSheet"` — swipe down or ✕ cancels).
+Defined in `CameraScreen.tsx`; a native page sheet (`presentationStyle="pageSheet"` — swipe down or × cancels).
 
-- **Who can be tagged:** friends who follow back, from `getTaggableFriends` (`get_taggable_friends`), listed on open and filtered as you type (350ms debounce). Friends with an open tag on you can't be tagged back (founder's no-tag-back rule).
+- **Who can be tagged:** friends who follow back, from `getTaggableFriends` (`get_taggable_friends`), listed on open and filtered as you type (`WAIT.search`, 350 ms). Friends with an open tag on you can't be tagged back (founder's no-tag-back rule).
 - **Counter** `filled/maxTags`, where filled = friends picked + invite slots. Adding past `maxTags` fires a warning haptic and no-ops.
 - **Invite step** (flags `tags-invite-step` + `invite-links`; rules in `src/lib/inviteStep.ts`): when friends can't fill the slots, the sheet leads with `InviteStep` — "Invite N friends to post", a big invite button and a count of slots filled — instead of the search field. After posting, `InviteShareSheet` lists each invite link as sent / not sent with send again (`src/lib/inviteShare.ts`).
 - **`singleShot`** (set by the caption `@` bridge): no counter; tapping a friend commits just that one.
@@ -545,9 +549,10 @@ are handled only through the `/version-control` skill (`.claude/skills/version-c
 | Field | Value |
 |---|---|
 | `version` | `0.1.0` (owner changes it, never by hand in passing) |
-| `ios.buildNumber` / `android.versionCode` | Native build number (`10` as of 2026-10-01); moved only by `pnpm release:prepare` |
+| `ios.buildNumber` / `android.versionCode` | Native build number (`12` since 2026-10-03; there is no 11); moved only by `pnpm release:prepare` |
 | `runtimeVersion` | `{ policy: 'appVersion' }` — an OTA reaches the builds of the same version |
 | OTA number | `src/constants/ota.ts` (`OTA_NUMBER` + history), bumped by `node scripts/bump-build.cjs --ota`; shown on the version line |
 | `ios.associatedDomains` | `applinks:togethermahi.com` (invite links; the domain doesn't serve the app-site-association file yet) |
-| `NSMicrophoneUsageDescription` | Still present but unused — the app no longer asks for the mic; remove at the next native build |
+| `NSMicrophoneUsageDescription` | Kept for video posts (decision #38): asked only when recording video with `video-posts` on |
+| Brand colour | `ACCENT` at the top of `app.config.js` (splash, Android icon, notifications); it can't import tokens, so `designTokens.test.ts` checks it equals `COLORS.accent` |
 | `userInterfaceStyle` | `automatic` |

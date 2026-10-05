@@ -73,10 +73,13 @@ and gate the UI with `useFeatureFlag('saved-posts')`. Ask the owner to create it
 ## 6. UI — wire into a screen
 
 Call `const { bookmarkedByMe, toggle } = useBookmarks()` and render the optimistic state. **Surface the
-`{ error }`** the store action returns (don't swallow it). Every colour, size, spacing, radius and font
-comes from `src/constants/tokens.ts` / `fonts.ts` — add a token if one is missing (the token tests fail
-on raw values). Sentence-case labels. Put pure UI rules (wording, thresholds) in `src/lib/` with a Jest
-test. A bottom-anchored sheet or composer ends with `<KeyboardInset />`; pop-ups are native page sheets.
+`{ error }`** the store action returns (don't swallow it). Every colour, size, spacing, radius, font,
+opacity (`ALPHA`), animation (`DURATION`, `SPRING`), swipe (`SWIPE`), wait (`WAIT`) and layout share
+(`LAYOUT`) comes from `src/constants/tokens.ts` / `fonts.ts` — add a token if one is missing (the token
+tests fail on raw values). Text is Inter only: pick a `FONTS` face, never `fontWeight`/`fontStyle`, no
+italic, and only characters Inter can draw (`fonts.test.ts`). Colours that follow light/dark come from
+`useAppTheme()` (or `themeColors(dark)`). Sentence-case labels, pop-ups and menus (`sentenceCase.test.ts`).
+Put pure UI rules (wording, thresholds) in `src/lib/` with a Jest test. A bottom-anchored sheet or composer ends with `<KeyboardInset />`; pop-ups are native page sheets.
 
 ## 7. Verify (red → green)
 
@@ -98,5 +101,5 @@ test. A bottom-anchored sheet or composer ends with `<KeyboardInset />`; pop-ups
 | Sign-out reset wiring | `App.tsx` sign-out `else` block |
 | Env access | `src/lib/env.ts` (never read `process.env` directly) |
 | Flag | `src/lib/featureFlags.ts` + `useFeatureFlag` |
-| Styles | `src/constants/tokens.ts`, `src/constants/fonts.ts` |
+| Styles | `src/constants/tokens.ts`, `src/constants/fonts.ts`, `themeColors` in `src/hooks/useAppTheme.ts` |
 | Migration + rollback + test | `supabase/migrations/20261001100000_password_reset_codes.sql`, its rollback and `supabase/tests/password_reset_codes_test.sql` |
