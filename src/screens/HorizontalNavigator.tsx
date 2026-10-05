@@ -397,6 +397,7 @@ export default function HorizontalNavigator({
                 isActive={index === PROFILE}
                 listGesture={profileList}
                 onSearch={() => setSearchVisible(true)}
+                onOpenCamera={() => navigate(CAMERA)}
               />
             </View>
 
@@ -468,6 +469,11 @@ export default function HorizontalNavigator({
         <GlobalSearchOverlay
           visible={searchVisible}
           onClose={() => setSearchVisible(false)}
+          onOpenOwnProfile={() => {
+            setSearchVisible(false);
+            setProfileUserId(null);
+            selectTab('profile');
+          }}
           dark={dark}
         />
       </View>
