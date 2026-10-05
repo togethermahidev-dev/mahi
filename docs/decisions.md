@@ -156,6 +156,18 @@ The owner's design-system rules (2026-10-05), enforced by tests so they can't dr
 | 74 | Font | Inter on every word: screens, the phone's tab bar titles, toasts, the splash version line and the code email. No italic (italic text reads as regular). Only characters Inter can draw: × to close, no emoji in the camera pills ("+ Tag people", "+ Add location") | The phone's own font in places · keep italic | Decided | 2026-10-05 | `src/constants/fonts.ts`, `TAB_TITLE_APPEARANCE`, `fonts.test.ts` |
 | 75 | Shared design values | Every see-through amount, line width, blur, animation time, spring, swipe distance, wait and layout share comes from the shared tokens, as colours and sizes already did; one muted and one border colour for light/dark; the brand colour named once in the app config; the code email and the website take the same values from generated files | Values typed per screen | Decided | 2026-10-05 | `src/constants/tokens.ts`, `themeColors`, `designTokens.test.ts`, `emailTokens.ts`, `web/app/tokens.css` |
 
+## Design pass decided by Claude on the owner's behalf (2026-10-05)
+
+Owner, 2026-10-05: "make decisions for me based on all of the research, without changing the main business logic". Each row is a wording or layout choice only; rules, points, tags and timings are unchanged. Findings and sources: the local `docs/design-gaps.md`.
+
+| # | Decision | Chosen | Other options | Status | Decided | Used in |
+| --- | --- | --- | --- | --- | --- | --- |
+| 76 | Readable text | One secondary grey at 65% of the text colour; dark words on cyan buttons; deeper cyan/red/amber for words on light backgrounds; no text under 11 pt (Apple's and Google's accessibility guidance) | Keep the lighter greys and white on cyan | Decided by Claude on the owner's behalf | 2026-10-05 | `themeColors`, `designTokens.test.ts` |
+| 77 | Locked feed way out | One button per lock card: Camera when you can post, "Find friends" when you need a tag; "It opens when a friend tags you and you post your answer. More friends means more tags."; locked posts say "Opens when…" | Two accent buttons · no button | Decided by Claude on the owner's behalf | 2026-10-05 | `feedLock.ts`, `FeedLockBanner`, `FeedScreen` |
+| 78 | Answer speed on posts | Posts read "Answered @x" with no hours (speed ranked people and shamed busy ones) | "Answered @x in 46h" | Decided by Claude on the owner's behalf | 2026-10-05 | `PostCard` |
+| 79 | Welcome cards | Card 1: first post needs no tag, any workout counts, a miss sends points to 0 but best stays; card 2 ends "Follow each other and you can tag each other"; card 3's lock line corrected; cards scroll at large text. Same 3 cards, same order | Unchanged cards (#19) | Decided by Claude on the owner's behalf | 2026-10-05 | `welcomeCards.ts`, `WelcomeCards` |
+| 80 | Errors and loading | A failed load says "Couldn't load …" with Try again, never an empty state; first loads show a spinner | "No posts yet" on failure | Decided by Claude on the owner's behalf | 2026-10-05 | `FeedScreen`, `ErrorBoundary` |
+
 ## Open questions (asked 2026-10-05 in Slack #questions-and-answers)
 
 From the invite-flow review (2026-10-05) and the photo work. Each is a message in
