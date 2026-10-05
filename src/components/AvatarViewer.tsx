@@ -21,13 +21,14 @@ import {
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
+  ALPHA,
   FONT_SIZE,
   LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
   VIEWER,
+  withAlpha,
 } from '@/constants/tokens';
 
 interface AvatarViewerProps {
@@ -192,7 +193,7 @@ function ZoomablePhoto({ uri, onClose }: { uri: string; onClose: () => void }) {
         style={({ pressed }) => [
           styles.close,
           { top: insets.top + OFFSET.o8 },
-          pressed && { opacity: 0.8 },
+          pressed && { opacity: ALPHA.a80 },
         ]}
         onPress={onClose}
         hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
@@ -221,7 +222,7 @@ const styles = StyleSheet.create({
     width: SIZE.z36,
     height: SIZE.z36,
     borderRadius: RADIUS.r18,
-    backgroundColor: withAlpha(COLORS.white, 0.15),
+    backgroundColor: withAlpha(COLORS.white, ALPHA.a15),
     alignItems: 'center',
     justifyContent: 'center',
   },

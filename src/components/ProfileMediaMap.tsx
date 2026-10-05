@@ -34,19 +34,21 @@ import type { FeedPost } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
+  ALPHA,
   FONT_SIZE,
-  SPACE,
-  RADIUS,
-  OFFSET,
-  SIZE,
   ICON_SIZE,
+  LAYOUT,
+  OFFSET,
+  RADIUS,
+  SIZE,
+  SPACE,
+  STROKE,
+  withAlpha,
 } from '@/constants/tokens';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PLACEHOLDER_IMG = require('../../assets/jogger.png') as number;
 
-const COLS = 3;
 const GAP = SPACE.s2;
 
 function CameraIcon({ color }: { color: string }) {
@@ -55,14 +57,14 @@ function CameraIcon({ color }: { color: string }) {
       <Path
         d="M24 30a6 6 0 1 0 0-12 6 6 0 0 0 0 12z"
         stroke={color}
-        strokeWidth={2}
+        strokeWidth={STROKE.s2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
         d="M6 18a4 4 0 0 1 4-4h2l3-4h18l3 4h2a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V18z"
         stroke={color}
-        strokeWidth={2}
+        strokeWidth={STROKE.s2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -88,7 +90,9 @@ function GridCell({
 }) {
   // FlashList reuses cells: forget a previous post's failed image when the post changes.
   const [imgError, setImgError] = useRecyclingState(false, [post.id]);
-  const badgeBg = dark ? withAlpha(COLORS.offBlack, 0.75) : withAlpha(COLORS.offWhite, 0.75);
+  const badgeBg = dark
+    ? withAlpha(COLORS.offBlack, ALPHA.a75)
+    : withAlpha(COLORS.offWhite, ALPHA.a75);
   const badgeText = dark ? COLORS.offWhite : COLORS.offBlack;
   const points = pointsBadgeText(post.streak_day);
   // Video posts: show the post's still photo (or a video card) and mark it with a video icon.
@@ -96,7 +100,7 @@ function GridCell({
   const label = tile.video ? 'video post' : 'post';
   // FlashList gives each column an equal third of the width; nudging each cell right by a
   // share of the gap keeps the photos equal with GAP between them.
-  const place = { marginLeft: (column * GAP) / COLS };
+  const place = { marginLeft: (column * GAP) / LAYOUT.profileColumns };
 
   // Hold to preview: only posts that open (locked ones have no photo) get the pop-up.
   const withMenu = menuOn && !!post.image_url;
@@ -122,7 +126,7 @@ function GridCell({
         !withMenu && styles.cell,
         { width: size, height: size },
         !withMenu && place,
-        pressed && { opacity: 0.8 },
+        pressed && { opacity: ALPHA.a80 },
       ]}
       onPress={onPress}
       accessibilityRole="button"
@@ -200,12 +204,14 @@ export default function ProfileMediaMap({
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   // The last row scrolls clear of the phone's tab bar.
   const tabRoom = useTabBarRoom();
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a45)
+    : withAlpha(COLORS.offBlack, ALPHA.a45);
 
   const { posts, isLoading, hasMore, loadMore, refresh } = useProfilePosts(userId);
   const menuOn = useContextMenuPreview();
   const { width } = useWindowDimensions();
-  const cellSize = (width - GAP * (COLS - 1)) / COLS;
+  const cellSize = (width - GAP * (LAYOUT.profileColumns - 1)) / LAYOUT.profileColumns;
 
   // Pull to refresh: the spinner shows until the fresh posts are in.
   const [refreshing, setRefreshing] = useState(false);
@@ -237,7 +243,7 @@ export default function ProfileMediaMap({
         renderScrollComponent={GestureScrollView}
         data={posts}
         keyExtractor={(item) => item.id}
-        numColumns={COLS}
+        numColumns={LAYOUT.profileColumns}
         style={{ ...styles.list, backgroundColor: bg }}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
@@ -247,7 +253,7 @@ export default function ProfileMediaMap({
             post={item}
             dark={dark}
             size={cellSize}
-            column={index % COLS}
+            column={index % LAYOUT.profileColumns}
             // Locked posts (no photo URL until the viewer posts) don't open.
             onPress={() => item.image_url && onPostPress?.(item)}
             menuOn={menuOn}

@@ -22,13 +22,15 @@ import { shouldPlay } from '@/lib/videoPosts';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
+  ALPHA,
   FONT_SIZE,
   LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
+  SWIPE,
   VIEWER,
+  withAlpha,
 } from '@/constants/tokens';
 
 interface PostViewerProps {
@@ -150,8 +152,8 @@ function ViewerPages({
   const swipe = Gesture.Pan()
     .enabled(!zooming)
     .maxPointers(1)
-    .activeOffsetX([-VIEWER.swipeSlop, VIEWER.swipeSlop])
-    .failOffsetY([-VIEWER.swipeSlop, VIEWER.swipeSlop])
+    .activeOffsetX([-SWIPE.slop, SWIPE.slop])
+    .failOffsetY([-SWIPE.slop, SWIPE.slop])
     .simultaneousWithExternalGesture(list)
     .onUpdate((e) => {
       'worklet';
@@ -226,7 +228,7 @@ function ViewerPages({
         pointerEvents={chrome.viewing ? 'none' : 'box-none'}
       >
         <Pressable
-          style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.2 }]}
+          style={({ pressed }) => [styles.closeBtn, pressed && { opacity: ALPHA.a20 }]}
           onPress={onClose}
           accessibilityRole="button"
           accessibilityLabel="Close"
@@ -258,7 +260,7 @@ const styles = StyleSheet.create({
     width: SIZE.z36,
     height: SIZE.z36,
     borderRadius: RADIUS.r18,
-    backgroundColor: withAlpha(COLORS.black, 0.4),
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a40),
     alignItems: 'center',
     justifyContent: 'center',
   },

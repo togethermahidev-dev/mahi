@@ -27,6 +27,7 @@ import {
 } from '@/lib/welcomeCards';
 import { FONTS } from '@/constants/fonts';
 import {
+  ALPHA,
   FONT_SIZE,
   ICON_SIZE,
   LINE_HEIGHT,
@@ -167,7 +168,9 @@ export function WelcomeCardsModal({ onClose }: { onClose: () => void }): React.J
               key={card.title}
               style={[
                 styles.dot,
-                { backgroundColor: i === index ? colors.accent : withAlpha(colors.text, 0.25) },
+                {
+                  backgroundColor: i === index ? colors.accent : withAlpha(colors.text, ALPHA.a25),
+                },
               ]}
             />
           ))}
@@ -183,7 +186,7 @@ export function WelcomeCardsModal({ onClose }: { onClose: () => void }): React.J
           style={({ pressed }) => [
             styles.button,
             { backgroundColor: colors.text },
-            pressed && { opacity: 0.8 },
+            pressed && { opacity: ALPHA.a80 },
           ]}
         >
           <Text style={[styles.buttonText, { color: colors.bg }]}>{label}</Text>

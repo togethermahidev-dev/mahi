@@ -12,12 +12,16 @@ import PostVideo from '@/components/PostVideo';
 import { PIP_H, PIP_W, clampToZone, snapToCorner, type PipZone } from '@/lib/pip';
 import {
   COLORS,
-  withAlpha,
-  RADIUS,
+  ALPHA,
   BORDER_WIDTH,
+  DURATION,
+  ELEVATION,
+  RADIUS,
+  SCALE,
   SHADOW_BLUR,
   SIZE,
-  ELEVATION,
+  SPRING,
+  withAlpha,
 } from '@/constants/tokens';
 
 interface DraggablePipProps {
@@ -33,9 +37,6 @@ interface DraggablePipProps {
   /** Change it to put the photo back in its start corner (a recycled list cell). */
   resetKey?: string;
 }
-
-const LIFT = { damping: 12, stiffness: 200 };
-const SNAP = { damping: 16, stiffness: 140, overshootClamping: true };
 
 /**
  * The small second-camera photo on a full-screen post, FaceTime-style: tap to swap photos,
@@ -65,12 +66,12 @@ export default function DraggablePip({
   }, [resetKey]);
 
   const pan = Gesture.Pan()
-    .activateAfterLongPress(150)
+    .activateAfterLongPress(DURATION.d150)
     .onStart(() => {
       'worklet';
       startX.set(x.get());
       startY.set(y.get());
-      scale.set(withSpring(1.1, LIFT));
+      scale.set(withSpring(SCALE.s1_1, SPRING.lift));
       runOnJS(haptic)('pickUp');
     })
     .onUpdate((e) => {
@@ -82,9 +83,9 @@ export default function DraggablePip({
     .onEnd(() => {
       'worklet';
       const p = snapToCorner(x.get(), y.get(), zone);
-      x.set(withSpring(p.x, SNAP));
-      y.set(withSpring(p.y, SNAP));
-      scale.set(withSpring(1, LIFT));
+      x.set(withSpring(p.x, SPRING.snap));
+      y.set(withSpring(p.y, SPRING.snap));
+      scale.set(withSpring(1, SPRING.lift));
     });
 
   const tap = Gesture.Tap().runOnJS(true).onEnd(onTap);
@@ -122,10 +123,10 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r10,
     overflow: 'hidden',
     borderWidth: BORDER_WIDTH.w2,
-    borderColor: withAlpha(COLORS.white, 0.6),
+    borderColor: withAlpha(COLORS.white, ALPHA.a60),
     shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: SIZE.z3 },
-    shadowOpacity: 0.35,
+    shadowOpacity: ALPHA.a35,
     shadowRadius: SHADOW_BLUR.b6,
     elevation: ELEVATION.e6,
   },

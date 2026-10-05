@@ -9,7 +9,15 @@ import { openTagsBanner } from '@/lib/openTagsBanner';
 import { appHeaderHeight } from '@/lib/pip';
 import type { OpenTag } from '@/api';
 import { FONTS } from '@/constants/fonts';
-import { FONT_SIZE, SPACE, RADIUS, BORDER_WIDTH, OFFSET, SIZE } from '@/constants/tokens';
+import {
+  BLUR_INTENSITY,
+  BORDER_WIDTH,
+  FONT_SIZE,
+  OFFSET,
+  RADIUS,
+  SIZE,
+  SPACE,
+} from '@/constants/tokens';
 
 /**
  * Camera overlay: who tagged you and how long is left on the soonest deadline, and under it the
@@ -36,7 +44,11 @@ export default function OpenTagsBanner({
     // box-none: touches pass through to the camera except on the notifications line.
     <View style={[styles.wrap, { top }]} pointerEvents="box-none">
       <View pointerEvents="none">
-        <BlurView intensity={40} tint="dark" style={[styles.pill, { borderColor: colors.accent }]}>
+        <BlurView
+          intensity={BLUR_INTENSITY.i40}
+          tint="dark"
+          style={[styles.pill, { borderColor: colors.accent }]}
+        >
           <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={1}>
             {banner.who} tagged you ·{' '}
             <Text style={[styles.time, { color: colors.accent }]}>{banner.left}</Text>

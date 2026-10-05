@@ -6,7 +6,18 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { ProfileIcon, MessagesIcon, NotificationsIcon } from '@/components/ScreenIcons';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, ICON_SIZE, SIZE, TRACKING, OFFSET } from '@/constants/tokens';
+import {
+  COLORS,
+  ALPHA,
+  FONT_SIZE,
+  ICON_SIZE,
+  OFFSET,
+  RADIUS,
+  SIZE,
+  SPACE,
+  TRACKING,
+  withAlpha,
+} from '@/constants/tokens';
 
 interface AppHeaderProps {
   // true on Camera screen (always dark bg) → white text/icons
@@ -42,8 +53,8 @@ export default function AppHeader({
 
   // Gradient: dark screens (camera/dark mode) → dark-to-clear; light mode → white-to-clear
   const gradientColors: [string, string] = onDark
-    ? [withAlpha(COLORS.ink, 0.88), withAlpha(COLORS.ink, 0)]
-    : [withAlpha(COLORS.white, 0.92), withAlpha(COLORS.white, 0)];
+    ? [withAlpha(COLORS.ink, ALPHA.a88), withAlpha(COLORS.ink, 0)]
+    : [withAlpha(COLORS.white, ALPHA.a92), withAlpha(COLORS.white, 0)];
 
   return (
     // pointerEvents="box-none" lets touches pass through the transparent header
@@ -59,7 +70,11 @@ export default function AppHeader({
         {/* Profile pill — navigates to Profile screen (horizontal left) */}
         {showNavPills && (
           <Pressable
-            style={({ pressed }) => [styles.profilePill, { backgroundColor: pillBg }, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.profilePill,
+              { backgroundColor: pillBg },
+              pressed && styles.pressed,
+            ]}
             onPress={onProfilePress}
             accessibilityRole="button"
             accessibilityLabel="Profile"
@@ -69,7 +84,12 @@ export default function AppHeader({
         )}
 
         {/* MAHI branding — centered, with offset colour echo behind */}
-        <View style={styles.titleWrapper} accessible accessibilityRole="header" accessibilityLabel="Mahi">
+        <View
+          style={styles.titleWrapper}
+          accessible
+          accessibilityRole="header"
+          accessibilityLabel="Mahi"
+        >
           {/* Back layer: accent colour, offset slightly */}
           <Text style={[styles.title, styles.titleEcho]}>MAHI</Text>
           {/* Front layer: main colour */}
@@ -127,7 +147,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pressed: {
-    opacity: 0.75,
+    opacity: ALPHA.a75,
   },
   profilePill: {
     width: SIZE.z36,

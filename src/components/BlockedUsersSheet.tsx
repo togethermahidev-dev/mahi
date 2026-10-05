@@ -21,15 +21,16 @@ import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
-  FONT_SIZE,
-  SPACE,
-  RADIUS,
-  OFFSET,
-  SIZE,
+  ALPHA,
   BORDER_WIDTH,
+  FONT_SIZE,
   LINE_HEIGHT,
+  OFFSET,
+  RADIUS,
+  SIZE,
+  SPACE,
   TRACKING,
+  withAlpha,
 } from '@/constants/tokens';
 
 interface BlockedUsersSheetProps {
@@ -72,8 +73,12 @@ function Sheet({ onClose, dark }: Omit<BlockedUsersSheetProps, 'visible'>) {
 
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
-  const border = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.12);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a45)
+    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const border = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a12)
+    : withAlpha(COLORS.offBlack, ALPHA.a12);
   const avatarBg = dark ? COLORS.surfaceDark : COLORS.offWhite;
   const inputBg = dark ? COLORS.surfaceDark : COLORS.surfaceLight2;
 
@@ -296,7 +301,7 @@ const styles = StyleSheet.create({
     height: SIZE.z36,
   },
   pressed: {
-    opacity: 0.7,
+    opacity: ALPHA.a70,
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,

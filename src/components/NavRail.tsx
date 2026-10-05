@@ -27,15 +27,19 @@ import {
 } from '@/components/ScreenIcons';
 import {
   COLORS,
-  ICON_SIZE,
-  NAV_RAIL,
+  ALPHA,
+  BLUR_INTENSITY,
   BORDER_WIDTH,
+  DURATION,
+  ICON_SIZE,
+  LAYER,
+  NAV_RAIL,
   RADIUS,
   SHADOW_BLUR,
   SIZE,
   SPACE,
+  SPRING,
   withAlpha,
-  LAYER,
 } from '@/constants/tokens';
 import {
   followSpan,
@@ -59,19 +63,21 @@ const TABS: { key: RailTab; label: string; Icon: React.ComponentType<IconProps> 
 // ─── Selector motion (nav-rail-morph) ─────────────────────────────────────────
 /** The leading edge reaching the new icon while the trailing edge holds: the stretch. */
 const STRETCH = {
-  duration: 140,
+  duration: DURATION.d140,
   easing: Easing.out(Easing.cubic),
   reduceMotion: ReduceMotion.Never,
 };
 /** The trailing edge catching up: the contract onto the new icon. */
-const CONTRACT = { damping: 18, stiffness: 240, mass: 0.7, reduceMotion: ReduceMotion.Never };
+const CONTRACT = { ...SPRING.railContract, reduceMotion: ReduceMotion.Never };
 /** Following a dragging finger: the leading edge keeps up, the trailing edge lags a little. */
-const FOLLOW_LEAD = { damping: 24, stiffness: 600, mass: 0.5, reduceMotion: ReduceMotion.Never };
-const FOLLOW_TRAIL = { damping: 22, stiffness: 260, mass: 0.6, reduceMotion: ReduceMotion.Never };
+const FOLLOW_LEAD = { ...SPRING.railLead, reduceMotion: ReduceMotion.Never };
+const FOLLOW_TRAIL = { ...SPRING.railTrail, reduceMotion: ReduceMotion.Never };
 /** With Reduce Motion on: a plain move, no stretch. */
-const MOVE = { duration: 180, easing: Easing.out(Easing.cubic), reduceMotion: ReduceMotion.Never };
-/** Press and hold this long (ms) to pick up the selector; a drag along the rail picks it up at once. */
-const HOLD_MS = 280;
+const MOVE = {
+  duration: DURATION.d180,
+  easing: Easing.out(Easing.cubic),
+  reduceMotion: ReduceMotion.Never,
+};
 
 interface NavRailProps {
   active: RailTab;
@@ -205,7 +211,7 @@ export default function NavRail({
   // Press and hold, then drag; or drag along the rail straight away. A plain tap is left to the
   // buttons. Either way the touch belongs to the rail: the page swipe skips the rail (onRect).
   const hold = Gesture.Pan()
-    .activateAfterLongPress(HOLD_MS)
+    .activateAfterLongPress(NAV_RAIL.holdMs)
     .onStart((e) => {
       'worklet';
       grab(e.y);
@@ -295,7 +301,7 @@ export default function NavRail({
     body = (
       <BlurView
         style={[shape, styles.clip]}
-        intensity={60}
+        intensity={BLUR_INTENSITY.i60}
         tint={onDark ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
         blurTarget={blurTarget}
         blurMethod="dimezisBlurViewSdk31Plus"
@@ -369,7 +375,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   pressed: {
-    opacity: 0.7,
+    opacity: ALPHA.a70,
   },
   button: {
     borderRadius: RADIUS.pill,

@@ -4,12 +4,13 @@ import { inviteStepCopy, slotCount } from '@/lib/inviteStep';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
+  ALPHA,
   FONT_SIZE,
-  SPACE,
+  LINE_HEIGHT,
   RADIUS,
   SIZE,
-  LINE_HEIGHT,
+  SPACE,
+  withAlpha,
 } from '@/constants/tokens';
 
 /**
@@ -65,7 +66,7 @@ export default function InviteStep({
         style={({ pressed }) => [
           styles.button,
           !copy.canAdd && styles.buttonDone,
-          pressed && { opacity: 0.85 },
+          pressed && { opacity: ALPHA.a85 },
         ]}
       >
         <Text style={styles.buttonText}>{copy.button}</Text>
@@ -77,7 +78,7 @@ export default function InviteStep({
           accessibilityLabel="Remove an invite"
           hitSlop={SPACE.s8}
           onPress={onRemove}
-          style={({ pressed }) => [styles.remove, pressed && { opacity: 0.7 }]}
+          style={({ pressed }) => [styles.remove, pressed && { opacity: ALPHA.a70 }]}
         >
           <Text style={styles.removeText}>Remove an invite</Text>
         </Pressable>
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
   },
   why: {
-    color: withAlpha(COLORS.offWhite, 0.75),
+    color: withAlpha(COLORS.offWhite, ALPHA.a75),
     fontSize: FONT_SIZE.f15,
     lineHeight: LINE_HEIGHT.l22,
     fontFamily: FONTS.regular,
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
     width: SIZE.z10,
     height: SIZE.z10,
     borderRadius: RADIUS.pill,
-    backgroundColor: withAlpha(COLORS.offWhite, 0.2),
+    backgroundColor: withAlpha(COLORS.offWhite, ALPHA.a20),
   },
   dotFilled: {
     backgroundColor: COLORS.accent,
@@ -135,7 +136,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonDone: {
-    backgroundColor: withAlpha(COLORS.accent, 0.35),
+    backgroundColor: withAlpha(COLORS.accent, ALPHA.a35),
   },
   buttonText: {
     color: COLORS.white,
@@ -147,12 +148,12 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s4,
   },
   removeText: {
-    color: withAlpha(COLORS.offWhite, 0.6),
+    color: withAlpha(COLORS.offWhite, ALPHA.a60),
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
   },
   after: {
-    color: withAlpha(COLORS.offWhite, 0.45),
+    color: withAlpha(COLORS.offWhite, ALPHA.a45),
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
     textAlign: 'center',

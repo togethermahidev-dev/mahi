@@ -18,14 +18,15 @@ import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
+  ALPHA,
   FONT_SIZE,
-  SPACE,
-  SIZE,
-  OFFSET,
   ICON_SIZE,
-  TRACKING,
   LINE_HEIGHT,
+  OFFSET,
+  SIZE,
+  SPACE,
+  TRACKING,
+  withAlpha,
 } from '@/constants/tokens';
 
 interface ProfileScreenProps {
@@ -51,7 +52,9 @@ export default function ProfileScreen({
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a45)
+    : withAlpha(COLORS.offBlack, ALPHA.a45);
   const toggleColor = dark ? COLORS.offWhite : COLORS.offBlack;
 
   const profile = useUserStore((s) => s.profile);
@@ -74,7 +77,7 @@ export default function ProfileScreen({
       {/* Settings icon — top-left */}
       <View style={styles.headerLeft}>
         <Pressable
-          style={({ pressed }) => pressed && { opacity: 0.2 }}
+          style={({ pressed }) => pressed && { opacity: ALPHA.a20 }}
           onPress={() => setSettingsOpen(true)}
           accessibilityRole="button"
           accessibilityLabel="Settings"
@@ -89,7 +92,7 @@ export default function ProfileScreen({
       <View style={styles.headerRight}>
         {onSearch ? (
           <Pressable
-            style={({ pressed }) => pressed && { opacity: 0.2 }}
+            style={({ pressed }) => pressed && { opacity: ALPHA.a20 }}
             onPress={onSearch}
             accessibilityRole="button"
             accessibilityLabel="Search people"
@@ -119,7 +122,7 @@ export default function ProfileScreen({
 
       {/* Friends — a list, never a number */}
       <Pressable
-        style={({ pressed }) => [styles.statsRow, pressed && { opacity: 0.7 }]}
+        style={({ pressed }) => [styles.statsRow, pressed && { opacity: ALPHA.a70 }]}
         onPress={() => setFriendsOpen(true)}
         accessibilityRole="button"
         accessibilityLabel="Friends"
@@ -259,6 +262,6 @@ const styles = StyleSheet.create({
   statDivider: {
     width: SIZE.z1,
     height: SIZE.z40,
-    opacity: 0.3,
+    opacity: ALPHA.a30,
   },
 });

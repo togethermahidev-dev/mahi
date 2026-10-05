@@ -5,13 +5,14 @@ import { inviteListSummary, inviteRow, type InviteItem } from '@/lib/inviteShare
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
+  ALPHA,
+  BORDER_WIDTH,
   FONT_SIZE,
-  SPACE,
+  LINE_HEIGHT,
   RADIUS,
   SIZE,
-  LINE_HEIGHT,
-  BORDER_WIDTH,
+  SPACE,
+  withAlpha,
 } from '@/constants/tokens';
 
 /**
@@ -94,7 +95,7 @@ export default function InviteShareSheet({
                   style={({ pressed }) => [
                     styles.rowButton,
                     !sent && styles.rowButtonPrimary,
-                    pressed && { opacity: 0.8 },
+                    pressed && { opacity: ALPHA.a80 },
                   ]}
                 >
                   <Text style={styles.rowButtonText}>{row.button}</Text>
@@ -107,7 +108,7 @@ export default function InviteShareSheet({
             accessibilityRole="button"
             accessibilityLabel={nextIndex >= 0 ? `Send invite ${nextIndex + 1}` : 'Done'}
             onPress={() => (nextIndex >= 0 ? onSend(invites[nextIndex].token) : onClose())}
-            style={({ pressed }) => [styles.main, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [styles.main, pressed && { opacity: ALPHA.a85 }]}
           >
             <Text style={styles.mainText}>
               {nextIndex >= 0 ? `Send invite ${nextIndex + 1}` : 'Done'}
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
   },
   scrim: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: withAlpha(COLORS.black, 0.55),
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a55),
   },
   panel: {
     backgroundColor: COLORS.bgDark,
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
     width: SIZE.z40,
     height: SIZE.z4,
     borderRadius: RADIUS.r2,
-    backgroundColor: withAlpha(COLORS.white, 0.25),
+    backgroundColor: withAlpha(COLORS.white, ALPHA.a25),
     alignSelf: 'center',
     marginBottom: SPACE.s4,
   },
@@ -160,12 +161,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
   },
   count: {
-    color: withAlpha(COLORS.offWhite, 0.6),
+    color: withAlpha(COLORS.offWhite, ALPHA.a60),
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.semiBold,
   },
   sub: {
-    color: withAlpha(COLORS.offWhite, 0.75),
+    color: withAlpha(COLORS.offWhite, ALPHA.a75),
     fontSize: FONT_SIZE.f15,
     lineHeight: LINE_HEIGHT.l22,
     fontFamily: FONTS.regular,
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
     paddingVertical: SPACE.s10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: withAlpha(COLORS.offWhite, 0.12),
+    borderTopColor: withAlpha(COLORS.offWhite, ALPHA.a12),
   },
   rowText: {
     flex: 1,
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   rowStatus: {
-    color: withAlpha(COLORS.offWhite, 0.6),
+    color: withAlpha(COLORS.offWhite, ALPHA.a60),
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.regular,
   },
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
     borderRadius: RADIUS.r50,
     borderWidth: BORDER_WIDTH.w1,
-    borderColor: withAlpha(COLORS.offWhite, 0.4),
+    borderColor: withAlpha(COLORS.offWhite, ALPHA.a40),
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -5,13 +5,14 @@
  *
  * - A swipe that starts in a strip the phone owns (status bar, home bar, and for sideways swipes
  *   the side edges where Android's back gesture lives) is left to the phone.
- * - The finger must move SLOP px, mostly along the swipe's own axis; the other axis fails it.
+ * - The finger must move SWIPE.slop px, mostly along the swipe's own axis; the other axis fails it.
  * - `blocked`: a pop-up screen is open, so the page underneath must not move.
  * - `exclude`: a sideways swipe never starts inside this rectangle (the nav rail owns its touches).
  *
  * Every function here is a worklet, so a navigator can call it on the UI thread from a gesture
  * callback as well as from ordinary code.
  */
+import { SWIPE } from '@/constants/tokens';
 export type SwipeDecision = 'activate' | 'fail' | 'wait';
 
 type Touch = {
@@ -34,7 +35,6 @@ function inRect(x: number, y: number, r: Rect | null | undefined): boolean {
   return !!r && x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height;
 }
 
-const SLOP = 20;
 /** Side strip left to the system back gesture. */
 const EDGE = 24;
 /** Minimum strip kept for the home bar / gesture nav, even on phones reporting no inset. */
@@ -54,8 +54,8 @@ export function horizontalSwipe(t: Touch): SwipeDecision {
   if (inRect(t.startX, t.startY, t.exclude)) return 'fail';
   const ax = Math.abs(t.dx);
   const ay = Math.abs(t.dy);
-  if (ay > SLOP && ay >= ax) return 'fail';
-  if (ax > SLOP && ax > ay) return 'activate';
+  if (ay > SWIPE.slop && ay >= ax) return 'fail';
+  if (ax > SWIPE.slop && ax > ay) return 'activate';
   return 'wait';
 }
 
@@ -69,9 +69,7 @@ export function atListTop(offsetY: number): boolean {
 // Distances are px from where the finger went down; velocities are px per ms (a gesture
 // handler reports px per second: divide by 1000).
 
-/** Sideways: a drag this far, or a flick this fast, moves one page. */
-const H_SWIPE_PX = 60;
-const H_SWIPE_V = 0.4;
+// Sideways: a drag of SWIPE.distance, or a flick of SWIPE.velocity, moves one page.
 
 /** Where the page strip sits while dragged: past the first or last page it moves a third as far. */
 export function rubberBand(raw: number, min: number, max: number): number {
@@ -88,8 +86,8 @@ export function rubberBand(raw: number, min: number, max: number): number {
 export function horizontalRelease(index: number, count: number, dx: number, vx: number): number {
   'worklet';
   let next = index;
-  if ((dx > H_SWIPE_PX || vx > H_SWIPE_V) && index > 0) next = index - 1;
-  if ((dx < -H_SWIPE_PX || vx < -H_SWIPE_V) && index < count - 1) next = index + 1;
+  if ((dx > SWIPE.distance || vx > SWIPE.velocity) && index > 0) next = index - 1;
+  if ((dx < -SWIPE.distance || vx < -SWIPE.velocity) && index < count - 1) next = index + 1;
   return next;
 }
 
@@ -109,6 +107,6 @@ export function backSwipeX(startX: number, dx: number): number {
  */
 export function backSwipeCloses(dx: number, vx: number): boolean {
   'worklet';
-  if (vx < -H_SWIPE_V) return false;
-  return dx > H_SWIPE_PX || vx > H_SWIPE_V;
+  if (vx < -SWIPE.velocity) return false;
+  return dx > SWIPE.distance || vx > SWIPE.velocity;
 }

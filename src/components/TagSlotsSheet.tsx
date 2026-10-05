@@ -42,12 +42,13 @@ import {
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
+  ALPHA,
+  BORDER_WIDTH,
   FONT_SIZE,
-  SPACE,
   RADIUS,
   SIZE,
-  BORDER_WIDTH,
+  SPACE,
+  withAlpha,
 } from '@/constants/tokens';
 
 type ShareTarget = 'whatsapp' | 'messages' | 'more';
@@ -440,7 +441,7 @@ export default function TagSlotsSheet({
               value={query}
               onChangeText={setQuery}
               placeholder="Search friends or anyone on Mahi"
-              placeholderTextColor={withAlpha(COLORS.offWhite, 0.45)}
+              placeholderTextColor={withAlpha(COLORS.offWhite, ALPHA.a45)}
               autoCapitalize="none"
               autoCorrect={false}
               autoComplete="off"
@@ -616,7 +617,7 @@ function PersonRow({
 }
 
 const styles = StyleSheet.create({
-  pressed: { opacity: 0.7 },
+  pressed: { opacity: ALPHA.a70 },
   panel: {
     flex: 1,
     backgroundColor: COLORS.bgDark,
@@ -629,13 +630,13 @@ const styles = StyleSheet.create({
   title: { color: COLORS.offWhite, fontSize: FONT_SIZE.f17, fontFamily: FONTS.semiBold },
   headerEnd: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s8 },
   counter: {
-    color: withAlpha(COLORS.offWhite, 0.45),
+    color: withAlpha(COLORS.offWhite, ALPHA.a45),
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
   },
   closeX: { width: SIZE.z28, height: SIZE.z28, alignItems: 'center', justifyContent: 'center' },
   closeXText: {
-    color: withAlpha(COLORS.offWhite, 0.6),
+    color: withAlpha(COLORS.offWhite, ALPHA.a60),
     fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.semiBold,
   },
@@ -655,7 +656,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bgDark,
     borderWidth: BORDER_WIDTH.w1_5,
     borderStyle: 'dashed',
-    borderColor: withAlpha(COLORS.offWhite, 0.3),
+    borderColor: withAlpha(COLORS.offWhite, ALPHA.a30),
   },
   slotAvatar: { width: SIZE.z56, height: SIZE.z56 },
   slotInitial: { color: COLORS.offWhite, fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
@@ -678,10 +679,10 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s12,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: withAlpha(COLORS.offWhite, 0.12),
+    borderColor: withAlpha(COLORS.offWhite, ALPHA.a12),
   },
   shareLabel: {
-    color: withAlpha(COLORS.offWhite, 0.6),
+    color: withAlpha(COLORS.offWhite, ALPHA.a60),
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
   },
@@ -690,10 +691,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: SPACE.s10,
     borderRadius: RADIUS.r50,
-    backgroundColor: withAlpha(COLORS.accent, 0.16),
+    backgroundColor: withAlpha(COLORS.accent, ALPHA.a16),
     alignItems: 'center',
   },
-  shareButtonOff: { opacity: 0.35 },
+  shareButtonOff: { opacity: ALPHA.a35 },
   shareButtonText: { color: COLORS.offWhite, fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
   notice: { color: COLORS.amber, fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular },
   search: {
@@ -703,11 +704,11 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.regular,
     paddingHorizontal: SPACE.s14,
     borderRadius: RADIUS.r50,
-    backgroundColor: withAlpha(COLORS.white, 0.08),
+    backgroundColor: withAlpha(COLORS.white, ALPHA.a08),
   },
   list: { flex: 1 },
   empty: {
-    color: withAlpha(COLORS.offWhite, 0.45),
+    color: withAlpha(COLORS.offWhite, ALPHA.a45),
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.regular,
     textAlign: 'center',
@@ -720,8 +721,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s10,
     gap: SPACE.s12,
   },
-  rowPicked: { backgroundColor: withAlpha(COLORS.accent, 0.08), borderRadius: RADIUS.r8 },
-  rowOff: { opacity: 0.4 },
+  rowPicked: { backgroundColor: withAlpha(COLORS.accent, ALPHA.a08), borderRadius: RADIUS.r8 },
+  rowOff: { opacity: ALPHA.a40 },
   rowAvatar: { width: SIZE.z38, height: SIZE.z38, borderRadius: RADIUS.r19 },
   rowAvatarFallback: {
     backgroundColor: COLORS.surfaceDark,
@@ -732,7 +733,7 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   rowName: { color: COLORS.offWhite, fontSize: FONT_SIZE.f14, fontFamily: FONTS.semiBold },
   rowHandle: {
-    color: withAlpha(COLORS.offWhite, 0.45),
+    color: withAlpha(COLORS.offWhite, ALPHA.a45),
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
     marginTop: SPACE.s1,

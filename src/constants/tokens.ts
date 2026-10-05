@@ -47,11 +47,45 @@ export const COLORS = {
   amberDeep: '#B07020',
 } as const;
 
-/** A token colour at the given opacity: withAlpha(COLORS.offWhite, 0.45). */
+/** A token colour at the given opacity: withAlpha(COLORS.offWhite, ALPHA.a45). */
 export function withAlpha(hex: string, alpha: number): string {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
 }
+
+// ─── See-through amounts (opacity, shadowOpacity, withAlpha) — a45 = 45% ─────
+export const ALPHA = {
+  a01: 0.01,
+  a04: 0.04,
+  a05: 0.05,
+  a06: 0.06,
+  a07: 0.07,
+  a08: 0.08,
+  a10: 0.1,
+  a12: 0.12,
+  a15: 0.15,
+  a16: 0.16,
+  a18: 0.18,
+  a20: 0.2,
+  a22: 0.22,
+  a25: 0.25,
+  a30: 0.3,
+  a35: 0.35,
+  a40: 0.4,
+  a45: 0.45,
+  a50: 0.5,
+  a55: 0.55,
+  a60: 0.6,
+  a70: 0.7,
+  a72: 0.72,
+  a75: 0.75,
+  a80: 0.8,
+  a82: 0.82,
+  a85: 0.85,
+  a88: 0.88,
+  a90: 0.9,
+  a92: 0.92,
+} as const;
 
 // ─── Text sizes ──────────────────────────────────────────────────────────────
 export const FONT_SIZE = {
@@ -168,18 +202,24 @@ export const SIZE = {
   z44: 44,
   z46: 46,
   z48: 48,
+  z50: 50,
   z52: 52,
   z55: 55,
   z56: 56,
   z58: 58,
   z60: 60,
+  z64: 64,
   z72: 72,
   z80: 80,
   z88: 88,
   z96: 96,
   z100: 100,
+  z130: 130,
+  z132: 132,
   z160: 160,
+  z170: 170,
   z180: 180,
+  z360: 360,
   z400: 400,
   z420: 420,
   z800: 800,
@@ -287,6 +327,92 @@ export const BORDER_WIDTH = {
   w2: 2,
 } as const;
 
+// ─── Icon line widths (strokeWidth) ──────────────────────────────────────────
+export const STROKE = {
+  s1_2: 1.2,
+  s1_4: 1.4,
+  s1_5: 1.5,
+  s1_8: 1.8,
+  s2: 2,
+} as const;
+
+// ─── Glass blur strength (BlurView intensity, 0–100) ─────────────────────────
+export const BLUR_INTENSITY = {
+  i35: 35,
+  i40: 40,
+  i60: 60,
+} as const;
+
+// ─── Motion: how long things take (ms) ───────────────────────────────────────
+export const DURATION = {
+  d100: 100,
+  d140: 140,
+  d150: 150,
+  d180: 180,
+  d200: 200,
+  d300: 300,
+  d400: 400,
+} as const;
+
+// ─── Motion: springs (spread into Animated.spring or pass to withSpring) ──────
+export const SPRING = {
+  /** Pages, panels and sheets sliding in or back. */
+  page: { damping: 22, stiffness: 160, mass: 0.9 },
+  /** Search sliding in over a page. */
+  overlay: { damping: 22, stiffness: 200 },
+  /** A picked-up photo lifting, and dropping back. */
+  lift: { damping: 12, stiffness: 200 },
+  /** A dragged photo snapping to a corner, without overshooting. */
+  snap: { damping: 16, stiffness: 140, overshootClamping: true },
+  /** A zoomed photo settling back to its place. */
+  settle: { damping: 18, stiffness: 160 },
+  /** The captured photo landing in the preview. */
+  land: { damping: 16, stiffness: 110, mass: 0.9 },
+  /** The like medal popping up. */
+  medal: { speed: 30, bounciness: 8 },
+  /** The light / dark toggle pressing in, without a bounce… */
+  press: { speed: 60, bounciness: 0 },
+  /** …and bouncing back. */
+  bounce: { damping: 10, stiffness: 200, mass: 0.6 },
+  /** Nav rail selector: the trailing edge catching up onto the new icon… */
+  railContract: { damping: 18, stiffness: 240, mass: 0.7 },
+  /** …and following a dragging finger: the leading edge keeps up, the trailing edge lags. */
+  railLead: { damping: 24, stiffness: 600, mass: 0.5 },
+  railTrail: { damping: 22, stiffness: 260, mass: 0.6 },
+} as const;
+
+// ─── Motion: how big things grow or shrink (transform scale) ──────────────────
+export const SCALE = {
+  s0_68: 0.68,
+  s1_1: 1.1,
+  s1_3: 1.3,
+  s4: 4,
+} as const;
+
+// ─── Swipes: when a drag counts, and when it moves or closes something ───────
+export const SWIPE = {
+  /** A swipe takes over once the finger moves this far (px) along its axis. */
+  slop: 20,
+  /** A drag this far (px)… */
+  distance: 60,
+  /** …or a flick this fast (px per ms) moves a page or closes an overlay. */
+  velocity: 0.4,
+} as const;
+
+// ─── Counts and shares that shape a layout ───────────────────────────────────
+export const LAYOUT = {
+  /** Columns in a profile's grid of posts. */
+  profileColumns: 3,
+  /** Tagged friends' bubbles shown before "+n". */
+  taggedBubbles: 3,
+  /** The Settings panel's width, as a share of the screen. */
+  settingsWidth: 0.82,
+  /** Search results' height at most, as a share of the window. */
+  searchResultsHeight: 0.55,
+  /** The camera's small photo never gets shorter than this share of its width. */
+  pipMinHeight: 0.6,
+} as const;
+
 // ─── Floating nav rail: the pill outline and shadow (with SHADOW_BLUR / SIZE) ────
 export const NAV_RAIL = {
   /** Pill outline: white at this opacity on dark screens (owner: a clearly visible pill). */
@@ -295,6 +421,8 @@ export const NAV_RAIL = {
   outlineOnLight: 0.35,
   /** The soft shadow the pill floats on. */
   shadowOpacity: 0.22,
+  /** Press and hold this long (ms) to pick up the selector; a drag along the rail picks it up at once. */
+  holdMs: 280,
 } as const;
 
 // ─── Full-screen posts (feed and post viewer) ───────────────────────────────────
@@ -332,10 +460,9 @@ export const PREVIEW_MENU = {
   chatHeight: 0.45,
 } as const;
 
-// ─── Full-screen viewers: a profile's posts and a profile picture ───────────────
+// ─── Full-screen viewers: a profile's posts and a profile picture (the swipe values also
+// drive the Settings panel and a profile's swipe back) ─────────────────────────────
 export const VIEWER = {
-  /** A close swipe takes over once the finger moves this far (px) along its axis. */
-  swipeSlop: 20,
   /** A swipe closes the viewer past this distance (px)… */
   closeDistance: 80,
   /** …or when flicked at this speed (px per second). */
@@ -369,4 +496,8 @@ export const CAMERA = {
   focusFadeMs: 300,
   /** With tap to focus on, a second tap within this long (ms) flips the camera instead. */
   doubleTapMs: 280,
+  /** Android: how often (ms) the tilt sensor reports, to turn photos taken sideways… */
+  tiltUpdateMs: 400,
+  /** …and how far sideways gravity must lead before the phone counts as held sideways. */
+  tiltLead: 0.35,
 } as const;

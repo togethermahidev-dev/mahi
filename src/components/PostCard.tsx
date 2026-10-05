@@ -49,17 +49,21 @@ import type { FeedPost } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
+  ALPHA,
+  DURATION,
   FONT_SIZE,
-  SPACE,
-  RADIUS,
   ICON_SIZE,
   OFFSET,
-  SIZE,
-  TRACKING,
-  SHADOW_BLUR,
   POST_CARD,
+  RADIUS,
+  SCALE,
+  SHADOW_BLUR,
+  SIZE,
+  SPACE,
+  SPRING,
+  TRACKING,
   VIEWER,
+  withAlpha,
 } from '@/constants/tokens';
 
 /**
@@ -98,8 +102,12 @@ export default function PostCard({
   onToggleMuted?: () => void;
 }) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
-  const border = dark ? withAlpha(COLORS.offWhite, 0.1) : withAlpha(COLORS.offBlack, 0.1);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a45)
+    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const border = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a10)
+    : withAlpha(COLORS.offBlack, ALPHA.a10);
   // The app header floats over the card; its height follows the status bar / notch.
   const headerH = appHeaderHeight(useSafeAreaInsets().top);
   const cardBg = dark ? COLORS.surfaceDark2 : COLORS.surfaceLight;
@@ -159,20 +167,19 @@ export default function PostCard({
 
       Animated.sequence([
         Animated.spring(medalScale, {
-          toValue: 1.3,
+          toValue: SCALE.s1_3,
           useNativeDriver: true,
-          speed: 30,
-          bounciness: 8,
+          ...SPRING.medal,
         }),
         Animated.timing(medalScale, {
           toValue: 1,
-          duration: 100,
+          duration: DURATION.d100,
           useNativeDriver: true,
         }),
-        Animated.delay(300),
+        Animated.delay(DURATION.d300),
         Animated.timing(medalOpacity, {
           toValue: 0,
-          duration: 300,
+          duration: DURATION.d300,
           useNativeDriver: true,
         }),
       ]).start(() => setShowMedal(false));
@@ -413,7 +420,7 @@ export default function PostCard({
               >
                 {/* Top gradient — tagged pills + points badge inline */}
                 <LinearGradient
-                  colors={[withAlpha(COLORS.black, 0.6), 'transparent']}
+                  colors={[withAlpha(COLORS.black, ALPHA.a60), 'transparent']}
                   style={[styles.postOverlay, { paddingTop: headerH + SPACE.s4 + topSpace }]}
                   pointerEvents="box-none"
                 >
@@ -449,7 +456,7 @@ export default function PostCard({
                   pointerEvents="box-none"
                 >
                   <Pressable
-                    style={({ pressed }) => [styles.avatarRow, pressed && { opacity: 0.75 }]}
+                    style={({ pressed }) => [styles.avatarRow, pressed && { opacity: ALPHA.a75 }]}
                     onPress={() => onAvatarPress(item.profiles.id)}
                     accessibilityRole="button"
                     accessibilityLabel={`Open ${name}'s profile`}
@@ -461,7 +468,7 @@ export default function PostCard({
                         style={[
                           styles.avatar,
                           styles.avatarFallback,
-                          { backgroundColor: withAlpha(COLORS.white, 0.3) },
+                          { backgroundColor: withAlpha(COLORS.white, ALPHA.a30) },
                         ]}
                       >
                         <Text style={styles.avatarInitial}>{initials}</Text>
@@ -533,7 +540,7 @@ export default function PostCard({
             <SoundButton muted={soundOff} onToggle={onToggleMuted} />
           ) : null}
           <Pressable
-            style={({ pressed }) => [styles.sideActionBtn, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [styles.sideActionBtn, pressed && { opacity: ALPHA.a70 }]}
             onPress={handleLike}
             hitSlop={{ top: OFFSET.o20, bottom: OFFSET.o20, left: OFFSET.o4, right: OFFSET.o20 }}
             accessibilityRole="button"
@@ -544,7 +551,7 @@ export default function PostCard({
             <Text style={styles.sideActionCount}>{likeCount}</Text>
           </Pressable>
           <Pressable
-            style={({ pressed }) => [styles.sideActionBtn, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [styles.sideActionBtn, pressed && { opacity: ALPHA.a70 }]}
             onPress={handleCommentPress}
             hitSlop={{ top: OFFSET.o20, bottom: OFFSET.o20, left: OFFSET.o4, right: OFFSET.o20 }}
             accessibilityRole="button"
@@ -615,13 +622,13 @@ const styles = StyleSheet.create({
   timeOverlay: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
-    color: withAlpha(COLORS.white, 0.75),
+    color: withAlpha(COLORS.white, ALPHA.a75),
   },
   pointsBadge: {
     paddingHorizontal: SPACE.s14,
     paddingVertical: SPACE.s6,
     borderRadius: RADIUS.r50,
-    backgroundColor: withAlpha(COLORS.white, 0.2),
+    backgroundColor: withAlpha(COLORS.white, ALPHA.a20),
   },
   pointsText: {
     fontSize: FONT_SIZE.f12,
@@ -665,9 +672,9 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.regular,
     color: COLORS.white,
-    textShadowColor: withAlpha(COLORS.black, 0.5),
+    textShadowColor: withAlpha(COLORS.black, ALPHA.a50),
     textShadowOffset: { width: 0, height: SIZE.z1 },
-    textShadowRadius: 3,
+    textShadowRadius: SHADOW_BLUR.b3,
   },
   // ── Right-side action column (Reels / TikTok style). The shadow follows the icons and counts
   // (the view has no fill), so they read on a light photo.

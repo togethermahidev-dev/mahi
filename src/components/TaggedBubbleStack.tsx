@@ -3,9 +3,18 @@ import { View, Text, StyleSheet, Pressable, type ViewStyle, type StyleProp } fro
 import { BlurView } from 'expo-blur';
 import type { TaggedUser } from '@/api';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, OFFSET, SIZE } from '@/constants/tokens';
-
-const MAX_VISIBLE = 3;
+import {
+  COLORS,
+  ALPHA,
+  BLUR_INTENSITY,
+  FONT_SIZE,
+  LAYOUT,
+  OFFSET,
+  RADIUS,
+  SIZE,
+  SPACE,
+  withAlpha,
+} from '@/constants/tokens';
 
 interface Props {
   users: TaggedUser[];
@@ -16,21 +25,21 @@ interface Props {
 
 export default function TaggedBubbleStack({ users, onPressUser, style }: Props) {
   if (users.length === 0) return null;
-  const visible = users.slice(0, MAX_VISIBLE);
-  const overflow = users.length - MAX_VISIBLE;
+  const visible = users.slice(0, LAYOUT.taggedBubbles);
+  const overflow = users.length - LAYOUT.taggedBubbles;
 
   return (
     <View style={[styles.stack, style]} pointerEvents="box-none">
       {visible.map((u) => (
         <Pressable
-          style={({ pressed }) => pressed && { opacity: 0.85 }}
+          style={({ pressed }) => pressed && { opacity: ALPHA.a85 }}
           key={u.user_id}
           disabled={!onPressUser}
           onPress={() => onPressUser?.(u)}
           accessibilityRole="link"
           accessibilityLabel={`@${u.username}`}
         >
-          <BlurView intensity={40} tint="dark" style={styles.bubble}>
+          <BlurView intensity={BLUR_INTENSITY.i40} tint="dark" style={styles.bubble}>
             <Text style={styles.bubbleText} numberOfLines={1} ellipsizeMode="tail">
               @{u.username}
             </Text>
@@ -38,7 +47,7 @@ export default function TaggedBubbleStack({ users, onPressUser, style }: Props) 
         </Pressable>
       ))}
       {overflow > 0 ? (
-        <BlurView intensity={40} tint="dark" style={styles.bubble}>
+        <BlurView intensity={BLUR_INTENSITY.i40} tint="dark" style={styles.bubble}>
           <Text style={styles.bubbleText}>+{overflow} more</Text>
         </BlurView>
       ) : null}
@@ -62,8 +71,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: withAlpha(COLORS.white, 0.18),
-    backgroundColor: withAlpha(COLORS.black, 0.45),
+    borderColor: withAlpha(COLORS.white, ALPHA.a18),
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a45),
     maxWidth: SIZE.z180,
   },
   bubbleText: {

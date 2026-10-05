@@ -5,7 +5,16 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSuggestedFollows } from '@/hooks/useSuggestedFollows';
 import type { SuggestedUser } from '@/api';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, SIZE, TRACKING } from '@/constants/tokens';
+import {
+  COLORS,
+  ALPHA,
+  FONT_SIZE,
+  RADIUS,
+  SIZE,
+  SPACE,
+  TRACKING,
+  withAlpha,
+} from '@/constants/tokens';
 
 const ACCENT = COLORS.accent;
 
@@ -37,9 +46,15 @@ export default function SuggestedFollowsStrip({
 
   // Surfaces follow the established translucent offWhite/offBlack convention
   // rather than introducing new opaque hex.
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
-  const cardBg = dark ? withAlpha(COLORS.offWhite, 0.06) : withAlpha(COLORS.offBlack, 0.04);
-  const avatarBg = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.08);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a45)
+    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const cardBg = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a06)
+    : withAlpha(COLORS.offBlack, ALPHA.a04);
+  const avatarBg = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a12)
+    : withAlpha(COLORS.offBlack, ALPHA.a08);
 
   const data = useMemo(
     () => (excludeUserId ? suggestions.filter((u) => u.id !== excludeUserId) : suggestions),
@@ -60,7 +75,7 @@ export default function SuggestedFollowsStrip({
   return (
     <View style={styles.root}>
       <Pressable
-        style={({ pressed }) => [styles.headerRow, pressed && { opacity: 0.6 }]}
+        style={({ pressed }) => [styles.headerRow, pressed && { opacity: ALPHA.a60 }]}
         onPress={toggle}
         accessibilityRole="button"
         accessibilityLabel="Suggested for you"
@@ -86,7 +101,7 @@ export default function SuggestedFollowsStrip({
                 style={({ pressed }) => [
                   styles.card,
                   { backgroundColor: cardBg },
-                  pressed && { opacity: 0.8 },
+                  pressed && { opacity: ALPHA.a80 },
                 ]}
                 onPress={() => onPressUser(item.id)}
                 accessibilityRole="button"
@@ -115,7 +130,7 @@ export default function SuggestedFollowsStrip({
                   style={({ pressed }) => [
                     styles.followBtn,
                     { backgroundColor: ACCENT },
-                    pressed && { opacity: 0.75 },
+                    pressed && { opacity: ALPHA.a75 },
                   ]}
                   onPress={() => follow(item.id)}
                   accessibilityRole="button"
@@ -132,7 +147,7 @@ export default function SuggestedFollowsStrip({
   );
 }
 
-const CARD_WIDTH = 132;
+const CARD_WIDTH = SIZE.z132;
 
 const styles = StyleSheet.create({
   root: {

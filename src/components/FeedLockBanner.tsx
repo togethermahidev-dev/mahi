@@ -17,6 +17,8 @@ import { useSecondTick } from '@/hooks/useSecondTick';
 import { clockText, feedCountdown, lockExplainer } from '@/lib/feedLock';
 import { FONTS } from '@/constants/fonts';
 import {
+  ALPHA,
+  BLUR_INTENSITY,
   BORDER_WIDTH,
   FONT_SIZE,
   LINE_HEIGHT,
@@ -74,13 +76,13 @@ function LockedCard({
       <Text style={[styles.headline, { color: colors.text }]} accessibilityRole="header">
         {card.headline}
       </Text>
-      <Text style={[styles.body, { color: withAlpha(colors.text, 0.75) }]}>{card.body}</Text>
+      <Text style={[styles.body, { color: withAlpha(colors.text, ALPHA.a75) }]}>{card.body}</Text>
       {card.button ? (
         <Pressable
           style={({ pressed }) => [
             styles.button,
             { backgroundColor: colors.accent },
-            pressed && { opacity: 0.85 },
+            pressed && { opacity: ALPHA.a85 },
           ]}
           onPress={onPost}
           accessibilityRole="button"
@@ -118,7 +120,7 @@ function OpenTimer({
       accessibilityLabel={timer.spoken}
     >
       <BlurView
-        intensity={40}
+        intensity={BLUR_INTENSITY.i40}
         tint={dark ? 'dark' : 'light'}
         style={[styles.timer, { borderColor: colors.accent }]}
       >

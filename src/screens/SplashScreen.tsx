@@ -2,11 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { VERSION_LINE } from '@/lib/appBuild';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, OFFSET, TRACKING } from '@/constants/tokens';
+import { COLORS, ALPHA, FONT_SIZE, OFFSET, TRACKING, withAlpha } from '@/constants/tokens';
 
 const BG = COLORS.accent;
 const TEXT_COLOR = COLORS.white;
-const ECHO_COLOR = withAlpha(COLORS.white, 0.3);
+const ECHO_COLOR = withAlpha(COLORS.white, ALPHA.a30);
 
 interface Props {
   onLayout: () => void;

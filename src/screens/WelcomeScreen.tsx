@@ -7,13 +7,15 @@ import CreateAccountSheet from '@/components/CreateAccountSheet';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  FONT_SIZE,
-  SPACE,
-  RADIUS,
-  TRACKING,
-  OFFSET,
-  SIZE,
+  ALPHA,
   BORDER_WIDTH,
+  DURATION,
+  FONT_SIZE,
+  OFFSET,
+  RADIUS,
+  SIZE,
+  SPACE,
+  TRACKING,
 } from '@/constants/tokens';
 
 const { height } = Dimensions.get('window');
@@ -40,8 +42,8 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
     setShowLogin(false);
     setShowSignup(false);
     Animated.parallel([
-      Animated.timing(topY, { toValue: -height, duration: 400, useNativeDriver: true }),
-      Animated.timing(botY, { toValue: height, duration: 400, useNativeDriver: true }),
+      Animated.timing(topY, { toValue: -height, duration: DURATION.d400, useNativeDriver: true }),
+      Animated.timing(botY, { toValue: height, duration: DURATION.d400, useNativeDriver: true }),
     ]).start(() => onAuthComplete());
   };
 
@@ -65,7 +67,7 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
             style={({ pressed }) => [
               styles.button,
               { backgroundColor: sheetText },
-              pressed && { opacity: 0.8 },
+              pressed && { opacity: ALPHA.a80 },
             ]}
             onPress={() => setShowSignup(true)}
           >
@@ -77,7 +79,7 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
               styles.button,
               styles.buttonOutline,
               { borderColor: sheetText },
-              pressed && { opacity: 0.8 },
+              pressed && { opacity: ALPHA.a80 },
             ]}
             onPress={() => setShowLogin(true)}
           >
@@ -103,7 +105,7 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
                   styles.button,
                   styles.buttonOutline,
                   { borderColor: sheetText },
-                  pressed && { opacity: 0.8 },
+                  pressed && { opacity: ALPHA.a80 },
                 ]}
                 onPress={() => {}}
               >
@@ -117,7 +119,7 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
                   styles.button,
                   styles.buttonOutline,
                   { borderColor: sheetText },
-                  pressed && { opacity: 0.8 },
+                  pressed && { opacity: ALPHA.a80 },
                 ]}
                 onPress={() => {}}
               >
@@ -158,7 +160,7 @@ const styles = StyleSheet.create({
   titleWrapper: { position: 'relative', marginBottom: SPACE.s12 },
   title: { fontSize: FONT_SIZE.f56, fontFamily: FONTS.bold, letterSpacing: TRACKING.t10 },
   titleEcho: { position: 'absolute', color: COLORS.accent, top: OFFSET.o4, left: OFFSET.o4 },
-  subtitle: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.regular, opacity: 0.7 },
+  subtitle: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.regular, opacity: ALPHA.a70 },
   gap: { height: SIZE.z55 },
   bottomSheet: {
     flex: 1,

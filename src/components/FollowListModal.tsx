@@ -9,15 +9,16 @@ import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
-  FONT_SIZE,
-  SPACE,
-  RADIUS,
-  OFFSET,
-  SIZE,
+  ALPHA,
   BORDER_WIDTH,
+  FONT_SIZE,
   LINE_HEIGHT,
+  OFFSET,
+  RADIUS,
+  SIZE,
+  SPACE,
   TRACKING,
+  withAlpha,
 } from '@/constants/tokens';
 
 interface FollowListModalProps {
@@ -41,8 +42,12 @@ export default function FollowListModal({
 
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
-  const border = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.12);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a45)
+    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const border = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a12)
+    : withAlpha(COLORS.offBlack, ALPHA.a12);
   const avatarBg = dark ? COLORS.surfaceDark : COLORS.offWhite;
 
   const [users, setUsers] = useState<FollowListUser[]>([]);
@@ -117,7 +122,7 @@ export default function FollowListModal({
                 style={({ pressed }) => [
                   styles.backBtn,
                   { borderColor: border },
-                  pressed && { opacity: 0.2 },
+                  pressed && { opacity: ALPHA.a20 },
                 ]}
                 onPress={onClose}
                 accessibilityRole="button"
@@ -154,7 +159,7 @@ export default function FollowListModal({
 
                   return (
                     <Pressable
-                      style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
+                      style={({ pressed }) => [styles.row, pressed && { opacity: ALPHA.a70 }]}
                       onPress={() => {
                         if (item.id === currentUserId) return;
                         setProfileUserId(item.id);
@@ -186,7 +191,7 @@ export default function FollowListModal({
                           style={({ pressed }) => [
                             styles.unfollowBtn,
                             { borderColor: text },
-                            pressed && { opacity: 0.75 },
+                            pressed && { opacity: ALPHA.a75 },
                           ]}
                           onPress={() => handleUnfollow(item.id)}
                           accessibilityRole="button"

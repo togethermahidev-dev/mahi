@@ -9,7 +9,7 @@ import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
+  ALPHA,
   BORDER_WIDTH,
   FONT_SIZE,
   LINE_HEIGHT,
@@ -17,6 +17,7 @@ import {
   RADIUS,
   SIZE,
   SPACE,
+  withAlpha,
 } from '@/constants/tokens';
 
 /**
@@ -79,8 +80,12 @@ function Likers({
 
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
-  const border = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.12);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a45)
+    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const border = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a12)
+    : withAlpha(COLORS.offBlack, ALPHA.a12);
   const avatarBg = dark ? COLORS.surfaceDark : COLORS.offWhite;
 
   return (
@@ -210,7 +215,7 @@ const styles = StyleSheet.create({
     height: SIZE.z36,
   },
   pressed: {
-    opacity: 0.7,
+    opacity: ALPHA.a70,
   },
   center: {
     flex: 1,

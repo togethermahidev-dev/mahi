@@ -25,15 +25,16 @@ import type { CommentWithProfile } from '@/api/social';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
-  FONT_SIZE,
-  SPACE,
-  RADIUS,
+  ALPHA,
   BORDER_WIDTH,
-  SIZE,
-  TRACKING,
+  FONT_SIZE,
   ICON_SIZE,
   OFFSET,
+  RADIUS,
+  SIZE,
+  SPACE,
+  TRACKING,
+  withAlpha,
 } from '@/constants/tokens';
 
 function CommentRow({
@@ -53,7 +54,9 @@ function CommentRow({
   onOpenProfile: (userId: string) => void;
 }) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a45)
+    : withAlpha(COLORS.offBlack, ALPHA.a45);
   const name = comment.profiles.display_name ?? comment.profiles.username;
   const initials = (comment.profiles.username ?? '?')[0].toUpperCase();
   const like = useSocialStore((s) => s.commentLikes[comment.id]);
@@ -65,7 +68,7 @@ function CommentRow({
   return (
     <View style={styles.commentRow}>
       <Pressable
-        style={({ pressed }) => [styles.commentMain, pressed && { opacity: 0.6 }]}
+        style={({ pressed }) => [styles.commentMain, pressed && { opacity: ALPHA.a60 }]}
         onPress={() => onOpenProfile(comment.profiles.id)}
         accessibilityRole="button"
         accessibilityLabel={`${name}: ${comment.content}`}
@@ -89,7 +92,7 @@ function CommentRow({
       {showLikes ? (
         <View style={styles.likeCol}>
           <Pressable
-            style={({ pressed }) => [styles.likeBtn, pressed && { opacity: 0.6 }]}
+            style={({ pressed }) => [styles.likeBtn, pressed && { opacity: ALPHA.a60 }]}
             onPress={() => {
               haptic('tick');
               useSocialStore.getState().toggleCommentLike(comment.id);
@@ -157,8 +160,12 @@ export default function CommentSheet({
 
 function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
-  const border = dark ? withAlpha(COLORS.offWhite, 0.1) : withAlpha(COLORS.offBlack, 0.1);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a45)
+    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const border = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a10)
+    : withAlpha(COLORS.offBlack, ALPHA.a10);
 
   const [commentText, setCommentText] = useState('');
   const insets = useSafeAreaInsets();
@@ -280,7 +287,7 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
           style={({ pressed }) => [
             styles.commentSubmit,
             { backgroundColor: COLORS.accent },
-            pressed && { opacity: 0.75 },
+            pressed && { opacity: ALPHA.a75 },
           ]}
           onPress={handleSubmitComment}
           accessibilityRole="button"

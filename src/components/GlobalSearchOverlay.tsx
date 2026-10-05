@@ -25,15 +25,21 @@ import { Sentry } from '@/lib/sentry';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
+  ALPHA,
+  BLUR_INTENSITY,
+  DURATION,
   FONT_SIZE,
-  SPACE,
-  RADIUS,
-  OFFSET,
-  SIZE,
   ICON_SIZE,
-  TRACKING,
   LAYER,
+  LAYOUT,
+  OFFSET,
+  RADIUS,
+  SIZE,
+  SPACE,
+  SPRING,
+  SWIPE,
+  TRACKING,
+  withAlpha,
 } from '@/constants/tokens';
 import { useCoverRail } from '@/hooks/useChrome';
 
@@ -47,7 +53,9 @@ function UserRow({
   onPress: () => void;
 }) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a45)
+    : withAlpha(COLORS.offBlack, ALPHA.a45);
   const avatarBg = dark ? COLORS.surfaceDark : COLORS.offWhite;
 
   const displayName = item.display_name ?? item.first_name ?? item.username ?? '—';
@@ -90,7 +98,7 @@ export default function GlobalSearchOverlay({
   dark,
 }: GlobalSearchOverlayProps): React.JSX.Element | null {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(-24)).current;
+  const slideAnim = useRef(new Animated.Value(-OFFSET.o24)).current;
   const inputRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -98,8 +106,10 @@ export default function GlobalSearchOverlay({
   useCoverRail(visible);
 
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
-  const inputBg = dark ? withAlpha(COLORS.white, 0.12) : withAlpha(COLORS.black, 0.08);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a45)
+    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const inputBg = dark ? withAlpha(COLORS.white, ALPHA.a12) : withAlpha(COLORS.black, ALPHA.a08);
   const tint = dark ? 'dark' : 'light';
 
   const [query, setQuery] = useState('');
@@ -115,9 +125,9 @@ export default function GlobalSearchOverlay({
   const dismissPan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_e, { dy }) => Math.abs(dy) > 20,
+      onMoveShouldSetPanResponder: (_e, { dy }) => Math.abs(dy) > SWIPE.slop,
       onPanResponderRelease: (_e, { dy, vy }) => {
-        if (dy < -60 || vy < -0.4) {
+        if (dy < -SWIPE.distance || vy < -SWIPE.velocity) {
           Keyboard.dismiss();
           onClose();
         }
@@ -134,14 +144,12 @@ export default function GlobalSearchOverlay({
       Animated.parallel([
         Animated.spring(fadeAnim, {
           toValue: 1,
-          damping: 22,
-          stiffness: 200,
+          ...SPRING.overlay,
           useNativeDriver: true,
         }),
         Animated.spring(slideAnim, {
           toValue: 0,
-          damping: 22,
-          stiffness: 200,
+          ...SPRING.overlay,
           useNativeDriver: true,
         }),
       ]).start(() => {
@@ -150,8 +158,12 @@ export default function GlobalSearchOverlay({
     } else {
       inputRef.current?.blur();
       Animated.parallel([
-        Animated.timing(fadeAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
-        Animated.timing(slideAnim, { toValue: -24, duration: 180, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 0, duration: DURATION.d180, useNativeDriver: true }),
+        Animated.timing(slideAnim, {
+          toValue: -OFFSET.o24,
+          duration: DURATION.d180,
+          useNativeDriver: true,
+        }),
       ]).start();
       if (debounceRef.current) clearTimeout(debounceRef.current);
       setQuery('');
@@ -201,14 +213,16 @@ export default function GlobalSearchOverlay({
   return (
     <Animated.View style={[styles.root, { opacity: fadeAnim }]} {...dismissPan.panHandlers}>
       {/* Full-screen frosted glass background */}
-      <BlurView intensity={35} tint={tint} style={StyleSheet.absoluteFill} />
+      <BlurView intensity={BLUR_INTENSITY.i35} tint={tint} style={StyleSheet.absoluteFill} />
 
       {/* Subtle colour wash on top of blur */}
       <View
         style={[
           StyleSheet.absoluteFill,
           {
-            backgroundColor: dark ? withAlpha(COLORS.inkSoft, 0.25) : withAlpha(COLORS.paper, 0.25),
+            backgroundColor: dark
+              ? withAlpha(COLORS.inkSoft, ALPHA.a25)
+              : withAlpha(COLORS.paper, ALPHA.a25),
           },
         ]}
         pointerEvents="none"
@@ -266,8 +280,8 @@ export default function GlobalSearchOverlay({
               styles.divider,
               {
                 backgroundColor: dark
-                  ? withAlpha(COLORS.offWhite, 0.1)
-                  : withAlpha(COLORS.offBlack, 0.08),
+                  ? withAlpha(COLORS.offWhite, ALPHA.a10)
+                  : withAlpha(COLORS.offBlack, ALPHA.a08),
               },
             ]}
           />
@@ -315,8 +329,8 @@ export default function GlobalSearchOverlay({
                     styles.separator,
                     {
                       backgroundColor: dark
-                        ? withAlpha(COLORS.offWhite, 0.08)
-                        : withAlpha(COLORS.offBlack, 0.06),
+                        ? withAlpha(COLORS.offWhite, ALPHA.a08)
+                        : withAlpha(COLORS.offBlack, ALPHA.a06),
                     },
                   ]}
                 />
@@ -327,7 +341,7 @@ export default function GlobalSearchOverlay({
               keyboardDismissMode="on-drag"
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.list}
-              style={{ maxHeight: windowHeight * 0.55 }}
+              style={{ maxHeight: windowHeight * LAYOUT.searchResultsHeight }}
             />
           )}
         </Animated.View>
@@ -348,7 +362,7 @@ export default function GlobalSearchOverlay({
 
 const styles = StyleSheet.create({
   pressed: {
-    opacity: 0.7,
+    opacity: ALPHA.a70,
   },
   root: {
     ...StyleSheet.absoluteFill,
@@ -374,7 +388,7 @@ const styles = StyleSheet.create({
     paddingVertical: Platform.OS === 'ios' ? SPACE.s12 : SPACE.s9,
     // Subtle inner border for glass feel
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: withAlpha(COLORS.white, 0.25),
+    borderColor: withAlpha(COLORS.white, ALPHA.a25),
   },
   magnify: {
     marginRight: SPACE.s8,

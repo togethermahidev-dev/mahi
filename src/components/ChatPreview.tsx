@@ -3,7 +3,15 @@ import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { getMessages, type Message } from '@/api';
 import { previewMessages } from '@/lib/contextMenuPreview';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, withAlpha, FONT_SIZE, SPACE, RADIUS, LINE_HEIGHT } from '@/constants/tokens';
+import {
+  COLORS,
+  ALPHA,
+  FONT_SIZE,
+  LINE_HEIGHT,
+  RADIUS,
+  SPACE,
+  withAlpha,
+} from '@/constants/tokens';
 
 /**
  * A chat's hold-to-preview pop-up (flag `context-menu-preview`): the latest few messages, read
@@ -22,9 +30,15 @@ export default function ChatPreview({
   dark: boolean;
 }): React.JSX.Element {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.4) : withAlpha(COLORS.offBlack, 0.4);
-  const ownBubble = dark ? withAlpha(COLORS.offWhite, 0.15) : withAlpha(COLORS.offBlack, 0.1);
-  const otherBubble = dark ? withAlpha(COLORS.offWhite, 0.07) : withAlpha(COLORS.offBlack, 0.05);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a40)
+    : withAlpha(COLORS.offBlack, ALPHA.a40);
+  const ownBubble = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a15)
+    : withAlpha(COLORS.offBlack, ALPHA.a10);
+  const otherBubble = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a07)
+    : withAlpha(COLORS.offBlack, ALPHA.a05);
 
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [failed, setFailed] = useState(false);

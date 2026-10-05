@@ -2,7 +2,17 @@ import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, FONT_SIZE, SPACE, RADIUS, OFFSET, TRACKING, SIZE } from '@/constants/tokens';
+import {
+  COLORS,
+  ALPHA,
+  DURATION,
+  FONT_SIZE,
+  OFFSET,
+  RADIUS,
+  SIZE,
+  SPACE,
+  TRACKING,
+} from '@/constants/tokens';
 
 const { height } = Dimensions.get('window');
 
@@ -25,15 +35,23 @@ export default function InAppAnimationScreen({ onComplete }: Props): React.JSX.E
     // Brief pause lets native auth modal finish its dismiss animation
     const entryTimer = setTimeout(() => {
       Animated.parallel([
-        Animated.timing(topAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
-        Animated.timing(bottomAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(topAnim, { toValue: 0, duration: DURATION.d400, useNativeDriver: true }),
+        Animated.timing(bottomAnim, { toValue: 0, duration: DURATION.d400, useNativeDriver: true }),
       ]).start(() => {
         // Hold so the user sees the MAHI branding
         holdTimer = setTimeout(() => {
           // Top exits up, bottom exits down — same split as WelcomeScreen
           Animated.parallel([
-            Animated.timing(topAnim, { toValue: -height, duration: 400, useNativeDriver: true }),
-            Animated.timing(bottomAnim, { toValue: height, duration: 400, useNativeDriver: true }),
+            Animated.timing(topAnim, {
+              toValue: -height,
+              duration: DURATION.d400,
+              useNativeDriver: true,
+            }),
+            Animated.timing(bottomAnim, {
+              toValue: height,
+              duration: DURATION.d400,
+              useNativeDriver: true,
+            }),
           ]).start(() => onComplete());
         }, 1500);
       });
@@ -103,7 +121,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.regular,
-    opacity: 0.7,
+    opacity: ALPHA.a70,
   },
   gap: { height: SIZE.z55 },
   bottomSheet: {

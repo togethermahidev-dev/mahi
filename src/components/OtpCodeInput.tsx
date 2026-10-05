@@ -2,7 +2,7 @@ import React, { forwardRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { sanitiseOtp } from '@/lib/otpCode';
 import { FONTS } from '@/constants/fonts';
-import { BORDER_WIDTH, COLORS, FONT_SIZE, RADIUS, SIZE, SPACE } from '@/constants/tokens';
+import { COLORS, ALPHA, BORDER_WIDTH, FONT_SIZE, RADIUS, SIZE, SPACE } from '@/constants/tokens';
 
 interface Props {
   value: string;
@@ -92,5 +92,5 @@ const styles = StyleSheet.create({
   },
   digit: { fontSize: FONT_SIZE.f24, fontFamily: FONTS.bold },
   // Near-zero (not zero) opacity keeps the field tappable and open to autofill.
-  input: { ...StyleSheet.absoluteFill, opacity: 0.01 },
+  input: { ...StyleSheet.absoluteFill, opacity: ALPHA.a01 },
 });

@@ -6,14 +6,15 @@ import { VideoIcon, SoundOnIcon, SoundOffIcon } from '@/components/ScreenIcons';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
+  ALPHA,
   FONT_SIZE,
-  SPACE,
+  ICON_SIZE,
+  LINE_HEIGHT,
+  OFFSET,
   RADIUS,
   SIZE,
-  ICON_SIZE,
-  OFFSET,
-  LINE_HEIGHT,
+  SPACE,
+  withAlpha,
 } from '@/constants/tokens';
 
 interface PostVideoProps {
@@ -110,7 +111,7 @@ export function SoundButton({
   return (
     <Pressable
       onPress={onToggle}
-      style={({ pressed }) => [styles.sound, style, pressed && { opacity: 0.7 }]}
+      style={({ pressed }) => [styles.sound, style, pressed && { opacity: ALPHA.a70 }]}
       hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
       accessibilityRole="button"
       accessibilityLabel={soundButtonLabel(muted)}
@@ -133,7 +134,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
   },
   unavailableText: {
-    color: withAlpha(COLORS.white, 0.8),
+    color: withAlpha(COLORS.white, ALPHA.a80),
     fontSize: FONT_SIZE.f13,
     lineHeight: LINE_HEIGHT.l18,
     fontFamily: FONTS.semiBold,
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
     width: SIZE.z36,
     height: SIZE.z36,
     borderRadius: RADIUS.r18,
-    backgroundColor: withAlpha(COLORS.black, 0.45),
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a45),
     alignItems: 'center',
     justifyContent: 'center',
   },

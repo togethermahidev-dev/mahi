@@ -8,6 +8,8 @@ import { PUSH_NUDGE_TEXT, nudgeDismissMark, pushNudge } from '@/lib/pushPrimer';
 import { track } from '@/lib/analytics';
 import { FONTS } from '@/constants/fonts';
 import {
+  ALPHA,
+  BLUR_INTENSITY,
   BORDER_WIDTH,
   FONT_SIZE,
   OFFSET,
@@ -51,9 +53,9 @@ export default function PushNudge({
 
   return (
     <BlurView
-      intensity={40}
+      intensity={BLUR_INTENSITY.i40}
       tint="dark"
-      style={[styles.pill, { borderColor: withAlpha(colors.offWhite, 0.25) }]}
+      style={[styles.pill, { borderColor: withAlpha(colors.offWhite, ALPHA.a25) }]}
     >
       <Pressable
         accessibilityRole="button"
@@ -117,6 +119,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f13,
   },
   pressed: {
-    opacity: 0.7,
+    opacity: ALPHA.a70,
   },
 });

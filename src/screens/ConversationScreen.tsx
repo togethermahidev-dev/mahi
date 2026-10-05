@@ -22,15 +22,16 @@ import type { ConversationPreview } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
-  FONT_SIZE,
-  SPACE,
-  RADIUS,
-  OFFSET,
-  SIZE,
+  ALPHA,
   BORDER_WIDTH,
+  FONT_SIZE,
   LINE_HEIGHT,
+  OFFSET,
+  RADIUS,
+  SIZE,
+  SPACE,
   TRACKING,
+  withAlpha,
 } from '@/constants/tokens';
 
 interface ConversationScreenProps {
@@ -47,10 +48,18 @@ export default function ConversationScreen({
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.4) : withAlpha(COLORS.offBlack, 0.4);
-  const border = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.12);
-  const ownBubble = dark ? withAlpha(COLORS.offWhite, 0.15) : withAlpha(COLORS.offBlack, 0.1);
-  const otherBubble = dark ? withAlpha(COLORS.offWhite, 0.07) : withAlpha(COLORS.offBlack, 0.05);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a40)
+    : withAlpha(COLORS.offBlack, ALPHA.a40);
+  const border = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a12)
+    : withAlpha(COLORS.offBlack, ALPHA.a12);
+  const ownBubble = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a15)
+    : withAlpha(COLORS.offBlack, ALPHA.a10);
+  const otherBubble = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a07)
+    : withAlpha(COLORS.offBlack, ALPHA.a05);
 
   const { messages, isLoading, isLoadingOlder, hasMore, send, loadOlder, markRead } =
     useConversation(conversation.id);
@@ -281,7 +290,7 @@ export default function ConversationScreen({
             <Pressable
               style={({ pressed }) => [
                 styles.sendBtn,
-                { opacity: inputText.trim() ? 1 : 0.35 },
+                { opacity: inputText.trim() ? 1 : ALPHA.a35 },
                 pressed && styles.pressed,
               ]}
               onPress={handleSend}
@@ -302,7 +311,7 @@ export default function ConversationScreen({
 
 const styles = StyleSheet.create({
   pressed: {
-    opacity: 0.7,
+    opacity: ALPHA.a70,
   },
   root: {
     flex: 1,

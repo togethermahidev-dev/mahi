@@ -46,25 +46,27 @@ import type { Database } from '@/types';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
-  FONT_SIZE,
-  SPACE,
-  RADIUS,
-  OFFSET,
+  ALPHA,
   BORDER_WIDTH,
-  SIZE,
-  LINE_HEIGHT,
-  TRACKING,
+  FONT_SIZE,
   LAYER,
+  LINE_HEIGHT,
+  OFFSET,
+  RADIUS,
+  SIZE,
+  SPACE,
+  SPRING,
+  SWIPE,
+  TRACKING,
   VIEWER,
+  withAlpha,
 } from '@/constants/tokens';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 /** How far the finger moves sideways before the swipe takes over (up/down that far cancels it). */
-const SWIPE_SLOP = 20;
 /** The page swipe's spring (HorizontalNavigator), in and back. Runs even with Reduce Motion on. */
-const SPRING = { damping: 22, stiffness: 160, mass: 0.9, reduceMotion: ReduceMotion.Never };
+const PAGE_SPRING = { ...SPRING.page, reduceMotion: ReduceMotion.Never };
 
 interface UserProfileScreenProps {
   userId: string;
@@ -84,7 +86,9 @@ export default function UserProfileScreen({
 
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a45)
+    : withAlpha(COLORS.offBlack, ALPHA.a45);
 
   const isFollowing = useFollowStore((s) => s.followingByMe[userId] ?? false);
   const loadFollowData = useFollowStore((s) => s.loadFollowData);
@@ -134,9 +138,9 @@ export default function UserProfileScreen({
   const swipeBack = Gesture.Pan()
     .enabled(!suggestedUserId && !activeConvo)
     .simultaneousWithExternalGesture(pageList)
-    .activeOffsetX(SWIPE_SLOP)
-    .failOffsetX(-SWIPE_SLOP)
-    .failOffsetY([-SWIPE_SLOP, SWIPE_SLOP])
+    .activeOffsetX(SWIPE.slop)
+    .failOffsetX(-SWIPE.slop)
+    .failOffsetY([-SWIPE.slop, SWIPE.slop])
     .onStart(() => {
       'worklet';
       // A swipe during the slide in takes it from where it is, so the screen doesn't jump.
@@ -156,12 +160,12 @@ export default function UserProfileScreen({
           if (done) scheduleOnRN(onBackRef.current);
         });
       } else {
-        x.value = withSpring(0, SPRING);
+        x.value = withSpring(0, PAGE_SPRING);
       }
     });
 
   useEffect(() => {
-    x.value = withSpring(0, SPRING);
+    x.value = withSpring(0, PAGE_SPRING);
   }, [x]);
 
   useEffect(() => {
@@ -408,7 +412,7 @@ export default function UserProfileScreen({
         style={({ pressed }) => [
           styles.backBtn,
           { borderColor: muted },
-          pressed && { opacity: 0.2 },
+          pressed && { opacity: ALPHA.a20 },
         ]}
         onPress={close}
         accessibilityRole="button"
@@ -424,7 +428,7 @@ export default function UserProfileScreen({
           style={({ pressed }) => [
             styles.ellipsisBtn,
             { borderColor: muted },
-            pressed && { opacity: 0.2 },
+            pressed && { opacity: ALPHA.a20 },
           ]}
           onPress={handleEllipsis}
           accessibilityRole="button"
@@ -451,7 +455,7 @@ export default function UserProfileScreen({
             accessibilityRole="imagebutton"
             accessibilityLabel={`View @${profile.username}'s profile photo`}
             onPress={() => setAvatarOpen(true)}
-            style={({ pressed }) => pressed && { opacity: 0.9 }}
+            style={({ pressed }) => pressed && { opacity: ALPHA.a90 }}
           >
             <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
           </Pressable>
@@ -476,7 +480,7 @@ export default function UserProfileScreen({
 
       {/* Friends — a list, never a number */}
       <Pressable
-        style={({ pressed }) => [styles.statsRow, pressed && { opacity: 0.7 }]}
+        style={({ pressed }) => [styles.statsRow, pressed && { opacity: ALPHA.a70 }]}
         onPress={() => setFriendsOpen(true)}
         accessibilityRole="button"
         accessibilityLabel="Friends"
@@ -510,7 +514,7 @@ export default function UserProfileScreen({
               isFollowing
                 ? { borderColor: text, borderWidth: BORDER_WIDTH.w1 }
                 : { backgroundColor: COLORS.accent },
-              pressed && { opacity: 0.75 },
+              pressed && { opacity: ALPHA.a75 },
             ]}
             onPress={handleFollow}
             accessibilityRole="button"
@@ -525,8 +529,8 @@ export default function UserProfileScreen({
           <Pressable
             style={({ pressed }) => [
               styles.messageBtn,
-              { borderColor: text, opacity: messaging ? 0.5 : 1 },
-              pressed && { opacity: 0.75 },
+              { borderColor: text, opacity: messaging ? ALPHA.a50 : 1 },
+              pressed && { opacity: ALPHA.a75 },
             ]}
             onPress={handleMessage}
             accessibilityRole="button"
@@ -570,7 +574,7 @@ export default function UserProfileScreen({
                   style={({ pressed }) => [
                     styles.unblockBtn,
                     { borderColor: text },
-                    pressed && { opacity: 0.75 },
+                    pressed && { opacity: ALPHA.a75 },
                   ]}
                   onPress={handleUnblock}
                   accessibilityRole="button"
@@ -747,7 +751,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: SIZE.z1,
     height: SIZE.z40,
-    opacity: 0.3,
+    opacity: ALPHA.a30,
   },
   actionRow: {
     flexDirection: 'row',

@@ -56,15 +56,16 @@ import AvatarViewer from '@/components/AvatarViewer';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
-  FONT_SIZE,
-  SPACE,
-  RADIUS,
-  SIZE,
-  OFFSET,
-  SHADOW_BLUR,
-  LINE_HEIGHT,
+  ALPHA,
   ELEVATION,
+  FONT_SIZE,
+  LINE_HEIGHT,
+  OFFSET,
+  RADIUS,
+  SHADOW_BLUR,
+  SIZE,
+  SPACE,
+  withAlpha,
 } from '@/constants/tokens';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -275,7 +276,7 @@ export default function AvatarPicker({
           accessibilityRole="imagebutton"
           accessibilityLabel="View profile photo"
           onPress={() => setViewerOpen(true)}
-          style={({ pressed }) => pressed && { opacity: 0.9 }}
+          style={({ pressed }) => pressed && { opacity: ALPHA.a90 }}
         >
           <Image source={{ uri: displayUri }} style={styles.avatar} />
         </Pressable>
@@ -285,12 +286,12 @@ export default function AvatarPicker({
             <Path
               d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12Z"
               fill={colors.bg}
-              opacity={0.9}
+              opacity={ALPHA.a90}
             />
             <Path
               d="M12 14C8.13 14 5 17.13 5 21H19C19 17.13 15.87 14 12 14Z"
               fill={colors.bg}
-              opacity={0.9}
+              opacity={ALPHA.a90}
             />
           </Svg>
         </View>
@@ -311,7 +312,7 @@ export default function AvatarPicker({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Change profile photo"
-          style={({ pressed }) => [styles.editButton, pressed && { opacity: 0.8 }]}
+          style={({ pressed }) => [styles.editButton, pressed && { opacity: ALPHA.a80 }]}
           onPress={handleEditPress}
           hitSlop={{ top: OFFSET.o6, bottom: OFFSET.o6, left: OFFSET.o6, right: OFFSET.o6 }}
         >
@@ -349,7 +350,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderRadius: RADIUS.r48,
-    backgroundColor: withAlpha(COLORS.black, 0.45),
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a45),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -365,7 +366,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     elevation: ELEVATION.e3,
     shadowColor: COLORS.black,
-    shadowOpacity: 0.25,
+    shadowOpacity: ALPHA.a25,
     shadowRadius: SHADOW_BLUR.b3,
     shadowOffset: { width: 0, height: SIZE.z1 },
   },

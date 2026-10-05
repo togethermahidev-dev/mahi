@@ -13,14 +13,15 @@ import { track } from '@/lib/analytics';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
-  FONT_SIZE,
-  SPACE,
-  RADIUS,
-  OFFSET,
-  SIZE,
+  ALPHA,
   BORDER_WIDTH,
+  FONT_SIZE,
   LINE_HEIGHT,
+  OFFSET,
+  RADIUS,
+  SIZE,
+  SPACE,
+  withAlpha,
 } from '@/constants/tokens';
 
 interface NotificationsScreenProps {
@@ -59,9 +60,15 @@ export default function NotificationsScreen({
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.4) : withAlpha(COLORS.offBlack, 0.4);
-  const border = dark ? withAlpha(COLORS.offWhite, 0.12) : withAlpha(COLORS.offBlack, 0.12);
-  const avatarBg = dark ? withAlpha(COLORS.offWhite, 0.1) : withAlpha(COLORS.offBlack, 0.08);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a40)
+    : withAlpha(COLORS.offBlack, ALPHA.a40);
+  const border = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a12)
+    : withAlpha(COLORS.offBlack, ALPHA.a12);
+  const avatarBg = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a10)
+    : withAlpha(COLORS.offBlack, ALPHA.a08);
 
   const { items, isLoading, refresh, markRead, markAllRead } = useNotifications();
   const insets = useSafeAreaInsets();
@@ -324,7 +331,7 @@ function InviteAnswer({
 
 const styles = StyleSheet.create({
   pressed: {
-    opacity: 0.7,
+    opacity: ALPHA.a70,
   },
   inviteLoading: {
     alignSelf: 'flex-start',

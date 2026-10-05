@@ -33,13 +33,14 @@ import { env } from '@/lib/env';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  FONT_SIZE,
-  SPACE,
-  RADIUS,
+  ALPHA,
   BORDER_WIDTH,
-  SIZE,
-  TRACKING,
+  FONT_SIZE,
   LINE_HEIGHT,
+  RADIUS,
+  SIZE,
+  SPACE,
+  TRACKING,
 } from '@/constants/tokens';
 
 const SUPABASE_URL = env.supabaseUrl;
@@ -460,7 +461,7 @@ export default function CreateAccountSheet({
           {[1, 2, 3, 4].map((n) => (
             <View
               key={n}
-              style={[styles.dot, { backgroundColor: text, opacity: step === n ? 1 : 0.2 }]}
+              style={[styles.dot, { backgroundColor: text, opacity: step === n ? 1 : ALPHA.a20 }]}
             />
           ))}
         </View>
@@ -929,7 +930,7 @@ export default function CreateAccountSheet({
             <Pressable
               style={({ pressed }) => [
                 styles.navBtn,
-                { backgroundColor: text, flex: step > 1 ? 2 : 1, opacity: loading ? 0.6 : 1 },
+                { backgroundColor: text, flex: step > 1 ? 2 : 1, opacity: loading ? ALPHA.a60 : 1 },
                 pressed && styles.pressedStrong,
               ]}
               onPress={
@@ -1052,7 +1053,7 @@ const styles = StyleSheet.create({
   },
   otpDigit: { fontSize: FONT_SIZE.f24, fontFamily: FONTS.bold },
   // Near-zero (not zero) opacity keeps the field tappable and open to autofill.
-  otpInput: { ...StyleSheet.absoluteFill, opacity: 0.01 },
+  otpInput: { ...StyleSheet.absoluteFill, opacity: ALPHA.a01 },
 
   inviteCard: {
     borderRadius: RADIUS.r14,
@@ -1086,10 +1087,10 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s8,
   },
   // Until a date is picked the field shows a placeholder date, so it is dimmed.
-  dobUnset: { opacity: 0.4 },
+  dobUnset: { opacity: ALPHA.a40 },
   dobHint: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.regular },
 
   // Pressed feedback, matching the old TouchableOpacity activeOpacity values.
-  pressed: { opacity: 0.7 },
-  pressedStrong: { opacity: 0.8 },
+  pressed: { opacity: ALPHA.a70 },
+  pressedStrong: { opacity: ALPHA.a80 },
 });

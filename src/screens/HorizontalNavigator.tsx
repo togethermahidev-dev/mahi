@@ -30,7 +30,7 @@ import { usePageSize } from '@/hooks/useChrome';
 import { SWIPE_PAGES, pageTab, tabPage } from '@/lib/nativeTabs';
 import { railShows } from '@/lib/railSelector';
 import { horizontalRelease, horizontalSwipe, rubberBand, type Rect } from '@/lib/swipeRules';
-import { COLORS, SIZE, LAYER } from '@/constants/tokens';
+import { COLORS, LAYER, SIZE, SPRING } from '@/constants/tokens';
 
 // ─── Pages ────────────────────────────────────────────────────────────────────
 // One row, left to right, in the tab bar's order (founder, 2026-10-05): Camera ⇄ Feed ⇄ Profile ⇄
@@ -42,7 +42,7 @@ const PROFILE = tabPage('profile');
 const MESSAGES = tabPage('messages');
 
 /** The snap to a page. Runs even with Reduce Motion on, as it always has. */
-const SPRING = { damping: 22, stiffness: 160, mass: 0.9, reduceMotion: ReduceMotion.Never };
+const PAGE_SPRING = { ...SPRING.page, reduceMotion: ReduceMotion.Never };
 
 // ─── HorizontalNavigator ──────────────────────────────────────────────────────
 
@@ -126,7 +126,7 @@ export default function HorizontalNavigator({
 
   const navigate = (next: number) => {
     settle(next);
-    page.value = withSpring(next, SPRING);
+    page.value = withSpring(next, PAGE_SPRING);
   };
 
   usePushRegistration();
@@ -232,7 +232,7 @@ export default function HorizontalNavigator({
           )
         : indexSV.value;
       indexSV.value = next;
-      page.value = withSpring(next, SPRING);
+      page.value = withSpring(next, PAGE_SPRING);
       scheduleOnRN(settle, next);
     });
 

@@ -112,19 +112,27 @@ import { requestLocationPermission, getCurrentLocation } from '@/lib/location';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
-  FONT_SIZE,
-  SPACE,
-  RADIUS,
-  SIZE,
-  OFFSET,
-  LINE_HEIGHT,
-  TRACKING,
+  ALPHA,
+  BLUR_INTENSITY,
   BORDER_WIDTH,
-  SHADOW_BLUR,
   CAMERA,
+  DURATION,
   ELEVATION,
+  FONT_SIZE,
   ICON_SIZE,
+  LAYOUT,
+  LINE_HEIGHT,
+  OFFSET,
+  RADIUS,
+  SCALE,
+  SHADOW_BLUR,
+  SIZE,
+  SPACE,
+  SPRING,
+  STROKE,
+  TRACKING,
+  VIEWER,
+  withAlpha,
 } from '@/constants/tokens';
 
 /** Said on the camera and in the toast when there's no open tag to answer. */
@@ -143,21 +151,19 @@ function topRightY(insetTop: number): number {
 /** Your Mahi points, in the top-right corner of the live camera. */
 function PointsCounter({ count }: { count: number }) {
   const insets = useSafeAreaInsets();
-  const scaleAnim = useRef(new Animated.Value(4)).current;
+  const scaleAnim = useRef(new Animated.Value(SCALE.s4)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(opacityAnim, {
         toValue: 1,
-        duration: 180,
+        duration: DURATION.d180,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
-        damping: 16,
-        stiffness: 110,
-        mass: 0.9,
+        ...SPRING.land,
         useNativeDriver: true,
       }),
     ]).start();
@@ -186,21 +192,21 @@ function FlipIcon({ color }: { color: string }) {
       <Path
         d="M1 4v6h6"
         stroke={color}
-        strokeWidth={2}
+        strokeWidth={STROKE.s2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
         d="M23 20v-6h-6"
         stroke={color}
-        strokeWidth={2}
+        strokeWidth={STROKE.s2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
         d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"
         stroke={color}
-        strokeWidth={2}
+        strokeWidth={STROKE.s2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -254,9 +260,9 @@ interface CapturedPhoto {
 // Rear (your view) is primary by default; front selfie is the pip.
 // Tap pip → swap. Hold + drag pip → reposition.
 
-const PIP_W = 130;
-const PIP_H = 170;
-const PIP_MARGIN = 16;
+const PIP_W = SIZE.z130;
+const PIP_H = SIZE.z170;
+const PIP_MARGIN = SPACE.s16;
 /** A recorded video's shape for the preview window (upright phone video). */
 const VIDEO_ASPECT = 9 / 16;
 
@@ -280,7 +286,7 @@ function GlassPill({ active, children }: { active?: boolean; children: React.Rea
   const fill = [styles.captionPill, styles.captionPillFill, active && styles.locationPillActive];
   if (Platform.OS === 'ios') {
     return (
-      <BlurView intensity={40} tint="dark" style={fill}>
+      <BlurView intensity={BLUR_INTENSITY.i40} tint="dark" style={fill}>
         {children}
       </BlurView>
     );
@@ -372,18 +378,18 @@ function DualPhotoPreview({
   const pipPhoto = primaryFacing === 'rear' ? frozenFront.current : frozenRear.current;
   const pipAspect = pipPhoto?.aspectRatio && pipPhoto.aspectRatio > 0 ? pipPhoto.aspectRatio : null;
   const pipH = pipAspect
-    ? Math.round(Math.max(PIP_W * 0.6, Math.min(PIP_W / pipAspect, PIP_H)))
+    ? Math.round(Math.max(PIP_W * LAYOUT.pipMinHeight, Math.min(PIP_W / pipAspect, PIP_H)))
     : PIP_H;
 
   // Inline tag + caption pill row sits just above POST. The PIP is kept
   // strictly above this row (and thus above POST too) via a hard clamp on
   // the pan/snap Y bounds — leaves room to add more pills inline later
   // without any dodge animation.
-  const pillRowW = Math.min(SCREEN_WIDTH - 32, 360);
-  const pillH = 36;
-  const pillGap = 12;
-  const postBtnH = 64;
-  const pillsB = SCREEN_HEIGHT - 32 - postBtnH - pillGap;
+  const pillRowW = Math.min(SCREEN_WIDTH - SPACE.s32, SIZE.z360);
+  const pillH = SIZE.z36;
+  const pillGap = SPACE.s12;
+  const postBtnH = SIZE.z64;
+  const pillsB = SCREEN_HEIGHT - SPACE.s32 - postBtnH - pillGap;
   const pillsT = pillsB - pillH;
   // Lowest Y the PIP's top-left is allowed to reach: 12pt above the pill row.
   // Uses the dynamic pipH so a shorter (landscape) PIP can sit a touch lower
@@ -391,14 +397,14 @@ function DualPhotoPreview({
   const pipMaxY = previewPipRestTop(SCREEN_HEIGHT, pipH);
   // Anchor for the TaggedBubbleStack in the preview — sit above the pill
   // row with a 16pt breathing gap. Derived so it can't drift from pills.
-  const bubbleStackBottom = SCREEN_HEIGHT - pillsT + 16;
+  const bubbleStackBottom = SCREEN_HEIGHT - pillsT + SPACE.s16;
 
   // Pip position — bottom-left of the PIP-safe region by default.
   const defaultPipX = PIP_MARGIN;
   const defaultPipY = pipMaxY;
-  const pipTransX = useSharedValue(defaultPipX);
+  const pipTransX = useSharedValue<number>(defaultPipX);
   const pipTransY = useSharedValue(defaultPipY);
-  const pipStartX = useSharedValue(defaultPipX);
+  const pipStartX = useSharedValue<number>(defaultPipX);
   const pipStartY = useSharedValue(defaultPipY);
   const pipScaleVal = useSharedValue(1);
 
@@ -406,7 +412,6 @@ function DualPhotoPreview({
   // pan the zoomed image but are clamped so it can never be dragged fully
   // off-screen (see clampPrimaryPan). A double-tap resets all three to neutral.
   const PRIMARY_MIN_SCALE = 1;
-  const PRIMARY_MAX_SCALE = 4;
   const primaryScale = useSharedValue(1);
   const primaryTransX = useSharedValue(0);
   const primaryTransY = useSharedValue(0);
@@ -419,9 +424,9 @@ function DualPhotoPreview({
   const resetPrimaryZoom = (animated: boolean) => {
     'worklet';
     if (animated) {
-      primaryScale.value = withSpring(1, { damping: 18, stiffness: 160 });
-      primaryTransX.value = withSpring(0, { damping: 18, stiffness: 160 });
-      primaryTransY.value = withSpring(0, { damping: 18, stiffness: 160 });
+      primaryScale.value = withSpring(1, SPRING.settle);
+      primaryTransX.value = withSpring(0, SPRING.settle);
+      primaryTransY.value = withSpring(0, SPRING.settle);
     } else {
       primaryScale.value = 1;
       primaryTransX.value = 0;
@@ -443,17 +448,13 @@ function DualPhotoPreview({
       setModalOpen(true);
       Animated.spring(slideAnim, {
         toValue: 0,
-        damping: 22,
-        stiffness: 160,
-        mass: 0.9,
+        ...SPRING.page,
         useNativeDriver: true,
       }).start();
     } else {
       Animated.spring(slideAnim, {
         toValue: SCREEN_WIDTH,
-        damping: 22,
-        stiffness: 160,
-        mass: 0.9,
+        ...SPRING.page,
         useNativeDriver: true,
       }).start(() => {
         frozenFront.current = null;
@@ -477,12 +478,12 @@ function DualPhotoPreview({
   }, [hasPhotos]);
 
   const pipPanGesture = Gesture.Pan()
-    .activateAfterLongPress(150)
+    .activateAfterLongPress(DURATION.d150)
     .onStart(() => {
       'worklet';
       pipStartX.value = pipTransX.value;
       pipStartY.value = pipTransY.value;
-      pipScaleVal.value = withSpring(1.1, { damping: 12, stiffness: 200 });
+      pipScaleVal.value = withSpring(SCALE.s1_1, SPRING.lift);
       runOnJS(haptic)('pickUp');
     })
     .onUpdate((e) => {
@@ -502,9 +503,9 @@ function DualPhotoPreview({
       const midY = (PIP_MARGIN + pipMaxY) / 2;
       const snapX = pipTransX.value < midX ? PIP_MARGIN : SCREEN_WIDTH - PIP_W - PIP_MARGIN;
       const snapY = pipTransY.value < midY ? PIP_MARGIN : pipMaxY;
-      pipTransX.value = withSpring(snapX, { damping: 16, stiffness: 140, overshootClamping: true });
-      pipTransY.value = withSpring(snapY, { damping: 16, stiffness: 140, overshootClamping: true });
-      pipScaleVal.value = withSpring(1, { damping: 12, stiffness: 200 });
+      pipTransX.value = withSpring(snapX, SPRING.snap);
+      pipTransY.value = withSpring(snapY, SPRING.snap);
+      pipScaleVal.value = withSpring(1, SPRING.lift);
     });
 
   const pipTapGesture = Gesture.Tap()
@@ -532,8 +533,8 @@ function DualPhotoPreview({
   // to that range so the photo can never be dragged fully off-screen.
   const clampPrimaryPan = (tx: number, ty: number, s: number) => {
     'worklet';
-    const maxX = (Math.max(s, 1) - 1) * SCREEN_WIDTH * 0.5;
-    const maxY = (Math.max(s, 1) - 1) * SCREEN_HEIGHT * 0.5;
+    const maxX = ((Math.max(s, 1) - 1) * SCREEN_WIDTH) / 2;
+    const maxY = ((Math.max(s, 1) - 1) * SCREEN_HEIGHT) / 2;
     return {
       x: Math.max(-maxX, Math.min(tx, maxX)),
       y: Math.max(-maxY, Math.min(ty, maxY)),
@@ -549,7 +550,7 @@ function DualPhotoPreview({
       'worklet';
       const next = Math.max(
         PRIMARY_MIN_SCALE,
-        Math.min(primaryStartScale.value * e.scale, PRIMARY_MAX_SCALE)
+        Math.min(primaryStartScale.value * e.scale, VIEWER.pinchMax)
       );
       primaryScale.value = next;
       // Re-clamp pan against the new scale so shrinking re-centers the edges.
@@ -716,7 +717,7 @@ function DualPhotoPreview({
             style={({ pressed }) => [
               styles.discardButton,
               { top: topRightY(insets.top) },
-              pressed && { opacity: 0.8 },
+              pressed && { opacity: ALPHA.a80 },
             ]}
             onPress={handleDiscard}
             disabled={isUploading}
@@ -741,7 +742,7 @@ function DualPhotoPreview({
                 onPress={() => setActiveSheet('tag')}
                 style={({ pressed }) => [
                   { flex: 1, marginRight: pillGap / 2 },
-                  pressed && { opacity: 0.85 },
+                  pressed && { opacity: ALPHA.a85 },
                 ]}
               >
                 <GlassPill>
@@ -763,7 +764,7 @@ function DualPhotoPreview({
                 onPress={() => setActiveSheet('caption')}
                 style={({ pressed }) => [
                   { flex: 1, marginLeft: pillGap / 2 },
-                  pressed && { opacity: 0.85 },
+                  pressed && { opacity: ALPHA.a85 },
                 ]}
               >
                 <GlassPill>
@@ -799,7 +800,7 @@ function DualPhotoPreview({
                 accessibilityState={{ checked: locationEnabled }}
                 disabled={isUploading}
                 onPress={onToggleLocation}
-                style={({ pressed }) => [{ flex: 1 }, pressed && { opacity: 0.85 }]}
+                style={({ pressed }) => [{ flex: 1 }, pressed && { opacity: ALPHA.a85 }]}
               >
                 <GlassPill active={locationEnabled}>
                   <Text
@@ -816,8 +817,8 @@ function DualPhotoPreview({
             <Pressable
               style={({ pressed }) => [
                 styles.postButton,
-                (isUploading || tagsMissing > 0) && { opacity: 0.5 },
-                pressed && { opacity: 0.82 },
+                (isUploading || tagsMissing > 0) && { opacity: ALPHA.a50 },
+                pressed && { opacity: ALPHA.a82 },
               ]}
               disabled={isUploading}
               onPress={() => {
@@ -977,7 +978,7 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
               cursorRef.current = e.nativeEvent.selection.end;
             }}
             placeholder="What's the story?"
-            placeholderTextColor={withAlpha(COLORS.offWhite, 0.45)}
+            placeholderTextColor={withAlpha(COLORS.offWhite, ALPHA.a45)}
             multiline
             maxLength={200}
             autoFocus
@@ -985,7 +986,7 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
             textAlignVertical="top"
           />
           <Pressable
-            style={({ pressed }) => [styles.sheetDone, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [styles.sheetDone, pressed && { opacity: ALPHA.a85 }]}
             onPress={commit}
           >
             <Text style={styles.sheetDoneText}>Done</Text>
@@ -1019,8 +1020,8 @@ function TagUserRow({
       style={({ pressed }) => [
         styles.tagRow,
         selected && styles.tagRowSelected,
-        item.has_open_tag && { opacity: 0.4 },
-        pressed && { opacity: 0.7 },
+        item.has_open_tag && { opacity: ALPHA.a40 },
+        pressed && { opacity: ALPHA.a70 },
       ]}
       disabled={item.has_open_tag}
       onPress={onPress}
@@ -1197,7 +1198,7 @@ function TagSheet({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close"
-              style={({ pressed }) => [styles.sheetCloseX, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.sheetCloseX, pressed && { opacity: ALPHA.a70 }]}
               onPress={onCancel}
             >
               <Text style={styles.sheetCloseXText}>×</Text>
@@ -1222,7 +1223,7 @@ function TagSheet({
           value={query}
           onChangeText={setQuery}
           placeholder="Search friends who follow you back"
-          placeholderTextColor={withAlpha(COLORS.offWhite, 0.45)}
+          placeholderTextColor={withAlpha(COLORS.offWhite, ALPHA.a45)}
           autoFocus={!inviteStepOn}
           autoCapitalize="none"
           autoCorrect={false}
@@ -1269,7 +1270,7 @@ function TagSheet({
             <View style={styles.inviteSteppers}>
               {invites > 0 ? (
                 <Pressable
-                  style={({ pressed }) => [styles.inviteStep, pressed && { opacity: 0.7 }]}
+                  style={({ pressed }) => [styles.inviteStep, pressed && { opacity: ALPHA.a70 }]}
                   onPress={() => setInvites((n) => Math.max(0, n - 1))}
                 >
                   <Text style={styles.inviteStepText}>−</Text>
@@ -1278,8 +1279,8 @@ function TagSheet({
               <Pressable
                 style={({ pressed }) => [
                   styles.inviteStep,
-                  { opacity: filled >= maxTags ? 0.3 : 1 },
-                  pressed && { opacity: 0.7 },
+                  { opacity: filled >= maxTags ? ALPHA.a30 : 1 },
+                  pressed && { opacity: ALPHA.a70 },
                 ]}
                 disabled={filled >= maxTags}
                 onPress={addInvite}
@@ -1292,7 +1293,7 @@ function TagSheet({
 
         {singleShot ? null : (
           <Pressable
-            style={({ pressed }) => [styles.sheetDone, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [styles.sheetDone, pressed && { opacity: ALPHA.a85 }]}
             onPress={() => onCommit(selected, invites)}
           >
             <Text style={styles.sheetDoneText}>Done</Text>
@@ -1528,11 +1529,11 @@ export default function CameraScreen({
   const deviceTiltRef = useRef<'portrait' | 'landscape-left' | 'landscape-right'>('portrait');
   useEffect(() => {
     if (Platform.OS !== 'android') return;
-    Accelerometer.setUpdateInterval(400);
+    Accelerometer.setUpdateInterval(CAMERA.tiltUpdateMs);
     const sub = Accelerometer.addListener(({ x, y }) => {
       // |x| dominating gravity ⇒ held sideways. The +0.35 hysteresis avoids
       // flapping near the diagonal; the sign of x picks the landscape direction.
-      if (Math.abs(x) > Math.abs(y) + 0.35) {
+      if (Math.abs(x) > Math.abs(y) + CAMERA.tiltLead) {
         deviceTiltRef.current = x > 0 ? 'landscape-right' : 'landscape-left';
       } else {
         deviceTiltRef.current = 'portrait';
@@ -2090,7 +2091,7 @@ export default function CameraScreen({
           </Text>
           {!cameraPermission.canAskAgain && (
             <Pressable
-              style={({ pressed }) => [styles.permissionButton, pressed && { opacity: 0.8 }]}
+              style={({ pressed }) => [styles.permissionButton, pressed && { opacity: ALPHA.a80 }]}
               onPress={() => Linking.openSettings()}
             >
               <Text style={styles.permissionButtonText}>Open settings</Text>
@@ -2201,7 +2202,7 @@ export default function CameraScreen({
 
         {/* Reactive posting: nothing to answer, so no shutter. */}
         {gate === 'closed' && (
-          <BlurView intensity={60} tint="dark" style={styles.postedOverlay}>
+          <BlurView intensity={BLUR_INTENSITY.i60} tint="dark" style={styles.postedOverlay}>
             <View
               style={styles.noTagsCard}
               accessible
@@ -2237,7 +2238,7 @@ export default function CameraScreen({
                     style={({ pressed }) => [
                       styles.lensOption,
                       !useUltraWide && styles.lensOptionActive,
-                      pressed && { opacity: 0.8 },
+                      pressed && { opacity: ALPHA.a80 },
                     ]}
                     disabled={isCapturing}
                     onPress={() => {
@@ -2256,7 +2257,7 @@ export default function CameraScreen({
                     style={({ pressed }) => [
                       styles.lensOption,
                       useUltraWide && styles.lensOptionActive,
-                      pressed && { opacity: 0.8 },
+                      pressed && { opacity: ALPHA.a80 },
                     ]}
                     disabled={isCapturing}
                     onPress={() => {
@@ -2281,7 +2282,7 @@ export default function CameraScreen({
                       style={({ pressed }) => [
                         styles.lensOption,
                         shotMode === m && styles.lensOptionActive,
-                        pressed && { opacity: 0.8 },
+                        pressed && { opacity: ALPHA.a80 },
                       ]}
                       disabled={switchDisabled}
                       accessibilityRole="radio"
@@ -2320,8 +2321,8 @@ export default function CameraScreen({
             accessibilityLabel="Switch camera"
             style={({ pressed }) => [
               styles.flipButton,
-              { opacity: captureState !== 'idle' ? 0.3 : 1 },
-              pressed && { opacity: 0.7 },
+              { opacity: captureState !== 'idle' ? ALPHA.a30 : 1 },
+              pressed && { opacity: ALPHA.a70 },
             ]}
             disabled={captureState !== 'idle'}
             onPress={() => {
@@ -2345,9 +2346,9 @@ export default function CameraScreen({
               {
                 borderColor: recording ? COLORS.danger : shutterRing,
                 shadowColor: dark ? COLORS.black : COLORS.offBlack,
-                opacity: shutterDisabled ? 0.3 : 1,
+                opacity: shutterDisabled ? ALPHA.a30 : 1,
               },
-              pressed && { opacity: 0.82 },
+              pressed && { opacity: ALPHA.a82 },
             ]}
             disabled={shutterDisabled}
             // Video off: exactly today's shutter (a tap, no hold).
@@ -2431,7 +2432,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
     textAlign: 'center',
-    opacity: 0.75,
+    opacity: ALPHA.a75,
     marginTop: SPACE.s3,
     lineHeight: LINE_HEIGHT.l14,
   },
@@ -2450,7 +2451,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f18,
     lineHeight: LINE_HEIGHT.l24,
     fontFamily: FONTS.semiBold,
-    opacity: 0.9,
+    opacity: ALPHA.a90,
   },
   postedOverlay: {
     ...StyleSheet.absoluteFill,
@@ -2467,8 +2468,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s24,
     borderRadius: RADIUS.r24,
     borderWidth: BORDER_WIDTH.w1,
-    borderColor: withAlpha(COLORS.accent, 0.5),
-    backgroundColor: withAlpha(COLORS.black, 0.35),
+    borderColor: withAlpha(COLORS.accent, ALPHA.a50),
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a35),
   },
   noTagsIcon: {
     width: SIZE.z56,
@@ -2476,7 +2477,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r28,
     borderWidth: BORDER_WIDTH.w1_5,
     borderColor: COLORS.accent,
-    backgroundColor: withAlpha(COLORS.accent, 0.12),
+    backgroundColor: withAlpha(COLORS.accent, ALPHA.a12),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2488,7 +2489,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   postedSub: {
-    color: withAlpha(COLORS.offWhite, 0.8),
+    color: withAlpha(COLORS.offWhite, ALPHA.a80),
     fontSize: FONT_SIZE.f15,
     lineHeight: LINE_HEIGHT.l22,
     fontFamily: FONTS.regular,
@@ -2518,7 +2519,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     shadowOffset: { width: 0, height: SIZE.z4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: ALPHA.a25,
     shadowRadius: SHADOW_BLUR.b10,
     elevation: ELEVATION.e8,
   },
@@ -2552,9 +2553,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: RADIUS.r20,
     padding: SPACE.s3,
-    backgroundColor: withAlpha(COLORS.black, 0.35),
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a35),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: withAlpha(COLORS.white, 0.18),
+    borderColor: withAlpha(COLORS.white, ALPHA.a18),
   },
   lensOption: {
     minWidth: SIZE.z44,
@@ -2568,7 +2569,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
   },
   lensOptionText: {
-    color: withAlpha(COLORS.white, 0.7),
+    color: withAlpha(COLORS.white, ALPHA.a70),
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
     letterSpacing: TRACKING.t1,
@@ -2592,10 +2593,10 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r12,
     overflow: 'hidden',
     borderWidth: BORDER_WIDTH.w2,
-    borderColor: withAlpha(COLORS.white, 0.6),
+    borderColor: withAlpha(COLORS.white, ALPHA.a60),
     shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: SIZE.z4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: ALPHA.a40,
     shadowRadius: SHADOW_BLUR.b8,
     elevation: ELEVATION.e8,
   },
@@ -2614,7 +2615,7 @@ const styles = StyleSheet.create({
     width: SIZE.z36,
     height: SIZE.z36,
     borderRadius: RADIUS.r18,
-    backgroundColor: withAlpha(COLORS.white, 0.9),
+    backgroundColor: withAlpha(COLORS.white, ALPHA.a90),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2653,11 +2654,11 @@ const styles = StyleSheet.create({
   // Without Liquid Glass: the hairline edge and dark wash that glass draws for itself.
   captionPillFill: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: withAlpha(COLORS.white, 0.18),
-    backgroundColor: withAlpha(COLORS.black, 0.35),
+    borderColor: withAlpha(COLORS.white, ALPHA.a18),
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a35),
   },
   captionPillText: {
-    color: withAlpha(COLORS.white, 0.75),
+    color: withAlpha(COLORS.white, ALPHA.a75),
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.regular,
   },
@@ -2674,7 +2675,7 @@ const styles = StyleSheet.create({
   },
   sheetScrim: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: withAlpha(COLORS.black, 0.55),
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a55),
   },
   sheetPanel: {
     backgroundColor: COLORS.bgDark,
@@ -2704,7 +2705,7 @@ const styles = StyleSheet.create({
     width: SIZE.z40,
     height: SIZE.z4,
     borderRadius: RADIUS.r2,
-    backgroundColor: withAlpha(COLORS.white, 0.25),
+    backgroundColor: withAlpha(COLORS.white, ALPHA.a25),
     alignSelf: 'center',
     marginBottom: SPACE.s4,
   },
@@ -2719,7 +2720,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   sheetCounter: {
-    color: withAlpha(COLORS.offWhite, 0.45),
+    color: withAlpha(COLORS.offWhite, ALPHA.a45),
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
   },
@@ -2732,7 +2733,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s8,
     paddingHorizontal: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: withAlpha(COLORS.white, 0.15),
+    borderBottomColor: withAlpha(COLORS.white, ALPHA.a15),
   },
   inviteRow: {
     flexDirection: 'row',
@@ -2741,11 +2742,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s20,
     paddingVertical: SPACE.s12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: withAlpha(COLORS.offWhite, 0.12),
+    borderTopColor: withAlpha(COLORS.offWhite, ALPHA.a12),
   },
   inviteLabel: {
     flex: 1,
-    color: withAlpha(COLORS.offWhite, 0.6),
+    color: withAlpha(COLORS.offWhite, ALPHA.a60),
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
   },
@@ -2758,7 +2759,7 @@ const styles = StyleSheet.create({
     height: SIZE.z32,
     borderRadius: RADIUS.r16,
     borderWidth: BORDER_WIDTH.w1,
-    borderColor: withAlpha(COLORS.offWhite, 0.4),
+    borderColor: withAlpha(COLORS.offWhite, ALPHA.a40),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2788,7 +2789,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sheetCloseXText: {
-    color: withAlpha(COLORS.offWhite, 0.6),
+    color: withAlpha(COLORS.offWhite, ALPHA.a60),
     fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.semiBold,
   },
@@ -2799,13 +2800,13 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.regular,
     paddingHorizontal: SPACE.s14,
     borderRadius: RADIUS.r50,
-    backgroundColor: withAlpha(COLORS.white, 0.08),
+    backgroundColor: withAlpha(COLORS.white, ALPHA.a08),
   },
   tagResultsList: {
     flex: 1,
   },
   tagEmptyText: {
-    color: withAlpha(COLORS.offWhite, 0.45),
+    color: withAlpha(COLORS.offWhite, ALPHA.a45),
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.regular,
     textAlign: 'center',
@@ -2819,7 +2820,7 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
   },
   tagRowSelected: {
-    backgroundColor: withAlpha(COLORS.accent, 0.08),
+    backgroundColor: withAlpha(COLORS.accent, ALPHA.a08),
     borderRadius: RADIUS.r8,
   },
   tagAvatar: {
@@ -2843,7 +2844,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   tagRowHandle: {
-    color: withAlpha(COLORS.offWhite, 0.45),
+    color: withAlpha(COLORS.offWhite, ALPHA.a45),
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
     marginTop: SPACE.s1,
@@ -2871,7 +2872,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.regular,
     textAlign: 'center',
-    opacity: 0.8,
+    opacity: ALPHA.a80,
     paddingHorizontal: SPACE.s32,
   },
   permissionButton: {

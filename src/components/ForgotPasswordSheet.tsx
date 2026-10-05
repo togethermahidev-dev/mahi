@@ -18,7 +18,7 @@ import { MIN_PASSWORD_LENGTH, PASSWORD_RULES } from '@/lib/password';
 import { posthog } from '@/lib/posthog';
 import OtpCodeInput from '@/components/OtpCodeInput';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, FONT_SIZE, RADIUS, SPACE, TRACKING } from '@/constants/tokens';
+import { COLORS, ALPHA, FONT_SIZE, RADIUS, SPACE, TRACKING } from '@/constants/tokens';
 
 interface Props {
   visible: boolean;
@@ -229,7 +229,7 @@ export default function ForgotPasswordSheet({
           <Pressable
             style={({ pressed }) => [
               styles.button,
-              { backgroundColor: text, opacity: loading ? 0.6 : 1 },
+              { backgroundColor: text, opacity: loading ? ALPHA.a60 : 1 },
               pressed && styles.pressedStrong,
             ]}
             onPress={step === 'email' ? send : submit}
@@ -327,6 +327,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: SPACE.s4,
   },
-  pressed: { opacity: 0.7 },
-  pressedStrong: { opacity: 0.8 },
+  pressed: { opacity: ALPHA.a70 },
+  pressedStrong: { opacity: ALPHA.a80 },
 });

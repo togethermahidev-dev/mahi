@@ -6,16 +6,17 @@ import type { PipGuide } from '@/lib/captureGuide';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
+  ALPHA,
+  BORDER_WIDTH,
+  ELEVATION,
   FONT_SIZE,
-  SPACE,
-  RADIUS,
-  SIZE,
   ICON_SIZE,
   LINE_HEIGHT,
-  BORDER_WIDTH,
+  RADIUS,
   SHADOW_BLUR,
-  ELEVATION,
+  SIZE,
+  SPACE,
+  withAlpha,
 } from '@/constants/tokens';
 
 /**
@@ -72,11 +73,11 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r12,
     overflow: 'hidden',
     borderWidth: BORDER_WIDTH.w2,
-    borderColor: withAlpha(COLORS.white, 0.6),
-    backgroundColor: withAlpha(COLORS.black, 0.35),
+    borderColor: withAlpha(COLORS.white, ALPHA.a60),
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a35),
     shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: SIZE.z4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: ALPHA.a40,
     shadowRadius: SHADOW_BLUR.b8,
     elevation: ELEVATION.e8,
   },

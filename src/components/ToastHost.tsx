@@ -6,13 +6,15 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  FONT_SIZE,
-  SPACE,
-  RADIUS,
-  OFFSET,
-  SIZE,
-  SHADOW_BLUR,
+  ALPHA,
+  DURATION,
   ELEVATION,
+  FONT_SIZE,
+  OFFSET,
+  RADIUS,
+  SHADOW_BLUR,
+  SIZE,
+  SPACE,
 } from '@/constants/tokens';
 
 /**
@@ -28,7 +30,7 @@ export function ToastHost(): React.JSX.Element | null {
   const insets = useSafeAreaInsets();
 
   const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(12)).current;
+  const translateY = useRef(new Animated.Value(OFFSET.o12)).current;
 
   useEffect(() => {
     if (message == null) return;
@@ -39,12 +41,12 @@ export function ToastHost(): React.JSX.Element | null {
     Animated.parallel([
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 180,
+        duration: DURATION.d180,
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {
         toValue: 0,
-        duration: 180,
+        duration: DURATION.d180,
         useNativeDriver: true,
       }),
     ]).start();
@@ -53,12 +55,12 @@ export function ToastHost(): React.JSX.Element | null {
       Animated.parallel([
         Animated.timing(opacity, {
           toValue: 0,
-          duration: 180,
+          duration: DURATION.d180,
           useNativeDriver: true,
         }),
         Animated.timing(translateY, {
-          toValue: 12,
-          duration: 180,
+          toValue: OFFSET.o12,
+          duration: DURATION.d180,
           useNativeDriver: true,
         }),
       ]).start(({ finished }) => {
@@ -106,7 +108,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r12,
     // Minimal shadow scrim — allowed hardcoded value.
     shadowColor: COLORS.black,
-    shadowOpacity: 0.25,
+    shadowOpacity: ALPHA.a25,
     shadowRadius: SHADOW_BLUR.b8,
     shadowOffset: { width: 0, height: SIZE.z2 },
     elevation: ELEVATION.e4,

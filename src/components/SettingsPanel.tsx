@@ -21,26 +21,30 @@ import { WelcomeCardsModal } from '@/components/WelcomeCards';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
+  ALPHA,
+  BORDER_WIDTH,
+  DURATION,
+  ELEVATION,
   FONT_SIZE,
-  SPACE,
+  LAYER,
+  LAYOUT,
+  OFFSET,
   RADIUS,
   SHADOW_BLUR,
   SIZE,
-  OFFSET,
+  SPACE,
+  SPRING,
   TRACKING,
-  BORDER_WIDTH,
-  ELEVATION,
-  LAYER,
+  VIEWER,
+  withAlpha,
 } from '@/constants/tokens';
 import { useCoverRail } from '@/hooks/useChrome';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const PANEL_WIDTH = SCREEN_WIDTH * 0.82;
+const PANEL_WIDTH = SCREEN_WIDTH * LAYOUT.settingsWidth;
 // A left swipe past a third of the panel, or a quick flick, closes it.
 const SWIPE_CLOSE_DISTANCE = PANEL_WIDTH / 3;
-const SWIPE_CLOSE_VELOCITY = 500;
 
 interface SettingsPanelProps {
   visible: boolean;
@@ -72,10 +76,16 @@ export default function SettingsPanel({
   // A full-screen panel: the tab bar hides while it is open.
   useCoverRail(visible);
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
-  const border = dark ? withAlpha(COLORS.offWhite, 0.08) : withAlpha(COLORS.offBlack, 0.06);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a45)
+    : withAlpha(COLORS.offBlack, ALPHA.a45);
+  const border = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a08)
+    : withAlpha(COLORS.offBlack, ALPHA.a06);
   const panelBg = dark ? COLORS.bgDark : COLORS.white;
-  const backdropColor = dark ? withAlpha(COLORS.black, 0.6) : withAlpha(COLORS.black, 0.4);
+  const backdropColor = dark
+    ? withAlpha(COLORS.black, ALPHA.a60)
+    : withAlpha(COLORS.black, ALPHA.a40);
   const danger = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
 
   const slideAnim = useRef(new Animated.Value(-PANEL_WIDTH)).current;
@@ -112,15 +122,13 @@ export default function SettingsPanel({
       slideAnim.setValue(Math.min(0, e.translationX));
     })
     .onEnd((e) => {
-      if (e.translationX < -SWIPE_CLOSE_DISTANCE || e.velocityX < -SWIPE_CLOSE_VELOCITY) {
+      if (e.translationX < -SWIPE_CLOSE_DISTANCE || e.velocityX < -VIEWER.closeVelocity) {
         onClose();
         return;
       }
       Animated.spring(slideAnim, {
         toValue: 0,
-        damping: 22,
-        stiffness: 160,
-        mass: 0.9,
+        ...SPRING.page,
         useNativeDriver: true,
       }).start();
     });
@@ -131,14 +139,12 @@ export default function SettingsPanel({
       Animated.parallel([
         Animated.spring(slideAnim, {
           toValue: 0,
-          damping: 22,
-          stiffness: 160,
-          mass: 0.9,
+          ...SPRING.page,
           useNativeDriver: true,
         }),
         Animated.timing(backdropAnim, {
           toValue: 1,
-          duration: 200,
+          duration: DURATION.d200,
           useNativeDriver: true,
         }),
       ]).start();
@@ -146,12 +152,12 @@ export default function SettingsPanel({
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: -PANEL_WIDTH,
-          duration: 200,
+          duration: DURATION.d200,
           useNativeDriver: true,
         }),
         Animated.timing(backdropAnim, {
           toValue: 0,
-          duration: 180,
+          duration: DURATION.d180,
           useNativeDriver: true,
         }),
       ]).start(() => {
@@ -167,9 +173,7 @@ export default function SettingsPanel({
     setAccountOpen(next);
     Animated.spring(accountAnim, {
       toValue: next ? 1 : 0,
-      damping: 22,
-      stiffness: 160,
-      mass: 0.9,
+      ...SPRING.page,
       useNativeDriver: false,
     }).start();
   };
@@ -302,7 +306,7 @@ export default function SettingsPanel({
               style={{
                 maxHeight: accountAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [0, accountSubItems.length * 50],
+                  outputRange: [0, accountSubItems.length * SIZE.z50],
                 }),
                 overflow: 'hidden',
               }}
@@ -401,7 +405,7 @@ const styles = StyleSheet.create({
     zIndex: LAYER.panel,
     shadowColor: COLORS.black,
     shadowOffset: { width: SIZE.z4, height: 0 },
-    shadowOpacity: 0.2,
+    shadowOpacity: ALPHA.a20,
     shadowRadius: SHADOW_BLUR.b12,
     elevation: ELEVATION.e12,
   },
@@ -426,10 +430,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pressed: {
-    opacity: 0.7,
+    opacity: ALPHA.a70,
   },
   pressedMore: {
-    opacity: 0.6,
+    opacity: ALPHA.a60,
   },
   closeBtnText: {
     fontSize: FONT_SIZE.f14,

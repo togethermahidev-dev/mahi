@@ -3,7 +3,7 @@ import { Linking, StyleSheet, Text, Pressable, View } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { VERSION_LINE } from '@/lib/appBuild';
 import { FONTS } from '@/constants/fonts';
-import { FONT_SIZE, SPACE, RADIUS, LINE_HEIGHT } from '@/constants/tokens';
+import { ALPHA, FONT_SIZE, LINE_HEIGHT, RADIUS, SPACE } from '@/constants/tokens';
 
 /** Shown instead of the app when this build is older than the server's minimum version. */
 export default function UpdateRequiredScreen({
@@ -29,7 +29,7 @@ export default function UpdateRequiredScreen({
           style={({ pressed }) => [
             styles.button,
             { backgroundColor: colors.text },
-            pressed && { opacity: 0.8 },
+            pressed && { opacity: ALPHA.a80 },
           ]}
           onPress={() => Linking.openURL(storeUrl)}
         >

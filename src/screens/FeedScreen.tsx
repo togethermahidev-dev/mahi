@@ -26,12 +26,14 @@ import type { FeedPost } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
-  withAlpha,
-  FONT_SIZE,
-  SPACE,
-  RADIUS,
+  ALPHA,
   BORDER_WIDTH,
+  DURATION,
+  FONT_SIZE,
+  RADIUS,
   SIZE,
+  SPACE,
+  withAlpha,
 } from '@/constants/tokens';
 
 // ─── LockedPostItem ──────────────────────────────────────────────────────────
@@ -67,7 +69,7 @@ function LockedPostItem({
       ]}
     >
       <Pressable
-        style={({ pressed }) => [styles.lockedWho, pressed && { opacity: 0.75 }]}
+        style={({ pressed }) => [styles.lockedWho, pressed && { opacity: ALPHA.a75 }]}
         onPress={() => onAvatarPress(item.profiles.id)}
         accessibilityRole="button"
         accessibilityLabel={`Open ${name}'s profile`}
@@ -93,7 +95,7 @@ function LockedPostItem({
           style={({ pressed }) => [
             styles.lockedButton,
             { backgroundColor: colors.accent },
-            pressed && { opacity: 0.85 },
+            pressed && { opacity: ALPHA.a85 },
           ]}
           onPress={onUnlockPress}
           accessibilityRole="button"
@@ -137,7 +139,9 @@ export default function FeedScreen({
   const { width: screenWidth, height: cardHeight } = usePageSize();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const muted = dark ? withAlpha(COLORS.offWhite, 0.45) : withAlpha(COLORS.offBlack, 0.45);
+  const muted = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a45)
+    : withAlpha(COLORS.offBlack, ALPHA.a45);
 
   const {
     posts,
@@ -244,7 +248,7 @@ export default function FeedScreen({
     const target = atListTop(y) ? 0 : headerH;
     Animated.timing(headerOffset, {
       toValue: target,
-      duration: 150,
+      duration: DURATION.d150,
       useNativeDriver: true,
     }).start();
   };
@@ -315,7 +319,7 @@ export default function FeedScreen({
                       styles.lockedButton,
                       styles.emptyButton,
                       { backgroundColor: COLORS.accent },
-                      pressed && { opacity: 0.85 },
+                      pressed && { opacity: ALPHA.a85 },
                     ]}
                     onPress={onFindFriends}
                     accessibilityRole="button"
@@ -419,7 +423,7 @@ const styles = StyleSheet.create({
   lockedTime: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-    opacity: 0.7,
+    opacity: ALPHA.a70,
   },
   lockedHint: {
     fontSize: FONT_SIZE.f15,

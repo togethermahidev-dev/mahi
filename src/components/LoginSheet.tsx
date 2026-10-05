@@ -17,7 +17,15 @@ import { posthog } from '@/lib/posthog';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import ForgotPasswordSheet from '@/components/ForgotPasswordSheet';
 import { FONTS } from '@/constants/fonts';
-import { COLORS, FONT_SIZE, SPACE, RADIUS, TRACKING, BORDER_WIDTH } from '@/constants/tokens';
+import {
+  COLORS,
+  ALPHA,
+  BORDER_WIDTH,
+  FONT_SIZE,
+  RADIUS,
+  SPACE,
+  TRACKING,
+} from '@/constants/tokens';
 
 const DOMAINS = ['gmail.com', 'icloud.com', 'outlook.com', 'yahoo.com'];
 
@@ -182,7 +190,7 @@ export default function LoginSheet({
           <Pressable
             style={({ pressed }) => [
               styles.button,
-              { backgroundColor: text, opacity: loading ? 0.6 : 1 },
+              { backgroundColor: text, opacity: loading ? ALPHA.a60 : 1 },
               pressed && styles.pressedStrong,
             ]}
             onPress={handleLogin}
@@ -288,6 +296,6 @@ const styles = StyleSheet.create({
   },
   errorText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
   // Pressed feedback, matching the old TouchableOpacity activeOpacity values.
-  pressed: { opacity: 0.7 },
-  pressedStrong: { opacity: 0.8 },
+  pressed: { opacity: ALPHA.a70 },
+  pressedStrong: { opacity: ALPHA.a80 },
 });

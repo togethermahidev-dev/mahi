@@ -7,8 +7,9 @@ import { NotificationsIcon } from '@/components/ScreenIcons';
 import { PUSH_PRIMER } from '@/lib/pushPrimer';
 import { FONTS } from '@/constants/fonts';
 import {
-  BORDER_WIDTH,
   COLORS,
+  ALPHA,
+  BORDER_WIDTH,
   FONT_SIZE,
   ICON_SIZE,
   LINE_HEIGHT,
@@ -57,7 +58,7 @@ export default function PushPrimer({
           <Text accessibilityRole="header" style={[styles.headline, { color: colors.text }]}>
             {PUSH_PRIMER.headline}
           </Text>
-          <Text style={[styles.why, { color: withAlpha(colors.text, 0.7) }]}>
+          <Text style={[styles.why, { color: withAlpha(colors.text, ALPHA.a70) }]}>
             {PUSH_PRIMER.why}
           </Text>
         </View>
@@ -70,7 +71,7 @@ export default function PushPrimer({
         >
           <NotificationsIcon size={ICON_SIZE.i32} color={colors.accent} />
           <Text style={[styles.cardTitle, { color: colors.text }]}>{PUSH_PRIMER.cardTitle}</Text>
-          <Text style={[styles.cardBody, { color: withAlpha(colors.text, 0.7) }]}>
+          <Text style={[styles.cardBody, { color: withAlpha(colors.text, ALPHA.a70) }]}>
             {PUSH_PRIMER.cardBody}
           </Text>
 
@@ -84,7 +85,7 @@ export default function PushPrimer({
               onPress={() => choose(false)}
               style={({ pressed }) => [
                 styles.button,
-                { borderColor: withAlpha(colors.text, 0.25) },
+                { borderColor: withAlpha(colors.text, ALPHA.a25) },
                 pressed && styles.pressed,
               ]}
             >
@@ -172,6 +173,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f16,
   },
   pressed: {
-    opacity: 0.8,
+    opacity: ALPHA.a80,
   },
 });

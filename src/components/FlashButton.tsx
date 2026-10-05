@@ -7,7 +7,7 @@ import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import Svg, { Path, Line } from 'react-native-svg';
 import { flashValueLabel, type FlashChoice } from '@/lib/cameraCapture';
-import { COLORS, SIZE } from '@/constants/tokens';
+import { COLORS, ALPHA, SIZE, STROKE } from '@/constants/tokens';
 
 const BOLT = 'M13 2L3 14h9l-1 8 10-12h-9l1-8z';
 /** A narrower bolt that leaves room for the small A of "auto". */
@@ -24,7 +24,7 @@ export function FlashIcon({
 }) {
   const stroke = {
     stroke: color,
-    strokeWidth: 2,
+    strokeWidth: STROKE.s2,
     strokeLinecap: 'round',
     strokeLinejoin: 'round',
   } as const;
@@ -69,8 +69,8 @@ export default function FlashButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        { opacity: disabled ? 0.3 : 1 },
-        pressed && { opacity: 0.7 },
+        { opacity: disabled ? ALPHA.a30 : 1 },
+        pressed && { opacity: ALPHA.a70 },
       ]}
     >
       <FlashIcon choice={choice} size={SIZE.z24} color={COLORS.white} />
