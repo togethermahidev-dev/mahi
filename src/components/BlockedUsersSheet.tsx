@@ -15,6 +15,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FlashList } from '@shopify/flash-list';
 import { getBlockedUsers, type BlockedUser } from '@/api';
 import { useAuthStore, useBlockStore } from '@/store';
+import { useToastStore } from '@/store/toastStore';
 import { posthog } from '@/lib/posthog';
 import { Sentry } from '@/lib/sentry';
 import UserProfileScreen from '@/screens/UserProfileScreen';
@@ -108,7 +109,7 @@ function Sheet({ onClose, dark }: Omit<BlockedUsersSheetProps, 'visible'>) {
     (blockedUser: BlockedUser) => {
       Alert.alert(
         `Unblock @${blockedUser.username}?`,
-        'They will be able to see your posts and message you again. You will need to re-follow each other.',
+        'They’ll be able to see your posts and message you again. To tag each other, you’ll both need to follow again.',
         [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -127,8 +128,11 @@ function Sheet({ onClose, dark }: Omit<BlockedUsersSheetProps, 'visible'>) {
 
               const { error } = await unblockAction(currentUserId, blockedUser.blocked_id);
               if (error) {
-                // Rollback — re-fetch the list
+                // Rollback — re-fetch the list, and say why the row came back
                 fetchList();
+                useToastStore
+                  .getState()
+                  .show(`Couldn’t unblock @${blockedUser.username}. Try again.`);
               }
             },
           },
@@ -173,7 +177,7 @@ function Sheet({ onClose, dark }: Omit<BlockedUsersSheetProps, 'visible'>) {
         <View style={[styles.searchWrap, { borderBottomColor: border }]}>
           <TextInput
             style={[styles.searchInput, { backgroundColor: inputBg, color: text }]}
-            placeholder="Search blocked users..."
+            placeholder="Search blocked people…"
             placeholderTextColor={muted}
             value={query}
             onChangeText={setQuery}
