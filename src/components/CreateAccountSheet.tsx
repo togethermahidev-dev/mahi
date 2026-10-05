@@ -7,7 +7,6 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
-  useColorScheme,
   ActivityIndicator,
   TextInput as RNTextInput,
   Keyboard,
@@ -45,7 +44,7 @@ import {
   SPACE,
   TRACKING,
 } from '@/constants/tokens';
-import { themeColors } from '@/hooks/useAppTheme';
+import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 
 const SUPABASE_URL = env.supabaseUrl;
 
@@ -72,7 +71,7 @@ export default function CreateAccountSheet({
   onDismiss,
   onAuthComplete,
 }: Props): React.JSX.Element {
-  const dark = useColorScheme() === 'dark';
+  const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.white : COLORS.inkDeep;
   const inputBg = dark ? COLORS.surfaceDark : COLORS.surfaceLight;

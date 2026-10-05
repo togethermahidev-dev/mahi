@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useColorScheme,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,7 +18,7 @@ import { posthog } from '@/lib/posthog';
 import OtpCodeInput from '@/components/OtpCodeInput';
 import { FONTS } from '@/constants/fonts';
 import { COLORS, ALPHA, FONT_SIZE, RADIUS, SPACE, TRACKING } from '@/constants/tokens';
-import { themeColors } from '@/hooks/useAppTheme';
+import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 
 interface Props {
   visible: boolean;
@@ -41,7 +40,7 @@ export default function ForgotPasswordSheet({
   onDismiss,
   onLoggedIn,
 }: Props): React.JSX.Element {
-  const dark = useColorScheme() === 'dark';
+  const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.white : COLORS.inkDeep;
   const inputBg = dark ? COLORS.surfaceDark : COLORS.surfaceLight;
