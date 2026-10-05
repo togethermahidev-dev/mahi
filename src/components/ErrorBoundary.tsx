@@ -43,10 +43,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Something went wrong</Text>
-        <Text style={styles.body}>
-          The app hit an unexpected error. Your data is safe — try again.
+        <Text style={styles.title} accessibilityRole="header">
+          Couldn’t show this screen
         </Text>
+        <Text style={styles.body}>Try again. If it keeps happening, close and reopen Mahi.</Text>
         <Pressable
           style={styles.button}
           onPress={this.handleRetry}
