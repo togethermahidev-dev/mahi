@@ -149,6 +149,32 @@ old swipe pages back under it).
 | 63 | Tab bar and swipes together | The phone's own tab bar (build 12+) with the swipe pages above it: tap a tab and the pages move, swipe and the tab follows. The bar hides only under the post preview | Tab bar only, no swipes (2026-10-03) | Decided | 2026-10-05 | `TabsNavigator` |
 | 64 | A way into search | The Camera's pull-down went with up/down swiping; search is now reached from the empty feed's "Find friends" | A search button in the header | Open — the founder to say | — | `AppHeader`, `GlobalSearchOverlay` |
 
+## Open questions (asked 2026-10-05 in Slack #questions-and-answers)
+
+From the invite-flow review (2026-10-05) and the photo work. Each is a message in
+#questions-and-answers (Q1–Q10). Nothing here is built until it is answered; the database change
+for the invite fixes waits for Q1–Q5 and Q8 so it goes in as one.
+
+| # | Question | Choices | Status | Asked | Used in |
+| --- | --- | --- | --- | --- | --- |
+| 65 | Q1 · After "Not now" (or taking an in-app invite back), how soon can you invite that person again? | 7 days · 1 day · only once they've invited you · anytime | Open | 2026-10-05 | `invite_to_tag` |
+| 66 | Q2 · A daily limit on in-app invites per person? | 10 a day · 20 a day · no limit | Open | 2026-10-05 | `invite_to_tag` |
+| 67 | Q3 · Unfollowing free friends to fill slots with invites: does someone you unfollowed in the last 24 hours still count as a friend for friends first? | Yes · no, allow it | Open | 2026-10-05 | `create_post` (friends first) |
+| 68 | Q4 · Blocking the person who tagged you cancels the tag: should it count as a missed tag (points back to 0)? | Yes · no | Open | 2026-10-05 | `cancel_tags_on_block` |
+| 69 | Q5 · Deleting posts: allowed at all? If yes, deleting never gives back the free first post (a permanent "has posted before" mark) | Allowed, with the mark · not allowed | Open | 2026-10-05 | `posts` delete rule, `reactive_posting_open` |
+| 70 | Q6 · Joining from a link before the friend posts: "You're friends with @x. Their tag starts when they post." | Yes · other words | Open (built with these words) | 2026-10-05 | `claimedText` in `src/lib/inviteLink.ts` |
+| 71 | Q7 · The share message: "I tagged you on Mahi. Join and you've got 48 hours to post your workout, then tag 3 mates. [link] Or use code ABC123 when you sign up." | Yes · other words | Open (built with these words) | 2026-10-05 | `slotShareMessage`, `inviteShareMessage` |
+| 72 | Q8 · A friend who joined or accepted, then unfollows you before you post: does their slot still count? | Yes · no, drop it | Open | 2026-10-05 | `start_tag`, `create_post` |
+| 64 | Q9 · A search button in the header (same as #64 above) | Yes · no | Open | 2026-10-05 | `AppHeader` |
+| 73 | Q10 · Switch pinch to zoom on for everyone (switch `pinch-zoom`, not created yet) | Yes · not yet | Open | 2026-10-05 | `PostCard` |
+
+Fixed from the same review without a question (2026-10-05, on main): the invite code goes with
+every link; sign-up takes a code or a pasted link and says when it's wrong; joining says what
+happened; the old tag sheet applies friends first; a refused post keeps its photos and says why.
+Waiting for the database change (no choice involved, held to go with the answers): a slot can't
+tag back the person whose tag the post answers; a second link from the same person says
+"already linked" instead of a database error.
+
 ## Fixed by the PRD (not open questions)
 
 | Rule | Value |
