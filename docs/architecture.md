@@ -174,7 +174,7 @@ flag. Both flags are **default off** (`DEFAULT_OFF_FLAGS`). No screen uses them 
 |---|---|---|
 | Framework | Expo (React Native 0.86) | ~57.0.23 |
 | Language | TypeScript (strict) | ~6.0.3 |
-| Backend / Auth | Supabase | ^2.116.0 |
+| Backend / Auth | Supabase | ^2.117.2 |
 | State Management | Zustand | ^5.0.15 |
 | Session Storage | AsyncStorage | ^2.2.0 |
 | List Rendering | @shopify/flash-list | 2.0.2 |
@@ -186,7 +186,7 @@ flag. Both flags are **default off** (`DEFAULT_OFF_FLAGS`). No screen uses them 
 | Video playback | expo-video (loaded only when the build has it) | ~57.0.5 |
 | Identity checks | @didit-protocol/sdk-react-native (dormant, loaded only when the build has it) | 4.9.0 |
 | In-app purchases | react-native-purchases (+ -ui) (dormant, loaded only when the build has it) | 10.11.0 |
-| Analytics | PostHog | ^4.74.0 |
+| Analytics | PostHog | ^4.78.4 |
 | Error Tracking | Sentry | ^8.26.0 |
 
 Versions as in `package.json`; check there before relying on one.

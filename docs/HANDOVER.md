@@ -29,6 +29,16 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
   (`emailTokens.ts`). **Not live** until the owner redeploys `send-otp` and `send-reset-code`
   (`--no-verify-jwt`, Mahi access token). Visible changes: a narrower card, the gradient ends in blue.
 - **Website:** `web/app/tokens.css` regenerated; the live site changes only on a web deploy (owner).
+- **Packages (3335e3f, 254eae1):** the code-only packages and tools moved up (supabase-js 2.117.2,
+  posthog-react-native 4.78.4, eslint 10.12, jest 30.5.2, prettier 3.9.9, ts-jest 29.4.14; website
+  next 16.3.8). Safe for an update to build 12. pnpm's release-age check stays on (it held PostHog at
+  4.78.4). 20 drifted files were formatted; `pnpm format:check` passes.
+- **iOS 27.1:** build 12 should run on iOS 27 and 27.1; on iPhone Duo (from 23 Oct) it opens in a
+  black-bordered compatibility box until Mahi is built with Xcode 27.1. From April 2027 App Store
+  uploads must use the iOS 27 SDK. The native packages still behind (Expo patches, React Native
+  0.86 → 0.88, screens, reanimated, gesture-handler 3, Sentry, …) need a new native build with a new
+  version — the owner's call; recommended: wait for Expo SDK 58 and do it as one batch on Xcode 27.
+  Can't move yet: async-storage 3, TypeScript 7, @types/node 26. eas-cli and pnpm are left as pinned.
 
 **State on 2026-10-05 (newest first; older notes below):**
 - **Phones:** build 12 (there is no build 11 — the numbers went 10 → 12) on the preview iPhones and
@@ -224,7 +234,7 @@ pnpm test:scripts   # script, guard-hook and email-token tests
 pnpm tokens:email   # regenerate the code email's tokens after a token change (then redeploy its functions)
 scripts/db.sh local # replay every migration on a throwaway local Postgres and run the pgTAP tests
 pnpm lint           # eslint src
-pnpm format         # prettier --write src
+pnpm format         # prettier --write src (pnpm format:check only checks)
 pnpm start          # expo
 pnpm dev:web        # the waitlist website in web/ (also build:web, lint:web)
 ```
