@@ -4,7 +4,6 @@ import { useTagStore } from './tagStore';
 import { useToastStore } from './toastStore';
 import { track } from '@/lib/analytics';
 import { claimedText, claimFailText } from '@/lib/inviteLink';
-import { WAIT } from '@/constants/tokens';
 
 interface InviteState {
   /**
@@ -56,7 +55,7 @@ export const useInviteStore = create<InviteState>((set, get) => ({
       // They opened a link or typed a code, so say why it didn't work (an older account, used,
       // expired, a mistyped code) instead of nothing at all. Signing in carries on as normal.
       set({ pendingToken: null, preview: null, previewChecked: false });
-      useToastStore.getState().show(claimFailText(error?.message ?? '', inviter), WAIT.toastLong);
+      useToastStore.getState().show(claimFailText(error?.message ?? '', inviter));
       return false;
     }
 
@@ -66,7 +65,7 @@ export const useInviteStore = create<InviteState>((set, get) => ({
     useTagStore.getState().syncOpenTags();
     useToastStore
       .getState()
-      .show(claimedText({ inviter: data.inviter.username, expiresAt: data.expires_at }), 4000);
+      .show(claimedText({ inviter: data.inviter.username, expiresAt: data.expires_at }));
     return true;
   },
 

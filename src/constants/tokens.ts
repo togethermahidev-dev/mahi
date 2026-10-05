@@ -401,9 +401,15 @@ export const SCALE = {
 export const WAIT = {
   /** Search runs once typing pauses this long. */
   search: 350,
-  /** A toast stays this long… */
-  toast: 2500,
-  /** …or this long when it explains something the person must act on. */
+  /** A toast stays at least this long (up to 6 words)… */
+  toastMin: 4000,
+  /** …this much longer for each 5 words past 6… */
+  toastPerFiveWords: 1000,
+  /** …never longer than this… */
+  toastMax: 10000,
+  /** …and at least this long when it has a button. */
+  toastAction: 8000,
+  /** The least an older caller asks for when a toast explains something to act on. */
   toastLong: 5000,
 } as const;
 
@@ -423,6 +429,8 @@ export const LAYOUT = {
   profileColumns: 3,
   /** Tagged friends' bubbles shown before "+n". */
   taggedBubbles: 3,
+  /** The most lines a toast wraps to before it is cut. */
+  toastLines: 3,
   /** The Settings panel's width, as a share of the screen. */
   settingsWidth: 0.82,
   /** Search results' height at most, as a share of the window. */

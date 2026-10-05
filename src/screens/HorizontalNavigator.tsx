@@ -1,5 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated as RNAnimated, Platform, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated as RNAnimated,
+  Platform,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   ReduceMotion,
@@ -26,6 +32,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
 import { useChromeStore, useNotificationsStore } from '@/store';
+import { useToastStore } from '@/store/toastStore';
 import { usePageSize } from '@/hooks/useChrome';
 import { SWIPE_PAGES, pageTab, tabPage } from '@/lib/nativeTabs';
 import { railShows } from '@/lib/railSelector';
@@ -68,6 +75,23 @@ export default function HorizontalNavigator({
   const insets = useSafeAreaInsets();
   // Each page is one page wide: the window, or with the tab bar the space above it.
   const { width, height } = usePageSize();
+  const window = useWindowDimensions();
+
+  // Toasts sit above the phone's tab bar: the room it takes is what the pages leave below them.
+  const tabBarRoom = tabBar ? Math.max(0, window.height - height) : 0;
+  useEffect(() => {
+    useToastStore.getState().setRoom({ tabBar: tabBarRoom });
+    return () => useToastStore.getState().setRoom({ tabBar: 0 });
+  }, [tabBarRoom]);
+  // While the post preview is up (the bar hides), toasts go to the top, clear of its Post button.
+  const onComposingChange = tabBar?.onComposingChange;
+  const handleComposingChange = useCallback(
+    (open: boolean) => {
+      onComposingChange?.(open);
+      useToastStore.getState().setRoom({ top: open });
+    },
+    [onComposingChange]
+  );
   const unreadNotifications = useNotificationsStore((s) => s.unreadCount);
 
   const [index, setIndex] = useState(CAMERA);
@@ -270,7 +294,7 @@ export default function HorizontalNavigator({
           <Animated.View style={[styles.strip, { width: width * PAGE_COUNT }, stripStyle]}>
             {/* Camera — the entry page, always dark. */}
             <View style={[styles.page, pageStyle, { backgroundColor: COLORS.ink }]}>
-              <CameraScreen onComposingChange={tabBar?.onComposingChange} />
+              <CameraScreen onComposingChange={handleComposingChange} />
               <View pointerEvents="box-none" style={styles.header}>
                 {header(true)}
               </View>

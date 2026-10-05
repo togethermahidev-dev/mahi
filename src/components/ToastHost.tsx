@@ -1,8 +1,17 @@
 import React, { useEffect, useRef } from 'react';
-import { AccessibilityInfo, Animated, StyleSheet, Text, View } from 'react-native';
+import {
+  AccessibilityInfo,
+  Animated,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useToastStore } from '@/store/toastStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { loadScreens } from '@/lib/screensModule';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -10,74 +19,104 @@ import {
   DURATION,
   ELEVATION,
   FONT_SIZE,
+  LAYOUT,
   OFFSET,
   RADIUS,
   SHADOW_BLUR,
   SIZE,
   SPACE,
+  WAIT,
 } from '@/constants/tokens';
 
 /**
- * Single, app-wide toast sink. Subscribes to toastStore and renders a small
- * bottom toast with a fade/slide animation whenever `message != null`.
- * Auto-dismisses after `durationMs`. Mounted once near the app root.
+ * Single, app-wide toast sink. Subscribes to toastStore and renders a small toast with a
+ * fade/slide animation whenever `message != null`, kept clear of the phone's tab bar (and at the
+ * top while the post preview is up). It can carry one button. Auto-dismisses after `durationMs`
+ * (an action toast stays the longest while a screen reader is on). Mounted once near the app root.
+ *
+ * On iPhone builds with react-native-screens (build 11+) it is drawn in its own window above
+ * everything, so a toast raised under an open sheet (comments, notifications, the tag screen) is
+ * still seen. Build 10 and Android: as before, under any open sheet.
  */
 export function ToastHost(): React.JSX.Element | null {
   const message = useToastStore((s) => s.message);
   const durationMs = useToastStore((s) => s.durationMs);
+  const action = useToastStore((s) => s.action);
+  const room = useToastStore((s) => s.room);
   const hide = useToastStore((s) => s.hide);
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
 
+  // Slides in from the edge it sits on.
+  const from = room.top ? -OFFSET.o12 : OFFSET.o12;
   const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(OFFSET.o12)).current;
+  const translateY = useRef(new Animated.Value(from)).current;
 
   useEffect(() => {
     if (message == null) return;
+    let stale = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
     // VoiceOver / TalkBack read the toast out, since it never takes focus.
-    AccessibilityInfo.announceForAccessibility(message);
+    AccessibilityInfo.announceForAccessibility(
+      action ? `${message} ${action.label}, button.` : message
+    );
 
+    translateY.setValue(from);
     Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: DURATION.d180,
-        useNativeDriver: true,
-      }),
-      Animated.timing(translateY, {
-        toValue: 0,
-        duration: DURATION.d180,
-        useNativeDriver: true,
-      }),
+      Animated.timing(opacity, { toValue: 1, duration: DURATION.d180, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 0, duration: DURATION.d180, useNativeDriver: true }),
     ]).start();
 
-    const timer = setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(opacity, {
-          toValue: 0,
-          duration: DURATION.d180,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
-          toValue: OFFSET.o12,
-          duration: DURATION.d180,
-          useNativeDriver: true,
-        }),
-      ]).start(({ finished }) => {
-        if (finished) hide();
-      });
-    }, durationMs);
+    const startTimer = (ms: number) => {
+      timer = setTimeout(() => {
+        Animated.parallel([
+          Animated.timing(opacity, { toValue: 0, duration: DURATION.d180, useNativeDriver: true }),
+          Animated.timing(translateY, {
+            toValue: from,
+            duration: DURATION.d180,
+            useNativeDriver: true,
+          }),
+        ]).start(({ finished }) => {
+          if (finished) hide();
+        });
+      }, ms);
+    };
 
-    return () => clearTimeout(timer);
-  }, [message, durationMs, hide, opacity, translateY]);
+    if (action) {
+      // A button needs time to be found by touch reading: the most time with a screen reader.
+      AccessibilityInfo.isScreenReaderEnabled()
+        .then((on) => {
+          if (!stale) startTimer(on ? Math.max(durationMs, WAIT.toastMax) : durationMs);
+        })
+        .catch(() => {
+          if (!stale) startTimer(durationMs);
+        });
+    } else {
+      startTimer(durationMs);
+    }
+
+    return () => {
+      stale = true;
+      if (timer) clearTimeout(timer);
+    };
+    // `from` follows `room.top`, which is read when the toast appears.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message, durationMs, action, hide, opacity, translateY]);
 
   if (message == null) return null;
 
-  return (
-    <View pointerEvents="none" style={[styles.container, { bottom: insets.bottom + OFFSET.o14 }]}>
+  // Above the tab bar when it shows; at the top, under the preview's ×, while composing.
+  const place = room.top
+    ? { top: insets.top + OFFSET.o48 + SIZE.z36 + SPACE.s12 }
+    : { bottom: room.tabBar > 0 ? room.tabBar + SPACE.s8 : insets.bottom + OFFSET.o14 };
+
+  const toast = (
+    <View pointerEvents={action ? 'box-none' : 'none'} style={[styles.container, place]}>
       <Animated.View
         style={[
           styles.toast,
+          action && styles.toastWithAction,
           {
             backgroundColor: colors.offBlack,
             opacity,
@@ -85,12 +124,39 @@ export function ToastHost(): React.JSX.Element | null {
           },
         ]}
       >
-        <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={2}>
+        <Text
+          style={[styles.text, action && styles.textWithAction, { color: colors.offWhite }]}
+          numberOfLines={LAYOUT.toastLines}
+        >
           {message}
         </Text>
+        {action ? (
+          <Pressable
+            style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+            onPress={() => {
+              action.onPress();
+              hide();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={action.label}
+          >
+            <Text style={styles.actionText}>{action.label}</Text>
+          </Pressable>
+        ) : null}
       </Animated.View>
     </View>
   );
+
+  // iPhone with react-native-screens: its own window, above sheets and pop-ups.
+  const FullWindowOverlay = Platform.OS === 'ios' ? loadScreens()?.FullWindowOverlay : undefined;
+  if (FullWindowOverlay) {
+    return (
+      <FullWindowOverlay unstable_accessibilityContainerViewIsModal={false}>
+        {toast}
+      </FullWindowOverlay>
+    );
+  }
+  return toast;
 }
 
 const styles = StyleSheet.create({
@@ -113,9 +179,34 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: SIZE.z2 },
     elevation: ELEVATION.e4,
   },
+  toastWithAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s8,
+    paddingVertical: SPACE.s4,
+    paddingRight: SPACE.s4,
+  },
   text: {
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.semiBold,
     textAlign: 'center',
+  },
+  textWithAction: {
+    flexShrink: 1,
+    textAlign: 'left',
+    paddingVertical: SPACE.s8,
+  },
+  action: {
+    minHeight: SIZE.z44,
+    paddingHorizontal: SPACE.s12,
+    justifyContent: 'center',
+  },
+  actionText: {
+    color: COLORS.accent,
+    fontSize: FONT_SIZE.f14,
+    fontFamily: FONTS.bold,
+  },
+  pressed: {
+    opacity: ALPHA.a70,
   },
 });
