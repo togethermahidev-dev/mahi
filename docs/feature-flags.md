@@ -76,8 +76,9 @@ phones that already allowed still register.) · `tag-challenges` (P2, the open-t
 `invite-links` (P7, invite a slot from the tag sheet and share the links after posting; the 6-character
 code works, but links point at `togethermahi.com`, which doesn't resolve yet — see [tag-loop-plan.md](./tag-loop-plan.md) Phase 7)
 `feed-lock-explainer` (the locked feed names who tagged you and how long you have to answer, or, with
-no open tag, says you can post again when a friend tags you; the open feed says how long it stays open,
-or, if you're tagged, when it locks. Off = the plain locked post cards.)
+no open tag, says you can post again when a friend tags you; the open feed shows a live countdown
+(hh:mm:ss, in the camera tag pill's style, since 2026-10-05) to when it would lock, or, if you're
+tagged, to when it locks. Off = the plain locked post cards.)
 `tags-invite-step` (when friends can't fill a post's tag slots, the tag sheet leads with "Invite N friends to post", a big invite button and a count of slots filled; after posting, a list of the invite links shows which are sent and lets each be sent again. Off = the small + stepper and share sheets one after another.)
 `pinch-zoom` (added 2026-10-05; not created in PostHog yet, so it reads off — waiting on Q10 in
 #questions-and-answers). On: pinch with two fingers to zoom in on a post's photo in the feed and the

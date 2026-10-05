@@ -86,7 +86,7 @@ these needs a new native module, so they ship as plain updates without a flag.
 | --- | --- | --- | --- | --- | --- | --- |
 | 39 | Profile scrolling | The whole profile scrolls as one page: the header scrolls away and the grid fills the screen (own and other people's) | Fixed header, grid scrolls below it | Decided | 2026-10-02 | `ProfileMediaMap`, `ProfileScreen`, `UserProfileScreen` |
 | 40 | Opening a post from a profile | Full screen from the tapped post; up/down browses all of that profile's posts, one per screen as in the feed; a swipe left or right closes (like Instagram / TikTok) | One post at a time | Decided | 2026-10-02 | `PostViewer`, `PostCard`, `src/lib/viewer.ts` |
-| 41 | Profile pictures | Tap any profile's picture: full screen, pinch to zoom, swipe to close. Your own keeps its "+" to change it | Fixed-size enlarge, tap to close | Decided | 2026-10-02 | `AvatarViewer`, `AvatarPicker` |
+| 41 | Profile pictures | Tap any profile's picture: a circle in the middle of a dark screen (2026-10-05, founder: a big square was too invasive), pinch to zoom; tap the dark space, drag it away, or ✕ to close. Your own keeps its "+" to change it | Fixed-size enlarge, tap to close | Decided | 2026-10-02 | `AvatarViewer`, `AvatarPicker` |
 
 ## Feed polish and comment likes (2026-10-02)
 
