@@ -5,14 +5,14 @@
  */
 import { SIZE, SPACE } from '@/constants/tokens';
 
-export const PIP_W = 90;
-export const PIP_H = 120;
+export const PIP_W = SIZE.z90;
+export const PIP_H = SIZE.z120;
 
 /** Space kept free at the bottom for the avatar, caption and their padding. */
-const BOTTOM_CONTENT_H = 200;
+const BOTTOM_CONTENT_H = SIZE.z200;
 /** Space kept free on the right for the like / comment buttons. */
-const SIDE_ACTIONS_W = 70;
-const EDGE = 8;
+const SIDE_ACTIONS_W = SIZE.z70;
+const EDGE = SPACE.s8;
 
 export type PipZone = { left: number; right: number; top: number; bottom: number };
 

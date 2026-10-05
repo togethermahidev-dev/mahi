@@ -110,6 +110,14 @@ describe('design tokens', () => {
     ).toEqual([]);
   });
 
+  // app.config.js can't import tokens.ts: each colour is typed once there and must be a token.
+  it('app.config.js names each colour once, and only token colours', () => {
+    const used = readFileSync(join(root, 'app.config.js'), 'utf8').match(/#[0-9a-f]{3,8}\b/gi) ?? [];
+    const tokens = new Set(Object.values(COLORS).map((c) => c.toLowerCase()));
+    expect(used.filter((c) => !tokens.has(c.toLowerCase()))).toEqual([]);
+    expect(used.length).toBe(new Set(used.map((c) => c.toLowerCase())).size);
+  });
+
   it('withAlpha turns a token into an rgba colour', () => {
     expect(withAlpha(COLORS.offWhite, 0.45)).toBe('rgba(232,232,227,0.45)');
     expect(withAlpha(COLORS.accent, 0.5)).toBe('rgba(89,194,215,0.5)');

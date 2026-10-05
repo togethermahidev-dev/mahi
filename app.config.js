@@ -1,4 +1,7 @@
 // app.config.js
+/** The brand colour (COLORS.accent in src/constants/tokens.ts; designTokens.test.ts checks they match). */
+const ACCENT = '#59c2d7';
+
 /** @type {import('expo/config').ExpoConfig} */
 const config = {
   name: 'Mahi',
@@ -28,7 +31,7 @@ const config = {
       },
     ],
     '@react-native-community/datetimepicker',
-    ['expo-notifications', { color: '#59c2d7', defaultChannel: 'default' }],
+    ['expo-notifications', { color: ACCENT, defaultChannel: 'default' }],
     [
       'expo-image-picker',
       {
@@ -68,9 +71,9 @@ const config = {
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#59c2d7',
+        backgroundColor: ACCENT,
         dark: {
-          backgroundColor: '#59c2d7',
+          backgroundColor: ACCENT,
         },
       },
     ],
@@ -109,7 +112,7 @@ const config = {
     versionCode: 12,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#59c2d7',
+      backgroundColor: ACCENT,
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
