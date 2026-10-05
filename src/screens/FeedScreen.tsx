@@ -13,6 +13,7 @@ import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeGesture } from 'react-native-gesture-handler';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
+import { refreshTint } from '@/lib/themeColors';
 import { usePageSize } from '@/hooks/useChrome';
 import { useFeed } from '@/hooks/useFeed';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
@@ -328,7 +329,7 @@ export default function FeedScreen({
           onViewableItemsChanged={handleViewableChange}
           viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
           refreshControl={
-            <RefreshControl refreshing={pulling} onRefresh={onPull} tintColor={text} />
+            <RefreshControl refreshing={pulling} onRefresh={onPull} {...refreshTint(dark)} />
           }
           ListEmptyComponent={
             // Each starts below the header, which floats over the list and grows with the notch.

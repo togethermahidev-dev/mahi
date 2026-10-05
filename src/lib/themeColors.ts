@@ -38,3 +38,16 @@ export function themeColors(dark: boolean): ThemeColors {
     glassOnLight: withAlpha(COLORS.white, ALPHA.a72),
   };
 }
+
+/**
+ * The pull-to-refresh spinner, the same on every list: the muted text colour (iOS `tintColor`,
+ * Android `colors`) on the page's own background (Android's disc). Spread onto `RefreshControl`.
+ */
+export function refreshTint(dark: boolean): {
+  tintColor: string;
+  colors: string[];
+  progressBackgroundColor: string;
+} {
+  const { muted, bg } = themeColors(dark);
+  return { tintColor: muted, colors: [muted], progressBackgroundColor: bg };
+}

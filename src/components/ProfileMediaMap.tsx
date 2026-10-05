@@ -14,6 +14,7 @@ import { useTabBarRoom } from '@/hooks/useChrome';
 import type { NativeGesture } from 'react-native-gesture-handler';
 import Svg, { Path } from 'react-native-svg';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
+import { refreshTint } from '@/lib/themeColors';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { pointsBadgeText } from '@/lib/mahiPoints';
 import { gridTile } from '@/lib/videoPosts';
@@ -351,7 +352,7 @@ export default function ProfileMediaMap({
         onEndReached={hasMore ? loadMore : undefined}
         onEndReachedThreshold={0.4}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={muted} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...refreshTint(dark)} />
         }
       />
     </ListGestureContext.Provider>

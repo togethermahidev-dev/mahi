@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, Alert, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
+import { refreshTint } from '@/lib/themeColors';
 import { useMessages } from '@/hooks/useMessages';
 import { useAuthStore } from '@/store';
 import ConversationScreen from '@/screens/ConversationScreen';
@@ -192,8 +193,9 @@ export default function MessageRequestsScreen({
             />
           );
         }}
-        refreshing={isLoading}
-        onRefresh={refresh}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={refresh} {...refreshTint(dark)} />
+        }
         ListEmptyComponent={
           !isLoading ? (
             <View style={styles.placeholder}>

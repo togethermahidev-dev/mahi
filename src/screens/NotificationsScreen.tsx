@@ -1,8 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Image, Modal, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  Modal,
+  StyleSheet,
+  Pressable,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
+import { refreshTint } from '@/lib/themeColors';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuthStore, useBlockStore, useTagStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
@@ -329,8 +339,13 @@ export default function NotificationsScreen({
               styles.listContent,
               { paddingBottom: insets.bottom + SPACE.s12 },
             ]}
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                {...refreshTint(dark)}
+              />
+            }
             renderItem={({ item: entry }: { item: NotificationListItem<NotificationWithActor> }) =>
               entry.kind === 'header' ? (
                 <Text style={[styles.sectionLabel, { color: muted }]} accessibilityRole="header">

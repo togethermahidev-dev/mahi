@@ -1,10 +1,20 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, Modal, useWindowDimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Image,
+  Modal,
+  useWindowDimensions,
+  RefreshControl,
+} from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import type { NativeGesture } from 'react-native-gesture-handler';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
+import { refreshTint } from '@/lib/themeColors';
 import { useTabBarRoom } from '@/hooks/useChrome';
 import { useMessages } from '@/hooks/useMessages';
 import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
@@ -280,8 +290,9 @@ export default function MessagesScreen({
               currentUserId={userId}
             />
           )}
-          refreshing={isLoading}
-          onRefresh={refresh}
+          refreshControl={
+            <RefreshControl refreshing={isLoading} onRefresh={refresh} {...refreshTint(dark)} />
+          }
           ListEmptyComponent={
             isLoading ? null : failed ? (
               <ListState
