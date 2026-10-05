@@ -35,6 +35,8 @@ interface AvatarViewerProps {
   /** The profile picture to show; null keeps the viewer closed. */
   uri: string | null;
   onClose: () => void;
+  /** What VoiceOver calls the photo ("@sam’s profile photo"); without it, "Profile photo". */
+  label?: string | null;
 }
 
 /**
@@ -43,7 +45,11 @@ interface AvatarViewerProps {
  * tap the dark space around it, drag it away in any direction, the ✕, or the back gesture.
  * Opened by tapping the picture on your own profile or anyone else's.
  */
-export default function AvatarViewer({ uri, onClose }: AvatarViewerProps): React.JSX.Element {
+export default function AvatarViewer({
+  uri,
+  onClose,
+  label,
+}: AvatarViewerProps): React.JSX.Element {
   // Keep showing the photo while the viewer fades out after `uri` goes null.
   const [shown, setShown] = useState(uri);
   if (uri && uri !== shown) setShown(uri);
@@ -58,13 +64,28 @@ export default function AvatarViewer({ uri, onClose }: AvatarViewerProps): React
     >
       {/* A Modal is its own native window: gesture-handler needs its own root here. */}
       <GestureHandlerRootView style={styles.root}>
-        {shown ? <ZoomablePhoto key={shown} uri={shown} onClose={onClose} /> : null}
+        {shown ? (
+          <ZoomablePhoto
+            key={shown}
+            uri={shown}
+            onClose={onClose}
+            label={label ?? 'Profile photo'}
+          />
+        ) : null}
       </GestureHandlerRootView>
     </Modal>
   );
 }
 
-function ZoomablePhoto({ uri, onClose }: { uri: string; onClose: () => void }) {
+function ZoomablePhoto({
+  uri,
+  onClose,
+  label,
+}: {
+  uri: string;
+  onClose: () => void;
+  label: string;
+}) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   // A circle, a share of the screen's short side.
@@ -179,7 +200,7 @@ function ZoomablePhoto({ uri, onClose }: { uri: string; onClose: () => void }) {
               style={{ width: size, height: size, borderRadius: size / 2 }}
               resizeMode="cover"
               accessibilityRole="image"
-              accessibilityLabel="Profile photo"
+              accessibilityLabel={label}
               accessibilityHint="Pinch to zoom. Tap outside it or swipe it away to close"
             />
           </Reanimated.View>

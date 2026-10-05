@@ -360,7 +360,11 @@ export default function AvatarPicker({
       )}
 
       {/* Full screen: pinch to zoom; swipe away, ✕ or back to close. */}
-      <AvatarViewer uri={viewerOpen ? displayUri : null} onClose={() => setViewerOpen(false)} />
+      <AvatarViewer
+        uri={viewerOpen ? displayUri : null}
+        onClose={() => setViewerOpen(false)}
+        label="Your profile photo"
+      />
     </View>
   );
 }

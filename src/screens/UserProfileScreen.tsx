@@ -714,6 +714,7 @@ export default function UserProfileScreen({
         <AvatarViewer
           uri={avatarOpen ? (profile?.avatar_url ?? null) : null}
           onClose={() => setAvatarOpen(false)}
+          label={profile?.username ? `@${profile.username}’s profile photo` : null}
         />
 
         {/* Suggested user's profile — opened from a suggestion card */}
