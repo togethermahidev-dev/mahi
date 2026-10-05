@@ -1,9 +1,9 @@
 // The sign-up / reset code email's share of the app's design system — the email's version of
 // web/scripts/build-tokens.mjs and check-tokens.mjs.
 //
-// Edge functions run on Deno and deploy from supabase/functions/ only, so they can't import src/.
-// This builds supabase/functions/_shared/emailTokens.ts from the app's src/constants/tokens.ts and
-// src/constants/fonts.ts. Never edit emailTokens.ts by hand: change the app's tokens, then run
+// Edge functions run on Deno and deploy from supabase/functions/ only, so they can't import ui/src/.
+// This builds supabase/functions/_shared/emailTokens.ts from the app's ui/src/constants/tokens.ts and
+// ui/src/constants/fonts.ts. Never edit emailTokens.ts by hand: change the app's tokens, then run
 // `pnpm tokens:email` (and redeploy send-otp and send-reset-code).
 //
 // findProblems is the check: email.ts must not type a colour, size, font, weight or italic by hand.
@@ -22,7 +22,7 @@ import {
   TRACKING,
   LINE_HEIGHT,
   BORDER_WIDTH,
-} from '../src/constants/tokens.ts';
+} from '../ui/src/constants/tokens.ts';
 import { FONTS, fontFace, fontWeights } from '../web/scripts/font-weights.mjs';
 
 export const TOKENS_FILE = fileURLToPath(new URL('../supabase/functions/_shared/emailTokens.ts', import.meta.url));

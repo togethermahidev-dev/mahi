@@ -1,5 +1,5 @@
 // Builds web/app/tokens.css from the app's design tokens, so the website and the app share one
-// design system. Source of truth: src/constants/tokens.ts and src/constants/fonts.ts (repo root).
+// design system. Source of truth: ui/src/constants/tokens.ts and ui/src/constants/fonts.ts (the app).
 // Never edit tokens.css by hand: change the app's tokens, then run `pnpm --filter ./web tokens`
 // (it also runs before every `dev` and `build`).
 //
@@ -21,7 +21,7 @@ import {
   BORDER_WIDTH,
   NAV_RAIL,
   withAlpha,
-} from '../../src/constants/tokens.ts';
+} from '../../ui/src/constants/tokens.ts';
 import { FONTS, fontFace } from './font-weights.mjs';
 
 const OUT = fileURLToPath(new URL('../app/tokens.css', import.meta.url));

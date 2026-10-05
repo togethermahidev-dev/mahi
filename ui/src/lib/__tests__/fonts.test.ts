@@ -108,8 +108,9 @@ function textWithoutInter(file: string): string[] {
 
 /** Every character Inter can draw, read from the font file's character map (formats 4 and 12). */
 function interCharacters(): Set<number> {
+  // Resolved, not joined to a path: node_modules sits at the workspace root, above ui/.
   const font = readFileSync(
-    join(root, 'node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf')
+    require.resolve('@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf')
   );
   const chars = new Set<number>();
   let cmap = 0;

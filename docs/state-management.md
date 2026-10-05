@@ -1,6 +1,6 @@
 # State Management
 
-Mahi Fitness uses [Zustand](https://github.com/pmndrs/zustand) v5 for global client state. Stores live in `src/store/` and are the **single event-ordering layer** between the UI and the backend.
+Mahi Fitness uses [Zustand](https://github.com/pmndrs/zustand) v5 for global client state. Stores live in `ui/src/store/` and are the **single event-ordering layer** between the UI and the backend.
 
 ## Architecture Pattern
 
@@ -22,7 +22,7 @@ Every store follows this contract:
 
 ## Stores
 
-### `useAuthStore` — `src/store/authStore.ts`
+### `useAuthStore` — `ui/src/store/authStore.ts`
 
 Manages Supabase authentication state.
 
@@ -46,7 +46,7 @@ const isLoading = useAuthStore((s) => s.isLoading);
 
 ---
 
-### `useUserStore` — `src/store/userStore.ts`
+### `useUserStore` — `ui/src/store/userStore.ts`
 
 Manages the authenticated user's profile including the Mahi points counters (stored as `streak_current` / `streak_highest` — see
 [architecture.md](./architecture.md#reactive-posting)).
@@ -95,7 +95,7 @@ const setProfile = useUserStore((s) => s.setProfile);
 
 ---
 
-### `useFeedStore` — `src/store/feedStore.ts`
+### `useFeedStore` — `ui/src/store/feedStore.ts`
 
 Manages the social feed (`get_feed`, server-gated by the feed lock) with optimistic post creation.
 
@@ -139,7 +139,7 @@ useFeedStore.getState().addPending(post);
 
 ---
 
-### `useSocialStore` — `src/store/socialStore.ts`
+### `useSocialStore` — `ui/src/store/socialStore.ts`
 
 Manages per-post likes and comments. Owns `likedByMe` booleans and comment arrays only — **never duplicates counts**. All `like_count` / `comment_count` mutations go through `feedStore.patchPost` so there is a single authoritative count per post.
 
@@ -179,7 +179,7 @@ useSocialStore.getState().addComment(postId, userId, text, profile);
 
 ---
 
-### `useFollowStore` — `src/store/followStore.ts`
+### `useFollowStore` — `ui/src/store/followStore.ts`
 
 Manages follow relationships between users. Owns follow status booleans and follower/following counts per user. Uses a single RPC (`get_follow_data`) to load all data in one query.
 
@@ -211,7 +211,7 @@ const { error } = await useFollowStore.getState().toggleFollow(currentUserId, ta
 
 ---
 
-### `useProfilePostsStore` — `src/store/profilePostsStore.ts`
+### `useProfilePostsStore` — `ui/src/store/profilePostsStore.ts`
 
 Manages the post grid shown on `ProfileScreen`. Separate from `useFeedStore` — scoped to the currently viewed profile.
 
@@ -236,7 +236,7 @@ useProfilePostsStore.getState().addPost(postData);
 
 ---
 
-### `useMessagesStore` — `src/store/messagesStore.ts`
+### `useMessagesStore` — `ui/src/store/messagesStore.ts`
 
 Manages conversation inbox, message requests, and real-time inbox subscriptions.
 
@@ -274,7 +274,7 @@ Prefer using `useMessages()` in components — it wraps the store and manages th
 
 ---
 
-### `useSignUpStore` — `src/store/signUpStore.ts`
+### `useSignUpStore` — `ui/src/store/signUpStore.ts`
 
 Persists sign-up form state across app backgrounding mid-flow. Cleared on completion or sign-out.
 
@@ -296,15 +296,15 @@ Persists sign-up form state across app backgrounding mid-flow. Cleared on comple
 
 ---
 
-### `useThemeStore` — `src/store/themeStore.ts`
+### `useThemeStore` — `ui/src/store/themeStore.ts`
 
-Persists the user's colour scheme preference (`'light' | 'dark'`). Rehydrated at cold start via `rehydrateTheme()` which reads `@mahi/theme_mode` from `AsyncStorage` and calls `setMode()`. Exposes `setMode(mode)`, `cycleMode()` (toggles between light and dark), and `reset()` (returns to `'light'` default). The `ThemeMode` type is re-exported from `src/store/index.ts` as a type alias for consumers.
+Persists the user's colour scheme preference (`'light' | 'dark'`). Rehydrated at cold start via `rehydrateTheme()` which reads `@mahi/theme_mode` from `AsyncStorage` and calls `setMode()`. Exposes `setMode(mode)`, `cycleMode()` (toggles between light and dark), and `reset()` (returns to `'light'` default). The `ThemeMode` type is re-exported from `ui/src/store/index.ts` as a type alias for consumers.
 
 ---
 
 ## Barrel Export
 
-All stores and relevant types are exported from `src/store/index.ts`:
+All stores and relevant types are exported from `ui/src/store/index.ts`:
 
 ```ts
 import {

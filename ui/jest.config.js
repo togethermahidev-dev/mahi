@@ -14,9 +14,9 @@ module.exports = {
   testEnvironment: 'node',
   // Only pure .ts tests — never .tsx (which would pull in RN rendering).
   testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
-  // Agents' worktree copies of the repo live under .claude/worktrees: never this repo's tests.
-  testPathIgnorePatterns: ['/node_modules/', '/.claude/worktrees/'],
-  modulePathIgnorePatterns: ['<rootDir>/.claude/worktrees/'],
+  // Jest's root is ui/, so agents' worktree copies (repo-root .claude/worktrees) are never
+  // scanned from here, and a worktree's own ui/ runs its tests normally.
+  testPathIgnorePatterns: ['/node_modules/'],
   // Mirror the tsconfig `@/*` -> `./src/*` path alias so type-only imports
   // (and any value imports) resolve under ts-jest.
   moduleNameMapper: {

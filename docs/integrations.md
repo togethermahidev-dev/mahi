@@ -15,7 +15,7 @@ No splash image is set in the plugin (`assets/splash-icon.png` is unused). Add t
 
 ---
 
-## Supabase — `src/lib/supabase.ts`
+## Supabase — `ui/src/lib/supabase.ts`
 
 **Status: Active**
 
@@ -33,7 +33,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY
 
 **To regenerate DB types** after schema changes:
 ```bash
-npx supabase gen types typescript --project-id <project-id> > src/types/database.ts
+npx supabase gen types typescript --project-id <project-id> > ui/src/types/database.ts
 ```
 
 ### Database Tables
@@ -72,7 +72,7 @@ specified in [tag-loop-plan.md](./tag-loop-plan.md); their SQL is in `supabase/m
 **`toggle_like(p_post_id uuid, p_user_id uuid)`** — `SECURITY DEFINER`
 - Atomic like toggle. Inserts a like row; if a conflict occurs (already liked), deletes instead.
 - Returns `{ liked: boolean, like_count: bigint }` — the final state after the operation.
-- Called via `supabase.rpc('toggle_like', ...)` from `src/api/social.ts:toggleLike`.
+- Called via `supabase.rpc('toggle_like', ...)` from `ui/src/api/social.ts:toggleLike`.
 - One round trip, no race condition, no need to check existing state first.
 
 **Current app paths:** posting is `create_post` (one transaction: the reactive-posting check
@@ -105,7 +105,7 @@ describe the older functions, still live for old builds until `supabase/deferred
 - `is_following`: uses `EXISTS` (index-only probe) — returns `false` when viewing own profile (`p_current_user_id = p_target_user_id`).
 - `follower_count`: `COUNT(*)` where `following_id = target` (how many people follow the target).
 - `following_count`: `COUNT(*)` where `follower_id = target` (how many people the target follows).
-- Called via `supabase.rpc('get_follow_data', ...)` from `src/api/follows.ts:getFollowData`.
+- Called via `supabase.rpc('get_follow_data', ...)` from `ui/src/api/follows.ts:getFollowData`.
 - Replaces three separate queries (check status + two count queries) with one round trip.
 
 ### Storage
@@ -215,7 +215,7 @@ Installed as `~57.0.3`. `expo-glass-effect` (`~57.0.4`) draws the nav rail's gla
 
 All drag gestures use RNGH `Gesture.Pan` + Reanimated shared values, running on the UI thread — the full-screen navigators as well as localised drag surfaces.
 
-**Navigator** — `HorizontalNavigator` pages sideways between Camera ⇄ Feed ⇄ Profile ⇄ Messages with one manually-activated `Gesture.Pan` (no up/down page swiping since 2026-10-05, decision #60). Every activate/fail decision, release target and rubber-band comes from the worklet rules in `src/lib/swipeRules.ts` (tested in `swipeRules.test.ts`): sideways only, system-edge exclusion, the rail's rectangle.
+**Navigator** — `HorizontalNavigator` pages sideways between Camera ⇄ Feed ⇄ Profile ⇄ Messages with one manually-activated `Gesture.Pan` (no up/down page swiping since 2026-10-05, decision #60). Every activate/fail decision, release target and rubber-band comes from the worklet rules in `ui/src/lib/swipeRules.ts` (tested in `swipeRules.test.ts`): sideways only, system-edge exclusion, the rail's rectangle.
 
 **Simultaneous-gesture rule (owner-verified on a phone, OTA 10.21):** the page pan and each page's list (`Gesture.Native()`: `feedList`, `profileList`, `messagesList`) must be allowed to track the same touch — the pan is `.simultaneousWithExternalGesture(feedList, profileList, messagesList)`. Leave a list out and iOS hands the touch to it, so sideways swipes on that page silently stop working.
 
@@ -223,11 +223,11 @@ All drag gestures use RNGH `Gesture.Pan` + Reanimated shared values, running on 
 
 | Surface | File | Pattern |
 |---|---|---|
-| `CameraScreen` pip (inside `DualPhotoPreview` Modal) | `src/screens/CameraScreen.tsx` | Long-press activation (`activateAfterLongPress(150)`), bounds-clamp to screen corners, corner-snap spring on end, Tap-race for swap. Lives in its own `GestureHandlerRootView` because the Modal spawns a separate native window. |
-| Draggable pip | `src/components/DraggablePip.tsx` | Same pattern as CameraScreen pip (long-press + corner-snap + Tap-race). Inside `PostCard`, shared by `FeedScreen` and `PostViewer`. |
-| Nav rail | `src/components/NavRail.tsx` | Hold or drag along the rail to switch screens live (`nav-rail-morph`); its rectangle is excluded from page swipes. |
-| Profile swipe-back | `src/screens/UserProfileScreen.tsx` | Pan to close a profile. |
-| Settings drawer | `src/components/SettingsPanel.tsx` | Swipe left to close. |
+| `CameraScreen` pip (inside `DualPhotoPreview` Modal) | `ui/src/screens/CameraScreen.tsx` | Long-press activation (`activateAfterLongPress(150)`), bounds-clamp to screen corners, corner-snap spring on end, Tap-race for swap. Lives in its own `GestureHandlerRootView` because the Modal spawns a separate native window. |
+| Draggable pip | `ui/src/components/DraggablePip.tsx` | Same pattern as CameraScreen pip (long-press + corner-snap + Tap-race). Inside `PostCard`, shared by `FeedScreen` and `PostViewer`. |
+| Nav rail | `ui/src/components/NavRail.tsx` | Hold or drag along the rail to switch screens live (`nav-rail-morph`); its rectangle is excluded from page swipes. |
+| Profile swipe-back | `ui/src/screens/UserProfileScreen.tsx` | Pan to close a profile. |
+| Settings drawer | `ui/src/components/SettingsPanel.tsx` | Swipe left to close. |
 
 **Page lists:** the Feed, Profile and Messages lists' scrolling is each an RNGH `Gesture.Native()` made in `HorizontalNavigator` and lent to the list through `ListGestureContext` / `GestureScrollView`; the page pan is `simultaneousWithExternalGesture` with all three. A vertical UIScrollView starts tracking after ~10pt in any direction, so without that relation it cancels the page pan before the 20px decision.
 
@@ -239,7 +239,7 @@ All drag gestures use RNGH `Gesture.Pan` + Reanimated shared values, running on 
 
 ---
 
-## PostHog — `src/lib/posthog.ts`
+## PostHog — `ui/src/lib/posthog.ts`
 
 **Status: Active**
 
@@ -258,7 +258,7 @@ Product analytics via `posthog-react-native`. Singleton client created with `EXP
 | `signup_completed` | `CreateAccountSheet.tsx` | Account created (includes `fitness_goals`) |
 | `password_reset_code_sent` / `password_reset_done` / `password_reset_failed` | `ForgotPasswordSheet.tsx` | Password reset steps |
 | `user_blocked` / `user_unblocked` / `user_reported` | `UserProfileScreen.tsx`, `BlockedUsersSheet.tsx` | Moderation |
-| Tag-loop events (`tag_sent`, `tag_answered`, `tag_missed`, `streak_lost`, `invite_shared`, `invite_claimed`, `feed_unlocked`, …) | `src/lib/analytics.ts` (one typed map) | Sent after the server confirms |
+| Tag-loop events (`tag_sent`, `tag_answered`, `tag_missed`, `streak_lost`, `invite_shared`, `invite_claimed`, `feed_unlocked`, …) | `ui/src/lib/analytics.ts` (one typed map) | Sent after the server confirms |
 
 Feature flags are read through the same client — see [feature-flags.md](./feature-flags.md).
 
@@ -270,7 +270,7 @@ EXPO_PUBLIC_POSTHOG_HOST   # default: https://us.i.posthog.com
 
 ---
 
-## Sentry — `src/lib/sentry.ts`
+## Sentry — `ui/src/lib/sentry.ts`
 
 **Status: Active**
 

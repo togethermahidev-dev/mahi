@@ -36,7 +36,7 @@ const showBell = useFeatureFlag('notifications-core');
 if (!showBell) return null;
 ```
 
-- Keys are the typed `FeatureFlag` union in [`src/lib/featureFlags.ts`](../src/lib/featureFlags.ts) — the single
+- Keys are the typed `FeatureFlag` union in [`ui/src/lib/featureFlags.ts`](../ui/src/lib/featureFlags.ts) — the single
   source of truth. Add a key there when you add a flag in PostHog.
 - The hook is a thin `useSyncExternalStore` wrapper over the shared `posthog` singleton (no `PostHogProvider`),
   re-rendering whenever flags (re)load. `App.tsx` calls `posthog.reloadFeatureFlagsAsync()` after `identify`, and
@@ -46,7 +46,7 @@ if (!showBell) return null;
   **But a key that doesn't exist in PostHog reads as OFF once flags have loaded** (the SDK returns `false` for
   a missing key). So every new flag must be created in PostHog, at 100%, before the update that uses it ships —
   found 2026-10-01, when seven new features stayed hidden on the test phones until their flags were created.
-  This pure logic is unit-tested in [`src/lib/__tests__/featureFlags.test.ts`](../src/lib/__tests__/featureFlags.test.ts).
+  This pure logic is unit-tested in [`ui/src/lib/__tests__/featureFlags.test.ts`](../ui/src/lib/__tests__/featureFlags.test.ts).
 - **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `push-core`, `video-posts`,
   `ios-sf-symbols`, `context-menu-preview`, `camera-tap-focus`, `identity-verification`, `purchases` and
   `tag-slots`): off
@@ -54,7 +54,7 @@ if (!showBell) return null;
   `true`. Use this for a feature that must never show, even for a moment on cold start (video posts would
   otherwise be able to ask for the microphone before flags load; the full-screen notifications page would
   flash up on a first launch).
-- Reference gate: the notifications bell in [`src/components/AppHeader.tsx`](../src/components/AppHeader.tsx) is
+- Reference gate: the notifications bell in [`ui/src/components/AppHeader.tsx`](../ui/src/components/AppHeader.tsx) is
   gated by `notifications-core`.
 
 ## The flags
@@ -134,7 +134,7 @@ become Apple's own (SF Symbols) at the same size and colour: search → magnifyi
 three left-aligned lines, profile → person, settings → gear, notifications → bell, heart (red filled heart
 when liked), video, sound on / sound off (speaker with waves / speaker struck through). The brand "echo"
 icons — comment and messages bubbles with the blue offset layer, and the like medal — stay drawn. Mapping
-in [`src/lib/sfSymbols.ts`](../src/lib/sfSymbols.ts). Needs the `expo-symbols` native module: on build 10
+in [`ui/src/lib/sfSymbols.ts`](../ui/src/lib/sfSymbols.ts). Needs the `expo-symbols` native module: on build 10
 and on Android it reads as off. Off = today's drawn icons exactly.)
 
 **Identity checks and purchases** (dormant in build 11 — [architecture.md](./architecture.md#identity-checks-and-purchases-dormant)):

@@ -1,13 +1,13 @@
-// Reads weights and styles from the app's FONTS (src/constants/fonts.ts).
+// Reads weights and styles from the app's FONTS (ui/src/constants/fonts.ts).
 // Shared by build-tokens.mjs (tokens.css) and check-tokens.mjs (layout.tsx must load these weights).
-import { FONTS } from '../../src/constants/fonts.ts';
+import { FONTS } from '../../ui/src/constants/fonts.ts';
 
 export { FONTS };
 
 /** Inter_600SemiBold → { weight: 600, italic: false }. */
 export function fontFace(name) {
   const m = /^Inter_(\d{3})[A-Za-z]+(_Italic)?$/.exec(name);
-  if (!m) throw new Error(`Can't read a weight from font "${name}" in src/constants/fonts.ts`);
+  if (!m) throw new Error(`Can't read a weight from font "${name}" in ui/src/constants/fonts.ts`);
   return { weight: Number(m[1]), italic: Boolean(m[2]) };
 }
 

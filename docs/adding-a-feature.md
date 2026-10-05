@@ -26,21 +26,21 @@ migration, green after (`scripts/db.sh local`). Never the dashboard SQL editor. 
 production is the owner's step ([supabase/README.md](../supabase/README.md)). Then regenerate types:
 
 ```bash
-npx supabase gen types typescript --project-id <id> > src/types/database.ts
+npx supabase gen types typescript --project-id <id> > ui/src/types/database.ts
 ```
 
-## 2. API — copy `src/api/follows.ts`
+## 2. API — copy `ui/src/api/follows.ts`
 
-Create `src/api/bookmarks.ts`. Mirror `followUser` / `unfollowUser`: idempotent `upsert` + `delete`,
+Create `ui/src/api/bookmarks.ts`. Mirror `followUser` / `unfollowUser`: idempotent `upsert` + `delete`,
 returning the **standard contract** `{ data: T | null, error: Error | null }` (wrap any Postgrest error
 via `new Error(error.message)`). If you added an RPC, mirror `getFollowData` (call `supabase.rpc(...)`,
 unwrap `data[0]`). Pure and stateless — no React, no Zustand.
 
-Barrel-export it: add `export * from './bookmarks';` to `src/api/index.ts`.
+Barrel-export it: add `export * from './bookmarks';` to `ui/src/api/index.ts`.
 
-## 3. Store — copy `src/store/followStore.ts` (the canonical optimistic + realtime template)
+## 3. Store — copy `ui/src/store/followStore.ts` (the canonical optimistic + realtime template)
 
-Create `src/store/bookmarkStore.ts`. Mirror exactly:
+Create `ui/src/store/bookmarkStore.ts`. Mirror exactly:
 
 - `Record<string, boolean>` keyed state (`bookmarkedByMe`), like `followingByMe`.
 - A `loadX` action that calls the API and `set()`s.
@@ -50,23 +50,23 @@ Create `src/store/bookmarkStore.ts`. Mirror exactly:
   channel registry and the unsubscribe closure are the pattern. **Never put channels in `set()` state.**
 - A `reset()` that removes all channels and clears state.
 
-Export it from `src/store/index.ts` (follow the `export { useFollowStore } from './followStore';` line).
+Export it from `ui/src/store/index.ts` (follow the `export { useFollowStore } from './followStore';` line).
 
 > ⚠ **CRITICAL — the step most often forgotten:** add `useBookmarkStore.getState().reset()` to the
-> sign-out branch in `App.tsx` (the `else` block alongside the other store resets). Omitting it leaks the
+> sign-out branch in `ui/App.tsx` (the `else` block alongside the other store resets). Omitting it leaks the
 > previous user's state + live realtime channels into the next account on the same device — this was a
 > real bug (`socialStore` shipped without it).
 
-## 4. Hook — copy `src/hooks/useNotifications.ts`
+## 4. Hook — copy `ui/src/hooks/useNotifications.ts`
 
-Create `src/hooks/useBookmarks.ts`. Keep it **thin**: read `userId = useAuthStore(s => s.user?.id)`,
+Create `ui/src/hooks/useBookmarks.ts`. Keep it **thin**: read `userId = useAuthStore(s => s.user?.id)`,
 select store state, run a `[userId]`-keyed `useEffect` that `subscribe`s and returns `unsubscribe`, and
 return `{ items, isLoading, toggle }` delegating to `useBookmarkStore.getState()` actions. **No business
 logic in the hook** — it owns subscription lifecycle only.
 
 ## 5. Flag — add `saved-posts`
 
-Add the key to `FEATURE_FLAGS` in `src/lib/featureFlags.ts`, list it in [feature-flags.md](./feature-flags.md),
+Add the key to `FEATURE_FLAGS` in `ui/src/lib/featureFlags.ts`, list it in [feature-flags.md](./feature-flags.md),
 and gate the UI with `useFeatureFlag('saved-posts')`. Ask the owner to create it in PostHog at 100%
 **before** the update ships — a key missing from PostHog reads as off once flags load.
 
@@ -75,11 +75,11 @@ and gate the UI with `useFeatureFlag('saved-posts')`. Ask the owner to create it
 Call `const { bookmarkedByMe, toggle } = useBookmarks()` and render the optimistic state. **Surface the
 `{ error }`** the store action returns (don't swallow it). Every colour, size, spacing, radius, font,
 opacity (`ALPHA`), animation (`DURATION`, `SPRING`), swipe (`SWIPE`), wait (`WAIT`) and layout share
-(`LAYOUT`) comes from `src/constants/tokens.ts` / `fonts.ts` — add a token if one is missing (the token
+(`LAYOUT`) comes from `ui/src/constants/tokens.ts` / `fonts.ts` — add a token if one is missing (the token
 tests fail on raw values). Text is Inter only: pick a `FONTS` face, never `fontWeight`/`fontStyle`, no
 italic, and only characters Inter can draw (`fonts.test.ts`). Colours that follow light/dark come from
 `useAppTheme()` (or `themeColors(dark)`). Sentence-case labels, pop-ups and menus (`sentenceCase.test.ts`).
-Put pure UI rules (wording, thresholds) in `src/lib/` with a Jest test. A bottom-anchored sheet or composer ends with `<KeyboardInset />`; pop-ups are native page sheets.
+Put pure UI rules (wording, thresholds) in `ui/src/lib/` with a Jest test. A bottom-anchored sheet or composer ends with `<KeyboardInset />`; pop-ups are native page sheets.
 
 ## 7. Verify (red → green)
 
@@ -93,13 +93,13 @@ Put pure UI rules (wording, thresholds) in `src/lib/` with a Jest test. A bottom
 
 | Layer | Copy this file |
 |---|---|
-| API shape | `src/api/follows.ts` |
-| Optimistic store | `src/store/followStore.ts` |
+| API shape | `ui/src/api/follows.ts` |
+| Optimistic store | `ui/src/store/followStore.ts` |
 | Realtime registry | `followStore.subscribeToFollows` (module-level `Map` + ref-count) |
-| Thin hook (no subscription) | `src/hooks/useFeed.ts` |
-| Thin hook (with subscription) | `src/hooks/useNotifications.ts` |
-| Sign-out reset wiring | `App.tsx` sign-out `else` block |
-| Env access | `src/lib/env.ts` (never read `process.env` directly) |
-| Flag | `src/lib/featureFlags.ts` + `useFeatureFlag` |
-| Styles | `src/constants/tokens.ts`, `src/constants/fonts.ts`, `themeColors` in `src/hooks/useAppTheme.ts` |
+| Thin hook (no subscription) | `ui/src/hooks/useFeed.ts` |
+| Thin hook (with subscription) | `ui/src/hooks/useNotifications.ts` |
+| Sign-out reset wiring | `ui/App.tsx` sign-out `else` block |
+| Env access | `ui/src/lib/env.ts` (never read `process.env` directly) |
+| Flag | `ui/src/lib/featureFlags.ts` + `useFeatureFlag` |
+| Styles | `ui/src/constants/tokens.ts`, `ui/src/constants/fonts.ts`, `themeColors` in `ui/src/hooks/useAppTheme.ts` |
 | Migration + rollback + test | `supabase/migrations/20261001100000_password_reset_codes.sql`, its rollback and `supabase/tests/password_reset_codes_test.sql` |

@@ -1,5 +1,5 @@
 // Fails when a design value is typed out by hand anywhere in web/app/** — the website's version of
-// the app's src/lib/__tests__/designTokens.test.ts. Every colour, size, spacing, radius, font size,
+// the app's ui/src/lib/__tests__/designTokens.test.ts. Every colour, size, spacing, radius, font size,
 // line height, letter spacing and shadow must come from app/tokens.css (generated from the app's
 // tokens) — as a var(--mahi-…) or a token class such as p-s24, text-f17, rounded-r24, shadow-b12.
 // Fractions like w-1/2 are fine. Spacing classes with a plain number — even p-0 or inset-0 — are

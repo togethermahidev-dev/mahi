@@ -33,7 +33,7 @@ The founder's answers during the native-feel work (OTA 10.14 onwards). Flags are
 | 14 | Comment sheet | Native full-height page sheet | The old 60% bottom sheet | Decided | 2026-10-01 | `FeedScreen` comments |
 | 15 | Denying a message request | Asks "are you sure?" first | Deny at once | Decided | 2026-10-01 | `MessageRequestsScreen`, `ConversationScreen` |
 | 16 | Apple SF Symbols icons | Wait for the next native build (needs `expo-symbols`) | Ship in an OTA | Decided | 2026-10-01 | Next native build |
-| 17 | Swipe navigation | Rebuilt on gesture-handler + reanimated now; keep debugging rather than revert | Keep `PanResponder` | Decided | 2026-10-01 | `HorizontalNavigator`, `src/lib/swipeRules.ts` (the up/down navigator went with #60) |
+| 17 | Swipe navigation | Rebuilt on gesture-handler + reanimated now; keep debugging rather than revert | Keep `PanResponder` | Decided | 2026-10-01 | `HorizontalNavigator`, `ui/src/lib/swipeRules.ts` (the up/down navigator went with #60) |
 | 18 | Profile layout | "Suggested for you" folds away, closed by default; grid shows ≥9 squares (≥6 fallback) | Suggestions always open | Decided | 2026-10-01 | `ProfileScreen` |
 | 19 | Welcome cards | 3 cards, once per account per device, existing users too; native paging carousel in a Modal | No onboarding | Decided | 2026-10-01 | `WelcomeCards`, flag `onboarding-welcome-cards` |
 | 20 | Locked feed | Names the friend who tagged you; open feed shows hours left | Plain locked cards | Decided | 2026-10-01 | `FeedLockBanner`, flag `feed-lock-explainer` |
@@ -42,7 +42,7 @@ The founder's answers during the native-feel work (OTA 10.14 onwards). Flags are
 | 23 | First post with no friends | A clear "Invite 3 friends" step on the tag sheet | Lower the tag minimum | Decided | 2026-10-01 | `InviteStep`, `InviteShareSheet`, flag `tags-invite-step` |
 | 24 | Sign-up fields | Date of birth and phone number stay required | Make them optional | Decided | 2026-10-01 | `CreateAccountSheet` |
 | 25 | Account basics | Password reset by emailed code; in-app Delete account (App Store requirement) | — | Decided | 2026-10-01 | flags `auth-password-reset`, `account-delete` |
-| 26 | Label style | Every ALL-CAPS label to sentence case; MAHI wordmark excepted | Keep caps | Decided | 2026-10-01 | All screens, pop-ups and menus; `src/constants/tokens.ts`; enforced by `sentenceCase.test.ts` (2026-10-05) |
+| 26 | Label style | Every ALL-CAPS label to sentence case; MAHI wordmark excepted | Keep caps | Decided | 2026-10-01 | All screens, pop-ups and menus; `ui/src/constants/tokens.ts`; enforced by `sentenceCase.test.ts` (2026-10-05) |
 | 27 | Does a skipped rest day protect the streak | No rest days at all: the streak counts answered tags, not days (#1) | — | Decided | 2026-10-01 | `record_upload_streak` rest-day rule retired, Phase 5 |
 
 ## Reactive posting (2026-10-01)
@@ -54,8 +54,8 @@ open (48 hours) — your very first post is the one exception. Architecture:
 
 | # | Decision | Chosen | Other options | Status | Decided | Used in |
 | --- | --- | --- | --- | --- | --- | --- |
-| 28 | When you can post | Reactive posting: only to answer an open tag, plus your first post; no daily limit — one post per tag answered | One post a day | Decided | 2026-10-01 | `create_post` → `reactive_posting_open`, `src/lib/reactivePosting.ts` |
-| 29 | Feed lock | Every post opens the feed for 24 hours. Tagged within them → it locks when they end; not tagged → it stays open until you're tagged, then locks. Miss a tag → locked until a friend tags you again | Open until tagged (2026-09-28 rule) | Decided | 2026-10-01 | `get_feed`, `src/lib/feedLock.ts`, `FeedLockBanner` |
+| 28 | When you can post | Reactive posting: only to answer an open tag, plus your first post; no daily limit — one post per tag answered | One post a day | Decided | 2026-10-01 | `create_post` → `reactive_posting_open`, `ui/src/lib/reactivePosting.ts` |
+| 29 | Feed lock | Every post opens the feed for 24 hours. Tagged within them → it locks when they end; not tagged → it stays open until you're tagged, then locks. Miss a tag → locked until a friend tags you again | Open until tagged (2026-09-28 rule) | Decided | 2026-10-01 | `get_feed`, `ui/src/lib/feedLock.ts`, `FeedLockBanner` |
 | 30 | Missing a tag | Mahi points back to 0 (#47); the person who missed gets a `streak_lost` notice ("You missed @x's tag. Your points are back to 0.") from the tagger | Silent reset | Decided | 2026-10-02 (wording) | `mark_missed_tags`, `NotificationsScreen` |
 | 31 | Seeing the welcome cards again | Settings → Help reopens the three cards | Shown once only | Decided | 2026-10-02 | `SettingsPanel`, `WelcomeCardsModal`, flag `onboarding-welcome-cards` |
 | 32 | Settings rows with nothing behind them | Removed (Edit profile, Update bio & link, Safety & privacy, Privacy & data); a row comes back when it's built | Keep as placeholders | Decided | 2026-10-02 | `SettingsPanel` |
@@ -68,10 +68,10 @@ default-off flag `video-posts`; architecture: [architecture.md](./architecture.m
 | # | Decision | Chosen | Other options | Status | Decided | Used in |
 | --- | --- | --- | --- | --- | --- | --- |
 | 33 | Video in posts | Each of the two shots (your view = back, selfie = front) can be a photo or a video, whichever the user wants | Photos only · one video per post | Decided | 2026-10-02 | `posts.rear_media_type` / `front_media_type`, `create_post`, `CameraScreen` |
-| 34 | How to record | Both: a Photo / Video switch by the shutter, and press and hold the shutter to record (a tap is a photo, as today). Letting go, or 15 seconds, stops | Switch only · hold only | Decided | 2026-10-02 | `src/lib/videoPosts.ts` (`shutterIntent`), `CameraScreen` |
+| 34 | How to record | Both: a Photo / Video switch by the shutter, and press and hold the shutter to record (a tap is a photo, as today). Letting go, or 15 seconds, stops | Switch only · hold only | Decided | 2026-10-02 | `ui/src/lib/videoPosts.ts` (`shutterIntent`), `CameraScreen` |
 | 35 | Longest video | 15 seconds per video | 10 s · 30 s | Decided | 2026-10-02 | `MAX_VIDEO_SECONDS`, `recordAsync({ maxDuration })` |
 | 36 | Playback | Videos start muted, loop while on screen and pause off screen — in the feed, the small window and the post viewer — with a mute / unmute button | Autoplay with sound · tap to play | Decided | 2026-10-02 | `PostVideo`, `SoundButton`, `FeedScreen`, `PostViewer`, `DraggablePip` |
-| 37 | Rollout | Everything behind one flag, `video-posts`, OFF for everyone. Off = today's photo-only app, and the microphone is never asked for; on = the microphone is asked for only when someone first records | On for testers first | Decided | 2026-10-02 | `src/lib/featureFlags.ts` (`DEFAULT_OFF_FLAGS`), `useVideoPosts` |
+| 37 | Rollout | Everything behind one flag, `video-posts`, OFF for everyone. Off = today's photo-only app, and the microphone is never asked for; on = the microphone is asked for only when someone first records | On for testers first | Decided | 2026-10-02 | `ui/src/lib/featureFlags.ts` (`DEFAULT_OFF_FLAGS`), `useVideoPosts` |
 | 38 | Microphone permission | Keep it in the app; the text becomes "Mahi uses the microphone to record sound in your workout videos." (needs the next native build anyway) | Remove it (the 2026-10-01 plan while posts were photo-only) | Decided | 2026-10-02 | `app.config.js` |
 
 A video post answers tags exactly like a photo post: reactive posting, Mahi points, tags, invites and
@@ -85,7 +85,7 @@ these needs a new native module, so they ship as plain updates without a flag.
 | # | Decision | Chosen | Other options | Status | Decided | Used in |
 | --- | --- | --- | --- | --- | --- | --- |
 | 39 | Profile scrolling | The whole profile scrolls as one page: the header scrolls away and the grid fills the screen (own and other people's) | Fixed header, grid scrolls below it | Decided | 2026-10-02 | `ProfileMediaMap`, `ProfileScreen`, `UserProfileScreen` |
-| 40 | Opening a post from a profile | Full screen from the tapped post; up/down browses all of that profile's posts, one per screen as in the feed; a swipe left or right closes (like Instagram / TikTok) | One post at a time | Decided | 2026-10-02 | `PostViewer`, `PostCard`, `src/lib/viewer.ts` |
+| 40 | Opening a post from a profile | Full screen from the tapped post; up/down browses all of that profile's posts, one per screen as in the feed; a swipe left or right closes (like Instagram / TikTok) | One post at a time | Decided | 2026-10-02 | `PostViewer`, `PostCard`, `ui/src/lib/viewer.ts` |
 | 41 | Profile pictures | Tap any profile's picture: a circle in the middle of a dark screen (2026-10-05, founder: a big square was too invasive), pinch to zoom; tap the dark space, drag it away, or × to close. Your own keeps its "+" to change it | Fixed-size enlarge, tap to close | Decided | 2026-10-02 | `AvatarViewer`, `AvatarPicker` |
 
 ## Feed polish and comment likes (2026-10-02)
@@ -100,7 +100,7 @@ flag; comment likes (46) is a new feature behind `comment-likes`.
 | 44 | Hold to view | Press and hold a post (feed and post viewer): a light tap, then the name, caption, tags, points and buttons fade away until the finger lifts. The small photo stays and stays draggable | — | Decided | 2026-10-02 | `PostCard`, `chromeStore`, `useChromeFade` |
 | 45 | Feed icon | Replaced by #51: the glass bar is not on the Feed, so its Feed icon's bounce is gone | — | Decided | 2026-10-02 | — |
 | 46 | Comment likes | A heart and count on every comment; tap the count for who liked it (names, pictures, tap for their profile), included now | Hearts only, list later | Decided | 2026-10-02 | `CommentSheet`, `CommentLikersSheet`, migration `20261002130000_comment_likes`, flag `comment-likes` |
-| 51 | Where the glass bar shows | On the Camera only (founder: "the tab bar should only be seen on the camera screen, not others"). Feed, Messages and Profile have no bar and keep no room for it; they are reached from the bar or by swiping, and left by swiping (Messages also has its back button) | On every screen (#43) | Decided | 2026-10-02 | `railShows` in `src/lib/railSelector.ts`, `HorizontalNavigator` |
+| 51 | Where the glass bar shows | On the Camera only (founder: "the tab bar should only be seen on the camera screen, not others"). Feed, Messages and Profile have no bar and keep no room for it; they are reached from the bar or by swiping, and left by swiping (Messages also has its back button) | On every screen (#43) | Decided | 2026-10-02 | `railShows` in `ui/src/lib/railSelector.ts`, `HorizontalNavigator` |
 
 ## Mahi points (2026-10-02)
 
@@ -111,10 +111,10 @@ not streaks. Streaks are a daily thing." Architecture: [architecture.md](./archi
 
 | # | Decision | Chosen | Other options | Status | Decided | Used in |
 | --- | --- | --- | --- | --- | --- | --- |
-| 47 | What people count | Mahi points: +1 for each post that answers at least one open tag (not per tag); a missed tag's 48 hours puts them back to 0; Best is never lowered and always shown. The counter the app called the streak, renamed everywhere people see it | Keep calling it a streak | Decided | 2026-10-02 | `create_post`, `break_missed_streaks`, `src/lib/mahiPoints.ts`, profiles, posts, camera, tag list, search, notices, welcome card, waitlist site |
+| 47 | What people count | Mahi points: +1 for each post that answers at least one open tag (not per tag); a missed tag's 48 hours puts them back to 0; Best is never lowered and always shown. The counter the app called the streak, renamed everywhere people see it | Keep calling it a streak | Decided | 2026-10-02 | `create_post`, `break_missed_streaks`, `ui/src/lib/mahiPoints.ts`, profiles, posts, camera, tag list, search, notices, welcome card, waitlist site |
 | 48 | The old points | Retired: no point for the tagger, no 3-a-day cap, no never-resetting total (`point_events`, `award_point`, `daily_point_cap`, `stats.points_daily` dropped) | Keep both numbers | Decided | 2026-10-02 | `20261002170000_mahi_points.sql` |
 | 49 | Daily streak | None for now | A daily streak beside the points | Decided | 2026-10-02 | — |
-| 50 | Points switch | Points always show; the `mahi-points` flag is removed (deleted from PostHog 2026-10-02, after OTA 10.26) | Keep the switch | Decided | 2026-10-02 | `src/lib/featureFlags.ts` |
+| 50 | Points switch | Points always show; the `mahi-points` flag is removed (deleted from PostHog 2026-10-02, after OTA 10.26) | Keep the switch | Decided | 2026-10-02 | `ui/src/lib/featureFlags.ts` |
 
 ## Push notifications (2026-10-02)
 
@@ -127,12 +127,12 @@ been tagged, how long left on the feed, all that stuff." Architecture:
 
 | # | Decision | Chosen | Other options | Status | Decided | Used in |
 | --- | --- | --- | --- | --- | --- | --- |
-| 52 | Asking for notifications | A full-screen page, once per device, after the welcome cards and the phone's camera question: "When do you post on Mahi?", one line of why, a card "Please turn on notifications" with Allow / Not now. Allow brings up the phone's own question. Replaces the pop-up | A plain pop-up (2026-09-17) | Decided | 2026-10-02 | `PushPrimer`, `src/lib/pushPrimer.ts`, flag `push-core` |
+| 52 | Asking for notifications | A full-screen page, once per device, after the welcome cards and the phone's camera question: "When do you post on Mahi?", one line of why, a card "Please turn on notifications" with Allow / Not now. Allow brings up the phone's own question. Replaces the pop-up | A plain pop-up (2026-09-17) | Decided | 2026-10-02 | `PushPrimer`, `ui/src/lib/pushPrimer.ts`, flag `push-core` |
 | 53 | After "Not now" or "Don't allow" | While they hold an open tag, one dismissible line under the camera's open-tags pill: "Turn on notifications so you never miss a tag". It opens Mahi in the phone's Settings; if the phone was never asked, it asks (Settings has no notifications row until then). Dismissed until the next tag | Show the full page again · nothing | Decided | 2026-10-02 | `PushNudge`, `pushNudge()` |
 | 54 | The tag push | "You've just been tagged by @sam. 48 hours left to post your Mahi!" A push can't tick, so it says the time left at the moment it is sent (48, from `app_config.tag_window`), not a running 47:59 | "@sam tagged you. You have 48 hours to post." | Built — wording for the founder to sign off | 2026-10-02 | `push_on_notification` |
 | 55 | The reminders | Still 24 hours and 2 hours before the deadline: "24 hours left to post your Mahi! @sam is waiting." / "2 hours left to post your Mahi! @sam is waiting." | "24 hours left to answer @sam" | Built — wording for the founder to sign off | 2026-10-02 | `queue_tag_pushes` |
 | 56 | Feed pushes | Two, each with its own server switch, both on: "Your feed locks in 1 hour. Post your answer to @sam to keep it open." one hour before the 24 hours end (the hour is a setting), and "Your feed is locked. Post your answer to @sam to open it." when it locks. Only for someone whose feed is open and who holds an open tag made since their last post — so the feed really will lock. A tag that locks the feed at once gets no second push. Posting takes them back | No feed pushes · one push only | Proposed — built; the founder to confirm the two texts and whether both stay on | 2026-10-02 | `schedule_feed_lock_pushes`, `app_config.feed_lock_warning_push` / `feed_lock_warning_lead` / `feed_locked_push` |
-| 57 | The other pushes | Kept, in sentence case, and the list in the app says the same: "@sam answered your tag in 3h" (was "posted 3h after your tag"), "@sam missed your tag", "You missed @sam's tag. Your points are back to 0.", "@sam liked your post", "@sam commented on your post", "@sam started following you", "@sam joined Mahi from your invite", "Sam sent you a message" | — | Built — wording for the founder to sign off | 2026-10-02 | `push_on_notification`, `send_message`, `src/lib/notificationText.ts` |
+| 57 | The other pushes | Kept, in sentence case, and the list in the app says the same: "@sam answered your tag in 3h" (was "posted 3h after your tag"), "@sam missed your tag", "You missed @sam's tag. Your points are back to 0.", "@sam liked your post", "@sam commented on your post", "@sam started following you", "@sam joined Mahi from your invite", "Sam sent you a message" | — | Built — wording for the founder to sign off | 2026-10-02 | `push_on_notification`, `send_message`, `ui/src/lib/notificationText.ts` |
 | 58 | A push that is late | Closed, not sent, once it is more than an hour overdue (a setting): what it says about time would be untrue. Also means switching push on never sends the old queue. Quiet hours are not "late": those pushes wait for 07:00, except a feed warning, which is dropped | Send whenever | Built | 2026-10-02 | `claim_push_batch`, `app_config.push_stale_after` |
 | 59 | A live countdown on the lock screen | Researched, not built. Needs a native build (it could join build 11) and its own sending path to Apple; an iPhone only keeps one alive for 8 hours, so it would cover the last hours of a tag, not all 48 | — | Parked — the founder to say if it is wanted | — | — |
 
@@ -143,7 +143,7 @@ old swipe pages back under it).
 
 | # | Decision | Chosen | Other options | Status | Decided | Used in |
 | --- | --- | --- | --- | --- | --- | --- |
-| 60 | Swipe pages | One row, left to right, in the tab bar's order: Camera ⇄ Feed ⇄ Profile ⇄ Messages. From the Feed, swipe right → Camera, swipe left → Profile; from Profile, swipe right → Feed, swipe left → Messages. Sideways only: no up/down page swiping (Camera ↕ Feed and the Camera's pull-down for search are gone) | Profile ← Camera/Feed → Messages with Camera ↕ Feed (until OTA 12.01) · Camera, Feed, Profile with Messages off the row (OTA 12.02, same day: swiping stopped at Profile) · Messages, Camera, Feed, Profile | Decided | 2026-10-05 | `HorizontalNavigator`, `SWIPE_PAGES` in `src/lib/nativeTabs.ts` |
+| 60 | Swipe pages | One row, left to right, in the tab bar's order: Camera ⇄ Feed ⇄ Profile ⇄ Messages. From the Feed, swipe right → Camera, swipe left → Profile; from Profile, swipe right → Feed, swipe left → Messages. Sideways only: no up/down page swiping (Camera ↕ Feed and the Camera's pull-down for search are gone) | Profile ← Camera/Feed → Messages with Camera ↕ Feed (until OTA 12.01) · Camera, Feed, Profile with Messages off the row (OTA 12.02, same day: swiping stopped at Profile) · Messages, Camera, Feed, Profile | Decided | 2026-10-05 | `HorizontalNavigator`, `SWIPE_PAGES` in `ui/src/lib/nativeTabs.ts` |
 | 61 | Messages | The last swipe page, after Profile; also its tab, the glass rail and the header button. Its back button goes to Profile | Off the row, opening over the pages (OTA 12.02) | Decided | 2026-10-05 | `HorizontalNavigator`, `MessagesScreen` |
 | 62 | Tab bar order | The swipe order, Messages last: Camera, Feed, Profile, Messages | Camera, Feed, Messages, Profile (2026-10-03) | Decided | 2026-10-05 | `NATIVE_TABS` |
 | 63 | Tab bar and swipes together | The phone's own tab bar (build 12+) with the swipe pages above it: tap a tab and the pages move, swipe and the tab follows. The bar hides only under the post preview | Tab bar only, no swipes (2026-10-03) | Decided | 2026-10-05 | `TabsNavigator` |
@@ -153,8 +153,8 @@ The owner's design-system rules (2026-10-05), enforced by tests so they can't dr
 
 | # | Decision | Chosen | Other options | Status | Decided | Used in |
 | --- | --- | --- | --- | --- | --- | --- |
-| 74 | Font | Inter on every word: screens, the phone's tab bar titles, toasts, the splash version line and the code email. No italic (italic text reads as regular). Only characters Inter can draw: × to close, no emoji in the camera pills ("+ Tag people", "+ Add location") | The phone's own font in places · keep italic | Decided | 2026-10-05 | `src/constants/fonts.ts`, `TAB_TITLE_APPEARANCE`, `fonts.test.ts` |
-| 75 | Shared design values | Every see-through amount, line width, blur, animation time, spring, swipe distance, wait and layout share comes from the shared tokens, as colours and sizes already did; one muted and one border colour for light/dark; the brand colour named once in the app config; the code email and the website take the same values from generated files | Values typed per screen | Decided | 2026-10-05 | `src/constants/tokens.ts`, `themeColors`, `designTokens.test.ts`, `emailTokens.ts`, `web/app/tokens.css` |
+| 74 | Font | Inter on every word: screens, the phone's tab bar titles, toasts, the splash version line and the code email. No italic (italic text reads as regular). Only characters Inter can draw: × to close, no emoji in the camera pills ("+ Tag people", "+ Add location") | The phone's own font in places · keep italic | Decided | 2026-10-05 | `ui/src/constants/fonts.ts`, `TAB_TITLE_APPEARANCE`, `fonts.test.ts` |
+| 75 | Shared design values | Every see-through amount, line width, blur, animation time, spring, swipe distance, wait and layout share comes from the shared tokens, as colours and sizes already did; one muted and one border colour for light/dark; the brand colour named once in the app config; the code email and the website take the same values from generated files | Values typed per screen | Decided | 2026-10-05 | `ui/src/constants/tokens.ts`, `themeColors`, `designTokens.test.ts`, `emailTokens.ts`, `web/app/tokens.css` |
 
 ## Design pass decided by Claude on the owner's behalf (2026-10-05)
 
@@ -192,7 +192,7 @@ for the invite fixes waits for Q1–Q5 and Q8 so it goes in as one.
 | 67 | Q3 · Unfollowing free friends to fill slots with invites: does someone you unfollowed in the last 24 hours still count as a friend for friends first? | Yes · no, allow it | Open | 2026-10-05 | `create_post` (friends first) |
 | 68 | Q4 · Blocking the person who tagged you cancels the tag: should it count as a missed tag (points back to 0)? | Yes · no | Open | 2026-10-05 | `cancel_tags_on_block` |
 | 69 | Q5 · Deleting posts: allowed at all? If yes, deleting never gives back the free first post (a permanent "has posted before" mark) | Allowed, with the mark · not allowed | Open | 2026-10-05 | `posts` delete rule, `reactive_posting_open` |
-| 70 | Q6 · Joining from a link before the friend posts: "You're friends with @x. Their tag starts when they post." | Yes · other words | Open (built with these words) | 2026-10-05 | `claimedText` in `src/lib/inviteLink.ts` |
+| 70 | Q6 · Joining from a link before the friend posts: "You're friends with @x. Their tag starts when they post." | Yes · other words | Open (built with these words) | 2026-10-05 | `claimedText` in `ui/src/lib/inviteLink.ts` |
 | 71 | Q7 · The share message: "I tagged you on Mahi. Join and you've got 48 hours to post your workout, then tag 3 mates. [link] Or use code ABC123 when you sign up." | Yes · other words | Open (built with these words) | 2026-10-05 | `slotShareMessage`, `inviteShareMessage` |
 | 72 | Q8 · A friend who joined or accepted, then unfollows you before you post: does their slot still count? | Yes · no, drop it | Open | 2026-10-05 | `start_tag`, `create_post` |
 | 64 | Q9 · A search button (same as #64 above) | Answered: a magnifier on the Profile screen, not in the header | Decided | 2026-10-05 | `ProfileScreen` |

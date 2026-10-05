@@ -170,7 +170,9 @@ patchedDependencies:
 
 importers:
 
-  .:
+  .: {}
+
+  ui:
     dependencies:
       '@didit-protocol/sdk-react-native':
         specifier: 4.9.0

@@ -44,4 +44,4 @@ yarn.lock -diff linguist-generated=true
 
 # Generated files - exclude from GitHub language stats
 *.generated.ts linguist-generated=true
-src/types/database.ts linguist-generated=true
+ui/src/types/database.ts linguist-generated=true

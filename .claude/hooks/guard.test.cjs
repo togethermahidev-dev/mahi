@@ -106,6 +106,7 @@ const GENERATED = 'Gener' + 'ated with Claude Code';
 test('prompt reminders: releases, the database, going live', () => {
   assert.match(promptNotes('can the preview build go onto TestFlight').join(' '), /version-control/);
   assert.match(promptNotes('publish an OTA please').join(' '), /version-control/);
+  assert.match(promptNotes('publish an OTA please').join(' '), /ui\/app\.config\.js, ui\/eas\.json/);
   assert.match(promptNotes('add a migration for likes').join(' '), /production/);
   assert.match(promptNotes('we launch next week, roll it out').join(' '), /Step N/);
   assert.deepStrictEqual(promptNotes('make the feed font bigger'), []);
@@ -168,7 +169,10 @@ test('packages: pnpm from the root, by path', () => {
   assert.strictEqual(verdict(bash('yarn add expo-video')), 'deny');
   assert.strictEqual(verdict(bash('pnpm --filter web build')), 'deny');
   assert.strictEqual(verdict(bash('cd web && pnpm add next')), 'deny');
+  assert.strictEqual(verdict(bash('cd ui && pnpm add zustand')), 'deny');
   assert.strictEqual(verdict(bash('pnpm --filter ./web build')), 'allow');
+  assert.strictEqual(verdict(bash('pnpm --filter ./ui add zustand')), 'allow');
+  assert.strictEqual(verdict(bash('cd ui && npx expo install expo-video')), 'allow');
   assert.strictEqual(verdict(bash('npm run lint')), 'allow');
   assert.strictEqual(verdict(bash('npx expo install react-native-screens')), 'allow');
 });
@@ -187,8 +191,16 @@ test("EAS: every production or store path is the owner's", () => {
     'pnpm build:testflight',
     'pnpm ota:prod',
     'pnpm submit:ios',
+    // The app is in ui/: the same shortcuts run there directly.
+    'pnpm --dir ui build:prod',
+    'pnpm -C ui ota:prod',
+    'pnpm --filter ./ui submit:ios',
+    'cd ui && pnpm build:testflight',
+    'cd ui && pnpm run ota:prod -- "x"',
   ])
     assert.strictEqual(verdict(bash(c)), 'deny', c);
+  assert.strictEqual(verdict(bash('pnpm --dir ui build:preview')), 'ask');
+  assert.strictEqual(verdict(bash('cd ui && pnpm ota:preview "x"')), 'ask');
   assert.strictEqual(verdict(bash('eas channel:edit preview --branch x')), 'ask');
   assert.strictEqual(verdict(bash('eas branch:delete x')), 'ask');
   assert.strictEqual(verdict(bash('pnpm build:preview')), 'ask');
@@ -207,13 +219,20 @@ test('no AI attribution in PRs, issues, notes or message files', () => {
   assert.strictEqual(verdict(bash('git commit -F ok.txt', { cwd: dir })), 'allow');
 });
 
-test('app.config.js numbers: build number by script, runtime never, version asks', () => {
+test('ui/app.config.js numbers: build number by script, runtime never, version asks', () => {
   const cwd = tmpProject();
   const cfg =
     "  version: '0.1.0',\n  ios: { buildNumber: '10' },\n  android: { versionCode: 10 },\n  runtimeVersion: { policy: 'appVersion' },\n";
-  fs.writeFileSync(path.join(cwd, 'app.config.js'), cfg);
+  fs.mkdirSync(path.join(cwd, 'ui'));
+  fs.writeFileSync(path.join(cwd, 'ui/app.config.js'), cfg);
   const edit = (old_string, new_string) =>
-    verdict(decide({ tool_name: 'Edit', tool_input: { file_path: 'app.config.js', old_string, new_string } }, { cwd }));
+    verdict(decide({ tool_name: 'Edit', tool_input: { file_path: 'ui/app.config.js', old_string, new_string } }, { cwd }));
+  // The same edit by absolute path, as Claude Code sends it.
+  const abs = path.join(cwd, 'ui/app.config.js');
+  assert.strictEqual(
+    verdict(decide({ tool_name: 'Edit', tool_input: { file_path: abs, old_string: "buildNumber: '10'", new_string: "buildNumber: '11'" } }, { cwd })),
+    'deny'
+  );
   assert.strictEqual(edit("buildNumber: '10'", "buildNumber: '11'"), 'deny');
   assert.strictEqual(edit('versionCode: 10', 'versionCode: 11'), 'deny');
   assert.strictEqual(edit("{ policy: 'appVersion' }", "'0.1.0'"), 'deny');
@@ -223,7 +242,7 @@ test('app.config.js numbers: build number by script, runtime never, version asks
     {
       tool_name: 'MultiEdit',
       tool_input: {
-        file_path: 'app.config.js',
+        file_path: 'ui/app.config.js',
         edits: [{ old_string: "buildNumber: '10'", new_string: "buildNumber: '12'" }],
       },
     },
@@ -236,7 +255,7 @@ test('device storage reminder on new persisted state', () => {
   const r = decide(
     {
       tool_name: 'Write',
-      tool_input: { file_path: 'src/store/x.ts', content: "import { persist } from 'zustand/middleware';" },
+      tool_input: { file_path: 'ui/src/store/x.ts', content: "import { persist } from 'zustand/middleware';" },
     },
     { cwd: tmpProject() }
   );

@@ -47,9 +47,11 @@ CLAUDE.local.md
 # typescript
 *.tsbuildinfo
 
-# generated native folders
+# generated native folders (the app is in ui/; the root ones are left from before the move)
 /ios
 /android
+/ui/ios
+/ui/android
 
 # MCP
 .mcp.json

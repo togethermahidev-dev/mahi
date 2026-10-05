@@ -23,8 +23,8 @@ which is expected.
 
 The site uses the app's own design tokens, so the two always match. The only source is the app:
 
-- `src/constants/tokens.ts` — colours, text sizes, spacing, corners, shadows, sizes and so on
-- `src/constants/fonts.ts` — Inter and its weights
+- `ui/src/constants/tokens.ts` — colours, text sizes, spacing, corners, shadows, sizes and so on
+- `ui/src/constants/fonts.ts` — Inter and its weights
 
 `web/scripts/build-tokens.mjs` turns those into `web/app/tokens.css` before every `dev` and `build`.
 **Never edit `tokens.css` by hand** — change a token in the app, and the website follows. The

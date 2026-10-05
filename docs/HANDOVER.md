@@ -67,7 +67,7 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
   `send-push` is built but not deployed, and `20261002190000_tag_and_feed_pushes` is waiting with
   it (push go-live, below). See [supabase/README.md](../supabase/README.md).
 - **App:** native build 10, version `0.1.0`, on the EAS **preview** lane only — nothing is in the stores.
-  Changes ship as OTA updates (history in `src/constants/ota.ts`); see the `/version-control` skill.
+  Changes ship as OTA updates (history in `ui/src/constants/ota.ts`); see the `/version-control` skill.
 - **Built and on (flags in [feature-flags.md](./feature-flags.md)):** the tag loop (3 tags, 48-hour deadlines,
   locked feed, Mahi points, invite links + "Invite 3 friends" step), native-feel update (gesture-handler navigators,
   glass nav rail with morphing selector, native page sheets and action sheets, welcome cards, locked-feed card,
@@ -82,7 +82,7 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
   "This is not streaks" — the word streak is never shown, and there is no daily streak. The old points
   (tagger point, 3-a-day cap) are retired by migration `20261002170000_mahi_points` (**not pushed yet**);
   the `mahi-points` flag is gone from the code and from PostHog (deleted 2026-10-02, after OTA 10.26).
-- **Earlier hardening still in force:** typed `src/lib/env.ts`, `ErrorBoundary`, every store reset on
+- **Earlier hardening still in force:** typed `ui/src/lib/env.ts`, `ErrorBoundary`, every store reset on
   sign-out, server-authoritative sign-up codes, Jest + pgTAP + typecheck CI.
 
 **Pending (the work ahead):**
@@ -156,11 +156,11 @@ These are non-negotiable on every change, by anyone (human or agent):
 2. **Checkpoint commits, no push without a go.** Commit each finished change with a clean imperative message, staging files by name. Never push, deploy or publish unless the owner says so in that session. Don't batch a day's work into one commit.
 3. **Flip-test everything (red → green).** Never trust a green you haven't first seen red. Break the thing → confirm the check fails → fix → confirm it passes. Applies to typecheck gates, tests, runtime guards, RLS.
 4. **Layering contract.** Dependencies flow downward only (§1). The only legal sideways import is store→store for documented cross-store effects. Screens never import `api/` or the supabase client for app data (today's exceptions are listed in [architecture.md](./architecture.md#layering-contract); don't add more).
-5. **Config through `src/lib/env.ts`.** Never read `process.env.*` directly.
+5. **Config through `ui/src/lib/env.ts`.** Never read `process.env.*` directly.
 6. **Every new store's `reset()` is wired into the `App.tsx` sign-out branch.** (Forgetting this is the exact bug that leaked one user's state into the next.)
 7. **Security is server-side.** RLS is the only authorization layer — every new table/RPC must have correct, owner-scoped policies, version-controlled in `supabase/migrations/`. Anything a malicious client could forge (verification, counts, ownership) lives in an RLS policy or a `SECURITY DEFINER` RPC, never in the client.
 8. **Styles from tokens** — every colour, size, spacing, radius, opacity, motion, swipe, wait and font from
-   `src/constants/tokens.ts` / `fonts.ts` (`designTokens.test.ts` and `fonts.test.ts` fail otherwise). Inter
+   `ui/src/constants/tokens.ts` / `fonts.ts` (`designTokens.test.ts` and `fonts.test.ts` fail otherwise). Inter
    only, no italic. Light/dark via `useAppTheme()` / `themeColors(dark)`. UI copy in sentence case; no
    all-caps letter-spaced labels (MAHI wordmark excepted) — `sentenceCase.test.ts` fails otherwise.
 9. **`{ data, error }` contract** on every `api/` function (wrap PostgrestError as `new Error(error.message)`).
@@ -177,16 +177,16 @@ Adding a full-stack feature is a mechanical copy of proven files — full recipe
 
 | Need | Copy |
 |---|---|
-| API function | `src/api/follows.ts` |
-| Optimistic store + realtime registry | `src/store/followStore.ts` |
-| Thin hook (sync on mount) | `src/hooks/useFeed.ts` |
-| Thin hook (subscription lifecycle) | `src/hooks/useNotifications.ts` |
+| API function | `ui/src/api/follows.ts` |
+| Optimistic store + realtime registry | `ui/src/store/followStore.ts` |
+| Thin hook (sync on mount) | `ui/src/hooks/useFeed.ts` |
+| Thin hook (subscription lifecycle) | `ui/src/hooks/useNotifications.ts` |
 | DB table + RLS + RPC | `follows` table + `get_follow_data` in `supabase/migrations/` |
 | User-facing failure feedback | `useToastStore.getState().show(...)` |
 | Native page sheet | `BlockedUsersSheet.tsx` (`<Modal presentationStyle="pageSheet">`) |
-| Page swipe / spring | `HorizontalNavigator.tsx` + `src/lib/swipeRules.ts` (`SPRING.page`, `SWIPE` in tokens) |
-| Pure, tested UI rules | `src/lib/feedLock.ts` + `src/lib/__tests__/feedLock.test.ts` |
-| Gate a feature behind a flag | `useFeatureFlag('flag-key')` (keys in `src/lib/featureFlags.ts`; see [feature-flags.md](./feature-flags.md)) |
+| Page swipe / spring | `HorizontalNavigator.tsx` + `ui/src/lib/swipeRules.ts` (`SPRING.page`, `SWIPE` in tokens) |
+| Pure, tested UI rules | `ui/src/lib/feedLock.ts` + `ui/src/lib/__tests__/feedLock.test.ts` |
+| Gate a feature behind a flag | `useFeatureFlag('flag-key')` (keys in `ui/src/lib/featureFlags.ts`; see [feature-flags.md](./feature-flags.md)) |
 
 ---
 
@@ -227,15 +227,21 @@ VERIFY + CHECKPOINT. Security-critical SQL/auth changes get an adversarial revie
 
 ## 5. Commands
 
+The repo is a pnpm workspace laid out like pingmee-v2: the Expo app is in `ui/`, the waitlist site in
+`web/`, the database in `supabase/`, shared scripts in `scripts/`. Run every command below from the repo
+root; the app ones hand over to `ui/` (`pnpm --dir ui …`). EAS commands run from `ui/`, where `eas.json`
+sits next to `app.config.js` (the `/version-control` skill has them). Install packages from the root:
+`pnpm --filter ./ui add <pkg>`, or `cd ui && npx expo install <pkg>` for Expo packages.
+
 ```bash
-pnpm typecheck      # tsc --noEmit (CI gate; supabase/ is excluded — it's Deno)
-pnpm test           # jest (pure-logic tests, design-token, font and sentence-case guards)
+pnpm typecheck      # tsc --noEmit on ui/ (CI gate; supabase/ is outside it — it's Deno)
+pnpm test           # jest in ui/ (pure-logic tests, design-token, font and sentence-case guards)
 pnpm test:scripts   # script, guard-hook and email-token tests
 pnpm tokens:email   # regenerate the code email's tokens after a token change (then redeploy its functions)
 scripts/db.sh local # replay every migration on a throwaway local Postgres and run the pgTAP tests
-pnpm lint           # eslint src
-pnpm format         # prettier --write src (pnpm format:check only checks)
-pnpm start          # expo
+pnpm lint           # eslint ui/src
+pnpm format         # prettier --write ui/src (pnpm format:check only checks)
+pnpm start          # expo, in ui/
 pnpm dev:web        # the waitlist website in web/ (also build:web, lint:web)
 ```
 

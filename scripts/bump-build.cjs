@@ -7,7 +7,7 @@
  *   node scripts/bump-build.cjs --ota        an OTA update: OTA counter +1, build untouched
  *   add --dry-run to print what would change and write nothing
  *
- * One build number for every lane lives in app.config.js (eas.json appVersionSource "local"),
+ * One build number for every lane lives in ui/app.config.js (ui/eas.json appVersionSource "local"),
  * so a preview and a production build from the same commit are the same number and never
  * repeat one already in the stores. Test: node --test scripts/bump-build.test.cjs
  */
@@ -15,8 +15,8 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const CONFIG = path.join(ROOT, 'app.config.js');
-const OTA = path.join(ROOT, 'src', 'constants', 'ota.ts');
+const CONFIG = path.join(ROOT, 'ui', 'app.config.js');
+const OTA = path.join(ROOT, 'ui', 'src', 'constants', 'ota.ts');
 
 const IOS_RE = /buildNumber:\s*'(\d+)'/;
 const ANDROID_RE = /versionCode:\s*(\d+)/;
@@ -30,10 +30,10 @@ function readNumber(text, re, what) {
 
 /** Next native build: both platforms to `target` (default current + 1), OTA counter to 0. */
 function bumpBuild(configText, otaText, target) {
-  const ios = readNumber(configText, IOS_RE, 'ios.buildNumber in app.config.js');
-  const android = readNumber(configText, ANDROID_RE, 'android.versionCode in app.config.js');
+  const ios = readNumber(configText, IOS_RE, 'ios.buildNumber in ui/app.config.js');
+  const android = readNumber(configText, ANDROID_RE, 'android.versionCode in ui/app.config.js');
   if (ios !== android)
-    throw new Error(`iOS build ${ios} and Android build ${android} disagree. Fix app.config.js first.`);
+    throw new Error(`iOS build ${ios} and Android build ${android} disagree. Fix ui/app.config.js first.`);
   const build = target === undefined ? ios + 1 : Number(target);
   if (!Number.isInteger(build) || build <= ios)
     throw new Error(`The new build number must be higher than ${ios}.`);
@@ -48,7 +48,7 @@ function bumpBuild(configText, otaText, target) {
 
 /** An OTA update: counter + 1. */
 function bumpOta(otaText) {
-  const otaNumber = readNumber(otaText, OTA_RE, 'OTA_NUMBER in src/constants/ota.ts') + 1;
+  const otaNumber = readNumber(otaText, OTA_RE, 'OTA_NUMBER in ui/src/constants/ota.ts') + 1;
   return { otaNumber, ota: otaText.replace(OTA_RE, `OTA_NUMBER = ${otaNumber};`) };
 }
 

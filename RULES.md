@@ -1,11 +1,19 @@
 # mahi-fitness — Project Rules for Claude
 
+## Repo layout
+- A pnpm workspace like pingmee-v2: the Expo app is in `ui/` (`App.tsx`, `app.config.js`, `eas.json`, `src/`,
+  `assets/`), the waitlist site in `web/`, the database in `supabase/`, shared scripts in `scripts/`.
+  Paths below without a folder (`App.tsx`, `app.config.js`) are the app's, in `ui/`.
+- Run pnpm commands from the repo root (`pnpm typecheck`, `pnpm test`, `pnpm lint` hand over to `ui/`).
+  Install with `pnpm --filter ./ui add <pkg>` (Expo packages: `cd ui && npx expo install <pkg>`).
+  EAS commands run from `ui/`.
+
 ## Architecture & Adding Features
 - 5-layer architecture, strict downward deps: `screens/components → hooks → stores → api → lib → supabase`.
   See the **Layering Contract** in `docs/architecture.md` for the per-layer import rules.
 - To add a full-stack feature, follow `docs/adding-a-feature.md` (copy `follows.ts` / `followStore.ts` /
   `useNotifications.ts` as templates). Every new store's `reset()` MUST be wired into the `App.tsx` sign-out branch.
-- Never read `process.env.*` directly — import the typed, fail-fast `env` from `src/lib/env.ts`.
+- Never read `process.env.*` directly — import the typed, fail-fast `env` from `ui/src/lib/env.ts`.
 
 ## Supabase Edge Functions
 - Pre-auth functions (`send-otp`, `verify-otp`, `complete-signup`, `send-reset-code`, `reset-password`)
@@ -33,7 +41,7 @@
 
 ## Location / Privacy (per-post location)
 - Per-post location is **explicit opt-in** — never silent, and **never requested at onboarding**. Ask only on first use that needs it (e.g. a post attempt with location enabled), mirroring the camera-permission pattern.
-- The consent decision (`granted` / `denied`) is **cached locally in AsyncStorage** (`@mahi:location_consent`, via `src/lib/location.ts`) so the user is asked **once** — the OS remembers too, but the cache prevents re-prompt churn.
+- The consent decision (`granted` / `denied`) is **cached locally in AsyncStorage** (`@mahi:location_consent`, via `ui/src/lib/location.ts`) so the user is asked **once** — the OS remembers too, but the cache prevents re-prompt churn.
 - Coordinates are **rounded to ~city-block precision** (3 decimal places ≈ 110m) via `roundCoord` before they ever leave `location.ts`, to avoid exact-home exposure. Low-quality fixes (accuracy worse than ~100m) are **dropped** (`null`).
 - A one-shot `getCurrentPositionAsync` (Balanced accuracy) is used — **not** a watch — for battery. Denials/errors degrade to `null`/`false` and never throw to the caller; a post without location stays valid.
 - Coordinates inherit the **post's public-read RLS** — there is no separate authz on the columns, so **anyone who can see the post can see its (rounded) coordinates**. RLS is unchanged and must not be weakened.
@@ -50,13 +58,13 @@
 - On any failure: remove pending post, revert the points, and `removePostPhotos` the uploaded paths
 - `posts` storage bucket is still **public** (`supabase/deferred/private_bucket.sql` makes it private later)
 - Reactive posting (below): `create_post` checks `reactive_posting_open` and raises `'reactive posting: not tagged'`;
-  the camera mirrors it with `reactivePostingGate()` (`src/lib/reactivePosting.ts`), fed by the feed store's
+  the camera mirrors it with `reactivePostingGate()` (`ui/src/lib/reactivePosting.ts`), fed by the feed store's
   `unlockedUntil` (null until the first post) and the open tags — a spinner while loading, "No tags to answer" when closed; the server error maps to
   the same toast. No daily limit
 
 ## Auth
 - Supabase is the source of truth for auth
-- Sessions persist via AsyncStorage (`autoRefreshToken: true`, `persistSession: true` in `src/lib/supabase.ts`)
+- Sessions persist via AsyncStorage (`autoRefreshToken: true`, `persistSession: true` in `ui/src/lib/supabase.ts`)
 - `onAuthStateChange` in `App.tsx` drives all screen transitions — no manual `authDone` flags
 - User creation uses `complete-signup` Edge Function (admin API, `email_confirm: true`)
 - Profile data is inserted into `public.profiles` after successful `signInWithPassword`
@@ -67,25 +75,25 @@
   (`20261001100100_account_delete_cascade`)
 
 ## State Management
-- Zustand stores, all exported from `src/store/index.ts`: auth, user, signUp, theme, feed, messages,
+- Zustand stores, all exported from `ui/src/store/index.ts`: auth, user, signUp, theme, feed, messages,
   conversation, notifications, profilePosts, social, follow, suggest, block, push, tag, invite
   (`toastStore` is imported directly). Every per-user store's `reset()` is called in the `App.tsx`
   sign-out branch (auth comes from the session; theme and sign-up form survive sign-out)
 - Sign-up form state lives in `useSignUpStore` (persists across app backgrounding mid-flow)
-- Only the resend cooldown timestamp is kept on the device (`src/lib/otp.ts`); codes are server-only
+- Only the resend cooldown timestamp is kept on the device (`ui/src/lib/otp.ts`); codes are server-only
 - When writing back to profile after async work, always read from `useUserStore.getState().profile` — never spread a closure snapshot
 
 ## Reactive posting and Mahi points
 - You can post only while you have an open tag you can still answer (48 hours + 10 minutes grace); your very
   first post is free. No daily limit — the one-a-day unique index is dropped (`20261001120000_reactive_posting`)
 - Server rule: `public.reactive_posting_open(user)`, checked inside `create_post`. App rule: `reactivePostingGate()`
-  in `src/lib/reactivePosting.ts`
+  in `ui/src/lib/reactivePosting.ts`
 - Mahi points (founder, 2026-10-02: "This is not streaks"): +1 per post that answers at least one tag, only for
   the person answering, no daily cap; a missed tag puts them back to 0; Best is never lowered. People only ever
   see "points" and "Best" — never the word streak. There is no daily streak (parked)
 - The database keeps the old names: `profiles.streak_current` = Mahi points, `streak_highest` = Best,
   `posts.streak_day` = the points after that post, `break_missed_streaks` (run from the `mark_missed_tags` cron
-  and inside `create_post`) does the reset. Badges read "N points" (`src/lib/mahiPoints.ts`), hidden at 0
+  and inside `create_post`) does the reset. Badges read "N points" (`ui/src/lib/mahiPoints.ts`), hidden at 0
 - The old separate points (a point for the tagger, 3 a day, a total that never reset) are gone
   (`20261002170000_mahi_points`); there is no `mahi-points` flag — points always show
 - Notifications: `streak_lost` (internal name; its words say "Your points are back to 0") to the person who
@@ -100,12 +108,12 @@
 - Sentry only enabled in production (`EXPO_PUBLIC_APP_ENV === 'production'`)
 
 ## Design System
-- Font: Inter only, through `FONTS` in `src/constants/fonts.ts` (`Inter_400Regular`, `Inter_600SemiBold`,
+- Font: Inter only, through `FONTS` in `ui/src/constants/fonts.ts` (`Inter_400Regular`, `Inter_600SemiBold`,
   `Inter_700Bold`, loaded in `App.tsx`; no italic, no `fontWeight`/`fontStyle` — the face is the weight). The
   native tab bar titles use it too. `fonts.test.ts` fails on a typed-out font name, text without an Inter face,
   or a character Inter can't draw (✕ → ×, no emoji in UI copy)
 - Every colour, text size, spacing, radius, shadow, size, offset, icon size, letter spacing, line height and
-  border width comes from `src/constants/tokens.ts` (`withAlpha` for opacity). So do the shared values:
+  border width comes from `ui/src/constants/tokens.ts` (`withAlpha` for opacity). So do the shared values:
   `ALPHA` (see-through amounts, also shadow strength), `STROKE` (icon line widths), `BLUR_INTENSITY`,
   `DURATION` and `SPRING` (motion), `SCALE`, `WAIT` (search wait, toast times), `SWIPE` (when a drag counts,
   moves or closes) and `LAYOUT` (columns, counts, screen shares). `designTokens.test.ts` fails on a raw value

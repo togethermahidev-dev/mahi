@@ -1,10 +1,10 @@
 # Hooks
 
-Custom hooks live in `src/hooks/`. They are thin wrappers over Zustand stores or library clients — they contain no local state of their own.
+Custom hooks live in `ui/src/hooks/`. They are thin wrappers over Zustand stores or library clients — they contain no local state of their own.
 
 ---
 
-## `useAppTheme` — `src/hooks/useAppTheme.ts`
+## `useAppTheme` — `ui/src/hooks/useAppTheme.ts`
 
 Reads the user's stored colour scheme preference from `useThemeStore` and exposes it as a flat theme object. The hook does not consult the OS `useColorScheme()` — the app has an explicit light/dark preference only (no `'system'` mode).
 
@@ -29,7 +29,7 @@ const { dark, colorScheme, colors } = useAppTheme();
 | `colors.glassOnDark` / `colors.glassOnLight` | `string` | Frosted fill where real glass/blur isn't available |
 | `navRail` | `{ width, edgeGap, gap }` | Nav rail geometry from tokens |
 
-All values come from `src/constants/tokens.ts`; anything not here, import from tokens directly.
+All values come from `ui/src/constants/tokens.ts`; anything not here, import from tokens directly.
 
 **Navigation usage:**
 - `CameraScreen` uses `dark` to set shutter ring/fill colour and overlay text contrast
@@ -40,7 +40,7 @@ All values come from `src/constants/tokens.ts`; anything not here, import from t
 
 ---
 
-## `useProfilePosts` — `src/hooks/useProfilePosts.ts`
+## `useProfilePosts` — `ui/src/hooks/useProfilePosts.ts`
 
 Thin wrapper over `useProfilePostsStore`. Triggers store sync on first mount for the given `userId`.
 
@@ -64,10 +64,10 @@ const { posts, isLoading, hasMore, loadMore, refresh } = useProfilePosts(userId)
 
 ---
 
-## `useRailRoom`, `useCoverRail`, `useChromeFade` — `src/hooks/useChrome.ts`
+## `useRailRoom`, `useCoverRail`, `useChromeFade` — `ui/src/hooks/useChrome.ts`
 
 The glass bar (nav rail) floats on the **left** edge of the Camera, vertically centred. It is on no
-other screen (`railShows` in `src/lib/railSelector.ts`).
+other screen (`railShows` in `ui/src/lib/railSelector.ts`).
 - `useRailRoom()` — the room it takes on the Camera's left (safe inset + `edgeGap` + `width` + `SPACE.s8`),
   0 when `nav-glass-rail` is off. Used by the camera's photo-in-photo guide; no other screen keeps room.
 - `useCoverRail(open)` — while `open`, the bar hides (`chromeStore.covers`): `UserProfileScreen`,
@@ -76,7 +76,7 @@ other screen (`railShows` in `src/lib/railSelector.ts`).
 
 ---
 
-## `useFeed` — `src/hooks/useFeed.ts`
+## `useFeed` — `ui/src/hooks/useFeed.ts`
 
 ```ts
 const { posts, isLoading, error, hasMore, locked, unlockedUntil, serverOffsetMs, loaded, loadMore, refresh } = useFeed();
@@ -86,7 +86,7 @@ Reads `feedStore` (server-gated `get_feed`). Syncs once per session on mount, ag
 returns to the foreground, and when the 24-hour unlock ends (timer on the server clock).
 `isLoading` is true until this session's first page arrives, so last session's posts never flash.
 `locked` = friends' posts are hidden until the user posts; hidden items have `locked: true`.
-`unlockedUntil` + `serverOffsetMs` drive `FeedLockBanner`'s "N hours left" (wording in `src/lib/feedLock.ts`).
+`unlockedUntil` + `serverOffsetMs` drive `FeedLockBanner`'s "N hours left" (wording in `ui/src/lib/feedLock.ts`).
 
 | Field | Type | Description |
 |---|---|---|
@@ -109,7 +109,7 @@ Each `FeedPost` includes `like_count: number`, `comment_count: number`, `liked_b
 
 ---
 
-## `useMessages` — `src/hooks/useMessages.ts`
+## `useMessages` — `ui/src/hooks/useMessages.ts`
 
 Thin wrapper over `useMessagesStore`. Triggers store sync and inbox real-time subscription on first mount.
 
@@ -137,7 +137,7 @@ The `useEffect` inside `useMessages` also calls `subscribeToInbox(userId)` and u
 
 ---
 
-## `useConversation` — `src/hooks/useConversation.ts`
+## `useConversation` — `ui/src/hooks/useConversation.ts`
 
 Manages the full state for a single open conversation thread. Used exclusively by `ConversationScreen`.
 
@@ -163,7 +163,7 @@ Thin wrapper over `useConversationStore` (`open` on mount, `close` on unmount).
 
 ---
 
-## `usePushRegistration` — `src/hooks/usePushRegistration.ts`
+## `usePushRegistration` — `ui/src/hooks/usePushRegistration.ts`
 
 Mounted once in `HorizontalNavigator`. When signed in, and again each time the app comes back to the
 front, it calls `usePushStore.refresh()`: that reads the phone's permission and what this device
@@ -174,14 +174,14 @@ the token in `api/auth.ts signOut()` before the session ends.
 
 ---
 
-## `usePushPrimer` — `src/hooks/usePushPrimer.ts`
+## `usePushPrimer` — `ui/src/hooks/usePushPrimer.ts`
 
 ```ts
 const { visible, answer } = usePushPrimer(welcomeSettled);
 ```
 
 Drives the one-time "turn on notifications" page (`PushPrimer`, in `App.tsx`). `visible` follows
-`shouldShowPushPrimer` (`src/lib/pushPrimer.ts`): flag `push-core` on, the phone not asked yet, the
+`shouldShowPushPrimer` (`ui/src/lib/pushPrimer.ts`): flag `push-core` on, the phone not asked yet, the
 page not answered on this device, the welcome cards out of the way (`welcomeSettled`) and the
 phone's camera question answered (re-read whenever the app returns to the front) — then a short
 beat, so it never opens while another page is closing. `answer(true)` brings up the phone's own
@@ -190,20 +190,20 @@ remembered as answered.
 
 ---
 
-## `usePushRouting` — `src/hooks/usePushRouting.ts`
+## `usePushRouting` — `ui/src/hooks/usePushRouting.ts`
 
 ```ts
 usePushRouting({ openProfile, openNotifications, openCamera, openMessages });
 ```
 
 Handles a tapped push (including the one that launched the app): marks its notification read, then
-opens what `pushDestination()` (`src/lib/pushRoute.ts`) says — the actor's profile for a follow or
+opens what `pushDestination()` (`ui/src/lib/pushRoute.ts`) says — the actor's profile for a follow or
 an invite joined, the camera for a tag, a reminder or a feed-lock push, Messages for a message, the
 notifications list for everything else.
 
 ---
 
-## `useOpenTags` — `src/hooks/useOpenTags.ts`
+## `useOpenTags` — `ui/src/hooks/useOpenTags.ts`
 
 ```ts
 const { openTags, serverOffsetMs, isLoading, refresh } = useOpenTags();
@@ -211,23 +211,23 @@ const { openTags, serverOffsetMs, isLoading, refresh } = useOpenTags();
 
 Tags waiting for the user's post (`get_open_tags`), kept in `tagStore` memory only (they expire).
 Syncs on mount and whenever the app returns to the foreground. `serverOffsetMs` lets countdowns
-(`src/lib/countdown.ts`) run on the server's clock. Used by `CameraScreen` for `OpenTagsBanner` and by
+(`ui/src/lib/countdown.ts`) run on the server's clock. Used by `CameraScreen` for `OpenTagsBanner` and by
 `FeedLockBanner` (who tagged you).
 
 ---
 
-## `useFeatureFlag` — `src/hooks/useFeatureFlag.ts`
+## `useFeatureFlag` — `ui/src/hooks/useFeatureFlag.ts`
 
 ```ts
 const on = useFeatureFlag('nav-rail-morph');
 ```
 
-Reads one PostHog flag (keys typed in `src/lib/featureFlags.ts`). On while flags are loading or analytics
+Reads one PostHog flag (keys typed in `ui/src/lib/featureFlags.ts`). On while flags are loading or analytics
 is off; a key missing from PostHog reads as off once flags load. See [feature-flags.md](./feature-flags.md).
 
 ---
 
-## `useNotifications` — `src/hooks/useNotifications.ts`
+## `useNotifications` — `ui/src/hooks/useNotifications.ts`
 
 ```ts
 const { items, unreadCount, isLoading, refresh, markRead, markAllRead } = useNotifications();
@@ -238,20 +238,20 @@ for a hook with a subscription ([adding-a-feature.md](./adding-a-feature.md)).
 
 ---
 
-## `useSuggestedFollows` — `src/hooks/useSuggestedFollows.ts`
+## `useSuggestedFollows` — `ui/src/hooks/useSuggestedFollows.ts`
 
 `{ suggestions, isLoading, refresh, follow }` over `useSuggestStore`; syncs on mount if not loaded.
 
 ---
 
-## `useInviteLink` — `src/hooks/useInviteLink.ts`
+## `useInviteLink` — `ui/src/hooks/useInviteLink.ts`
 
 Mounted once in `App.tsx`. Takes an invite link that opened the app (cold or warm) into `inviteStore`
 (memory only) and claims it once someone is signed in.
 
 ---
 
-## `useMinuteTick` — `src/hooks/useMinuteTick.ts`
+## `useMinuteTick` — `ui/src/hooks/useMinuteTick.ts`
 
 Device time refreshed every minute, so countdown text ("41 hours left") re-renders on its own.
 
@@ -259,7 +259,7 @@ Device time refreshed every minute, so countdown text ("41 hours left") re-rende
 
 ## Conventions
 
-- Hooks are named `use<Feature>` and live in `src/hooks/`
+- Hooks are named `use<Feature>` and live in `ui/src/hooks/`
 - Hooks read from Zustand stores via selectors — no local `useState` for data that belongs in a store
 - `isLoading` follows the pattern: `isSyncing && storeIsEmpty` — never `isSyncing` alone
 - Trigger store actions via `useStore.getState().action()` to avoid stale closure issues

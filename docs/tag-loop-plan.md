@@ -85,14 +85,14 @@ Found on 2026-09-17. Each is fixed in the phase shown.
 
 | Problem | Where | Fixed in |
 | --- | --- | --- |
-| Posting is 4 separate client calls (upload → `recordUpload` → insert post → insert tags). A failure midway leaves the streak raised with no post, or a post with no tags. | `src/screens/CameraScreen.tsx:1286-1360` | P2 |
-| The client sends the streak date, so a modified client can backdate or forge streaks. | `src/api/streaks.ts` `recordUpload(userId, date)` | P2 |
+| Posting is 4 separate client calls (upload → `recordUpload` → insert post → insert tags). A failure midway leaves the streak raised with no post, or a post with no tags. | `ui/src/screens/CameraScreen.tsx:1286-1360` | P2 |
+| The client sends the streak date, so a modified client can backdate or forge streaks. | `ui/src/api/streaks.ts` `recordUpload(userId, date)` | P2 |
 | One-post-per-day is a UTC day on the server but a local day on the phone. | live migration `one_post_per_user_per_day` vs `CameraScreen.tsx:1040` | P0 |
 | The feed returns everyone's posts, always. | live `get_feed_posts` | P4 |
 | The `posts` storage bucket is public: any photo URL works for anyone, forever. A feed lock is impossible while this holds. | live migration `create_posts_storage_bucket` | P4 |
 | No push notifications at all. | `package.json` (no `expo-notifications`) | P1 |
-| Chat loads every message at once; optimistic messages are matched to server rows by "latest temp from same sender", which mismatches on fast double-sends. | `src/hooks/useConversation.ts` | P6 |
-| `useConversation` imports the Supabase client and the API layer directly, breaking the layering contract. | `src/hooks/useConversation.ts:2-3` | P6 |
+| Chat loads every message at once; optimistic messages are matched to server rows by "latest temp from same sender", which mismatches on fast double-sends. | `ui/src/hooks/useConversation.ts` | P6 |
+| `useConversation` imports the Supabase client and the API layer directly, breaking the layering contract. | `ui/src/hooks/useConversation.ts:2-3` | P6 |
 | Repo migrations `0001–0006` were reconstructed from types and don't match the 31 live migrations. | `supabase/migrations/` | P0 |
 | No guard hook enforcing "never write to production". | `.claude/` (no `hooks/`) | P0 |
 
@@ -174,7 +174,7 @@ day-boundary bug fixed.
      a trigger sets `created_at` and `post_date` on insert and freezes both on update.
    - Unique `(user_id, post_date)` replaces the UTC-day index (itself dropped 2026-10-01 by `reactive_posting` — no daily limit); the racy same-day check in the
      `posts_insert` policy is dropped because the index enforces it.
-   - App: `updateTimezone()` in `src/api/profile.ts`; `App.tsx` `hydrateForUser` sends the phone's
+   - App: `updateTimezone()` in `ui/src/api/profile.ts`; `App.tsx` `hydrateForUser` sends the phone's
      zone when it differs. Works with current app builds unchanged.
    - `app_config` moves to Phase 1, where its first setting (quiet hours) is used.
 5. **Rollbacks** — `supabase/rollbacks/<same name>.rollback.sql` for every migration. (A GitHub
@@ -234,14 +234,14 @@ nothing sends; flag `push-core` is absent from PostHog (off).* Files: `supabase/
 
 **Client**
 - `expo-notifications ~57.0.19`; `app.config.js` plugin (`color`, `defaultChannel: 'default'`).
-- `src/lib/push.ts` — permission, Expo token (Android channel set first), token-rotation and
+- `ui/src/lib/push.ts` — permission, Expo token (Android channel set first), token-rotation and
   tap listeners (includes the push that launched the app), the once-per-device explainer flag.
-- `src/api/push.ts` — `registerPushToken()`, `unregisterPushToken()`.
-- `src/store/pushStore.ts` — `register()`, `requestAndRegister()`, `reset()` (wired into sign-out).
-- `src/hooks/usePushRegistration.ts` and `src/hooks/usePushRouting.ts`, both mounted in
+- `ui/src/api/push.ts` — `registerPushToken()`, `unregisterPushToken()`.
+- `ui/src/store/pushStore.ts` — `register()`, `requestAndRegister()`, `reset()` (wired into sign-out).
+- `ui/src/hooks/usePushRegistration.ts` and `ui/src/hooks/usePushRouting.ts`, both mounted in
   `HorizontalNavigator` (`VerticalNavigator` until 2026-10-05). A tapped push marks its notification read and opens the actor's profile
   (follows) or the notifications list (everything else).
-- `src/api/auth.ts` `signOut()` unregisters the token first, while still signed in.
+- `ui/src/api/auth.ts` `signOut()` unregisters the token first, while still signed in.
 - Permission is asked with a one-time explainer alert for new and existing users alike, instead of a
   new sign-up step (keeps `CreateAccountSheet.tsx` untouched).
 - Flag `push-core` hides that prompt only; the server keeps queueing.
@@ -280,10 +280,10 @@ Vault secrets `send_push_url` (the function URL) and `send_push_secret` (same va
 - **Locks:** only the caller's profile row is locked; answer/cancel races are settled by row locks on
   `tag_challenges` (the loser's `UPDATE … WHERE answered_at IS NULL AND cancelled_at IS NULL` matches
   nothing). Phase 5 adds the tagger lock for points.
-- **App:** `src/api/tags.ts` (`getTaggableFriends`, `getOpenTags`, `getTagRules`, `getPostResponses`),
-  `src/api/posts.ts` (`uploadPostPhotos`, `removePostPhotos`, `createPost` → RPC; `recordUpload`
-  removed), `src/store/tagStore.ts` (+ sign-out reset), `src/hooks/useOpenTags.ts`,
-  `src/components/OpenTagsBanner.tsx`, `src/lib/countdown.ts` (+ unit test, flip-tested).
+- **App:** `ui/src/api/tags.ts` (`getTaggableFriends`, `getOpenTags`, `getTagRules`, `getPostResponses`),
+  `ui/src/api/posts.ts` (`uploadPostPhotos`, `removePostPhotos`, `createPost` → RPC; `recordUpload`
+  removed), `ui/src/store/tagStore.ts` (+ sign-out reset), `ui/src/hooks/useOpenTags.ts`,
+  `ui/src/components/OpenTagsBanner.tsx`, `ui/src/lib/countdown.ts` (+ unit test, flip-tested).
   `CameraScreen`: `expo-crypto` client ids, tag sheet lists friends who follow back (max 3, already-
   tagged greyed out), POST reads "TAG N MORE" until the requirement is met, answered-tag toast, open-
   tags banner (flag `tag-challenges`). Feed cards show "ANSWERED @x IN 3H" (`getFeedPosts` merges
@@ -338,29 +338,29 @@ deadlines and their pushes, and answers any tags the poster holds.
   `anon`/`public` (as in `restrict_suggested_follows_to_authenticated`).
 
 **Client**
-- `src/api/posts.ts` (*edit*): `createPost()` becomes one `supabase.rpc('create_post', …)` call with
-  a `clientId`; remove the separate tag insert. `src/api/streaks.ts` (*edit*): drop `recordUpload`
+- `ui/src/api/posts.ts` (*edit*): `createPost()` becomes one `supabase.rpc('create_post', …)` call with
+  a `clientId`; remove the separate tag insert. `ui/src/api/streaks.ts` (*edit*): drop `recordUpload`
   (contract migration later revokes the RPC).
-- `src/api/tags.ts`: `getTaggableFriends()`, `getOpenTags()`.
-- `src/store/tagStore.ts` (copy `followStore.ts` shape): `openTags`, `serverOffsetMs`, `sync()`,
+- `ui/src/api/tags.ts`: `getTaggableFriends()`, `getOpenTags()`.
+- `ui/src/store/tagStore.ts` (copy `followStore.ts` shape): `openTags`, `serverOffsetMs`, `sync()`,
   `reset()`. No persistence. Wire `reset()` into `App.tsx` sign-out (*edit*).
-- `src/hooks/useOpenTags.ts` (copy `useFeed.ts`): syncs on mount, on app foreground, and when a
+- `ui/src/hooks/useOpenTags.ts` (copy `useFeed.ts`): syncs on mount, on app foreground, and when a
   `tag` push arrives.
-- `src/screens/CameraScreen.tsx` (*edit*):
+- `ui/src/screens/CameraScreen.tsx` (*edit*):
   - Upload order: generate `clientId` once per capture → upload both photos to
     `{uid}/{clientId}_rear.jpg` / `_pov.jpg` (`upsert: true`, so a retry overwrites instead of
     duplicating) → `createPost`. On failure: keep the photos and the `clientId` so "Try again" is the
     same post.
   - Remove the client streak increment and the direct `supabase` import (move storage upload into
-    `src/api/storage.ts`).
+    `ui/src/api/storage.ts`).
   - `TagSheet`: source = `getTaggableFriends`; exactly 3 required (POST disabled until 3, with
     the fewer-than-3 exception); `MAX_TAGS` → 3.
   - Open-tags banner above the shutter: "@joe tagged you · 31:12:04 left" from `useOpenTags`.
   - After posting, a toast ("Answered @x in …") shows the first tag answered, from the `answered`
     list `create_post` returns.
-- `src/components/OpenTagsBanner.tsx`, `src/lib/countdown.ts` (pure, unit-tested: remaining time from
+- `ui/src/components/OpenTagsBanner.tsx`, `ui/src/lib/countdown.ts` (pure, unit-tested: remaining time from
   `expires_at` + server offset).
-- `src/screens/NotificationsScreen.tsx` (*edit*): captions for `tag_answered`, `tag_missed`.
+- `ui/src/screens/NotificationsScreen.tsx` (*edit*): captions for `tag_answered`, `tag_missed`.
 - Flag: `tag-challenges` — hides the banner and the 3-tag requirement in the UI. The server rule is
   switched by `app_config` if it ever needs turning off.
 
@@ -385,8 +385,8 @@ deadlines and their pushes, and answers any tags the poster holds.
 *Expand step built 2026-09-17, live 2026-09-23 (`min_app_version` still `0.0.0`; contract step waits for a store build):* `supabase/migrations/20260917113302_app_version_gate.sql`
 (+ rollback, `supabase/tests/app_version_gate_test.sql`) adds `app_config.min_app_version`
 (default `0.0.0`, x.y.z only). The app reads it once per sign-in and shows
-`src/components/UpdateRequiredScreen.tsx` when `isBelowVersion(app version, minimum)`
-(`src/lib/appVersion.ts`, unit-tested, flip-tested); a failed check never blocks. No separate
+`ui/src/components/UpdateRequiredScreen.tsx` when `isBelowVersion(app version, minimum)`
+(`ui/src/lib/appVersion.ts`, unit-tested, flip-tested); a failed check never blocks. No separate
 `get_app_status()` RPC — `app_config` is already readable.
 
 *Contract step parked:* `supabase/deferred/contract_posting.sql` sits outside `migrations/` so a push
@@ -471,22 +471,22 @@ for both the post data and the image files.
 - Revoke `get_feed_posts`.
 
 **Client**
-- `src/api/posts.ts` (*edit*): `getFeed()` (RPC), `getUserPosts()` → RPC, `signMediaPaths(paths)`
+- `ui/src/api/posts.ts` (*edit*): `getFeed()` (RPC), `getUserPosts()` → RPC, `signMediaPaths(paths)`
   (`createSignedUrls`, expiry = `min(1 h, unlocked_until - now)`).
-- `src/store/feedStore.ts` (*edit*): state gains `locked`, `unlockedUntil`, `serverOffsetMs`; `sync()`
+- `ui/src/store/feedStore.ts` (*edit*): state gains `locked`, `unlockedUntil`, `serverOffsetMs`; `sync()`
   signs the page's paths before `set()` so a card never renders without its image; drop the
   `posts.length > 0` skip-guard for a staleness check (unlock can expire while the app is open).
   A request generation counter drops responses from superseded requests, and `loadMore` drops
   duplicate ids. In-memory only.
-- `src/hooks/useFeed.ts` (*edit*): re-sync on foreground and when `unlockedUntil` passes (single
+- `ui/src/hooks/useFeed.ts` (*edit*): re-sync on foreground and when `unlockedUntil` passes (single
   timer, cleared on unmount).
-- `src/screens/FeedScreen.tsx` (*edit*): `LockedFeed` state — blurred avatars of who posted, open
+- `ui/src/screens/FeedScreen.tsx` (*edit*): `LockedFeed` state — blurred avatars of who posted, open
   tags (`useOpenTags`), "Post to unlock" → navigates to camera. Loading state until the first
   `sync()` resolves (never show last session's items).
-- `src/store/profilePostsStore.ts`, `src/screens/UserProfileScreen.tsx`,
-  `src/components/ProfileMediaMap.tsx` (*edit*): use `getUserPosts` + signed URLs; locked profiles show
+- `ui/src/store/profilePostsStore.ts`, `ui/src/screens/UserProfileScreen.tsx`,
+  `ui/src/components/ProfileMediaMap.tsx` (*edit*): use `getUserPosts` + signed URLs; locked profiles show
   the same "Post to unlock".
-- `src/components/PostDetailModal.tsx` (*edit*): fetch through the gated RPC.
+- `ui/src/components/PostDetailModal.tsx` (*edit*): fetch through the gated RPC.
 - Flag: `feed-lock-explainer` (UI only — the banner's wording); server switch = `app_config.feed_lock_enabled`.
 
 **Verify (pgTAP, red first):**
@@ -509,7 +509,7 @@ for both the post data and the image files.
 a missed tag's 48 hours puts the streak back to 0 (`streak_lost` notice) and keeps the feed locked until
 a friend tags you again; the best streak stays on show; existing streaks restart at 0, best kept. No
 rest days, training days, weekly calendar or streak calendar. Server: `20261001120000_reactive_posting.sql`
-(`reactive_posting_open`, test `supabase/tests/reactive_posting_test.sql`); app: `src/lib/reactivePosting.ts`.
+(`reactive_posting_open`, test `supabase/tests/reactive_posting_test.sql`); app: `ui/src/lib/reactivePosting.ts`.
 Rules in [architecture.md](./architecture.md#reactive-posting).*
 `supabase/migrations/20260917115316_points.sql` (+ rollback, tested by applying it locally;
 `supabase/tests/points_test.sql`, 10 checks, flip-tested by removing the cap). Differences from the
@@ -544,17 +544,17 @@ design below:
   rule, it runs inside `create_post` from `v_today` only, and `visits += 1` on every post. If #1 is
   the weekly streak: `week = date_trunc('week', v_today)`; `last_post_week = week` → unchanged;
   `= week - 7 days` → `streak_weeks += 1`; else → `1`; best kept in `streak_highest`.
-- `get_feed`, `get_user_posts`, `searchProfiles` (`src/api/profile.ts`) and `get_taggable_friends`
+- `get_feed`, `get_user_posts`, `searchProfiles` (`ui/src/api/profile.ts`) and `get_taggable_friends`
   return `points`.
 - Drop `fitness_routine` from the streak rule (the column stays until a later cleanup).
 
 **Client**
-- `src/types/database.ts` regenerated.
-- `src/components/PointsBadge.tsx` (fire icon + count, theme tokens) used on feed cards, profiles,
+- `ui/src/types/database.ts` regenerated.
+- `ui/src/components/PointsBadge.tsx` (fire icon + count, theme tokens) used on feed cards, profiles,
   search rows, tag sheet rows.
-- `src/components/RestDaysStreakPanel.tsx` (*edit*): remove rest-day toggles; grid shows posted days
+- `ui/src/components/RestDaysStreakPanel.tsx` (*edit*): remove rest-day toggles; grid shows posted days
   and the week streak. `updateFitnessRoutine` removed (`TrainingDaysScreen` is already gone, 2026-10-01).
-- `src/components/CreateAccountSheet.tsx` (*edit*): drop the training-days step.
+- `ui/src/components/CreateAccountSheet.tsx` (*edit*): drop the training-days step.
 - Flag: `mahi-points`.
 
 **Verify (pgTAP):** answering 5 tags in one day → 3 points; concurrent answer of the same challenge →
@@ -580,14 +580,14 @@ the migration, green after). Differences from the design below:
   `update_convo_updated_at` became `SECURITY DEFINER` so the tighter policy can't break an old
   build's direct insert.
 - **One inbox function, two lists:** `get_inbox(p_status)` serves both the inbox and the request
-  list, and replaces the two-query merge in `src/api/messages.ts`.
+  list, and replaces the two-query merge in `ui/src/api/messages.ts`.
 - **No `message` notification type.** `send_message` enqueues the push itself, so chat never fills
   the in-app notifications list. Dedupe is per sender per conversation per minute.
 - **App:** `conversationStore` (messages per conversation, `loadOlder`, optimistic send keyed by
   `client_id`, re-reads the newest page on realtime reconnect and on foreground);
   `useConversation` is now a thin wrapper with no `supabase`/`api` imports; unread dots on
   `MessagesScreen` in the accent token; a failed send puts the text back in the box.
-  `src/store/__tests__/conversationStore.test.ts` (4 checks) covers the message-swap bug —
+  `ui/src/store/__tests__/conversationStore.test.ts` (4 checks) covers the message-swap bug —
   flip-tested by keying the merge on `id` again (2 red).
 
 **Goal:** chat is paginated, idempotent, pushes on new messages, and has server-side unread counts.
@@ -600,21 +600,21 @@ the migration, green after). Differences from the design below:
 - `get_messages(p_conversation_id, p_before timestamptz, p_limit)` — newest page first.
 - `mark_conversation_read(p_conversation_id)` — upsert `last_read_at = now()`.
 - `get_inbox()` — conversations with last message, other profile and `unread_count` in one query
-  (replaces the two-query merge in `src/api/messages.ts`).
+  (replaces the two-query merge in `ui/src/api/messages.ts`).
 - Contract later (`contract_messages`, after the version gate covers this build): revoke direct
   `INSERT` on `messages`.
 
 **Client**
-- `src/api/messages.ts` (*edit*): `sendMessage(clientId)` → RPC, `getMessages(before)`, `getInbox()`,
+- `ui/src/api/messages.ts` (*edit*): `sendMessage(clientId)` → RPC, `getMessages(before)`, `getInbox()`,
   `markRead()`.
-- `src/store/conversationStore.ts` (copy `socialStore.ts` channel registry): messages per
+- `ui/src/store/conversationStore.ts` (copy `socialStore.ts` channel registry): messages per
   conversation, `loadOlder()`, optimistic send keyed by `client_id` (the realtime INSERT replaces the
   row with the same `client_id`, so fast double-sends can't swap), `reset()` wired into `App.tsx`.
-- `src/hooks/useConversation.ts` (*edit*): becomes a thin wrapper over `conversationStore` (removes the
+- `ui/src/hooks/useConversation.ts` (*edit*): becomes a thin wrapper over `conversationStore` (removes the
   direct `supabase`/`api` imports).
 - `conversationStore` re-fetches the newest page when the realtime channel reconnects and when the
   app returns to the foreground, so a dropped connection never leaves a gap (no polling).
-- `src/screens/ConversationScreen.tsx` (*edit*): load older on scroll; mark read on open and on new
+- `ui/src/screens/ConversationScreen.tsx` (*edit*): load older on scroll; mark read on open and on new
   message while open. `MessagesScreen.tsx` (*edit*): unread dots from `unread_count`.
 - Flag: none (messaging has no flag).
 
@@ -650,8 +650,8 @@ the migration, green after). Differences from the design below:
   against the unique index; tokens stay 16 random bytes as hex. `claim_invite` and
   `get_invite_preview` take either. `pgcrypto` lives in the `extensions` schema on this project,
   so `gen_random_bytes` is called qualified.
-- **App:** `src/lib/inviteLink.ts` (pure, 8 Jest checks), `src/api/invites.ts`,
-  `src/store/inviteStore.ts` (token in memory only — invites expire), `src/hooks/useInviteLink.ts`
+- **App:** `ui/src/lib/inviteLink.ts` (pure, 8 Jest checks), `ui/src/api/invites.ts`,
+  `ui/src/store/inviteStore.ts` (token in memory only — invites expire), `ui/src/hooks/useInviteLink.ts`
   wired once in `App.tsx`. The tag sheet's slot counter counts invites; posting hands each link to
   the share sheet in turn, because a link is for one person and works once. Sign-up shows who
   invited you, or a code field when the app wasn't opened by the link. Flag `invite-links`.
@@ -684,9 +684,9 @@ the migration, green after). Differences from the design below:
   `togethermahi.com/i/*`.
 
 **Client**
-- `src/lib/inviteLink.ts`: parse token from a URL (pure, unit-tested).
-- `src/api/invites.ts`: `claimInvite()`, `getInvitePreview()`.
-- `src/hooks/useInviteLink.ts`: listens to `Linking` URLs, holds the pending token in memory (and
+- `ui/src/lib/inviteLink.ts`: parse token from a URL (pure, unit-tested).
+- `ui/src/api/invites.ts`: `claimInvite()`, `getInvitePreview()`.
+- `ui/src/hooks/useInviteLink.ts`: listens to `Linking` URLs, holds the pending token in memory (and
   in `signUpStore` during sign-up, which already persists mid-flow), claims after sign-up.
 - `CameraScreen.tsx` TagSheet (*edit*): "Invite someone" fills a slot; after `create_post`, open the
   share sheet with the returned links.
@@ -708,7 +708,7 @@ Device — share link → install → sign up with code → tag appears with 48 
 *Measurement built 2026-09-23, live the same day. The beta itself waits on everything shipping and on
 decision #12.* `supabase/migrations/20260923101500_stats_views.sql` (+ rollback;
 `supabase/tests/stats_test.sql`, 19 checks, red before the migration, green after),
-`src/lib/analytics.ts`.
+`ui/src/lib/analytics.ts`.
 
 - **The numbers of record** are five views in their own `stats` schema, so PostgREST never
   exposes them and the app never reads them — the owner reads them in the SQL editor.
@@ -718,7 +718,7 @@ decision #12.* `supabase/migrations/20260923101500_stats_views.sql` (+ rollback;
   `stats.users_weekly` (accounts vs who posted). Between them they answer all four starter
   targets in decision #12.
 - **Seven PostHog events**, each sent only after the server confirms, through one typed map in
-  `src/lib/analytics.ts` so the names can't drift: `tag_sent` (one per post, with the tag and
+  `ui/src/lib/analytics.ts` so the names can't drift: `tag_sent` (one per post, with the tag and
   invite counts), `tag_answered`, `tag_missed`, `invite_shared`, `invite_claimed`,
   `feed_unlocked`, `push_opened`. `tag_missed` and `streak_lost` (2026-10-01) are read off their
   notifications, once per missed tag each: `tag_missed` by the tagger, `streak_lost` by the person
@@ -735,7 +735,7 @@ decision #12.* `supabase/migrations/20260923101500_stats_views.sql` (+ rollback;
 
 ## 5. What similar apps taught (patterns only, no code copied)
 
-Mahi keeps its own shape: Postgres RPCs called from `src/api/`, Zustand stores, no TanStack Query,
+Mahi keeps its own shape: Postgres RPCs called from `ui/src/api/`, Zustand stores, no TanStack Query,
 no action-router Edge Functions. From a read-only review of similar apps, these patterns are adopted:
 
 | Pattern | Used in |
@@ -777,7 +777,7 @@ Every migration that replaces a live function ends with `NOTIFY pgrst, 'reload s
 
 Rules: never edit a migration once it has been pushed; each one is written with its rollback and
 pgTAP test, backed up for, pushed to production with `supabase db push` when the owner says so, then
-tested with `supabase test db --linked`. Regenerate `src/types/database.ts` after each.
+tested with `supabase test db --linked`. Regenerate `ui/src/types/database.ts` after each.
 
 ## 7. New and changed hooks (summary)
 

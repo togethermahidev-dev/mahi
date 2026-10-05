@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # pnpm version comes from the packageManager field in package.json.
+      # pnpm version comes from the packageManager field in the root package.json.
       - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v7
@@ -69,8 +69,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # The app (and its Jest config) is in ui/.
       - name: Jest
-        run: pnpm exec jest --ci --maxWorkers=2
+        run: pnpm --dir ui exec jest --ci --maxWorkers=2
 
       # The guard hook's own tests and the release preflight's. Plain node, no dependencies.
       - name: Script tests

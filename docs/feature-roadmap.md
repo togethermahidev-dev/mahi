@@ -21,7 +21,7 @@ every other feature does.
 - **Layers touched** is filled per the contract. "none" means that layer is untouched.
 - **Security/Privacy** is mandatory — every DB change names its RLS posture; every native capability names its permission + consent cache.
 - **Verify (red→green)** — every feature ships with a flip test: make it fail first (RED), then pass (GREEN). A green never seen red is not trusted.
-- **No `process.env`** — read config from `src/lib/env.ts`. **No hardcoded values** — use `src/constants/tokens.ts` (and `useAppTheme()` for light/dark). **Every new store's `reset()` must be wired into the `App.tsx` sign-out branch.**
+- **No `process.env`** — read config from `ui/src/lib/env.ts`. **No hardcoded values** — use `ui/src/constants/tokens.ts` (and `useAppTheme()` for light/dark). **Every new store's `reset()` must be wired into the `App.tsx` sign-out branch.**
 
 > ⚠ **Codebase fact that overrides any tooling suggestion:** this app uses **hand-rolled gesture navigation**
 > (`HorizontalNavigator`: one row of swipe pages, Camera ⇄ Feed ⇄ Profile ⇄ Messages, with the phone's tab bar
@@ -60,7 +60,7 @@ Goal: make existing features findable and fix navigation feel. All UI-only, no b
 
 **Status (2026-10-05):** built — Messages has its own magnifier. The Camera's pull-down went with up/down swiping (decision #60), so search is reached from the magnifier on the Profile screen (decision #64), Messages, and the empty feed's "Find friends".
 
-**Behavior when written (2026-09-23):** search lived **only** behind a pull-down gesture on `CameraScreen` → `GlobalSearchOverlay` (mounted in the up/down navigator, since removed; opened on `dy>80`). The overlay already does `searchProfiles()` and opens `UserProfileScreen`, and **already filters blocked users** ([GlobalSearchOverlay.tsx:141-143](../src/components/GlobalSearchOverlay.tsx#L141-L143)).
+**Behavior when written (2026-09-23):** search lived **only** behind a pull-down gesture on `CameraScreen` → `GlobalSearchOverlay` (mounted in the up/down navigator, since removed; opened on `dy>80`). The overlay already does `searchProfiles()` and opens `UserProfileScreen`, and **already filters blocked users** ([GlobalSearchOverlay.tsx:141-143](../ui/src/components/GlobalSearchOverlay.tsx#L141-L143)).
 
 **Approach:** add a search entry point (a header search pill/icon) to `MessagesScreen` that mounts the **existing** `GlobalSearchOverlay` — reuse, don't rebuild. No new search logic.
 
@@ -78,7 +78,7 @@ Goal: make existing features findable and fix navigation feel. All UI-only, no b
 
 **Problem:** *"In messages, tap their icon to open their profile, and tap the message itself to open the conversation."*
 
-**Current behavior:** `ConvoRow` ([MessagesScreen.tsx:28-75](../src/screens/MessagesScreen.tsx#L28-L75)) wraps the **whole** row in one `TouchableOpacity` ([:50-74](../src/screens/MessagesScreen.tsx#L50-L74)) whose `onPress` opens the conversation. Avatar is not independently tappable.
+**Current behavior:** `ConvoRow` ([MessagesScreen.tsx:28-75](../ui/src/screens/MessagesScreen.tsx#L28-L75)) wraps the **whole** row in one `TouchableOpacity` ([:50-74](../ui/src/screens/MessagesScreen.tsx#L50-L74)) whose `onPress` opens the conversation. Avatar is not independently tappable.
 
 **Approach:** split the touch targets — wrap the avatar in its own `TouchableOpacity` → opens `UserProfileScreen` (same overlay pattern used by FeedScreen/GlobalSearchOverlay); keep the rest of the row → opens `ConversationScreen`. Give each adequate `hitSlop`.
 
@@ -96,7 +96,7 @@ Goal: make existing features findable and fix navigation feel. All UI-only, no b
 
 **Problem:** *"In notifications, when you press their icon, the profile should swipe in from the right instead of just appearing."*
 
-**Current behavior:** notification avatar tap → `onOpenProfile(actor_id)` ([NotificationsScreen.tsx:114-118](../src/screens/NotificationsScreen.tsx#L114-L118)) → `setProfileUserId` (in `HorizontalNavigator` since 2026-10-05) → `UserProfileScreen` renders **instantly** at `zIndex 510` with no entry animation. FeedScreen and GlobalSearchOverlay open it the same instant way. The swipe-right spring already exists in `HorizontalNavigator` (`SPRING`).
+**Current behavior:** notification avatar tap → `onOpenProfile(actor_id)` ([NotificationsScreen.tsx:114-118](../ui/src/screens/NotificationsScreen.tsx#L114-L118)) → `setProfileUserId` (in `HorizontalNavigator` since 2026-10-05) → `UserProfileScreen` renders **instantly** at `zIndex 510` with no entry animation. FeedScreen and GlobalSearchOverlay open it the same instant way. The swipe-right spring already exists in `HorizontalNavigator` (`SPRING`).
 
 **Approach:** give `UserProfileScreen` a reusable entry animation — an `Animated.Value` translateX from `SCREEN_WIDTH`→0 on mount using the HorizontalNavigator spring params. Apply it to **all** overlay opens (notifications, feed, search) so the motion is consistent, not a one-off.
 
@@ -118,7 +118,7 @@ Goal: make existing features findable and fix navigation feel. All UI-only, no b
 
 **Problem:** *"Like and Comment too big — slightly smaller and moved up. The touch area struggles to open comments — make the hit area bigger while keeping the icons smaller."*
 
-**Current behavior:** right-side action column on a feed post — Heart ~44px, Comment ~42px, `gap:4`, at `right:12, bottom:100`; comment already has `hitSlop:12` (commit `6dc083d`). Handlers `handleLike`/`handleCommentPress` ([FeedScreen.tsx:261-271](../src/screens/FeedScreen.tsx#L261-L271)); icons in [ScreenIcons.tsx:172-189](../src/components/ScreenIcons.tsx#L172-L189). Comment opens `CommentSheet`.
+**Current behavior:** right-side action column on a feed post — Heart ~44px, Comment ~42px, `gap:4`, at `right:12, bottom:100`; comment already has `hitSlop:12` (commit `6dc083d`). Handlers `handleLike`/`handleCommentPress` ([FeedScreen.tsx:261-271](../ui/src/screens/FeedScreen.tsx#L261-L271)); icons in [ScreenIcons.tsx:172-189](../ui/src/components/ScreenIcons.tsx#L172-L189). Comment opens `CommentSheet`.
 
 **Approach:** decouple **icon size** from **hit target**. Shrink icons to ~32px; raise the column (`bottom:100` → ~`140`); wrap each icon in a larger `Pressable` (e.g. 48×48 min target) and/or raise `hitSlop` to ~16–20. Keep the icons visually small while the tappable area grows.
 
@@ -136,7 +136,7 @@ Goal: make existing features findable and fix navigation feel. All UI-only, no b
 
 **Problem:** *"On the profile page, press the profile picture and it enlarges."*
 
-**Current behavior:** the avatar is a plain `Image` with no `onPress` ([AvatarPicker.tsx:248-249](../src/components/AvatarPicker.tsx#L248-L249)); only the "＋" edit button is tappable ([:275-284](../src/components/AvatarPicker.tsx#L275-L284)).
+**Current behavior:** the avatar is a plain `Image` with no `onPress` ([AvatarPicker.tsx:248-249](../ui/src/components/AvatarPicker.tsx#L248-L249)); only the "＋" edit button is tappable ([:275-284](../ui/src/components/AvatarPicker.tsx#L275-L284)).
 
 **Approach:** wrap the avatar `Image` in a `TouchableOpacity` that opens a full-screen `Modal` showing the avatar large on a dim scrim; dismiss on tap/close. Keep the "＋" edit affordance separate (don't hijack its tap).
 
@@ -154,7 +154,7 @@ Goal: make existing features findable and fix navigation feel. All UI-only, no b
 
 **Problem:** *"There's a glitch where sometimes swiping to your profile doesn't show older posts."*
 
-**Current behavior / hypothesis:** `ProfileScreen` is **always mounted** in `HorizontalNavigator` and never unmounts. `useProfilePosts` ([src/hooks/useProfilePosts.ts:10-12](../src/hooks/useProfilePosts.ts#L10-L12)) calls `sync()` once in a `userId`-keyed `useEffect`; `userId` is constant (own profile), so it runs **once on mount**. If that first sync raced (ran before profile/session was ready and returned empty) or the grid's `loadMore`/`onEndReached` isn't firing, older pages never (re)load.
+**Current behavior / hypothesis:** `ProfileScreen` is **always mounted** in `HorizontalNavigator` and never unmounts. `useProfilePosts` ([src/hooks/useProfilePosts.ts:10-12](../ui/src/hooks/useProfilePosts.ts#L10-L12)) calls `sync()` once in a `userId`-keyed `useEffect`; `userId` is constant (own profile), so it runs **once on mount**. If that first sync raced (ran before profile/session was ready and returned empty) or the grid's `loadMore`/`onEndReached` isn't firing, older pages never (re)load.
 
 **Approach (confirm root cause first, then minimal fix):**
 1. **Reproduce + confirm** which failure it is (empty-first-sync vs loadMore-not-firing) — add a temporary log of `posts.length / hasMore / isSyncing` on profile focus.
@@ -180,7 +180,7 @@ Native capability work. Ship in this order (lowest risk first): **pinch-zoom →
 
 **Problem:** *"Zoom in on photos."*
 
-**Current behavior:** `DualPhotoPreview` ([CameraScreen.tsx:181-506](../src/screens/CameraScreen.tsx#L181-L506)) shows the primary photo with `resizeMode:'cover'` ([:347-351](../src/screens/CameraScreen.tsx#L347-L351)); the PiP already uses RNGH pan+tap ([:271-308](../src/screens/CameraScreen.tsx#L271-L308)). No pinch anywhere.
+**Current behavior:** `DualPhotoPreview` ([CameraScreen.tsx:181-506](../ui/src/screens/CameraScreen.tsx#L181-L506)) shows the primary photo with `resizeMode:'cover'` ([:347-351](../ui/src/screens/CameraScreen.tsx#L347-L351)); the PiP already uses RNGH pan+tap ([:271-308](../ui/src/screens/CameraScreen.tsx#L271-L308)). No pinch anywhere.
 
 **Approach:** wrap the primary photo in a `Gesture.Pinch()` (+ optional pan when zoomed) driving Reanimated shared values (`scale`, `transX`, `transY`); double-tap to reset. Reuse the gesture stack already in the file.
 
@@ -198,7 +198,7 @@ Native capability work. Ship in this order (lowest risk first): **pinch-zoom →
 
 **Problem:** *"0.5 photos?"*
 
-**Current behavior:** `<CameraView>` ([CameraScreen.tsx:1089](../src/screens/CameraScreen.tsx#L1089)) only passes `facing`. No zoom/lens props. `expo-camera ~55.0.10` supports `zoom` (0–1) and, on iOS, lens selection.
+**Current behavior:** `<CameraView>` ([CameraScreen.tsx:1089](../ui/src/screens/CameraScreen.tsx#L1089)) only passes `facing`. No zoom/lens props. `expo-camera ~55.0.10` supports `zoom` (0–1) and, on iOS, lens selection.
 
 **Approach:** add `selectedLens` state + small lens toggle (0.5× / 1×) in the camera controls; wire to expo-camera's zoom/lens API. Handle iOS (lens types) vs Android (zoom factor) differences behind one helper.
 
@@ -216,7 +216,7 @@ Native capability work. Ship in this order (lowest risk first): **pinch-zoom →
 
 **Problem:** *"Landscape photos?"*
 
-**Current behavior:** orientation locked portrait ([app.config.js:8](../app.config.js)). Capture pipeline `takePhoto()` ([CameraScreen.tsx:816-828](../src/screens/CameraScreen.tsx#L816-L828)) bakes EXIF orientation via `manipulateAsync`. PiP clamp math ([:209](../src/screens/CameraScreen.tsx#L209)) assumes portrait height.
+**Current behavior:** orientation locked portrait ([app.config.js:8](../ui/app.config.js)). Capture pipeline `takePhoto()` ([CameraScreen.tsx:816-828](../ui/src/screens/CameraScreen.tsx#L816-L828)) bakes EXIF orientation via `manipulateAsync`. PiP clamp math ([:209](../ui/src/screens/CameraScreen.tsx#L209)) assumes portrait height.
 
 **Approach:** allow landscape capture by tracking device orientation (RN `Dimensions`/`useWindowDimensions`, or `expo-screen-orientation` if a manual lock is needed) and making the PiP clamp + pill layout responsive to aspect ratio. **This is the heaviest media item** — the preview/PiP/feed all assume portrait.
 
@@ -240,15 +240,15 @@ Native capability work. Ship in this order (lowest risk first): **pinch-zoom →
 
 **Problem:** *"Add location? Native permission request on onboarding or when needed, local cache to remember the user's decision."*
 
-**Current behavior:** posts created in `CameraScreen` `createPost()` ([:959-966](../src/screens/CameraScreen.tsx#L959-L966)) → `posts` table ([database.ts:314-350](../src/types/database.ts#L314-L350)) which has **no location columns**. Permission pattern to mirror: `useCameraPermissions` ([CameraScreen.tsx:764-765](../src/screens/CameraScreen.tsx#L764-L765)). Consent-cache pattern to mirror: `src/lib/otp.ts` (AsyncStorage). There is already a media map (`ProfileMediaMap` / `ProfileMediaMapModal`) location can feed.
+**Current behavior:** posts created in `CameraScreen` `createPost()` ([:959-966](../ui/src/screens/CameraScreen.tsx#L959-L966)) → `posts` table ([database.ts:314-350](../ui/src/types/database.ts#L314-L350)) which has **no location columns**. Permission pattern to mirror: `useCameraPermissions` ([CameraScreen.tsx:764-765](../ui/src/screens/CameraScreen.tsx#L764-L765)). Consent-cache pattern to mirror: `ui/src/lib/otp.ts` (AsyncStorage). There is already a media map (`ProfileMediaMap` / `ProfileMediaMapModal`) location can feed.
 
 **Approach (full-stack, follow [adding-a-feature.md](./adding-a-feature.md)):**
 1. **DB (migration):** add `posts.latitude float8 null`, `posts.longitude float8 null` (nullable — posts without location stay valid). Update `get_feed_posts` only if location is shown in feed.
-2. **Native + consent:** add `expo-location` + the iOS `NSLocationWhenInUseUsageDescription` plist string in `app.config.js`. New `src/lib/location.ts` (mirror `otp.ts`): `requestLocationPermission()`, `getCurrentLocation()`, and an AsyncStorage **consent cache** so the user is asked once (on first post attempt that uses location, not forced at onboarding).
-3. **API:** extend `createPost(opts)` in `src/api/posts.ts` with optional `latitude?/longitude?`; thread into the insert.
+2. **Native + consent:** add `expo-location` + the iOS `NSLocationWhenInUseUsageDescription` plist string in `app.config.js`. New `ui/src/lib/location.ts` (mirror `otp.ts`): `requestLocationPermission()`, `getCurrentLocation()`, and an AsyncStorage **consent cache** so the user is asked once (on first post attempt that uses location, not forced at onboarding).
+3. **API:** extend `createPost(opts)` in `ui/src/api/posts.ts` with optional `latitude?/longitude?`; thread into the insert.
 4. **UI:** in `CameraScreen` post flow, if consent granted, attach coordinates; expose a per-post location toggle.
 
-**Layers touched** — DB: `posts` (+2 cols, RLS unchanged but **review read exposure**) · lib: new `src/lib/location.ts` (consent cache) · API: `posts.ts createPost` · Store: none (consent in AsyncStorage) · UI: `CameraScreen` toggle; optionally surface on `ProfileMediaMap`. · **Deps:** `expo-location`.
+**Layers touched** — DB: `posts` (+2 cols, RLS unchanged but **review read exposure**) · lib: new `ui/src/lib/location.ts` (consent cache) · API: `posts.ts createPost` · Store: none (consent in AsyncStorage) · UI: `CameraScreen` toggle; optionally surface on `ProfileMediaMap`. · **Deps:** `expo-location`.
 
 **Security/Privacy (mandatory):** location is **per-post and inherits the post's public read RLS** — anyone who can see the post can see its coordinates. So: (a) **explicit opt-in per post**, never silent; (b) cache the consent decision locally; (c) consider rounding/truncating coordinates (e.g. ~city block) to avoid exact-home exposure; (d) document this in `RULES.md`. Do **not** request location at onboarding by default — request on first use.
 
@@ -268,13 +268,13 @@ Native capability work. Ship in this order (lowest risk first): **pinch-zoom →
 
 **Problem:** *"Suggested follow users?"*
 
-**Current behavior:** none. The follow graph (`follows` table) + `get_follow_data` RPC ([follows.ts:78-94](../src/api/follows.ts#L78-L94)) and block set ([blockStore.ts:12-46](../src/store/blockStore.ts#L12-L46)) already exist as the building blocks.
+**Current behavior:** none. The follow graph (`follows` table) + `get_follow_data` RPC ([follows.ts:78-94](../ui/src/api/follows.ts#L78-L94)) and block set ([blockStore.ts:12-46](../ui/src/store/blockStore.ts#L12-L46)) already exist as the building blocks.
 
 **Approach (full-stack, copy the follow templates):**
 1. **DB (migration):** `SECURITY DEFINER` RPC `get_suggested_follows(p_current_user_id uuid, p_limit int, p_offset int)` returning profile rows. Logic: **follow-of-follows** ranked by mutual count, **excluding** self, already-followed, and blocked (both directions). Optional fallback to "popular users" when the user has < 3 connections. Must be set-based SQL (self-joins on `follows`), not row-by-row — check the query plan for N+1.
-2. **API:** add `SuggestedUser` type + `getSuggestedFollows()` to `src/api/follows.ts` (mirror `getFollowData`: `supabase.rpc(...)`, wrap errors).
-3. **Store:** new `src/store/suggestStore.ts` — copy `followStore.ts` (optimistic toggle + `reset()`). **Wire `reset()` into `App.tsx` sign-out.**
-4. **Hook:** new `src/hooks/useSuggestedFollows.ts` — copy `useFeed.ts` (thin; sync on mount).
+2. **API:** add `SuggestedUser` type + `getSuggestedFollows()` to `ui/src/api/follows.ts` (mirror `getFollowData`: `supabase.rpc(...)`, wrap errors).
+3. **Store:** new `ui/src/store/suggestStore.ts` — copy `followStore.ts` (optimistic toggle + `reset()`). **Wire `reset()` into `App.tsx` sign-out.**
+4. **Hook:** new `ui/src/hooks/useSuggestedFollows.ts` — copy `useFeed.ts` (thin; sync on mount).
 5. **UI:** new `SuggestedFollowsStrip.tsx` (horizontal `FlashList`), render below the follow counts on `UserProfileScreen` / `ProfileScreen`.
 
 **Layers touched** — DB: new RPC · API: `follows.ts` · Store: new `suggestStore.ts` (+ sign-out reset) · Hook: new `useSuggestedFollows.ts` · UI: new `SuggestedFollowsStrip.tsx`. · **Deps:** none.
@@ -293,15 +293,15 @@ Native capability work. Ship in this order (lowest risk first): **pinch-zoom →
 
 | Need | Copy / reference |
 |---|---|
-| Optimistic store + realtime | `src/store/followStore.ts` |
-| API fn shape `{data,error}` | `src/api/follows.ts` |
-| Thin hook (sync on mount) | `src/hooks/useFeed.ts` |
-| Thin hook (subscription) | `src/hooks/useNotifications.ts` |
+| Optimistic store + realtime | `ui/src/store/followStore.ts` |
+| API fn shape `{data,error}` | `ui/src/api/follows.ts` |
+| Thin hook (sync on mount) | `ui/src/hooks/useFeed.ts` |
+| Thin hook (subscription) | `ui/src/hooks/useNotifications.ts` |
 | Slide-in panel + spring | was `StreakGridPanel.tsx` / `TrainingDaysScreen.tsx` (`damping:22, stiffness:160, mass:0.9`); both gone, pop-ups are native page sheets now |
-| Swipe page spring | `SPRING` in `src/screens/HorizontalNavigator.tsx` |
-| Reusable search overlay | `src/components/GlobalSearchOverlay.tsx` (already block-filtered) |
-| Profile overlay open pattern | `src/screens/FeedScreen.tsx` avatar→`UserProfileScreen` |
-| AsyncStorage consent cache | `src/lib/otp.ts` |
-| Env access | `src/lib/env.ts` (never `process.env`) |
+| Swipe page spring | `SPRING` in `ui/src/screens/HorizontalNavigator.tsx` |
+| Reusable search overlay | `ui/src/components/GlobalSearchOverlay.tsx` (already block-filtered) |
+| Profile overlay open pattern | `ui/src/screens/FeedScreen.tsx` avatar→`UserProfileScreen` |
+| AsyncStorage consent cache | `ui/src/lib/otp.ts` |
+| Env access | `ui/src/lib/env.ts` (never `process.env`) |
 | Theme colors | `useAppTheme().colors` (never hardcoded hex) |
 | Sign-out reset wiring | `App.tsx` sign-out `else` block |

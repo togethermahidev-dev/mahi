@@ -13,6 +13,8 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
+/** The Expo app (app.config.js, eas.json, src/) lives in ui/. */
+const APP = path.join(ROOT, 'ui');
 const MIGRATIONS = path.join(ROOT, 'supabase', 'migrations');
 /** Mahi's EAS project (togethermahis-organization). */
 const EAS_PROJECT_ID = 'e05bad51-f352-464e-b344-78d7d60b5ce4';
@@ -149,7 +151,7 @@ function laneProblems(eas, expectedProjectId, configProjectId) {
 }
 
 function main() {
-  const config = require(path.join(ROOT, 'app.config.js'));
+  const config = require(path.join(APP, 'app.config.js'));
   const files = fs
     .readdirSync(MIGRATIONS)
     .filter((f) => f.endsWith('.sql'))
@@ -163,9 +165,9 @@ function main() {
     gates,
   });
 
-  const eas = JSON.parse(fs.readFileSync(path.join(ROOT, 'eas.json'), 'utf8'));
+  const eas = JSON.parse(fs.readFileSync(path.join(APP, 'eas.json'), 'utf8'));
   const otaMatch = /OTA_NUMBER\s*=\s*(\d+);/.exec(
-    fs.readFileSync(path.join(ROOT, 'src', 'constants', 'ota.ts'), 'utf8')
+    fs.readFileSync(path.join(APP, 'src', 'constants', 'ota.ts'), 'utf8')
   );
   found.push(
     ...numberProblems(

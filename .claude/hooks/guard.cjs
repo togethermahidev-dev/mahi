@@ -24,6 +24,9 @@ const FILE_ATTRIBUTION = new RegExp(
 // write tool is blocked until someone looks at it).
 const MCP_READ_TOOL = /^(list_\w+|get_\w+|search_docs|generate_typescript_types|execute_sql)$/;
 
+// `pnpm <script>` from the root, or straight in the app: pnpm --dir ui / -C ui / --filter ./ui.
+const PNPM_RUN = String.raw`\bpnpm\s+(?:(?:--dir|-C|--filter)(?:=|\s+)\S+\s+)*(?:run\s+)?`;
+
 const deny = (reason) => ({ decision: 'deny', reason });
 const ask = (reason) => ({ decision: 'ask', reason });
 const note = (reason) => ({ decision: 'note', reason });
@@ -53,7 +56,7 @@ function hasFreshBackup(cwd, now, config) {
 const RELEASE_RE =
   /\b(eas|ota|otas|testflight|app ?store|play ?store|build ?numbers?|native build|update gate|min_version|min_build|runtime ?version|version ?control|release)\b|\b(preview|dev|development|production|prod|store|ios|android)\s+(build|lane|app)s?\b|\blanes?\b/;
 const RELEASE_NOTE =
-  '[guard: release rules] This prompt is about builds, updates, versions or lanes. Read the /version-control skill (.claude/skills/version-control/SKILL.md) first and check live state (app.config.js, eas.json, src/constants/ota.ts) before saying a command works. The owner runs builds and production steps; store releases come only from the production profile, never testflight. Never change version or the gate without the owner.';
+  '[guard: release rules] This prompt is about builds, updates, versions or lanes. Read the /version-control skill (.claude/skills/version-control/SKILL.md) first and check live state (ui/app.config.js, ui/eas.json, ui/src/constants/ota.ts) before saying a command works. EAS runs from ui/. The owner runs builds and production steps; store releases come only from the production profile, never testflight. Never change version or the gate without the owner.';
 const DB_RE =
   /\b(supabase|migrations?|sql|database|db|rls|edge ?(fn|fns|functions?)|secrets?|pgtap)\b/;
 const DB_NOTE =
@@ -128,15 +131,17 @@ function checkBash(cmd, cwd, now, config) {
     return deny('This repo uses pnpm. Install from the repo root with pnpm (or npx expo install).');
   if (/--filter(=|\s+)(?!["']?\.\/)\S+/.test(cmd))
     return deny(
-      'Use the path form --filter ./web: the web package is named mahi-web, so --filter web matches nothing and passes silently.'
+      'Use the path form --filter ./web or --filter ./ui: the packages are named mahi-web and mahi-app, so --filter web matches nothing and passes silently.'
     );
-  if (/\bcd\s+["']?\.?\/?web\b[^;&|]*(&&|;)\s*pnpm\s+(add|install|i|remove|rm)\b/.test(cmd))
-    return deny('Install from the repo root: pnpm --filter ./web add <pkg>.');
+  if (/\bcd\s+["']?\.?\/?(web|ui)\b[^;&|]*(&&|;)\s*pnpm\s+(add|install|i|remove|rm)\b/.test(cmd))
+    return deny(
+      'Install from the repo root: pnpm --filter ./web add <pkg> or pnpm --filter ./ui add <pkg> (Expo packages: cd ui && npx expo install <pkg>).'
+    );
 
   // Releases (EAS and the package.json shortcuts)
   if (/\beas(-cli(@\S+)?)?\s+build:version:set\b/.test(cmd))
     return deny(
-      'Never set EAS build numbers. The one build number lives in app.config.js; use pnpm release:prepare.'
+      'Never set EAS build numbers. The one build number lives in ui/app.config.js; use pnpm release:prepare.'
     );
   if (/\beas(-cli(@\S+)?)?\s+submit\b|--auto-submit\b/.test(cmd))
     return deny('Store submission is owner-only.');
@@ -148,7 +153,7 @@ function checkBash(cmd, cwd, now, config) {
       /--profile(=|\s+)testflight\b/.test(cmd))
   )
     return deny('Production and App Store (testflight) EAS builds and updates are owner-only.');
-  if (/\bpnpm\s+(run\s+)?(build:(prod|production|testflight|all)|ota:prod|submit:\w+)\b/.test(cmd))
+  if (new RegExp(`${PNPM_RUN}(build:(prod|production|testflight|all)|ota:prod|submit:\\w+)\\b`).test(cmd))
     return deny('Production and store shortcuts are owner-only.');
   if (
     /\beas(-cli(@\S+)?)?\s+(channel:(edit|rollout|delete)|branch:(delete|rename)|update:(delete|republish))\b/.test(
@@ -158,7 +163,7 @@ function checkBash(cmd, cwd, now, config) {
     return ask(
       'This changes what phones on an update channel receive. Confirm the owner said go in this session.'
     );
-  if (/\bpnpm\s+(run\s+)?(build:preview|ota:preview)\b/.test(cmd))
+  if (new RegExp(`${PNPM_RUN}(build:preview|ota:preview)\\b`).test(cmd))
     return ask('Confirm this preview build / update is wanted (the owner says go in this session).');
 
   // Supabase (the linked project is production)
@@ -309,11 +314,11 @@ function checkFileWrite(tool, input, cwd, config) {
     if (/"autoIncrement"\s*:\s*true/.test(added))
       return deny('No autoIncrement in eas.json. The build number moves only by pnpm release:prepare.');
     if (/"appVersionSource"\s*:\s*"(?!local")/.test(added))
-      return deny('eas.json appVersionSource must stay "local" (one build number in app.config.js).');
+      return deny('eas.json appVersionSource must stay "local" (one build number in ui/app.config.js).');
   }
-  if (rel === 'app.config.js') return checkAppConfig(tool, input, abs);
+  if (rel === path.join(config.appDir, 'app.config.js')) return checkAppConfig(tool, input, abs);
   if (path.dirname(rel) === path.normalize(config.migrationsDir)) return checkMigration(rel, cwd, config);
-  if (rel.startsWith(`src${path.sep}`) && added && PERSIST_RE.test(added))
+  if (rel.startsWith(path.join(config.appDir, 'src') + path.sep) && added && PERSIST_RE.test(added))
     return note(
       'This keeps data on the device. Data that can expire or be withdrawn (posts, feeds, profiles, likes) must never be stored on the phone: show a loading state, then fresh server data. Ask the owner before building any list or feed.'
     );

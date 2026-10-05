@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
-import { COLORS } from '../../src/constants/tokens';
+import { COLORS } from '../../ui/src/constants/tokens';
 import './globals.css';
 
-// The app's one typeface. Weights and styles match FONTS in src/constants/fonts.ts
+// The app's one typeface. Weights and styles match FONTS in ui/src/constants/fonts.ts
 // (regular, semi-bold, bold; no italic); scripts/check-tokens.mjs fails the build if they drift.
 const inter = Inter({
   subsets: ['latin'],
