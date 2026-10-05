@@ -17,6 +17,10 @@ interface MessagesState {
   inbox: ConversationPreview[];
   requests: ConversationPreview[];
   isSyncing: boolean;
+  /** A read of the inbox and requests has worked this session (empty is then really empty). */
+  loaded: boolean;
+  /** The last read failed (cleared by one that works). */
+  error: boolean;
 
   sync: () => Promise<void>;
   accept: (conversationId: string) => Promise<void>;
@@ -40,6 +44,8 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
   inbox: [],
   requests: [],
   isSyncing: false,
+  loaded: false,
+  error: false,
 
   sync: async () => {
     if (get().isSyncing) return;
@@ -49,6 +55,8 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
 
     if (inboxResult.data) set({ inbox: inboxResult.data });
     if (requestsResult.data) set({ requests: requestsResult.data });
+    const failed = !inboxResult.data || !requestsResult.data;
+    set(failed ? { error: true } : { loaded: true, error: false });
     set({ isSyncing: false });
   },
 
@@ -217,6 +225,6 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     // Tear down all active channels
     msgChannels.forEach((ch) => supabase.removeChannel(ch));
     msgChannels.clear();
-    set({ inbox: [], requests: [], isSyncing: false });
+    set({ inbox: [], requests: [], isSyncing: false, loaded: false, error: false });
   },
 }));

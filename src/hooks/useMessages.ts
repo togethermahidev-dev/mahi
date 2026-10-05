@@ -5,7 +5,10 @@ import { useAuthStore, useConversationStore, useMessagesStore } from '@/store';
 export interface UseMessagesResult {
   inbox: ConversationPreview[];
   requests: ConversationPreview[];
+  /** Nothing read yet this session (a spinner, never "No messages yet"). */
   isLoading: boolean;
+  /** The read failed and the inbox is empty (show "Couldn't load…" with Try again). */
+  failed: boolean;
   refresh: () => void;
   accept: (conversationId: string) => Promise<void>;
   deny: (conversationId: string) => Promise<void>;
@@ -19,6 +22,8 @@ export function useMessages(): UseMessagesResult {
   const inbox = useMessagesStore((s) => s.inbox);
   const requests = useMessagesStore((s) => s.requests);
   const isSyncing = useMessagesStore((s) => s.isSyncing);
+  const loaded = useMessagesStore((s) => s.loaded);
+  const error = useMessagesStore((s) => s.error);
 
   useEffect(() => {
     if (!userId) return;
@@ -35,7 +40,8 @@ export function useMessages(): UseMessagesResult {
   return {
     inbox,
     requests,
-    isLoading: isSyncing && inbox.length === 0 && requests.length === 0,
+    isLoading: !loaded && !error && inbox.length === 0,
+    failed: error && inbox.length === 0,
     refresh: () => {
       if (userId) useMessagesStore.getState().sync();
     },

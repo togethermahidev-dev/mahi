@@ -180,7 +180,7 @@ export default function MessagesScreen({
   // Profile overlay — mirrors FeedScreen's local overlay state (avatar → profile).
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
-  const { inbox, requests, isLoading, refresh } = useMessages();
+  const { inbox, requests, isLoading, failed, refresh } = useMessages();
   const userId = useAuthStore((s) => s.user?.id);
   const menuOn = useContextMenuPreview();
 
@@ -283,7 +283,14 @@ export default function MessagesScreen({
           refreshing={isLoading}
           onRefresh={refresh}
           ListEmptyComponent={
-            !isLoading ? (
+            isLoading ? null : failed ? (
+              <ListState
+                kind="error"
+                dark={dark}
+                title="Couldn’t load messages"
+                onAction={refresh}
+              />
+            ) : (
               <ListState
                 kind="empty"
                 dark={dark}
@@ -292,7 +299,7 @@ export default function MessagesScreen({
                 actionLabel="Find friends"
                 onAction={() => setSearchVisible(true)}
               />
-            ) : null
+            )
           }
         />
       </ListGestureContext.Provider>

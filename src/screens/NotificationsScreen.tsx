@@ -86,7 +86,7 @@ export default function NotificationsScreen({
     ? withAlpha(COLORS.offWhite, ALPHA.a10)
     : withAlpha(COLORS.offBlack, ALPHA.a08);
 
-  const { items, isLoading, refresh, markRead, markAllRead } = useNotifications();
+  const { items, isLoading, failed, refresh, markRead, markAllRead } = useNotifications();
   const myId = useAuthStore((s) => s.user?.id);
   const openTags = useTagStore((s) => s.openTags);
   const serverOffsetMs = useTagStore((s) => s.serverOffsetMs);
@@ -312,6 +312,13 @@ export default function NotificationsScreen({
         {/* Notification list: what needs your answer first, then the rest. */}
         {isLoading ? (
           <ListState kind="loading" dark={dark} />
+        ) : failed ? (
+          <ListState
+            kind="error"
+            dark={dark}
+            title="Couldn’t load your notifications"
+            onAction={() => void refresh()}
+          />
         ) : (
           <FlashList
             data={listItems}

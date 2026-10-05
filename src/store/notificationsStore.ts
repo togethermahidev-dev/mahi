@@ -18,6 +18,10 @@ interface NotificationsState {
   items: NotificationWithActor[];
   unreadCount: number;
   isSyncing: boolean;
+  /** A read of the list has worked this session (an empty list is then really empty). */
+  loaded: boolean;
+  /** The last read of the list failed (cleared by one that works). */
+  error: boolean;
 
   sync: (userId: string) => Promise<void>;
   markRead: (notificationId: string) => Promise<void>;
@@ -33,6 +37,8 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   items: [],
   unreadCount: 0,
   isSyncing: false,
+  loaded: false,
+  error: false,
 
   sync: async (userId: string) => {
     if (get().isSyncing) return;
@@ -43,7 +49,8 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       getUnreadCount(userId),
     ]);
 
-    if (itemsResult.data) set({ items: itemsResult.data });
+    if (itemsResult.data) set({ items: itemsResult.data, loaded: true, error: false });
+    else set({ error: true });
     if (unreadResult.data != null) set({ unreadCount: unreadResult.data });
     set({ isSyncing: false });
   },
@@ -171,6 +178,6 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     // Tear down all active channels
     notifChannels.forEach((ch) => supabase.removeChannel(ch));
     notifChannels.clear();
-    set({ items: [], unreadCount: 0, isSyncing: false });
+    set({ items: [], unreadCount: 0, isSyncing: false, loaded: false, error: false });
   },
 }));

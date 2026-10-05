@@ -5,7 +5,10 @@ import type { NotificationWithActor } from '@/api';
 export interface UseNotificationsResult {
   items: NotificationWithActor[];
   unreadCount: number;
+  /** Nothing read yet this session (show a spinner, never "nothing here"). */
   isLoading: boolean;
+  /** The read failed and nothing is on screen (show "Couldn't load…" with Try again). */
+  failed: boolean;
   refresh: () => Promise<void>;
   markRead: (notificationId: string) => Promise<void>;
   markAllRead: () => Promise<void>;
@@ -16,7 +19,8 @@ export function useNotifications(): UseNotificationsResult {
   const userId = useAuthStore((s) => s.user?.id);
   const items = useNotificationsStore((s) => s.items);
   const unreadCount = useNotificationsStore((s) => s.unreadCount);
-  const isSyncing = useNotificationsStore((s) => s.isSyncing);
+  const loaded = useNotificationsStore((s) => s.loaded);
+  const error = useNotificationsStore((s) => s.error);
 
   useEffect(() => {
     if (!userId) return;
@@ -30,7 +34,8 @@ export function useNotifications(): UseNotificationsResult {
   return {
     items,
     unreadCount,
-    isLoading: isSyncing && items.length === 0,
+    isLoading: !loaded && !error && items.length === 0,
+    failed: error && items.length === 0,
     refresh: async () => {
       if (userId) await useNotificationsStore.getState().sync(userId);
     },
