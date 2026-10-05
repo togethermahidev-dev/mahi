@@ -17,6 +17,25 @@ screens/components → hooks → stores (Zustand, optimistic) → api ({data,err
 
 Full data flow + the per-layer import contract: [architecture.md](./architecture.md#layering-contract).
 
+**State on 2026-10-05 (newest first; older notes below):**
+- **Phones:** build 12 (there is no build 11 — the numbers went 10 → 12) on the preview iPhones and
+  TestFlight, both on the `preview` channel; latest update 12.06. Build 12 carries everything the
+  notes below call "build 11" (video, Apple icons, hold to preview, Didit, RevenueCat, tap to focus)
+  plus the phone's own tab bar.
+- **Navigation:** one row of swipe pages, Camera ⇄ Feed ⇄ Profile ⇄ Messages, sideways only, with the
+  tab bar on build 12 in the same order (decisions #60–#64). Search: the magnifier on the Profile
+  screen, in Messages, and "Find friends" on an empty feed.
+- **This round (12.04–12.06):** pinch to zoom on post photos (no switch), profile picture as a circle
+  (tap outside to close), smooth swipe off a profile, like/comment higher, live countdown on the open
+  feed, a "No tags to answer" card, invites that carry their code, refused posts keep their photos.
+- **Waiting on the database push (owner):** `20261002190000_tag_and_feed_pushes` and
+  `20261003120000_tag_slots` go together ([go-live-runbook.md](./go-live-runbook.md) step 2). The
+  tag-slots screen stays behind `tag-slots` (off) until then.
+- **Waiting on the team:** Q1–Q8 in Slack #questions-and-answers (decisions #65–#72); the invite-guard
+  database change is held until they're answered.
+- **After every OTA, build or push:** post in the right Slack channels and bring these notes up to
+  date ("/updateacross").
+
 **State on 2026-10-01:**
 - **Backend:** every migration in `supabase/migrations/` through `20261002130000_comment_likes` is live on
   production (checked against prod 2026-10-02); `20261002150000_identity_verifications` and
