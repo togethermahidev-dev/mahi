@@ -33,13 +33,13 @@ import { horizontalRelease, horizontalSwipe, rubberBand, type Rect } from '@/lib
 import { COLORS, SIZE, LAYER } from '@/constants/tokens';
 
 // ─── Pages ────────────────────────────────────────────────────────────────────
-// One row, left to right (founder, 2026-10-05): Camera ⇄ Feed ⇄ Profile. Sideways only — no
-// up/down swiping. Messages is not a swipe page: its tab, the rail or the header button opens it
-// over the pages.
+// One row, left to right, in the tab bar's order (founder, 2026-10-05): Camera ⇄ Feed ⇄ Profile ⇄
+// Messages. Sideways only — no up/down swiping.
 const PAGE_COUNT = SWIPE_PAGES.length;
-const CAMERA = 0;
-const FEED = 1;
-const PROFILE = 2;
+const CAMERA = tabPage('camera');
+const FEED = tabPage('feed');
+const PROFILE = tabPage('profile');
+const MESSAGES = tabPage('messages');
 
 /** The snap to a page. Runs even with Reduce Motion on, as it always has. */
 const SPRING = { damping: 22, stiffness: 160, mass: 0.9, reduceMotion: ReduceMotion.Never };
@@ -71,7 +71,6 @@ export default function HorizontalNavigator({
   const unreadNotifications = useNotificationsStore((s) => s.unreadCount);
 
   const [index, setIndex] = useState(CAMERA);
-  const [messagesOpen, setMessagesOpen] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
@@ -79,8 +78,8 @@ export default function HorizontalNavigator({
   const [feedOverlay, setFeedOverlay] = useState(false);
 
   // Something is open over the pages: they must not move under it.
-  const overlay = searchVisible || notifOpen || !!profileUserId || feedOverlay || messagesOpen;
-  const tab: RailTab = pageTab(index, messagesOpen);
+  const overlay = searchVisible || notifOpen || !!profileUserId || feedOverlay;
+  const tab: RailTab = pageTab(index);
   // A full-screen view the rail would sit on (someone's profile, search) hides it too.
   const covered = useChromeStore((s) => s.covers > 0);
   const railShown = railShows({ on: showRail, tab, overlay, covered });
@@ -109,9 +108,6 @@ export default function HorizontalNavigator({
     if (!railOwnsTouches) railRectSV.value = null;
   }, [railOwnsTouches, railRectSV]);
 
-  // Messages slides in over the pages from the right (0 = showing, 1 = off to the right).
-  const messagesX = useSharedValue(1);
-
   // The tab bar follows the pages.
   const onTabChange = tabBar?.onTabChange;
   useEffect(() => {
@@ -131,18 +127,6 @@ export default function HorizontalNavigator({
     page.value = withSpring(next, SPRING);
   };
 
-  const openMessages = () => {
-    if (messagesOpen) return;
-    setMessagesOpen(true);
-    haptic('tick');
-    messagesX.value = withSpring(0, SPRING);
-  };
-  const closeMessages = () => {
-    if (!messagesOpen) return;
-    setMessagesOpen(false);
-    messagesX.value = withSpring(1, SPRING);
-  };
-
   usePushRegistration();
   usePushRouting({
     openProfile: (uid) => {
@@ -153,13 +137,12 @@ export default function HorizontalNavigator({
     openCamera: () => {
       setNotifOpen(false);
       setProfileUserId(null);
-      closeMessages();
       navigate(CAMERA);
     },
     openMessages: () => {
       setNotifOpen(false);
       setProfileUserId(null);
-      openMessages();
+      navigate(MESSAGES);
     },
   });
 
@@ -167,6 +150,7 @@ export default function HorizontalNavigator({
   // vertical list starts tracking after ~10pt of movement, before this swipe decides at 20pt.
   const feedList = useMemo(() => Gesture.Native(), []);
   const profileList = useMemo(() => Gesture.Native(), []);
+  const messagesList = useMemo(() => Gesture.Native(), []);
 
   const safeInsets = { top: insets.top, bottom: insets.bottom };
 
@@ -174,7 +158,7 @@ export default function HorizontalNavigator({
   // UI thread.
   const swipe = Gesture.Pan()
     .manualActivation(true)
-    .simultaneousWithExternalGesture(feedList, profileList)
+    .simultaneousWithExternalGesture(feedList, profileList, messagesList)
     .onTouchesDown((e, manager) => {
       'worklet';
       const t = e.changedTouches[0];
@@ -225,14 +209,19 @@ export default function HorizontalNavigator({
     })
     .onUpdate((e) => {
       'worklet';
-      // Follows the finger; rubber-band resistance past Camera and Profile.
+      // Follows the finger; rubber-band resistance past Camera and Messages.
       page.value = rubberBand(base.value - (e.absoluteX - startX.value) / width, 0, PAGE_COUNT - 1);
     })
     .onEnd((e, success) => {
       'worklet';
       // Cut short (the phone took the touch): snap back to the page it started on.
       const next = success
-        ? horizontalRelease(indexSV.value, PAGE_COUNT, e.absoluteX - startX.value, e.velocityX / 1000)
+        ? horizontalRelease(
+            indexSV.value,
+            PAGE_COUNT,
+            e.absoluteX - startX.value,
+            e.velocityX / 1000
+          )
         : indexSV.value;
       indexSV.value = next;
       page.value = withSpring(next, SPRING);
@@ -240,15 +229,10 @@ export default function HorizontalNavigator({
     });
 
   const stripStyle = useAnimatedStyle(() => ({ transform: [{ translateX: -page.value * width }] }));
-  const messagesStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: messagesX.value * width }],
-  }));
 
-  // A tab (the phone's bar or the rail): Messages opens over the pages, the rest move them.
+  // A tab (the phone's bar or the rail) moves the pages to its page.
   const selectTab = (next: RailTab) => {
     const target = tabPage(next);
-    if (target === null) return openMessages();
-    closeMessages();
     // indexSV, not index: a drag along the rail can switch twice before the next render.
     if (indexSV.value !== target) navigate(target);
   };
@@ -264,7 +248,7 @@ export default function HorizontalNavigator({
     <AppHeader
       isDark={onCamera}
       onProfilePress={() => selectTab('profile')}
-      onMessagesPress={openMessages}
+      onMessagesPress={() => selectTab('messages')}
       showNavPills={showNavPills}
       unreadNotifications={unreadNotifications}
       onNotificationsPress={() => setNotifOpen(true)}
@@ -298,7 +282,7 @@ export default function HorizontalNavigator({
                 headerAnim={headerAnim}
                 onOverlayChange={setFeedOverlay}
                 listGesture={feedList}
-                isActive={index === FEED && !messagesOpen}
+                isActive={index === FEED}
               />
               <RNAnimated.View
                 pointerEvents="box-none"
@@ -323,21 +307,15 @@ export default function HorizontalNavigator({
 
             {/* Profile — always mounted; `isActive` re-syncs its posts when it comes into view. */}
             <View style={[styles.page, pageStyle]}>
-              <ProfileScreen
-                isActive={index === PROFILE && !messagesOpen}
-                listGesture={profileList}
-              />
+              <ProfileScreen isActive={index === PROFILE} listGesture={profileList} />
+            </View>
+
+            {/* Messages — the last page; its back button goes to the page on its left. */}
+            <View style={[styles.page, pageStyle]}>
+              <MessagesScreen onBack={() => navigate(PROFILE)} listGesture={messagesList} />
             </View>
           </Animated.View>
         </Strip>
-
-        {/* Messages, over the pages. Always mounted, so it keeps its place and stays live. */}
-        <Animated.View
-          pointerEvents={messagesOpen ? 'auto' : 'none'}
-          style={[styles.messages, messagesStyle]}
-        >
-          <MessagesScreen onBack={closeMessages} />
-        </Animated.View>
 
         {railShown ? (
           <NavRail
@@ -405,13 +383,5 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: LAYER.header,
-  },
-  messages: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: LAYER.raised,
   },
 });

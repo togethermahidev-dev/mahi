@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, Modal, useWindowDimensions } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
+import type { NativeGesture } from 'react-native-gesture-handler';
+import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useTabBarRoom } from '@/hooks/useChrome';
@@ -161,9 +163,14 @@ function ConvoRow({
 
 interface MessagesScreenProps {
   onBack?: () => void;
+  /** The inbox list's scrolling as a gesture, so the sideways page swipe can run alongside it. */
+  listGesture?: NativeGesture;
 }
 
-export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): React.JSX.Element {
+export default function MessagesScreen({
+  onBack,
+  listGesture,
+}: MessagesScreenProps = {}): React.JSX.Element {
   const { dark, colors } = useAppTheme();
   // The last row scrolls clear of the phone's tab bar.
   const tabRoom = useTabBarRoom();
@@ -254,41 +261,44 @@ export default function MessagesScreen({ onBack }: MessagesScreenProps = {}): Re
       </Pressable>
 
       {/* Inbox list */}
-      <FlashList
-        data={inbox}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={tabRoom > 0 ? { paddingBottom: tabRoom } : undefined}
-        // Rows re-render when hold to preview changes.
-        extraData={menuOn}
-        renderItem={({ item }) => (
-          <ConvoRow
-            item={item}
-            onPress={() => setOpenConvo(item)}
-            onAvatarPress={() => {
-              // Don't open an overlay for our own profile.
-              if (item.other_profile.id === userId) return;
-              setProfileUserId(item.other_profile.id);
-            }}
-            text={text}
-            muted={muted}
-            border={border}
-            accent={accent}
-            menuOn={menuOn}
-            dark={dark}
-            currentUserId={userId}
-          />
-        )}
-        refreshing={isLoading}
-        onRefresh={refresh}
-        ListEmptyComponent={
-          !isLoading ? (
-            <View style={styles.placeholder}>
-              <Text style={[styles.placeholderTitle, { color: text }]}>Inbox</Text>
-              <Text style={[styles.placeholderSub, { color: muted }]}>No messages yet</Text>
-            </View>
-          ) : null
-        }
-      />
+      <ListGestureContext.Provider value={listGesture}>
+        <FlashList
+          renderScrollComponent={GestureScrollView}
+          data={inbox}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={tabRoom > 0 ? { paddingBottom: tabRoom } : undefined}
+          // Rows re-render when hold to preview changes.
+          extraData={menuOn}
+          renderItem={({ item }) => (
+            <ConvoRow
+              item={item}
+              onPress={() => setOpenConvo(item)}
+              onAvatarPress={() => {
+                // Don't open an overlay for our own profile.
+                if (item.other_profile.id === userId) return;
+                setProfileUserId(item.other_profile.id);
+              }}
+              text={text}
+              muted={muted}
+              border={border}
+              accent={accent}
+              menuOn={menuOn}
+              dark={dark}
+              currentUserId={userId}
+            />
+          )}
+          refreshing={isLoading}
+          onRefresh={refresh}
+          ListEmptyComponent={
+            !isLoading ? (
+              <View style={styles.placeholder}>
+                <Text style={[styles.placeholderTitle, { color: text }]}>Inbox</Text>
+                <Text style={[styles.placeholderSub, { color: muted }]}>No messages yet</Text>
+              </View>
+            ) : null
+          }
+        />
+      </ListGestureContext.Provider>
 
       {/* Requests slide up as a sheet over the inbox; swipe down or tap back to close. */}
       <Modal

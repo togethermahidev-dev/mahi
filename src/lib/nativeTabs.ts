@@ -72,22 +72,19 @@ export function cameraLift(room: number, resting: number, gap: number): number {
 }
 
 /**
- * The swipe pages, left to right (founder, 2026-10-05): Camera ⇄ Feed ⇄ Profile, sideways only —
- * no up/down swiping. Messages is not a swipe page: its tab (or the header button) opens it over
- * them.
+ * The swipe pages, left to right, in the tab bar's order (founder, 2026-10-05): Camera ⇄ Feed ⇄
+ * Profile ⇄ Messages, sideways only — no up/down swiping.
  */
-export const SWIPE_PAGES: readonly TabKey[] = ['camera', 'feed', 'profile'];
+export const SWIPE_PAGES: readonly TabKey[] = NATIVE_TABS.map((t) => t.key);
 
-/** The tab for the swipe page showing, or Messages while it is open. */
-export function pageTab(index: number, messagesOpen: boolean): TabKey {
-  if (messagesOpen) return 'messages';
+/** The tab for the swipe page showing. */
+export function pageTab(index: number): TabKey {
   return SWIPE_PAGES[index] ?? 'camera';
 }
 
-/** The swipe page a tab shows, or null for Messages (it opens over the pages). */
-export function tabPage(tab: TabKey): number | null {
-  const i = SWIPE_PAGES.indexOf(tab);
-  return i < 0 ? null : i;
+/** The swipe page a tab shows. */
+export function tabPage(tab: TabKey): number {
+  return Math.max(0, SWIPE_PAGES.indexOf(tab));
 }
 
 /**
