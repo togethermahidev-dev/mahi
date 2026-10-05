@@ -39,6 +39,7 @@ import {
   SPRING,
   SWIPE,
   TRACKING,
+  WAIT,
   withAlpha,
 } from '@/constants/tokens';
 import { useCoverRail } from '@/hooks/useChrome';
@@ -202,7 +203,7 @@ export default function GlobalSearchOverlay({
       } finally {
         setLoading(false);
       }
-    }, 350);
+    }, WAIT.search);
   }, []);
 
   if (!visible) return null;

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { WAIT } from '@/constants/tokens';
 
 interface ToastState {
   message: string | null;
@@ -11,14 +12,12 @@ interface ToastState {
   reset: () => void;
 }
 
-const DEFAULT_DURATION_MS = 2500;
-
 export const useToastStore = create<ToastState>((set) => ({
   message: null,
-  durationMs: DEFAULT_DURATION_MS,
+  durationMs: WAIT.toast,
 
-  show: (message, durationMs = DEFAULT_DURATION_MS) => set({ message, durationMs }),
+  show: (message, durationMs = WAIT.toast) => set({ message, durationMs }),
   hide: () => set({ message: null }),
 
-  reset: () => set({ message: null, durationMs: DEFAULT_DURATION_MS }),
+  reset: () => set({ message: null, durationMs: WAIT.toast }),
 }));

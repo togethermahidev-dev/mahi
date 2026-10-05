@@ -80,13 +80,14 @@ describe('design tokens', () => {
     expect(offenders(rawAmount(key))).toEqual([]);
   });
 
-  it('no withAlpha amount, animation start or target, pause or hold time is typed out by hand', () => {
+  it('no withAlpha amount, animation start or target, pause, hold or toast time is typed out by hand', () => {
     const calls = [
       'withAlpha\\([^()]*,',
       'with(?:Spring|Timing)\\(',
       'Animated\\.(?:delay|Value)\\(',
       'useSharedValue\\(',
       'activateAfterLongPress\\(',
+      '\\.show\\([^()]*,',
     ];
     const call = `(?:${calls.join('|')})\\s*-?${NUM}`;
     expect(offenders(new RegExp(call))).toEqual([]);

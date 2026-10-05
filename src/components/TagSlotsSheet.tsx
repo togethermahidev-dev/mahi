@@ -48,6 +48,7 @@ import {
   RADIUS,
   SIZE,
   SPACE,
+  WAIT,
   withAlpha,
 } from '@/constants/tokens';
 
@@ -191,7 +192,7 @@ export default function TagSlotsSheet({
       if (stale) return;
       setResults(data ?? []);
       setSearching(false);
-    }, 350);
+    }, WAIT.search);
     return () => {
       stale = true;
       clearTimeout(timer);

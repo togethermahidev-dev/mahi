@@ -132,6 +132,7 @@ import {
   STROKE,
   TRACKING,
   VIEWER,
+  WAIT,
   withAlpha,
 } from '@/constants/tokens';
 
@@ -1144,7 +1145,7 @@ function TagSheet({
         if (!q) setAvailableFriends((data ?? []).filter((f) => !f.has_open_tag).length);
         setLoading(false);
       },
-      q ? 350 : 0
+      q ? WAIT.search : 0
     );
     return () => {
       stale = true;
@@ -1982,7 +1983,7 @@ export default function CameraScreen({
       // Say what to change, and give the photos back so the post can go again — except when
       // there's no tag to answer (reactive posting), which the preview can't fix.
       const refusal = postRefusal(message);
-      useToastStore.getState().show(refusal.text, 5000);
+      useToastStore.getState().show(refusal.text, WAIT.toastLong);
       if (refusal.keepPhotos) {
         setFrontPhoto(front);
         setRearPhoto(rear);

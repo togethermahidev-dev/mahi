@@ -393,6 +393,16 @@ export const SCALE = {
   s4: 4,
 } as const;
 
+// ─── Waits: how long things stay or wait (ms) ────────────────────────────────
+export const WAIT = {
+  /** Search runs once typing pauses this long. */
+  search: 350,
+  /** A toast stays this long… */
+  toast: 2500,
+  /** …or this long when it explains something the person must act on. */
+  toastLong: 5000,
+} as const;
+
 // ─── Swipes: when a drag counts, and when it moves or closes something ───────
 export const SWIPE = {
   /** A swipe takes over once the finger moves this far (px) along its axis. */
