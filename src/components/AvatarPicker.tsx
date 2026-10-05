@@ -103,13 +103,13 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
   const [libraryPermission, requestLibraryPermission] = ImagePicker.useMediaLibraryPermissions();
 
   /** Shows a non-blocking alert directing the user to open Settings. */
-  const showPermissionAlert = useCallback((type: 'Camera' | 'Media Library') => {
+  const showPermissionAlert = useCallback((type: 'Camera' | 'Media library') => {
     Alert.alert(
-      `${type} Access Required`,
+      `${type} access required`,
       `Mahi needs ${type.toLowerCase()} access to update your profile photo. Please enable it in Settings.`,
       [
-        { text: 'Not Now', style: 'cancel' },
-        { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        { text: 'Not now', style: 'cancel' },
+        { text: 'Open settings', onPress: () => Linking.openSettings() },
       ]
     );
   }, []);
@@ -160,7 +160,7 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
           // Non-blocking — ignore cleanup failure
         }
         setLocalUri(null);
-        Alert.alert('Upload Failed', 'Could not update your profile photo. Please try again.');
+        Alert.alert('Upload failed', 'Could not update your profile photo. Please try again.');
       } finally {
         setUploading(false);
       }
@@ -176,7 +176,7 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
     async (
       permission: ImagePicker.PermissionResponse | null,
       request: () => Promise<ImagePicker.PermissionResponse>,
-      type: 'Camera' | 'Media Library'
+      type: 'Camera' | 'Media library'
     ): Promise<boolean> => {
       let perm = permission;
       if (!perm?.granted) {
@@ -209,7 +209,7 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
 
   /** Opens the native media library with a 1:1 crop. Awaits upload to prevent parallel requests. */
   const handleLibrary = useCallback(async () => {
-    const ok = await ensurePermission(libraryPermission, requestLibraryPermission, 'Media Library');
+    const ok = await ensurePermission(libraryPermission, requestLibraryPermission, 'Media library');
     if (!ok) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -230,16 +230,16 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
   const handleEditPress = useCallback(() => {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
-        { options: ['Cancel', 'Take Photo', 'Choose from Library'], cancelButtonIndex: 0 },
+        { options: ['Cancel', 'Take photo', 'Choose from library'], cancelButtonIndex: 0 },
         (i) => {
           if (i === 1) handleCamera();
           else if (i === 2) handleLibrary();
         }
       );
     } else {
-      Alert.alert('Update Photo', '', [
-        { text: 'Take Photo', onPress: handleCamera },
-        { text: 'Choose from Library', onPress: handleLibrary },
+      Alert.alert('Update photo', '', [
+        { text: 'Take photo', onPress: handleCamera },
+        { text: 'Choose from library', onPress: handleLibrary },
         { text: 'Cancel', style: 'cancel' },
       ]);
     }

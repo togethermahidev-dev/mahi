@@ -314,14 +314,14 @@ export default function UserProfileScreen({
     const { data: alreadyReported } = await hasReported(currentUserId, userId);
     if (alreadyReported) {
       setReporting(false);
-      Alert.alert('Already Reported', `You have already reported @${profile.username}.`);
+      Alert.alert('Already reported', `You have already reported @${profile.username}.`);
       return;
     }
 
     const reasons: { label: string; value: ReportReason }[] = [
       { label: 'Spam', value: 'spam' },
       { label: 'Harassment', value: 'harassment' },
-      { label: 'Inappropriate Content', value: 'inappropriate_content' },
+      { label: 'Inappropriate content', value: 'inappropriate_content' },
       { label: 'Impersonation', value: 'impersonation' },
       { label: 'Other', value: 'other' },
     ];
@@ -350,7 +350,7 @@ export default function UserProfileScreen({
           extra: { userId, reason: r.value },
         });
       } else {
-        Alert.alert('Report Submitted', 'Thank you for helping keep the community safe.');
+        Alert.alert('Report submitted', 'Thank you for helping keep the community safe.');
       }
     };
 
