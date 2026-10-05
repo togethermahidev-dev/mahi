@@ -9,7 +9,13 @@
  */
 
 /** Statuses the server keeps (identity_verifications.status). Same list as the migration. */
-export const IDENTITY_STATUSES = ['pending', 'in_review', 'approved', 'declined', 'expired'] as const;
+export const IDENTITY_STATUSES = [
+  'pending',
+  'in_review',
+  'approved',
+  'declined',
+  'expired',
+] as const;
 export type ServerIdentityStatus = (typeof IDENTITY_STATUSES)[number];
 
 /** The person's overall state: a server status, or none when they never started a check. */

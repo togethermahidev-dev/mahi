@@ -32,15 +32,15 @@ describe('identityCheckAvailable — flag on AND the Didit native module in this
 
 describe('sdkResultHint — what the phone saw (a hint only; the server decides)', () => {
   it('reads a finished check by its status', () => {
-    expect(sdkResultHint({ type: 'completed', session: { sessionId: 's', status: 'Approved' } })).toBe(
-      'approved'
-    );
-    expect(sdkResultHint({ type: 'completed', session: { sessionId: 's', status: 'Declined' } })).toBe(
-      'declined'
-    );
-    expect(sdkResultHint({ type: 'completed', session: { sessionId: 's', status: 'Pending' } })).toBe(
-      'pending'
-    );
+    expect(
+      sdkResultHint({ type: 'completed', session: { sessionId: 's', status: 'Approved' } })
+    ).toBe('approved');
+    expect(
+      sdkResultHint({ type: 'completed', session: { sessionId: 's', status: 'Declined' } })
+    ).toBe('declined');
+    expect(
+      sdkResultHint({ type: 'completed', session: { sessionId: 's', status: 'Pending' } })
+    ).toBe('pending');
   });
   it('treats an unknown finished status as pending (wait for the server)', () => {
     expect(sdkResultHint({ type: 'completed', session: { sessionId: 's', status: 'Weird' } })).toBe(
@@ -49,9 +49,9 @@ describe('sdkResultHint — what the phone saw (a hint only; the server decides)
   });
   it('reads cancelled and failed', () => {
     expect(sdkResultHint({ type: 'cancelled' })).toBe('cancelled');
-    expect(
-      sdkResultHint({ type: 'failed', error: { type: 'networkError', message: 'x' } })
-    ).toBe('failed');
+    expect(sdkResultHint({ type: 'failed', error: { type: 'networkError', message: 'x' } })).toBe(
+      'failed'
+    );
   });
 });
 

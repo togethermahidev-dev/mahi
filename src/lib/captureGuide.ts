@@ -5,11 +5,7 @@
  */
 
 export type CaptureState =
-  | 'idle'
-  | 'capturing-first'
-  | 'switching'
-  | 'awaiting-second'
-  | 'capturing-second';
+  'idle' | 'capturing-first' | 'switching' | 'awaiting-second' | 'capturing-second';
 
 export type CameraSide = 'back' | 'front';
 

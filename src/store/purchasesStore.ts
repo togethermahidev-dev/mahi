@@ -124,7 +124,11 @@ export const usePurchasesStore = create<PurchasesState>((set, get) => ({
   purchase: async (pkg) => {
     const sdk = loadPurchases();
     if (!sdk || get().availability !== 'ready') {
-      return { customerInfo: null, cancelled: false, error: new Error('Purchases aren’t available.') };
+      return {
+        customerInfo: null,
+        cancelled: false,
+        error: new Error('Purchases aren’t available.'),
+      };
     }
     try {
       const { customerInfo } = await sdk.purchasePackage(pkg);

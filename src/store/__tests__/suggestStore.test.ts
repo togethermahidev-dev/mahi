@@ -27,9 +27,7 @@ beforeEach(() => {
 
 describe('followSuggested (optimistic remove)', () => {
   it('removes the followed user from the strip on success', async () => {
-    jest
-      .spyOn(useFollowStore.getState(), 'toggleFollow')
-      .mockResolvedValue({ error: null });
+    jest.spyOn(useFollowStore.getState(), 'toggleFollow').mockResolvedValue({ error: null });
 
     await useSuggestStore.getState().followSuggested('me', 'a');
 

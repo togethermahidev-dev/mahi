@@ -35,7 +35,9 @@ describe('purchasesAvailability — flag on AND native module AND key', () => {
   });
   it('is off when the flag is off, whatever else', () => {
     expect(purchasesAvailability({ flagOn: false, nativePresent: true, apiKey: 'k' })).toBe('off');
-    expect(purchasesAvailability({ flagOn: false, nativePresent: false, apiKey: null })).toBe('off');
+    expect(purchasesAvailability({ flagOn: false, nativePresent: false, apiKey: null })).toBe(
+      'off'
+    );
   });
   // Build 10 gets OTA updates too but has no RevenueCat module.
   it('is not-in-build without the native module', () => {

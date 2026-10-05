@@ -12,7 +12,10 @@ import { useIdentityStore } from '@/store/identityStore';
  */
 export function useIdentityVerification() {
   const userId = useAuthStore((s) => s.user?.id);
-  const available = identityCheckAvailable(useFeatureFlag('identity-verification'), hasNativeDidit());
+  const available = identityCheckAvailable(
+    useFeatureFlag('identity-verification'),
+    hasNativeDidit()
+  );
   const status = useIdentityStore((s) => s.status);
   const isLoading = useIdentityStore((s) => s.isLoading);
   const isChecking = useIdentityStore((s) => s.isChecking);

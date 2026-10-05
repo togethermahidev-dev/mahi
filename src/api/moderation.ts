@@ -15,11 +15,7 @@ export type BlockedUser = {
 };
 
 export type ReportReason =
-  | 'spam'
-  | 'harassment'
-  | 'inappropriate_content'
-  | 'impersonation'
-  | 'other';
+  'spam' | 'harassment' | 'inappropriate_content' | 'impersonation' | 'other';
 
 /** Block a user. Idempotent — duplicates are silently ignored. */
 export async function blockUser(

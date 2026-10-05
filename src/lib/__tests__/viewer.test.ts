@@ -114,7 +114,9 @@ describe('pinchOffset', () => {
   const page = { width: 400, height: 800 };
 
   it('stays put at normal size', () => {
-    expect(pinchOffset({ ...page, scale: 1, focalX: 50, focalY: 90, startX: 50, startY: 90 })).toEqual({
+    expect(
+      pinchOffset({ ...page, scale: 1, focalX: 50, focalY: 90, startX: 50, startY: 90 })
+    ).toEqual({
       x: 0,
       y: 0,
     });

@@ -15,8 +15,12 @@ describe('slotCount', () => {
   });
 
   it('names only what is there, with plurals', () => {
-    expect(slotCount({ maxTags: 3, friends: 0, invites: 3 }).text).toBe('3 of 3 filled · 3 invites');
-    expect(slotCount({ maxTags: 3, friends: 2, invites: 0 }).text).toBe('2 of 3 filled · 2 friends');
+    expect(slotCount({ maxTags: 3, friends: 0, invites: 3 }).text).toBe(
+      '3 of 3 filled · 3 invites'
+    );
+    expect(slotCount({ maxTags: 3, friends: 2, invites: 0 }).text).toBe(
+      '2 of 3 filled · 2 friends'
+    );
   });
 
   it('never goes below zero remaining', () => {

@@ -32,6 +32,9 @@ describe('draggable photo-in-photo', () => {
       x: zone.right,
       y: zone.bottom,
     });
-    expect(snapToCorner(zone.right - 1, zone.top + 1, zone)).toEqual({ x: zone.right, y: zone.top });
+    expect(snapToCorner(zone.right - 1, zone.top + 1, zone)).toEqual({
+      x: zone.right,
+      y: zone.top,
+    });
   });
 });

@@ -17,10 +17,7 @@ interface SuggestState {
    * delegate the actual follow to followStore (legal store->store). Rolls the
    * removal back on error. Returns the error for caller logging.
    */
-  followSuggested: (
-    currentUserId: string,
-    targetId: string
-  ) => Promise<{ error: Error | null }>;
+  followSuggested: (currentUserId: string, targetId: string) => Promise<{ error: Error | null }>;
 
   reset: () => void;
 }

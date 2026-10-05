@@ -24,7 +24,10 @@ export function reusableCode(state: OTPState | null, email: string, now: number)
 }
 
 /** The code screen's countdown and how long until Resend unlocks, from when the code was sent. */
-export function codeTimes(sentAt: number, now: number): { secondsLeft: number; resendInMs: number } {
+export function codeTimes(
+  sentAt: number,
+  now: number
+): { secondsLeft: number; resendInMs: number } {
   const age = now - sentAt;
   return {
     secondsLeft: Math.max(0, Math.round((CODE_TTL_MS - age) / 1000)),

@@ -16,7 +16,10 @@ const invite = (n: number, claimed = false) => ({
 
 describe('inviteList', () => {
   it('starts every link as not sent', () => {
-    expect(inviteList([invite(1), invite(2)]).map((i) => i.status)).toEqual(['not-sent', 'not-sent']);
+    expect(inviteList([invite(1), invite(2)]).map((i) => i.status)).toEqual([
+      'not-sent',
+      'not-sent',
+    ]);
   });
 
   it('counts an already-claimed link as sent (a retried post hands back the same links)', () => {

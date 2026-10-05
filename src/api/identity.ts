@@ -11,8 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
 
 export type IdentitySession =
-  | { alreadyApproved: true }
-  | { alreadyApproved: false; sessionId: string; sessionToken: string };
+  { alreadyApproved: true } | { alreadyApproved: false; sessionId: string; sessionToken: string };
 
 export type IdentityVerificationRow = {
   session_id: string;
@@ -46,7 +45,10 @@ export async function createIdentitySession(): Promise<{
       sessionToken?: string;
     };
     if (!res.ok) {
-      return { data: null, error: new Error(json.error ?? 'Something went wrong. Please try again.') };
+      return {
+        data: null,
+        error: new Error(json.error ?? 'Something went wrong. Please try again.'),
+      };
     }
     if (json.alreadyApproved) return { data: { alreadyApproved: true }, error: null };
     if (!json.sessionId || !json.sessionToken) {

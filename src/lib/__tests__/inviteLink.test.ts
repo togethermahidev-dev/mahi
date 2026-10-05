@@ -102,7 +102,9 @@ describe('claimFailText', () => {
   });
 
   it('used, expired, or not a real invite', () => {
-    expect(claimFailText('that invite has been used', 'sam')).toBe('That invite has already been used.');
+    expect(claimFailText('that invite has been used', 'sam')).toBe(
+      'That invite has already been used.'
+    );
     expect(claimFailText('that invite has expired', null)).toBe('That invite has expired.');
     expect(claimFailText('that invite is not valid', null)).toBe("That invite code isn't right.");
     expect(claimFailText('that invite is your own', null)).toBe("That's your own invite.");

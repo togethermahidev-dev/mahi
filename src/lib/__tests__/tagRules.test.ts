@@ -13,7 +13,9 @@ describe('requiredTagCount', () => {
   });
 
   it('asks for nothing when tags are not required', () => {
-    expect(requiredTagCount({ ...rules, tagsRequired: false, inviteLinksEnabled: true }, 5)).toBe(0);
+    expect(requiredTagCount({ ...rules, tagsRequired: false, inviteLinksEnabled: true }, 5)).toBe(
+      0
+    );
   });
 });
 

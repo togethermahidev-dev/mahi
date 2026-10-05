@@ -26,7 +26,9 @@ interface IdentityState {
   /** Read the person's status from the server. */
   load: (userId: string) => Promise<{ error: Error | null }>;
   /** Start a check: server session → Didit's native screens → reload the server status. */
-  startIdentityCheck: (userId: string) => Promise<{ hint: IdentityHint | null; error: Error | null }>;
+  startIdentityCheck: (
+    userId: string
+  ) => Promise<{ hint: IdentityHint | null; error: Error | null }>;
   reset: () => void;
 }
 

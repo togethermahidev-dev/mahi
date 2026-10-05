@@ -46,10 +46,16 @@ describe('rail selector', () => {
       expect(morphPlan(from, to, false)).toEqual({ stretch: { top: 7, bottom: 151 }, settle: to });
     });
     it('stretches upward when moving up', () => {
-      expect(morphPlan(to, from, false)).toEqual({ stretch: { top: 7, bottom: 151 }, settle: from });
+      expect(morphPlan(to, from, false)).toEqual({
+        stretch: { top: 7, bottom: 151 },
+        settle: from,
+      });
     });
     it('stretches from wherever it is mid-move', () => {
-      expect(morphPlan({ top: 30, bottom: 120 }, to, false).stretch).toEqual({ top: 30, bottom: 151 });
+      expect(morphPlan({ top: 30, bottom: 120 }, to, false).stretch).toEqual({
+        top: 30,
+        bottom: 151,
+      });
     });
     it('with Reduce Motion on, just moves without stretching', () => {
       expect(morphPlan(from, to, true)).toEqual({ stretch: to, settle: to });
