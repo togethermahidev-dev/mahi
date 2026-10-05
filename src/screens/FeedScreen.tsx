@@ -1,5 +1,14 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { View, Text, Image, RefreshControl, StyleSheet, Animated, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  RefreshControl,
+  StyleSheet,
+  Animated,
+  Pressable,
+  ActivityIndicator,
+} from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeGesture } from 'react-native-gesture-handler';
@@ -10,14 +19,14 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { answersATag } from '@/lib/reactivePosting';
 import FeedLockBanner from '@/components/FeedLockBanner';
-import { useSocialStore, useAuthStore, useChromeStore } from '@/store';
+import { useSocialStore, useAuthStore, useChromeStore, useFeedStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import PostCard from '@/components/PostCard';
 import CommentSheet from '@/components/CommentSheet';
 import { relativeTime } from '@/lib/relativeTime';
 import { pointsBadgeText } from '@/lib/mahiPoints';
-import { lockedPostText } from '@/lib/feedLock';
+import { lockExplainer as lockCardFor, lockedPostText } from '@/lib/feedLock';
 import { feedLockMoment, haptic } from '@/lib/haptics';
 import { shouldPlay } from '@/lib/videoPosts';
 import { appHeaderHeight } from '@/lib/pip';
@@ -60,7 +69,7 @@ function LockedPostItem({
   const { colors } = useAppTheme();
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
-  const points = pointsBadgeText(item.streak_day);
+  const points = pointsBadgeText(item.streak_day)?.replace('point', 'Mahi point') ?? null;
   return (
     <View
       style={[
@@ -139,11 +148,10 @@ export default function FeedScreen({
   const { width: screenWidth, height: cardHeight } = usePageSize();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const { muted } = themeColors(dark);
+  const { muted, accentText } = themeColors(dark);
 
   const {
     posts,
-    isLoading,
     error,
     hasMore,
     loadMore,
@@ -153,6 +161,19 @@ export default function FeedScreen({
     serverOffsetMs,
     loaded,
   } = useFeed();
+  // Loading only until this session's first page arrives or the read fails, so a failed first
+  // read shows an error instead of spinning for ever.
+  const firstLoad = !loaded && !error && posts.length === 0;
+  // The pull-to-refresh spinner turns only for a pull; the first load has its own spinner.
+  const [pulling, setPulling] = useState(false);
+  const onPull = useCallback(async () => {
+    setPulling(true);
+    try {
+      await useFeedStore.getState().sync(true);
+    } finally {
+      setPulling(false);
+    }
+  }, []);
 
   // The feed locking or opening is felt once, by someone looking at it (on arrival if it changed
   // while they were on another screen).
@@ -171,12 +192,22 @@ export default function FeedScreen({
 
   // Friends' posts while locked: a button only when reactive posting lets you post (a tag still
   // open on the server clock, or your first post).
-  const tagged = answersATag(useOpenTags().openTags, serverOffsetMs);
+  const { openTags, loaded: tagsLoaded } = useOpenTags();
+  const tagged = answersATag(openTags, serverOffsetMs);
   const postedBefore = unlockedUntil !== null;
   const lockedText = useMemo(
     () => lockedPostText({ tagged, postedBefore }),
     [tagged, postedBefore]
   );
+
+  // A locked feed shows one main button: the lock card's. When that card already offers Find
+  // friends, the empty state drops its own; otherwise its Find friends is a plain text link.
+  const lockCardShown = lockExplainer && loaded && locked && tagsLoaded;
+  const lockCardTarget = lockCardShown
+    ? lockCardFor({ locked, unlockedUntil, openTags, serverOffsetMs })?.target
+    : undefined;
+  const emptyFindFriends =
+    !onFindFriends || lockCardTarget === 'friends' ? 'none' : lockCardShown ? 'link' : 'button';
 
   // Profile overlay, conversation overlay, and comment sheet — lifted to
   // FeedScreen so overlays cover the full screen (not just the PostCard)
@@ -297,21 +328,54 @@ export default function FeedScreen({
           onViewableItemsChanged={handleViewableChange}
           viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
           refreshControl={
-            <RefreshControl
-              refreshing={isLoading && posts.length === 0}
-              onRefresh={refresh}
-              tintColor={text}
-            />
+            <RefreshControl refreshing={pulling} onRefresh={onPull} tintColor={text} />
           }
           ListEmptyComponent={
-            !isLoading ? (
-              // Starts below the header, which floats over the list and grows with the notch.
+            // Each starts below the header, which floats over the list and grows with the notch.
+            firstLoad ? (
+              <View style={[styles.empty, { paddingTop: headerH + SPACE.s24 + topSpace }]}>
+                <ActivityIndicator color={muted} accessibilityLabel="Loading" />
+              </View>
+            ) : error ? (
+              <View style={[styles.empty, { paddingTop: headerH + SPACE.s24 + topSpace }]}>
+                <Text style={[styles.emptyTitle, { color: text }]} accessibilityRole="header">
+                  Couldn’t load your feed
+                </Text>
+                <Text style={[styles.emptySub, { color: muted }]}>
+                  Check your connection and try again.
+                </Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.lockedButton,
+                    styles.emptyButton,
+                    { backgroundColor: COLORS.accent },
+                    pressed && { opacity: ALPHA.a85 },
+                  ]}
+                  onPress={refresh}
+                  accessibilityRole="button"
+                  accessibilityLabel="Try again"
+                >
+                  <Text style={[styles.lockedButtonText, { color: COLORS.offBlack }]}>
+                    Try again
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
               <View style={[styles.empty, { paddingTop: headerH + SPACE.s24 + topSpace }]}>
                 <Text style={[styles.emptyTitle, { color: text }]}>No posts yet</Text>
                 <Text style={[styles.emptySub, { color: muted }]}>
-                  Workouts from you and your friends show up here.
+                  Your friends’ workouts show up here. Follow each other to see them.
                 </Text>
-                {onFindFriends ? (
+                {emptyFindFriends === 'link' ? (
+                  <Pressable
+                    style={({ pressed }) => [styles.textLink, pressed && { opacity: ALPHA.a75 }]}
+                    onPress={onFindFriends}
+                    accessibilityRole="button"
+                    accessibilityLabel="Find friends"
+                  >
+                    <Text style={[styles.textLinkLabel, { color: accentText }]}>Find friends</Text>
+                  </Pressable>
+                ) : emptyFindFriends === 'button' ? (
                   <Pressable
                     style={({ pressed }) => [
                       styles.lockedButton,
@@ -329,11 +393,13 @@ export default function FeedScreen({
                   </Pressable>
                 ) : null}
               </View>
-            ) : null
+            )
           }
           ListFooterComponent={
-            error ? (
-              <Text style={[styles.errorText, { color: muted }]}>Failed to load feed</Text>
+            error && posts.length > 0 ? (
+              <Text style={[styles.errorText, { color: muted }]}>
+                Couldn’t load more. Pull down to try again.
+              </Text>
             ) : null
           }
         />
@@ -365,6 +431,7 @@ export default function FeedScreen({
             unlockedUntil={unlockedUntil}
             serverOffsetMs={serverOffsetMs}
             onPost={() => onGoToCamera?.()}
+            onFindFriends={onFindFriends}
           />
         </Animated.View>
       ) : null}
@@ -459,6 +526,16 @@ const styles = StyleSheet.create({
   },
   emptyButton: {
     marginTop: SPACE.s16,
+  },
+  textLink: {
+    minHeight: SIZE.z44,
+    paddingHorizontal: SPACE.s16,
+    justifyContent: 'center',
+    marginTop: SPACE.s8,
+  },
+  textLinkLabel: {
+    fontSize: FONT_SIZE.f15,
+    fontFamily: FONTS.semiBold,
   },
   errorText: {
     textAlign: 'center',

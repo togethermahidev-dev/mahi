@@ -42,6 +42,7 @@ describe('lockExplainer', () => {
       headline: '@sam and 1 other tagged you.',
       body: 'Your feed is locked until you post your answer. 41 hours left.',
       button: 'Post your answer',
+      target: 'camera',
     });
   });
 
@@ -64,21 +65,23 @@ describe('lockExplainer', () => {
     expect(card?.body).toBe('Your feed is locked until you post your answer.');
   });
 
-  it('never posted: asks for a first workout', () => {
+  it('never posted: asks for a first workout, and says any workout counts', () => {
     expect(lockExplainer({ ...base, unlockedUntil: null, openTags: [] })).toEqual({
       headline: 'Your feed is locked.',
-      body: 'Post your first workout to see what your friends are doing.',
+      body: 'Post your first workout to see what your friends are doing. Any workout counts.',
       button: 'Post a workout',
+      target: 'camera',
     });
   });
 
-  it('posted before but no open tag: waits for a tag, with no button (you can only post an answer)', () => {
+  it('posted before but no open tag: says how it opens, and offers Find friends', () => {
     const card = lockExplainer({ ...base, openTags: [] });
     expect(card).toEqual({
       headline: 'Your feed is locked.',
-      body: 'You can post again when a friend tags you.',
+      body: 'It opens when a friend tags you and you post your answer. More friends means more tags.',
+      button: 'Find friends',
+      target: 'friends',
     });
-    expect(card).not.toHaveProperty('button');
   });
 });
 
@@ -170,9 +173,9 @@ describe('feedCountdown', () => {
 });
 
 describe('lockedPostText', () => {
-  it('tagged: answer the tag to see it', () => {
+  it('tagged: opens when you post your answer', () => {
     expect(lockedPostText({ tagged: true, postedBefore: true })).toEqual({
-      hint: 'Answer a tag to see it',
+      hint: 'Opens when you post your answer',
       button: 'Post your answer',
     });
   });
@@ -196,7 +199,7 @@ describe('lockedPostText', () => {
 
   it('posted before, no open tag: no button, since there is nothing to post yet', () => {
     const text = lockedPostText({ tagged: false, postedBefore: true });
-    expect(text).toEqual({ hint: 'Answer a tag to see it' });
+    expect(text).toEqual({ hint: 'Opens when a friend tags you' });
     expect(text).not.toHaveProperty('button');
   });
 });

@@ -20,8 +20,16 @@ export function timeLeftText(ms: number): string | null {
   return plural(Math.ceil(ms / MINUTE), 'minute');
 }
 
-/** No button when reactive posting leaves nothing to post yet (posted before, no open tag). */
-export type LockCard = { headline: string; body: string; button?: string };
+/**
+ * Every locked card has one button. `target` says where it goes: the camera when there's
+ * something to post, or people search when there isn't (posted before, no open tag).
+ */
+export type LockCard = {
+  headline: string;
+  body: string;
+  button: string;
+  target: 'camera' | 'friends';
+};
 
 type Clock = { serverOffsetMs: number; deviceNow?: number };
 type OpenTags = { username: string; expires_at: string }[];
@@ -61,16 +69,24 @@ export function lockExplainer({
       headline: `${who} tagged you.`,
       body: `Your feed is locked until you post your answer.${left ? ` ${left} left.` : ''}`,
       button: 'Post your answer',
+      target: 'camera',
     };
   }
 
+  // Nothing to post yet: the way out is more friends, since more friends means more tags.
   if (unlockedUntil) {
-    return { headline: 'Your feed is locked.', body: 'You can post again when a friend tags you.' };
+    return {
+      headline: 'Your feed is locked.',
+      body: 'It opens when a friend tags you and you post your answer. More friends means more tags.',
+      button: 'Find friends',
+      target: 'friends',
+    };
   }
   return {
     headline: 'Your feed is locked.',
-    body: 'Post your first workout to see what your friends are doing.',
+    body: 'Post your first workout to see what your friends are doing. Any workout counts.',
     button: 'Post a workout',
+    target: 'camera',
   };
 }
 
@@ -83,9 +99,9 @@ export function lockedPostText({
   tagged: boolean;
   postedBefore: boolean;
 }): { hint: string; button?: string } {
-  if (tagged) return { hint: 'Answer a tag to see it', button: 'Post your answer' };
+  if (tagged) return { hint: 'Opens when you post your answer', button: 'Post your answer' };
   if (!postedBefore) return { hint: 'Post your first workout to see it', button: 'Post a workout' };
-  return { hint: 'Answer a tag to see it' };
+  return { hint: 'Opens when a friend tags you' };
 }
 
 /** A live countdown, "05:12:33": hours, minutes and seconds, two digits each; a part second

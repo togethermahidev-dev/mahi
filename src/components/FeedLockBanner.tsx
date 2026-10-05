@@ -1,7 +1,7 @@
 /**
  * Top of the feed, under the app header (flag 'feed-lock-explainer'):
- * - locked → one card saying why (who tagged you, or that you haven't posted) and, when there's
- *   something you can post, a button to the camera;
+ * - locked → one card saying why (who tagged you, or that you haven't posted) and one button: to
+ *   the camera when there's something to post, or to people search when there isn't;
  * - open → a live countdown to when the feed would lock (or, if you're tagged, to when it locks),
  *   in the camera banner's style (founder, 2026-10-05).
  * Lock state and open tags expire, so both come fresh from the server each session (never saved
@@ -36,12 +36,15 @@ interface FeedLockBannerProps {
   serverOffsetMs: number;
   /** Go to the camera. */
   onPost: () => void;
+  /** Open people search (the way out when there's nothing to post yet). */
+  onFindFriends?: () => void;
 }
 
 export default function FeedLockBanner(props: FeedLockBannerProps): React.JSX.Element | null {
   return props.locked ? (
     <LockedCard
       onPost={props.onPost}
+      onFindFriends={props.onFindFriends}
       unlockedUntil={props.unlockedUntil}
       serverOffsetMs={props.serverOffsetMs}
     />
@@ -54,10 +57,12 @@ function LockedCard({
   unlockedUntil,
   serverOffsetMs,
   onPost,
+  onFindFriends,
 }: {
   unlockedUntil: string | null;
   serverOffsetMs: number;
   onPost: () => void;
+  onFindFriends?: () => void;
 }): React.JSX.Element | null {
   const { dark, colors } = useAppTheme();
   const { openTags, loaded } = useOpenTags();
@@ -66,6 +71,8 @@ function LockedCard({
 
   const card = lockExplainer({ locked: true, unlockedUntil, openTags, serverOffsetMs, deviceNow });
   if (!card) return null;
+  const toFriends = card.target === 'friends';
+  const onPress = toFriends ? onFindFriends : onPost;
 
   return (
     // Only the button takes touches, so the feed's scroll and swipe still start anywhere else.
@@ -77,17 +84,17 @@ function LockedCard({
         {card.headline}
       </Text>
       <Text style={[styles.body, { color: withAlpha(colors.text, ALPHA.a75) }]}>{card.body}</Text>
-      {card.button ? (
+      {onPress ? (
         <Pressable
           style={({ pressed }) => [
             styles.button,
             { backgroundColor: colors.accent },
             pressed && { opacity: ALPHA.a85 },
           ]}
-          onPress={onPost}
+          onPress={onPress}
           accessibilityRole="button"
           accessibilityLabel={card.button}
-          accessibilityHint="Opens the camera"
+          accessibilityHint={toFriends ? 'Opens search' : 'Opens the camera'}
         >
           <Text style={[styles.buttonText, { color: colors.offBlack }]}>{card.button}</Text>
         </Pressable>
@@ -153,6 +160,8 @@ const styles = StyleSheet.create({
   },
   button: {
     alignSelf: 'flex-start',
+    minHeight: SIZE.z44,
+    justifyContent: 'center',
     borderRadius: RADIUS.pill,
     paddingVertical: SPACE.s12,
     paddingHorizontal: SPACE.s20,
