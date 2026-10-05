@@ -10,7 +10,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Reanimated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Reanimated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { LinearGradient } from 'expo-linear-gradient';
 import { haptic } from '@/lib/haptics';
@@ -31,7 +36,6 @@ import CaptionText from '@/components/CaptionText';
 import DraggablePip from '@/components/DraggablePip';
 import PostVideo, { SoundButton } from '@/components/PostVideo';
 import PreviewMenu, { PostPreviewImage } from '@/components/PreviewMenu';
-import { formatWait } from '@/lib/countdown';
 import { relativeTime } from '@/lib/relativeTime';
 import { pointsBadgeText } from '@/lib/mahiPoints';
 import { mediaTypeOrPhoto } from '@/lib/videoPosts';
@@ -113,8 +117,10 @@ export default function PostCard({
 
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
-  // The poster's Mahi points after this post (one number per card, so none by the name).
-  const points = pointsBadgeText(item.streak_day);
+  // The poster's Mahi points after this post (one number per card, so none by the name), named
+  // in full so "12 points" can't be read as a score for the photo.
+  const points = pointsBadgeText(item.streak_day)?.replace('point', 'Mahi point') ?? null;
+  const reduceMotion = useReducedMotion();
 
   const [rearIsPrimary, setRearIsPrimary] = useState(true);
   // Whether the primary photo is landscape (wider than tall), detected on load,
@@ -161,6 +167,25 @@ export default function PostCard({
     (x: number, y: number) => {
       setMedalPos({ x, y });
       setShowMedal(true);
+      // Reduce Motion: the heart fades in and out at full size, no pop.
+      if (reduceMotion) {
+        medalScale.setValue(1);
+        medalOpacity.setValue(0);
+        Animated.sequence([
+          Animated.timing(medalOpacity, {
+            toValue: 1,
+            duration: DURATION.d150,
+            useNativeDriver: true,
+          }),
+          Animated.delay(DURATION.d300),
+          Animated.timing(medalOpacity, {
+            toValue: 0,
+            duration: DURATION.d300,
+            useNativeDriver: true,
+          }),
+        ]).start(() => setShowMedal(false));
+        return;
+      }
       medalScale.setValue(0);
       medalOpacity.setValue(1);
 
@@ -183,7 +208,7 @@ export default function PostCard({
         }),
       ]).start(() => setShowMedal(false));
     },
-    [medalScale, medalOpacity]
+    [medalScale, medalOpacity, reduceMotion]
   );
 
   const handleDoubleTap = useCallback(
@@ -423,18 +448,23 @@ export default function PostCard({
                   style={[styles.postOverlay, { paddingTop: headerH + SPACE.s4 + topSpace }]}
                   pointerEvents="box-none"
                 >
-                  <TaggedBubbleStack
-                    users={item.tagged_users}
-                    onPressUser={(u) => onAvatarPress(u.user_id)}
-                    style={styles.topTaggedPills}
-                  />
+                  <View style={styles.taggedColumn} pointerEvents="box-none">
+                    {item.tagged_users.length > 0 ? (
+                      <Text style={styles.taggedLabel}>Tagged</Text>
+                    ) : null}
+                    <TaggedBubbleStack
+                      users={item.tagged_users}
+                      onPressUser={(u) => onAvatarPress(u.user_id)}
+                      style={styles.topTaggedPills}
+                    />
+                  </View>
                   {points || item.response ? (
                     <View style={styles.pointsBadge}>
                       {points ? <Text style={styles.pointsText}>{points}</Text> : null}
+                      {/* Who it answered, never how fast: a speed score shames busy people. */}
                       {item.response ? (
                         <Text style={styles.responseText}>
-                          Answered @{item.response.tagger_username} in{' '}
-                          {formatWait(item.response.seconds)}
+                          Answered @{item.response.tagger_username}
                         </Text>
                       ) : null}
                     </View>
@@ -581,13 +611,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s12,
     paddingBottom: SPACE.s32,
   },
+  taggedColumn: {
+    flex: 1,
+    gap: SPACE.s4,
+  },
+  taggedLabel: {
+    fontSize: FONT_SIZE.f12,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.white,
+  },
   topTaggedPills: {
     position: 'relative',
     left: 0,
     bottom: 0,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    flex: 1,
     gap: SPACE.s6,
   },
   avatarRow: {
