@@ -15,6 +15,7 @@ import {
   PanResponder,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchIcon } from '@/components/ScreenIcons';
 import { searchProfiles, type ProfileSearchResult } from '@/api';
@@ -81,7 +82,10 @@ function UserRow({
           <Text style={[styles.handle, { color: muted }]}>@{item.username}</Text>
         ) : null}
       </View>
-      <PointsBadge points={item.streak_current} style={[styles.points, { color: muted }]} />
+      {/* No "0 points" next to anyone: a 0 shows nothing, as on posts. */}
+      {item.streak_current ? (
+        <PointsBadge points={item.streak_current} style={[styles.points, { color: muted }]} />
+      ) : null}
     </Pressable>
   );
 }
@@ -90,17 +94,22 @@ interface GlobalSearchOverlayProps {
   visible: boolean;
   onClose: () => void;
   dark: boolean;
+  /** Your own row: go to your Profile page (closing search). Without it, the row closes search. */
+  onOpenOwnProfile?: () => void;
 }
 
 export default function GlobalSearchOverlay({
   visible,
   onClose,
   dark,
+  onOpenOwnProfile,
 }: GlobalSearchOverlayProps): React.JSX.Element | null {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-OFFSET.o24)).current;
   const inputRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
+  // Reduce Motion: no slide, only the fade.
+  const reduceMotion = useReducedMotion();
   const { height: windowHeight } = useWindowDimensions();
   // Opened from Messages, the glass bar would sit on the results: it hides while search is open.
   useCoverRail(visible);
@@ -114,6 +123,8 @@ export default function GlobalSearchOverlay({
   const [results, setResults] = useState<ProfileSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  /** The last search failed: say so (never "no one called…"), with Try again. */
+  const [failed, setFailed] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const currentUserId = useAuthStore((s) => s.user?.id);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -139,6 +150,7 @@ export default function GlobalSearchOverlay({
     if (visible) {
       console.log('[GlobalSearch] opened');
       Sentry.addBreadcrumb({ category: 'search', message: 'Search overlay opened', level: 'info' });
+      if (reduceMotion) slideAnim.setValue(0);
       Animated.parallel([
         Animated.spring(fadeAnim, {
           toValue: 1,
@@ -167,44 +179,53 @@ export default function GlobalSearchOverlay({
       setQuery('');
       setResults([]);
       setSearched(false);
+      setFailed(false);
       setProfileUserId(null);
     }
   }, [visible]);
 
-  const handleChange = useCallback((value: string) => {
-    setQuery(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!value.trim()) {
-      setResults([]);
-      setSearched(false);
-      return;
-    }
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await searchProfiles(value);
-        if (error) {
-          console.log('[GlobalSearch] search error |', error.message);
-          Sentry.captureMessage(error.message, {
-            level: 'warning',
-            tags: { flow: 'search' },
-            extra: { query: value },
-          });
-        }
-        const filtered = (data ?? []).filter((u) => !useBlockStore.getState().isBlocked(u.id));
-        console.log('[GlobalSearch] query:', value, '| results:', filtered.length);
-        setResults(filtered);
-        setSearched(true);
-      } catch (e) {
-        console.log('[GlobalSearch] search exception |', e);
-        Sentry.captureException(e, { tags: { flow: 'search' }, extra: { query: value } });
-        setResults([]);
-        setSearched(true);
-      } finally {
-        setLoading(false);
+  const runSearch = useCallback(async (value: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await searchProfiles(value);
+      if (error) {
+        console.log('[GlobalSearch] search error |', error.message);
+        Sentry.captureMessage(error.message, {
+          level: 'warning',
+          tags: { flow: 'search' },
+          extra: { query: value },
+        });
       }
-    }, WAIT.search);
+      const filtered = (data ?? []).filter((u) => !useBlockStore.getState().isBlocked(u.id));
+      console.log('[GlobalSearch] query:', value, '| results:', filtered.length);
+      setResults(filtered);
+      setFailed(!!error || !data);
+      setSearched(true);
+    } catch (e) {
+      console.log('[GlobalSearch] search exception |', e);
+      Sentry.captureException(e, { tags: { flow: 'search' }, extra: { query: value } });
+      setResults([]);
+      setFailed(true);
+      setSearched(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  const handleChange = useCallback(
+    (value: string) => {
+      setQuery(value);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (!value.trim()) {
+        setResults([]);
+        setSearched(false);
+        setFailed(false);
+        return;
+      }
+      debounceRef.current = setTimeout(() => void runSearch(value), WAIT.search);
+    },
+    [runSearch]
+  );
 
   if (!visible) return null;
 
@@ -249,7 +270,7 @@ export default function GlobalSearchOverlay({
               <TextInput
                 ref={inputRef}
                 style={[styles.input, { color: text }]}
-                placeholder="Search users..."
+                placeholder="Name or @username"
                 placeholderTextColor={muted}
                 value={query}
                 onChangeText={handleChange}
@@ -258,7 +279,7 @@ export default function GlobalSearchOverlay({
                 returnKeyType="search"
                 enablesReturnKeyAutomatically
                 clearButtonMode="while-editing"
-                accessibilityLabel="Search users"
+                accessibilityLabel="Search people"
               />
             </View>
             <Pressable
@@ -289,13 +310,36 @@ export default function GlobalSearchOverlay({
             <View style={styles.centered}>
               <ActivityIndicator color={muted} />
             </View>
+          ) : searched && failed && results.length === 0 ? (
+            <View style={styles.centered}>
+              <Text style={[styles.emptyText, { color: text }]}>
+                Search isn’t working right now.
+              </Text>
+              <Text style={[styles.hintText, { color: muted }]}>
+                Check your connection and try again.
+              </Text>
+              <Pressable
+                style={({ pressed }) => [styles.retryBtn, pressed && styles.pressed]}
+                onPress={() => void runSearch(query)}
+                accessibilityRole="button"
+              >
+                <Text style={styles.retryBtnText}>Try again</Text>
+              </Pressable>
+            </View>
           ) : searched && results.length === 0 ? (
             <View style={styles.centered}>
-              <Text style={[styles.emptyText, { color: muted }]}>No results for "{query}"</Text>
+              <Text style={[styles.emptyText, { color: text }]}>
+                No one called “{query.trim()}” on Mahi yet.
+              </Text>
+              <Text style={[styles.hintText, { color: muted }]}>
+                When you post, you can send them a link to join.
+              </Text>
             </View>
           ) : !searched ? (
             <View style={styles.centered}>
-              <Text style={[styles.hintText, { color: muted }]}>Search for people on Mahi</Text>
+              <Text style={[styles.hintText, { color: muted }]}>
+                Find friends on Mahi. Follow each other and you can tag each other.
+              </Text>
             </View>
           ) : (
             <FlatList
@@ -307,7 +351,10 @@ export default function GlobalSearchOverlay({
                   dark={dark}
                   onPress={() => {
                     if (item.id === currentUserId) {
-                      console.log('[GlobalSearch] tap own profile — ignored |', item.id);
+                      // Your own row goes to your Profile page.
+                      Keyboard.dismiss();
+                      if (onOpenOwnProfile) onOpenOwnProfile();
+                      else onClose();
                       return;
                     }
                     console.log('[GlobalSearch] tap profile |', item.id, '| user:', item.username);
@@ -420,13 +467,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s24,
   },
   emptyText: {
-    fontFamily: FONTS.regular,
+    fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f15,
+    textAlign: 'center',
+    marginBottom: SPACE.s8,
   },
   hintText: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f14,
     letterSpacing: TRACKING.t0_5,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.pill,
+    minHeight: SIZE.z44,
+    justifyContent: 'center',
+    paddingHorizontal: SPACE.s24,
+    marginTop: SPACE.s16,
+  },
+  retryBtnText: {
+    color: COLORS.offBlack,
+    fontSize: FONT_SIZE.f15,
+    fontFamily: FONTS.bold,
   },
   row: {
     flexDirection: 'row',
