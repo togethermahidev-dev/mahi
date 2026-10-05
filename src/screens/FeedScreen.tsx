@@ -8,10 +8,9 @@ import {
   Animated,
   Pressable,
 } from 'react-native';
-import { FlashList, type FlashListRef } from '@shopify/flash-list';
+import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeGesture } from 'react-native-gesture-handler';
-import { useAnimatedRef, useScrollOffset, type SharedValue } from 'react-native-reanimated';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePageSize } from '@/hooks/useChrome';
 import { useFeed } from '@/hooks/useFeed';
@@ -124,10 +123,8 @@ interface FeedScreenProps {
   onFindFriends?: () => void;
   headerAnim?: Animated.Value;
   onOverlayChange?: (active: boolean) => void;
-  /** The list's scrolling as a gesture, so the Camera ↕ Feed swipe can run alongside it. */
+  /** The list's scrolling as a gesture, so the sideways page swipe can run alongside it. */
   listGesture?: NativeGesture;
-  /** How far the list is scrolled, kept up to date on the UI thread for the Camera ↕ Feed swipe. */
-  listOffset?: SharedValue<number>;
   /** The Feed is the screen showing (video posts play only then). */
   isActive?: boolean;
 }
@@ -138,7 +135,6 @@ export default function FeedScreen({
   headerAnim,
   onOverlayChange,
   listGesture,
-  listOffset,
   isActive = true,
 }: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
@@ -247,10 +243,6 @@ export default function FeedScreen({
   const [localHeaderAnim] = useState(() => new Animated.Value(0));
   const headerOffset = headerAnim ?? localHeaderAnim;
 
-  // The swipe reads where the list is on the UI thread, in step with the finger.
-  const listRef = useAnimatedRef<FlashListRef<FeedPost>>();
-  useScrollOffset(listRef, listOffset);
-
   const handleScroll = (e: any) => {
     const y = e.nativeEvent.contentOffset.y;
 
@@ -267,7 +259,6 @@ export default function FeedScreen({
     <View style={[styles.root, { backgroundColor: bg }]}>
       <ListGestureContext.Provider value={listGesture}>
         <FlashList
-          ref={listRef}
           renderScrollComponent={GestureScrollView}
           data={posts}
           keyExtractor={(item) => item.id}

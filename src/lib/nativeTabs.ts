@@ -11,7 +11,7 @@ import type { SFSymbolName } from '@/lib/sfSymbols';
 export type TabKey = 'camera' | 'feed' | 'messages' | 'profile';
 
 /**
- * The four tabs in the rail's order. iPhone: Apple's icons, plain, then filled when selected.
+ * The four tabs in the swipe order, Messages last (founder, 2026-10-05). iPhone: Apple's icons, plain, then filled when selected.
  * Android: Google's Material icons (Android marks the selected tab with its own pill).
  */
 export const NATIVE_TABS: readonly {
@@ -37,18 +37,18 @@ export const NATIVE_TABS: readonly {
     androidIcon: 'notes',
   },
   {
-    key: 'messages',
-    title: 'Messages',
-    icon: 'bubble.left',
-    selectedIcon: 'bubble.left.fill',
-    androidIcon: 'chat_bubble',
-  },
-  {
     key: 'profile',
     title: 'Profile',
     icon: 'person',
     selectedIcon: 'person.fill',
     androidIcon: 'person',
+  },
+  {
+    key: 'messages',
+    title: 'Messages',
+    icon: 'bubble.left',
+    selectedIcon: 'bubble.left.fill',
+    androidIcon: 'chat_bubble',
   },
 ];
 
@@ -72,15 +72,22 @@ export function cameraLift(room: number, resting: number, gap: number): number {
 }
 
 /**
- * The swipe pages stay with the tab bar (owner, 2026-10-05): Profile ← Camera/Feed → Messages
- * sideways, Camera ↕ Feed up and down, exactly as on build 10. The bar shows which page is up
- * and a tap on it moves the pages. `hIndex`: 0 Profile, 1 Camera/Feed, 2 Messages; `vIndex`:
- * 0 Camera, 1 Feed.
+ * The swipe pages, left to right (founder, 2026-10-05): Camera ⇄ Feed ⇄ Profile, sideways only —
+ * no up/down swiping. Messages is not a swipe page: its tab (or the header button) opens it over
+ * them.
  */
-export function pageTab(hIndex: number, vIndex: number): TabKey {
-  if (hIndex === 0) return 'profile';
-  if (hIndex === 2) return 'messages';
-  return vIndex === 0 ? 'camera' : 'feed';
+export const SWIPE_PAGES: readonly TabKey[] = ['camera', 'feed', 'profile'];
+
+/** The tab for the swipe page showing, or Messages while it is open. */
+export function pageTab(index: number, messagesOpen: boolean): TabKey {
+  if (messagesOpen) return 'messages';
+  return SWIPE_PAGES[index] ?? 'camera';
+}
+
+/** The swipe page a tab shows, or null for Messages (it opens over the pages). */
+export function tabPage(tab: TabKey): number | null {
+  const i = SWIPE_PAGES.indexOf(tab);
+  return i < 0 ? null : i;
 }
 
 /**

@@ -4,15 +4,18 @@ import {
   movesPages,
   nativeTabsAvailable,
   pageTab,
+  SWIPE_PAGES,
+  tabPage,
 } from '@/lib/nativeTabs';
 
 describe('NATIVE_TABS', () => {
-  it('keeps the rail order: Camera, Feed, Messages, Profile', () => {
-    expect(NATIVE_TABS.map((t) => t.key)).toEqual(['camera', 'feed', 'messages', 'profile']);
+  // Founder, 2026-10-05: the bar reads in the swipe order, Messages last.
+  it('follows the swipe order: Camera, Feed, Profile, then Messages', () => {
+    expect(NATIVE_TABS.map((t) => t.key)).toEqual(['camera', 'feed', 'profile', 'messages']);
   });
 
   it('labels each tab in sentence case', () => {
-    expect(NATIVE_TABS.map((t) => t.title)).toEqual(['Camera', 'Feed', 'Messages', 'Profile']);
+    expect(NATIVE_TABS.map((t) => t.title)).toEqual(['Camera', 'Feed', 'Profile', 'Messages']);
   });
 
   it('gives every tab an Apple icon for both states and a Material icon for Android', () => {
@@ -56,19 +59,35 @@ describe('cameraLift', () => {
   });
 });
 
-// The swipe pages stay with the tab bar (owner, 2026-10-05: "the swiping left right up down
-// mechanic still needs to work and be the same"). The bar only shows and picks the page.
+// Founder, 2026-10-05: one row of swipe pages, Camera ⇄ Feed ⇄ Profile; no up/down swiping;
+// Messages only by its tab or the header button.
+describe('SWIPE_PAGES', () => {
+  it('is Camera, Feed, Profile, left to right', () => {
+    expect(SWIPE_PAGES).toEqual(['camera', 'feed', 'profile']);
+  });
+});
+
 describe('pageTab', () => {
-  it('names the tab for where the swipe pages are', () => {
-    expect(pageTab(0, 0)).toBe('profile');
-    expect(pageTab(1, 0)).toBe('camera');
-    expect(pageTab(1, 1)).toBe('feed');
-    expect(pageTab(2, 0)).toBe('messages');
+  it('names the tab for the page showing', () => {
+    expect(pageTab(0, false)).toBe('camera');
+    expect(pageTab(1, false)).toBe('feed');
+    expect(pageTab(2, false)).toBe('profile');
   });
 
-  it('Profile and Messages win whatever the up/down page is', () => {
-    expect(pageTab(0, 1)).toBe('profile');
-    expect(pageTab(2, 1)).toBe('messages');
+  it('is Messages while Messages is open, whatever page is under it', () => {
+    expect(pageTab(1, true)).toBe('messages');
+  });
+});
+
+describe('tabPage', () => {
+  it('finds the swipe page for a tab', () => {
+    expect(tabPage('camera')).toBe(0);
+    expect(tabPage('feed')).toBe(1);
+    expect(tabPage('profile')).toBe(2);
+  });
+
+  it('Messages has no swipe page', () => {
+    expect(tabPage('messages')).toBeNull();
   });
 });
 

@@ -29,9 +29,8 @@ type TabSelected = NativeSyntheticEvent<{
  * On iPhone it is Apple's tab bar (Liquid Glass on iOS 26, with Apple's own selection morph); on
  * Android, Material's bottom navigation.
  *
- * The pages are the swipe pages, exactly as on build 10 (owner, 2026-10-05: "the swiping left
- * right up down mechanic still needs to work and be the same"): Profile ← Camera/Feed → Messages
- * sideways, Camera ↕ Feed up and down, pull down on the Camera for search. They fill the screen
+ * The pages are the swipe pages (HorizontalNavigator; founder, 2026-10-05): Camera ⇄ Feed ⇄
+ * Profile, sideways only, with Messages opening over them from its tab. They fill the screen
  * above the bar. The bar shows which page is up, and a tap on it moves the pages there. Its own
  * tab pages stay empty behind them.
  *

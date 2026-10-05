@@ -136,6 +136,19 @@ been tagged, how long left on the feed, all that stuff." Architecture:
 | 58 | A push that is late | Closed, not sent, once it is more than an hour overdue (a setting): what it says about time would be untrue. Also means switching push on never sends the old queue. Quiet hours are not "late": those pushes wait for 07:00, except a feed warning, which is dropped | Send whenever | Built | 2026-10-02 | `claim_push_batch`, `app_config.push_stale_after` |
 | 59 | A live countdown on the lock screen | Researched, not built. Needs a native build (it could join build 11) and its own sending path to Apple; an iPhone only keeps one alive for 8 hours, so it would cover the last hours of a tag, not all 48 | — | Parked — the founder to say if it is wanted | — | — |
 
+## Navigation: swipe pages and the tab bar (2026-10-05)
+
+The founder's answers after trying the phone's own tab bar on build 12 (OTA 12.01 had brought the
+old swipe pages back under it).
+
+| # | Decision | Chosen | Other options | Status | Decided | Used in |
+| --- | --- | --- | --- | --- | --- | --- |
+| 60 | Swipe pages | One row, left to right: Camera ⇄ Feed ⇄ Profile. From the Feed, swipe right → Camera, swipe left → Profile; from Profile, swipe right → Feed. Sideways only: no up/down page swiping (Camera ↕ Feed and the Camera's pull-down for search are gone) | Profile ← Camera/Feed → Messages with Camera ↕ Feed (until OTA 12.01) · Camera, Feed, Profile, Messages in one row · Messages, Camera, Feed, Profile | Decided | 2026-10-05 | `HorizontalNavigator`, `SWIPE_PAGES` in `src/lib/nativeTabs.ts` |
+| 61 | Messages | Not a swipe page: it opens over the pages from its tab, the glass rail or the header button, and closes with its back button | One of the swipe pages | Decided | 2026-10-05 | `HorizontalNavigator` |
+| 62 | Tab bar order | The swipe order, Messages last: Camera, Feed, Profile, Messages | Camera, Feed, Messages, Profile (2026-10-03) | Decided | 2026-10-05 | `NATIVE_TABS` |
+| 63 | Tab bar and swipes together | The phone's own tab bar (build 12+) with the swipe pages above it: tap a tab and the pages move, swipe and the tab follows. The bar hides only under the post preview | Tab bar only, no swipes (2026-10-03) | Decided | 2026-10-05 | `TabsNavigator` |
+| 64 | A way into search | The Camera's pull-down went with up/down swiping; search is now reached from the empty feed's "Find friends" | A search button in the header | Open — the founder to say | — | `AppHeader`, `GlobalSearchOverlay` |
+
 ## Fixed by the PRD (not open questions)
 
 | Rule | Value |

@@ -111,7 +111,7 @@ export default function GlobalSearchOverlay({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Swipe-up anywhere on the overlay dismisses it (and blocks the gesture
-  // from leaking through to the VerticalNavigator behind it).
+  // from leaking through to the pages behind it).
   const dismissPan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,

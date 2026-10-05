@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
-import { Gesture, GestureDetector, type GestureType } from 'react-native-gesture-handler';
+import { Animated as RNAnimated, Platform, StyleSheet, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   ReduceMotion,
   cancelAnimation,
@@ -12,30 +12,43 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { BlurTargetView } from 'expo-blur';
 import { haptic } from '@/lib/haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import VerticalNavigator, { type VerticalControl } from '@/screens/VerticalNavigator';
+import CameraScreen from '@/screens/CameraScreen';
+import FeedScreen from '@/screens/FeedScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
 import MessagesScreen from '@/screens/MessagesScreen';
+import NotificationsScreen from '@/screens/NotificationsScreen';
+import UserProfileScreen from '@/screens/UserProfileScreen';
+import AppHeader from '@/components/AppHeader';
+import GlobalSearchOverlay from '@/components/GlobalSearchOverlay';
 import NavRail, { type RailTab } from '@/components/NavRail';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
-import { useChromeStore } from '@/store';
+import { useAppTheme } from '@/hooks/useAppTheme';
+import { usePushRegistration } from '@/hooks/usePushRegistration';
+import { usePushRouting } from '@/hooks/usePushRouting';
+import { useChromeStore, useNotificationsStore } from '@/store';
 import { usePageSize } from '@/hooks/useChrome';
-import { pageTab } from '@/lib/nativeTabs';
+import { SWIPE_PAGES, pageTab, tabPage } from '@/lib/nativeTabs';
 import { railShows } from '@/lib/railSelector';
 import { horizontalRelease, horizontalSwipe, rubberBand, type Rect } from '@/lib/swipeRules';
+import { COLORS, SIZE, LAYER } from '@/constants/tokens';
 
-// ─── Panel registry ───────────────────────────────────────────────────────────
-// Panels, left to right — Profile (0) ← VerticalNavigator (1, default) → Messages (2)
-const PANEL_COUNT = 3;
-const DEFAULT_INDEX = 1; // VerticalNavigator is the entry panel
+// ─── Pages ────────────────────────────────────────────────────────────────────
+// One row, left to right (founder, 2026-10-05): Camera ⇄ Feed ⇄ Profile. Sideways only — no
+// up/down swiping. Messages is not a swipe page: its tab, the rail or the header button opens it
+// over the pages.
+const PAGE_COUNT = SWIPE_PAGES.length;
+const CAMERA = 0;
+const FEED = 1;
+const PROFILE = 2;
 
-/** The snap to a panel. Runs even with Reduce Motion on, as it always has. */
+/** The snap to a page. Runs even with Reduce Motion on, as it always has. */
 const SPRING = { damping: 22, stiffness: 160, mass: 0.9, reduceMotion: ReduceMotion.Never };
 
 // ─── HorizontalNavigator ──────────────────────────────────────────────────────
 
 /**
- * With the phone's tab bar (build 11+, TabsNavigator): the bar replaces the glass rail, the dots
- * and the header's Profile / Messages pills; the swipes stay exactly as they are.
+ * With the phone's tab bar (build 12+, TabsNavigator): the bar replaces the glass rail and the
+ * header's Profile / Messages pills; the swipes stay exactly as they are.
  */
 export type TabBarLink = {
   /** The page showing changed (a swipe, or a tap that moved the pages). */
@@ -51,31 +64,40 @@ export default function HorizontalNavigator({
 }: { tabBar?: TabBarLink } = {}): React.JSX.Element {
   const showRail = useFeatureFlag('nav-glass-rail') && !tabBar;
   const railMorph = useFeatureFlag('nav-rail-morph');
+  const { dark } = useAppTheme();
   const insets = useSafeAreaInsets();
-  // Each panel is one page wide: the window, or with the tab bar the space above it.
+  // Each page is one page wide: the window, or with the tab bar the space above it.
   const { width, height } = usePageSize();
+  const unreadNotifications = useNotificationsStore((s) => s.unreadCount);
 
-  const [hIndex, setHIndex] = useState(DEFAULT_INDEX);
-  const [vIndex, setVIndex] = useState(0);
-  const [overlay, setOverlay] = useState(false);
-  const railTab: RailTab = pageTab(hIndex, vIndex);
+  const [index, setIndex] = useState(CAMERA);
+  const [messagesOpen, setMessagesOpen] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  // A full-screen view inside the Feed (someone's profile).
+  const [feedOverlay, setFeedOverlay] = useState(false);
+
+  // Something is open over the pages: they must not move under it.
+  const overlay = searchVisible || notifOpen || !!profileUserId || feedOverlay || messagesOpen;
+  const tab: RailTab = pageTab(index, messagesOpen);
   // A full-screen view the rail would sit on (someone's profile, search) hides it too.
   const covered = useChromeStore((s) => s.covers > 0);
-  const railShown = railShows({ on: showRail, tab: railTab, overlay, covered });
-
-  // The tab bar follows the pages.
-  const onTabChange = tabBar?.onTabChange;
-  useEffect(() => {
-    onTabChange?.(railTab);
-  }, [railTab, onTabChange]);
-  const verticalRef = useRef<VerticalControl | null>(null);
+  const railShown = railShows({ on: showRail, tab, overlay, covered });
   const blurTargetRef = useRef<View | null>(null);
 
+  // The Feed header slides away as the list scrolls down.
+  const headerAnim = useRef(new RNAnimated.Value(0)).current;
+  const headerH = insets.top + SIZE.z48;
+
   // What the swipe reads on the UI thread.
-  const indexSV = useSharedValue(DEFAULT_INDEX);
+  const indexSV = useSharedValue(CAMERA);
   const blockedSV = useSharedValue(false);
-  // Where the tape sits, in panels (0 = Profile); fractional mid-swipe.
-  const page = useSharedValue(DEFAULT_INDEX);
+  useEffect(() => {
+    blockedSV.value = overlay;
+  }, [overlay, blockedSV]);
+  // Where the strip sits, in pages (0 = Camera); fractional mid-swipe.
+  const page = useSharedValue(CAMERA);
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
   const decided = useSharedValue(false);
@@ -87,38 +109,72 @@ export default function HorizontalNavigator({
     if (!railOwnsTouches) railRectSV.value = null;
   }, [railOwnsTouches, railRectSV]);
 
-  // The tape has been sent to `index`: record it and tick.
-  const settle = (index: number) => {
-    setHIndex(index);
-    indexSV.value = index;
+  // Messages slides in over the pages from the right (0 = showing, 1 = off to the right).
+  const messagesX = useSharedValue(1);
+
+  // The tab bar follows the pages.
+  const onTabChange = tabBar?.onTabChange;
+  useEffect(() => {
+    onTabChange?.(tab);
+  }, [tab, onTabChange]);
+
+  // The strip has been sent to `next`: record it, tick, and bring the header back off Feed.
+  const settle = (next: number) => {
+    setIndex(next);
+    indexSV.value = next;
     haptic('tick');
+    if (next !== FEED) headerAnim.setValue(0);
   };
 
-  // Snap the horizontal tape to a target panel with a spring animation.
-  const navigateHorizontal = (index: number) => {
-    settle(index);
-    page.value = withSpring(index, SPRING);
+  const navigate = (next: number) => {
+    settle(next);
+    page.value = withSpring(next, SPRING);
   };
+
+  const openMessages = () => {
+    if (messagesOpen) return;
+    setMessagesOpen(true);
+    haptic('tick');
+    messagesX.value = withSpring(0, SPRING);
+  };
+  const closeMessages = () => {
+    if (!messagesOpen) return;
+    setMessagesOpen(false);
+    messagesX.value = withSpring(1, SPRING);
+  };
+
+  usePushRegistration();
+  usePushRouting({
+    openProfile: (uid) => {
+      setNotifOpen(false);
+      setProfileUserId(uid);
+    },
+    openNotifications: () => setNotifOpen(true),
+    openCamera: () => {
+      setNotifOpen(false);
+      setProfileUserId(null);
+      closeMessages();
+      navigate(CAMERA);
+    },
+    openMessages: () => {
+      setNotifOpen(false);
+      setProfileUserId(null);
+      openMessages();
+    },
+  });
+
+  // The lists' scrolling as gestures, so a sideways swipe on them still moves the pages: a
+  // vertical list starts tracking after ~10pt of movement, before this swipe decides at 20pt.
+  const feedList = useMemo(() => Gesture.Native(), []);
+  const profileList = useMemo(() => Gesture.Native(), []);
 
   const safeInsets = { top: insets.top, bottom: insets.bottom };
 
-  // Take clear horizontal swipes (see swipeRules); vertical ones are left to VerticalNavigator
-  // and to the lists inside the panels. Runs on the UI thread.
-  // The Feed list's scrolling. A vertical list starts tracking after ~10pt of movement in any
-  // direction, before this swipe decides at 20pt; without running alongside it, the list wins
-  // and sideways swipes on Feed do nothing.
-  const feedList = useMemo(() => Gesture.Native(), []);
-  // The Profile page's list, the same way: the whole profile is one scrolling list, and a
-  // sideways swipe on it must still move the pages.
-  const profileList = useMemo(() => Gesture.Native(), []);
-  // The up/down page swipe (VerticalNavigator). The two swipes must be allowed to track the same
-  // touch: otherwise iOS hands it to the inner up/down swipe and this one stops getting moves, so
-  // sideways swipes on Camera did nothing. Their rules keep them apart (each takes only its axis).
-  const verticalSwipe = useRef<GestureType | undefined>(undefined);
-
+  // Take clear sideways swipes (see swipeRules); up/down ones are left to the lists. Runs on the
+  // UI thread.
   const swipe = Gesture.Pan()
     .manualActivation(true)
-    .simultaneousWithExternalGesture(feedList, profileList, verticalSwipe)
+    .simultaneousWithExternalGesture(feedList, profileList)
     .onTouchesDown((e, manager) => {
       'worklet';
       const t = e.changedTouches[0];
@@ -126,7 +182,7 @@ export default function HorizontalNavigator({
       startX.value = t.absoluteX;
       startY.value = t.absoluteY;
       decided.value = false;
-      // A touch in a system strip, or with a pop-up open, is let go straight away.
+      // A touch in a system strip, or with something open over the pages, is let go at once.
       const first = horizontalSwipe({
         startX: t.absoluteX,
         startY: t.absoluteY,
@@ -169,90 +225,123 @@ export default function HorizontalNavigator({
     })
     .onUpdate((e) => {
       'worklet';
-      // Follows the finger; rubber-band resistance past Profile and Messages.
-      page.value = rubberBand(
-        base.value - (e.absoluteX - startX.value) / width,
-        0,
-        PANEL_COUNT - 1
-      );
+      // Follows the finger; rubber-band resistance past Camera and Profile.
+      page.value = rubberBand(base.value - (e.absoluteX - startX.value) / width, 0, PAGE_COUNT - 1);
     })
     .onEnd((e, success) => {
       'worklet';
-      // Cut short (the phone took the touch): snap back to the panel it started on.
+      // Cut short (the phone took the touch): snap back to the page it started on.
       const next = success
-        ? horizontalRelease(
-            indexSV.value,
-            PANEL_COUNT,
-            e.absoluteX - startX.value,
-            e.velocityX / 1000
-          )
+        ? horizontalRelease(indexSV.value, PAGE_COUNT, e.absoluteX - startX.value, e.velocityX / 1000)
         : indexSV.value;
       indexSV.value = next;
       page.value = withSpring(next, SPRING);
       scheduleOnRN(settle, next);
     });
 
-  const tapeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: -page.value * width }] }));
+  const stripStyle = useAnimatedStyle(() => ({ transform: [{ translateX: -page.value * width }] }));
+  const messagesStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: messagesX.value * width }],
+  }));
 
-  const selectTab = (tab: RailTab) => {
-    if (tab === 'profile') return navigateHorizontal(0);
-    if (tab === 'messages') return navigateHorizontal(2);
-    // indexSV, not hIndex: a drag along the rail can switch twice before the next render.
-    if (indexSV.value !== 1) navigateHorizontal(1);
-    verticalRef.current?.navigateTo(tab === 'camera' ? 0 : 1);
+  // A tab (the phone's bar or the rail): Messages opens over the pages, the rest move them.
+  const selectTab = (next: RailTab) => {
+    const target = tabPage(next);
+    if (target === null) return openMessages();
+    closeMessages();
+    // indexSV, not index: a drag along the rail can switch twice before the next render.
+    if (indexSV.value !== target) navigate(target);
   };
-
   if (tabBar) tabBar.selectRef.current = selectTab;
 
   // Android blurs a BlurTargetView's content; iOS blurs whatever is behind natively.
-  const Tape = Platform.OS === 'android' ? BlurTargetView : View;
-  const panel = { width };
+  const Strip = Platform.OS === 'android' ? BlurTargetView : View;
+  const pageStyle = { width, height };
+  // The Profile / Messages pills, unless the rail or the phone's tab bar carries them.
+  const showNavPills = !showRail && !tabBar;
+
+  const header = (onCamera: boolean) => (
+    <AppHeader
+      isDark={onCamera}
+      onProfilePress={() => selectTab('profile')}
+      onMessagesPress={openMessages}
+      showNavPills={showNavPills}
+      unreadNotifications={unreadNotifications}
+      onNotificationsPress={() => setNotifOpen(true)}
+    />
+  );
 
   return (
     <GestureDetector gesture={swipe}>
       <View style={styles.root}>
-        <Tape ref={blurTargetRef} style={styles.root}>
-          <Animated.View style={[styles.tape, { width: width * PANEL_COUNT }, tapeStyle]}>
-            {/* Panel 0: Profile — always mounted; `isActive` flips true when the
-                tape settles on index 0 so ProfileScreen can recover a raced/empty
-                first posts-sync (hand-rolled nav focus, not react-navigation). */}
-            <View style={[styles.panel, panel]}>
-              <ProfileScreen isActive={hIndex === 0} listGesture={profileList} />
+        <Strip ref={blurTargetRef} style={styles.root}>
+          <Animated.View style={[styles.strip, { width: width * PAGE_COUNT }, stripStyle]}>
+            {/* Camera — the entry page, always dark. */}
+            <View style={[styles.page, pageStyle, { backgroundColor: COLORS.ink }]}>
+              <CameraScreen onComposingChange={tabBar?.onComposingChange} />
+              <View pointerEvents="box-none" style={styles.header}>
+                {header(true)}
+              </View>
             </View>
 
-            {/* Panel 1: VerticalNavigator (main content) — default visible panel */}
-            <View style={[styles.panel, panel]}>
-              <VerticalNavigator
-                controlRef={verticalRef}
-                feedList={feedList}
-                swipeRef={verticalSwipe}
-                // The tab bar, like the rail, stands in for the dots and the header pills.
-                railShown={showRail || !!tabBar}
-                isActive={hIndex === 1}
-                onComposingChange={tabBar?.onComposingChange}
-                onIndexChange={setVIndex}
-                onNavigateLeft={() => navigateHorizontal(0)}
-                onNavigateRight={() => navigateHorizontal(2)}
-                onNavigateHome={() => {
-                  if (indexSV.value !== 1) navigateHorizontal(1);
-                }}
-                onOverlayChange={(active) => {
-                  blockedSV.value = active;
-                  setOverlay(active);
-                }}
+            {/* Feed — its header slides away as the list scrolls down. */}
+            <View
+              style={[
+                styles.page,
+                pageStyle,
+                { backgroundColor: dark ? COLORS.bgDark : COLORS.white },
+              ]}
+            >
+              <FeedScreen
+                onGoToCamera={() => navigate(CAMERA)}
+                onFindFriends={() => setSearchVisible(true)}
+                headerAnim={headerAnim}
+                onOverlayChange={setFeedOverlay}
+                listGesture={feedList}
+                isActive={index === FEED && !messagesOpen}
+              />
+              <RNAnimated.View
+                pointerEvents="box-none"
+                style={[
+                  styles.header,
+                  {
+                    transform: [
+                      {
+                        translateY: headerAnim.interpolate({
+                          inputRange: [0, headerH],
+                          outputRange: [0, -headerH],
+                          extrapolate: 'clamp',
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                {header(false)}
+              </RNAnimated.View>
+            </View>
+
+            {/* Profile — always mounted; `isActive` re-syncs its posts when it comes into view. */}
+            <View style={[styles.page, pageStyle]}>
+              <ProfileScreen
+                isActive={index === PROFILE && !messagesOpen}
+                listGesture={profileList}
               />
             </View>
-
-            {/* Panel 2: Messages */}
-            <View style={[styles.panel, panel]}>
-              <MessagesScreen onBack={() => navigateHorizontal(1)} />
-            </View>
           </Animated.View>
-        </Tape>
+        </Strip>
+
+        {/* Messages, over the pages. Always mounted, so it keeps its place and stays live. */}
+        <Animated.View
+          pointerEvents={messagesOpen ? 'auto' : 'none'}
+          style={[styles.messages, messagesStyle]}
+        >
+          <MessagesScreen onBack={closeMessages} />
+        </Animated.View>
 
         {railShown ? (
           <NavRail
-            active={railTab}
+            active={tab}
             onSelect={selectTab}
             onDark
             blurTarget={Platform.OS === 'android' ? blurTargetRef : undefined}
@@ -266,6 +355,33 @@ export default function HorizontalNavigator({
             }
           />
         ) : null}
+
+        <NotificationsScreen
+          visible={notifOpen}
+          onClose={() => setNotifOpen(false)}
+          onOpenPost={() => setNotifOpen(false)}
+          onOpenProfile={(uid) => {
+            setNotifOpen(false);
+            setProfileUserId(uid);
+          }}
+        />
+
+        {/* Someone's profile, from a notification or a push. */}
+        {profileUserId ? (
+          <UserProfileScreen
+            key={profileUserId}
+            userId={profileUserId}
+            onBack={() => setProfileUserId(null)}
+            dark={dark}
+          />
+        ) : null}
+
+        {/* People search — "Find friends" on an empty feed. */}
+        <GlobalSearchOverlay
+          visible={searchVisible}
+          onClose={() => setSearchVisible(false)}
+          dark={dark}
+        />
       </View>
     </GestureDetector>
   );
@@ -276,12 +392,26 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: 'hidden',
   },
-  tape: {
+  strip: {
     flexDirection: 'row',
     flex: 1,
   },
-  panel: {
-    flex: 1,
+  page: {
     overflow: 'hidden',
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: LAYER.header,
+  },
+  messages: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: LAYER.raised,
   },
 });
