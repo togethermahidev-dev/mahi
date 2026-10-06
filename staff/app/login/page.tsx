@@ -13,7 +13,7 @@ export default async function LoginPage({
       <div className="w-full max-w-z360">
         <Wordmark />
         <h1 className="mt-s24 text-f24 font-bold">Staff portal</h1>
-        <p className="mt-s4 text-f14 text-grey888">Sign in with your Mahi account.</p>
+        <p className="mt-s4 text-f14 text-grey888">Staff accounts only. Contact IT to add or remove a staff account.</p>
         {reason === 'not-staff' && (
           <p role="alert" className="mt-s16 rounded-r8 bg-surface-light p-s12 text-f14 text-danger-deep">
             You were signed out: this account isn&apos;t on the staff list.
