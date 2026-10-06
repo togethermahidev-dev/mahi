@@ -112,15 +112,9 @@ export function personAction(
     : { action: 'invite', note: 'not your friend yet' };
 }
 
-/**
- * The message that goes with a link. The code is in it too: until the invite page is live, a
- * link opens nothing and the code is how a new person gets linked to you.
- */
-export function slotShareMessage(url: string, code: string): string {
-  return (
-    'I tagged you on Mahi. Join and you’ve got 48 hours to post any workout, then tag 3 friends.\n' +
-    `${url}\nOr use code ${code} when you sign up.`
-  );
+/** The low-pressure message that goes with an invite link. */
+export function slotShareMessage(url: string, _code: string): string {
+  return `I tagged you on Mahi. Join me for a workout.\n${url}`;
 }
 
 /** A link that opens WhatsApp or Messages with the message already written. */

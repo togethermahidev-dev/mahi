@@ -107,10 +107,9 @@ describe('personAction', () => {
 });
 
 describe('slotShareMessage', () => {
-  it('carries the link and the code, so it works before links open the app', () => {
+  it('keeps the invitation low-pressure and leaves out the signup code', () => {
     expect(slotShareMessage('https://togethermahi.com/i/t1', 'ABC234')).toBe(
-      'I tagged you on Mahi. Join and you’ve got 48 hours to post any workout, then tag 3 friends.\n' +
-        'https://togethermahi.com/i/t1\nOr use code ABC234 when you sign up.'
+      'I tagged you on Mahi. Join me for a workout.\nhttps://togethermahi.com/i/t1'
     );
   });
 });

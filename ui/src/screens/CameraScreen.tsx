@@ -945,7 +945,7 @@ function DualPhotoPreview({
                 if (frozenFront.current && frozenRear.current) {
                   Alert.alert(
                     'Happy with your post?',
-                    'Posts can’t be deleted. You can edit the caption for one hour. Posting opens your feed and may notify the friends you tagged.',
+                    'You can edit the caption for one hour or delete the post later. Posting opens your feed and may notify the friends you tagged.',
                     [
                       { text: 'Keep editing', style: 'cancel' },
                       {

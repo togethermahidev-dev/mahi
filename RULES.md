@@ -25,10 +25,11 @@
   `decline_message_request`, `edit_message` (own message, 15 minutes), `unsend_message`; read with `get_inbox`,
   `get_messages`, `get_conversation_with`. Never insert, update or delete `messages` or `conversations` from the app
   (the direct conversation writes old apps use go with `supabase/deferred/contract_messages.sql`).
-- Posts are permanent: no delete, no update, except the caption by its owner for one hour through
+- Owners can delete their posts through `delete_post`; deletion never restores the one free first
+  post (`profiles.has_posted_before` is permanent). Captions remain editable for one hour through
   `update_post_caption` (an edited caption is checked by moderation again).
-- The preview's Post tap always asks for confirmation: posts cannot be deleted, captions are editable
-  for one hour, and posting opens the feed and can notify tagged friends. Never bypass this alert.
+- The preview's Post tap always asks for confirmation: captions are editable for one hour, and
+  posting opens the feed and can notify tagged friends. Never bypass this alert.
 
 ## Database tools
 - Mahi doesn't use Docker: no `supabase start`, no local stack. Database types come from the Supabase MCP

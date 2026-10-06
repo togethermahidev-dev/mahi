@@ -294,3 +294,15 @@ export async function updatePostCaption(
   if (error) return { data: null, error: new Error(error.message) };
   return { data: data as unknown as { caption: string | null }, error: null };
 }
+
+/** Delete the caller's post, then remove its media after the database confirms deletion. */
+export async function deletePost(postId: string): Promise<{ error: Error | null }> {
+  const { data, error } = await supabase.rpc('delete_post', { p_post: postId });
+  if (error) return { error: new Error(error.message) };
+  const paths = [
+    (data as { image_path?: string | null } | null)?.image_path,
+    (data as { pov_image_path?: string | null } | null)?.pov_image_path,
+  ].filter((path): path is string => !!path);
+  if (paths.length) await removePostPhotos(paths);
+  return { error: null };
+}

@@ -47,6 +47,7 @@ interface ProfilePostsState {
   addPost: (post: FeedPost) => void;
   /** Like and comment counts changed (socialStore keeps them in step with the feed's). */
   patchPost: (id: string, partial: Partial<FeedPost>) => void;
+  removePost: (id: string) => void;
   reset: () => void;
 }
 
@@ -118,6 +119,8 @@ export const useProfilePostsStore = create<ProfilePostsState>((set, get) => ({
 
   patchPost: (id, partial) =>
     set((s) => ({ posts: s.posts.map((p) => (p.id === id ? { ...p, ...partial } : p)) })),
+
+  removePost: (id) => set((s) => ({ posts: s.posts.filter((post) => post.id !== id) })),
 
   reset: () =>
     set({

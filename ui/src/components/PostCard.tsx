@@ -54,6 +54,8 @@ import {
 } from '@/lib/contextMenuPreview';
 import { sharePost } from '@/lib/sharePost';
 import { canEditPostCaption } from '@/lib/postPolicy';
+import { deletePost } from '@/api';
+import { useToastStore } from '@/store/toastStore';
 import { appHeaderHeight, pipZone } from '@/lib/pip';
 import type { FeedPost } from '@/api';
 import { FONTS } from '@/constants/fonts';
@@ -144,6 +146,21 @@ export default function PostCard({
   const ownPost = !!currentUser && currentUser.id === item.user_id;
   const canEditCaption = ownPost && canEditPostCaption(item.created_at);
   const [editingCaption, setEditingCaption] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const removeOwnPost = useCallback(async () => {
+    if (deleting) return;
+    setDeleting(true);
+    const { error } = await deletePost(item.id);
+    setDeleting(false);
+    if (error) {
+      useToastStore.getState().show('Couldn’t delete your post.');
+      return;
+    }
+    useFeedStore.getState().removePost(item.id);
+    useProfilePostsStore.getState().removePost(item.id);
+    useToastStore.getState().show('Post deleted.');
+  }, [deleting, item.id]);
   const likedByMe = useSocialStore((s) => s.likedByMe[item.id] ?? item.liked_by_me);
   // Counts move in the feed's copy of the post and the profile grid's (see socialStore).
   const feedCounts = useFeedStore((s) => s.posts.find((p) => p.id === item.id));
@@ -536,14 +553,19 @@ export default function PostCard({
                         style={styles.moreButton}
                         onPress={() =>
                           ownPost
-                            ? showOwnPostMenu(canEditCaption, () => setEditingCaption(true))
+                            ? showOwnPostMenu(
+                                canEditCaption,
+                                () => setEditingCaption(true),
+                                removeOwnPost,
+                                deleting
+                              )
                             : showPostMenu(() => startReport('post', item.id))
                         }
                         hitSlop={OFFSET.o12}
                         accessibilityRole="button"
                         accessibilityLabel="More"
                         accessibilityHint={
-                          ownPost ? 'Edit caption and see post policy' : 'Report this post'
+                          ownPost ? 'Edit caption or delete this post' : 'Report this post'
                         }
                       >
                         <MoreIcon size={ICON_SIZE.i20} color={COLORS.white} />
@@ -664,15 +686,29 @@ function showPostMenu(onReport: () => void) {
   showNativeMenu({ actions: [{ text: 'Report', destructive: true, run: onReport }] });
 }
 
-function showOwnPostMenu(canEdit: boolean, onEdit: () => void) {
+function showOwnPostMenu(
+  canEdit: boolean,
+  onEdit: () => void,
+  onDelete: () => void,
+  deleting: boolean
+) {
+  const confirmDelete = () =>
+    showNativeMenu({
+      title: 'Delete post?',
+      message: 'This can’t be undone.',
+      actions: [{ text: 'Delete post', destructive: true, run: onDelete }],
+    });
   showNativeMenu({
     title: 'Your post',
-    message: canEdit
-      ? 'You can edit the caption for one hour. Posts can’t be deleted.'
-      : 'The one-hour caption editing window has ended. Posts can’t be deleted.',
-    actions: canEdit
-      ? [{ text: 'Edit caption', run: onEdit }]
-      : [{ text: 'Got it', run: () => {} }],
+    message: canEdit ? 'You can edit the caption for one hour.' : undefined,
+    actions: [
+      ...(canEdit ? [{ text: 'Edit caption', run: onEdit }] : []),
+      {
+        text: deleting ? 'Deleting…' : 'Delete post',
+        destructive: true,
+        run: deleting ? () => {} : confirmDelete,
+      },
+    ],
   });
 }
 

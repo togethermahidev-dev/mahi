@@ -81,12 +81,10 @@ describe('inviteListSummary', () => {
 });
 
 describe('inviteShareMessage', () => {
-  // The invite page isn't live, so a link opens nothing yet: the code is how a new person gets
-  // linked to you (review, 2026-10-05: the code was missing, so no invite could be claimed).
-  it('carries the link and the code, the same words as the tag screen', () => {
+  it('carries the link without the promotional signup code', () => {
     const message = inviteShareMessage('https://togethermahi.com/i/t1', 'ABC234');
     expect(message).toContain('https://togethermahi.com/i/t1');
-    expect(message).toContain('ABC234');
+    expect(message).not.toContain('ABC234');
     expect(message).toBe(slotShareMessage('https://togethermahi.com/i/t1', 'ABC234'));
   });
 });

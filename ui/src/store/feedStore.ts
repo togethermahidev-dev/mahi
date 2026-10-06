@@ -28,6 +28,7 @@ interface FeedState {
   confirmPending: (tempId: string, real: FeedPost) => void;
   removePending: (tempId: string) => void;
   patchPost: (id: string, partial: Partial<FeedPost>) => void;
+  removePost: (id: string) => void;
   reset: () => void;
 }
 
@@ -119,6 +120,12 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   patchPost: (id, partial) =>
     set((state) => ({
       posts: state.posts.map((p) => (p.id === id ? { ...p, ...partial } : p)),
+    })),
+
+  removePost: (id) =>
+    set((state) => ({
+      posts: state.posts.filter((post) => post.id !== id),
+      pending: state.pending.filter((post) => post.id !== id),
     })),
 
   reset: () => {

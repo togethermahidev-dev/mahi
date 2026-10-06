@@ -205,14 +205,14 @@ for the invite fixes waits for Q1–Q5 and Q8 so it goes in as one.
 
 | # | Question | Choices | Status | Asked | Used in |
 | --- | --- | --- | --- | --- | --- |
-| 65 | Q1 · After "Not now" (or taking an in-app invite back), how soon can you invite that person again? | 7 days · 1 day · only once they've invited you · anytime | Open | 2026-10-05 | `invite_to_tag` |
-| 66 | Q2 · A daily limit on in-app invites per person? | 10 a day · 20 a day · no limit | Open | 2026-10-05 | `invite_to_tag` |
+| 65 | Q1 · After "Not now" (or taking an in-app invite back), how soon can you invite that person again? | **1 day** | Decided | 2026-10-06 | `enforce_tag_invite_cooldown` |
+| 66 | Q2 · A daily limit on in-app invites per person? | **No limit** (the concurrent open-invite safety cap remains) | Decided | 2026-10-06 | `invite_to_tag` |
 | 67 | Q3 · Unfollowing free friends to fill slots with invites: does someone you unfollowed in the last 24 hours still count as a friend for friends first? | Yes · no, allow it | Open | 2026-10-05 | `create_post` (friends first) |
-| 68 | Q4 · Blocking the person who tagged you cancels the tag: should it count as a missed tag (points back to 0)? | Yes · no | Open | 2026-10-05 | `cancel_tags_on_block` |
-| 69 | Q5 · Deleting posts: allowed at all? If yes, deleting never gives back the free first post (a permanent "has posted before" mark) | Allowed, with the mark · not allowed | Open | 2026-10-05 | `posts` delete rule, `reactive_posting_open` |
-| 70 | Q6 · Joining from a link before the friend posts: "You're friends with @x. Their tag starts when they post." | Yes · other words | Open (built with these words) | 2026-10-05 | `claimedText` in `ui/src/lib/inviteLink.ts` |
-| 71 | Q7 · The share message: "I tagged you on Mahi. Join and you've got 48 hours to post your workout, then tag 3 mates. [link] Or use code ABC123 when you sign up." | Yes · other words | Open (built with these words) | 2026-10-05 | `slotShareMessage`, `inviteShareMessage` |
-| 72 | Q8 · A friend who joined or accepted, then unfollows you before you post: does their slot still count? | Yes · no, drop it | Open | 2026-10-05 | `start_tag`, `create_post` |
+| 68 | Q4 · Blocking the person who tagged you cancels the tag: should it count as a missed tag (points back to 0)? | **No: blocking cancels it without a miss** | Decided | 2026-10-06 | `cancel_tags_on_block` |
+| 69 | Q5 · Deleting posts: allowed at all? If yes, deleting never gives back the free first post (a permanent "has posted before" mark) | **Allowed, with the permanent mark** | Decided | 2026-10-06 | `delete_post`, `reactive_posting_open` |
+| 70 | Q6 · When does a link invite's 48 hours start? | **When the new person installs/joins after the post; when the friend posts if they joined first** | Decided | 2026-10-06 | `claim_invite`, `start_tag`, `claimedText` |
+| 71 | Q7 · The share message | **Short link message, no signup code or sales-style copy** | Decided | 2026-10-06 | `slotShareMessage`, `inviteShareMessage` |
+| 72 | Q8 · A friend who joined or accepted, then unfollows you before you post: does their slot still count? | **Yes** | Decided | 2026-10-06 | `start_tag`, `create_post` |
 | 64 | Q9 · A search button (same as #64 above) | Answered: a magnifier on the Profile screen, not in the header | Decided | 2026-10-05 | `ProfileScreen` |
 | 73 | Q10 · Pinch to zoom for everyone | Yes, for everyone, with no switch ("no posthog flag needed it can just go out in the update") · not yet | Decided | 2026-10-05 | `PostCard` (OTA 12.05) |
 

@@ -50,7 +50,7 @@ export default function EditPostCaptionSheet({
         <View style={[styles.sheet, { backgroundColor: colors.bg }]}>
           <Text style={[styles.title, { color: colors.text }]}>Edit caption</Text>
           <Text style={[styles.help, { color: colors.muted }]}>
-            You can edit for one hour after posting. Posts can’t be deleted.
+            You can edit for one hour after posting.
           </Text>
           <TextInput
             value={draft}
