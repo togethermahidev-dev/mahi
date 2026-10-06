@@ -295,6 +295,8 @@ export const ICON_SIZE = {
   i22: 22,
   /** Material's standard tab bar icon (Android's native tab bar). */
   i24: 24,
+  /** The feed's like / comment icons on a small phone. */
+  i28: 28,
   i32: 32,
   i80: 80,
 } as const;
@@ -478,6 +480,45 @@ export const POST_CARD = {
   hideMs: 160,
   /** …and back this fast (ms) on release. */
   showMs: 220,
+  /** Responsive layout (feedLayout.ts): a phone shorter than this is small (iPhone SE, 8)… */
+  smallPhoneH: 700,
+  /** …and one at least this tall is tall (Pro Max, Plus). */
+  tallPhoneH: 900,
+  /** The buttons sit lower on a small phone, so the caption keeps its room. */
+  actionsBottomSmall: 0.34,
+  /** Text set this large or more (Settings > Text size) counts as large text. */
+  largeText: 1.3,
+  /** Large text: the shade grows to this share of the post. */
+  shadeHeightLarge: 0.6,
+  /** Caption lines: regular, tall phone, large text. */
+  captionLines: 2,
+  captionLinesTall: 3,
+  captionLinesLarge: 4,
+} as const;
+
+// ─── Motion that brings screens to life (Reanimated; Reduce Motion gets fades) ──
+export const MOTION = {
+  /** A pressed button shrinks to this, then springs back. */
+  pressScale: 0.94,
+  /** Each list row fades in this much after the one above it (ms)… */
+  staggerMs: 40,
+  /** …up to this many rows; the rest come in together. */
+  staggerMax: 8,
+  /** Rows, banners and toasts rise this far (pt) as they fade in. */
+  riseY: 12,
+  /** The feed skeleton breathes between these opacities, this fast (ms) each way. */
+  skeletonLow: 0.35,
+  skeletonHigh: 0.7,
+  skeletonMs: 900,
+  /** Points counting up to a new total (ms). */
+  countUpMs: 700,
+  /** A tag pill turning into a check. */
+  morph: { damping: 14, stiffness: 180, mass: 0.8 },
+  /** A button press and release. */
+  press: { damping: 18, stiffness: 420, mass: 0.6 },
+  /** The countdown ring's line width and size. */
+  ringStroke: 3,
+  ringSize: 22,
 } as const;
 
 // ─── Hold-to-preview pop-up (iPhone, flag context-menu-preview) ─────────────────
