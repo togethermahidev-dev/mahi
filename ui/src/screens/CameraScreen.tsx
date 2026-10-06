@@ -1480,14 +1480,20 @@ interface CameraScreenProps {
   onSeeFeed?: () => void;
   /** Open people search (the caught-up card's "Find friends", shown while the feed is locked). */
   onFindFriends?: () => void;
+  /** Open someone's profile (the answer toast's "Cheer @sam on", for the friend whose tag it answered). */
+  onOpenProfile?: (userId: string) => void;
 }
 
 export default function CameraScreen({
   onComposingChange,
   onSeeFeed,
   onFindFriends,
+  onOpenProfile,
 }: CameraScreenProps = {}): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  // Read when the answer toast's button is tapped, seconds after the post went.
+  const onOpenProfileRef = useRef(onOpenProfile);
+  onOpenProfileRef.current = onOpenProfile;
   const cameraRef = useRef<CameraView>(null);
   const { dark } = useAppTheme();
   // The glass bar sits on the left, level with the small window's spot: the window starts past it.
@@ -2199,6 +2205,15 @@ export default function CameraScreen({
       }
 
       if (result.answered.length > 0) useUserStore.getState().refresh(userId);
+      // An answer's toast offers a way to the friend whose tag it answered (the oldest one).
+      const tagger = result.answered[0];
+      const cheer =
+        tagger && onOpenProfileRef.current
+          ? {
+              label: `Cheer @${tagger.username} on`,
+              onPress: () => onOpenProfileRef.current?.(tagger.tagger_id),
+            }
+          : undefined;
       // Every post says it worked: the first post opens the feed; an answer earns the point.
       useToastStore.getState().show(
         postedToast({
@@ -2212,7 +2227,8 @@ export default function CameraScreen({
             links: inviteCountSnapshot + slotsSnapshot.filter((x) => x.kind === 'link').length,
           },
         }),
-        WAIT.toastLong
+        // A toast with a button stays long enough to reach it (at least as long as toastLong).
+        cheer ? { action: cheer } : WAIT.toastLong
       );
       useTagStore.getState().syncOpenTags();
       if (tagSlotsOn) {

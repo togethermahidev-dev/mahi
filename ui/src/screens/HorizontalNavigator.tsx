@@ -392,6 +392,7 @@ export default function HorizontalNavigator({
                 onComposingChange={handleComposingChange}
                 onSeeFeed={() => navigate(FEED)}
                 onFindFriends={() => setSearchVisible(true)}
+                onOpenProfile={setProfileUserId}
               />
               <View pointerEvents="box-none" style={styles.header}>
                 {header(true)}
