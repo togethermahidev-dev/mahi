@@ -480,6 +480,8 @@ export const POST_CARD = {
   hideMs: 160,
   /** …and back this fast (ms) on release. */
   showMs: 220,
+  /** The second tap of a double tap (to like) must land within this long (ms). */
+  doubleTapMs: 250,
   /** Responsive layout (feedLayout.ts): a phone shorter than this is small (iPhone SE, 8)… */
   smallPhoneH: 700,
   /** …and one at least this tall is tall (Pro Max, Plus). */

@@ -1,4 +1,18 @@
-import { feedLayout, ringProgress } from '../feedLayout';
+import { doubleTapLikes, feedLayout, ringProgress } from '../feedLayout';
+
+describe('doubleTapLikes', () => {
+  it('likes a post you have not liked', () => {
+    expect(doubleTapLikes({ liked: false, pending: false })).toBe(true);
+  });
+
+  it('never unlikes: a second double tap on a liked post only shows the heart', () => {
+    expect(doubleTapLikes({ liked: true, pending: false })).toBe(false);
+  });
+
+  it('does not send a second like while the first is on its way', () => {
+    expect(doubleTapLikes({ liked: false, pending: true })).toBe(false);
+  });
+});
 
 describe('feedLayout', () => {
   it('keeps today’s layout on a regular phone at regular text size', () => {

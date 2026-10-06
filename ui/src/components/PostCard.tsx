@@ -30,6 +30,8 @@ import {
 import { useChromeFade, useTabBarRoom } from '@/hooks/useChrome';
 import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
 import { pinchOffset } from '@/lib/viewer';
+import { doubleTapLikes, feedLayout } from '@/lib/feedLayout';
+import { PressScale, usePop } from '@/components/Motion';
 import { ListGestureContext } from '@/components/GestureScrollView';
 import { HeartIcon, CommentIcon, MoreIcon } from '@/components/ScreenIcons';
 import { startReport } from '@/lib/reportFlow';
@@ -226,34 +228,32 @@ export default function PostCard({
     [medalScale, medalOpacity, reduceMotion]
   );
 
+  // A double tap only ever likes. It reads the like from the store at the moment of the tap (the
+  // card's copy can be a render behind when someone taps fast), and never sends a second like
+  // while the first is on its way — before, two quick double taps liked and then unliked.
+  const likeInFlight = useRef(false);
   const handleDoubleTap = useCallback(
     (x: number, y: number) => {
-      console.log(
-        '[FeedScreen] double-tap post',
-        item.id,
-        '| likedByMe:',
-        likedByMe,
-        '| user:',
-        currentUser?.id
-      );
-      if (!currentUser) {
-        console.warn('[FeedScreen] double-tap: no currentUser');
-        return;
-      }
-      if (!likedByMe) {
-        console.log('[FeedScreen] double-tap → toggleLike (like)');
-        useSocialStore.getState().toggleLike(item.id, currentUser.id);
-      } else {
-        console.log('[FeedScreen] double-tap → already liked, skipping');
+      if (!currentUser) return;
+      const liked = useSocialStore.getState().likedByMe[item.id] ?? item.liked_by_me;
+      if (doubleTapLikes({ liked, pending: likeInFlight.current })) {
+        likeInFlight.current = true;
+        void useSocialStore
+          .getState()
+          .toggleLike(item.id, currentUser.id)
+          .finally(() => {
+            likeInFlight.current = false;
+          });
       }
       haptic('tick');
       triggerMedalBurst(x, y);
     },
-    [currentUser, likedByMe, item.id, triggerMedalBurst]
+    [currentUser, item.id, item.liked_by_me, triggerMedalBurst]
   );
 
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
+    .maxDelay(POST_CARD.doubleTapMs)
     .runOnJS(true)
     .onEnd((e) => {
       handleDoubleTap(e.x, e.y);
@@ -372,6 +372,10 @@ export default function PostCard({
 
   // ── Hold to preview (flag context-menu-preview) ──────────────────────────
   const screen = useWindowDimensions();
+  // Sizes from the window and the text size: small phones, tall phones and large text.
+  const layout = feedLayout(screen);
+  // The heart gives a little pop each time it fills.
+  const heartPop = usePop(likedByMe);
   const menuItems = menuOn
     ? postMenuItems({ liked: likedByMe, canShare: shareTarget(item) != null })
     : [];
@@ -532,7 +536,7 @@ export default function PostCard({
                   ]}
                   style={[
                     styles.captionOverlay,
-                    { minHeight: height * POST_CARD.shadeHeight },
+                    { minHeight: height * layout.shadeHeight },
                     tabRoom > 0 && { paddingBottom: Math.max(SPACE.s80, tabRoom + SPACE.s16) },
                   ]}
                   pointerEvents="box-none"
@@ -569,7 +573,7 @@ export default function PostCard({
                       tagged={item.tagged_users}
                       style={styles.captionText}
                       onPressUser={(u) => onAvatarPress(u.user_id)}
-                      numberOfLines={2}
+                      numberOfLines={layout.captionLines}
                     />
                   ) : null}
                 </LinearGradient>
@@ -615,33 +619,35 @@ export default function PostCard({
             draggable PiP's right-hand snap zone, so we don't extend the hit
             area that way — it grows up/down/right instead. */}
         <Reanimated.View
-          style={[styles.sideActions, { bottom: height * POST_CARD.actionsBottom }, chrome.style]}
+          style={[styles.sideActions, { bottom: height * layout.actionsBottom }, chrome.style]}
           pointerEvents={chrome.viewing ? 'none' : 'box-none'}
         >
           {primaryKind === 'video' && onToggleMuted ? (
             <SoundButton muted={soundOff} onToggle={onToggleMuted} />
           ) : null}
-          <Pressable
-            style={({ pressed }) => [styles.sideActionBtn, pressed && { opacity: ALPHA.a70 }]}
+          <PressScale
+            style={styles.sideActionBtn}
             onPress={handleLike}
             hitSlop={{ top: OFFSET.o20, bottom: OFFSET.o20, left: OFFSET.o4, right: OFFSET.o20 }}
             accessibilityRole="button"
             accessibilityLabel={`Like, ${likeCount} ${likeCount === 1 ? 'like' : 'likes'}`}
             accessibilityState={{ selected: likedByMe }}
           >
-            <HeartIcon size={ICON_SIZE.i32} color={COLORS.white} filled={likedByMe} />
+            <Reanimated.View style={likedByMe ? heartPop : undefined}>
+              <HeartIcon size={layout.actionIcon} color={COLORS.white} filled={likedByMe} />
+            </Reanimated.View>
             <Text style={styles.sideActionCount}>{likeCount}</Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.sideActionBtn, pressed && { opacity: ALPHA.a70 }]}
+          </PressScale>
+          <PressScale
+            style={styles.sideActionBtn}
             onPress={handleCommentPress}
             hitSlop={{ top: OFFSET.o20, bottom: OFFSET.o20, left: OFFSET.o4, right: OFFSET.o20 }}
             accessibilityRole="button"
             accessibilityLabel={`Comments, ${commentCount}`}
           >
-            <CommentIcon size={ICON_SIZE.i32} color={COLORS.white} />
+            <CommentIcon size={layout.actionIcon} color={COLORS.white} />
             <Text style={styles.sideActionCount}>{commentCount}</Text>
-          </Pressable>
+          </PressScale>
           {canReport || ownPost ? (
             <Pressable
               style={({ pressed }) => [styles.sideActionBtn, pressed && { opacity: ALPHA.a70 }]}
@@ -655,7 +661,7 @@ export default function PostCard({
               accessibilityLabel="More"
               accessibilityHint={ownPost ? 'Edit caption and see post policy' : 'Report this post'}
             >
-              <MoreIcon size={ICON_SIZE.i32} color={COLORS.white} />
+              <MoreIcon size={layout.actionIcon} color={COLORS.white} />
             </Pressable>
           ) : null}
         </Reanimated.View>

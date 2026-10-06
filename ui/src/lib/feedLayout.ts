@@ -28,6 +28,15 @@ export function feedLayout({
   };
 }
 
+/**
+ * Whether a double tap on a post sends a like. A double tap only ever likes (never unlikes, as on
+ * Instagram), and reads the like as it is now — not as the card last drew it — so tapping fast
+ * twice can't like and then unlike. A like already on its way isn't sent again.
+ */
+export function doubleTapLikes({ liked, pending }: { liked: boolean; pending: boolean }): boolean {
+  return !liked && !pending;
+}
+
 /** How full the countdown ring is: the share of the window still left, between 0 and 1. */
 export function ringProgress(msLeft: number, windowMs: number): number {
   if (windowMs <= 0) return 0;
