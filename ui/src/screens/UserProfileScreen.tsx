@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActionSheetIOS,
   Alert,
   View,
   Text,
@@ -24,13 +23,10 @@ import Reanimated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import { backSwipeCloses, backSwipeX } from '@/lib/swipeRules';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  getProfile,
-  createOrGetConversation,
-  reportUser,
-  hasReported,
-  type ReportReason,
-} from '@/api';
+import { getProfile, createOrGetConversation } from '@/api';
+import { startReport } from '@/lib/reportFlow';
+import { showNativeMenu } from '@/lib/nativeMenu';
+import { followButtonLabel } from '@/lib/followBack';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { pointsCount } from '@/lib/mahiPoints';
@@ -94,6 +90,9 @@ export default function UserProfileScreen({
   const { muted } = themeColors(dark);
 
   const isFollowing = useFollowStore((s) => s.followingByMe[userId] ?? false);
+  const followsMe = useFollowStore((s) => s.followsMe[userId] ?? false);
+  // "Follow back", with "Follows you" above it, when they follow you and you don't follow them.
+  const follow = followButtonLabel(isFollowing, followsMe);
   const loadFollowData = useFollowStore((s) => s.loadFollowData);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
 
@@ -141,7 +140,6 @@ export default function UserProfileScreen({
   const [attempt, setAttempt] = useState(0);
   const [messaging, setMessaging] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
-  const [reporting, setReporting] = useState(false);
   const [activeConvo, setActiveConvo] = useState<ConversationPreview | null>(null);
   const [viewerPostId, setViewerPostId] = useState<string | null>(null);
   const [avatarOpen, setAvatarOpen] = useState(false);
@@ -366,100 +364,24 @@ export default function UserProfileScreen({
     );
   };
 
-  const handleReport = async () => {
-    if (!currentUserId || !profile || reporting) return;
-    setReporting(true);
-
-    const { data: alreadyReported } = await hasReported(currentUserId, userId);
-    if (alreadyReported) {
-      setReporting(false);
-      Alert.alert('Already reported', `You have already reported @${profile.username}.`);
-      return;
-    }
-
-    const reasons: { label: string; value: ReportReason }[] = [
-      { label: 'Spam', value: 'spam' },
-      { label: 'Harassment', value: 'harassment' },
-      { label: 'Inappropriate content', value: 'inappropriate_content' },
-      { label: 'Impersonation', value: 'impersonation' },
-      { label: 'Other', value: 'other' },
-    ];
-
-    const submit = async (r: { label: string; value: ReportReason }) => {
-      posthog.capture('user_reported', {
-        reported_user_id: userId,
-        reason: r.value,
-        has_description: false,
-      });
-      Sentry.addBreadcrumb({
-        category: 'moderation',
-        message: `Reported: ${userId} reason: ${r.value}`,
-        level: 'info',
-      });
-      const { error } = await reportUser({
-        reporterId: currentUserId,
-        reportedUserId: userId,
-        reason: r.value,
-      });
-      setReporting(false);
-      if (error) {
-        Sentry.captureMessage(error.message, {
-          level: 'warning',
-          tags: { flow: 'moderation', step: 'report' },
-          extra: { userId, reason: r.value },
-        });
-        toast('Couldn’t send your report. Try again.');
-      } else {
-        Alert.alert('Report submitted', 'Thank you for helping keep the community safe.');
-      }
-    };
-
-    // Native action sheet on iOS; Android has none, so an Alert lists the reasons.
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          title: `Report @${profile.username}?`,
-          message: 'Select a reason:',
-          options: [...reasons.map((r) => r.label), 'Cancel'],
-          cancelButtonIndex: reasons.length,
-        },
-        (i) => {
-          if (i < reasons.length) submit(reasons[i]);
-          else setReporting(false);
-        }
-      );
-    } else {
-      Alert.alert(`Report @${profile.username}?`, 'Select a reason:', [
-        ...reasons.map((r) => ({ text: r.label, onPress: () => submit(r) })),
-        { text: 'Cancel', style: 'cancel', onPress: () => setReporting(false) },
-      ]);
-    }
+  // Report with a reason (docs/moderation.md): the server says if it's a repeat, so no check first.
+  const handleReport = () => {
+    if (!currentUserId || !profile) return;
+    Sentry.addBreadcrumb({ category: 'moderation', message: `Report: ${userId}`, level: 'info' });
+    startReport('user', userId, `Report @${profile.username}?`);
   };
 
   const handleEllipsis = () => {
     if (!profile) return;
-    const blockLabel = isBlockedByMe ? 'Unblock' : 'Block';
-    const onBlock = isBlockedByMe ? handleUnblock : handleBlock;
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          title: `@${profile.username}`,
-          options: [blockLabel, 'Report', 'Cancel'],
-          destructiveButtonIndex: isBlockedByMe ? undefined : 0,
-          cancelButtonIndex: 2,
-        },
-        (i) => {
-          if (i === 0) onBlock();
-          else if (i === 1) handleReport();
-        }
-      );
-    } else {
-      Alert.alert(`@${profile.username}`, '', [
-        { text: blockLabel, style: isBlockedByMe ? 'default' : 'destructive', onPress: onBlock },
-        { text: 'Report', onPress: handleReport },
-        { text: 'Cancel', style: 'cancel' },
-      ]);
-    }
+    showNativeMenu({
+      title: `@${profile.username}`,
+      actions: [
+        isBlockedByMe
+          ? { text: 'Unblock', run: handleUnblock }
+          : { text: 'Block', destructive: true, run: handleBlock },
+        { text: 'Report', run: handleReport },
+      ],
+    });
   };
 
   // Back and the menu: in the header's top corners, so they scroll away with it (or at the top
@@ -561,6 +483,9 @@ export default function UserProfileScreen({
       </View>
 
       {/* Follow / Message actions */}
+      {!isSelf && follow.followsYou ? (
+        <Text style={[styles.followsYou, { color: muted }]}>Follows you</Text>
+      ) : null}
       {!isSelf ? (
         <View style={styles.actionRow}>
           <Pressable
@@ -573,12 +498,12 @@ export default function UserProfileScreen({
             ]}
             onPress={handleFollow}
             accessibilityRole="button"
-            accessibilityLabel={isFollowing ? `Following ${handle}` : `Follow ${handle}`}
+            accessibilityLabel={`${follow.label} ${handle}`}
             accessibilityHint={isFollowing ? 'Asks before unfollowing' : undefined}
             accessibilityState={{ selected: isFollowing }}
           >
             <Text style={[styles.followBtnText, { color: isFollowing ? text : COLORS.offBlack }]}>
-              {isFollowing ? 'Following' : 'Follow'}
+              {follow.label}
             </Text>
           </Pressable>
 
@@ -848,6 +773,12 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s28,
     paddingVertical: SPACE.s9,
+  },
+  followsYou: {
+    textAlign: 'center',
+    fontSize: FONT_SIZE.f12,
+    fontFamily: FONTS.semiBold,
+    marginBottom: SPACE.s8,
   },
   followBtnText: {
     fontSize: FONT_SIZE.f14,
