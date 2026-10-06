@@ -32,6 +32,7 @@ import { useToastStore } from '@/store/toastStore';
 import { VideoIcon } from '@/components/ScreenIcons';
 import PreviewMenu, { PostPreviewImage } from '@/components/PreviewMenu';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
+import ListState from '@/components/ListState';
 import type { FeedPost } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -290,46 +291,25 @@ export default function ProfileMediaMap({
   };
 
   const empty = isLoading ? (
-    <View style={styles.centered}>
-      <ActivityIndicator color={muted} accessibilityLabel="Loading posts" />
-    </View>
+    <ListState kind="loading" dark={dark} />
   ) : failed ? (
-    <View style={styles.centered}>
-      <Text style={[styles.emptyTitle, { color: text }]}>Couldn’t load posts</Text>
-      <Text style={[styles.emptySubtitle, { color: muted }]}>
-        Check your connection and try again.
-      </Text>
-      <Pressable
-        style={({ pressed }) => [styles.emptyButton, pressed && { opacity: ALPHA.a75 }]}
-        onPress={() => void refresh()}
-        accessibilityRole="button"
-      >
-        <Text style={styles.emptyButtonText}>Try again</Text>
-      </Pressable>
-    </View>
+    <ListState kind="error" dark={dark} title="Couldn’t load posts" onAction={() => void refresh()} />
   ) : (
-    <View style={styles.centered}>
-      <CameraIcon color={muted} />
-      <Text style={[styles.emptyTitle, { color: text }]}>
-        {isSelf ? 'Your posts show up here' : 'No posts yet'}
-      </Text>
-      <Text style={[styles.emptySubtitle, { color: muted }]}>
-        {isSelf
+    <ListState
+      kind="empty"
+      dark={dark}
+      title={isSelf ? 'Your posts show up here' : 'No posts yet'}
+      line={
+        isSelf
           ? 'Your first post needs no tag. Any workout counts.'
           : username
             ? `@${username} hasn’t posted yet.`
-            : 'Nothing posted yet.'}
-      </Text>
-      {isSelf && onOpenCamera ? (
-        <Pressable
-          style={({ pressed }) => [styles.emptyButton, pressed && { opacity: ALPHA.a75 }]}
-          onPress={onOpenCamera}
-          accessibilityRole="button"
-        >
-          <Text style={styles.emptyButtonText}>Open camera</Text>
-        </Pressable>
-      ) : null}
-    </View>
+            : 'Nothing posted yet.'
+      }
+      actionLabel={isSelf && onOpenCamera ? 'Open camera' : undefined}
+      onAction={isSelf ? onOpenCamera : undefined}
+      icon={<CameraIcon color={muted} size={ICON_SIZE.i24} />}
+    />
   );
 
   return (
@@ -369,14 +349,6 @@ const styles = StyleSheet.create({
   list: {
     flex: 1,
   },
-  // Loading and "no posts" sit under the header, where the grid would start.
-  centered: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACE.s12,
-    paddingHorizontal: SPACE.s32,
-    paddingVertical: SPACE.s48,
-  },
   cell: {
     marginBottom: GAP,
   },
@@ -410,29 +382,5 @@ const styles = StyleSheet.create({
     right: OFFSET.o4,
     borderRadius: RADIUS.r50,
     padding: SPACE.s2,
-  },
-  emptyTitle: {
-    fontSize: FONT_SIZE.f18,
-    fontFamily: FONTS.semiBold,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
-    textAlign: 'center',
-  },
-  emptyButton: {
-    backgroundColor: COLORS.accent,
-    borderRadius: RADIUS.pill,
-    minHeight: SIZE.z44,
-    justifyContent: 'center',
-    paddingVertical: SPACE.s12,
-    paddingHorizontal: SPACE.s24,
-    marginTop: SPACE.s8,
-  },
-  emptyButtonText: {
-    color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
   },
 });
