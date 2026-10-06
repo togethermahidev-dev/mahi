@@ -48,14 +48,11 @@ import {
   withAlpha,
 } from '@/constants/tokens';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const PLACEHOLDER_IMG = require('../../assets/jogger.png') as number;
-
 const GAP = SPACE.s2;
 
-function CameraIcon({ color }: { color: string }) {
+function CameraIcon({ color, size = SIZE.z48 }: { color: string; size?: number }) {
   return (
-    <Svg width={SIZE.z48} height={SIZE.z48} viewBox="0 0 48 48" fill="none">
+    <Svg width={size} height={size} viewBox="0 0 48 48" fill="none">
       <Path
         d="M24 30a6 6 0 1 0 0-12 6 6 0 0 0 0 12z"
         stroke={color}
@@ -117,6 +114,8 @@ function GridCell({
 }) {
   // FlashList reuses cells: forget a previous post's failed image when the post changes.
   const [imgError, setImgError] = useRecyclingState(false, [post.id]);
+  // A muted square with a spinner until the photo arrives (slow networks).
+  const [imgLoaded, setImgLoaded] = useRecyclingState(false, [post.id]);
   const badgeBg = dark
     ? withAlpha(COLORS.offBlack, ALPHA.a75)
     : withAlpha(COLORS.offWhite, ALPHA.a75);
@@ -128,6 +127,8 @@ function GridCell({
   // Locked: the server sent no photo (the viewer hasn't answered a tag lately).
   const locked = !post.image_url;
   const { muted } = themeColors(dark);
+  // Locked, loading and failed squares share one muted surface.
+  const tileBg = dark ? COLORS.surfaceDark : COLORS.surfaceLight2;
   // FlashList gives each column an equal third of the width; nudging each cell right by a
   // share of the gap keeps the photos equal with GAP between them.
   const place = { marginLeft: (column * GAP) / LAYOUT.profileColumns };
@@ -163,37 +164,42 @@ function GridCell({
       accessibilityLabel={
         locked
           ? `Locked post. ${LOCKED_HINT}`
-          : `${label.charAt(0).toUpperCase() + label.slice(1)}${points ? `, ${points}` : ''}`
+          : imgError
+            ? 'Couldn’t load this post'
+            : `${label.charAt(0).toUpperCase() + label.slice(1)}${points ? `, ${points}` : ''}`
       }
       // VoiceOver: the menu's choices as actions (a double tap already opens the post).
       accessibilityActions={withMenu ? menuA11yActions(items, ['open']) : undefined}
       onAccessibilityAction={withMenu ? (e) => runAction(e.nativeEvent.actionName) : undefined}
     >
       {locked ? (
-        <View
-          style={[
-            styles.lockedTile,
-            {
-              width: size,
-              height: size,
-              backgroundColor: dark ? COLORS.surfaceDark : COLORS.surfaceLight2,
-            },
-          ]}
-        >
+        <View style={[styles.lockedTile, { width: size, height: size, backgroundColor: tileBg }]}>
           <LockIcon color={muted} />
         </View>
       ) : tile.video && !tile.uri ? (
         <View style={[styles.videoTile, { width: size, height: size }]}>
           <VideoIcon size={ICON_SIZE.i32} color={COLORS.white} />
         </View>
+      ) : imgError || !tile.uri ? (
+        // A photo that failed to load: a plain square with the camera mark, never a stand-in photo.
+        <View style={[styles.lockedTile, { width: size, height: size, backgroundColor: tileBg }]}>
+          <CameraIcon color={muted} size={ICON_SIZE.i32} />
+        </View>
       ) : (
-        <Image
-          // The stock photo only stands in for a picture that failed to load.
-          source={imgError || !tile.uri ? PLACEHOLDER_IMG : { uri: tile.uri }}
-          style={{ width: size, height: size }}
-          resizeMode="cover"
-          onError={() => setImgError(true)}
-        />
+        <View style={{ width: size, height: size, backgroundColor: tileBg }}>
+          <Image
+            source={{ uri: tile.uri }}
+            style={{ width: size, height: size }}
+            resizeMode="cover"
+            onLoad={() => setImgLoaded(true)}
+            onError={() => setImgError(true)}
+          />
+          {imgLoaded ? null : (
+            <View style={[StyleSheet.absoluteFill, styles.lockedTile]} pointerEvents="none">
+              <ActivityIndicator color={muted} />
+            </View>
+          )}
+        </View>
       )}
       {tile.video ? (
         <View style={[styles.videoBadge, { backgroundColor: badgeBg }]}>
@@ -386,7 +392,8 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
   },
-  // A locked post: a plain square with a padlock (not a stranger's photo).
+  // A locked or failed post: a plain square with a padlock or the camera mark (never a stand-in
+  // photo); also centres the spinner while a photo loads.
   lockedTile: {
     alignItems: 'center',
     justifyContent: 'center',

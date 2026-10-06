@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Animated,
   Pressable,
+  ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -54,6 +55,7 @@ import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
   ALPHA,
+  BORDER_WIDTH,
   DURATION,
   FONT_SIZE,
   ICON_SIZE,
@@ -125,6 +127,10 @@ export default function PostCard({
   // Whether the primary photo is landscape (wider than tall), detected on load,
   // so a landscape post is letterboxed (contain) rather than center-cropped.
   const [primaryLandscape, setPrimaryLandscape] = useState(false);
+  // Slow networks: which photo has arrived or failed, and a retry count that redraws it.
+  const [loadedUri, setLoadedUri] = useState<string | null>(null);
+  const [failedUri, setFailedUri] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   // ── Store selectors ──────────────────────────────────────────────────────
   const currentUser = useUserStore((s) => s.profile);
@@ -382,10 +388,13 @@ export default function PostCard({
       />
     ) : (
       <Image
+        key={`${primaryUrl}#${attempt}`}
         source={{ uri: primaryUrl }}
         style={StyleSheet.absoluteFill}
         resizeMode={primaryLandscape ? 'contain' : 'cover'}
+        onError={() => setFailedUri(primaryUrl)}
         onLoad={(e) => {
+          setLoadedUri(primaryUrl);
           const src = e.nativeEvent?.source;
           // Landscape (wider than tall) → letterbox; portrait/square stay cover.
           if (src?.width && src?.height) {
@@ -394,6 +403,19 @@ export default function PostCard({
         }}
       />
     );
+
+  // A photo still on its way shows a spinner on the card; one that failed says so, with a retry.
+  // (A locked post has no photo address: nothing to wait for.)
+  const photoState =
+    primaryKind !== 'photo' || !primaryUrl || loadedUri === primaryUrl
+      ? 'shown'
+      : failedUri === primaryUrl
+        ? 'failed'
+        : 'loading';
+  const retryPhoto = () => {
+    setFailedUri(null);
+    setAttempt((n) => n + 1);
+  };
 
   return (
     <View style={[styles.card, { backgroundColor: cardBg, height }]}>
@@ -434,6 +456,28 @@ export default function PostCard({
                   onAccessibilityAction={(e) => runMenuAction(e.nativeEvent.actionName)}
                 >
                   {media}
+                </View>
+              ) : null}
+              {photoState === 'loading' ? (
+                <View style={[StyleSheet.absoluteFill, styles.photoState]} pointerEvents="none">
+                  <ActivityIndicator color={muted} accessibilityLabel="Loading photo" />
+                </View>
+              ) : photoState === 'failed' ? (
+                <View style={[StyleSheet.absoluteFill, styles.photoState]} pointerEvents="box-none">
+                  <Text style={[styles.photoStateText, { color: text }]}>
+                    Couldn’t load this photo
+                  </Text>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.photoRetry,
+                      { borderColor: text },
+                      pressed && { opacity: ALPHA.a70 },
+                    ]}
+                    onPress={retryPhoto}
+                    accessibilityRole="button"
+                  >
+                    <Text style={[styles.photoRetryText, { color: text }]}>Try again</Text>
+                  </Pressable>
                 </View>
               ) : null}
               {/* Everything over the photo; fades away while the post is held */}
@@ -595,6 +639,29 @@ export default function PostCard({
 }
 
 const styles = StyleSheet.create({
+  // A photo still loading, or one that failed, centred on the card.
+  photoState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.s12,
+    paddingHorizontal: SPACE.s24,
+  },
+  photoStateText: {
+    fontSize: FONT_SIZE.f15,
+    fontFamily: FONTS.semiBold,
+    textAlign: 'center',
+  },
+  photoRetry: {
+    minHeight: SIZE.z44,
+    paddingHorizontal: SPACE.s20,
+    borderRadius: RADIUS.r50,
+    borderWidth: BORDER_WIDTH.w1_5,
+    justifyContent: 'center',
+  },
+  photoRetryText: {
+    fontSize: FONT_SIZE.f15,
+    fontFamily: FONTS.semiBold,
+  },
   card: {
     borderRadius: 0,
     overflow: 'hidden',
