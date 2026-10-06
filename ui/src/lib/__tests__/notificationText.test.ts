@@ -13,7 +13,7 @@ describe('notification list wording', () => {
 
   it('an in-app invite and its yes match their pushes', () => {
     expect(notificationText('tag_invite', 'sam')).toBe('@sam wants to tag you');
-    expect(notificationText('tag_invite_accepted', 'sam')).toBe('@sam accepted your tag');
+    expect(notificationText('tag_invite_accepted', 'sam')).toBe('@sam accepted your tag request');
   });
 
   it('a tag says who tagged you and the 48 hours', () => {
@@ -24,7 +24,9 @@ describe('notification list wording', () => {
 
   it('an answered and a missed tag', () => {
     expect(notificationText('tag_answered', 'sam')).toBe('@sam answered your tag');
-    expect(notificationText('tag_missed', 'sam')).toBe('@sam missed your tag');
+    expect(notificationText('tag_missed', 'sam')).toBe(
+      '@sam missed your tag. A quick message could get them back to it.'
+    );
   });
 
   it('a tag you missed says points, never streak', () => {

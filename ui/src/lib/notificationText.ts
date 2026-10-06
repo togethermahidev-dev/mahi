@@ -1,6 +1,6 @@
 /**
  * The words of one row in the notifications list. They match the push the server sends for the
- * same thing (`push_on_notification`, 20261002190000_tag_and_feed_pushes.sql) — minus what goes
+ * same thing (`push_on_notification`, latest in 20261006120000_push_deadline_wording.sql) — minus what goes
  * out of date in a list: a push says "just" and how long is left when it is sent; a row is read
  * later. Reminders, feed-lock pushes and messages are pushes only; they have no row here.
  */
@@ -18,7 +18,7 @@ export function notificationText(type: string, username: string): string {
     case 'tag_answered':
       return `${who} answered your tag`;
     case 'tag_missed':
-      return `${who} missed your tag`;
+      return `${who} missed your tag. A quick message could get them back to it.`;
     case 'streak_lost':
       return `You missed ${who}'s tag. Your points are back to 0.`;
     case 'invite_joined':
@@ -26,7 +26,7 @@ export function notificationText(type: string, username: string): string {
     case 'tag_invite':
       return `${who} wants to tag you`;
     case 'tag_invite_accepted':
-      return `${who} accepted your tag`;
+      return `${who} accepted your tag request`;
     default:
       return who;
   }
