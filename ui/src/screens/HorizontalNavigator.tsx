@@ -157,6 +157,15 @@ export default function HorizontalNavigator({
   }, [overlay, zooming, blockedSV]);
   // Where the strip sits, in pages (0 = Camera); fractional mid-swipe.
   const page = useSharedValue(CAMERA);
+  // A horizontal card carousel inside Profile owns its finger until release, so the same drag
+  // never changes both the card and the whole app page.
+  const profileCarouselActive = useSharedValue(false);
+  const setProfileCarouselActive = useCallback(
+    (active: boolean) => {
+      profileCarouselActive.set(active);
+    },
+    [profileCarouselActive]
+  );
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
   const decided = useSharedValue(false);
@@ -279,7 +288,7 @@ export default function HorizontalNavigator({
         width,
         height,
         insets: safeInsets,
-        blocked: blockedSV.value,
+        blocked: blockedSV.value || profileCarouselActive.value,
         exclude: railRectSV.value,
       });
       if (first === 'fail') {
@@ -305,7 +314,7 @@ export default function HorizontalNavigator({
         width,
         height,
         insets: safeInsets,
-        blocked: blockedSV.value,
+        blocked: blockedSV.value || profileCarouselActive.value,
       });
       if (decision === 'wait') return;
       decided.value = true;
@@ -452,6 +461,7 @@ export default function HorizontalNavigator({
                   listGesture={profileList}
                   onSearch={() => setSearchVisible(true)}
                   onOpenCamera={() => navigate(CAMERA)}
+                  onCarouselTouchChange={setProfileCarouselActive}
                 />
               </View>
             </DockRoom>

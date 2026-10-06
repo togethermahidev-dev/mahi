@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, View, Text, StyleSheet, Pressable } from 'react-native';
+import { Alert, View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeGesture } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +16,7 @@ import { ProfileIcon, SearchIcon, SettingsIcon } from '@/components/ScreenIcons'
 import AvatarPicker from '@/components/AvatarPicker';
 import FollowListModal from '@/components/FollowListModal';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
+import TouchCarousel from '@/components/TouchCarousel';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -38,6 +39,24 @@ import { TAP_AREA, tapSlop } from '@/lib/tapArea';
 // The settings and search icons are drawn 22 across; each taps as 44.
 const ICON_SLOP = tapSlop(ICON_SIZE.i22, TAP_AREA.ios);
 
+type ProfileShortcut = 'friends' | 'find';
+
+const PROFILE_SHORTCUT_COPY: Record<
+  ProfileShortcut,
+  { title: string; subtitle: string; accessibilityHint: string }
+> = {
+  friends: {
+    title: 'Friends',
+    subtitle: 'See your list',
+    accessibilityHint: 'Opens your friends list',
+  },
+  find: {
+    title: 'Find friends',
+    subtitle: 'Grow your circle',
+    accessibilityHint: 'Searches Mahi by name or username',
+  },
+};
+
 interface ProfileScreenProps {
   // True when this panel is the active panel in HorizontalNavigator (index 0).
   // Drives a focus re-sync of the posts grid to recover a raced/empty first load.
@@ -48,6 +67,8 @@ interface ProfileScreenProps {
   onSearch?: () => void;
   /** Go to the Camera page (the empty grid's "Open camera"); without it the grid only explains. */
   onOpenCamera?: () => void;
+  /** Holds the surrounding page swipe while a horizontal profile carousel owns the touch. */
+  onCarouselTouchChange?: (active: boolean) => void;
 }
 
 /** The rule behind Points and Best (#47), in the app's words. */
@@ -63,9 +84,11 @@ export default function ProfileScreen({
   listGesture,
   onSearch,
   onOpenCamera,
+  onCarouselTouchChange,
 }: ProfileScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const top = useSafeAreaInsets().top;
+  const { width } = useWindowDimensions();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [viewerPostId, setViewerPostId] = useState<string | null>(null);
@@ -107,6 +130,8 @@ export default function ProfileScreen({
         ? LAYOUT.percentFull
         : 0
     : 0;
+  const carouselItemWidth = Math.min(SIZE.z400, width - SPACE.s40 - SIZE.z48);
+  const shortcuts: readonly ProfileShortcut[] = onSearch ? ['friends', 'find'] : ['friends'];
 
   // Everything above the grid. The page is one list, so this scrolls away and the grid can
   // fill the screen.
@@ -229,50 +254,44 @@ export default function ProfileScreen({
 
       {/* Two explicit routes avoid icon-only guesswork: Friends is always a list, never a made-up
           count, and finding new people remains one tap away. */}
-      <View style={styles.quickActions}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.quickAction,
-            { backgroundColor: surface, borderColor: border },
-            pressed && { opacity: ALPHA.a75 },
-          ]}
-          onPress={() => setFriendsOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Friends"
-          accessibilityHint="Opens your friends list"
-        >
-          <View style={[styles.quickIcon, { backgroundColor: iconSurface }]}>
-            <ProfileIcon size={ICON_SIZE.i20} color={toggleColor} />
-          </View>
-          <View style={styles.quickCopy}>
-            <Text style={[styles.quickTitle, { color: text }]}>Friends</Text>
-            <Text style={[styles.quickSubtitle, { color: muted }]}>See your list</Text>
-          </View>
-          <Text style={[styles.quickChevron, { color: muted }]}>›</Text>
-        </Pressable>
-        {onSearch ? (
-          <Pressable
-            style={({ pressed }) => [
-              styles.quickAction,
-              { backgroundColor: surface, borderColor: border },
-              pressed && { opacity: ALPHA.a75 },
-            ]}
-            onPress={onSearch}
-            accessibilityRole="button"
-            accessibilityLabel="Find people"
-            accessibilityHint="Searches Mahi by name or username"
-          >
-            <View style={[styles.quickIcon, { backgroundColor: iconSurface }]}>
-              <SearchIcon size={ICON_SIZE.i20} color={toggleColor} />
-            </View>
-            <View style={styles.quickCopy}>
-              <Text style={[styles.quickTitle, { color: text }]}>Find people</Text>
-              <Text style={[styles.quickSubtitle, { color: muted }]}>Grow your circle</Text>
-            </View>
-            <Text style={[styles.quickChevron, { color: muted }]}>›</Text>
-          </Pressable>
-        ) : null}
-      </View>
+      <TouchCarousel
+        items={shortcuts}
+        keyExtractor={(shortcut) => shortcut}
+        itemWidth={carouselItemWidth}
+        endInset={SIZE.z48}
+        accessibilityLabel="Profile shortcuts"
+        onTouchStateChange={onCarouselTouchChange}
+        renderItem={(shortcut) => {
+          const copy = PROFILE_SHORTCUT_COPY[shortcut];
+          const isFriends = shortcut === 'friends';
+          return (
+            <Pressable
+              style={({ pressed }) => [
+                styles.quickAction,
+                { backgroundColor: surface, borderColor: border },
+                pressed && { opacity: ALPHA.a75 },
+              ]}
+              onPress={isFriends ? () => setFriendsOpen(true) : onSearch}
+              accessibilityRole="button"
+              accessibilityLabel={copy.title}
+              accessibilityHint={copy.accessibilityHint}
+            >
+              <View style={[styles.quickIcon, { backgroundColor: iconSurface }]}>
+                {isFriends ? (
+                  <ProfileIcon size={ICON_SIZE.i20} color={toggleColor} />
+                ) : (
+                  <SearchIcon size={ICON_SIZE.i20} color={toggleColor} />
+                )}
+              </View>
+              <View style={styles.quickCopy}>
+                <Text style={[styles.quickTitle, { color: text }]}>{copy.title}</Text>
+                <Text style={[styles.quickSubtitle, { color: muted }]}>{copy.subtitle}</Text>
+              </View>
+              <Text style={[styles.quickChevron, { color: muted }]}>›</Text>
+            </Pressable>
+          );
+        }}
+      />
 
       {/* Suggested follows — syncs on mount, renders null when empty */}
       <SuggestedFollowsStrip onPressUser={setProfileUserId} excludeUserId={userId} />
@@ -492,11 +511,6 @@ const styles = StyleSheet.create({
     lineHeight: LINE_HEIGHT.l18,
     marginTop: SPACE.s12,
   },
-  quickActions: {
-    width: '100%',
-    gap: SPACE.s12,
-    marginTop: SPACE.s12,
-  },
   quickAction: {
     width: '100%',
     minHeight: SIZE.z88,
@@ -506,6 +520,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACE.s12,
     paddingVertical: SPACE.s14,
+    marginTop: SPACE.s12,
   },
   quickIcon: {
     width: SIZE.z36,
