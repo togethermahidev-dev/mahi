@@ -701,6 +701,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      update_post_caption: {
+        Args: { p_post: string; p_caption: string };
+        Returns: Json;
+      };
       claim_invite: {
         Args: { p_token: string };
         Returns: Json;

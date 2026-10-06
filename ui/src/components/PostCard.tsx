@@ -39,6 +39,7 @@ import CaptionText from '@/components/CaptionText';
 import DraggablePip from '@/components/DraggablePip';
 import PostVideo, { SoundButton } from '@/components/PostVideo';
 import PreviewMenu, { PostPreviewImage } from '@/components/PreviewMenu';
+import EditPostCaptionSheet from '@/components/EditPostCaptionSheet';
 import { relativeTime } from '@/lib/relativeTime';
 import { pointsBadgeText } from '@/lib/mahiPoints';
 import { mediaTypeOrPhoto } from '@/lib/videoPosts';
@@ -51,6 +52,7 @@ import {
   shareTarget,
 } from '@/lib/contextMenuPreview';
 import { sharePost } from '@/lib/sharePost';
+import { canEditPostCaption } from '@/lib/postPolicy';
 import { appHeaderHeight, pipZone } from '@/lib/pip';
 import type { FeedPost } from '@/api';
 import { FONTS } from '@/constants/fonts';
@@ -139,6 +141,9 @@ export default function PostCard({
   // '…' with Report, on other people's posts only (flag content-reports).
   const reportsOn = true; // reports are standard for everyone (owner, 2026-10-06)
   const canReport = reportsOn && !!currentUser && currentUser.id !== item.user_id;
+  const ownPost = !!currentUser && currentUser.id === item.user_id;
+  const canEditCaption = ownPost && canEditPostCaption(item.created_at);
+  const [editingCaption, setEditingCaption] = useState(false);
   const likedByMe = useSocialStore((s) => s.likedByMe[item.id] ?? item.liked_by_me);
   // Counts move in the feed's copy of the post and the profile grid's (see socialStore).
   const feedCounts = useFeedStore((s) => s.posts.find((p) => p.id === item.id));
@@ -637,20 +642,31 @@ export default function PostCard({
             <CommentIcon size={ICON_SIZE.i32} color={COLORS.white} />
             <Text style={styles.sideActionCount}>{commentCount}</Text>
           </Pressable>
-          {canReport ? (
+          {canReport || ownPost ? (
             <Pressable
               style={({ pressed }) => [styles.sideActionBtn, pressed && { opacity: ALPHA.a70 }]}
-              onPress={() => showPostMenu(() => startReport('post', item.id))}
+              onPress={() =>
+                ownPost
+                  ? showOwnPostMenu(canEditCaption, () => setEditingCaption(true))
+                  : showPostMenu(() => startReport('post', item.id))
+              }
               hitSlop={{ top: OFFSET.o20, bottom: OFFSET.o20, left: OFFSET.o4, right: OFFSET.o20 }}
               accessibilityRole="button"
               accessibilityLabel="More"
-              accessibilityHint="Report this post"
+              accessibilityHint={ownPost ? 'Edit caption and see post policy' : 'Report this post'}
             >
               <MoreIcon size={ICON_SIZE.i32} color={COLORS.white} />
             </Pressable>
           ) : null}
         </Reanimated.View>
       </View>
+      {editingCaption ? (
+        <EditPostCaptionSheet
+          postId={item.id}
+          caption={item.caption}
+          onClose={() => setEditingCaption(false)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -658,6 +674,18 @@ export default function PostCard({
 /** The post's '…' menu: Report (the only choice for now; more may join it). */
 function showPostMenu(onReport: () => void) {
   showNativeMenu({ actions: [{ text: 'Report', destructive: true, run: onReport }] });
+}
+
+function showOwnPostMenu(canEdit: boolean, onEdit: () => void) {
+  showNativeMenu({
+    title: 'Your post',
+    message: canEdit
+      ? 'You can edit the caption for one hour. Posts can’t be deleted.'
+      : 'The one-hour caption editing window has ended. Posts can’t be deleted.',
+    actions: canEdit
+      ? [{ text: 'Edit caption', run: onEdit }]
+      : [{ text: 'Got it', run: () => {} }],
+  });
 }
 
 const styles = StyleSheet.create({

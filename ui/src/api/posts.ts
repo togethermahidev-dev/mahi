@@ -281,3 +281,16 @@ export async function createPost(opts: {
   if (error) return { data: null, error: new Error(error.message) };
   return { data: data as unknown as CreatePostResult, error: null };
 }
+
+/** The server is authoritative: it accepts only the owner's caption during the first hour. */
+export async function updatePostCaption(
+  postId: string,
+  caption: string
+): Promise<{ data: { caption: string | null } | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('update_post_caption', {
+    p_post: postId,
+    p_caption: caption,
+  });
+  if (error) return { data: null, error: new Error(error.message) };
+  return { data: data as unknown as { caption: string | null }, error: null };
+}

@@ -7,6 +7,7 @@ import { Share } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { shareTarget } from '@/lib/contextMenuPreview';
 import { useToastStore } from '@/store/toastStore';
+import { postShareMessage } from '@/lib/postShareLink';
 import type { FeedPost } from '@/api';
 
 export async function sharePost(post: FeedPost): Promise<void> {
@@ -22,7 +23,10 @@ export async function sharePost(post: FeedPost): Promise<void> {
       if (download.status !== 200) throw new Error(`download ${download.status}`);
       url = download.uri;
     }
-    await Share.share({ url });
+    await Share.share({
+      url,
+      message: postShareMessage(post),
+    });
   } catch {
     useToastStore.getState().show('Couldn’t open sharing. Try again.');
   } finally {

@@ -84,7 +84,7 @@ const config = {
     // One build number for every lane (eas.json appVersionSource "local"). Moved only by
     // `pnpm release:prepare`, never by hand or by EAS.
     buildNumber: '12',
-    // Invite links: https://togethermahi.com/i/<token> opens the app when it's installed.
+    // Invite and shared-post links open the app when it is installed.
     // Needs apple-app-site-association served from that domain.
     associatedDomains: ['applinks:togethermahi.com', 'applinks:www.togethermahi.com'],
     infoPlist: {
@@ -124,6 +124,8 @@ const config = {
         data: [
           { scheme: 'https', host: 'togethermahi.com', pathPrefix: '/i' },
           { scheme: 'https', host: 'www.togethermahi.com', pathPrefix: '/i' },
+          { scheme: 'https', host: 'togethermahi.com', pathPrefix: '/p' },
+          { scheme: 'https', host: 'www.togethermahi.com', pathPrefix: '/p' },
         ],
         category: ['BROWSABLE', 'DEFAULT'],
       },
