@@ -363,9 +363,10 @@ export default function FeedScreen({
               </View>
             ) : (
               <View style={[styles.empty, { paddingTop: headerH + SPACE.s24 + topSpace }]}>
+                {/* The feed shows anyone you follow (#3); following each other is only for tags. */}
                 <Text style={[styles.emptyTitle, { color: text }]}>No posts yet</Text>
                 <Text style={[styles.emptySub, { color: muted }]}>
-                  Your friends’ workouts show up here. Follow each other to see them.
+                  Follow people to see their workouts here.
                 </Text>
                 {emptyFindFriends === 'link' ? (
                   <Pressable
