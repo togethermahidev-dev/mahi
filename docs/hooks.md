@@ -185,8 +185,8 @@ Drives the one-time "turn on notifications" page (`PushPrimer`, in `App.tsx`). `
 page not answered on this device, the welcome cards out of the way (`welcomeSettled`) and the
 phone's camera question answered (re-read whenever the app returns to the front) — then a short
 beat, so it never opens while another page is closing. `answer(true)` brings up the phone's own
-question and registers the device if allowed; `answer(false)` is "Not now". Either way the page is
-remembered as answered.
+question and registers the device if allowed (the page's one button, "Continue"); `answer(false)` is
+only Android's back button. Either way the page is remembered as answered.
 
 ---
 

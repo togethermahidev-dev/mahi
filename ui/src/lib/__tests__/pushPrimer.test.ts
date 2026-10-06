@@ -15,16 +15,20 @@ describe('the notifications page (push primer)', () => {
     cameraSettled: true,
   };
 
-  it('says what the founder asked for, in sentence case', () => {
+  it('says what the founder asked for, in sentence case, with quiet hours (#11)', () => {
     expect(PUSH_PRIMER).toEqual({
       headline: 'When do you post on Mahi?',
       why: 'When a friend tags you. Turn on notifications so you know the moment your 48 hours start.',
       cardTitle: 'Please turn on notifications',
       cardBody:
-        'Mahi only pings you when it matters: a friend tags you, your time is running out, or your feed is about to lock.',
-      allow: 'Allow',
-      notNow: 'Not now',
+        'Mahi only pings you when it matters: a friend tags you, your time is running out, or your feed is about to lock. Never between 10pm and 7am.',
+      continue: 'Continue',
     });
+  });
+
+  it("has one button, Continue, that always leads to the phone's question (Apple's guidance)", () => {
+    const buttons = Object.keys(PUSH_PRIMER).filter((k) => !/headline|why|card/.test(k));
+    expect(buttons).toEqual(['continue']);
   });
 
   it('shows once everything else is out of the way', () => {
@@ -76,7 +80,7 @@ describe('the "turn on notifications" line on the camera (push nudge)', () => {
     expect(pushNudge(base)).toBe('settings');
   });
 
-  it('after "Not now", asks the phone\'s question (Settings has no notifications row yet)', () => {
+  it("after the page closed without the phone asking (Android back), asks the phone's question", () => {
     expect(pushNudge({ ...base, permission: 'undetermined' })).toBe('ask');
   });
 

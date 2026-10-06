@@ -21,8 +21,10 @@ import {
 
 /**
  * The full-screen "turn on notifications" page, shown once per device after the welcome cards
- * (flag `push-core`). "Allow" brings up the phone's own question; "Not now" closes the page, and
- * the camera's line (PushNudge) reminds them when a friend next tags them.
+ * (flag `push-core`). Its one button, "Continue", always brings up the phone's own question
+ * (Apple's guidance: no way to cancel here; the phone's "Don't Allow" is the way out). Someone who
+ * says no there gets the camera's line (PushNudge) when a friend next tags them. Android's back
+ * button still closes the page without asking.
  */
 export default function PushPrimer({
   welcomeSettled,
@@ -75,38 +77,21 @@ export default function PushPrimer({
             {PUSH_PRIMER.cardBody}
           </Text>
 
-          <View style={styles.buttons}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={PUSH_PRIMER.notNow}
-              accessibilityHint="Closes this page without turning notifications on"
-              accessibilityState={{ disabled: busy }}
-              disabled={busy}
-              onPress={() => choose(false)}
-              style={({ pressed }) => [
-                styles.button,
-                { borderColor: withAlpha(colors.text, ALPHA.a25) },
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={[styles.buttonText, { color: colors.text }]}>{PUSH_PRIMER.notNow}</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={PUSH_PRIMER.allow}
-              accessibilityHint="Your phone will ask to allow notifications from Mahi"
-              accessibilityState={{ disabled: busy }}
-              disabled={busy}
-              onPress={() => choose(true)}
-              style={({ pressed }) => [
-                styles.button,
-                { backgroundColor: colors.text, borderColor: colors.text },
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={[styles.buttonText, { color: colors.bg }]}>{PUSH_PRIMER.allow}</Text>
-            </Pressable>
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={PUSH_PRIMER.continue}
+            accessibilityHint="Your phone will ask whether to allow notifications from Mahi"
+            accessibilityState={{ disabled: busy }}
+            disabled={busy}
+            onPress={() => choose(true)}
+            style={({ pressed }) => [
+              styles.button,
+              { backgroundColor: colors.text, borderColor: colors.text },
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[styles.buttonText, { color: colors.bg }]}>{PUSH_PRIMER.continue}</Text>
+          </Pressable>
         </View>
 
         {/* Keeps the card in the middle of the space under the headline. */}
@@ -153,14 +138,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: SPACE.s8,
   },
-  buttons: {
-    flexDirection: 'row',
-    alignSelf: 'stretch',
-    gap: SPACE.s12,
-    marginTop: SPACE.s24,
-  },
   button: {
-    flex: 1,
+    alignSelf: 'stretch',
+    marginTop: SPACE.s24,
     minHeight: SIZE.z52,
     alignItems: 'center',
     justifyContent: 'center',

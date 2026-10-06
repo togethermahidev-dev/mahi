@@ -7,15 +7,19 @@
 
 export type PushPermission = 'granted' | 'denied' | 'undetermined';
 
-/** The page's words (founder, 2026-10-02). */
+/**
+ * The page's words (founder, 2026-10-02). One button, "Continue", that always brings up the
+ * phone's own question (owner, 2026-10-06, following Apple's guidance for a page before a
+ * permission question: one button, no way to cancel). The phone's "Don't Allow" is the way out.
+ * Quiet hours are #11 (22:00–07:00 in each person's time zone, `push_send_time`).
+ */
 export const PUSH_PRIMER = {
   headline: 'When do you post on Mahi?',
   why: 'When a friend tags you. Turn on notifications so you know the moment your 48 hours start.',
   cardTitle: 'Please turn on notifications',
   cardBody:
-    'Mahi only pings you when it matters: a friend tags you, your time is running out, or your feed is about to lock.',
-  allow: 'Allow',
-  notNow: 'Not now',
+    'Mahi only pings you when it matters: a friend tags you, your time is running out, or your feed is about to lock. Never between 10pm and 7am.',
+  continue: 'Continue',
 } as const;
 
 /** The camera's line for someone who hasn't turned notifications on. */
@@ -51,8 +55,8 @@ export function shouldShowPushPrimer({
 }
 
 /**
- * The camera's line, for someone who answered the page with "Not now" or told the phone "Don't
- * allow", while they hold an open tag. What a tap does: 'settings' opens Mahi's page in the
+ * The camera's line, for someone who told the phone "Don't allow" (or closed the page with
+ * Android's back button before the phone asked), while they hold an open tag. What a tap does: 'settings' opens Mahi's page in the
  * phone's Settings (the phone won't ask twice); 'ask' shows the phone's question, which it has
  * not asked yet — until it has, Settings has no notifications row to switch on.
  * Dismissing it hides it for the tags open at that moment; the next tag brings it back.

@@ -38,7 +38,7 @@ export async function requestPushPermission(): Promise<boolean> {
   return isGranted(await Notifications.requestPermissionsAsync());
 }
 
-/** Whether Mahi's notifications page has been answered on this device (Allow or Not now). */
+/** Whether Mahi's notifications page has been answered on this device (Continue, or Android's back). */
 export async function wasPushPrimerAnswered(): Promise<boolean> {
   try {
     return (await AsyncStorage.getItem(PRIMER_ANSWERED_KEY)) === '1';

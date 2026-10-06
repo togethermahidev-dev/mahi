@@ -45,12 +45,13 @@ for iPhone (build 10 has `expo-notifications` and the push entitlement).
 
 - **Asking** (flag `push-core`, default off). `PushPrimer` (`ui/src/components/PushPrimer.tsx`, rendered in
   `App.tsx` beside the welcome cards) is a full-screen page: "When do you post on Mahi?", one line of
-  why, and a card "Please turn on notifications" with **Allow** (brings up the phone's own question)
-  and **Not now**. It shows once per device — remembered once answered — to someone the phone has not
+  why, and a card "Please turn on notifications" (with "Never between 10pm and 7am", #11) and one
+  button, **Continue**, which always brings up the phone's own question (Apple's guidance for a page
+  before a permission question: one button, no way to cancel; owner 2026-10-06). It shows once per device — remembered once answered — to someone the phone has not
   asked yet, and only when the welcome cards are out of the way (`WelcomeCards` reports `onSettled`) and
   the phone's camera question has been answered (`usePushPrimer` re-reads the camera permission each time
-  the app comes back to the front). It replaces the old pop-up. Someone who chose "Not now" or told the
-  phone "Don't allow" sees, while they hold an open tag, one line under the camera's open-tags pill
+  the app comes back to the front). It replaces the old pop-up. Someone who told the phone "Don't allow"
+  (or left the page with Android's back button) sees, while they hold an open tag, one line under the camera's open-tags pill
   (`PushNudge`, inside `OpenTagsBanner`): "Turn on notifications so you never miss a tag". A tap opens
   Mahi in the phone's Settings — or, if the phone was never asked, brings up its question (Settings has
   no notifications row until it has). The × hides it until the next tag. The rules are pure and tested:

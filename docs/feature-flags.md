@@ -67,8 +67,8 @@ Twenty-one keys, every one read by code. (Suggested follows have no flag: they a
 are switched in the `app_config` table):
 `push-core` (**default off; not in PostHog yet**. On: a full-screen page, once per device after the
 welcome cards and the phone's camera question — "When do you post on Mahi?", one line of why, and a card
-"Please turn on notifications" with Allow / Not now; Allow brings up the phone's own question. Someone
-who said "Not now" or "Don't allow" sees, while they hold an open tag, one dismissible line under the
+"Please turn on notifications" with one button, Continue, which brings up the phone's own question
+(Apple's guidance; no "Not now" since 2026-10-06). Someone who said "Don't allow" sees, while they hold an open tag, one dismissible line under the
 camera's open-tags pill, "Turn on notifications so you never miss a tag", which opens Mahi in the
 phone's Settings (or the phone's question if it was never asked). Works on build 10; needs `send-push`
 live to be worth switching on. The server queues pushes whether it is on or off. Off = nobody is asked;
