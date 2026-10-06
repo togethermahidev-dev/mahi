@@ -37,6 +37,14 @@ than `app_config.push_stale_after` (1 hour) overdue as `stale` instead of sendin
 `tests/tag_feed_pushes_test.sql`, undo `rollbacks/20261002190000_tag_and_feed_pushes.rollback.sql`).
 Safe for every app on phones: nothing the app reads changes. It goes out with the push go-live steps
 in `docs/go-live-runbook.md`.
+Also not pushed (2026-10-06, after `20261003120000_tag_slots`): `20261006100000_moderation`
+(reports on people, posts, comments and messages with a status; staff list and actions with an
+audit log; hidden posts and removed comments left out of feeds; the automatic check's queue),
+`20261006110000_follow_back` (`get_follow_data` adds `follows_you`) and
+`20261006120000_push_deadline_wording` (pushes say the deadline as a day and time, filled in when
+sent; the last-call reminder kept for early-morning deadlines). Contract and owner steps:
+[docs/moderation.md](../docs/moderation.md). Tests `tests/moderation_test.sql`,
+`tests/follow_back_test.sql`, `tests/push_deadline_wording_test.sql`.
 Still held back: `deferred/contract_posting.sql`,
 `deferred/contract_messages.sql`, `deferred/private_bucket.sql` — they shut old paths and wait for a
 store build covered by the version gate — and `deferred/contract_points.sql`, which drops the
@@ -77,6 +85,7 @@ The build plan is [docs/tag-loop-plan.md](../docs/tag-loop-plan.md).
 | `delete-account` | Deletes the caller's photos (`posts/{id}/`, `avatars/{id}/`), then their auth user; every table cascades. Deployed **with** JWT verification. |
 | `didit-session` | Identity check, step 1: for the signed-in caller (token checked), creates a Didit session (`POST https://verification.didit.me/v3/session/`, `vendor_data` = user id), stores a `pending` row and returns the session token. Already approved → no new session; at most 5 a day. **Not deployed.** Deploy **with** JWT verification. Secrets `DIDIT_API_KEY`, `DIDIT_WORKFLOW_ID`. |
 | `didit-webhook` | Identity check, step 2: Didit calls it on each status change. Checks the HMAC signature (`X-Signature` or `X-Signature-V2`, `X-Timestamp` within 5 minutes) with `DIDIT_WEBHOOK_SECRET`, then records the status (repeats and late events are harmless; statuses only, no personal details). **Not deployed.** Deploy with `--no-verify-jwt`. |
+| `moderate-content` | The automatic check of new posts and comments (docs/moderation.md). Called only by pg_cron (`invoke_moderate_content`, every minute while checks wait) once the Vault secrets `moderate_content_url` and `moderate_content_secret` exist; the gate is the `X-Internal-Secret` header (`MODERATE_CONTENT_SECRET`). Without `OPENAI_API_KEY` it checks nothing and logs it. **Not deployed.** Deploy with `--no-verify-jwt`. |
 
 Didit pieces live in `functions/_shared/didit.ts` (`deno test functions/_shared/didit_test.ts`).
 Sign-up and reset codes share `otp_codes`, kept apart by `purpose` (migration

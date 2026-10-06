@@ -17,7 +17,7 @@
 
 ## Supabase Edge Functions
 - Pre-auth functions (`send-otp`, `verify-otp`, `complete-signup`, `send-reset-code`, `reset-password`)
-  and the cron-called `send-push` are deployed with `verify_jwt: false` (`--no-verify-jwt`)
+  and the cron-called `send-push` and `moderate-content` are deployed with `verify_jwt: false` (`--no-verify-jwt`)
 - `delete-account` is the exception: deployed **with** JWT verification (the default); it acts on the caller
 - Functions are deployed by the owner only; see `supabase/README.md`
 
