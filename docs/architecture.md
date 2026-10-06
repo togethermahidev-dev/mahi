@@ -171,18 +171,24 @@ flag. Both flags are **default off** (`DEFAULT_OFF_FLAGS`). No screen uses them 
 
 ## Moderation
 
-Server-side, written and tested, **not on production yet** (migration `20261006100000_moderation`;
-the full contract and the owner's steps are in [moderation.md](./moderation.md)).
+Live on production since 2026-10-06 (migrations `20261006100000_moderation` through
+`20261006170000_signed_in_reads`; the full contract is in [moderation.md](./moderation.md)).
 - Reports: anyone can report a person, post, comment or message (`user_reports`, one per person per
   thing, with a snapshot). Only staff read the list.
 - Staff: `staff_users` (`admin` / `moderator`), checked by `is_staff`; actions (dismiss, hide a post,
-  remove a comment, warn, suspend, ban) are RPCs that need a reason and write `moderation_actions`.
-  `profiles.is_banned` stays the one switch every rule reads; `user_sanctions` says why.
-- Hidden posts and removed comments are kept but left out of the feed, profiles, comments and counts.
+  remove a comment, remove a message, warn, suspend, ban) are RPCs that need a reason and write
+  `moderation_actions`. `profiles.is_banned` stays the one switch every rule reads; `user_sanctions` says why.
+- Hidden posts, removed comments and removed messages are kept but left out for everyone else
+  (feed, profiles, comments, counts, `get_messages`, the inbox's last message and unread count).
+- Suspending or banning someone signs them out (`20261006160000_sign_out_on_ban`).
+- Signed-in reads: `get_feed_posts` and `get_follow_data` answer signed-in callers only
+  (`20261006170000_signed_in_reads`).
 - The automatic check: function `moderate-content` (`--no-verify-jwt`, called by the database through
   Vault secrets) sends new posts and comments to OpenAI's free moderation model and flags them; it only
   hides by itself if `app_config.ai_auto_hide` is on (starts off). Idle until an OpenAI key is set.
-- Staff portal: a `staff/` web app for the list is being built separately; it uses only the RPCs above.
+- Staff portal `staff/`: a server-rendered Next.js site (overview, reports, a report page with Safe and
+  Serious actions that need a note and a confirm, people, audit log). It uses only the staff RPCs,
+  signed in as the staff member, with the anon key on the server; see [staff/README.md](../staff/README.md).
 
 ## Tech Stack
 

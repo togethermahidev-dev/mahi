@@ -17,8 +17,13 @@
 - New queries on posts and comments must leave out hidden posts (`hidden_at`) and removed comments
   (`removed_at`) unless the caller is staff.
 - The automatic check (`moderate-content`) only flags; `app_config.ai_auto_hide` stays off unless the owner says.
-- `staff/` (being built) is the staff portal web app: it talks to Supabase only through the staff RPCs,
+- `staff/` is the staff portal web app (live database, not hosted yet): it talks to Supabase only through the staff RPCs,
   signed in as a `staff_users` member; it never uses the service role key in the browser.
+
+## Database tools
+- Mahi doesn't use Docker: no `supabase start`, no local stack. Database types come from the Supabase MCP
+  generator (`generate_typescript_types`), not `supabase gen types --local`.
+- Production writes only with the owner's permission, through `scripts/db.sh try` → `backup` → `push`.
 
 ## Architecture & Adding Features
 - 5-layer architecture, strict downward deps: `screens/components → hooks → stores → api → lib → supabase`.

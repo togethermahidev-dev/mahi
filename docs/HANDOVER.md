@@ -17,33 +17,37 @@ screens/components → hooks → stores (Zustand, optimistic) → api ({data,err
 
 Full data flow + the per-layer import contract: [architecture.md](./architecture.md#layering-contract).
 
-**State on 2026-10-06 (branch `updates`; not pushed to main):**
-- **On phones (preview lane):** OTA **12.07** (the design pass from 2026-10-05/06: Inter only, no
-  italics, tokens for every value, contrast and the 5 research rounds, decisions #76–#93) and OTA
-  **12.08** (the Profile redesign), both published to preview on 2026-10-06. Not yet checked on a phone.
-- **Built after 12.08, not on phones yet (next update):** the glass **dock** along the bottom of Feed,
-  Profile and Messages (`<NavRail dock />`, #51); the notifications page's one **Continue** button that
-  leads to the phone's question and says no pings 10pm–7am (#52); sign-up says why it asks for date of
-  birth and number; a kept **invite is retried** when Mahi comes back to the front; a small success
-  **buzz at points milestones** (first point, new best, 5, 10, 25, 50, 100); the answer toast's
-  **Cheer @sam on** button opening the friend's profile; the unused tracking permission text dropped
-  (takes effect at the next native build). The latest UI pass changes the shared order to **Profile,
-  Feed, Camera, Messages** while keeping Camera as the landing page; removes the Feed's duplicate iOS
-  top inset; says **"Feed will lock in"** before every running countdown; and gives Camera explicit
-  two-photo, loading, blocked and permission guidance (#95–#96; `6d9e03e`, `053e9e8`, `449a883`).
-- **Server work written and tested, waiting for the owner to apply** (nothing is live):
-  `20261006100000_moderation` (reports, staff, audit log, hidden content, the automatic check —
-  [moderation.md](./moderation.md)), `20261006110000_follow_back` ("follows you" on a profile),
-  `20261006120000_push_deadline_wording` (deadlines as a day and time worked out when sent, #54–#57).
-  They go after the two already waiting (`20261002190000_tag_and_feed_pushes`,
-  `20261003120000_tag_slots`): five in one push, owner steps at the end of moderation.md. Then the
-  `moderate-content` function and its secrets once an OpenAI key exists, and staff rows.
-- **Staff portal:** a `staff/` web app for the moderation list is being built in a separate session
-  (not on `updates` yet); it builds against the contract in moderation.md.
-- **Website:** the footer's email promise now covers test versions for people who ticked the box;
-  live only after a web deploy (owner, `web/DEPLOY.md`).
-- **Switches:** `ios-sf-symbols` ON at 100% (2026-10-06). `context-menu-preview` still off — the owner
-  switches it on at 100%.
+**Codex takes over (2026-10-06).** From here Codex works on Mahi instead of Claude. Same rules: this
+file, `RULES.md` and `CLAUDE.md` are the rulebook; the guard hook (`.claude/hooks/guard.cjs`) still
+applies to every tool call. Work on branch `updates`; commit by name, no AI attribution, never push
+without the owner's go in the same session.
+
+**State on 2026-10-06, 14:00 (branch `updates`; `main` is behind):**
+- **On phones (preview lane), published 2026-10-06, not yet checked on a phone:** OTA **12.07** the
+  design pass (Inter only, no italics, tokens for every value, decisions #76–#93); **12.08** the
+  Profile redesign; **12.09** reports, Follow back, account standing, hold to preview, the glass dock
+  along the bottom, the notifications page's one Continue button, sign-up saying why it asks, the
+  Cheer button, the points-milestone buzz and the invite retry; **12.10** more Profile redesign;
+  **12.11** feed lock wording, camera polish, the navigation order (Profile, Feed, Camera, Messages;
+  Camera still the landing page) and the UI clarity pass.
+- **Production database:** every migration through `20261006170000_signed_in_reads` is applied
+  (tag/feed pushes, tag slots, moderation, follow back, push deadline wording, private date of birth
+  and phone, staff admins, staff remove message, ban signs out, signed-in reads).
+- **Staff:** admins are joe.devadmin@, verityadmin@ and maximusadmin@togethermahi.com. Their
+  passwords are set by the owner (psql).
+- **Staff portal `staff/`:** overview, reports (chips and search), a report page with Safe and
+  Serious actions (note + confirm), people, audit log. Runs locally with `staff/.env.local`
+  (`SUPABASE_URL`, `SUPABASE_ANON_KEY`); not hosted yet — Vercel, root directory `staff`, the same two
+  variables (owner). Counts and search cover the newest 200 reports.
+- **Not live yet:** the automatic check (`moderate-content`) waits for an OpenAI key; push
+  notifications wait for the owner's go-live; the website footer change waits for a web deploy.
+- **Switches:** `ios-sf-symbols`, `context-menu-preview` and `content-reports` ON at 100%. The code no
+  longer reads the last two; delete them in PostHog once every phone has 12.09 or later.
+- **Rules carried forward:** work on `updates`; a switch turned on is 100%, and removed once proven;
+  Mahi doesn't use Docker (database types come from the Supabase MCP generator, not `supabase gen
+  types --local`); production writes only with the owner's permission, through `scripts/db.sh try` →
+  `backup` → `push`.
+- **Next native build** moves to Expo SDK 58 (owner).
 
 **State on 2026-10-05, late (on main, not on phones yet):**
 - **Design system tidy-up, committed on main, not pushed, not in any update yet** (84377ac…3dd23a0):

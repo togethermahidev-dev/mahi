@@ -78,7 +78,7 @@
   {
     "name": "moderation-safety",
     "purpose": "Block, report and banned accounts",
-    "summary": "Block asks first, then removes follows both ways, hides each other's posts and profiles, cancels any open tag between you and freezes the chat. Unblocking restores the chat; you'd need to follow each other again.\n• Report: spam, harassment, inappropriate content, impersonation or other, once per person. There's no tool to review reports yet.\n• Banned accounts are set by hand on the server: they're signed out and disappear from feeds, friends lists, tagging and reminders.\n• Coming (built, waiting to go live on the server): report a person, a post, a comment or a message, with a reason. Staff review every report, can hide a post or remove a comment, and can warn, suspend or ban, always with a reason that's logged. Hidden things disappear for everyone but staff and can be put back. An automatic check can also flag worrying posts and comments for staff; it hides nothing by itself."
+    "summary": "Block asks first, then removes follows both ways, hides each other's posts and profiles, cancels any open tag between you and freezes the chat. Unblocking restores the chat; you'd need to follow each other again.\n• Report a person, a post, a comment or a message, with a reason. Staff review every report and can hide a post, remove a comment or message, warn, suspend or ban, always with a note that's logged. Hidden things disappear for everyone but staff and can be put back.\n• You can see your own account standing. Being suspended or banned signs you out.\n• Coming: an automatic check that flags worrying posts and comments for staff; it hides nothing by itself."
   },
   {
     "name": "invites",
@@ -210,6 +210,6 @@
   {
     "name": "staff-portal",
     "purpose": "The staff website for reviewing reports and taking moderation actions",
-    "summary": "A private website for Mahi staff, being built. Staff sign in with their Mahi account and see every report: people's and the automatic check's. From there they can dismiss a report, hide a post, remove a comment, or warn, suspend or ban someone, each with a reason that goes in a log. Only people added as staff on the server can get in; admins alone can ban.\n• Not live yet: the server side waits to be switched on, and staff are added by hand."
+    "summary": "A private website for Mahi staff. Staff sign in with their Mahi account and land on an overview: new reports, reports being looked at, today's reports, who is suspended or banned, and the latest actions. Reports can be filtered and searched; each report shows what was reported, who reported it and the person's history. Actions sit in a Safe box (dismiss, show again, restore) and a Serious box (hide a post, remove a comment or message, warn, suspend, ban); each needs a note and a confirm step, and goes in the audit log. Admins alone can ban.\n• Works on a computer today; putting it on its own web address is the next step. Counts and search cover the newest 200 reports."
   }
 ]

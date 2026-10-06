@@ -34,7 +34,7 @@ From the repo root:
 
 ```sh
 pnpm install                          # once, or after pulling new packages
-cp staff/.env.example staff/.env.local  # then paste the anon key into it
+cp staff/.env.example staff/.env.local  # SUPABASE_URL and SUPABASE_ANON_KEY
 pnpm dev:staff                        # http://localhost:3001
 pnpm build:staff                      # a production build
 pnpm lint:staff                       # design-token check + ESLint
@@ -82,13 +82,15 @@ a new migration that deletes their row. Their next page load signs them out.
 
 ## Deploying (owner only)
 
-Not deployed anywhere yet. It needs a host that runs Next.js on a server (Vercel, or Netlify with
-its Next.js runtime) — it can't be a static upload. Settings for the host:
+Not deployed anywhere yet. The plan is Vercel (it runs Next.js on a server; it can't be a static
+upload). Settings:
 
-- Base directory `staff`, build command `pnpm --filter ./staff build` from the repo root.
+- Root directory `staff`, build command `pnpm --filter ./staff build` from the repo root.
 - Environment variables `SUPABASE_URL` and `SUPABASE_ANON_KEY` (the same public values the app uses).
 - Put it on its own address (for example `staff.mahitechnology.com`) and, if the host allows,
   behind its password or single sign-on as well.
 
-Before the first deploy the moderation migration (`20261006100000_moderation`) must be live and you
-must be in `staff_users`; see the owner steps in `docs/moderation.md`.
+The moderation migrations are live and the three admins (joe.devadmin@, verityadmin@,
+maximusadmin@togethermahi.com) are in `staff_users` (2026-10-06); the owner sets their passwords.
+
+Limit: the overview counts and the report search cover the newest 200 reports.

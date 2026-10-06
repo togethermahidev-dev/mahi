@@ -231,7 +231,7 @@ have run out and clears `is_banned` unless a ban or another suspension is still 
 
 ## Owner steps to put it live
 
-Nothing here has been applied. Run from the repo root. Four new migrations go in order, after the
+**Done 2026-10-06:** all of these are applied to production (through `20261006170000_signed_in_reads`), and the three staff admins are added. What remains is step 5 (the automatic check, waiting for an OpenAI key). The steps stay here as the record. Run from the repo root. Four new migrations go in order, after the
 two that are already waiting (`20261002190000_tag_and_feed_pushes`, `20261003120000_tag_slots`):
 
 ```
