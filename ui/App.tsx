@@ -117,6 +117,7 @@ async function hydrateForUser(userId: string): Promise<void> {
 export default function App(): React.JSX.Element {
   const [splashDone, setSplashDone] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  const [introDone, setIntroDone] = useState(false);
   // The welcome cards are out of the way, so the notifications page may show.
   const [welcomeSettled, setWelcomeSettled] = useState(false);
   const [fontsLoaded] = useFonts({
@@ -209,6 +210,7 @@ export default function App(): React.JSX.Element {
   useEffect(() => {
     if (!session) {
       setShowCamera(false);
+      setIntroDone(false);
       setWelcomeSettled(false);
     }
   }, [session]);
@@ -238,24 +240,24 @@ export default function App(): React.JSX.Element {
         <StatusBar style="auto" />
       </>
     );
-  } else if (session && !showCamera) {
+  } else if (session) {
     content = (
       <>
-        <InAppAnimationScreen onComplete={() => setShowCamera(true)} />
-        <StatusBar style="light" />
-      </>
-    );
-  } else if (session && showCamera) {
-    content = (
-      <>
-        <MainNavigator />
-        {/* One-time welcome cards, after the intro animation, over the app. */}
-        <WelcomeCards userId={session.user.id} onSettled={setWelcomeSettled} />
-        {/* One-time "turn on notifications" page, once the cards are out of the way. */}
-        <PushPrimer welcomeSettled={welcomeSettled} />
-        {/* A warning or suspension from Mahi's staff, once; a closed account covers the app. */}
-        <AccountStanding userId={session.user.id} />
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        {showCamera && <MainNavigator />}
+        {introDone && (
+          <>
+            <WelcomeCards userId={session.user.id} onSettled={setWelcomeSettled} />
+            <PushPrimer welcomeSettled={welcomeSettled} />
+            <AccountStanding userId={session.user.id} />
+          </>
+        )}
+        {!introDone && (
+          <InAppAnimationScreen
+            onReveal={() => setShowCamera(true)}
+            onComplete={() => setIntroDone(true)}
+          />
+        )}
+        <StatusBar style={!introDone ? 'light' : colorScheme === 'dark' ? 'light' : 'dark'} />
       </>
     );
   } else {

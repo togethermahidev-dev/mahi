@@ -607,3 +607,21 @@ export const CAMERA = {
   /** …and how far sideways gravity must lead before the phone counts as held sideways. */
   tiltLead: 0.35,
 } as const;
+
+/** Launch lens choreography: focus, capture, then open onto the live app. */
+export const LAUNCH_LENS = {
+  focus: 0.25,
+  closed: 0.55,
+  release: 0.6,
+  focusMs: 560,
+  closeMs: 240,
+  holdMs: 180,
+  openMs: 650,
+  reducedMs: 240,
+  focusRadius: 0.27,
+  openRadius: 1.2,
+  reticleSize: 232,
+  ringSize: 300,
+  focusScale: 1.12,
+  blades: 6,
+} as const;

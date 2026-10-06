@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 19 — six-blade launch iris, focus/capture/release haptics, direct app reveal and
+ *     Reduce Motion fade (2026-10-07)
  *   build 12 · 16 — Maximus's Q1-Q10 answers, deletable posts with permanent first-post history,
  *     any mix of friends and people not on Mahi in the three tags, stable media caching, and the
  *     Settings security/privacy reorganisation (2026-10-06)
@@ -35,4 +37,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 18;
+export const OTA_NUMBER = 19;

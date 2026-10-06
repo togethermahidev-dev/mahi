@@ -599,9 +599,10 @@ App launch
         hydrateForUser: getProfile → useUserStore.setProfile(); feed, messages,
           notifications and blocks sync in the background
         posthog.identify + reloadFeatureFlagsAsync
-        → <InAppAnimationScreen onComplete → showCamera=true>
+        → <InAppAnimationScreen>: iris closes → onReveal sets showCamera=true
+        → navigator mounts underneath the closed iris; iris opens → onComplete sets introDone=true
         → <TabsNavigator /> on build 12+ (tab bar + swipe pages), else <HorizontalNavigator />
-                                   + <WelcomeCards /> (once per account per device)
+                                   + <WelcomeCards /> (after introDone; once per account per device)
                                    + <PushPrimer /> (once per device, after the cards; flag push-core)
 
     → no session:
