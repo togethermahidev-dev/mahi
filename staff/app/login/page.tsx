@@ -1,4 +1,5 @@
 import { SignInForm } from './SignInForm';
+import { Wordmark } from '@/components/Wordmark';
 
 // No sign-up: staff accounts are ordinary Mahi accounts added to staff_users by the owner.
 export default async function LoginPage({
@@ -10,7 +11,8 @@ export default async function LoginPage({
   return (
     <main className="flex min-h-dvh items-center justify-center px-s16">
       <div className="w-full max-w-z360">
-        <h1 className="text-f24 font-bold">Mahi staff</h1>
+        <Wordmark />
+        <h1 className="mt-s24 text-f24 font-bold">Staff portal</h1>
         <p className="mt-s4 text-f14 text-grey888">Sign in with your Mahi account.</p>
         {reason === 'not-staff' && (
           <p role="alert" className="mt-s16 rounded-r8 bg-surface-light p-s12 text-f14 text-danger-deep">
