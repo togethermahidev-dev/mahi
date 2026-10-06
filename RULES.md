@@ -26,6 +26,9 @@
 - To add a full-stack feature, follow `docs/adding-a-feature.md` (copy `follows.ts` / `followStore.ts` /
   `useNotifications.ts` as templates). Every new store's `reset()` MUST be wired into the `App.tsx` sign-out branch.
 - Never read `process.env.*` directly — import the typed, fail-fast `env` from `ui/src/lib/env.ts`.
+- New features ship behind a PostHog switch (`ui/src/lib/featureFlags.ts`); turning one on means 100%. Switches
+  are temporary: once a feature is proven on phones, remove the switch so it's standard, and delete it in PostHog
+  after every phone has that update (owner, 2026-10-06).
 
 ## Supabase Edge Functions
 - Pre-auth functions (`send-otp`, `verify-otp`, `complete-signup`, `send-reset-code`, `reset-password`)

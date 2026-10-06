@@ -109,14 +109,14 @@ posts with a video icon. Needs the `expo-video` native module (a new native buil
 `20261002100000_video_posts`. On a build without the native module (build 10) it reads as off. Off = today's
 photo-only camera exactly, and the app never asks for the microphone.)
 
-**Reports:** `content-reports` (default on; create it in PostHog at 100% before shipping). On: a '…'
+**Reports:** no switch since 2026-10-06 (owner): standard for everyone. `content-reports` still exists in PostHog at 100% only for older updates; delete it once every phone has OTA 12.09. A '…'
 button on every post (feed and post viewer) and every comment opens the phone's own menu — Report on
 other people's posts and comments (a list of reasons, then "Thanks. We'll take a look."). Your own posts
 and comments show no '…' yet (no delete in the app, no clipboard package). Needs migration `20261006100000_moderation`; without it a
 report says "Couldn't send your report. Try again." Off = no '…' on posts and comments; the profile's
 report keeps working.
 
-**Hold to preview:** `context-menu-preview` (**default off; still off in PostHog 2026-10-06 — the owner switches it on at 100%**; iPhone only; needs build 11, which carries
+**Hold to preview:** no switch since 2026-10-06 (owner): standard on every iPhone build that has @expo/ui. `context-menu-preview` is on at 100% in PostHog for phones still on 12.08; delete it once every phone has OTA 12.09 (was: iPhone only; needs build 11, which carries
 `@expo/ui`). On: press and hold and the content pops out over a blurred background with a short menu
 below (Apple's own context menu). Profile grid squares: the post's photo, with Open, Like / Unlike and
 Share (Share sends the photo itself — post links expire within the hour — fetched to the phone only

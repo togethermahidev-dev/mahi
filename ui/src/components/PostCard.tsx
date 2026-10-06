@@ -32,7 +32,6 @@ import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
 import { pinchOffset } from '@/lib/viewer';
 import { ListGestureContext } from '@/components/GestureScrollView';
 import { HeartIcon, CommentIcon, MoreIcon } from '@/components/ScreenIcons';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { startReport } from '@/lib/reportFlow';
 import { showNativeMenu } from '@/lib/nativeMenu';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
@@ -138,7 +137,7 @@ export default function PostCard({
   // ── Store selectors ──────────────────────────────────────────────────────
   const currentUser = useUserStore((s) => s.profile);
   // '…' with Report, on other people's posts only (flag content-reports).
-  const reportsOn = useFeatureFlag('content-reports');
+  const reportsOn = true; // reports are standard for everyone (owner, 2026-10-06)
   const canReport = reportsOn && !!currentUser && currentUser.id !== item.user_id;
   const likedByMe = useSocialStore((s) => s.likedByMe[item.id] ?? item.liked_by_me);
   // Counts move in the feed's copy of the post and the profile grid's (see socialStore).

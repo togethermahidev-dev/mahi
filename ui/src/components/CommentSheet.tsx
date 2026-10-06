@@ -246,7 +246,7 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
   // Comment likes (flag comment-likes): read fresh each time the comments open; the hearts show
   // once they've arrived, so a count never jumps from an old number to a new one.
   const likesOn = useFeatureFlag('comment-likes');
-  const reportsOn = useFeatureFlag('content-reports');
+  const reportsOn = true; // reports are standard for everyone (owner, 2026-10-06)
   const likesReady = useSocialStore((s) => s.commentLikesReady[postId] === true);
   const showLikes = likesOn && likesReady;
   useEffect(() => {

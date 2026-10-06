@@ -43,7 +43,11 @@ test('production database pushes need a fresh backup', () => {
   assert.strictEqual(verdict(bash('scripts/db.sh push --dry-run', { cwd, now })), 'ask');
   assert.strictEqual(verdict(bash('scripts/db.sh backup', { cwd, now })), 'allow');
   assert.strictEqual(verdict(bash('supabase db push --help')), 'allow');
-  assert.strictEqual(verdict(bash('supabase db push --help && supabase db push')), 'deny');
+  // A scratch folder whose backup is stale, so the real repo's backups never decide this.
+  assert.strictEqual(
+    verdict(bash('supabase db push --help && supabase db push', { cwd, now: now + 61 * 60 * 1000 })),
+    'deny'
+  );
 });
 
 test('other production commands', () => {

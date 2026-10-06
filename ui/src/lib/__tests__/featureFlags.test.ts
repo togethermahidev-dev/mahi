@@ -49,7 +49,13 @@ describe('FEATURE_FLAGS registry', () => {
   });
 });
 
-describe('default-off flags (video-posts, context-menu-preview)', () => {
+// Owner, 2026-10-06: reports and hold to preview are standard for everyone, no switch.
+it('reports and hold to preview have no switch', () => {
+  expect(FEATURE_FLAGS).not.toContain('content-reports');
+  expect(FEATURE_FLAGS).not.toContain('context-menu-preview');
+});
+
+describe('default-off flags (video-posts)', () => {
   it('lists video-posts in the registry', () => {
     expect(FEATURE_FLAGS).toContain('video-posts');
   });
@@ -59,7 +65,6 @@ describe('default-off flags (video-posts, context-menu-preview)', () => {
       'push-core',
       'video-posts',
       'ios-sf-symbols',
-      'context-menu-preview',
       'camera-tap-focus',
       'identity-verification',
       'purchases',
@@ -107,7 +112,6 @@ describe('default-off flags (video-posts, context-menu-preview)', () => {
 
   it('flagDefaultOn tells the two kinds apart', () => {
     expect(flagDefaultOn('video-posts')).toBe(false);
-    expect(flagDefaultOn('context-menu-preview')).toBe(false);
     expect(flagDefaultOn('notifications-core')).toBe(true);
   });
 });
