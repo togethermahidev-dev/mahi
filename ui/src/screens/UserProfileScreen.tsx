@@ -295,7 +295,7 @@ export default function UserProfileScreen({
       void runFollow();
       return;
     }
-    Alert.alert(`Unfollow ${handle}?`, 'Only friends who follow each other can tag each other.', [
+    Alert.alert(`Unfollow ${handle}?`, 'You won’t be able to tag each other.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Unfollow', style: 'destructive', onPress: () => void runFollow() },
     ]);
@@ -575,7 +575,7 @@ export default function UserProfileScreen({
             onPress={handleFollow}
             accessibilityRole="button"
             accessibilityLabel={isFollowing ? `Following ${handle}` : `Follow ${handle}`}
-            accessibilityHint={isFollowing ? 'Double tap to unfollow' : undefined}
+            accessibilityHint={isFollowing ? 'Asks before unfollowing' : undefined}
             accessibilityState={{ selected: isFollowing }}
           >
             <Text style={[styles.followBtnText, { color: isFollowing ? text : COLORS.offBlack }]}>

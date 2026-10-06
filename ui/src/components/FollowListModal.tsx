@@ -107,7 +107,7 @@ export default function FollowListModal({
 
   // Ask first: an unfollow can end tagging each other.
   const handleUnfollow = (targetUserId: string, handle: string) => {
-    Alert.alert(`Unfollow ${handle}?`, 'Only friends who follow each other can tag each other.', [
+    Alert.alert(`Unfollow ${handle}?`, 'You won’t be able to tag each other.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Unfollow',
@@ -249,7 +249,7 @@ export default function FollowListModal({
                           }
                           accessibilityRole="button"
                           accessibilityLabel={`Following @${item.username ?? displayName}`}
-                          accessibilityHint="Double tap to unfollow"
+                          accessibilityHint="Asks before unfollowing"
                           hitSlop={OFFSET.o8}
                         >
                           <Text style={[styles.unfollowBtnText, { color: text }]}>Following</Text>

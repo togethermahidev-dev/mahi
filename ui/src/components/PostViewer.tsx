@@ -259,7 +259,6 @@ function ViewerPages({
           onPress={onClose}
           accessibilityRole="button"
           accessibilityLabel="Close"
-          accessibilityHint="Or swipe left or right"
           hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
           <Text style={styles.closeX}>×</Text>
