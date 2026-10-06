@@ -27,6 +27,8 @@
   (the direct conversation writes old apps use go with `supabase/deferred/contract_messages.sql`).
 - Posts are permanent: no delete, no update, except the caption by its owner for one hour through
   `update_post_caption` (an edited caption is checked by moderation again).
+- The preview's Post tap always asks for confirmation: posts cannot be deleted, captions are editable
+  for one hour, and posting opens the feed and can notify tagged friends. Never bypass this alert.
 
 ## Database tools
 - Mahi doesn't use Docker: no `supabase start`, no local stack. Database types come from the Supabase MCP
@@ -109,6 +111,9 @@
   sign-out branch (auth comes from the session; theme and sign-up form survive sign-out)
 - Sign-up form state lives in `useSignUpStore` (persists across app backgrounding mid-flow)
 - Only the resend cooldown timestamp is kept on the device (`ui/src/lib/otp.ts`); codes are server-only
+- Feed, inbox and conversation pages are server-authoritative. The stores cache rendered pages only:
+  feed uses its server cursor, inbox uses ranged `get_inbox` pages, and a conversation asks
+  `get_messages` for the cursor before its oldest loaded message. Never fabricate a later page locally.
 - When writing back to profile after async work, always read from `useUserStore.getState().profile` — never spread a closure snapshot
 
 ## Reactive posting and Mahi points

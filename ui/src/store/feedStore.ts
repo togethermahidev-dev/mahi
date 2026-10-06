@@ -12,6 +12,8 @@ interface FeedState {
   cursor: FeedCursor | undefined;
   hasMore: boolean;
   isSyncing: boolean;
+  /** A subsequent cursor page is in flight; the current posts stay visible. */
+  isLoadingMore: boolean;
   /** True until the first page of this session has loaded. */
   loaded: boolean;
   error: Error | null;
@@ -39,6 +41,7 @@ const initial = {
   cursor: undefined,
   hasMore: true,
   isSyncing: false,
+  isLoadingMore: false,
   loaded: false,
   error: null,
   locked: false,
@@ -84,7 +87,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     const { isSyncing, hasMore, cursor } = get();
     if (isSyncing || !hasMore || !cursor) return;
     const gen = generation;
-    set({ isSyncing: true, error: null });
+    set({ isSyncing: true, isLoadingMore: true, error: null });
 
     const { data, error } = await getFeed(PAGE_SIZE, cursor);
     if (gen !== generation) return;
@@ -99,7 +102,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     } else if (error) {
       set({ error });
     }
-    set({ isSyncing: false });
+    set({ isSyncing: false, isLoadingMore: false });
   },
 
   addPending: (post) => set((state) => ({ pending: [post, ...state.pending] })),

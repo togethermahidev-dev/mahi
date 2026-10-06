@@ -8,6 +8,7 @@ export interface UseFeedResult {
   isLoading: boolean;
   error: Error | null;
   hasMore: boolean;
+  isLoadingMore: boolean;
   /** Friends' posts are hidden until the user posts. */
   locked: boolean;
   /** When the 24-hour window from the last post ends (null = never posted). */
@@ -28,6 +29,7 @@ export function useFeed(): UseFeedResult {
   const posts = useFeedStore((s) => s.posts);
   const pending = useFeedStore((s) => s.pending);
   const hasMore = useFeedStore((s) => s.hasMore);
+  const isLoadingMore = useFeedStore((s) => s.isLoadingMore);
   const loaded = useFeedStore((s) => s.loaded);
   const error = useFeedStore((s) => s.error);
   const locked = useFeedStore((s) => s.locked);
@@ -54,6 +56,7 @@ export function useFeed(): UseFeedResult {
     isLoading: !loaded && allPosts.length === 0,
     error,
     hasMore,
+    isLoadingMore,
     locked,
     unlockedUntil,
     serverOffsetMs,

@@ -8,6 +8,7 @@ import {
   Modal,
   useWindowDimensions,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import type { NativeGesture } from 'react-native-gesture-handler';
@@ -200,7 +201,8 @@ export default function MessagesScreen({
   // Profile overlay — mirrors FeedScreen's local overlay state (avatar → profile).
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
-  const { inbox, requests, isLoading, failed, refresh } = useMessages();
+  const { inbox, requests, isLoading, isLoadingMore, hasMore, failed, refresh, loadMore } =
+    useMessages();
   const userId = useAuthStore((s) => s.user?.id);
   const menuOn = useContextMenuPreview();
 
@@ -308,6 +310,15 @@ export default function MessagesScreen({
               currentUserId={userId}
             />
           )}
+          onEndReached={hasMore ? loadMore : undefined}
+          onEndReachedThreshold={0.35}
+          ListFooterComponent={
+            isLoadingMore ? (
+              <View style={styles.moreLoader} accessibilityLabel="Loading more conversations">
+                <ActivityIndicator color={muted} />
+              </View>
+            ) : null
+          }
           refreshControl={
             <RefreshControl refreshing={isLoading} onRefresh={refresh} {...refreshTint(dark)} />
           }
@@ -473,6 +484,11 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: SPACE.s20,
+  },
+  moreLoader: {
+    height: SIZE.z56,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   convoBody: {
     flex: 1,

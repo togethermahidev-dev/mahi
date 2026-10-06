@@ -77,10 +77,16 @@ function toPreview(r: InboxRow): ConversationPreview {
   };
 }
 
+/** A small inbox page keeps the Messages tab quick even for long-lived accounts. */
+export const INBOX_PAGE = 25;
+
 async function fetchConversations(
-  status: 'active' | 'requested'
+  status: 'active' | 'requested',
+  page?: { from: number; to: number }
 ): Promise<{ data: ConversationPreview[] | null; error: Error | null }> {
-  const { data, error } = await supabase.rpc('get_inbox', { p_status: status });
+  let query = supabase.rpc('get_inbox', { p_status: status });
+  if (page) query = query.range(page.from, page.to);
+  const { data, error } = await query;
   if (error) return { data: null, error: new Error(error.message) };
   return { data: (data ?? []).map(toPreview), error: null };
 }
@@ -89,11 +95,11 @@ async function fetchConversations(
  * Your conversations, newest activity first, each with its unread count. Includes requests you
  * sent that are still waiting (status 'requested').
  */
-export async function getInbox(): Promise<{
+export async function getInbox(offset = 0): Promise<{
   data: ConversationPreview[] | null;
   error: Error | null;
 }> {
-  return fetchConversations('active');
+  return fetchConversations('active', { from: offset, to: offset + INBOX_PAGE - 1 });
 }
 
 /** Requests other people sent you that you haven't answered. */

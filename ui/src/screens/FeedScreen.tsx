@@ -159,6 +159,7 @@ export default function FeedScreen({
     posts,
     error,
     hasMore,
+    isLoadingMore,
     loadMore,
     refresh,
     locked,
@@ -333,6 +334,17 @@ export default function FeedScreen({
           decelerationRate="fast"
           onEndReached={hasMore ? loadMore : undefined}
           onEndReachedThreshold={0.4}
+          ListFooterComponent={
+            isLoadingMore ? (
+              <View style={styles.moreLoader} accessibilityLabel="Loading more posts">
+                <ActivityIndicator color={muted} />
+              </View>
+            ) : error && posts.length > 0 ? (
+              <Text style={[styles.errorText, { color: muted }]}>
+                Couldn’t load more. Pull down to try again.
+              </Text>
+            ) : null
+          }
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
@@ -418,13 +430,6 @@ export default function FeedScreen({
                 ) : null}
               </View>
             )
-          }
-          ListFooterComponent={
-            error && posts.length > 0 ? (
-              <Text style={[styles.errorText, { color: muted }]}>
-                Couldn’t load more. Pull down to try again.
-              </Text>
-            ) : null
           }
         />
       </ListGestureContext.Provider>
@@ -545,6 +550,11 @@ const styles = StyleSheet.create({
   },
   skeleton: {
     justifyContent: 'flex-end',
+  },
+  moreLoader: {
+    height: SIZE.z56,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   skeletonFoot: {
     padding: SPACE.s16,

@@ -23,6 +23,12 @@ applies to every tool call. Work on branch `updates`; commit by name, no AI attr
 without the owner's go in the same session.
 
 **State on 2026-10-06, late (branch `updates`; `main` is behind):**
+- **On phones (preview lane), published 2026-10-06:** OTA **12.14** confirms an irreversible post
+  before upload, moves light/dark into Settings, groups account actions, adds right-swipe dismissal
+  to conversations, and turns profile workouts into a square two-column grid. The grid fetches four
+  posts per server page; portrait posts open full screen, swipe left/right through the profile's
+  workouts, and swipe down to return to the grid. Feed and inbox pagination are server-backed;
+  conversations already fetch older messages by cursor.
 - **On phones (preview lane), published 2026-10-06, not yet checked on a phone:** OTAs **12.07–12.11**
   (below) and **12.12**: the profile workout story (one column, newest first, swipe back), notification
   activity rows, the feed timer matching the server (the feed stays open 24 hours after you post, then

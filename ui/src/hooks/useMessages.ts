@@ -7,9 +7,12 @@ export interface UseMessagesResult {
   requests: ConversationPreview[];
   /** Nothing read yet this session (a spinner, never "No messages yet"). */
   isLoading: boolean;
+  isLoadingMore: boolean;
+  hasMore: boolean;
   /** The read failed and the inbox is empty (show "Couldn't load…" with Try again). */
   failed: boolean;
   refresh: () => void;
+  loadMore: () => void;
   accept: (conversationId: string) => Promise<void>;
   deny: (conversationId: string) => Promise<void>;
   send: (conversationId: string, content: string) => Promise<boolean>;
@@ -24,6 +27,8 @@ export function useMessages(): UseMessagesResult {
   const isSyncing = useMessagesStore((s) => s.isSyncing);
   const loaded = useMessagesStore((s) => s.loaded);
   const error = useMessagesStore((s) => s.error);
+  const isLoadingMore = useMessagesStore((s) => s.isLoadingMore);
+  const hasMore = useMessagesStore((s) => s.hasMore);
 
   useEffect(() => {
     if (!userId) return;
@@ -42,9 +47,12 @@ export function useMessages(): UseMessagesResult {
     requests,
     isLoading: !loaded && !error && inbox.length === 0,
     failed: error && inbox.length === 0,
+    isLoadingMore,
+    hasMore,
     refresh: () => {
       if (userId) useMessagesStore.getState().sync();
     },
+    loadMore: () => useMessagesStore.getState().loadMore(),
     accept: (id) => useMessagesStore.getState().accept(id),
     deny: (id) => useMessagesStore.getState().deny(id),
     send: async (conversationId, content) => {

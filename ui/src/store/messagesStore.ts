@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import {
   getInbox,
   getRequests,
+  INBOX_PAGE,
   acceptRequest,
   declineRequest,
   type ConversationPreview,
@@ -17,12 +18,16 @@ interface MessagesState {
   inbox: ConversationPreview[];
   requests: ConversationPreview[];
   isSyncing: boolean;
+  isLoadingMore: boolean;
+  hasMore: boolean;
   /** A read of the inbox and requests has worked this session (empty is then really empty). */
   loaded: boolean;
   /** The last read failed (cleared by one that works). */
   error: boolean;
 
   sync: () => Promise<void>;
+  /** Load the next authoritative inbox page. */
+  loadMore: () => Promise<void>;
   accept: (conversationId: string) => Promise<void>;
   /** Decline a request: it leaves your requests (the sender isn't told). */
   deny: (conversationId: string) => Promise<void>;
@@ -44,6 +49,8 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
   inbox: [],
   requests: [],
   isSyncing: false,
+  isLoadingMore: false,
+  hasMore: true,
   loaded: false,
   error: false,
 
@@ -51,13 +58,38 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     if (get().isSyncing) return;
     set({ isSyncing: true });
 
-    const [inboxResult, requestsResult] = await Promise.all([getInbox(), getRequests()]);
+    const [inboxResult, requestsResult] = await Promise.all([getInbox(0), getRequests()]);
 
-    if (inboxResult.data) set({ inbox: inboxResult.data });
+    if (inboxResult.data)
+      set({
+        inbox: inboxResult.data,
+        hasMore: inboxResult.data.length === INBOX_PAGE,
+        isLoadingMore: false,
+      });
     if (requestsResult.data) set({ requests: requestsResult.data });
     const failed = !inboxResult.data || !requestsResult.data;
     set(failed ? { error: true } : { loaded: true, error: false });
     set({ isSyncing: false });
+  },
+
+  loadMore: async () => {
+    const { inbox, hasMore, isSyncing, isLoadingMore } = get();
+    if (!hasMore || isSyncing || isLoadingMore) return;
+    set({ isLoadingMore: true });
+    const { data } = await getInbox(inbox.length);
+    if (data) {
+      set((state) => {
+        const seen = new Set(state.inbox.map((conversation) => conversation.id));
+        const fresh = data.filter((conversation) => !seen.has(conversation.id));
+        return {
+          inbox: [...state.inbox, ...fresh],
+          hasMore: data.length === INBOX_PAGE,
+          isLoadingMore: false,
+        };
+      });
+    } else {
+      set({ isLoadingMore: false });
+    }
   },
 
   accept: async (conversationId: string) => {
@@ -233,6 +265,14 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     // Tear down all active channels
     msgChannels.forEach((ch) => supabase.removeChannel(ch));
     msgChannels.clear();
-    set({ inbox: [], requests: [], isSyncing: false, loaded: false, error: false });
+    set({
+      inbox: [],
+      requests: [],
+      isSyncing: false,
+      isLoadingMore: false,
+      hasMore: true,
+      loaded: false,
+      error: false,
+    });
   },
 }));
