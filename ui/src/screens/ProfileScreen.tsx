@@ -6,6 +6,7 @@ import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { useAuthStore, useUserStore } from '@/store';
 import { pointsStatsLabel } from '@/lib/mahiPoints';
+import { pointsHint } from '@/lib/pointsHint';
 import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostViewer from '@/components/PostViewer';
@@ -49,7 +50,7 @@ interface ProfileScreenProps {
 function explainPoints() {
   Alert.alert(
     'Mahi points',
-    'You earn 1 point each time you post an answer to a tag. Miss a tag’s 48 hours and your points go back to 0. Your best always stays.'
+    'You earn 1 point each time you post an answer to a tag. Miss a tag’s 48 hours and your points go back to 0. Your best always stays. If you’re ill or injured, rest comes first. Your best will be here when you’re back.'
   );
 }
 
@@ -80,6 +81,8 @@ export default function ProfileScreen({
   // re-sync when this panel becomes active and the store is empty/stale.
   // The grid (ProfileMediaMap) reads the same singleton store, so it re-renders.
   useProfilePosts(userId ?? '', isActive && !!userId);
+
+  const hint = profile ? pointsHint(profile.streak_current, profile.streak_highest) : null;
 
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
 
@@ -175,12 +178,9 @@ export default function ProfileScreen({
           <Text style={[styles.statLabel, { color: muted }]}>Best</Text>
         </View>
       </Pressable>
-      {/* A newcomer's 0 · 0 says how to earn the first point. */}
-      {profile && !profile.streak_current && !profile.streak_highest ? (
-        <Text style={[styles.pointsHint, { color: muted }]}>
-          Answer your first tag to earn your first point.
-        </Text>
-      ) : null}
+      {/* A newcomer's 0 · 0 says how to earn the first point; after a miss, that the best stays
+          and the next answer starts again; climbing back, the best to aim for. */}
+      {hint ? <Text style={[styles.pointsHint, { color: muted }]}>{hint}</Text> : null}
 
       {/* Suggested follows — syncs on mount, renders null when empty */}
       <SuggestedFollowsStrip onPressUser={setProfileUserId} excludeUserId={userId} />
