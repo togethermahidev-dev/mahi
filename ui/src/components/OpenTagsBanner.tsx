@@ -54,7 +54,7 @@ export default function OpenTagsBanner({
         accessibilityRole="text"
         accessibilityLabel={
           isFirstPost
-            ? 'Your first post needs no tag.'
+            ? `Your first post needs no tag. ${banner.note ?? ''}`.trim()
             : `${banner.who} tagged you. ${banner.left}.${banner.note ? ` ${banner.note}` : ''}`
         }
       >

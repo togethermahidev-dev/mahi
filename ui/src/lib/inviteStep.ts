@@ -71,7 +71,7 @@ export function inviteStepCopy({
   const canAdd = slots.remaining > 0;
   return {
     headline: `Invite ${count(toInvite, 'friend', 'friends')} to post`,
-    why: `Every post tags ${maxTags} friends. Invite people you’d like to train with. They’ll get 48 hours to answer, and any workout counts.`,
+    why: `Every post tags ${maxTags} friends. Invite people you’d like to train with. They’ll get 48 hours to answer with any workout. A walk counts.`,
     button: canAdd ? 'Invite a friend' : `All ${maxTags} tags used`,
     canAdd,
     count: slots.text,

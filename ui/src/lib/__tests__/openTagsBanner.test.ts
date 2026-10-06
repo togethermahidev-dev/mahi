@@ -48,7 +48,12 @@ describe('openTagsBanner', () => {
 
   it('a first post needs no tag: says so when nothing is open', () => {
     expect(openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow, firstPost: true })).toEqual(
-      { who: 'First post', left: 'no tag needed', firstPost: true }
+      {
+        who: 'First post',
+        left: 'no tag needed',
+        firstPost: true,
+        note: 'Any workout counts, even 10 minutes.',
+      }
     );
     expect(
       openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow, firstPost: false })

@@ -24,7 +24,14 @@ export function openTagsBanner({
   firstPost?: boolean;
 }): { who: string; left: string; firstPost?: true; note?: string } | null {
   if (openTags.length === 0) {
-    return firstPost ? { who: 'First post', left: 'no tag needed', firstPost: true } : null;
+    return firstPost
+      ? {
+          who: 'First post',
+          left: 'no tag needed',
+          firstPost: true,
+          note: 'Any workout counts, even 10 minutes.',
+        }
+      : null;
   }
   const first = [...openTags].sort(
     (a, b) => Date.parse(a.expires_at) - Date.parse(b.expires_at)
