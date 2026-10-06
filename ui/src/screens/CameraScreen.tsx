@@ -109,6 +109,7 @@ import { inviteList, inviteShareMessage, markInvite, type InviteItem } from '@/l
 import { tagSheetStep } from '@/lib/inviteStep';
 import {
   captureLabel as captureLabelFor,
+  captureStepLabel,
   pipGuide,
   previewPipRestTop,
   type CaptureState,
@@ -226,15 +227,15 @@ function PointsCounter({ count }: { count: number | null }) {
       accessible
       accessibilityLabel={known ? `Mahi points: ${pointsCount(count)}` : 'Mahi points loading'}
     >
-      {/* Already display size: it grows with the text setting only up to large text, so at the
-          largest sizes it stays clear of the header and the tags pill. */}
+      {/* This compact status chip grows only up to large text, so it stays clear of the header
+          and the open-tag pill at the largest settings. */}
       <Text
         style={[styles.pointsNumber, !known && { color: themeColors(true).muted }]}
         maxFontSizeMultiplier={LAYOUT.largeTextScale}
       >
         {pointsValue(count)}
       </Text>
-      <Text style={styles.pointsLabel}>Points</Text>
+      <Text style={styles.pointsLabel}>Mahi points</Text>
     </Animated.View>
   );
 }
@@ -2337,6 +2338,7 @@ export default function CameraScreen({
   const captureLabel = recording
     ? recordingLabel(secondsLeft(recordingSince, now))
     : captureLabelFor(captureState, facing, videoOn ? shotMode : 'photo');
+  const captureStep = captureStepLabel(captureState, facing);
   const hintText =
     !captureLabel &&
     captureState === 'idle' &&
@@ -2374,28 +2376,51 @@ export default function CameraScreen({
 
   if (!cameraGranted) {
     const cameraDenied = cameraPermission.status === 'denied';
+    const settingsOnly = cameraDenied && !cameraPermission.canAskAgain;
     return (
       <View style={styles.root}>
         <View style={styles.permissionCenter}>
-          <Text style={styles.deniedMessage}>
-            {cameraDenied && !cameraPermission.canAskAgain
-              ? 'Mahi needs your camera to post your workouts. Turn it on in your phone’s settings.'
-              : 'Mahi needs your camera to post your workouts.'}
-          </Text>
-          {/* Only once refused (not while the phone's own question is on its way): always a way on. */}
-          {cameraDenied && (
-            <Pressable
-              accessibilityRole="button"
-              style={({ pressed }) => [styles.permissionButton, pressed && { opacity: ALPHA.a80 }]}
-              onPress={() =>
-                cameraPermission.canAskAgain ? requestCameraPermission() : Linking.openSettings()
-              }
-            >
-              <Text style={styles.permissionButtonText}>
-                {cameraPermission.canAskAgain ? 'Allow camera' : 'Open settings'}
+          <View style={styles.permissionCard}>
+            <View style={styles.permissionIcon}>
+              <CameraIcon size={ICON_SIZE.i32} color={COLORS.accent} />
+            </View>
+            <View style={styles.permissionCopy}>
+              <Text style={styles.permissionEyebrow}>Camera access</Text>
+              <Text style={styles.permissionTitle}>
+                {settingsOnly ? 'Turn on your camera' : 'Share your workout'}
               </Text>
-            </Pressable>
-          )}
+              <Text style={styles.deniedMessage}>
+                {settingsOnly
+                  ? 'Open your phone’s settings, allow Camera access for Mahi, then come back.'
+                  : 'Mahi uses your camera to take the two photos in every workout post.'}
+              </Text>
+            </View>
+            {/* Only once refused (not while the phone's own question is on its way): always a way on. */}
+            {cameraDenied && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityHint={
+                  settingsOnly
+                    ? 'Opens your phone’s settings'
+                    : 'Shows the camera permission prompt'
+                }
+                style={({ pressed }) => [
+                  styles.permissionButton,
+                  pressed && { opacity: ALPHA.a80 },
+                ]}
+                onPress={() =>
+                  cameraPermission.canAskAgain ? requestCameraPermission() : Linking.openSettings()
+                }
+              >
+                <Text style={styles.permissionButtonText}>
+                  {cameraPermission.canAskAgain ? 'Allow camera' : 'Open settings'}
+                </Text>
+              </Pressable>
+            )}
+            <Text style={styles.permissionNote}>
+              Your camera stays off until you open this screen.
+            </Text>
+          </View>
         </View>
       </View>
     );
@@ -2548,6 +2573,19 @@ export default function CameraScreen({
           </BlurView>
         ) : null}
 
+        {gate === 'loading' && !offline ? (
+          <View
+            style={styles.gateLoading}
+            accessible
+            accessibilityRole="progressbar"
+            accessibilityLabel="Checking your tags"
+            accessibilityLiveRegion="polite"
+          >
+            <ActivityIndicator color={COLORS.accent} />
+            <Text style={styles.gateLoadingText}>Checking your tags…</Text>
+          </View>
+        ) : null}
+
         {/* 0.5× / 1× lens toggle — back camera only. Hidden entirely when the
           device has no ultra-wide lens (Android, or older iPhones), so it never
           offers an option we can't honour. Locked out mid-capture and after
@@ -2660,71 +2698,80 @@ export default function CameraScreen({
           </View>
         )}
 
-        <View style={[styles.controlsRow, lift > 0 && { bottom: OFFSET.o32 + lift }]}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Switch camera"
-            style={({ pressed }) => [
-              styles.flipButton,
-              { opacity: captureState !== 'idle' ? ALPHA.a30 : 1 },
-              pressed && { opacity: ALPHA.a70 },
-            ]}
-            disabled={captureState !== 'idle'}
-            onPress={() => {
-              haptic('flip');
-              setFacing((f) => (f === 'back' ? 'front' : 'back'));
-            }}
-          >
-            <FlipIcon color={flipColor} />
-          </Pressable>
+        {!blocked ? (
+          <View style={[styles.controlsRow, lift > 0 && { bottom: OFFSET.o32 + lift }]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Switch camera"
+              style={({ pressed }) => [
+                styles.flipButton,
+                { opacity: captureState !== 'idle' ? ALPHA.a30 : 1 },
+                pressed && { opacity: ALPHA.a70 },
+              ]}
+              disabled={captureState !== 'idle'}
+              onPress={() => {
+                haptic('flip');
+                setFacing((f) => (f === 'back' ? 'front' : 'back'));
+              }}
+            >
+              <FlipIcon color={flipColor} />
+            </Pressable>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={shutterLabel({
-              videoOn,
-              mode: shotMode,
-              recording,
-              second: captureState === 'awaiting-second',
-            })}
-            style={({ pressed }) => [
-              styles.shutterOuter,
-              {
-                borderColor: recording ? COLORS.danger : shutterRing,
-                shadowColor: dark ? COLORS.black : COLORS.offBlack,
-                opacity: shutterDisabled ? ALPHA.a30 : 1,
-              },
-              pressed && { opacity: ALPHA.a82 },
-            ]}
-            disabled={shutterDisabled}
-            // Video off: exactly today's shutter (a tap, no hold).
-            onPress={videoOn ? () => handleShutter('tap') : handleShutterPress}
-            onLongPress={videoOn ? () => handleShutter('hold') : undefined}
-            delayLongPress={videoOn ? HOLD_TO_RECORD_MS : undefined}
-            onPressOut={videoOn ? handleShutterRelease : undefined}
-          >
-            {gate === 'loading' && !offline ? (
-              <ActivityIndicator color={shutterRing} />
-            ) : recording ? (
-              <View style={styles.shutterRecording} />
-            ) : (
-              <View
-                style={[
-                  styles.shutterInner,
+            <View style={styles.shutterSlot}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={shutterLabel({
+                  videoOn,
+                  mode: shotMode,
+                  recording,
+                  second: captureState === 'awaiting-second',
+                })}
+                accessibilityValue={captureStep ? { text: captureStep } : undefined}
+                style={({ pressed }) => [
+                  styles.shutterOuter,
                   {
-                    backgroundColor: videoOn && shotMode === 'video' ? COLORS.danger : shutterFill,
+                    borderColor: recording ? COLORS.danger : shutterRing,
+                    shadowColor: dark ? COLORS.black : COLORS.offBlack,
+                    opacity: shutterDisabled ? ALPHA.a30 : 1,
                   },
+                  pressed && { opacity: ALPHA.a82 },
                 ]}
-              />
-            )}
-          </Pressable>
+                disabled={shutterDisabled}
+                // Video off: exactly today's shutter (a tap, no hold).
+                onPress={videoOn ? () => handleShutter('tap') : handleShutterPress}
+                onLongPress={videoOn ? () => handleShutter('hold') : undefined}
+                delayLongPress={videoOn ? HOLD_TO_RECORD_MS : undefined}
+                onPressOut={videoOn ? handleShutterRelease : undefined}
+              >
+                {recording ? (
+                  <View style={styles.shutterRecording} />
+                ) : (
+                  <View
+                    style={[
+                      styles.shutterInner,
+                      {
+                        backgroundColor:
+                          videoOn && shotMode === 'video' ? COLORS.danger : shutterFill,
+                      },
+                    ]}
+                  />
+                )}
+              </Pressable>
+              {captureStep ? (
+                <Text style={styles.captureStep} maxFontSizeMultiplier={LAYOUT.largeTextScale}>
+                  {captureStep}
+                </Text>
+              ) : null}
+            </View>
 
-          {/* Flash — photos only, so it steps aside while the switch says Video. */}
-          {videoOn && shotMode === 'video' ? (
-            <View style={styles.flipButton} />
-          ) : (
-            <FlashButton choice={flashChoice} onPress={cycleFlash} disabled={switchDisabled} />
-          )}
-        </View>
+            {/* Flash — photos only, so it steps aside while the switch says Video. */}
+            {videoOn && shotMode === 'video' ? (
+              <View style={styles.flipButton} />
+            ) : (
+              <FlashButton choice={flashChoice} onPress={cycleFlash} disabled={switchDisabled} />
+            )}
+          </View>
+        ) : null}
 
         <DualPhotoPreview
           frontPhoto={frontPhoto}
@@ -2764,21 +2811,28 @@ const styles = StyleSheet.create({
   pointsCounter: {
     position: 'absolute',
     right: OFFSET.o24,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACE.s6,
+    minHeight: SIZE.z36,
+    paddingHorizontal: SPACE.s12,
+    paddingVertical: SPACE.s8,
+    borderRadius: RADIUS.pill,
+    borderWidth: BORDER_WIDTH.w1,
+    borderColor: withAlpha(COLORS.accent, ALPHA.a50),
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a35),
   },
   pointsNumber: {
     color: COLORS.white,
-    fontSize: FONT_SIZE.f38,
+    fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.bold,
-    lineHeight: LINE_HEIGHT.l38,
+    lineHeight: LINE_HEIGHT.l24,
   },
   pointsLabel: {
     color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f11,
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-    textAlign: 'center',
     opacity: ALPHA.a75,
-    marginTop: SPACE.s3,
     lineHeight: LINE_HEIGHT.l14,
   },
   captureLabelWrap: {
@@ -2811,6 +2865,8 @@ const styles = StyleSheet.create({
   // Reactive posting closed: one card in the middle, in the app's card style (the locked feed's
   // card, and the camera's open-tags pill: frosted, an accent outline, the accent for the icon).
   noTagsCard: {
+    width: '100%',
+    maxWidth: SIZE.z360,
     alignItems: 'center',
     gap: SPACE.s12,
     paddingVertical: SPACE.s24,
@@ -2819,6 +2875,11 @@ const styles = StyleSheet.create({
     borderWidth: BORDER_WIDTH.w1,
     borderColor: withAlpha(COLORS.accent, ALPHA.a50),
     backgroundColor: withAlpha(COLORS.black, ALPHA.a35),
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: SIZE.z4 },
+    shadowOpacity: ALPHA.a25,
+    shadowRadius: SHADOW_BLUR.b12,
+    elevation: ELEVATION.e8,
   },
   noTagsWords: {
     alignItems: 'center',
@@ -2826,6 +2887,8 @@ const styles = StyleSheet.create({
   },
   // The app's one main-button style (ListState's): accent pill, dark words.
   seeFeedButton: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
     backgroundColor: COLORS.accent,
     borderRadius: RADIUS.pill,
     paddingVertical: SPACE.s12,
@@ -2872,6 +2935,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACE.s48,
+  },
+  shutterSlot: {
+    width: SIZE.z130,
+    height: SIZE.z72,
+    alignItems: 'center',
+  },
+  captureStep: {
+    position: 'absolute',
+    top: '100%',
+    left: -SIZE.z24,
+    right: -SIZE.z24,
+    marginTop: SPACE.s4,
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f12,
+    lineHeight: LINE_HEIGHT.l16,
+    fontFamily: FONTS.semiBold,
+    textAlign: 'center',
+    textShadowColor: withAlpha(COLORS.black, ALPHA.a72),
+    textShadowOffset: { width: 0, height: SIZE.z1 },
+    textShadowRadius: SHADOW_BLUR.b3,
   },
   flipButton: {
     width: SIZE.z44,
@@ -3253,25 +3336,102 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACE.s24,
+    paddingHorizontal: SPACE.s24,
+  },
+  permissionCard: {
+    width: '100%',
+    maxWidth: SIZE.z400,
+    alignItems: 'center',
+    paddingHorizontal: SPACE.s24,
+    paddingVertical: SPACE.s32,
+    borderRadius: RADIUS.r24,
+    borderWidth: BORDER_WIDTH.w1,
+    borderColor: withAlpha(COLORS.offWhite, ALPHA.a15),
+    backgroundColor: COLORS.surfaceDark2,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: SIZE.z4 },
+    shadowOpacity: ALPHA.a25,
+    shadowRadius: SHADOW_BLUR.b12,
+    elevation: ELEVATION.e8,
+  },
+  permissionIcon: {
+    width: SIZE.z64,
+    height: SIZE.z64,
+    borderRadius: RADIUS.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: BORDER_WIDTH.w1,
+    borderColor: withAlpha(COLORS.accent, ALPHA.a50),
+    backgroundColor: withAlpha(COLORS.accent, ALPHA.a12),
+    marginBottom: SPACE.s20,
+  },
+  permissionCopy: {
+    alignItems: 'center',
+  },
+  permissionEyebrow: {
+    color: COLORS.accent,
+    fontSize: FONT_SIZE.f12,
+    fontFamily: FONTS.semiBold,
+    marginBottom: SPACE.s4,
+  },
+  permissionTitle: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f24,
+    lineHeight: LINE_HEIGHT.l28,
+    fontFamily: FONTS.bold,
+    textAlign: 'center',
+    marginBottom: SPACE.s8,
   },
   deniedMessage: {
-    color: COLORS.white,
-    fontSize: FONT_SIZE.f16,
+    color: withAlpha(COLORS.offWhite, ALPHA.a80),
+    fontSize: FONT_SIZE.f15,
+    lineHeight: LINE_HEIGHT.l22,
     fontFamily: FONTS.regular,
     textAlign: 'center',
-    opacity: ALPHA.a80,
-    paddingHorizontal: SPACE.s32,
   },
   permissionButton: {
-    backgroundColor: COLORS.white,
+    width: '100%',
+    minHeight: SIZE.z52,
+    backgroundColor: COLORS.accent,
     borderRadius: RADIUS.r50,
-    paddingVertical: SPACE.s20,
-    paddingHorizontal: SPACE.s40,
+    paddingVertical: SPACE.s14,
+    paddingHorizontal: SPACE.s24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SPACE.s24,
   },
   permissionButtonText: {
-    color: COLORS.ink,
+    color: COLORS.offBlack,
     fontSize: FONT_SIZE.f16,
+    fontFamily: FONTS.bold,
+  },
+  permissionNote: {
+    color: themeColors(true).muted,
+    fontSize: FONT_SIZE.f12,
+    lineHeight: LINE_HEIGHT.l18,
+    fontFamily: FONTS.regular,
+    textAlign: 'center',
+    marginTop: SPACE.s16,
+  },
+  gateLoading: {
+    position: 'absolute',
+    left: SPACE.s32,
+    right: SPACE.s32,
+    top: '50%',
+    minHeight: SIZE.z56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.s12,
+    borderRadius: RADIUS.r20,
+    borderWidth: BORDER_WIDTH.w1,
+    borderColor: withAlpha(COLORS.offWhite, ALPHA.a15),
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a55),
+  },
+  gateLoadingText: {
+    color: COLORS.offWhite,
+    fontSize: FONT_SIZE.f14,
+    lineHeight: LINE_HEIGHT.l20,
     fontFamily: FONTS.semiBold,
   },
 });

@@ -1,4 +1,10 @@
-import { captureLabel, pipGuide, previewPipRestTop, type CaptureState } from '../captureGuide';
+import {
+  captureLabel,
+  captureStepLabel,
+  pipGuide,
+  previewPipRestTop,
+  type CaptureState,
+} from '../captureGuide';
 
 describe('captureLabel — the status line while taking the two photos', () => {
   it('says it is taking the photo, for both photos', () => {
@@ -49,6 +55,24 @@ describe('captureLabel — the status line while taking the two photos', () => {
         expect(label).not.toBe(label!.toUpperCase());
       }
     }
+  });
+});
+
+describe('captureStepLabel — the persistent two-shot guide by the shutter', () => {
+  it('names the first shot and the camera currently showing', () => {
+    expect(captureStepLabel('idle', 'back')).toBe('1 of 2 · Your view');
+    expect(captureStepLabel('idle', 'front')).toBe('1 of 2 · Selfie');
+  });
+
+  it('names the second shot after the camera switches', () => {
+    expect(captureStepLabel('awaiting-second', 'front')).toBe('2 of 2 · Selfie');
+    expect(captureStepLabel('awaiting-second', 'back')).toBe('2 of 2 · Your view');
+  });
+
+  it('stays out of the way while a shot or camera switch is in progress', () => {
+    expect(captureStepLabel('capturing-first', 'back')).toBeNull();
+    expect(captureStepLabel('switching', 'front')).toBeNull();
+    expect(captureStepLabel('capturing-second', 'front')).toBeNull();
   });
 });
 

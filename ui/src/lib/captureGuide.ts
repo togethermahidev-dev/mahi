@@ -34,6 +34,18 @@ export function captureLabel(
   }
 }
 
+/**
+ * The short, persistent guide beside the shutter. It makes the two-shot flow readable before a
+ * tap, without competing with the centre-screen status while a photo or camera switch is in
+ * progress.
+ */
+export function captureStepLabel(state: CaptureState, facing: CameraSide): string | null {
+  const subject = facing === 'front' ? 'Selfie' : 'Your view';
+  if (state === 'idle') return `1 of 2 · ${subject}`;
+  if (state === 'awaiting-second') return `2 of 2 · ${subject}`;
+  return null;
+}
+
 export type PipGuide =
   | { kind: 'next'; next: 'selfie' | 'view'; text: 'Selfie next' | 'Your view next' }
   | { kind: 'photo' };
