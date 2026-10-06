@@ -93,25 +93,28 @@ export async function getFriends(
   return { data: (data ?? []) as FollowListUser[], error: null };
 }
 
+export type FollowData = {
+  is_following: boolean;
+  follower_count: number;
+  following_count: number;
+  /** They follow you (20261006110000_follow_back); false from a server without it. */
+  follows_you: boolean;
+};
+
 /** Fetch follow status + counts in a single RPC call. */
 export async function getFollowData(
   currentUserId: string,
   targetUserId: string
-): Promise<{
-  data: { is_following: boolean; follower_count: number; following_count: number } | null;
-  error: Error | null;
-}> {
+): Promise<{ data: FollowData | null; error: Error | null }> {
   const { data, error } = await supabase.rpc('get_follow_data', {
     p_current_user_id: currentUserId,
     p_target_user_id: targetUserId,
   });
 
   if (error) return { data: null, error: new Error(error.message) };
-  const row = (
-    data as { is_following: boolean; follower_count: number; following_count: number }[]
-  )?.[0];
+  const row = (data as Partial<FollowData>[] | null)?.[0];
   if (!row) return { data: null, error: new Error('get_follow_data returned no rows') };
-  return { data: row, error: null };
+  return { data: { ...(row as FollowData), follows_you: row.follows_you === true }, error: null };
 }
 
 /** A suggested user to follow. Only public profile fields (the RPC enforces this). */

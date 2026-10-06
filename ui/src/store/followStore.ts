@@ -18,6 +18,8 @@ type FollowChangeListener = () => void;
 interface FollowState {
   /** Whether the current user follows userId. Keyed by target userId. */
   followingByMe: Record<string, boolean>;
+  /** Whether userId follows the current user (for "Follow back"). Keyed by target userId. */
+  followsMe: Record<string, boolean>;
   /** Follower/following counts keyed by userId. */
   counts: Record<string, FollowCounts>;
 
@@ -41,6 +43,7 @@ const followChannels = new Map<string, { channel: RealtimeChannel; refCount: num
 
 export const useFollowStore = create<FollowState>((set, get) => ({
   followingByMe: {},
+  followsMe: {},
   counts: {},
 
   loadFollowData: async (currentUserId, targetUserId) => {
@@ -50,6 +53,7 @@ export const useFollowStore = create<FollowState>((set, get) => ({
 
     set((s) => ({
       followingByMe: { ...s.followingByMe, [targetUserId]: data.is_following },
+      followsMe: { ...s.followsMe, [targetUserId]: data.follows_you },
       counts: {
         ...s.counts,
         [targetUserId]: {
@@ -167,6 +171,6 @@ export const useFollowStore = create<FollowState>((set, get) => ({
       supabase.removeChannel(channel);
     }
     followChannels.clear();
-    set({ followingByMe: {}, counts: {} });
+    set({ followingByMe: {}, followsMe: {}, counts: {} });
   },
 }));

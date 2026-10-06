@@ -673,6 +673,7 @@ export type Database = {
           follower_count: number;
           following_count: number;
           is_following: boolean;
+          follows_you: boolean;
         }[];
       };
       get_suggested_follows: {
