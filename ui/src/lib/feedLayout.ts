@@ -37,6 +37,9 @@ export function doubleTapLikes({ liked, pending }: { liked: boolean; pending: bo
   return !liked && !pending;
 }
 
+/** The feed stays open this long after your post (the founder's 24-hour lock). */
+export const FEED_WINDOW_MS = 24 * 3600 * 1000;
+
 /** How full the countdown ring is: the share of the window still left, between 0 and 1. */
 export function ringProgress(msLeft: number, windowMs: number): number {
   if (windowMs <= 0) return 0;

@@ -8,13 +8,15 @@
  * on the phone); the card waits for this session's first read of open tags rather than guessing.
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useMinuteTick } from '@/hooks/useMinuteTick';
 import { useSecondTick } from '@/hooks/useSecondTick';
 import { clockText, feedCountdown, lockExplainer } from '@/lib/feedLock';
+import { FEED_WINDOW_MS, ringProgress } from '@/lib/feedLayout';
+import { CountdownRing, FadeInItem, PressScale } from '@/components/Motion';
 import { FONTS } from '@/constants/fonts';
 import {
   ALPHA,
@@ -76,36 +78,34 @@ function LockedCard({
 
   return (
     // Only the button takes touches, so the feed's scroll and swipe still start anywhere else.
-    <View
-      pointerEvents="box-none"
-      style={[
-        styles.card,
-        {
-          backgroundColor: dark ? colors.glassOnDark : colors.glassOnLight,
-          borderColor: withAlpha(colors.accent, ALPHA.a35),
-        },
-      ]}
-    >
-      <Text style={[styles.headline, { color: colors.text }]} accessibilityRole="header">
-        {card.headline}
-      </Text>
-      <Text style={[styles.body, { color: withAlpha(colors.text, ALPHA.a75) }]}>{card.body}</Text>
-      {onPress ? (
-        <Pressable
-          style={({ pressed }) => [
-            styles.button,
-            { backgroundColor: colors.accent },
-            pressed && { opacity: ALPHA.a85 },
-          ]}
-          onPress={onPress}
-          accessibilityRole="button"
-          accessibilityLabel={card.button}
-          accessibilityHint={toFriends ? 'Opens search' : 'Opens the camera'}
-        >
-          <Text style={[styles.buttonText, { color: colors.offBlack }]}>{card.button}</Text>
-        </Pressable>
-      ) : null}
-    </View>
+    <FadeInItem>
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.card,
+          {
+            backgroundColor: dark ? colors.glassOnDark : colors.glassOnLight,
+            borderColor: withAlpha(colors.accent, ALPHA.a35),
+          },
+        ]}
+      >
+        <Text style={[styles.headline, { color: colors.text }]} accessibilityRole="header">
+          {card.headline}
+        </Text>
+        <Text style={[styles.body, { color: withAlpha(colors.text, ALPHA.a75) }]}>{card.body}</Text>
+        {onPress ? (
+          <PressScale
+            style={[styles.button, { backgroundColor: colors.accent }]}
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={card.button}
+            accessibilityHint={toFriends ? 'Opens search' : 'Opens the camera'}
+          >
+            <Text style={[styles.buttonText, { color: colors.offBlack }]}>{card.button}</Text>
+          </PressScale>
+        ) : null}
+      </View>
+    </FadeInItem>
   );
 }
 
@@ -125,26 +125,39 @@ function OpenTimer({
   if (!timer) return null;
 
   return (
-    <View
-      pointerEvents="none"
-      style={styles.timerWrap}
-      accessible
-      accessibilityRole="text"
-      accessibilityLabel={timer.spoken}
-    >
-      <BlurView
-        intensity={BLUR_INTENSITY.i40}
-        tint={dark ? 'dark' : 'light'}
-        style={[styles.timer, { borderColor: colors.accent }]}
+    <FadeInItem>
+      <View
+        pointerEvents="none"
+        style={styles.timerWrap}
+        accessible
+        accessibilityRole="text"
+        accessibilityLabel={timer.spoken}
       >
-        <Text style={[styles.timerText, { color: colors.text }]} numberOfLines={2}>
-          {timer.label}
+        <BlurView
+          intensity={BLUR_INTENSITY.i40}
+          tint={dark ? 'dark' : 'light'}
+          style={[styles.timer, { borderColor: colors.accent }]}
+        >
+          {/* A ring that drains over the 24 hours: time left at a glance, never a warning. */}
           {timer.ms !== null ? (
-            <Text style={[styles.clock, { color: colors.accentText }]}> {clockText(timer.ms)}</Text>
+            <CountdownRing
+              progress={ringProgress(timer.ms, FEED_WINDOW_MS)}
+              color={colors.accent}
+              track={withAlpha(colors.text, ALPHA.a15)}
+            />
           ) : null}
-        </Text>
-      </BlurView>
-    </View>
+          <Text style={[styles.timerText, { color: colors.text }]} numberOfLines={2}>
+            {timer.label}
+            {timer.ms !== null ? (
+              <Text style={[styles.clock, { color: colors.accentText }]}>
+                {' '}
+                {clockText(timer.ms)}
+              </Text>
+            ) : null}
+          </Text>
+        </BlurView>
+      </View>
+    </FadeInItem>
   );
 }
 
@@ -190,6 +203,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
     paddingVertical: SPACE.s8,
     justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s8,
     overflow: 'hidden',
   },
   timerText: {

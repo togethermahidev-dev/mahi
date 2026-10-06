@@ -20,6 +20,8 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { answersATag } from '@/lib/reactivePosting';
 import FeedLockBanner from '@/components/FeedLockBanner';
+import CrewStrip from '@/components/CrewStrip';
+import { Skeleton } from '@/components/Motion';
 import { useSocialStore, useAuthStore, useChromeStore, useFeedStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
@@ -150,6 +152,8 @@ export default function FeedScreen({
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const { muted, accentText } = themeColors(dark);
+  const skeletonFill = withAlpha(text, ALPHA.a10);
+  const skeletonBlock = withAlpha(text, ALPHA.a30);
 
   const {
     posts,
@@ -324,6 +328,8 @@ export default function FeedScreen({
           getItemType={(item) => (item.locked ? 'locked' : 'post')}
           snapToInterval={cardHeight}
           snapToAlignment="start"
+          // One flick moves one post, however hard, as on TikTok and Reels.
+          disableIntervalMomentum
           decelerationRate="fast"
           onEndReached={hasMore ? loadMore : undefined}
           onEndReachedThreshold={0.4}
@@ -338,8 +344,20 @@ export default function FeedScreen({
           ListEmptyComponent={
             // Each starts below the header, which floats over the list and grows with the notch.
             firstLoad ? (
-              <View style={[styles.empty, { paddingTop: headerH + SPACE.s24 + topSpace }]}>
-                <ActivityIndicator color={muted} accessibilityLabel="Loading" />
+              // A post-shaped placeholder that breathes until the first page lands.
+              <View
+                style={[styles.skeleton, { height: cardHeight }]}
+                accessible
+                accessibilityLabel="Loading"
+              >
+                <Skeleton style={[StyleSheet.absoluteFill, { backgroundColor: skeletonFill }]} />
+                <View style={styles.skeletonFoot}>
+                  <View style={styles.skeletonWho}>
+                    <Skeleton style={[styles.skeletonAvatar, { backgroundColor: skeletonBlock }]} />
+                    <Skeleton style={[styles.skeletonName, { backgroundColor: skeletonBlock }]} />
+                  </View>
+                  <Skeleton style={[styles.skeletonLine, { backgroundColor: skeletonBlock }]} />
+                </View>
               </View>
             ) : error ? (
               <View style={[styles.empty, { paddingTop: headerH + SPACE.s24 + topSpace }]}>
@@ -439,6 +457,15 @@ export default function FeedScreen({
             onPost={() => onGoToCamera?.()}
             onFindFriends={onFindFriends}
           />
+          {/* Your crew: the friends you're tied to and how they're doing (open feed only; a
+              locked feed's card already says who is waiting). */}
+          {!locked ? (
+            <CrewStrip
+              posts={posts}
+              serverOffsetMs={serverOffsetMs}
+              onPressPerson={handleAvatarPress}
+            />
+          ) : null}
         </Animated.View>
       ) : null}
 
@@ -515,6 +542,34 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: SPACE.s16,
+  },
+  skeleton: {
+    justifyContent: 'flex-end',
+  },
+  skeletonFoot: {
+    padding: SPACE.s16,
+    paddingBottom: SPACE.s80,
+    gap: SPACE.s12,
+  },
+  skeletonWho: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s10,
+  },
+  skeletonAvatar: {
+    width: SIZE.z40,
+    height: SIZE.z40,
+    borderRadius: RADIUS.r20,
+  },
+  skeletonName: {
+    width: SIZE.z160,
+    height: SIZE.z10 + SIZE.z4,
+    borderRadius: RADIUS.r8,
+  },
+  skeletonLine: {
+    width: '70%',
+    height: SIZE.z10,
+    borderRadius: RADIUS.r8,
   },
   empty: {
     alignItems: 'center',
