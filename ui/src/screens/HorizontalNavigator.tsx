@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
+  type AccessibilityActionEvent,
   Animated as RNAnimated,
   Platform,
   StyleSheet,
@@ -36,6 +38,7 @@ import { useAuthStore, useChromeStore, useNotificationsStore, useProfilePostsSto
 import { useToastStore } from '@/store/toastStore';
 import { usePageSize } from '@/hooks/useChrome';
 import { SWIPE_PAGES, pageTab, tabPage } from '@/lib/nativeTabs';
+import { pageActions, pageForAction, pageTitle } from '@/lib/pageActions';
 import { railShows } from '@/lib/railSelector';
 import { horizontalRelease, horizontalSwipe, rubberBand, type Rect } from '@/lib/swipeRules';
 import { COLORS, LAYER, LAYOUT, SIZE, SPRING } from '@/constants/tokens';
@@ -333,6 +336,18 @@ export default function HorizontalNavigator({
   };
   if (tabBar) tabBar.selectRef.current = selectTab;
 
+  // Without the phone's tab bar, pages are left by a sideways swipe, which VoiceOver and Switch
+  // Control can't make: each page offers "Go to Camera / Feed / Profile / Messages" as actions.
+  // Nothing changes on screen. With the tab bar, its tabs already do this.
+  const onPageAction = (e: AccessibilityActionEvent) => {
+    const next = pageForAction(e.nativeEvent.actionName);
+    if (!next) return;
+    selectTab(next);
+    AccessibilityInfo.announceForAccessibility(pageTitle(next));
+  };
+  const offerPageActions = !tabBar;
+  const pageA11y = (on: RailTab) => (offerPageActions ? pageActions(on) : undefined);
+
   // Android blurs a BlurTargetView's content; iOS blurs whatever is behind natively.
   const Strip = Platform.OS === 'android' ? BlurTargetView : View;
   const pageStyle = { width, height };
@@ -356,7 +371,11 @@ export default function HorizontalNavigator({
         <Strip ref={blurTargetRef} style={styles.root}>
           <Animated.View style={[styles.strip, { width: width * PAGE_COUNT }, stripStyle]}>
             {/* Camera — the entry page, always dark. */}
-            <View style={[styles.page, pageStyle, { backgroundColor: COLORS.ink }]}>
+            <View
+              style={[styles.page, pageStyle, { backgroundColor: COLORS.ink }]}
+              accessibilityActions={pageA11y('camera')}
+              onAccessibilityAction={onPageAction}
+            >
               <CameraScreen
                 onComposingChange={handleComposingChange}
                 onSeeFeed={() => navigate(FEED)}
@@ -373,6 +392,8 @@ export default function HorizontalNavigator({
                 pageStyle,
                 { backgroundColor: dark ? COLORS.bgDark : COLORS.white },
               ]}
+              accessibilityActions={pageA11y('feed')}
+              onAccessibilityAction={onPageAction}
             >
               <FeedScreen
                 onGoToCamera={() => navigate(CAMERA)}
@@ -404,7 +425,11 @@ export default function HorizontalNavigator({
             </View>
 
             {/* Profile — always mounted; `isActive` re-syncs its posts when it comes into view. */}
-            <View style={[styles.page, pageStyle]}>
+            <View
+              style={[styles.page, pageStyle]}
+              accessibilityActions={pageA11y('profile')}
+              onAccessibilityAction={onPageAction}
+            >
               <ProfileScreen
                 isActive={index === PROFILE}
                 listGesture={profileList}
@@ -414,7 +439,11 @@ export default function HorizontalNavigator({
             </View>
 
             {/* Messages — the last page; its back button goes to the page on its left. */}
-            <View style={[styles.page, pageStyle]}>
+            <View
+              style={[styles.page, pageStyle]}
+              accessibilityActions={pageA11y('messages')}
+              onAccessibilityAction={onPageAction}
+            >
               <MessagesScreen onBack={() => navigate(PROFILE)} listGesture={messagesList} />
             </View>
           </Animated.View>
