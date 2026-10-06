@@ -1,20 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Alert,
-  View,
-  Text,
-  Image,
-  Modal,
-  StyleSheet,
-  Pressable,
-  ActivityIndicator,
-} from 'react-native';
+import { Alert, View, Text, Image, Modal, StyleSheet, Pressable } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import { getFollowList, getFriends, type FollowListUser } from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
+import ListState from '@/components/ListState';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -53,9 +45,11 @@ export default function FollowListModal({
 
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const { muted } = themeColors(dark);
-  const { border } = themeColors(dark);
-  const avatarBg = dark ? COLORS.surfaceDark : COLORS.offWhite;
+  const { muted, border, accentText } = themeColors(dark);
+  const surface = dark ? COLORS.surfaceDark : COLORS.white;
+  const iconSurface = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a08)
+    : withAlpha(COLORS.offBlack, ALPHA.a05);
 
   const [users, setUsers] = useState<FollowListUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,11 +117,13 @@ export default function FollowListModal({
   };
 
   const title = { followers: 'Followers', following: 'Following', friends: 'Friends' }[type];
-  const emptyMessage = {
+  const emptyTitle = {
     followers: 'No followers yet',
     following: 'Not following anyone yet',
-    friends: 'No friends yet. Follow each other and you can tag each other.',
+    friends: 'No friends yet',
   }[type];
+  const emptyLine =
+    type === 'friends' ? 'Follow each other and you can tag each other.' : undefined;
 
   // Show unfollow button only on the current user's own "following" list
   const showUnfollow = type === 'following' && userId === currentUserId;
@@ -145,13 +141,12 @@ export default function FollowListModal({
       <GestureHandlerRootView style={styles.root}>
         <SafeAreaProvider>
           <View style={[styles.root, { backgroundColor: bg }]}>
-            {/* Header */}
-            <View style={[styles.header, { borderBottomColor: border }]}>
+            <View style={styles.header}>
               <Pressable
                 style={({ pressed }) => [
                   styles.backBtn,
-                  { borderColor: border },
-                  pressed && { opacity: ALPHA.a20 },
+                  { backgroundColor: iconSurface, borderColor: border },
+                  pressed && styles.pressed,
                 ]}
                 onPress={onClose}
                 accessibilityRole="button"
@@ -160,46 +155,34 @@ export default function FollowListModal({
               >
                 <Text style={[styles.backArrow, { color: text }]}>{'\u2039'}</Text>
               </Pressable>
-              <Text style={[styles.headerTitle, { color: text }]} numberOfLines={1}>
-                {title}
-              </Text>
-              {/* Spacer to keep title centred */}
-              <View style={styles.backBtn} />
+              <View style={styles.headerCopy}>
+                <Text style={[styles.headerEyebrow, { color: accentText }]}>Mahi</Text>
+                <Text
+                  style={[styles.headerTitle, { color: text }]}
+                  numberOfLines={1}
+                  accessibilityRole="header"
+                >
+                  {title}
+                </Text>
+              </View>
+              <View style={styles.headerSpacer} />
             </View>
 
-            {/* Content */}
             {loading ? (
-              <View style={styles.loadingWrap}>
-                <ActivityIndicator color={muted} accessibilityLabel="Loading" />
-              </View>
+              <ListState kind="loading" dark={dark} />
             ) : failed && users.length === 0 ? (
-              <View style={styles.emptyWrap}>
-                <Text style={[styles.failedTitle, { color: text }]}>Couldn’t load this list</Text>
-                <Text style={[styles.emptyText, { color: muted }]}>
-                  Check your connection and try again.
-                </Text>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.unfollowBtn,
-                    styles.retryBtn,
-                    { borderColor: text },
-                    pressed && { opacity: ALPHA.a75 },
-                  ]}
-                  onPress={retry}
-                  accessibilityRole="button"
-                >
-                  <Text style={[styles.unfollowBtnText, { color: text }]}>Try again</Text>
-                </Pressable>
-              </View>
+              <ListState
+                kind="error"
+                dark={dark}
+                title="Couldn’t load this list"
+                onAction={retry}
+              />
             ) : (
               <FlashList
                 data={users}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
-                ItemSeparatorComponent={() => (
-                  <View style={[styles.separator, { backgroundColor: border }]} />
-                )}
                 renderItem={({ item }) => {
                   const displayName =
                     item.display_name ?? item.first_name ?? item.username ?? '\u2014';
@@ -207,7 +190,11 @@ export default function FollowListModal({
 
                   return (
                     <Pressable
-                      style={({ pressed }) => [styles.row, pressed && { opacity: ALPHA.a70 }]}
+                      style={({ pressed }) => [
+                        styles.row,
+                        { backgroundColor: surface, borderColor: border },
+                        pressed && styles.pressed,
+                      ]}
                       onPress={() => {
                         if (item.id === currentUserId) return;
                         setProfileUserId(item.id);
@@ -222,7 +209,7 @@ export default function FollowListModal({
                           style={[
                             styles.avatar,
                             styles.avatarFallback,
-                            { backgroundColor: avatarBg },
+                            { backgroundColor: iconSurface },
                           ]}
                         >
                           <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
@@ -238,7 +225,7 @@ export default function FollowListModal({
                         <Pressable
                           style={({ pressed }) => [
                             styles.unfollowBtn,
-                            { borderColor: text },
+                            { backgroundColor: iconSurface, borderColor: border },
                             pressed && { opacity: ALPHA.a75 },
                           ]}
                           onPress={() =>
@@ -260,9 +247,7 @@ export default function FollowListModal({
                 }}
                 ListEmptyComponent={
                   !loading ? (
-                    <View style={styles.emptyWrap}>
-                      <Text style={[styles.emptyText, { color: muted }]}>{emptyMessage}</Text>
-                    </View>
+                    <ListState kind="empty" dark={dark} title={emptyTitle} line={emptyLine} />
                   ) : null
                 }
               />
@@ -293,14 +278,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     // A page sheet already starts below the status bar.
     paddingTop: SPACE.s16,
-    paddingBottom: SPACE.s16,
-    paddingHorizontal: SPACE.s16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingBottom: SPACE.s20,
+    paddingHorizontal: SPACE.s20,
+    gap: SPACE.s12,
   },
   backBtn: {
-    width: SIZE.z36,
-    height: SIZE.z36,
-    borderRadius: RADIUS.r18,
+    width: SIZE.z44,
+    height: SIZE.z44,
+    borderRadius: RADIUS.r22,
     borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -310,26 +295,38 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.regular,
     lineHeight: LINE_HEIGHT.l22,
   },
-  headerTitle: {
+  headerCopy: {
     flex: 1,
-    textAlign: 'center',
-    fontSize: FONT_SIZE.f16,
+  },
+  headerEyebrow: {
+    fontSize: FONT_SIZE.f12,
+    fontFamily: FONTS.semiBold,
+    marginBottom: SPACE.s2,
+  },
+  headerTitle: {
+    fontSize: FONT_SIZE.f24,
+    lineHeight: LINE_HEIGHT.l24,
     fontFamily: FONTS.bold,
   },
-  loadingWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerSpacer: {
+    width: SIZE.z44,
+    height: SIZE.z44,
   },
   listContent: {
-    paddingHorizontal: SPACE.s20,
     paddingVertical: SPACE.s12,
+    flexGrow: 1,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: SPACE.s12,
     gap: SPACE.s12,
+    minHeight: SIZE.z72,
+    marginHorizontal: SPACE.s20,
+    marginBottom: SPACE.s8,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s12,
+    borderWidth: BORDER_WIDTH.w1,
+    borderRadius: RADIUS.r20,
   },
   avatar: {
     width: SIZE.z44,
@@ -367,29 +364,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.bold,
   },
-  separator: {
-    height: SIZE.z1,
-  },
-  emptyWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: SPACE.s60,
-  },
-  emptyText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
-    textAlign: 'center',
-    paddingHorizontal: SPACE.s32,
-  },
-  failedTitle: {
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
-    marginBottom: SPACE.s8,
-  },
-  retryBtn: {
-    minHeight: SIZE.z44,
-    justifyContent: 'center',
-    marginTop: SPACE.s16,
+  pressed: {
+    opacity: ALPHA.a70,
   },
 });

@@ -262,7 +262,6 @@ export default function ProfileMediaMap({
 }: ProfileMediaMapProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
-  const text = dark ? COLORS.offWhite : COLORS.offBlack;
   // The last row scrolls clear of the phone's tab bar.
   const tabRoom = useTabBarRoom();
   const { muted } = themeColors(dark);
@@ -293,7 +292,12 @@ export default function ProfileMediaMap({
   const empty = isLoading ? (
     <ListState kind="loading" dark={dark} />
   ) : failed ? (
-    <ListState kind="error" dark={dark} title="Couldn’t load posts" onAction={() => void refresh()} />
+    <ListState
+      kind="error"
+      dark={dark}
+      title="Couldn’t load posts"
+      onAction={() => void refresh()}
+    />
   ) : (
     <ListState
       kind="empty"

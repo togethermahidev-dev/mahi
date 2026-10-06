@@ -7,6 +7,7 @@ import { refreshTint } from '@/lib/themeColors';
 import { useMessages } from '@/hooks/useMessages';
 import { useAuthStore } from '@/store';
 import ConversationScreen from '@/screens/ConversationScreen';
+import ListState from '@/components/ListState';
 import type { ConversationPreview } from '@/api';
 import { relativeTime } from '@/lib/relativeTime';
 import { FONTS } from '@/constants/fonts';
@@ -33,6 +34,8 @@ function RequestRow({
   text,
   muted,
   border,
+  surface,
+  avatarBg,
 }: {
   item: ConversationPreview;
   showAccept: boolean;
@@ -42,6 +45,8 @@ function RequestRow({
   text: string;
   muted: string;
   border: string;
+  surface: string;
+  avatarBg: string;
 }) {
   const { colors } = useAppTheme();
   const name = item.other_profile.display_name ?? item.other_profile.username;
@@ -59,7 +64,7 @@ function RequestRow({
   // The row and the Accept / Deny buttons are SIBLINGS (not nested pressables), so a tap on a
   // button never also opens the conversation. Same pattern as MessagesScreen's ConvoRow.
   return (
-    <View style={[styles.convoRow, { borderBottomColor: border }]}>
+    <View style={[styles.convoRow, { backgroundColor: surface, borderColor: border }]}>
       <Pressable
         style={({ pressed }) => [styles.convoBody, pressed && styles.pressed]}
         onPress={onPress}
@@ -70,7 +75,7 @@ function RequestRow({
           <Image source={{ uri: item.other_profile.avatar_url }} style={styles.convoAvatar} />
         ) : (
           <View
-            style={[styles.convoAvatar, styles.convoAvatarFallback, { backgroundColor: muted }]}
+            style={[styles.convoAvatar, styles.convoAvatarFallback, { backgroundColor: avatarBg }]}
           >
             <Text style={[styles.convoInitial, { color: text }]}>{initials}</Text>
           </View>
@@ -86,24 +91,26 @@ function RequestRow({
           )}
         </View>
 
-        {showAccept ? null : <View style={styles.convoRight}>{time}</View>}
+        <View style={styles.convoRight}>{time}</View>
       </Pressable>
 
       {showAccept ? (
-        <View style={styles.convoRight}>
-          {time}
+        <View style={[styles.actionArea, { borderTopColor: border }]}>
+          <Text style={[styles.actionHint, { color: muted }]}>
+            Allow this person to message you?
+          </Text>
           <View style={styles.actionBtns}>
             <Pressable
               style={({ pressed }) => [
                 styles.actionBtn,
-                { borderColor: text },
+                styles.acceptBtn,
                 pressed && styles.pressed,
               ]}
               onPress={onAccept}
               accessibilityRole="button"
               accessibilityLabel={`Accept request from ${name}`}
             >
-              <Text style={[styles.actionBtnText, { color: text }]}>Accept</Text>
+              <Text style={styles.acceptBtnText}>Accept</Text>
             </Pressable>
             <Pressable
               style={({ pressed }) => [
@@ -134,8 +141,14 @@ export default function MessageRequestsScreen({
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const { muted } = themeColors(dark);
-  const { border } = themeColors(dark);
+  const { muted, border, accentText } = themeColors(dark);
+  const surface = dark ? COLORS.surfaceDark : COLORS.white;
+  const iconSurface = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a08)
+    : withAlpha(COLORS.offBlack, ALPHA.a05);
+  const avatarBg = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a10)
+    : withAlpha(COLORS.offBlack, ALPHA.a08);
 
   const { requests, isLoading, refresh, accept, deny } = useMessages();
   const userId = useAuthStore((s) => s.user?.id);
@@ -145,11 +158,11 @@ export default function MessageRequestsScreen({
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <View style={[styles.header, { borderBottomColor: border }]}>
+      <View style={styles.header}>
         <Pressable
           style={({ pressed }) => [
             styles.backBtn,
-            { borderColor: muted },
+            { backgroundColor: iconSurface, borderColor: border },
             pressed && styles.pressed,
           ]}
           onPress={onBack}
@@ -159,7 +172,10 @@ export default function MessageRequestsScreen({
         >
           <Text style={[styles.backArrow, { color: text }]}>‹</Text>
         </Pressable>
-        <Text style={[styles.headerTitle, { color: text }]}>Message requests</Text>
+        <View style={styles.headerCopy}>
+          <Text style={[styles.headerEyebrow, { color: accentText }]}>Inbox</Text>
+          <Text style={[styles.headerTitle, { color: text }]}>Message requests</Text>
+        </View>
         <View style={styles.backSpacer} />
       </View>
 
@@ -167,7 +183,7 @@ export default function MessageRequestsScreen({
         data={requests}
         keyExtractor={(item) => item.id}
         // The sheet runs to the bottom edge; keep the last row clear of the home indicator.
-        contentContainerStyle={{ paddingBottom: insets.bottom }}
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + SPACE.s12 }]}
         renderItem={({ item }) => {
           // Only receivers (not the original requester) see accept/deny controls.
           const isReceiver = !item.is_requester;
@@ -190,6 +206,8 @@ export default function MessageRequestsScreen({
               text={text}
               muted={muted}
               border={border}
+              surface={surface}
+              avatarBg={avatarBg}
             />
           );
         }}
@@ -198,10 +216,7 @@ export default function MessageRequestsScreen({
         }
         ListEmptyComponent={
           !isLoading ? (
-            <View style={styles.placeholder}>
-              <Text style={[styles.placeholderTitle, { color: text }]}>No requests</Text>
-              <Text style={[styles.placeholderSub, { color: muted }]}>You're all caught up</Text>
-            </View>
+            <ListState kind="empty" dark={dark} title="No requests" line="You’re all caught up." />
           ) : null
         }
       />
@@ -226,47 +241,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     // Shown in a page sheet, which already starts below the status bar.
     paddingTop: SPACE.s16,
-    paddingHorizontal: SPACE.s24,
-    paddingBottom: SPACE.s16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: SPACE.s20,
+    paddingBottom: SPACE.s20,
+    gap: SPACE.s12,
   },
   backBtn: {
-    width: SIZE.z36,
-    height: SIZE.z36,
-    borderRadius: RADIUS.r18,
+    width: SIZE.z44,
+    height: SIZE.z44,
+    borderRadius: RADIUS.r22,
     borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: SPACE.s12,
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.regular,
     lineHeight: LINE_HEIGHT.l22,
   },
-  headerTitle: {
+  headerCopy: {
     flex: 1,
+  },
+  headerEyebrow: {
+    fontSize: FONT_SIZE.f12,
+    fontFamily: FONTS.semiBold,
+    marginBottom: SPACE.s2,
+  },
+  headerTitle: {
     fontSize: FONT_SIZE.f24,
     fontFamily: FONTS.bold,
-    textAlign: 'center',
+    lineHeight: LINE_HEIGHT.l24,
   },
   backSpacer: {
-    width: SIZE.z36,
-    marginLeft: SPACE.s12,
+    width: SIZE.z44,
+    height: SIZE.z44,
+  },
+  listContent: {
+    paddingHorizontal: SPACE.s20,
   },
   convoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACE.s24,
-    paddingVertical: SPACE.s14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: SPACE.s12,
+    borderWidth: BORDER_WIDTH.w1,
+    borderRadius: RADIUS.r20,
+    marginBottom: SPACE.s8,
+    overflow: 'hidden',
   },
   convoBody: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.s12,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s14,
   },
   pressed: {
     opacity: ALPHA.a70,
@@ -299,42 +322,50 @@ const styles = StyleSheet.create({
   },
   convoRight: {
     alignItems: 'flex-end',
-    gap: SPACE.s6,
   },
   convoTime: {
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.regular,
   },
+  actionArea: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: SPACE.s16,
+    paddingTop: SPACE.s12,
+    paddingBottom: SPACE.s14,
+  },
+  actionHint: {
+    fontSize: FONT_SIZE.f12,
+    fontFamily: FONTS.regular,
+    marginBottom: SPACE.s10,
+  },
   actionBtns: {
-    gap: SPACE.s5,
+    flexDirection: 'row',
+    gap: SPACE.s8,
   },
   actionBtn: {
+    flex: 1,
+    minHeight: SIZE.z44,
     borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r50,
-    paddingHorizontal: SPACE.s12,
-    paddingVertical: SPACE.s4,
+    paddingHorizontal: SPACE.s16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  acceptBtn: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
   },
   actionBtnText: {
-    fontSize: FONT_SIZE.f12,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
+  },
+  acceptBtnText: {
+    color: COLORS.offBlack,
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.bold,
   },
   pendingLabel: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-  },
-  placeholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: SPACE.s60,
-    gap: SPACE.s8,
-  },
-  placeholderTitle: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.bold,
-  },
-  placeholderSub: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
   },
 });

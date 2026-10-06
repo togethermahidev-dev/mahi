@@ -64,9 +64,10 @@ function Sheet({
 }) {
   const insets = useSafeAreaInsets();
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const { muted, border } = themeColors(dark);
+  const { muted, border, accentText } = themeColors(dark);
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const surface = dark ? COLORS.surfaceDark : COLORS.paper;
+  const iconSurface = dark ? COLORS.surfaceDark2 : COLORS.surfaceLight;
   const danger = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
 
   const [blockedListOpen, setBlockedListOpen] = useState(false);
@@ -131,21 +132,24 @@ function Sheet({
   // Every row here does something: a row with nothing behind it stays out until it's built.
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <View
-        style={[styles.header, { borderBottomColor: border, paddingTop: insets.top + SPACE.s16 }]}
-      >
-        <Text style={[styles.title, { color: text }]} accessibilityRole="header">
-          Settings
-        </Text>
+      <View style={[styles.header, { paddingTop: insets.top + SPACE.s16 }]}>
+        <View>
+          <Text style={[styles.eyebrow, { color: accentText }]}>Mahi</Text>
+          <Text style={[styles.title, { color: text }]} accessibilityRole="header">
+            Settings
+          </Text>
+        </View>
         <Pressable
           onPress={onClose}
           accessibilityRole="button"
           accessibilityLabel="Close settings"
-          style={({ pressed }) => [styles.closeBtn, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.closeBtn,
+            { backgroundColor: iconSurface, borderColor: border },
+            pressed && styles.pressed,
+          ]}
         >
-          <View style={[styles.closeRing, { borderColor: muted }]}>
-            <Text style={[styles.closeText, { color: muted }]}>×</Text>
-          </View>
+          <Text style={[styles.closeText, { color: text }]}>×</Text>
         </Pressable>
       </View>
 
@@ -249,26 +253,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingLeft: SPACE.s24,
-    paddingRight: SPACE.s16,
-    paddingBottom: SPACE.s12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: SPACE.s20,
+    paddingBottom: SPACE.s20,
+  },
+  eyebrow: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZE.f12,
+    marginBottom: SPACE.s2,
   },
   title: {
     fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f17,
+    fontSize: FONT_SIZE.f24,
   },
-  // A 44-point tap area around the 36-point ring.
   closeBtn: {
     width: SIZE.z44,
     height: SIZE.z44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeRing: {
-    width: SIZE.z36,
-    height: SIZE.z36,
-    borderRadius: RADIUS.r18,
+    borderRadius: RADIUS.r22,
     borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',

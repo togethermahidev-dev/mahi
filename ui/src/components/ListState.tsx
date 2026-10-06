@@ -69,7 +69,7 @@ export default function ListState({
   return (
     <View style={styles.wrap}>
       <View style={[styles.card, { backgroundColor: surface, borderColor: border }]}>
-        <View style={[styles.marker, { backgroundColor: softSurface }]}> 
+        <View style={[styles.marker, { backgroundColor: softSurface }]}>
           {icon ?? <View style={[styles.markerDot, { backgroundColor: accentText }]} />}
         </View>
         {title ? (
