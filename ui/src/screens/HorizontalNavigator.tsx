@@ -36,10 +36,10 @@ import { usePushRouting } from '@/hooks/usePushRouting';
 import PostViewer from '@/components/PostViewer';
 import { useAuthStore, useChromeStore, useNotificationsStore, useProfilePostsStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
-import { usePageSize } from '@/hooks/useChrome';
+import { TabBarRoomContext, usePageSize } from '@/hooks/useChrome';
 import { SWIPE_PAGES, pageTab, tabPage } from '@/lib/nativeTabs';
 import { pageActions, pageForAction, pageTitle } from '@/lib/pageActions';
-import { railShows } from '@/lib/railSelector';
+import { dockShows, railShows } from '@/lib/railSelector';
 import { horizontalRelease, horizontalSwipe, rubberBand, type Rect } from '@/lib/swipeRules';
 import { COLORS, LAYER, LAYOUT, SIZE, SPRING } from '@/constants/tokens';
 
@@ -75,18 +75,17 @@ export default function HorizontalNavigator({
 }: { tabBar?: TabBarLink } = {}): React.JSX.Element {
   const showRail = useFeatureFlag('nav-glass-rail') && !tabBar;
   const railMorph = useFeatureFlag('nav-rail-morph');
-  const { dark } = useAppTheme();
+  const { dark, navRail } = useAppTheme();
   const insets = useSafeAreaInsets();
   // Each page is one page wide: the window, or with the tab bar the space above it.
   const { width, height } = usePageSize();
   const window = useWindowDimensions();
 
-  // Toasts sit above the phone's tab bar: the room it takes is what the pages leave below them.
-  const tabBarRoom = tabBar ? Math.max(0, window.height - height) : 0;
-  useEffect(() => {
-    useToastStore.getState().setRoom({ tabBar: tabBarRoom });
-    return () => useToastStore.getState().setRoom({ tabBar: 0 });
-  }, [tabBarRoom]);
+  // With the glass rail on, Feed, Profile and Messages have the same glass bar along the bottom
+  // (the dock) for a tap to every page. Like Apple's floating bar, their last post, row and
+  // caption keep this room clear of it; the room stays the same while the dock hides, so nothing
+  // jumps. null = no dock (the rail is off, or the phone's own tab bar is there).
+  const dockRoom = showRail ? insets.bottom + navRail.edgeGap + navRail.width : null;
   // While the post preview is up (the bar hides), toasts go to the top, clear of its Post button.
   const onComposingChange = tabBar?.onComposingChange;
   const handleComposingChange = useCallback(
@@ -131,6 +130,19 @@ export default function HorizontalNavigator({
   // A post's photo being pinched holds the pages still.
   const zooming = useChromeStore((s) => s.zooming);
   const railShown = railShows({ on: showRail, tab, overlay, covered });
+  const dockShown = dockShows({ on: showRail, tab, overlay, covered });
+
+  // Toasts sit above the phone's tab bar (the room it takes is what the pages leave below them),
+  // or above the dock while it shows.
+  const tabBarRoom = tabBar
+    ? Math.max(0, window.height - height)
+    : dockShown && dockRoom !== null
+      ? dockRoom
+      : 0;
+  useEffect(() => {
+    useToastStore.getState().setRoom({ tabBar: tabBarRoom });
+    return () => useToastStore.getState().setRoom({ tabBar: 0 });
+  }, [tabBarRoom]);
   const blurTargetRef = useRef<View | null>(null);
 
   // The Feed header slides away as the list scrolls down.
@@ -387,66 +399,72 @@ export default function HorizontalNavigator({
             </View>
 
             {/* Feed — its header slides away as the list scrolls down. */}
-            <View
-              style={[
-                styles.page,
-                pageStyle,
-                { backgroundColor: dark ? COLORS.bgDark : COLORS.white },
-              ]}
-              accessibilityActions={pageA11y('feed')}
-              onAccessibilityAction={onPageAction}
-            >
-              <FeedScreen
-                onGoToCamera={() => navigate(CAMERA)}
-                onFindFriends={() => setSearchVisible(true)}
-                headerAnim={headerAnim}
-                onOverlayChange={setFeedOverlay}
-                listGesture={feedList}
-                isActive={index === FEED}
-              />
-              <RNAnimated.View
-                pointerEvents="box-none"
+            <DockRoom room={dockRoom}>
+              <View
                 style={[
-                  styles.header,
-                  {
-                    transform: [
-                      {
-                        translateY: headerAnim.interpolate({
-                          inputRange: [0, headerH],
-                          outputRange: [0, -headerH],
-                          extrapolate: 'clamp',
-                        }),
-                      },
-                    ],
-                  },
+                  styles.page,
+                  pageStyle,
+                  { backgroundColor: dark ? COLORS.bgDark : COLORS.white },
                 ]}
+                accessibilityActions={pageA11y('feed')}
+                onAccessibilityAction={onPageAction}
               >
-                {header(false)}
-              </RNAnimated.View>
-            </View>
+                <FeedScreen
+                  onGoToCamera={() => navigate(CAMERA)}
+                  onFindFriends={() => setSearchVisible(true)}
+                  headerAnim={headerAnim}
+                  onOverlayChange={setFeedOverlay}
+                  listGesture={feedList}
+                  isActive={index === FEED}
+                />
+                <RNAnimated.View
+                  pointerEvents="box-none"
+                  style={[
+                    styles.header,
+                    {
+                      transform: [
+                        {
+                          translateY: headerAnim.interpolate({
+                            inputRange: [0, headerH],
+                            outputRange: [0, -headerH],
+                            extrapolate: 'clamp',
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  {header(false)}
+                </RNAnimated.View>
+              </View>
+            </DockRoom>
 
             {/* Profile — always mounted; `isActive` re-syncs its posts when it comes into view. */}
-            <View
-              style={[styles.page, pageStyle]}
-              accessibilityActions={pageA11y('profile')}
-              onAccessibilityAction={onPageAction}
-            >
-              <ProfileScreen
-                isActive={index === PROFILE}
-                listGesture={profileList}
-                onSearch={() => setSearchVisible(true)}
-                onOpenCamera={() => navigate(CAMERA)}
-              />
-            </View>
+            <DockRoom room={dockRoom}>
+              <View
+                style={[styles.page, pageStyle]}
+                accessibilityActions={pageA11y('profile')}
+                onAccessibilityAction={onPageAction}
+              >
+                <ProfileScreen
+                  isActive={index === PROFILE}
+                  listGesture={profileList}
+                  onSearch={() => setSearchVisible(true)}
+                  onOpenCamera={() => navigate(CAMERA)}
+                />
+              </View>
+            </DockRoom>
 
             {/* Messages — the last page; its back button goes to the page on its left. */}
-            <View
-              style={[styles.page, pageStyle]}
-              accessibilityActions={pageA11y('messages')}
-              onAccessibilityAction={onPageAction}
-            >
-              <MessagesScreen onBack={() => navigate(PROFILE)} listGesture={messagesList} />
-            </View>
+            <DockRoom room={dockRoom}>
+              <View
+                style={[styles.page, pageStyle]}
+                accessibilityActions={pageA11y('messages')}
+                onAccessibilityAction={onPageAction}
+              >
+                <MessagesScreen onBack={() => navigate(PROFILE)} listGesture={messagesList} />
+              </View>
+            </DockRoom>
           </Animated.View>
         </Strip>
 
@@ -466,6 +484,7 @@ export default function HorizontalNavigator({
             }
           />
         ) : null}
+        {dockShown ? <NavRail dock active={tab} onSelect={selectTab} onDark={dark} /> : null}
 
         <NotificationsScreen
           visible={notifOpen}
@@ -522,6 +541,12 @@ export default function HorizontalNavigator({
       </View>
     </GestureDetector>
   );
+}
+
+/** Feed, Profile and Messages keep the dock's room at the bottom (see `dockRoom`). */
+function DockRoom({ room, children }: { room: number | null; children: React.ReactNode }) {
+  if (room === null) return <>{children}</>;
+  return <TabBarRoomContext.Provider value={room}>{children}</TabBarRoomContext.Provider>;
 }
 
 const styles = StyleSheet.create({

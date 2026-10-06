@@ -147,8 +147,8 @@ restore and RevenueCat's paywall. No screen uses it yet. Needs the RevenueCat na
 `EXPO_PUBLIC_REVENUECAT_IOS_KEY` in the lane. On a build without RevenueCat, or with no key, it reads as off
 and RevenueCat is never started.)
 
-**Navigation:** `nav-glass-rail` (floating glass rail on the left of the Camera only, with Camera, Feed,
-Messages and Profile; replaces the header's Profile/Messages pills. Off = the pills. Builds without the
+**Navigation:** `nav-glass-rail` (floating glass rail on the left of the Camera, with Camera, Feed,
+Profile and Messages, and the same bar along the bottom of Feed, Profile and Messages; replaces the header's Profile/Messages pills. Off = the pills. Builds without the
 phone's tab bar only: on build 12+ the tab bar takes its place, no switch.)
 `nav-rail-morph` (the rail reads as one floating pill with an outline and shadow; one selector slides
 and stretches between icons; press and hold or drag along the rail to switch screens live. A touch that

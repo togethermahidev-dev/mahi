@@ -1,4 +1,11 @@
-import { followSpan, morphPlan, nearestSlot, railShows, slotSpan } from '../railSelector';
+import {
+  dockShows,
+  followSpan,
+  morphPlan,
+  nearestSlot,
+  railShows,
+  slotSpan,
+} from '../railSelector';
 
 // The rail as drawn today: 4px padding, 44px buttons, 6px between them (3px above and below each).
 const rail = { padding: 4, button: 44, gap: 6, count: 4 };
@@ -79,6 +86,26 @@ describe('rail selector', () => {
     });
     it('is hidden everywhere when the switch is off', () => {
       expect(railShows({ ...onCamera, on: false })).toBe(false);
+    });
+  });
+
+  describe('dockShows (the glass bar along the bottom of Feed, Profile and Messages)', () => {
+    const onFeed = { on: true, tab: 'feed', overlay: false, covered: false } as const;
+
+    it('shows on Feed, Profile and Messages, so each page has a tap to every other', () => {
+      expect(dockShows(onFeed)).toBe(true);
+      expect(dockShows({ ...onFeed, tab: 'profile' })).toBe(true);
+      expect(dockShows({ ...onFeed, tab: 'messages' })).toBe(true);
+    });
+    it('is not on the Camera, which has the rail', () => {
+      expect(dockShows({ ...onFeed, tab: 'camera' })).toBe(false);
+    });
+    it('is hidden under a pop-up or a full-screen view', () => {
+      expect(dockShows({ ...onFeed, overlay: true })).toBe(false);
+      expect(dockShows({ ...onFeed, covered: true })).toBe(false);
+    });
+    it('is hidden everywhere when the switch is off', () => {
+      expect(dockShows({ ...onFeed, on: false })).toBe(false);
     });
   });
 });

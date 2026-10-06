@@ -20,8 +20,8 @@ export type Span = { top: number; bottom: number };
 export type RailTab = 'camera' | 'feed' | 'messages' | 'profile';
 
 /**
- * Whether the rail is on screen. It is seen on the Camera only (owner, 2026-10-02): not on Feed,
- * Messages or Profile, and not under a pop-up or a full-screen view opened over the Camera.
+ * Whether the rail is on screen. It is seen on the Camera only (owner, 2026-10-02); Feed, Profile
+ * and Messages get the dock instead (`dockShows`). Neither shows under a pop-up or a full-screen view.
  */
 export function railShows(s: {
   /** The `nav-glass-rail` switch. */
@@ -32,6 +32,15 @@ export function railShows(s: {
   covered: boolean;
 }): boolean {
   return s.on && s.tab === 'camera' && !s.overlay && !s.covered;
+}
+
+/**
+ * Whether the glass bar shows along the bottom of the page (the dock): on Feed, Profile and
+ * Messages, so every page has a tap to every other (owner, 2026-10-06, re-deciding #51). Same
+ * switch and the same hiding rules as the rail.
+ */
+export function dockShows(s: Parameters<typeof railShows>[0]): boolean {
+  return s.on && s.tab !== 'camera' && !s.overlay && !s.covered;
 }
 
 function centreOf(g: RailGeometry, i: number): number {

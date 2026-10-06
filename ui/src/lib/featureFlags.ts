@@ -29,7 +29,7 @@ export const FEATURE_FLAGS = [
   'tag-slots', // one tag screen: tag friends, invite anyone on Mahi, share links on tap; each slot shows its state (default OFF)
 
   // Navigation
-  'nav-glass-rail', // floating glass rail on the Camera's left: Camera, Feed, Messages, Profile
+  'nav-glass-rail', // glass rail on the Camera's left, glass dock along the bottom of the other pages
   'nav-rail-morph', // rail as one floating pill with a sliding selector; hold and drag to switch
 
   // Onboarding

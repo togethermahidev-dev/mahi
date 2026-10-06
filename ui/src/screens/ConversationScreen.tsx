@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import KeyboardInset from '@/components/KeyboardInset';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useConversation } from '@/hooks/useConversation';
+import { useCoverRail } from '@/hooks/useChrome';
 import { useMessages } from '@/hooks/useMessages';
 import { groupMessagesByDate, type GroupedRow } from '@/lib/groupMessages';
 import type { ConversationPreview } from '@/api';
@@ -68,6 +69,8 @@ export default function ConversationScreen({
 
   const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
+  // The glass dock along the bottom of Messages would sit on the message bar: it hides here.
+  useCoverRail(true);
   // The keyboard covers the home-indicator strip, so that inset only applies while it is closed.
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   useEffect(() => {
