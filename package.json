@@ -14,7 +14,7 @@
     "test:scripts": "node --experimental-strip-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test scripts/*.test.cjs scripts/*.test.mjs .claude/hooks/*.test.cjs",
     "tokens:email": "node --experimental-strip-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/email-tokens.mjs",
     "test:db": "scripts/db.sh local",
-    "test:all": "pnpm typecheck && pnpm test && pnpm test:scripts && pnpm --filter ./web test",
+    "test:all": "pnpm typecheck && pnpm test && pnpm test:scripts && pnpm --filter ./web test && pnpm --filter ./staff test",
     "release:check": "node scripts/release-check.cjs",
     "release:prepare": "node scripts/release-check.cjs && node scripts/bump-build.cjs && node scripts/release-check.cjs --release",
     "ota:bump": "node scripts/bump-build.cjs --ota",
@@ -30,7 +30,11 @@
     "format:check": "pnpm --dir ui format:check",
     "dev:web": "pnpm --filter ./web dev",
     "build:web": "pnpm --filter ./web build",
-    "lint:web": "pnpm --filter ./web lint"
+    "lint:web": "pnpm --filter ./web lint",
+    "dev:staff": "pnpm --filter ./staff dev",
+    "build:staff": "pnpm --filter ./staff build",
+    "lint:staff": "pnpm --filter ./staff lint",
+    "test:staff": "pnpm --filter ./staff test"
   },
   "packageManager": "pnpm@12.4.2"
 }

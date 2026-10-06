@@ -1,0 +1,31 @@
+{
+  "name": "mahi-staff",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "check-tokens": "node --experimental-strip-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON ../web/scripts/check-tokens.mjs .",
+    "dev": "next dev --port 3001",
+    "prebuild": "pnpm run check-tokens",
+    "build": "next build",
+    "start": "next start --port 3001",
+    "lint": "pnpm run check-tokens && eslint",
+    "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"lib/*.test.ts\""
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "next": "16.3.8",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^2.1.1",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "^22.20.3",
+    "@types/react": "~19.2.14",
+    "@types/react-dom": "~19.2.3",
+    "eslint": "10.12.0",
+    "eslint-config-next": "16.3.8",
+    "tailwindcss": "4.3.3",
+    "typescript": "~6.0.3"
+  }
+}

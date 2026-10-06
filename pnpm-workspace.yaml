@@ -1,8 +1,10 @@
-# ui/ is the Expo app, web/ is the Mahi waitlist site (see web/README.md). The root holds only
+# ui/ is the Expo app, web/ is the Mahi waitlist site (see web/README.md), staff/ the
+# staff-only moderation portal (see staff/README.md). The root holds only
 # the workspace settings and the shared scripts (scripts/, supabase/); run every pnpm command here.
 packages:
   - 'ui'
   - 'web'
+  - 'staff'
 
 # pnpm 11+ reads project settings from here instead of .npmrc.
 # Expo / React Native tooling expects a flat node_modules layout.
