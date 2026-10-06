@@ -48,11 +48,14 @@ export async function reportContent(
   details?: string
 ): Promise<{ data: ReportResult | null; error: Error | null }> {
   const { fn, arg } = REPORT_CALLS[kind];
-  const { data, error } = await supabase.rpc(fn as never, {
-    [arg]: id,
-    p_reason: reason,
-    p_details: details ?? null,
-  } as never);
+  const { data, error } = await supabase.rpc(
+    fn as never,
+    {
+      [arg]: id,
+      p_reason: reason,
+      p_details: details ?? null,
+    } as never
+  );
   if (error) return { data: null, error: new Error(error.message) };
   return { data: data as unknown as ReportResult, error: null };
 }

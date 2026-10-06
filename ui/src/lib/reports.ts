@@ -76,9 +76,7 @@ export function standingNotice(standing: Standing, now: Date = new Date()): Stan
       body: [`You can’t post, comment or tag anyone${until}.`, why].filter(Boolean).join('\n\n'),
     };
   }
-  const newest = [...standing.warnings].sort((a, b) =>
-    b.created_at.localeCompare(a.created_at)
-  )[0];
+  const newest = [...standing.warnings].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
   if (!newest) return null;
   return { kind: 'warning', title: 'A warning from Mahi', body: newest.reason };
 }

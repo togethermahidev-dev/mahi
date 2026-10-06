@@ -63,7 +63,11 @@ describe('standingNotice', () => {
       },
       now
     );
-    expect(n).toEqual({ kind: 'warning', title: 'A warning from Mahi', body: 'Be kind in comments' });
+    expect(n).toEqual({
+      kind: 'warning',
+      title: 'A warning from Mahi',
+      body: 'Be kind in comments',
+    });
   });
   it('gives the end of a suspension', () => {
     const n = standingNotice(
