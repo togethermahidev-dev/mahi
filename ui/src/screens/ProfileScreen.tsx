@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Alert, View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeGesture } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
@@ -17,6 +16,7 @@ import AvatarPicker from '@/components/AvatarPicker';
 import FollowListModal from '@/components/FollowListModal';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import TouchCarousel from '@/components/TouchCarousel';
+import ProfileIdentityCard from '@/components/ProfileIdentityCard';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -102,9 +102,6 @@ export default function ProfileScreen({
   const iconSurface = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a08)
     : withAlpha(COLORS.offBlack, ALPHA.a05);
-  const heroStart = dark
-    ? withAlpha(COLORS.accent, ALPHA.a22)
-    : withAlpha(COLORS.accent, ALPHA.a18);
   const heroEnd = dark ? COLORS.surfaceDark2 : COLORS.paper;
 
   const profile = useUserStore((s) => s.profile);
@@ -182,11 +179,12 @@ export default function ProfileScreen({
 
       {/* The identity card is deliberately calm and spacious: the photo is editable, the name is
           the strongest type, and the handle is clearly secondary. */}
-      <LinearGradient
-        colors={[heroStart, heroEnd]}
-        style={[styles.identityCard, { borderColor: border }]}
-      >
-        <View style={[styles.avatarHalo, { borderColor: withAlpha(COLORS.accent, ALPHA.a35) }]}>
+      <ProfileIdentityCard
+        dark={dark}
+        displayName={displayName}
+        username={profile?.username}
+        supportingText="Your workout story, in one place."
+        avatar={
           <AvatarPicker
             avatarUrl={profile?.avatar_url ?? null}
             isSelf={!!userId}
@@ -194,15 +192,8 @@ export default function ProfileScreen({
             colors={{ bg: heroEnd, text, muted }}
             onUpdate={(newUrl) => profile && setProfile({ ...profile, avatar_url: newUrl })}
           />
-        </View>
-        <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
-        {profile?.username ? (
-          <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
-        ) : null}
-        <Text style={[styles.identityHint, { color: muted }]}>
-          Your workout story, in one place.
-        </Text>
-      </LinearGradient>
+        }
+      />
 
       {/* The progress card explains itself on tap and never shows a fake zero while loading. */}
       <Pressable
@@ -401,39 +392,6 @@ const styles = StyleSheet.create({
     paddingTop: SPACE.s12,
     paddingHorizontal: SPACE.s20,
     width: '100%',
-  },
-  identityCard: {
-    width: '100%',
-    alignItems: 'center',
-    borderRadius: RADIUS.r28,
-    borderWidth: BORDER_WIDTH.w1,
-    paddingTop: SPACE.s24,
-    paddingHorizontal: SPACE.s24,
-    paddingBottom: SPACE.s24,
-  },
-  avatarHalo: {
-    borderWidth: BORDER_WIDTH.w2,
-    borderRadius: RADIUS.r50,
-    padding: SPACE.s3,
-    marginBottom: SPACE.s16,
-  },
-  displayName: {
-    fontSize: FONT_SIZE.f24,
-    fontFamily: FONTS.bold,
-    lineHeight: LINE_HEIGHT.l28,
-    marginBottom: SPACE.s4,
-    textAlign: 'center',
-  },
-  handle: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
-    marginBottom: SPACE.s12,
-  },
-  identityHint: {
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l18,
-    fontFamily: FONTS.regular,
-    textAlign: 'center',
   },
   pointsCard: {
     width: '100%',

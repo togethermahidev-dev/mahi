@@ -2,7 +2,16 @@ import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { themeColors } from '@/hooks/useAppTheme';
 import { FONTS } from '@/constants/fonts';
-import { ALPHA, COLORS, FONT_SIZE, RADIUS, SIZE, SPACE } from '@/constants/tokens';
+import {
+  ALPHA,
+  BORDER_WIDTH,
+  COLORS,
+  FONT_SIZE,
+  RADIUS,
+  SIZE,
+  SPACE,
+  withAlpha,
+} from '@/constants/tokens';
 
 /** The line under every load error: one wording across the app. */
 export const LOAD_ERROR_LINE = 'Check your connection and try again.';
@@ -21,6 +30,8 @@ interface ListStateProps {
   /** Error: defaults to "Try again". Empty: the next step's button, if any. */
   actionLabel?: string;
   onAction?: () => void;
+  /** Optional visual for a specific empty state; decorative because the text explains the state. */
+  icon?: React.ReactNode;
 }
 
 /**
@@ -34,13 +45,20 @@ export default function ListState({
   line,
   actionLabel,
   onAction,
+  icon,
 }: ListStateProps): React.JSX.Element {
-  const { text, muted } = themeColors(dark);
+  const { text, muted, border, accentText } = themeColors(dark);
+  const surface = dark ? COLORS.surfaceDark : COLORS.white;
+  const softSurface = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a08)
+    : withAlpha(COLORS.offBlack, ALPHA.a05);
 
   if (kind === 'loading') {
     return (
       <View style={styles.wrap}>
-        <ActivityIndicator color={muted} accessibilityLabel="Loading" />
+        <View style={[styles.loadingDisc, { backgroundColor: softSurface }]}>
+          <ActivityIndicator color={muted} accessibilityLabel="Loading" />
+        </View>
       </View>
     );
   }
@@ -50,22 +68,27 @@ export default function ListState({
 
   return (
     <View style={styles.wrap}>
-      {title ? (
-        <Text style={[styles.title, { color: text }]} accessibilityRole="header">
-          {title}
-        </Text>
-      ) : null}
-      {shownLine ? <Text style={[styles.line, { color: muted }]}>{shownLine}</Text> : null}
-      {shownAction && onAction ? (
-        <Pressable
-          style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-          onPress={onAction}
-          accessibilityRole="button"
-          accessibilityLabel={shownAction}
-        >
-          <Text style={styles.buttonText}>{shownAction}</Text>
-        </Pressable>
-      ) : null}
+      <View style={[styles.card, { backgroundColor: surface, borderColor: border }]}>
+        <View style={[styles.marker, { backgroundColor: softSurface }]}> 
+          {icon ?? <View style={[styles.markerDot, { backgroundColor: accentText }]} />}
+        </View>
+        {title ? (
+          <Text style={[styles.title, { color: text }]} accessibilityRole="header">
+            {title}
+          </Text>
+        ) : null}
+        {shownLine ? <Text style={[styles.line, { color: muted }]}>{shownLine}</Text> : null}
+        {shownAction && onAction ? (
+          <Pressable
+            style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+            onPress={onAction}
+            accessibilityRole="button"
+            accessibilityLabel={shownAction}
+          >
+            <Text style={styles.buttonText}>{shownAction}</Text>
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -79,6 +102,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s32,
     paddingVertical: SPACE.s60,
   },
+  card: {
+    width: '100%',
+    maxWidth: SIZE.z360,
+    alignItems: 'center',
+    borderWidth: BORDER_WIDTH.w1,
+    borderRadius: RADIUS.r24,
+    paddingHorizontal: SPACE.s24,
+    paddingVertical: SPACE.s28,
+  },
+  loadingDisc: {
+    width: SIZE.z56,
+    height: SIZE.z56,
+    borderRadius: RADIUS.r28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  marker: {
+    width: SIZE.z44,
+    height: SIZE.z44,
+    borderRadius: RADIUS.r22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACE.s12,
+  },
+  markerDot: {
+    width: SIZE.z10,
+    height: SIZE.z10,
+    borderRadius: RADIUS.r50,
+  },
   title: {
     fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.bold,
@@ -88,6 +140,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.regular,
     textAlign: 'center',
+    marginTop: SPACE.s8,
   },
   button: {
     backgroundColor: COLORS.accent,

@@ -66,6 +66,7 @@ function Sheet({
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const { muted, border } = themeColors(dark);
   const bg = dark ? COLORS.bgDark : COLORS.white;
+  const surface = dark ? COLORS.surfaceDark : COLORS.paper;
   const danger = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
 
   const [blockedListOpen, setBlockedListOpen] = useState(false);
@@ -120,8 +121,9 @@ function Sheet({
     );
   };
 
-  const rowStyle = ({ pressed }: { pressed: boolean }) => [
+  const rowStyle = ({ pressed }: { pressed: boolean }, divided: boolean) => [
     styles.row,
+    divided && styles.rowDivider,
     { borderBottomColor: border },
     pressed && styles.pressed,
   ];
@@ -152,33 +154,49 @@ function Sheet({
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + SPACE.s24 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Pressable
-          style={rowStyle}
-          onPress={() => setBlockedListOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Blocked users"
-        >
-          <Text style={[styles.rowLabel, { color: text }]}>Blocked users</Text>
-        </Pressable>
-
-        {helpEnabled ? (
+        <Text style={[styles.sectionLabel, { color: muted }]}>Privacy and support</Text>
+        <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
           <Pressable
-            style={rowStyle}
-            onPress={() => setHelpOpen(true)}
+            style={(state) => rowStyle(state, helpEnabled)}
+            onPress={() => setBlockedListOpen(true)}
             accessibilityRole="button"
-            accessibilityLabel="Help"
-            accessibilityHint="Shows how Mahi works"
+            accessibilityLabel="Blocked users"
           >
-            <Text style={[styles.rowLabel, { color: text }]}>Help</Text>
+            <View style={styles.rowCopy}>
+              <Text style={[styles.rowLabel, { color: text }]}>Blocked users</Text>
+              <Text style={[styles.rowDetail, { color: muted }]}>
+                Review who cannot contact you
+              </Text>
+            </View>
+            <Text style={[styles.chevron, { color: muted }]}>›</Text>
           </Pressable>
-        ) : null}
+
+          {helpEnabled ? (
+            <Pressable
+              style={(state) => rowStyle(state, false)}
+              onPress={() => setHelpOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Help"
+              accessibilityHint="Shows how Mahi works"
+            >
+              <View style={styles.rowCopy}>
+                <Text style={[styles.rowLabel, { color: text }]}>Help</Text>
+                <Text style={[styles.rowDetail, { color: muted }]}>
+                  See how tags and points work
+                </Text>
+              </View>
+              <Text style={[styles.chevron, { color: muted }]}>›</Text>
+            </Pressable>
+          ) : null}
+        </View>
 
         <View style={styles.spacer} />
 
+        <Text style={[styles.sectionLabel, { color: muted }]}>Account</Text>
         <Pressable
           style={({ pressed }) => [
             styles.logoutBtn,
-            { borderColor: muted },
+            { backgroundColor: surface, borderColor: border },
             pressed && styles.pressedMore,
           ]}
           onPress={handleLogout}
@@ -267,25 +285,57 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
+    paddingTop: SPACE.s20,
+  },
+  sectionLabel: {
+    marginHorizontal: SPACE.s24,
+    marginBottom: SPACE.s8,
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZE.f12,
+  },
+  group: {
+    marginHorizontal: SPACE.s20,
+    borderWidth: BORDER_WIDTH.w1,
+    borderRadius: RADIUS.r20,
+    overflow: 'hidden',
   },
   row: {
-    paddingVertical: SPACE.s18,
-    paddingHorizontal: SPACE.s24,
+    minHeight: SIZE.z72,
+    paddingVertical: SPACE.s14,
+    paddingHorizontal: SPACE.s16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACE.s12,
+  },
+  rowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  rowCopy: {
+    flex: 1,
+    gap: SPACE.s3,
   },
   rowLabel: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f15,
+  },
+  rowDetail: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZE.f12,
+  },
+  chevron: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZE.f22,
   },
   spacer: {
     flex: 1,
     minHeight: SIZE.z48,
   },
   logoutBtn: {
-    marginHorizontal: SPACE.s24,
+    marginHorizontal: SPACE.s20,
     marginBottom: SPACE.s8,
     paddingVertical: SPACE.s14,
-    borderRadius: RADIUS.r50,
+    borderRadius: RADIUS.r20,
     borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
   },

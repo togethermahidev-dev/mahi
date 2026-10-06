@@ -56,15 +56,20 @@ function UserRow({
   onPress: () => void;
 }) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const { muted } = themeColors(dark);
+  const { muted, border } = themeColors(dark);
   const avatarBg = dark ? COLORS.surfaceDark : COLORS.offWhite;
+  const surface = dark ? COLORS.surfaceDark2 : COLORS.white;
 
   const displayName = item.display_name ?? item.first_name ?? item.username ?? '—';
   const initials = displayName[0]?.toUpperCase() ?? '?';
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.row,
+        { backgroundColor: surface, borderColor: border },
+        pressed && styles.pressed,
+      ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={item.username ? `${displayName}, @${item.username}` : displayName}
@@ -369,18 +374,6 @@ export default function GlobalSearchOverlay({
                   }}
                 />
               )}
-              ItemSeparatorComponent={() => (
-                <View
-                  style={[
-                    styles.separator,
-                    {
-                      backgroundColor: dark
-                        ? withAlpha(COLORS.offWhite, ALPHA.a08)
-                        : withAlpha(COLORS.offBlack, ALPHA.a06),
-                    },
-                  ]}
-                />
-              )}
               // Rows that run under the keyboard stay reachable by scrolling.
               automaticallyAdjustKeyboardInsets
               keyboardShouldPersistTaps="handled"
@@ -495,8 +488,12 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: RADIUS.r20,
+    paddingHorizontal: SPACE.s14,
     paddingVertical: SPACE.s12,
     gap: SPACE.s12,
+    marginBottom: SPACE.s8,
   },
   avatar: {
     width: SIZE.z44,
@@ -527,8 +524,5 @@ const styles = StyleSheet.create({
   points: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f13,
-  },
-  separator: {
-    height: SIZE.z1,
   },
 });

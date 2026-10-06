@@ -92,6 +92,10 @@ export default function NotificationsScreen({
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const { muted } = themeColors(dark);
   const { border } = themeColors(dark);
+  const surface = dark ? COLORS.surfaceDark : COLORS.white;
+  const iconSurface = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a08)
+    : withAlpha(COLORS.offBlack, ALPHA.a05);
   const avatarBg = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a10)
     : withAlpha(COLORS.offBlack, ALPHA.a08);
@@ -226,7 +230,7 @@ export default function NotificationsScreen({
     };
 
     return (
-      <View style={[styles.row, { borderBottomColor: border }]}>
+      <View style={[styles.row, { backgroundColor: surface, borderColor: border }]}>
         <Pressable
           style={({ pressed }) => pressed && styles.pressed}
           onPress={handleAvatarPress}
@@ -297,12 +301,11 @@ export default function NotificationsScreen({
       onDismiss={onDismissed}
     >
       <View style={[styles.root, { backgroundColor: bg }]}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: border }]}>
+        <View style={styles.header}>
           <Pressable
             style={({ pressed }) => [
               styles.backBtn,
-              { borderColor: border },
+              { backgroundColor: iconSurface, borderColor: border },
               pressed && styles.pressed,
             ]}
             onPress={handleClose}
@@ -312,11 +315,13 @@ export default function NotificationsScreen({
           >
             <Text style={[styles.backArrow, { color: text }]}>‹</Text>
           </Pressable>
-          <Text style={[styles.headerName, { color: text }]} numberOfLines={1}>
-            Notifications
-          </Text>
-          {/* Spacer to keep title centred */}
-          <View style={styles.backBtn} />
+          <View style={styles.headerCopy}>
+            <Text style={styles.headerEyebrow}>Mahi</Text>
+            <Text style={[styles.headerName, { color: text }]} numberOfLines={1}>
+              Notifications
+            </Text>
+          </View>
+          <View style={styles.headerSpacer} />
         </View>
 
         {/* Notification list: what needs your answer first, then the rest. */}
@@ -472,27 +477,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     // Shown in a page sheet, which already starts below the status bar.
     paddingTop: SPACE.s16,
-    paddingBottom: SPACE.s16,
-    paddingHorizontal: SPACE.s16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingBottom: SPACE.s20,
+    paddingHorizontal: SPACE.s20,
+    gap: SPACE.s12,
   },
   backBtn: {
-    width: SIZE.z36,
-    height: SIZE.z36,
-    borderRadius: RADIUS.r18,
+    width: SIZE.z44,
+    height: SIZE.z44,
+    borderRadius: RADIUS.r22,
     borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerSpacer: {
+    width: SIZE.z44,
+    height: SIZE.z44,
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.regular,
     lineHeight: LINE_HEIGHT.l22,
   },
-  headerName: {
+  headerCopy: {
     flex: 1,
-    textAlign: 'center',
-    fontSize: FONT_SIZE.f16,
+  },
+  headerEyebrow: {
+    color: COLORS.accent,
+    fontSize: FONT_SIZE.f12,
+    fontFamily: FONTS.semiBold,
+    marginBottom: SPACE.s2,
+  },
+  headerName: {
+    fontSize: FONT_SIZE.f24,
+    lineHeight: LINE_HEIGHT.l24,
     fontFamily: FONTS.bold,
   },
   listContent: {
@@ -503,9 +520,9 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-    paddingHorizontal: SPACE.s16,
+    paddingHorizontal: SPACE.s4,
     paddingTop: SPACE.s16,
-    paddingBottom: SPACE.s4,
+    paddingBottom: SPACE.s8,
   },
   row: {
     flexDirection: 'row',
@@ -513,7 +530,9 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
     paddingVertical: SPACE.s12,
     paddingHorizontal: SPACE.s16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderWidth: BORDER_WIDTH.w1,
+    borderRadius: RADIUS.r20,
+    marginBottom: SPACE.s8,
   },
   avatar: {
     width: SIZE.z36,

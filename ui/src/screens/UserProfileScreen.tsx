@@ -38,6 +38,7 @@ import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostViewer from '@/components/PostViewer';
 import AvatarViewer from '@/components/AvatarViewer';
+import ProfileIdentityCard from '@/components/ProfileIdentityCard';
 import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview, PublicProfile } from '@/api';
 import { FONTS } from '@/constants/fonts';
@@ -55,7 +56,6 @@ import {
   SPACE,
   SPRING,
   SWIPE,
-  TRACKING,
   VIEWER,
   withAlpha,
 } from '@/constants/tokens';
@@ -87,7 +87,12 @@ export default function UserProfileScreen({
 
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const { muted } = themeColors(dark);
+  const { muted, border, accentText } = themeColors(dark);
+  const surface = dark ? COLORS.surfaceDark : COLORS.white;
+  const softSurface = dark ? COLORS.surfaceDark2 : COLORS.paper;
+  const iconSurface = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a08)
+    : withAlpha(COLORS.offBlack, ALPHA.a05);
 
   const isFollowing = useFollowStore((s) => s.followingByMe[userId] ?? false);
   const followsMe = useFollowStore((s) => s.followsMe[userId] ?? false);
@@ -384,42 +389,46 @@ export default function UserProfileScreen({
     });
   };
 
-  // Back and the menu: in the header's top corners, so they scroll away with it (or at the top
-  // of the page while it loads or is blocked).
+  // One predictable app bar is used for the loaded, loading, blocked and error states.
   const topButtons = (
-    <>
-      {/* Back button — top-left */}
+    <View style={styles.topBar}>
       <Pressable
         style={({ pressed }) => [
-          styles.backBtn,
-          { borderColor: muted },
-          pressed && { opacity: ALPHA.a20 },
+          styles.iconButton,
+          { backgroundColor: iconSurface, borderColor: border },
+          pressed && { opacity: ALPHA.a70 },
         ]}
         onPress={close}
         accessibilityRole="button"
         accessibilityLabel="Back"
         hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
       >
-        <Text style={[styles.backArrow, { color: muted }]}>‹</Text>
+        <Text style={[styles.backArrow, { color: text }]}>‹</Text>
       </Pressable>
 
-      {/* Ellipsis menu — top-right (only for other users) */}
-      {!isSelf && !loading ? (
+      <View style={styles.titleBlock}>
+        <Text style={[styles.eyebrow, { color: accentText }]}>Mahi</Text>
+        <Text style={[styles.screenTitle, { color: text }]}>Profile</Text>
+      </View>
+
+      {!isSelf && !loading && profile ? (
         <Pressable
           style={({ pressed }) => [
-            styles.ellipsisBtn,
-            { borderColor: muted },
-            pressed && { opacity: ALPHA.a20 },
+            styles.iconButton,
+            { backgroundColor: iconSurface, borderColor: border },
+            pressed && { opacity: ALPHA.a70 },
           ]}
           onPress={handleEllipsis}
           accessibilityRole="button"
           accessibilityLabel="More options"
           hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
         >
-          <Text style={[styles.ellipsisText, { color: muted }]}>…</Text>
+          <Text style={[styles.ellipsisText, { color: text }]}>…</Text>
         </Pressable>
-      ) : null}
-    </>
+      ) : (
+        <View style={styles.iconSpacer} />
+      )}
+    </View>
   );
 
   // Everything above the grid. The page is one list, so this scrolls away and the grid can
@@ -428,63 +437,62 @@ export default function UserProfileScreen({
     <View style={styles.header}>
       {topButtons}
 
-      {/* Avatar */}
-      <View style={styles.avatarWrap}>
-        {profile?.avatar_url ? (
-          // Tap: the photo full screen (pinch to zoom, swipe to close).
-          <Pressable
-            accessibilityRole="imagebutton"
-            accessibilityLabel={`View @${profile.username}'s profile photo`}
-            onPress={() => setAvatarOpen(true)}
-            style={({ pressed }) => pressed && { opacity: ALPHA.a90 }}
-          >
-            <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
-          </Pressable>
-        ) : (
-          <View
-            style={[
-              styles.avatar,
-              styles.avatarFallback,
-              { backgroundColor: dark ? COLORS.borderDark : COLORS.offWhite },
-            ]}
-          >
-            <Text style={[styles.avatarInitial, { color: bg }]}>{initials}</Text>
+      <ProfileIdentityCard
+        dark={dark}
+        displayName={displayName}
+        username={profile?.username}
+        supportingText="Follow each other to share tags and keep moving together."
+        avatar={
+          profile?.avatar_url ? (
+            <Pressable
+              accessibilityRole="imagebutton"
+              accessibilityLabel={`View @${profile.username}'s profile photo`}
+              onPress={() => setAvatarOpen(true)}
+              style={({ pressed }) => pressed && { opacity: ALPHA.a90 }}
+            >
+              <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+            </Pressable>
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: iconSurface }]}>
+              <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
+            </View>
+          )
+        }
+      />
+
+      <View style={[styles.profileDetails, { backgroundColor: surface, borderColor: border }]}>
+        <Pressable
+          style={({ pressed }) => [styles.friendsLink, pressed && { opacity: ALPHA.a70 }]}
+          onPress={() => setFriendsOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Friends"
+          accessibilityHint={`Shows ${handle}'s friends`}
+        >
+          <View>
+            <Text style={[styles.detailLabel, { color: muted }]}>Community</Text>
+            <Text style={[styles.detailTitle, { color: text }]}>Friends</Text>
           </View>
-        )}
-      </View>
+          <Text style={[styles.detailChevron, { color: muted }]}>›</Text>
+        </Pressable>
 
-      {/* Name + handle */}
-      <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
-      {profile?.username ? (
-        <Text style={[styles.handle, { color: muted }]}>@{profile.username}</Text>
-      ) : null}
+        <View style={[styles.detailDivider, { backgroundColor: border }]} />
 
-      {/* Friends — a list, never a number */}
-      <Pressable
-        style={({ pressed }) => [styles.statsRow, pressed && { opacity: ALPHA.a70 }]}
-        onPress={() => setFriendsOpen(true)}
-        accessibilityRole="button"
-        accessibilityLabel="Friends"
-      >
-        <Text style={[styles.statLabel, { color: muted }]}>Friends ›</Text>
-      </Pressable>
-
-      {/* Someone else's Mahi points: Best only, so a missed tag (points back to 0) isn't shown
-          to everyone. Your own profile shows Points and Best. */}
-      <View
-        style={[styles.statsRow, { marginTop: SPACE.s16 }]}
-        accessible
-        accessibilityLabel={`Best, ${pointsCount(profile?.streak_highest)}`}
-      >
-        <View style={styles.stat}>
-          <Text style={[styles.statValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
-          <Text style={[styles.statLabel, { color: muted }]}>Best</Text>
+        <View
+          style={styles.bestMetric}
+          accessible
+          accessibilityLabel={`Best, ${pointsCount(profile?.streak_highest)}`}
+        >
+          <View>
+            <Text style={[styles.detailLabel, { color: muted }]}>Mahi points</Text>
+            <Text style={[styles.detailTitle, { color: text }]}>Personal best</Text>
+          </View>
+          <Text style={[styles.bestValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
         </View>
       </View>
 
       {/* Follow / Message actions */}
       {!isSelf && follow.followsYou ? (
-        <Text style={[styles.followsYou, { color: muted }]}>Follows you</Text>
+        <Text style={[styles.followsYou, { color: accentText }]}>Follows you</Text>
       ) : null}
       {!isSelf ? (
         <View style={styles.actionRow}>
@@ -492,8 +500,8 @@ export default function UserProfileScreen({
             style={({ pressed }) => [
               styles.followBtn,
               isFollowing
-                ? { borderColor: text, borderWidth: BORDER_WIDTH.w1 }
-                : { backgroundColor: COLORS.accent },
+                ? { backgroundColor: softSurface, borderColor: border }
+                : { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
               pressed && { opacity: ALPHA.a75 },
             ]}
             onPress={handleFollow}
@@ -510,7 +518,11 @@ export default function UserProfileScreen({
           <Pressable
             style={({ pressed }) => [
               styles.messageBtn,
-              { borderColor: text, opacity: messaging ? ALPHA.a50 : 1 },
+              {
+                backgroundColor: surface,
+                borderColor: border,
+                opacity: messaging ? ALPHA.a50 : 1,
+              },
               pressed && { opacity: ALPHA.a75 },
             ]}
             onPress={handleMessage}
@@ -536,6 +548,13 @@ export default function UserProfileScreen({
       {/* Suggested follows — syncs on mount, renders null when empty.
         Excludes the profile being viewed so we never suggest this page. */}
       <SuggestedFollowsStrip onPressUser={setSuggestedUserId} excludeUserId={userId} />
+
+      <View style={styles.workoutsHeading}>
+        <Text style={[styles.workoutsTitle, { color: text }]}>Workouts</Text>
+        <Text style={[styles.workoutsSubtitle, { color: muted }]}>
+          Tap a post to see it full screen.
+        </Text>
+      </View>
     </View>
   );
 
@@ -665,35 +684,45 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     alignItems: 'center',
+    paddingTop: SPACE.s12,
+    paddingHorizontal: SPACE.s20,
   },
-  backBtn: {
-    position: 'absolute',
-    top: 0,
-    left: OFFSET.o24,
-    zIndex: LAYER.raised,
-    width: SIZE.z36,
-    height: SIZE.z36,
-    borderRadius: RADIUS.r18,
+  topBar: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACE.s20,
+  },
+  iconButton: {
+    width: SIZE.z44,
+    height: SIZE.z44,
+    borderRadius: RADIUS.r22,
     borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  iconSpacer: {
+    width: SIZE.z44,
+    height: SIZE.z44,
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
     fontFamily: FONTS.regular,
     lineHeight: LINE_HEIGHT.l22,
   },
-  ellipsisBtn: {
-    position: 'absolute',
-    top: 0,
-    right: OFFSET.o24,
-    zIndex: LAYER.raised,
-    width: SIZE.z36,
-    height: SIZE.z36,
-    borderRadius: RADIUS.r18,
-    borderWidth: BORDER_WIDTH.w1,
+  titleBlock: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  eyebrow: {
+    fontSize: FONT_SIZE.f12,
+    fontFamily: FONTS.semiBold,
+    marginBottom: SPACE.s2,
+  },
+  screenTitle: {
+    fontSize: FONT_SIZE.f20,
+    lineHeight: LINE_HEIGHT.l24,
+    fontFamily: FONTS.bold,
   },
   ellipsisText: {
     fontSize: FONT_SIZE.f16,
@@ -706,17 +735,15 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingHorizontal: SPACE.s32,
+    paddingTop: SPACE.s12,
+    paddingHorizontal: SPACE.s20,
     paddingBottom: SPACE.s16,
     width: '100%',
   },
-  avatarWrap: {
-    marginBottom: SPACE.s12,
-  },
   avatar: {
-    width: SIZE.z80,
-    height: SIZE.z80,
-    borderRadius: RADIUS.r40,
+    width: SIZE.z88,
+    height: SIZE.z88,
+    borderRadius: RADIUS.r44,
   },
   avatarFallback: {
     alignItems: 'center',
@@ -726,35 +753,47 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f28,
     fontFamily: FONTS.bold,
   },
-  displayName: {
-    fontSize: FONT_SIZE.f22,
-    fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t4,
-    marginBottom: SPACE.s6,
-    textAlign: 'center',
+  profileDetails: {
+    width: '100%',
+    borderRadius: RADIUS.r24,
+    borderWidth: BORDER_WIDTH.w1,
+    marginTop: SPACE.s16,
+    paddingHorizontal: SPACE.s20,
   },
-  handle: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
-    marginBottom: SPACE.s16,
-  },
-  statsRow: {
+  friendsLink: {
+    minHeight: SIZE.z72,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACE.s32,
+    justifyContent: 'space-between',
   },
-  stat: {
+  bestMetric: {
+    minHeight: SIZE.z80,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACE.s4,
+    justifyContent: 'space-between',
   },
-  statValue: {
+  detailDivider: {
+    width: '100%',
+    height: StyleSheet.hairlineWidth,
+  },
+  detailLabel: {
+    fontSize: FONT_SIZE.f12,
+    fontFamily: FONTS.regular,
+    marginBottom: SPACE.s3,
+  },
+  detailTitle: {
+    fontSize: FONT_SIZE.f15,
+    fontFamily: FONTS.semiBold,
+  },
+  detailChevron: {
+    fontSize: FONT_SIZE.f24,
+    fontFamily: FONTS.regular,
+    lineHeight: LINE_HEIGHT.l24,
+  },
+  bestValue: {
     fontSize: FONT_SIZE.f28,
     fontFamily: FONTS.bold,
     lineHeight: LINE_HEIGHT.l28,
-  },
-  statLabel: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
   },
   followHint: {
     fontSize: FONT_SIZE.f13,
@@ -763,38 +802,60 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s12,
   },
   actionRow: {
+    width: '100%',
     flexDirection: 'row',
     gap: SPACE.s12,
-    marginTop: SPACE.s20,
+    marginTop: SPACE.s16,
   },
   followBtn: {
+    flex: 1,
     minHeight: SIZE.z44,
+    alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r50,
-    paddingHorizontal: SPACE.s28,
+    paddingHorizontal: SPACE.s16,
     paddingVertical: SPACE.s9,
   },
   followsYou: {
     textAlign: 'center',
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
-    marginBottom: SPACE.s8,
+    marginTop: SPACE.s12,
   },
   followBtnText: {
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
   },
   messageBtn: {
+    flex: 1,
     minHeight: SIZE.z44,
+    alignItems: 'center',
     justifyContent: 'center',
     borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r50,
-    paddingHorizontal: SPACE.s28,
+    paddingHorizontal: SPACE.s16,
     paddingVertical: SPACE.s9,
   },
   messageBtnText: {
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
+  },
+  workoutsHeading: {
+    width: '100%',
+    marginTop: SPACE.s24,
+    marginBottom: SPACE.s12,
+  },
+  workoutsTitle: {
+    fontSize: FONT_SIZE.f20,
+    lineHeight: LINE_HEIGHT.l24,
+    fontFamily: FONTS.bold,
+  },
+  workoutsSubtitle: {
+    fontSize: FONT_SIZE.f13,
+    lineHeight: LINE_HEIGHT.l18,
+    fontFamily: FONTS.regular,
+    marginTop: SPACE.s4,
   },
   blockedWrap: {
     alignItems: 'center',

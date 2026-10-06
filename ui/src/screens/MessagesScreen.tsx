@@ -58,6 +58,7 @@ function ConvoRow({
   text,
   muted,
   border,
+  surface,
   accent,
   menuOn,
   dark,
@@ -69,6 +70,7 @@ function ConvoRow({
   text: string;
   muted: string;
   border: string;
+  surface: string;
   accent: string;
   /** Hold to preview (flag context-menu-preview, iPhone, build 11). */
   menuOn: boolean;
@@ -97,7 +99,7 @@ function ConvoRow({
   // don't overlap: tapping the avatar opens the profile, tapping the rest of
   // the row opens the conversation. No dead zone between them.
   const row = (
-    <View style={[styles.convoRow, { borderBottomColor: border }]}>
+    <View style={[styles.convoRow, { backgroundColor: surface, borderColor: border }]}>
       <Pressable
         style={({ pressed }) => pressed && styles.pressed}
         onPress={onAvatarPress}
@@ -144,7 +146,7 @@ function ConvoRow({
   if (!menuOn) return row;
   return (
     <PreviewMenu
-      width={screen.width}
+      width={screen.width - SPACE.s40}
       dark={dark}
       items={items}
       onAction={runAction}
@@ -182,6 +184,10 @@ export default function MessagesScreen({
   const { muted } = themeColors(dark);
   const { border } = themeColors(dark);
   const accent = colors.accent;
+  const surface = dark ? COLORS.surfaceDark : COLORS.white;
+  const iconSurface = dark
+    ? withAlpha(COLORS.offWhite, ALPHA.a08)
+    : withAlpha(COLORS.offBlack, ALPHA.a05);
   const insets = useSafeAreaInsets();
 
   const [openConvo, setOpenConvo] = useState<ConversationPreview | null>(null);
@@ -203,15 +209,12 @@ export default function MessagesScreen({
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      {/* Header */}
-      <View
-        style={[styles.header, { borderBottomColor: border, paddingTop: insets.top + SPACE.s8 }]}
-      >
+      <View style={[styles.header, { paddingTop: insets.top + SPACE.s12 }]}>
         {onBack ? (
           <Pressable
             style={({ pressed }) => [
-              styles.backBtn,
-              { borderColor: muted },
+              styles.headerIconBtn,
+              { backgroundColor: iconSurface, borderColor: border },
               pressed && styles.pressed,
             ]}
             onPress={onBack}
@@ -222,12 +225,18 @@ export default function MessagesScreen({
             <Text style={[styles.backArrow, { color: text }]}>‹</Text>
           </Pressable>
         ) : (
-          // Spacer balances the right-side search icon so the title stays centred.
-          <View style={styles.headerIconBtn} />
+          <View style={styles.headerSpacer} />
         )}
-        <Text style={[styles.headerTitle, { color: text }]}>Messages</Text>
+        <View style={styles.headerCopy}>
+          <Text style={[styles.headerEyebrow, { color: accent }]}>Mahi</Text>
+          <Text style={[styles.headerTitle, { color: text }]}>Messages</Text>
+        </View>
         <Pressable
-          style={({ pressed }) => [styles.headerIconBtn, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.headerIconBtn,
+            { backgroundColor: iconSurface, borderColor: border },
+            pressed && styles.pressed,
+          ]}
           onPress={() => setSearchVisible(true)}
           accessibilityRole="button"
           accessibilityLabel="Find someone to message"
@@ -241,7 +250,7 @@ export default function MessagesScreen({
       <Pressable
         style={({ pressed }) => [
           styles.requestsPill,
-          { borderBottomColor: border },
+          { backgroundColor: surface, borderColor: border },
           pressed && styles.pressed,
         ]}
         onPress={() => setShowRequests(true)}
@@ -252,7 +261,12 @@ export default function MessagesScreen({
             : 'Message requests'
         }
       >
-        <Text style={[styles.requestsLabel, { color: text }]}>Message requests</Text>
+        <View style={styles.requestsCopy}>
+          <Text style={[styles.requestsLabel, { color: text }]}>Message requests</Text>
+          <Text style={[styles.requestsDetail, { color: muted }]}>
+            Review people waiting to chat
+          </Text>
+        </View>
         <View style={styles.requestsRight}>
           {incomingRequestCount > 0 ? (
             <View style={styles.badge}>
@@ -269,7 +283,7 @@ export default function MessagesScreen({
           renderScrollComponent={GestureScrollView}
           data={inbox}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={tabRoom > 0 ? { paddingBottom: tabRoom } : undefined}
+          contentContainerStyle={[styles.listContent, { paddingBottom: tabRoom + SPACE.s12 }]}
           // Rows re-render when hold to preview changes.
           extraData={menuOn}
           renderItem={({ item }) => (
@@ -284,6 +298,7 @@ export default function MessagesScreen({
               text={text}
               muted={muted}
               border={border}
+              surface={surface}
               accent={accent}
               menuOn={menuOn}
               dark={dark}
@@ -366,18 +381,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: SPACE.s24,
-    paddingBottom: SPACE.s16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  backBtn: {
-    width: SIZE.z36,
-    height: SIZE.z36,
-    borderRadius: RADIUS.r18,
-    borderWidth: BORDER_WIDTH.w1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: SPACE.s12,
+    paddingHorizontal: SPACE.s20,
+    paddingBottom: SPACE.s20,
+    gap: SPACE.s12,
   },
   backArrow: {
     fontSize: FONT_SIZE.f20,
@@ -385,28 +391,52 @@ const styles = StyleSheet.create({
     lineHeight: LINE_HEIGHT.l22,
   },
   headerTitle: {
-    flex: 1,
     fontSize: FONT_SIZE.f24,
     fontFamily: FONTS.bold,
-    textAlign: 'center',
+    lineHeight: LINE_HEIGHT.l24,
+  },
+  headerCopy: {
+    flex: 1,
+  },
+  headerEyebrow: {
+    fontSize: FONT_SIZE.f12,
+    fontFamily: FONTS.semiBold,
+    marginBottom: SPACE.s2,
   },
   headerIconBtn: {
-    width: SIZE.z36,
-    height: SIZE.z36,
+    width: SIZE.z44,
+    height: SIZE.z44,
+    borderRadius: RADIUS.r22,
+    borderWidth: BORDER_WIDTH.w1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerSpacer: {
+    width: SIZE.z44,
+    height: SIZE.z44,
   },
   requestsPill: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACE.s24,
-    paddingVertical: SPACE.s16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginHorizontal: SPACE.s20,
+    marginBottom: SPACE.s12,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s14,
+    borderWidth: BORDER_WIDTH.w1,
+    borderRadius: RADIUS.r20,
+  },
+  requestsCopy: {
+    flex: 1,
+    gap: SPACE.s3,
   },
   requestsLabel: {
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.semiBold,
+  },
+  requestsDetail: {
+    fontSize: FONT_SIZE.f12,
+    fontFamily: FONTS.regular,
   },
   requestsRight: {
     flexDirection: 'row',
@@ -436,10 +466,15 @@ const styles = StyleSheet.create({
   convoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: SPACE.s24,
+    paddingHorizontal: SPACE.s16,
     paddingVertical: SPACE.s14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderWidth: BORDER_WIDTH.w1,
+    borderRadius: RADIUS.r20,
     gap: SPACE.s12,
+    marginBottom: SPACE.s8,
+  },
+  listContent: {
+    paddingHorizontal: SPACE.s20,
   },
   convoBody: {
     flex: 1,
