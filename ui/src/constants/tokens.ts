@@ -443,6 +443,8 @@ export const LAYOUT = {
   searchResultsHeight: 0.55,
   /** The camera's small photo never gets shorter than this share of its width. */
   pipMinHeight: 0.6,
+  /** Cards from the end of a profile's workout story at which the next page starts loading. */
+  storyLoadAhead: 2,
 } as const;
 
 // ─── Floating nav rail: the pill outline and shadow (with SHADOW_BLUR / SIZE) ────

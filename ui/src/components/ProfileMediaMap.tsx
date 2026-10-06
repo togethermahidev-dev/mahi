@@ -42,6 +42,7 @@ import {
   BORDER_WIDTH,
   FONT_SIZE,
   ICON_SIZE,
+  LAYOUT,
   LINE_HEIGHT,
   OFFSET,
   PREVIEW_MENU,
@@ -357,7 +358,7 @@ export default function ProfileMediaMap({
               accessibilityLabel="Workout posts, newest first"
               onTouchStateChange={onCarouselTouchChange}
               onActiveIndexChange={(index) => {
-                if (hasMore && index >= posts.length - 2) void loadMore();
+                if (hasMore && index >= posts.length - LAYOUT.storyLoadAhead) void loadMore();
               }}
               renderItem={(post) => (
                 <WorkoutCard
