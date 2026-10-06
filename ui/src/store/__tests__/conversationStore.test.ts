@@ -212,7 +212,10 @@ describe('editing your own message', () => {
 describe('unsending your own message', () => {
   it('takes it off the screen, and back on if the server says no', async () => {
     (getMessages as jest.Mock).mockResolvedValue({
-      data: [serverRow('s1', 'c1', 'one', justAfter(0)), serverRow('s2', 'c2', 'two', justAfter(1))],
+      data: [
+        serverRow('s1', 'c1', 'one', justAfter(0)),
+        serverRow('s2', 'c2', 'two', justAfter(1)),
+      ],
       error: null,
     });
     await useConversationStore.getState().open(CONVO);
@@ -230,13 +233,20 @@ describe('unsending your own message', () => {
 describe('the other person edits or unsends', () => {
   it('shows the edit and drops the unsent message as it happens', async () => {
     (getMessages as jest.Mock).mockResolvedValueOnce({
-      data: [serverRow('s1', 'c1', 'one', justAfter(0)), serverRow('s2', 'c2', 'two', justAfter(1))],
+      data: [
+        serverRow('s1', 'c1', 'one', justAfter(0)),
+        serverRow('s2', 'c2', 'two', justAfter(1)),
+      ],
       error: null,
     });
     await useConversationStore.getState().open(CONVO);
 
-    updateHandler?.({ new: { ...serverRow('s1', 'c1', 'one!', justAfter(0)), edited_at: justAfter(2) } });
-    updateHandler?.({ new: { ...serverRow('s2', 'c2', '', justAfter(1)), unsent_at: justAfter(3) } });
+    updateHandler?.({
+      new: { ...serverRow('s1', 'c1', 'one!', justAfter(0)), edited_at: justAfter(2) },
+    });
+    updateHandler?.({
+      new: { ...serverRow('s2', 'c2', '', justAfter(1)), unsent_at: justAfter(3) },
+    });
 
     expect(contents()).toEqual(['one!']);
   });

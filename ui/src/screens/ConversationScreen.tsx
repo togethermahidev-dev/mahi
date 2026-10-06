@@ -124,7 +124,10 @@ export default function ConversationScreen({
       if (started) {
         setConvo({ ...convo, id: started.conversationId, status: started.status });
       } else {
-        Alert.alert('Couldn’t send', `You can’t message @${convo.other_profile.username} right now.`);
+        Alert.alert(
+          'Couldn’t send',
+          `You can’t message @${convo.other_profile.username} right now.`
+        );
       }
     } else {
       sent = await send(content);

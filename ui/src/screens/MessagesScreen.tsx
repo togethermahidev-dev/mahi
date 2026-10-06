@@ -84,10 +84,10 @@ function ConvoRow({
   const preview = waiting
     ? `Waiting for @${item.other_profile.username} to accept`
     : item.last_message?.content
-    ? item.last_message.content.length > 40
-      ? item.last_message.content.slice(0, 40) + '…'
-      : item.last_message.content
-    : '';
+      ? item.last_message.content.length > 40
+        ? item.last_message.content.slice(0, 40) + '…'
+        : item.last_message.content
+      : '';
   const unread = item.unread_count > 0;
 
   // Hold to preview: the latest messages pop out, with Open and (while unread) Mark as read.
