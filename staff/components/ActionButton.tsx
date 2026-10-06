@@ -1,82 +1,153 @@
 'use client';
 
-// One staff action: a button that opens a confirm step with a required note (and days for a
-// suspension). Nothing happens until "Confirm" is pressed. Destructive actions are red and say so.
+// One staff action, in steps so it can't happen by accident:
+//   1. A button with the action's name.
+//   2. What happens and who sees it, the days (suspensions) and a required note. "Continue".
+//   3. A confirm step that names the action and the person, repeats the note, and has a
+//      "Yes, …" button. Only that button sends anything.
+// Then a success or failure message in words. Taking a report needs no note, so it skips step 2.
 
 import { useActionState, useState } from 'react';
 import { staffAction, type ActionState } from '@/app/actions';
 import type { StaffAction } from '@/lib/guard';
+import { ACTION_INFO } from '@/lib/present';
 import { NOTE_MAX } from '@/lib/rpc';
-import { dangerButtonClass, inputClass, secondaryButtonClass } from './styles';
+import { dangerButtonClass, inputClass, primaryButtonClass, secondaryButtonClass } from './styles';
 
 type Props = {
   action: StaffAction;
-  label: string;
   targetId: string;
   reportId?: string;
-  /** Red, with a warning line in the confirm step. */
-  destructive?: boolean;
-  /** What happens, in one plain sentence, shown before confirming. */
-  explain: string;
-  /** Taking a report needs no note. */
-  noteOptional?: boolean;
-  /** The note is shown to the person (warnings, suspensions, bans). */
-  noteSeenByPerson?: boolean;
+  /** Who or what it's done to, e.g. "@sam" or "this post". */
+  subject: string;
 };
 
-export function ActionButton(props: Props) {
-  const [open, setOpen] = useState(false);
+export function ActionButton({ action, targetId, reportId, subject }: Props) {
+  const info = ACTION_INFO[action];
+  const serious = info.group === 'serious';
+  const noteNeeded = action !== 'review_report';
+  const [step, setStep] = useState<'closed' | 'note' | 'confirm'>('closed');
+  const [note, setNote] = useState('');
+  const [days, setDays] = useState('7');
   const [state, formAction, pending] = useActionState<ActionState, FormData>(staffAction, null);
-  const buttonClass = props.destructive ? dangerButtonClass : secondaryButtonClass;
+  const name = `${info.label} ${subject}`.trim();
+  const goClass = serious ? dangerButtonClass : primaryButtonClass;
+  const daysOk = action !== 'suspend_user' || /^\d+$/.test(days) && Number(days) >= 1 && Number(days) <= 365;
 
   if (state?.ok) {
-    return <p className="text-f14 text-success-deep">{`${props.label}: ${state.message}`}</p>;
+    return (
+      <p role="status" className="rounded-r8 border-w1 border-success-deep bg-white p-s12 text-f14 text-success-deep">
+        <span className="font-semi-bold">{`Done: ${name}.`}</span> {state.message.replace(/^Done\.\s*/, '')}
+      </p>
+    );
   }
 
-  if (!open) {
+  if (step === 'closed') {
     return (
-      <button type="button" className={buttonClass} onClick={() => setOpen(true)}>
-        {props.label}
+      <button
+        type="button"
+        className={`${secondaryButtonClass} w-full justify-between text-left sm:w-auto`}
+        onClick={() => setStep(noteNeeded ? 'note' : 'confirm')}
+        aria-expanded={false}
+      >
+        <span>{name}</span>
+        <span aria-hidden="true" className="text-grey888">
+          ›
+        </span>
       </button>
     );
   }
 
+  const cancel = () => {
+    setStep('closed');
+    setNote('');
+  };
+
   return (
-    <form
-      action={formAction}
-      className="flex w-full flex-col gap-s8 rounded-r12 border-w1 border-off-white bg-surface-light p-s12"
+    <div
+      role="region"
+      aria-label={name}
+      className={`flex w-full flex-col gap-s12 rounded-r12 border-w1 bg-white p-s16 ${serious ? 'border-danger-deep' : 'border-ink-deep'}`}
     >
-      <p className="text-f14 font-semi-bold">{props.label}</p>
-      <p className="text-f14">{props.explain}</p>
-      {props.destructive && <p className="text-f13 font-semi-bold text-danger-deep">This affects the person straight away.</p>}
-      <input type="hidden" name="action" value={props.action} />
-      <input type="hidden" name="targetId" value={props.targetId} />
-      {props.reportId && <input type="hidden" name="reportId" value={props.reportId} />}
-      {props.action === 'suspend_user' && (
-        <label className="flex flex-col gap-s4 text-f14 font-semi-bold">
-          Days
-          <input name="days" type="number" min={1} max={365} required defaultValue={7} className={inputClass} />
-        </label>
+      <p className="text-f16 font-bold">{name}</p>
+      <p className="text-f14">{info.explain}</p>
+      <p className="text-f13 text-grey888">
+        <span className="font-semi-bold">Who sees it: </span>
+        {info.seenBy}
+      </p>
+
+      {step === 'note' && (
+        <>
+          {action === 'suspend_user' && (
+            <label className="flex flex-col gap-s4 text-f14 font-semi-bold">
+              How many days (1 to 365)
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={365}
+                value={days}
+                onChange={(e) => setDays(e.target.value)}
+                className={inputClass}
+              />
+            </label>
+          )}
+          <label className="flex flex-col gap-s4 text-f14 font-semi-bold">
+            {info.noteSeenByPerson ? 'Reason — the person sees this' : 'Note for the audit log — only staff see this'}
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={NOTE_MAX}
+              rows={3}
+              required
+              autoFocus
+              className={inputClass}
+            />
+            <span className="text-f12 font-regular text-grey888">{`${note.length} of ${NOTE_MAX} characters. Needed.`}</span>
+          </label>
+          <div className="flex flex-col-reverse gap-s8 sm:flex-row">
+            <button type="button" className={secondaryButtonClass} onClick={cancel}>
+              Cancel
+            </button>
+            <button type="button" className={primaryButtonClass} disabled={!note.trim() || !daysOk} onClick={() => setStep('confirm')}>
+              Continue
+            </button>
+          </div>
+          {(!note.trim() || !daysOk) && (
+            <p className="text-f13 text-grey888">{!daysOk ? 'Choose 1 to 365 days.' : 'Write a note to continue.'}</p>
+          )}
+        </>
       )}
-      {!props.noteOptional && (
-        <label className="flex flex-col gap-s4 text-f14 font-semi-bold">
-          {props.noteSeenByPerson ? 'Reason (the person sees this)' : 'Note for the audit log'}
-          <textarea name="reason" required maxLength={NOTE_MAX} rows={3} className={inputClass} />
-        </label>
+
+      {step === 'confirm' && (
+        <form action={formAction} className="flex flex-col gap-s12">
+          <input type="hidden" name="action" value={action} />
+          <input type="hidden" name="targetId" value={targetId} />
+          {reportId && <input type="hidden" name="reportId" value={reportId} />}
+          {action === 'suspend_user' && <input type="hidden" name="days" value={days} />}
+          <input type="hidden" name="reason" value={note} />
+          <div className="rounded-r8 bg-surface-light p-s12 text-f14">
+            <p className="font-semi-bold">
+              {`You're about to: ${name}${action === 'suspend_user' ? ` for ${days} day${days === '1' ? '' : 's'}` : ''}.`}
+            </p>
+            {note && <p className="mt-s4 whitespace-pre-wrap break-words">{`Note: ${note}`}</p>}
+            {serious && <p className="mt-s4 font-semi-bold text-danger-deep">This happens straight away.</p>}
+          </div>
+          {state && !state.ok && (
+            <p role="alert" className="text-f14 font-semi-bold text-danger-deep">
+              {`It didn't work: ${state.message}`}
+            </p>
+          )}
+          <div className="flex flex-col-reverse gap-s8 sm:flex-row">
+            <button type="button" className={secondaryButtonClass} onClick={() => setStep(noteNeeded ? 'note' : 'closed')} disabled={pending}>
+              Go back
+            </button>
+            <button type="submit" disabled={pending} className={goClass}>
+              {pending ? 'Working…' : `Yes, ${name.charAt(0).toLowerCase()}${name.slice(1)}`}
+            </button>
+          </div>
+        </form>
       )}
-      {state && !state.ok && (
-        <p role="alert" className="text-f14 text-danger-deep">
-          {state.message}
-        </p>
-      )}
-      <div className="flex gap-s8">
-        <button type="submit" disabled={pending} className={buttonClass}>
-          {pending ? 'Working…' : `Confirm: ${props.label.toLowerCase()}`}
-        </button>
-        <button type="button" className={secondaryButtonClass} onClick={() => setOpen(false)}>
-          Cancel
-        </button>
-      </div>
-    </form>
+    </div>
   );
 }
