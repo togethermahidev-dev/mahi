@@ -164,6 +164,7 @@
   --mahi-icon-size-i20: 1.25rem;
   --mahi-icon-size-i22: 1.375rem;
   --mahi-icon-size-i24: 1.5rem;
+  --mahi-icon-size-i28: 1.75rem;
   --mahi-icon-size-i32: 2rem;
   --mahi-icon-size-i80: 5rem;
   /* RADIUS */
@@ -410,6 +411,7 @@
   --spacing-i20: var(--mahi-icon-size-i20);
   --spacing-i22: var(--mahi-icon-size-i22);
   --spacing-i24: var(--mahi-icon-size-i24);
+  --spacing-i28: var(--mahi-icon-size-i28);
   --spacing-i32: var(--mahi-icon-size-i32);
   --spacing-i80: var(--mahi-icon-size-i80);
   /* RADIUS */
