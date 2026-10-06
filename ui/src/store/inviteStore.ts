@@ -21,11 +21,15 @@ interface InviteState {
   setPending: (token: string | null) => Promise<void>;
   /**
    * Claim the pending invite. Does nothing without one. The server refuses accounts older
-   * than a day; then, as for a used or expired invite, a note says why.
+   * than a day; then, as for a used or expired invite, a note says why and the invite goes.
+   * Any other failure (no connection) keeps it, with Try again.
    */
   claimPending: () => Promise<boolean>;
   reset: () => void;
 }
+
+/** What claim_invite says when it refuses an invite for good (anything else may work next time). */
+const SERVER_REFUSALS = ['new accounts', 'been used', 'expired', 'your own', 'not valid'];
 
 const initial = { pendingToken: null, preview: null, previewChecked: false, isClaiming: false };
 
@@ -52,10 +56,22 @@ export const useInviteStore = create<InviteState>((set, get) => ({
     const { data, error } = await claimInvite(token);
     set({ isClaiming: false });
     if (error || !data) {
-      // They opened a link or typed a code, so say why it didn't work (an older account, used,
-      // expired, a mistyped code) instead of nothing at all. Signing in carries on as normal.
+      const message = error?.message ?? '';
+      if (!SERVER_REFUSALS.some((r) => message.includes(r))) {
+        // No connection (or no answer): keep the invite, so Try again has something to try with.
+        // Signing in again tries again too.
+        useToastStore
+          .getState()
+          .show(
+            `Couldn’t connect you with ${inviter ? `@${inviter}` : 'your friend'}. Try again.`,
+            { action: { label: 'Try again', onPress: () => void get().claimPending() } }
+          );
+        return false;
+      }
+      // The server said no (an older account, used, ended, a mistyped code): say why instead of
+      // nothing at all, and let the invite go. Signing in carries on as normal.
       set({ pendingToken: null, preview: null, previewChecked: false });
-      useToastStore.getState().show(claimFailText(error?.message ?? '', inviter));
+      useToastStore.getState().show(claimFailText(message, inviter));
       return false;
     }
 
