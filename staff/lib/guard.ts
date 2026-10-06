@@ -12,6 +12,8 @@ export type StaffAction =
   | 'unhide_post'
   | 'remove_comment'
   | 'restore_comment'
+  | 'remove_message'
+  | 'restore_message'
   | 'warn_user'
   | 'suspend_user'
   | 'ban_user'

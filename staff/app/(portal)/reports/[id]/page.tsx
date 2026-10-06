@@ -159,6 +159,12 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
           {r.target_type === 'comment' && target && removed && (
             <ActionButton action="restore_comment" label="Restore comment" targetId={r.target_id} explain="The comment shows again under the post." />
           )}
+          {r.target_type === 'message' && target && !removed && (
+            <ActionButton action="remove_message" label="Remove message" targetId={r.target_id} reportId={r.id} destructive explain="Neither person sees the message any more. It's kept, so it can be restored. Closes every open report on it." />
+          )}
+          {r.target_type === 'message' && target && removed && (
+            <ActionButton action="restore_message" label="Restore message" targetId={r.target_id} explain="The message shows again in the conversation." />
+          )}
           {owner && <UserActions userId={owner.id} username={owner.username} banned={!!owner.is_banned} reportId={r.id} admin={canDo(role, 'ban_user')} />}
         </div>
       </Section>

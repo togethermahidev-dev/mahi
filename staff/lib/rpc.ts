@@ -38,6 +38,10 @@ export function rpcFor(action: StaffAction, input: ActionInput): RpcCall {
       return { fn: 'staff_remove_comment', args: { p_comment_id: id, p_reason: reason, p_report_id: reportId } };
     case 'restore_comment':
       return { fn: 'staff_restore_comment', args: { p_comment_id: id, p_reason: reason } };
+    case 'remove_message':
+      return { fn: 'staff_remove_message', args: { p_message_id: id, p_reason: reason, p_report_id: reportId } };
+    case 'restore_message':
+      return { fn: 'staff_restore_message', args: { p_message_id: id, p_reason: reason } };
     case 'warn_user':
       return { fn: 'staff_warn_user', args: { p_user_id: id, p_reason: reason, p_report_id: reportId } };
     case 'suspend_user': {

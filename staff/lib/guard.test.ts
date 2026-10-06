@@ -41,6 +41,8 @@ test('moderators can do every other action', () => {
     'unhide_post',
     'remove_comment',
     'restore_comment',
+    'remove_message',
+    'restore_message',
     'warn_user',
     'suspend_user',
   ] as const) {

@@ -41,6 +41,14 @@ test('the right call and arguments for each action', () => {
     fn: 'staff_restore_comment',
     args: { p_comment_id: ID, p_reason: 'r' },
   });
+  assert.deepEqual(rpcFor('remove_message', { targetId: ID, reason: 'r', reportId: REPORT }), {
+    fn: 'staff_remove_message',
+    args: { p_message_id: ID, p_reason: 'r', p_report_id: REPORT },
+  });
+  assert.deepEqual(rpcFor('restore_message', { targetId: ID, reason: 'r' }), {
+    fn: 'staff_restore_message',
+    args: { p_message_id: ID, p_reason: 'r' },
+  });
   assert.deepEqual(rpcFor('warn_user', { targetId: ID, reason: 'r' }), {
     fn: 'staff_warn_user',
     args: { p_user_id: ID, p_reason: 'r', p_report_id: null },

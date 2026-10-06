@@ -129,7 +129,9 @@ All are Supabase RPCs (`supabase.rpc(name, args)`) for a signed-in person.
 
 `warnings` lists warnings not yet marked seen. `until` is set only for a suspension. While
 suspended or banned, a person can't post, comment, claim invites or get pushes, and nobody sees
-their posts (all existing `is_banned` rules). They can still sign in.
+their posts (all existing `is_banned` rules). A suspension or ban also signs them out on every
+phone (their sessions and refresh tokens are deleted, `20261006160000_sign_out_on_ban`; the
+current access token lasts at most an hour). They can sign in again and then see they're banned.
 
 ### Follow back
 
@@ -157,6 +159,8 @@ reason is kept in the audit log, and for warnings, suspensions and bans it's wha
 | `staff_unhide_post` | `p_post_id`, `p_reason` | `{ ok, reports_closed: 0 }` |
 | `staff_remove_comment` | `p_comment_id`, `p_reason`, `p_report_id` (optional) | `{ ok, reports_closed }` |
 | `staff_restore_comment` | `p_comment_id`, `p_reason` | `{ ok, reports_closed: 0 }` |
+| `staff_remove_message` | `p_message_id`, `p_reason`, `p_report_id` (optional) | `{ ok, reports_closed }` |
+| `staff_restore_message` | `p_message_id`, `p_reason` | `{ ok, reports_closed: 0 }` |
 | `staff_warn_user` | `p_user_id`, `p_reason`, `p_report_id` (optional) | `{ ok, reports_closed }` |
 | `staff_suspend_user` | `p_user_id`, `p_reason`, `p_days` (1–365), `p_report_id` (optional) | `{ ok, reports_closed }` |
 | `staff_ban_user` (admin) | `p_user_id`, `p_reason`, `p_report_id` (optional) | `{ ok, reports_closed }` |
@@ -182,7 +186,7 @@ A **report item** is:
 `target` is the thing as it is now (null if deleted; use `snapshot`):
 post `{ id, caption, image_path, pov_image_path, rear_media_type, front_media_type, created_at,
 hidden_at, hidden_reason }`; comment `{ id, post_id, content, created_at, removed_at,
-removed_reason }`; message `{ id, conversation_id, content, created_at }`; user `{ id, username,
+removed_reason }`; message `{ id, conversation_id, content, created_at, removed_at, removed_reason }`; user `{ id, username,
 display_name, avatar_url, is_banned }`. Photo paths are in the `posts` storage bucket; staff may
 open any post's files (the storage read rule allows staff once the bucket is made private).
 Staff see a message only when it has been reported; they can't read conversations.
@@ -194,7 +198,7 @@ Staff can also read the tables directly (`user_reports`, `user_sanctions`, `mode
 
 `id, staff_id, action, target_type, target_id, report_id, reason, metadata, created_at`.
 `action` is one of `review_report`, `dismiss_report`, `hide_post`, `unhide_post`,
-`remove_comment`, `restore_comment`, `warn_user`, `suspend_user` (metadata `{ ends_at }`),
+`remove_comment`, `restore_comment`, `remove_message`, `restore_message`, `warn_user`, `suspend_user` (metadata `{ ends_at }`),
 `ban_user`, `unban_user`, and for the automatic check `ai_hide_post`, `ai_remove_comment`
 (`staff_id` null, metadata `{ scan_id }`).
 
@@ -291,11 +295,24 @@ table only the person can read); other people's profiles simply come back withou
 
 ## Not covered
 
-- Messages can be reported, but there's no staff action to remove a message (staff can warn,
-  suspend or ban the sender).
-- A ban doesn't sign the person out; they keep a working app with nothing they can post. To lock
-  them out of signing in too, ban them in Supabase Auth as well (dashboard → Authentication →
-  user → Ban).
+- A ban doesn't stop the person signing in again (they then see they're banned). To lock them
+  out of signing in, ban them in Supabase Auth as well (dashboard → Authentication → user → Ban).
+- A removed message disappears from a conversation that's already open only when it reloads.
+- Staff see a message only when it's reported; there's no list of a person's messages.
 - Videos and profile photos aren't checked automatically.
 - The `posts` storage bucket is still public, so a hidden post's photo link keeps working for
   anyone who already has it, until `supabase/deferred/private_bucket.sql` goes in.
+
+## Added 2026-10-06 (applied to production the same day)
+
+- `20261006150000_staff_remove_message`: staff remove (and restore) a reported message. It's
+  kept, but left out for both people: `get_messages`, the inbox's last message and unread count,
+  and direct reads of `messages`. Logged as `remove_message` / `restore_message`. In the portal,
+  "Remove message" shows on a message report. Test `tests/staff_remove_message_test.sql`.
+- `20261006160000_sign_out_on_ban`: suspending or banning someone signs them out (see "Your
+  standing"). Test `tests/sign_out_on_ban_test.sql`.
+- `20261006170000_signed_in_reads`: `get_feed_posts` and `get_follow_data` are for signed-in
+  callers only (the app never calls them signed out). Test `tests/signed_in_reads_test.sql`.
+
+Undo files for each are in `supabase/rollbacks/`. The `posts` bucket stays public on purpose
+(older builds need it; `supabase/deferred/private_bucket.sql` waits for the update gate).

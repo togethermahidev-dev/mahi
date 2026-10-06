@@ -36,6 +36,8 @@ export const AUDIT_ACTIONS: Record<string, string> = {
   unhide_post: 'Showed a post again',
   remove_comment: 'Removed a comment',
   restore_comment: 'Restored a comment',
+  remove_message: 'Removed a message',
+  restore_message: 'Restored a message',
   warn_user: 'Warned',
   suspend_user: 'Suspended',
   ban_user: 'Banned',
