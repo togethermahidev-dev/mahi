@@ -1,0 +1,22 @@
+@import 'tailwindcss';
+/* Every colour, size and font value comes from the app's tokens, through the website's generated
+   file (web/scripts/build-tokens.mjs). Never type a design value here or in a page. */
+@import '../../web/app/tokens.css';
+
+@layer base {
+  html {
+    background-color: var(--mahi-color-paper);
+    color: var(--mahi-color-ink-deep);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
