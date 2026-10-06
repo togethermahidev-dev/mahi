@@ -149,8 +149,10 @@ export function feedCountdown({
     return { label: line, ms: null, spoken: line };
   }
   return {
-    label: 'Feed will lock in',
+    // With no tag waiting, the server guarantees this much open time but does not lock at zero:
+    // after the window ends, the next incoming tag locks it. Never promise a lock that may not fire.
+    label: 'Feed stays open for at least',
     ms,
-    spoken: `Feed will lock in ${left}.`,
+    spoken: `Feed stays open for at least ${left}.`,
   };
 }

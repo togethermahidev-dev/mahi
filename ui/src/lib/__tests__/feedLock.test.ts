@@ -105,15 +105,15 @@ describe('feedCountdown', () => {
 
   it('within the 24 hours: a clock, and the hours in words for VoiceOver', () => {
     expect(feedCountdown({ ...base, unlockedUntil: at(18 * HOUR + 20 * MIN) })).toEqual({
-      label: 'Feed will lock in',
+      label: 'Feed stays open for at least',
       ms: 18 * HOUR + 20 * MIN,
-      spoken: 'Feed will lock in 18 hours.',
+      spoken: 'Feed stays open for at least 18 hours.',
     });
   });
 
   it('under an hour: minutes in words', () => {
     expect(feedCountdown({ ...base, unlockedUntil: at(12 * MIN) })?.spoken).toBe(
-      'Feed will lock in 12 minutes.'
+      'Feed stays open for at least 12 minutes.'
     );
   });
 
