@@ -12,6 +12,31 @@
   }
 }
 
+/* Keyboard focus is always visible: a ring in the accent ink, a little away from the edge. */
+:focus-visible {
+  outline: var(--mahi-border-width-w2) solid var(--mahi-color-accent-text);
+  outline-offset: var(--mahi-offset-o3);
+}
+
+/* Pinning to an edge. The theme has no zero spacing, so this is the one place a 0 is typed. */
+@utility pin-top {
+  top: 0;
+}
+@utility pin-bottom {
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+/* Lets a flex child shrink below its content, so long emails and names cut off instead of
+   pushing the page wider than the screen. */
+@utility shrinkable {
+  min-width: 0;
+}
+/* Room for the phone's home bar under the bottom tabs. */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
