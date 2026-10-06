@@ -2172,6 +2172,8 @@ export default function CameraScreen({
           tags: taggedUsersSnapshot.length + inviteCountSnapshot + slotsSnapshot.length,
           pointsBefore: profile.streak_current,
           pointsAfter: result.streak.streak_current,
+          // A milestone line in the toast below gets a small success buzz too.
+          bestBefore: profile.streak_highest,
         })
       );
       // Posting unlocks the feed: read it again so friends' posts appear.

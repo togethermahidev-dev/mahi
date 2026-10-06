@@ -3,6 +3,7 @@ import {
   pointsBadgeText,
   pointsCount,
   pointsStatsLabel,
+  pointsMilestone,
   pointsValue,
   postedToast,
 } from '../mahiPoints';
@@ -170,5 +171,38 @@ describe('postedToast', () => {
     expect(postedToast({ answered: ['sam'], points: 8, bestBefore: 12 })).toBe(
       'Answered @sam. +1 Mahi point. You have 8.'
     );
+  });
+});
+
+describe('pointsMilestone (the post toast lines worth a small celebration)', () => {
+  it('the first point', () => {
+    expect(pointsMilestone(1, 0)).toBe(true);
+  });
+  it('a new best', () => {
+    expect(pointsMilestone(13, 12)).toBe(true);
+  });
+  it('5, 10, 25, 50 and 100 answers without a miss', () => {
+    for (const n of [5, 10, 25, 50, 100]) expect(pointsMilestone(n, 200)).toBe(true);
+  });
+  it('not an ordinary point, a fresh start after a miss, or a tie with the best', () => {
+    expect(pointsMilestone(7, 20)).toBe(false);
+    expect(pointsMilestone(1, 12)).toBe(false);
+    expect(pointsMilestone(12, 12)).toBe(false);
+  });
+  it('not when the numbers are unknown (the toast says nothing special then either)', () => {
+    expect(pointsMilestone(5, null)).toBe(false);
+    expect(pointsMilestone(null, 3)).toBe(false);
+  });
+  it('matches the toast: every milestone gets its own line', () => {
+    const plain = (points: number, best: number) =>
+      postedToast({ answered: ['sam'], points, bestBefore: best }).endsWith(`You have ${points}.`);
+    for (const [points, best] of [
+      [1, 0],
+      [13, 12],
+      [10, 200],
+    ]) {
+      expect(plain(points, best)).toBe(false);
+    }
+    expect(plain(7, 20)).toBe(true);
   });
 });

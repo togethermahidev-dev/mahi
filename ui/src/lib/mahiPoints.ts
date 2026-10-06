@@ -57,6 +57,17 @@ function taggedLine({ friends, links }: { friends: number; links: number }): str
 }
 
 /**
+ * Whether a post's points are a milestone the toast celebrates with its own line: the first point,
+ * a new best, or 5 / 10 / 25 / 50 / 100 answers without a miss. `points` is the total after the
+ * post, `bestBefore` the best before it (null = unknown, as in `postedToast`). Felt as a small
+ * success buzz (`postedMoments` in haptics.ts).
+ */
+export function pointsMilestone(points: number | null, bestBefore: number | null): boolean {
+  if (points === null || bestBefore === null) return false;
+  return points > bestBefore || ROUND_NUMBERS.includes(points);
+}
+
+/**
  * The toast after every post. A post that answers no tag (the first post) opens the feed for 24
  * hours (#29) and says who it tagged; one that answers at least one tag earns one point (#47),
  * however many it answers. `points` is the total after the post (null when the server sent none);

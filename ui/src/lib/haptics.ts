@@ -4,6 +4,7 @@
  * Haptics are a nicety: a phone without them (or with them off) simply feels nothing.
  */
 import * as Haptics from 'expo-haptics';
+import { pointsMilestone } from '@/lib/mahiPoints';
 
 export type HapticMoment =
   /** A photo is taken or a video starts recording. */
@@ -22,6 +23,8 @@ export type HapticMoment =
   | 'tagSent'
   /** The server says a Mahi point was earned. */
   | 'pointsUp'
+  /** That point is a milestone: the first, a new best, or 5 / 10 / 25 / 50 / 100 (`pointsMilestone`). */
+  | 'milestone'
   /** The feed you are looking at opens… */
   | 'feedUnlocked'
   /** …or locks. */
@@ -48,6 +51,7 @@ export const HAPTIC_MOMENTS: Record<HapticMoment, Feel> = {
   postSent: impact(Haptics.ImpactFeedbackStyle.Medium),
   tagSent: notify(Haptics.NotificationFeedbackType.Success),
   pointsUp: impact(Haptics.ImpactFeedbackStyle.Heavy),
+  milestone: notify(Haptics.NotificationFeedbackType.Success),
   feedUnlocked: notify(Haptics.NotificationFeedbackType.Success),
   feedLocked: notify(Haptics.NotificationFeedbackType.Warning),
   warning: notify(Haptics.NotificationFeedbackType.Warning),
@@ -79,21 +83,28 @@ export function hapticSequence(moments: HapticMoment[]): void {
 
 /**
  * What a post confirmed by the server feels like: its tags (or invite links) reached people,
- * then — when the server says so — a Mahi point was earned.
+ * then — when the server says so — a Mahi point was earned, and when that point is one the toast
+ * celebrates (first point, new best, 5 / 10 / 25 / 50 / 100), a small success buzz.
  */
 export function postedMoments({
   tags,
   pointsBefore,
   pointsAfter,
+  bestBefore = null,
 }: {
   /** Friends tagged plus invite links. */
   tags: number;
   pointsBefore: number;
   pointsAfter: number;
+  /** The best before this post (null = unknown: no milestone buzz). */
+  bestBefore?: number | null;
 }): HapticMoment[] {
   const moments: HapticMoment[] = [];
   if (tags > 0) moments.push('tagSent');
-  if (pointsAfter > pointsBefore) moments.push('pointsUp');
+  if (pointsAfter > pointsBefore) {
+    moments.push('pointsUp');
+    if (pointsMilestone(pointsAfter, bestBefore)) moments.push('milestone');
+  }
   return moments;
 }
 

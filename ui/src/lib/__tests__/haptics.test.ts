@@ -112,6 +112,31 @@ describe('postedMoments — what a confirmed post feels like', () => {
     expect(postedMoments({ tags: 0, pointsBefore: 2, pointsAfter: 2 })).toEqual([]);
   });
 
+  it('a milestone (first point, new best, 5/10/25/50/100) adds a success buzz after the point', () => {
+    expect(postedMoments({ tags: 3, pointsBefore: 0, pointsAfter: 1, bestBefore: 0 })).toEqual([
+      'tagSent',
+      'pointsUp',
+      'milestone',
+    ]);
+    expect(postedMoments({ tags: 0, pointsBefore: 9, pointsAfter: 10, bestBefore: 40 })).toEqual([
+      'pointsUp',
+      'milestone',
+    ]);
+  });
+
+  it('an ordinary point has no milestone buzz', () => {
+    expect(postedMoments({ tags: 0, pointsBefore: 6, pointsAfter: 7, bestBefore: 20 })).toEqual([
+      'pointsUp',
+    ]);
+  });
+
+  it('feels the milestone as a success', () => {
+    expect(HAPTIC_MOMENTS.milestone).toEqual({
+      kind: 'notification',
+      type: Haptics.NotificationFeedbackType.Success,
+    });
+  });
+
   it('points that went down (a missed tag) is not a celebration', () => {
     expect(postedMoments({ tags: 3, pointsBefore: 5, pointsAfter: 1 })).toEqual(['tagSent']);
   });
