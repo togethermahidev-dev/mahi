@@ -9,7 +9,6 @@ import {
   RefreshControl,
   useWindowDimensions,
 } from 'react-native';
-import { FlashList, useRecyclingState } from '@shopify/flash-list';
 import { useTabBarRoom } from '@/hooks/useChrome';
 import type { NativeGesture } from 'react-native-gesture-handler';
 import Svg, { Path } from 'react-native-svg';
@@ -33,23 +32,26 @@ import { VideoIcon } from '@/components/ScreenIcons';
 import PreviewMenu, { PostPreviewImage } from '@/components/PreviewMenu';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import ListState from '@/components/ListState';
+import TouchCarousel from '@/components/TouchCarousel';
 import type { FeedPost } from '@/api';
+import { relativeTime } from '@/lib/relativeTime';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
   ALPHA,
+  BORDER_WIDTH,
   FONT_SIZE,
   ICON_SIZE,
-  LAYOUT,
+  LINE_HEIGHT,
   OFFSET,
+  PREVIEW_MENU,
   RADIUS,
+  SHADOW_BLUR,
   SIZE,
   SPACE,
   STROKE,
   withAlpha,
 } from '@/constants/tokens';
-
-const GAP = SPACE.s2;
 
 function CameraIcon({ color, size = SIZE.z48 }: { color: string; size?: number }) {
   return (
@@ -97,26 +99,27 @@ function LockIcon({ color }: { color: string }) {
 /** Said when a locked square is tapped, and read by VoiceOver on it. */
 const LOCKED_HINT = 'Opens when you answer a friend’s tag.';
 
-function GridCell({
+function WorkoutCard({
   post,
   dark,
-  size,
-  column,
+  width,
+  mediaHeight,
+  cardHeight,
   onPress,
   menuOn,
 }: {
   post: FeedPost;
   dark: boolean;
-  size: number;
-  column: number;
+  width: number;
+  mediaHeight: number;
+  cardHeight: number;
   onPress: () => void;
   /** Hold to preview (flag context-menu-preview, iPhone, build 11). */
   menuOn: boolean;
 }) {
-  // FlashList reuses cells: forget a previous post's failed image when the post changes.
-  const [imgError, setImgError] = useRecyclingState(false, [post.id]);
+  const [imgError, setImgError] = useState(false);
   // A muted square with a spinner until the photo arrives (slow networks).
-  const [imgLoaded, setImgLoaded] = useRecyclingState(false, [post.id]);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const badgeBg = dark
     ? withAlpha(COLORS.offBlack, ALPHA.a75)
     : withAlpha(COLORS.offWhite, ALPHA.a75);
@@ -127,13 +130,9 @@ function GridCell({
   const label = tile.video ? 'video post' : 'post';
   // Locked: the server sent no photo (the viewer hasn't answered a tag lately).
   const locked = !post.image_url;
-  const { muted } = themeColors(dark);
+  const { muted, border, accentText } = themeColors(dark);
   // Locked, loading and failed squares share one muted surface.
   const tileBg = dark ? COLORS.surfaceDark : COLORS.surfaceLight2;
-  // FlashList gives each column an equal third of the width; nudging each cell right by a
-  // share of the gap keeps the photos equal with GAP between them.
-  const place = { marginLeft: (column * GAP) / LAYOUT.profileColumns };
-
   // Hold to preview: only posts that open (locked ones have no photo) get the pop-up.
   const withMenu = menuOn && !!post.image_url;
   const liked = useSocialStore((s) => s.likedByMe[post.id] ?? post.liked_by_me);
@@ -154,10 +153,9 @@ function GridCell({
   const cell = (
     <Pressable
       style={({ pressed }) => [
-        // With the pop-up, its host carries the spacing instead.
-        !withMenu && styles.cell,
-        { width: size, height: size },
-        !withMenu && place,
+        !withMenu && styles.card,
+        { width },
+        !withMenu && { backgroundColor: tileBg, borderColor: border },
         pressed && { opacity: ALPHA.a80 },
       ]}
       onPress={locked ? () => useToastStore.getState().show(LOCKED_HINT) : onPress}
@@ -174,23 +172,23 @@ function GridCell({
       onAccessibilityAction={withMenu ? (e) => runAction(e.nativeEvent.actionName) : undefined}
     >
       {locked ? (
-        <View style={[styles.lockedTile, { width: size, height: size, backgroundColor: tileBg }]}>
+        <View style={[styles.lockedTile, { width, height: mediaHeight, backgroundColor: tileBg }]}>
           <LockIcon color={muted} />
         </View>
       ) : tile.video && !tile.uri ? (
-        <View style={[styles.videoTile, { width: size, height: size }]}>
+        <View style={[styles.videoTile, { width, height: mediaHeight }]}>
           <VideoIcon size={ICON_SIZE.i32} color={COLORS.white} />
         </View>
       ) : imgError || !tile.uri ? (
         // A photo that failed to load: a plain square with the camera mark, never a stand-in photo.
-        <View style={[styles.lockedTile, { width: size, height: size, backgroundColor: tileBg }]}>
+        <View style={[styles.lockedTile, { width, height: mediaHeight, backgroundColor: tileBg }]}>
           <CameraIcon color={muted} size={ICON_SIZE.i32} />
         </View>
       ) : (
-        <View style={{ width: size, height: size, backgroundColor: tileBg }}>
+        <View style={{ width, height: mediaHeight, backgroundColor: tileBg }}>
           <Image
             source={{ uri: tile.uri }}
-            style={{ width: size, height: size }}
+            style={{ width, height: mediaHeight }}
             resizeMode="cover"
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
@@ -212,15 +210,30 @@ function GridCell({
           <Text style={[styles.badgeText, { color: badgeText }]}>{points}</Text>
         </View>
       ) : null}
+      <View
+        style={[styles.cardFooter, { backgroundColor: dark ? COLORS.surfaceDark : COLORS.white }]}
+      >
+        <View style={styles.cardFooterRow}>
+          <Text style={[styles.cardEyebrow, { color: accentText }]}>Workout check-in</Text>
+          <Text style={[styles.cardTime, { color: muted }]}>{relativeTime(post.created_at)}</Text>
+        </View>
+        <Text
+          style={[styles.cardCaption, { color: dark ? COLORS.offWhite : COLORS.offBlack }]}
+          numberOfLines={2}
+        >
+          {post.caption || 'Workout completed.'}
+        </Text>
+        <Text style={[styles.cardHint, { color: muted }]}>Tap to open full screen</Text>
+      </View>
     </Pressable>
   );
 
   if (!withMenu) return cell;
   return (
     <PreviewMenu
-      width={size}
-      height={size}
-      style={[styles.cell, place]}
+      width={width}
+      height={cardHeight}
+      style={[styles.card, { borderColor: border }]}
       dark={dark}
       items={items}
       onAction={runAction}
@@ -248,9 +261,11 @@ interface ProfileMediaMapProps {
   username?: string | null;
   /** Your own empty grid: a button to the camera, when the screen can open it. */
   onOpenCamera?: () => void;
+  /** Prevents the parent page swipe from stealing a drag across the workout carousel. */
+  onCarouselTouchChange?: (active: boolean) => void;
 }
 
-/** A profile page as one scrolling list: the header, then the posts three to a row. */
+/** A profile page as one scrolling list: the header, then newest-first full-width workout cards. */
 export default function ProfileMediaMap({
   userId,
   isSelf,
@@ -259,6 +274,7 @@ export default function ProfileMediaMap({
   listGesture,
   username,
   onOpenCamera,
+  onCarouselTouchChange,
 }: ProfileMediaMapProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
@@ -279,7 +295,9 @@ export default function ProfileMediaMap({
   const failed = posts.length === 0 && !isLoading && lastSyncedAt === null;
   const menuOn = useContextMenuPreview();
   const { width } = useWindowDimensions();
-  const cellSize = (width - GAP * (LAYOUT.profileColumns - 1)) / LAYOUT.profileColumns;
+  const cardWidth = Math.min(SIZE.z400, width - SPACE.s40);
+  const mediaHeight = Math.min(SIZE.z420, cardWidth * PREVIEW_MENU.postAspect);
+  const cardHeight = mediaHeight + SIZE.z120;
 
   // Pull to refresh: the spinner shows until the fresh posts are in.
   const [refreshing, setRefreshing] = useState(false);
@@ -318,33 +336,44 @@ export default function ProfileMediaMap({
 
   return (
     <ListGestureContext.Provider value={listGesture}>
-      <FlashList
-        renderScrollComponent={GestureScrollView}
-        data={posts}
-        keyExtractor={(item) => item.id}
-        numColumns={LAYOUT.profileColumns}
-        style={{ ...styles.list, backgroundColor: bg }}
-        ListHeaderComponent={header}
-        ListEmptyComponent={empty}
-        contentContainerStyle={tabRoom > 0 ? { paddingBottom: tabRoom } : undefined}
-        renderItem={({ item, index }) => (
-          <GridCell
-            post={item}
-            dark={dark}
-            size={cellSize}
-            column={index % LAYOUT.profileColumns}
-            // Locked posts (no photo URL) never reach here: their square explains itself.
-            onPress={() => onPostPress?.(item)}
-            menuOn={menuOn}
-          />
-        )}
+      <GestureScrollView
+        style={[styles.list, { backgroundColor: bg }]}
+        contentContainerStyle={[styles.content, tabRoom > 0 && { paddingBottom: tabRoom }]}
         showsVerticalScrollIndicator={false}
-        onEndReached={hasMore ? loadMore : undefined}
-        onEndReachedThreshold={0.4}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...refreshTint(dark)} />
         }
-      />
+      >
+        {header}
+        {posts.length === 0 ? (
+          empty
+        ) : (
+          <View style={styles.carouselWrap}>
+            <TouchCarousel
+              items={posts}
+              keyExtractor={(post) => post.id}
+              itemWidth={cardWidth}
+              endInset={SPACE.s20}
+              accessibilityLabel="Workout posts, newest first"
+              onTouchStateChange={onCarouselTouchChange}
+              onActiveIndexChange={(index) => {
+                if (hasMore && index >= posts.length - 2) void loadMore();
+              }}
+              renderItem={(post) => (
+                <WorkoutCard
+                  post={post}
+                  dark={dark}
+                  width={cardWidth}
+                  mediaHeight={mediaHeight}
+                  cardHeight={cardHeight}
+                  onPress={() => onPostPress?.(post)}
+                  menuOn={menuOn}
+                />
+              )}
+            />
+          </View>
+        )}
+      </GestureScrollView>
     </ListGestureContext.Provider>
   );
 }
@@ -353,8 +382,21 @@ const styles = StyleSheet.create({
   list: {
     flex: 1,
   },
-  cell: {
-    marginBottom: GAP,
+  content: {
+    flexGrow: 1,
+  },
+  carouselWrap: {
+    paddingLeft: SPACE.s20,
+    paddingBottom: SPACE.s24,
+  },
+  card: {
+    overflow: 'hidden',
+    borderRadius: RADIUS.r24,
+    borderWidth: BORDER_WIDTH.w1,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: SIZE.z4 },
+    shadowOpacity: ALPHA.a15,
+    shadowRadius: SHADOW_BLUR.b10,
   },
   badge: {
     position: 'absolute',
@@ -367,6 +409,37 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.semiBold,
+  },
+  cardFooter: {
+    padding: SPACE.s16,
+    gap: SPACE.s6,
+  },
+  cardFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACE.s12,
+  },
+  cardEyebrow: {
+    flex: 1,
+    fontSize: FONT_SIZE.f12,
+    lineHeight: LINE_HEIGHT.l16,
+    fontFamily: FONTS.semiBold,
+  },
+  cardTime: {
+    fontSize: FONT_SIZE.f12,
+    lineHeight: LINE_HEIGHT.l16,
+    fontFamily: FONTS.regular,
+  },
+  cardCaption: {
+    fontSize: FONT_SIZE.f16,
+    lineHeight: LINE_HEIGHT.l22,
+    fontFamily: FONTS.semiBold,
+  },
+  cardHint: {
+    fontSize: FONT_SIZE.f12,
+    lineHeight: LINE_HEIGHT.l16,
+    fontFamily: FONTS.regular,
   },
   // A locked or failed post: a plain square with a padlock or the camera mark (never a stand-in
   // photo); also centres the spinner while a photo loads.

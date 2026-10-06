@@ -407,7 +407,6 @@ export default function UserProfileScreen({
       </Pressable>
 
       <View style={styles.titleBlock}>
-        <Text style={[styles.eyebrow, { color: accentText }]}>Mahi</Text>
         <Text style={[styles.screenTitle, { color: text }]}>Profile</Text>
       </View>
 

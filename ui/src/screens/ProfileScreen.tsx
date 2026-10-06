@@ -138,7 +138,6 @@ export default function ProfileScreen({
           here because it is the profile's route to finding anyone on Mahi. */}
       <View style={styles.topBar}>
         <View style={styles.titleBlock}>
-          <Text style={[styles.eyebrow, { color: accentText }]}>Mahi</Text>
           <Text style={[styles.screenTitle, { color: text }]}>Profile</Text>
         </View>
         <View style={styles.actions}>
@@ -307,6 +306,7 @@ export default function ProfileScreen({
           onPostPress={(post) => setViewerPostId(post.id)}
           listGesture={listGesture}
           onOpenCamera={onOpenCamera}
+          onCarouselTouchChange={onCarouselTouchChange}
         />
       ) : (
         header
