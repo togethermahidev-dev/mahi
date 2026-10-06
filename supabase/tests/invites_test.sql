@@ -148,7 +148,7 @@ select is(
 select is(
   (select string_agg(body, ' | ' order by send_after) from public.push_outbox
    where user_id = '00000000-0000-0000-0000-00000000d00c' and kind = 'tag_reminder'),
-  '24 hours left to post your Mahi! @inv_a is waiting. | 2 hours left to post your Mahi! @inv_a is waiting.',
+  'Answer @inv_a''s tag by {deadline}. | Last call: answer @inv_a''s tag by {deadline}.',
   'the new person gets both reminders, naming who invited them'
 );
 

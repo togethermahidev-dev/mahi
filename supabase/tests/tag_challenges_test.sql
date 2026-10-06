@@ -98,11 +98,11 @@ select ok((pg_temp.challenge('tag_a', 'tag_b')).expires_at = now() + interval '4
 select is((select count(*)::int from public.post_tags pt join public.posts p on p.id = pt.post_id
            where p.user_id = '00000000-0000-0000-0000-00000000c00a'), 3, 'tag bubbles saved');
 select is((select count(*)::int from public.push_outbox
-           where kind = 'tag' and body = 'You''ve just been tagged by @tag_a. 48 hours left to post your Mahi!'), 3,
+           where kind = 'tag' and body = '@tag_a tagged you. Post any workout by {deadline}.'), 3,
   'each friend gets one tag push with the deadline');
--- At least 3: a "2 hours left" reminder that quiet hours would push past the deadline is dropped.
+-- At least 3 (the words are filled in when sent: 20261006120000_push_deadline_wording).
 select ok((select count(*) from public.push_outbox
-           where kind = 'tag_reminder' and body like '% hours left to post your Mahi! @tag_a is waiting.') >= 3,
+           where kind = 'tag_reminder' and body like '%answer @tag_a''s tag by {deadline}.') >= 3,
   'reminders are queued');
 
 -- 2. B answers A's tag (3 hours later). B's only friend is A, who can't be tagged back,
@@ -128,7 +128,7 @@ select is((select count(*)::int from public.push_outbox
   'answering removes the unsent reminders');
 select is((select body from public.push_outbox
            where kind = 'tag_answered' and user_id = '00000000-0000-0000-0000-00000000c00a'),
-  '@tag_b answered your tag in 3h', 'A is told how fast B answered');
+  '@tag_b answered your tag in 3 hours', 'A is told how fast B answered');
 select is((public.answered_by_post((pg_temp.challenge('tag_a', 'tag_b')).answered_post_id) -> 0 ->> 'seconds')::int,
   10800, 'the post records the response time');
 
@@ -161,7 +161,7 @@ select is((select count(*)::int from public.notifications
            where type = 'streak_lost' and user_id = '00000000-0000-0000-0000-00000000c00c'), 1,
   'the tagged person is told they lost their streak');
 select is((select body from public.push_outbox where kind = 'tag_missed' and user_id = '00000000-0000-0000-0000-00000000c00a'),
-  '@tag_c missed your tag', 'the tagger''s push names who missed');
+  '@tag_c missed your tag. A quick message could get them back to it.', 'the tagger''s push names who missed');
 
 select * from finish();
 rollback;

@@ -78,13 +78,13 @@ select lives_ok($$select pg_temp.post('a', 1, array['b', 'c', 'd'])$$, 'A posts 
 reset role;
 
 select is((select body from pg_temp.queued('b', 'tag')),
-  'You''ve just been tagged by @fpush_test_a. 48 hours left to post your Mahi!',
-  'the tag push says who tagged you and the hours left');
+  '@fpush_test_a tagged you. Post any workout by {deadline}.',
+  'the tag push says who tagged you and the deadline (filled in when sent)');
 select is((select data ->> 'route' from pg_temp.queued('b', 'tag')), 'camera', 'and opens the camera');
 select is(
   (select string_agg(body, ' | ' order by send_after) from pg_temp.queued('b', 'tag_reminder')),
-  '24 hours left to post your Mahi! @fpush_test_a is waiting. | 2 hours left to post your Mahi! @fpush_test_a is waiting.',
-  'the two reminders say the time left and who is waiting');
+  'Answer @fpush_test_a''s tag by {deadline}. | Last call: answer @fpush_test_a''s tag by {deadline}.',
+  'the two reminders say whose tag and the deadline');
 select is(
   (select array_agg(send_after order by send_after) from pg_temp.queued('b', 'tag_reminder')),
   array[now() + interval '24 hours', now() + interval '46 hours'],
@@ -128,7 +128,7 @@ select is((select count(*)::int from public.push_outbox
            where user_id = pg_temp.uid('c') and sent_at is null
              and kind in ('feed_lock_warning', 'feed_locked', 'tag_reminder')), 0,
   'posting takes back the feed pushes and the reminders');
-select is((select body from pg_temp.queued('a', 'tag_answered')), '@fpush_test_c answered your tag in 3h',
+select is((select body from pg_temp.queued('a', 'tag_answered')), '@fpush_test_c answered your tag in 3 hours',
   'the tagger hears how fast the answer came');
 
 -- 4. Two friends tag C inside the new 24 hours. The pushes name the tag that runs out first.
@@ -241,7 +241,7 @@ select is((select count(*)::int from public.push_outbox
            where user_id = pg_temp.uid('f') and sent_at is null and kind in ('feed_lock_warning', 'feed_locked')), 0,
   'a missed tag takes its feed pushes with it');
 
--- 9. A shorter tag window: the hours in the tag push follow it, and a reminder whose moment has
+-- 9. A shorter tag window: the tag push's deadline follows it, and a reminder whose moment has
 --    already passed is not sent.
 update public.app_config set tag_window = '12 hours';
 insert into public.tag_challenges (tagger_id, tagged_id, expires_at)
@@ -249,10 +249,10 @@ values (pg_temp.uid('a'), pg_temp.uid('g'), now() + interval '12 hours');
 insert into public.notifications (user_id, actor_id, type, challenge_id)
 values (pg_temp.uid('g'), pg_temp.uid('a'), 'tag', (pg_temp.tag('a', 'g')).id);
 select is((select body from pg_temp.queued('g', 'tag')),
-  'You''ve just been tagged by @fpush_test_a. 12 hours left to post your Mahi!',
-  'the tag push takes its hours from the server setting');
+  '@fpush_test_a tagged you. Post any workout by {deadline}.',
+  'the tag push takes its deadline from the tag');
 select is((select array_agg(body) from pg_temp.queued('g', 'tag_reminder')),
-  array['2 hours left to post your Mahi! @fpush_test_a is waiting.'],
+  array['Last call: answer @fpush_test_a''s tag by {deadline}.'],
   'with 12 hours to answer there is no "24 hours left" reminder');
 update public.app_config set tag_window = '48 hours';
 
@@ -269,12 +269,12 @@ select is(
    where user_id = pg_temp.uid('g') and kind in ('like', 'comment', 'follow', 'tag_missed', 'streak_lost', 'invite_joined')),
   'comment: @fpush_test_a commented on your post | follow: @fpush_test_a started following you | '
   || 'invite_joined: @fpush_test_a joined Mahi from your invite | like: @fpush_test_a liked your post | '
-  || 'streak_lost: You missed @fpush_test_a''s tag. Your points are back to 0. | tag_missed: @fpush_test_a missed your tag',
-  'likes, comments, follows, joins and misses keep their words; a miss says points, not streak');
+  || 'streak_lost: You missed @fpush_test_a''s tag. Your points are back to 0. | tag_missed: @fpush_test_a missed your tag. A quick message could get them back to it.',
+  'likes, comments, follows and joins keep their words; a miss says points, not streak, and gives the tagger a next step');
 select is((select count(*)::int from public.push_outbox
            where user_id in (select pg_temp.uid(x) from unnest(array['a','b','c','d','e','f','g']) x)
-             and (body ilike '%streak%' or body like '%hours left to answer%' or body like '%tagged you. You have%')), 0,
-  'no push says streak or uses the old tag wording');
+             and (body ilike '%streak%' or body like '%hours left%' or body like '%tagged you. You have%' or body like '%!%')), 0,
+  'no push says streak, uses the old tag wording or shouts');
 
 -- 11. A banned person gets nothing.
 update public.profiles set is_banned = true where id = pg_temp.uid('e');
