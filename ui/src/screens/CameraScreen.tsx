@@ -1990,6 +1990,21 @@ export default function CameraScreen({
     setLocationEnabled(granted);
   };
 
+  // A post that failed without a server refusal may still have gone through (the reply was
+  // lost). Its photos come back to the preview with the same post id, so a retry is answered with
+  // that same post instead of a second one (or a wrong "Your tag has ended"). Memory only.
+  const retryRef = useRef<{ clientId: string; front: CapturedPhoto; rear: CapturedPhoto } | null>(
+    null
+  );
+  // The toast's Try again posts with whatever the preview holds by then.
+  const uploadRef = useRef<(front: CapturedPhoto, rear: CapturedPhoto) => Promise<void>>(
+    async () => {}
+  );
+  const retryPost = () => {
+    const retry = retryRef.current;
+    if (retry) void uploadRef.current(retry.front, retry.rear);
+  };
+
   // Upload both photos, create post
   const uploadPhotos = async (front: CapturedPhoto, rear: CapturedPhoto) => {
     if (!userId || !profile) return;
@@ -2056,7 +2071,12 @@ export default function CameraScreen({
     setLocationEnabled(false);
     setIsUploading(false);
 
-    const clientId = randomUUID();
+    // The same photos coming back after a failure keep their post id (create_post is idempotent
+    // on it); new photos get a new one.
+    const retry = retryRef.current;
+    const clientId =
+      retry && retry.front === front && retry.rear === rear ? retry.clientId : randomUUID();
+    retryRef.current = null;
     let uploadedPaths: string[] = [];
 
     try {
@@ -2182,13 +2202,20 @@ export default function CameraScreen({
       useFeedStore.getState().removePending(tempId);
       const current = useUserStore.getState().profile;
       if (current) setProfile({ ...current, streak_current: profile.streak_current });
-      removePostPhotos(uploadedPaths).catch(() => {});
-
       // Say what to change, and give the photos back so the post can go again — except when
       // there's no tag to answer (reactive posting), which the preview can't fix.
       const refusal = postRefusal(message);
-      useToastStore.getState().show(refusal.text, WAIT.toastLong);
+      // Only a real refusal means no post points at the uploads. A lost reply may have posted.
+      if (refusal.refused) removePostPhotos(uploadedPaths).catch(() => {});
+      if (refusal.refused) {
+        useToastStore.getState().show(refusal.text, WAIT.toastLong);
+      } else {
+        useToastStore
+          .getState()
+          .show(refusal.text, { action: { label: 'Try again', onPress: retryPost } });
+      }
       if (refusal.keepPhotos) {
+        retryRef.current = { clientId, front, rear };
         setFrontPhoto(front);
         setRearPhoto(rear);
         setCaption(captionValue ?? '');
@@ -2209,6 +2236,10 @@ export default function CameraScreen({
       uploadingRef.current = false;
     }
   };
+
+  useEffect(() => {
+    uploadRef.current = uploadPhotos;
+  });
 
   const hasPreview = frontPhoto !== null && rearPhoto !== null;
   useEffect(() => {
@@ -2246,6 +2277,8 @@ export default function CameraScreen({
   };
 
   const handleDiscard = () => {
+    // Uploads from a failed try stay: a lost reply may mean that post is live and uses them.
+    retryRef.current = null;
     setFrontPhoto(null);
     setRearPhoto(null);
     setCaption('');

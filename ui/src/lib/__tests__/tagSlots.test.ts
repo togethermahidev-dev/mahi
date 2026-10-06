@@ -191,6 +191,7 @@ describe('postRefusal', () => {
     expect(postRefusal('reactive posting: not tagged')).toEqual({
       text: 'Your tag has ended, so this can’t be posted. You can post again when a friend tags you.',
       keepPhotos: false,
+      refused: true,
       report: false,
     });
   });
@@ -199,6 +200,7 @@ describe('postRefusal', () => {
     expect(postRefusal('tag your friends first')).toEqual({
       text: 'Tag your friends first. A link only fills a tag your friends can’t.',
       keepPhotos: true,
+      refused: true,
       report: false,
     });
   });
@@ -206,21 +208,30 @@ describe('postRefusal', () => {
   it('an invite that ended, or tags that changed: keeps the photos', () => {
     expect(postRefusal('that invite is no longer open').keepPhotos).toBe(true);
     expect(postRefusal('that invite is no longer open').text).toBe(
-      'One of your invites has ended. Check your tags and post again.'
+      'A link or tag request has ended. Check your tags and post again.'
     );
     expect(postRefusal('cannot tag that person')).toEqual({
       text: 'Your tags changed. Check them and post again.',
       keepPhotos: true,
+      refused: true,
       report: false,
     });
   });
 
-  it('anything else: keeps the photos and is reported', () => {
+  it('anything else (a dropped connection): keeps the photos and is reported', () => {
     expect(postRefusal('network request failed')).toEqual({
-      text: 'Couldn’t post. Your photos are still here, try again.',
+      text: 'Couldn’t post. Your photos are still here. Try again.',
       keepPhotos: true,
+      refused: false,
       report: true,
     });
+  });
+
+  it('only a real server refusal lets the uploads go: a lost reply may still have posted', () => {
+    // The post may be live and pointing at these files, so they stay and the retry reuses the id.
+    expect(postRefusal('Network request failed').refused).toBe(false);
+    expect(postRefusal('').refused).toBe(false);
+    expect(postRefusal('reactive posting: not tagged').refused).toBe(true);
   });
 });
 

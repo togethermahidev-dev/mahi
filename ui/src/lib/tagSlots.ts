@@ -188,19 +188,24 @@ export function tagInviteState(
 }
 
 /**
- * What to say when the server refuses a post, and whether to give the photos back so it can be
- * posted again (review, 2026-10-05: a refusal used to throw them away). Only "no tag to answer"
- * can't be fixed from the preview.
+ * What to say when a post fails, whether to give the photos back so it can be posted again
+ * (review, 2026-10-05: a refusal used to throw them away), and whether the server truly refused
+ * it. Only a refusal (`refused`) means no post exists, so only then may the uploads be removed.
+ * Anything else (a dropped connection) may have posted with the reply lost: the uploads stay and
+ * the retry reuses the same post id, which the server answers with that same post. Only "no tag
+ * to answer" can't be fixed from the preview.
  */
 export function postRefusal(message: string): {
   text: string;
   keepPhotos: boolean;
+  refused: boolean;
   report: boolean;
 } {
   if (message.includes('reactive posting')) {
     return {
       text: 'Your tag has ended, so this can’t be posted. You can post again when a friend tags you.',
       keepPhotos: false,
+      refused: true,
       report: false,
     };
   }
@@ -208,13 +213,15 @@ export function postRefusal(message: string): {
     return {
       text: 'Tag your friends first. A link only fills a tag your friends can’t.',
       keepPhotos: true,
+      refused: true,
       report: false,
     };
   }
   if (message.includes('no longer open')) {
     return {
-      text: 'One of your invites has ended. Check your tags and post again.',
+      text: 'A link or tag request has ended. Check your tags and post again.',
       keepPhotos: true,
+      refused: true,
       report: false,
     };
   }
@@ -222,12 +229,14 @@ export function postRefusal(message: string): {
     return {
       text: 'Your tags changed. Check them and post again.',
       keepPhotos: true,
+      refused: true,
       report: false,
     };
   }
   return {
-    text: 'Couldn’t post. Your photos are still here, try again.',
+    text: 'Couldn’t post. Your photos are still here. Try again.',
     keepPhotos: true,
+    refused: false,
     report: true,
   };
 }
