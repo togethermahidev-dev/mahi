@@ -1,19 +1,28 @@
 import Link from 'next/link';
 import { requireStaff } from '@/lib/staff';
-import type { Person } from '@/lib/types';
-import { Badge, Empty, ErrorNote, Section } from '@/components/bits';
+import { standingOf } from '@/lib/present';
+import type { Person, Sanction } from '@/lib/types';
+import { Empty, ErrorNote, PageTitle, Section, StandingBadge } from '@/components/bits';
 import { cardClass, inputClass, primaryButtonClass } from '@/components/styles';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const COLUMNS = 'id, username, display_name, avatar_url, is_banned';
 
-function PersonRow({ p }: { p: Person }) {
+function PersonList({ people, sanctions }: { people: Person[]; sanctions: Sanction[] }) {
   return (
-    <Link href={`/users/${p.id}`} className={`${cardClass} flex flex-wrap items-center gap-s8`}>
-      <span className="text-f16 font-semi-bold">{`@${p.username ?? '?'}`}</span>
-      {p.display_name && <span className="text-f14 text-grey888">{p.display_name}</span>}
-      {p.is_banned && <Badge tone="danger">Suspended or banned</Badge>}
-    </Link>
+    <ul className="flex flex-col gap-s8">
+      {people.map((p) => (
+        <li key={p.id}>
+          <Link href={`/users/${p.id}`} className={`${cardClass} flex min-h-z44 flex-wrap items-center gap-s8`}>
+            <span className="text-f16 font-semi-bold">{`@${p.username ?? '?'}`}</span>
+            {p.display_name && <span className="shrinkable truncate text-f14 text-grey888">{p.display_name}</span>}
+            <span className="ml-auto">
+              <StandingBadge standing={standingOf(sanctions.filter((s) => s.user_id === p.id), !!p.is_banned)} />
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -34,45 +43,42 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     found = (data ?? []) as Person[];
     searchError = error?.message ?? null;
   }
-  const { data: blocked, error: blockedError } = await db
-    .from('profiles')
-    .select(COLUMNS)
-    .eq('is_banned', true)
-    .order('username')
-    .limit(200);
+  const { data: blockedData, error: blockedError } = await db.from('profiles').select(COLUMNS).eq('is_banned', true).order('username').limit(200);
+  const blocked = (blockedData ?? []) as Person[];
+
+  // Their warnings, suspensions and bans, for the standing badges.
+  const ids = [...new Set([...found, ...blocked].map((p) => p.id))];
+  const { data: sanctionData } = ids.length
+    ? await db.from('user_sanctions').select('*').in('user_id', ids)
+    : { data: [] };
+  const sanctions = (sanctionData ?? []) as Sanction[];
 
   return (
     <>
-      <h1 className="text-f24 font-bold">People</h1>
-      <form className="mt-s16 flex flex-wrap items-end gap-s12" method="get">
-        <label className="flex flex-col gap-s4 text-f13 font-semi-bold">
+      <PageTitle title="People" intro="Find someone to see their history and act on their account." />
+      <form method="get" role="search" className="flex gap-s8">
+        <label className="sr-only" htmlFor="q">
           Username, name or id
-          <input name="q" defaultValue={q} className={inputClass} />
         </label>
+        <input id="q" name="q" type="search" defaultValue={q} placeholder="Username, name or id" className={inputClass} />
         <button type="submit" className={primaryButtonClass}>
           Search
         </button>
       </form>
       {q && (
         <Section title="Results">
-          {searchError && <ErrorNote message={`Couldn't search: ${searchError}`} />}
-          {!searchError && found.length === 0 && <Empty>No one matches.</Empty>}
-          <div className="flex flex-col gap-s8">
-            {found.map((p) => (
-              <PersonRow key={p.id} p={p} />
-            ))}
-          </div>
+          {searchError && <ErrorNote message={`Couldn't search. Try again in a moment. (${searchError})`} />}
+          {!searchError && found.length === 0 && <Empty>{`No one matches "${q}".`}</Empty>}
+          <PersonList people={found} sanctions={sanctions} />
         </Section>
       )}
-      <Section title="Suspended or banned now">
-        {blockedError && <ErrorNote message={`Couldn't load: ${blockedError.message}`} />}
-        {!blockedError && !blocked?.length && <Empty>No one.</Empty>}
-        <div className="flex flex-col gap-s8">
-          {((blocked ?? []) as Person[]).map((p) => (
-            <PersonRow key={p.id} p={p} />
-          ))}
-        </div>
-      </Section>
+      <div id="blocked">
+        <Section title="Suspended or banned now">
+          {blockedError && <ErrorNote message={`Couldn't load this list. Try again in a moment. (${blockedError.message})`} />}
+          {!blockedError && !blocked.length && <Empty>No one is suspended or banned.</Empty>}
+          <PersonList people={blocked} sanctions={sanctions} />
+        </Section>
+      </div>
     </>
   );
 }
