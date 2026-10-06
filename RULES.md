@@ -55,7 +55,7 @@
 - Upload order: `uploadPostPhotos` (`posts/{userId}/{clientId}_rear.jpg` / `_pov.jpg`, upsert) →
   `createPost` = the `create_post` RPC, one server call that dates the post, records the Mahi points and
   saves tags, deadlines and pushes. A retry with the same `clientId` returns the same post
-- On any failure: remove pending post, revert the points, and `removePostPhotos` the uploaded paths
+- On a failure: remove the pending post and revert the points. The uploaded paths go (`removePostPhotos`) only when the server refused the post; on a network failure the photos and the `clientId` are kept so Try again replays the same post (`create_post` returns it with `replayed: true`)
 - `posts` storage bucket is still **public** (`supabase/deferred/private_bucket.sql` makes it private later)
 - Reactive posting (below): `create_post` checks `reactive_posting_open` and raises `'reactive posting: not tagged'`;
   the camera mirrors it with `reactivePostingGate()` (`ui/src/lib/reactivePosting.ts`), fed by the feed store's

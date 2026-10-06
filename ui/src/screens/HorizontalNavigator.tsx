@@ -379,6 +379,7 @@ export default function HorizontalNavigator({
               <CameraScreen
                 onComposingChange={handleComposingChange}
                 onSeeFeed={() => navigate(FEED)}
+                onFindFriends={() => setSearchVisible(true)}
               />
               <View pointerEvents="box-none" style={styles.header}>
                 {header(true)}
