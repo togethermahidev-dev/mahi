@@ -145,6 +145,11 @@ import { themeColors } from '@/lib/themeColors';
 /** The camera when there's no open tag to answer (the refusal toast's words live in postRefusal). */
 const NO_TAGS_TITLE = 'You’re all caught up';
 const NO_TAGS_LINE = 'When a friend tags you, you’ll have 48 hours to answer.';
+/** The locked caught-up camera, with Find friends under it. */
+const QUIET_LINE = 'Quiet week? More friends means more tags.';
+/** The tags or the feed couldn't be read (no connection). */
+const OFFLINE_TITLE = 'Couldn’t reach Mahi';
+const OFFLINE_LINE = 'Check your connection. Your tags will show here.';
 
 /** 36-tall pills and buttons reach 44 with 4 above and below (rows sit 12 apart, so no overlap). */
 const SLOP_PILL = { top: OFFSET.o4, bottom: OFFSET.o4 };
@@ -1452,11 +1457,14 @@ interface CameraScreenProps {
   onComposingChange?: (open: boolean) => void;
   /** Go to the Feed page (the caught-up card's "See your feed", shown while the feed is open). */
   onSeeFeed?: () => void;
+  /** Open people search (the caught-up card's "Find friends", shown while the feed is locked). */
+  onFindFriends?: () => void;
 }
 
 export default function CameraScreen({
   onComposingChange,
   onSeeFeed,
+  onFindFriends,
 }: CameraScreenProps = {}): React.JSX.Element {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
@@ -1573,6 +1581,44 @@ export default function CameraScreen({
     serverOffsetMs,
   });
   const blocked = gate !== 'open';
+  // Offline at the gym: a failed read would otherwise leave the shutter spinning forever. Say so,
+  // with Try again (re-reads the tags and the feed), instead of a spinner with no words.
+  const tagsError = useTagStore((s) => s.openTagsError);
+  const feedError = useFeedStore((s) => !s.loaded && s.error !== null);
+  const tagsSyncing = useTagStore((s) => s.isSyncing);
+  const feedSyncing = useFeedStore((s) => s.isSyncing);
+  const retrying = tagsSyncing || feedSyncing;
+  const offline = gate === 'loading' && (tagsError || feedError);
+  const card: {
+    title: string;
+    line: string;
+    button: { label: string; onPress: () => void; busy?: boolean } | null;
+  } = offline
+    ? {
+        title: OFFLINE_TITLE,
+        line: OFFLINE_LINE,
+        button: {
+          label: 'Try again',
+          busy: retrying,
+          onPress: () => {
+            useTagStore.getState().syncOpenTags();
+            useFeedStore.getState().sync(true);
+          },
+        },
+      }
+    : feedOpen
+      ? {
+          title: NO_TAGS_TITLE,
+          line: NO_TAGS_LINE,
+          button: onSeeFeed ? { label: 'See your feed', onPress: onSeeFeed } : null,
+        }
+      : {
+          // Locked feed and nothing to answer (after a miss, or friends gone quiet): the way
+          // forward is more friends, as on the feed's lock card (#77).
+          title: NO_TAGS_TITLE,
+          line: onFindFriends ? QUIET_LINE : NO_TAGS_LINE,
+          button: onFindFriends ? { label: 'Find friends', onPress: onFindFriends } : null,
+        };
 
   // Tap to focus (flag `camera-tap-focus`): switch on, an iPhone, and a build whose camera can
   // focus on a point (build 11+). OTA updates also reach build 10, which can't: there it's off.
@@ -2388,8 +2434,8 @@ export default function CameraScreen({
           </View>
         )}
 
-        {/* Reactive posting: nothing to answer, so no shutter. */}
-        {gate === 'closed' && (
+        {/* Reactive posting: nothing to answer (or no connection to find out), so no shutter. */}
+        {gate === 'closed' || offline ? (
           <BlurView intensity={BLUR_INTENSITY.i60} tint="dark" style={styles.postedOverlay}>
             <View style={styles.noTagsCard}>
               {/* The words read as one; the button is its own element. */}
@@ -2397,27 +2443,33 @@ export default function CameraScreen({
                 style={styles.noTagsWords}
                 accessible
                 accessibilityRole="text"
-                accessibilityLabel={`${NO_TAGS_TITLE}. ${NO_TAGS_LINE}`}
+                accessibilityLabel={`${card.title}. ${card.line}`}
               >
                 <View style={styles.noTagsIcon}>
                   <CameraIcon size={ICON_SIZE.i24} color={COLORS.accent} />
                 </View>
-                <Text style={styles.postedTitle}>{NO_TAGS_TITLE}</Text>
-                <Text style={styles.postedSub}>{NO_TAGS_LINE}</Text>
+                <Text style={styles.postedTitle}>{card.title}</Text>
+                <Text style={styles.postedSub}>{card.line}</Text>
               </View>
-              {feedOpen && onSeeFeed ? (
+              {card.button ? (
                 <Pressable
                   style={({ pressed }) => [styles.seeFeedButton, pressed && { opacity: ALPHA.a70 }]}
-                  onPress={onSeeFeed}
+                  onPress={card.button.onPress}
+                  disabled={card.button.busy}
                   accessibilityRole="button"
-                  accessibilityLabel="See your feed"
+                  accessibilityLabel={card.button.label}
+                  accessibilityState={{ busy: card.button.busy }}
                 >
-                  <Text style={styles.seeFeedText}>See your feed</Text>
+                  {card.button.busy ? (
+                    <ActivityIndicator color={COLORS.offBlack} />
+                  ) : (
+                    <Text style={styles.seeFeedText}>{card.button.label}</Text>
+                  )}
                 </Pressable>
               ) : null}
             </View>
           </BlurView>
-        )}
+        ) : null}
 
         {/* 0.5× / 1× lens toggle — back camera only. Hidden entirely when the
           device has no ultra-wide lens (Android, or older iPhones), so it never
@@ -2573,7 +2625,7 @@ export default function CameraScreen({
             delayLongPress={videoOn ? HOLD_TO_RECORD_MS : undefined}
             onPressOut={videoOn ? handleShutterRelease : undefined}
           >
-            {gate === 'loading' ? (
+            {gate === 'loading' && !offline ? (
               <ActivityIndicator color={shutterRing} />
             ) : recording ? (
               <View style={styles.shutterRecording} />

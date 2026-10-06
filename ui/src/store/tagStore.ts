@@ -9,6 +9,8 @@ interface TagState {
   serverOffsetMs: number;
   /** True once this session's first read of open tags has landed. */
   openTagsLoaded: boolean;
+  /** The last read failed (no connection): the camera says so, with Try again, not a spinner. */
+  openTagsError: boolean;
   /** Tags the next post must carry (the server enforces the same rule). */
   requiredTags: number;
   maxTags: number;
@@ -24,6 +26,7 @@ const initial = {
   openTags: [],
   serverOffsetMs: 0,
   openTagsLoaded: false,
+  openTagsError: false,
   requiredTags: 0,
   maxTags: 3,
   nudgeDays: 7,
@@ -40,6 +43,7 @@ export const useTagStore = create<TagState>((set, get) => ({
     const { data, error } = await getOpenTags();
     if (error) {
       console.log('[tagStore] syncOpenTags failed', error.message);
+      set({ openTagsError: true });
     } else if (data) {
       // The server clock rides on each row, so a read with no tags keeps the last known offset.
       const serverNow = data[0]?.server_now;
@@ -49,6 +53,7 @@ export const useTagStore = create<TagState>((set, get) => ({
           ? new Date(serverNow).getTime() - requestedAt
           : get().serverOffsetMs,
         openTagsLoaded: true,
+        openTagsError: false,
       });
     }
     set({ isSyncing: false });

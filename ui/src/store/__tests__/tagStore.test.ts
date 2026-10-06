@@ -40,6 +40,30 @@ describe('openTagsLoaded', () => {
   });
 });
 
+describe('openTagsError', () => {
+  it('is set when the read fails, so the camera can say so instead of spinning', async () => {
+    mockGetOpenTags.mockResolvedValue({ data: null, error: new Error('offline') });
+    await useTagStore.getState().syncOpenTags();
+    expect(useTagStore.getState().openTagsError).toBe(true);
+  });
+
+  it('clears once a read lands', async () => {
+    mockGetOpenTags.mockResolvedValue({ data: null, error: new Error('offline') });
+    await useTagStore.getState().syncOpenTags();
+    mockGetOpenTags.mockResolvedValue({ data: [], error: null });
+    await useTagStore.getState().syncOpenTags();
+    expect(useTagStore.getState().openTagsError).toBe(false);
+  });
+
+  it('is false before any read and after reset', async () => {
+    expect(useTagStore.getState().openTagsError).toBe(false);
+    mockGetOpenTags.mockResolvedValue({ data: null, error: new Error('offline') });
+    await useTagStore.getState().syncOpenTags();
+    useTagStore.getState().reset();
+    expect(useTagStore.getState().openTagsError).toBe(false);
+  });
+});
+
 describe('serverOffsetMs', () => {
   const deviceNow = Date.parse('2026-10-01T12:00:00.000Z');
   const MINUTE = 60 * 1000;
