@@ -81,17 +81,17 @@ describe('postedToast', () => {
   });
 
   it('one tag answered: the point and the total', () => {
-    expect(postedToast({ answered: ['sam'], points: 5, bestBefore: 9 })).toBe(
-      'Answered @sam. +1 Mahi point. You have 5.'
+    expect(postedToast({ answered: ['sam'], points: 4, bestBefore: 9 })).toBe(
+      'Answered @sam. +1 Mahi point. You have 4.'
     );
   });
 
   it('several answered: still one point', () => {
-    expect(postedToast({ answered: ['sam', 'ali'], points: 5, bestBefore: 9 })).toBe(
-      'Answered @sam and 1 other. +1 Mahi point. You have 5.'
+    expect(postedToast({ answered: ['sam', 'ali'], points: 4, bestBefore: 9 })).toBe(
+      'Answered @sam and 1 other. +1 Mahi point. You have 4.'
     );
-    expect(postedToast({ answered: ['sam', 'ali', 'jo'], points: 5, bestBefore: 9 })).toBe(
-      'Answered @sam and 2 others. +1 Mahi point. You have 5.'
+    expect(postedToast({ answered: ['sam', 'ali', 'jo'], points: 4, bestBefore: 9 })).toBe(
+      'Answered @sam and 2 others. +1 Mahi point. You have 4.'
     );
   });
 
@@ -114,8 +114,61 @@ describe('postedToast', () => {
   });
 
   it('never says streak, never a time', () => {
-    expect(postedToast({ answered: ['sam'], points: 5, bestBefore: 9 })).not.toMatch(
+    expect(postedToast({ answered: ['sam'], points: 4, bestBefore: 9 })).not.toMatch(
       /streak|\d+h|\bin \d/i
+    );
+  });
+
+  it('the first post says who it tagged', () => {
+    expect(
+      postedToast({ answered: [], points: 0, bestBefore: 0, tagged: { friends: 3, links: 0 } })
+    ).toBe('Posted. You tagged 3 friends. Your feed is open for 24 hours.');
+    expect(
+      postedToast({ answered: [], points: 0, bestBefore: 0, tagged: { friends: 1, links: 2 } })
+    ).toBe('Posted. You tagged 1 friend and 2 people by link. Your feed is open for 24 hours.');
+    expect(
+      postedToast({ answered: [], points: 0, bestBefore: 0, tagged: { friends: 0, links: 1 } })
+    ).toBe('Posted. You tagged 1 person by link. Your feed is open for 24 hours.');
+    expect(
+      postedToast({ answered: [], points: 0, bestBefore: 0, tagged: { friends: 0, links: 0 } })
+    ).toBe('Posted. Your feed is open for 24 hours.');
+  });
+
+  it('coming back after a miss (points reset, a best to remember): welcome back', () => {
+    expect(postedToast({ answered: ['sam'], points: 1, bestBefore: 12 })).toBe(
+      'Answered @sam. Welcome back. +1 Mahi point.'
+    );
+  });
+
+  it('round numbers: 5, 10, 25, 50 and 100 answers without a miss', () => {
+    for (const n of [5, 10, 25, 50, 100]) {
+      expect(postedToast({ answered: ['sam'], points: n, bestBefore: 200 })).toBe(
+        `Answered @sam. +1 Mahi point. That’s ${n} answers without a miss.`
+      );
+    }
+  });
+
+  it('a new best still wins over a round number', () => {
+    expect(postedToast({ answered: ['sam'], points: 10, bestBefore: 9 })).toBe(
+      'Answered @sam. +1 Mahi point. New best: 10.'
+    );
+  });
+
+  it('back level with your best', () => {
+    expect(postedToast({ answered: ['sam'], points: 12, bestBefore: 12 })).toBe(
+      'Answered @sam. +1 Mahi point. That’s your best again: 12.'
+    );
+  });
+
+  it('close to your best: how many more to beat it', () => {
+    expect(postedToast({ answered: ['sam'], points: 11, bestBefore: 12 })).toBe(
+      'Answered @sam. +1 Mahi point. 2 more to beat your best.'
+    );
+    expect(postedToast({ answered: ['sam'], points: 9, bestBefore: 12 })).toBe(
+      'Answered @sam. +1 Mahi point. 4 more to beat your best.'
+    );
+    expect(postedToast({ answered: ['sam'], points: 8, bestBefore: 12 })).toBe(
+      'Answered @sam. +1 Mahi point. You have 8.'
     );
   });
 });

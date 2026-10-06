@@ -2183,6 +2183,11 @@ export default function CameraScreen({
           points: result.streak.streak_current,
           // The best before this post (`profile` was read before posting).
           bestBefore: profile.streak_highest,
+          tagged: {
+            friends:
+              taggedUsersSnapshot.length + slotsSnapshot.filter((x) => x.kind !== 'link').length,
+            links: inviteCountSnapshot + slotsSnapshot.filter((x) => x.kind === 'link').length,
+          },
         }),
         WAIT.toastLong
       );

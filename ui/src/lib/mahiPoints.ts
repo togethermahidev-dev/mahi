@@ -41,29 +41,60 @@ export function pointsValue(points: number | null | undefined): string {
   return points === null || points === undefined ? '–' : String(points);
 }
 
+/** Answers in a row without a miss that get their own toast line (what points count). */
+const ROUND_NUMBERS = [5, 10, 25, 50, 100];
+/** How close to your best (in points) before the toast counts down to beating it. */
+const NEAR_BEST = 3;
+
+/** "You tagged 3 friends", "You tagged 1 friend and 2 people by link"; null with no tags. */
+function taggedLine({ friends, links }: { friends: number; links: number }): string | null {
+  const byLink = `${links} ${links === 1 ? 'person' : 'people'} by link`;
+  if (friends > 0) {
+    const named = `${friends} ${friends === 1 ? 'friend' : 'friends'}`;
+    return `You tagged ${links > 0 ? `${named} and ${byLink}` : named}.`;
+  }
+  return links > 0 ? `You tagged ${byLink}.` : null;
+}
+
 /**
  * The toast after every post. A post that answers no tag (the first post) opens the feed for 24
- * hours (#29); one that answers at least one tag earns one point (#47), however many it answers.
- * `points` is the total after the post (null when the server sent none); `bestBefore` the best
- * before it. No speed, no streak.
+ * hours (#29) and says who it tagged; one that answers at least one tag earns one point (#47),
+ * however many it answers. `points` is the total after the post (null when the server sent none);
+ * `bestBefore` the best before it. Points count answers since the last miss, so a reset shows as
+ * 1 with a best above 0 ("Welcome back"); round numbers and nearing the best get their own words.
+ * No speed, no streak.
  */
 export function postedToast({
   answered,
   points,
   bestBefore,
+  tagged,
 }: {
   answered: string[];
   points: number | null;
   bestBefore: number | null;
+  /** What this post tagged: friends (in-app requests too) and people sent a link. */
+  tagged?: { friends: number; links: number };
 }): string {
-  if (answered.length === 0) return 'Posted. Your feed is open for 24 hours.';
+  if (answered.length === 0) {
+    const line = tagged ? taggedLine(tagged) : null;
+    return `Posted.${line ? ` ${line}` : ''} Your feed is open for 24 hours.`;
+  }
   const others = answered.length - 1;
   const more = others > 0 ? ` and ${others} ${others === 1 ? 'other' : 'others'}` : '';
   const who = `Answered @${answered[0]}${more}.`;
   if (points === null) return `${who} +1 Mahi point.`;
   if (bestBefore === 0 && points === 1) return `${who} You earned your first Mahi point.`;
-  if (bestBefore !== null && bestBefore >= 1 && points > bestBefore) {
-    return `${who} +1 Mahi point. New best: ${points}.`;
+  if (bestBefore === null) return `${who} +1 Mahi point. You have ${points}.`;
+  if (points > bestBefore) return `${who} +1 Mahi point. New best: ${points}.`;
+  // Back from a miss: a fresh start, without a reminder of what was lost.
+  if (points === 1) return `${who} Welcome back. +1 Mahi point.`;
+  if (ROUND_NUMBERS.includes(points)) {
+    return `${who} +1 Mahi point. That’s ${points} answers without a miss.`;
+  }
+  if (points === bestBefore) return `${who} +1 Mahi point. That’s your best again: ${points}.`;
+  if (bestBefore - points <= NEAR_BEST) {
+    return `${who} +1 Mahi point. ${bestBefore - points + 1} more to beat your best.`;
   }
   return `${who} +1 Mahi point. You have ${points}.`;
 }
