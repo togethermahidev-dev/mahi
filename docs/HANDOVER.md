@@ -27,7 +27,10 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
   birth and number; a kept **invite is retried** when Mahi comes back to the front; a small success
   **buzz at points milestones** (first point, new best, 5, 10, 25, 50, 100); the answer toast's
   **Cheer @sam on** button opening the friend's profile; the unused tracking permission text dropped
-  (takes effect at the next native build).
+  (takes effect at the next native build). The latest UI pass changes the shared order to **Profile,
+  Feed, Camera, Messages** while keeping Camera as the landing page; removes the Feed's duplicate iOS
+  top inset; says **"Feed will lock in"** before every running countdown; and gives Camera explicit
+  two-photo, loading, blocked and permission guidance (#95–#96; `6d9e03e`, `053e9e8`, `449a883`).
 - **Server work written and tested, waiting for the owner to apply** (nothing is live):
   `20261006100000_moderation` (reports, staff, audit log, hidden content, the automatic check —
   [moderation.md](./moderation.md)), `20261006110000_follow_back` ("follows you" on a profile),
@@ -70,8 +73,9 @@ Full data flow + the per-layer import contract: [architecture.md](./architecture
   TestFlight, both on the `preview` channel; latest update 12.06. Build 12 carries everything the
   notes below call "build 11" (video, Apple icons, hold to preview, Didit, RevenueCat, tap to focus)
   plus the phone's own tab bar.
-- **Navigation:** one row of swipe pages, Camera ⇄ Feed ⇄ Profile ⇄ Messages, sideways only, with the
-  tab bar on build 12 in the same order (decisions #60–#64). Search: the magnifier on the Profile
+- **Navigation at that point:** one row of swipe pages, Camera ⇄ Feed ⇄ Profile ⇄ Messages, sideways
+  only, with the tab bar on build 12 in the same order (decisions #60–#64; superseded by #95 in the
+  current branch). Search: the magnifier on the Profile
   screen, in Messages, and "Find friends" on an empty feed.
 - **This round (12.04–12.06):** pinch to zoom on post photos (no switch), profile picture as a circle
   (tap outside to close), smooth swipe off a profile, like/comment higher, live countdown on the open

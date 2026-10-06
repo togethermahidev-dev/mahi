@@ -149,6 +149,16 @@ old swipe pages back under it).
 | 63 | Tab bar and swipes together | The phone's own tab bar (build 12+) with the swipe pages above it: tap a tab and the pages move, swipe and the tab follows. The bar hides only under the post preview | Tab bar only, no swipes (2026-10-03) | Decided | 2026-10-05 | `TabsNavigator` |
 | 64 | A way into search | A magnifier on your Profile screen, top right beside the light/dark toggle (founder, 2026-10-05: people couldn't reach search once the feed had posts). Also: the magnifier in Messages, and "Find friends" on an empty feed. The Camera's pull-down went with up/down swiping | A search button in the header | Decided | 2026-10-05 | `ProfileScreen` (`onSearch`), `HorizontalNavigator`, `GlobalSearchOverlay` |
 
+### Navigation and capture clarity re-decision (2026-10-06)
+
+These rows replace the presentation choices in #60–#62 where they conflict. Posting, tagging,
+points and feed-lock rules are unchanged.
+
+| # | Decision | Chosen | Other options | Status | Decided | Used in |
+| --- | --- | --- | --- | --- | --- | --- |
+| 95 | Primary navigation order | Profile, Feed, Camera, Messages from left to right, for the native tab bar, swipe strip, glass rail and screen-reader page actions. Camera stays the landing page. Messages' back button returns to its left-hand neighbour, Camera | Camera, Feed, Profile, Messages (#60–#62) | Decided by owner | 2026-10-06 | `NATIVE_TABS`, `INITIAL_TAB`, `HorizontalNavigator`, `TabsNavigator`, `NavRail` |
+| 96 | Feed and Camera clarity | The Feed owns the full area under its overlaid header (no second automatic iOS inset); every running clock reads "Feed will lock in"; Camera says which of the two photos is next, shows a named tag-loading state, hides capture controls when posting is unavailable, and explains camera permission in one card. Shared tokens only; no rule changes | Implicit two-photo sequence; spinner in the shutter; capture controls visible behind a blocking card | Decided by owner | 2026-10-06 | `FeedScreen`, `FeedLockBanner`, `feedLock.ts`, `CameraScreen`, `captureGuide.ts` |
+
 The owner's design-system rules (2026-10-05), enforced by tests so they can't drift back.
 
 | # | Decision | Chosen | Other options | Status | Decided | Used in |
