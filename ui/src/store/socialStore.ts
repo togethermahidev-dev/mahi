@@ -160,7 +160,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
       }));
       patchCounts(postId, { comment_count: prevCount });
       // The sheet puts the words back in the box (CommentSheet).
-      useToastStore.getState().show('Couldn’t post your comment. Your words are still in the box.');
+      useToastStore.getState().show('Couldn’t send your comment. Your words are still in the box.');
     } else {
       // Replace temp with confirmed row
       set((s) => ({
