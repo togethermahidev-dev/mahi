@@ -139,9 +139,9 @@ export function feedCountdown({
       return { label: line, ms: null, spoken: line };
     }
     return {
-      label: `${who} tagged you · locks in`,
+      label: 'Feed will lock in',
       ms,
-      spoken: `${who} tagged you. Your feed locks in ${left} unless you post your answer.`,
+      spoken: `${who} tagged you. Feed will lock in ${left} unless you post your answer.`,
     };
   }
   if (!left) {
@@ -149,8 +149,8 @@ export function feedCountdown({
     return { label: line, ms: null, spoken: line };
   }
   return {
-    label: 'Feed open',
+    label: 'Feed will lock in',
     ms,
-    spoken: `Your feed is open for ${left.replace(' ', ' more ')}.`,
+    spoken: `Feed will lock in ${left}.`,
   };
 }

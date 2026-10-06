@@ -287,6 +287,10 @@ export default function FeedScreen({
     <View style={[styles.root, { backgroundColor: bg }]}>
       <ListGestureContext.Provider value={listGesture}>
         <FlashList
+          // The app header is an intentional overlay. Prevent iOS from adding its own safe-area
+          // inset as well, which otherwise leaves a visible strip above the first full-screen post.
+          automaticallyAdjustContentInsets={false}
+          contentInsetAdjustmentBehavior="never"
           scrollEnabled={!zooming}
           renderScrollComponent={GestureScrollView}
           data={posts}

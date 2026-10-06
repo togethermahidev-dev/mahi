@@ -105,15 +105,15 @@ describe('feedCountdown', () => {
 
   it('within the 24 hours: a clock, and the hours in words for VoiceOver', () => {
     expect(feedCountdown({ ...base, unlockedUntil: at(18 * HOUR + 20 * MIN) })).toEqual({
-      label: 'Feed open',
+      label: 'Feed will lock in',
       ms: 18 * HOUR + 20 * MIN,
-      spoken: 'Your feed is open for 18 more hours.',
+      spoken: 'Feed will lock in 18 hours.',
     });
   });
 
   it('under an hour: minutes in words', () => {
     expect(feedCountdown({ ...base, unlockedUntil: at(12 * MIN) })?.spoken).toBe(
-      'Your feed is open for 12 more minutes.'
+      'Feed will lock in 12 minutes.'
     );
   });
 
@@ -140,9 +140,9 @@ describe('feedCountdown', () => {
         openTags: [tag('sam', 40 * HOUR)],
       })
     ).toEqual({
-      label: '@sam tagged you · locks in',
+      label: 'Feed will lock in',
       ms: 18 * HOUR + 20 * MIN,
-      spoken: '@sam tagged you. Your feed locks in 18 hours unless you post your answer.',
+      spoken: '@sam tagged you. Feed will lock in 18 hours unless you post your answer.',
     });
   });
 
@@ -153,7 +153,7 @@ describe('feedCountdown', () => {
         unlockedUntil: at(12 * MIN),
         openTags: [tag('alex', 46 * HOUR), tag('sam', 30 * HOUR)],
       })?.label
-    ).toBe('@sam and 1 other tagged you · locks in');
+    ).toBe('Feed will lock in');
   });
 
   it('tagged after the 24 hours ended: no clock to give', () => {

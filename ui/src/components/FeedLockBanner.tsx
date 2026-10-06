@@ -78,7 +78,13 @@ function LockedCard({
     // Only the button takes touches, so the feed's scroll and swipe still start anywhere else.
     <View
       pointerEvents="box-none"
-      style={[styles.card, { backgroundColor: dark ? colors.glassOnDark : colors.glassOnLight }]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: dark ? colors.glassOnDark : colors.glassOnLight,
+          borderColor: withAlpha(colors.accent, ALPHA.a35),
+        },
+      ]}
     >
       <Text style={[styles.headline, { color: colors.text }]} accessibilityRole="header">
         {card.headline}
@@ -144,6 +150,7 @@ function OpenTimer({
 
 const styles = StyleSheet.create({
   card: {
+    borderWidth: BORDER_WIDTH.w1,
     borderRadius: RADIUS.r16,
     padding: SPACE.s16,
     gap: SPACE.s8,
