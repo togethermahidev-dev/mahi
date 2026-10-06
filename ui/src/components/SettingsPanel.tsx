@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   SafeAreaInsetsContext,
   SafeAreaProvider,
@@ -72,6 +72,7 @@ function Sheet({
   const danger = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
 
   const [blockedListOpen, setBlockedListOpen] = useState(false);
+  const [securityOpen, setSecurityOpen] = useState(false);
   const deleteEnabled = useFeatureFlag('account-delete');
   // Help shows the welcome cards again, so it follows their switch.
   const helpEnabled = useFeatureFlag('onboarding-welcome-cards');
@@ -134,10 +135,27 @@ function Sheet({
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
       <View style={[styles.header, { paddingTop: insets.top + SPACE.s16 }]}>
-        <View>
+        <View style={styles.titleRow}>
+          {securityOpen ? (
+            <Pressable
+              onPress={() => setSecurityOpen(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Back to settings"
+              style={({ pressed }) => [styles.headerIcon, pressed && styles.pressed]}
+            >
+              <Text style={[styles.backText, { color: text }]}>‹</Text>
+            </Pressable>
+          ) : null}
           <Text style={[styles.title, { color: text }]} accessibilityRole="header">
-            Settings
+            {securityOpen ? 'Security and privacy' : 'Settings'}
           </Text>
+          {!securityOpen ? (
+            <View
+              style={[styles.headerIcon, { backgroundColor: iconSurface, borderColor: border }]}
+            >
+              <ThemeToggle color={text} size={SIZE.z20} />
+            </View>
+          ) : null}
         </View>
         <Pressable
           onPress={onClose}
@@ -158,90 +176,114 @@ function Sheet({
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + SPACE.s24 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.sectionLabel, { color: muted }]}>Appearance</Text>
-        <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
-          <View style={styles.themeRow}>
-            <View style={styles.rowCopy}>
-              <Text style={[styles.rowLabel, { color: text }]}>Appearance</Text>
-              <Text style={[styles.rowDetail, { color: muted }]}>
-                Switch between light and dark mode
-              </Text>
+        {securityOpen ? (
+          <>
+            <Text style={[styles.sectionLabel, { color: muted }]}>Privacy</Text>
+            <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
+              <Pressable
+                style={(state) => rowStyle(state, false)}
+                onPress={() => setBlockedListOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Blocked users"
+              >
+                <View style={styles.rowCopy}>
+                  <Text style={[styles.rowLabel, { color: text }]}>Blocked users</Text>
+                  <Text style={[styles.rowDetail, { color: muted }]}>
+                    Review who cannot contact you
+                  </Text>
+                </View>
+                <Text style={[styles.chevron, { color: muted }]}>›</Text>
+              </Pressable>
             </View>
-            <View
-              style={[styles.themeControl, { backgroundColor: iconSurface, borderColor: border }]}
-            >
-              <ThemeToggle color={text} size={SIZE.z20} />
+
+            <View style={styles.spacer} />
+            <Text style={[styles.sectionLabel, { color: muted }]}>Account access</Text>
+            <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
+              <Pressable
+                style={(state) => rowStyle(state, deleteEnabled)}
+                onPress={handleLogout}
+                accessibilityRole="button"
+                accessibilityLabel="Log out"
+              >
+                <Text style={[styles.rowLabel, { color: text }]}>Log out</Text>
+                <Text style={[styles.chevron, { color: muted }]}>›</Text>
+              </Pressable>
+              {deleteEnabled ? (
+                <Pressable
+                  style={(state) => rowStyle(state, false)}
+                  onPress={handleDeleteAccount}
+                  disabled={deleting}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete account"
+                  accessibilityState={{ disabled: deleting, busy: deleting }}
+                >
+                  <Text style={[styles.rowLabel, { color: danger }]}>
+                    {deleting ? 'Deleting your account…' : 'Delete account'}
+                  </Text>
+                  <Text style={[styles.chevron, { color: danger }]}>›</Text>
+                </Pressable>
+              ) : null}
             </View>
-          </View>
-        </View>
-
-        <View style={styles.spacer} />
-
-        <Text style={[styles.sectionLabel, { color: muted }]}>Privacy and support</Text>
-        <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
-          <Pressable
-            style={(state) => rowStyle(state, helpEnabled)}
-            onPress={() => setBlockedListOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Blocked users"
-          >
-            <View style={styles.rowCopy}>
-              <Text style={[styles.rowLabel, { color: text }]}>Blocked users</Text>
-              <Text style={[styles.rowDetail, { color: muted }]}>
-                Review who cannot contact you
-              </Text>
+          </>
+        ) : (
+          <>
+            <Text style={[styles.sectionLabel, { color: muted }]}>Preferences</Text>
+            <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
+              <Pressable
+                style={(state) => rowStyle(state, true)}
+                onPress={() => void Linking.openSettings()}
+                accessibilityRole="button"
+                accessibilityLabel="Notification settings"
+              >
+                <View style={styles.rowCopy}>
+                  <Text style={[styles.rowLabel, { color: text }]}>Notifications</Text>
+                  <Text style={[styles.rowDetail, { color: muted }]}>
+                    Manage alerts on this phone
+                  </Text>
+                </View>
+                <Text style={[styles.chevron, { color: muted }]}>›</Text>
+              </Pressable>
+              <Pressable
+                style={(state) => rowStyle(state, false)}
+                onPress={() => setSecurityOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Security and privacy"
+              >
+                <View style={styles.rowCopy}>
+                  <Text style={[styles.rowLabel, { color: text }]}>Security and privacy</Text>
+                  <Text style={[styles.rowDetail, { color: muted }]}>
+                    Blocks, account access and deletion
+                  </Text>
+                </View>
+                <Text style={[styles.chevron, { color: muted }]}>›</Text>
+              </Pressable>
             </View>
-            <Text style={[styles.chevron, { color: muted }]}>›</Text>
-          </Pressable>
 
-          {helpEnabled ? (
-            <Pressable
-              style={(state) => rowStyle(state, false)}
-              onPress={() => setHelpOpen(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Help"
-              accessibilityHint="Shows how Mahi works"
-            >
-              <View style={styles.rowCopy}>
-                <Text style={[styles.rowLabel, { color: text }]}>Help</Text>
-                <Text style={[styles.rowDetail, { color: muted }]}>
-                  See how tags and points work
-                </Text>
-              </View>
-              <Text style={[styles.chevron, { color: muted }]}>›</Text>
-            </Pressable>
-          ) : null}
-        </View>
-
-        <View style={styles.spacer} />
-
-        <Text style={[styles.sectionLabel, { color: muted }]}>Account</Text>
-        <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
-          <Pressable
-            style={(state) => rowStyle(state, deleteEnabled)}
-            onPress={handleLogout}
-            accessibilityRole="button"
-            accessibilityLabel="Log out"
-          >
-            <Text style={[styles.rowLabel, { color: text }]}>Log out</Text>
-            <Text style={[styles.chevron, { color: muted }]}>›</Text>
-          </Pressable>
-          {deleteEnabled ? (
-            <Pressable
-              style={(state) => rowStyle(state, false)}
-              onPress={handleDeleteAccount}
-              disabled={deleting}
-              accessibilityRole="button"
-              accessibilityLabel="Delete account"
-              accessibilityState={{ disabled: deleting, busy: deleting }}
-            >
-              <Text style={[styles.rowLabel, { color: danger }]}>
-                {deleting ? 'Deleting your account…' : 'Delete account'}
-              </Text>
-              <Text style={[styles.chevron, { color: danger }]}>›</Text>
-            </Pressable>
-          ) : null}
-        </View>
+            {helpEnabled ? (
+              <>
+                <View style={styles.spacer} />
+                <Text style={[styles.sectionLabel, { color: muted }]}>Support</Text>
+                <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
+                  <Pressable
+                    style={(state) => rowStyle(state, false)}
+                    onPress={() => setHelpOpen(true)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Help"
+                    accessibilityHint="Shows how Mahi works"
+                  >
+                    <View style={styles.rowCopy}>
+                      <Text style={[styles.rowLabel, { color: text }]}>Help</Text>
+                      <Text style={[styles.rowDetail, { color: muted }]}>
+                        See how tags and points work
+                      </Text>
+                    </View>
+                    <Text style={[styles.chevron, { color: muted }]}>›</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
+          </>
+        )}
 
         {/* Version line: v{runtime} {build}.{OTA} — see the version-control skill */}
         <Text style={[styles.versionText, { color: muted }]}>{VERSION_LINE}</Text>
@@ -277,6 +319,23 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: FONTS.bold,
     fontSize: FONT_SIZE.f24,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s12,
+  },
+  headerIcon: {
+    width: SIZE.z44,
+    height: SIZE.z44,
+    borderRadius: RADIUS.r22,
+    borderWidth: BORDER_WIDTH.w1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backText: {
+    fontSize: FONT_SIZE.f22,
+    fontFamily: FONTS.regular,
   },
   closeBtn: {
     width: SIZE.z44,
@@ -320,21 +379,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: SPACE.s12,
-  },
-  themeRow: {
-    minHeight: SIZE.z72,
-    paddingVertical: SPACE.s14,
-    paddingHorizontal: SPACE.s16,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  themeControl: {
-    width: SIZE.z44,
-    height: SIZE.z44,
-    borderRadius: RADIUS.r22,
-    borderWidth: BORDER_WIDTH.w1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   rowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,

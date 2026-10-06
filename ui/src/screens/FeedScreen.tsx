@@ -87,7 +87,10 @@ function LockedPostItem({
         accessibilityLabel={`Open ${name}'s profile`}
       >
         {item.profiles.avatar_url ? (
-          <Image source={{ uri: item.profiles.avatar_url }} style={styles.lockedAvatar} />
+          <Image
+            source={{ uri: item.profiles.avatar_url, cache: 'force-cache' }}
+            style={styles.lockedAvatar}
+          />
         ) : (
           <View
             style={[styles.lockedAvatar, styles.avatarFallback, { borderColor: colors.accent }]}

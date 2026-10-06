@@ -121,7 +121,10 @@ function Member({ member, onPress }: { member: CrewMember; onPress: () => void }
       <View style={[styles.avatarRing, { borderColor: ring }]}>
         <Reanimated.View style={[StyleSheet.absoluteFill, styles.center, avatarStyle]}>
           {member.avatar_url ? (
-            <Image source={{ uri: member.avatar_url }} style={styles.avatar} />
+            <Image
+              source={{ uri: member.avatar_url, cache: 'force-cache' }}
+              style={styles.avatar}
+            />
           ) : (
             <View style={[styles.avatar, styles.center, { backgroundColor: colors.accent }]}>
               <Text style={[styles.initial, { color: colors.offBlack }]}>

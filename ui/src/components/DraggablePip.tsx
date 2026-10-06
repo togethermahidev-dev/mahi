@@ -106,7 +106,7 @@ export default function DraggablePip({
         {video ? (
           <PostVideo uri={uri} playing={playing} muted style={styles.image} />
         ) : (
-          <Image source={{ uri }} style={styles.image} resizeMode="cover" />
+          <Image source={{ uri, cache: 'force-cache' }} style={styles.image} resizeMode="cover" />
         )}
       </Reanimated.View>
     </GestureDetector>

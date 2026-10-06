@@ -220,7 +220,10 @@ function Sheet({ onClose, dark }: Omit<BlockedUsersSheetProps, 'visible'>) {
                     accessibilityHint="Opens their profile"
                   >
                     {item.avatar_url ? (
-                      <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+                      <Image
+                        source={{ uri: item.avatar_url, cache: 'force-cache' }}
+                        style={styles.avatar}
+                      />
                     ) : (
                       <View
                         style={[

@@ -56,22 +56,14 @@ describe('slotLabel', () => {
   });
 });
 
-describe('inviteBlockedReason (friends first, as the server enforces)', () => {
-  it('blocks an invite while a friend could still be tagged', () => {
-    expect(inviteBlockedReason({ freeFriends: 1, filled: 1, maxTags: 3 })).toBe(
-      'Tag your friend first'
-    );
-    expect(inviteBlockedReason({ freeFriends: 2, filled: 0, maxTags: 3 })).toBe(
-      'Tag your 2 friends first'
-    );
+describe('inviteBlockedReason', () => {
+  it('allows a link even while a current friend could be tagged', () => {
+    expect(inviteBlockedReason({ filled: 1, maxTags: 3 })).toBeNull();
+    expect(inviteBlockedReason({ filled: 0, maxTags: 3 })).toBeNull();
   });
 
   it('blocks once every slot is filled', () => {
-    expect(inviteBlockedReason({ freeFriends: 0, filled: 3, maxTags: 3 })).toBe('All 3 tags used');
-  });
-
-  it('allows an invite when no friend is free', () => {
-    expect(inviteBlockedReason({ freeFriends: 0, filled: 1, maxTags: 3 })).toBeNull();
+    expect(inviteBlockedReason({ filled: 3, maxTags: 3 })).toBe('All 3 tags used');
   });
 });
 

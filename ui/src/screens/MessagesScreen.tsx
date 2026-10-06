@@ -113,7 +113,10 @@ function ConvoRow({
         hitSlop={{ top: OFFSET.o14, bottom: OFFSET.o14, left: OFFSET.o8, right: OFFSET.o8 }}
       >
         {item.other_profile.avatar_url ? (
-          <Image source={{ uri: item.other_profile.avatar_url }} style={styles.convoAvatar} />
+          <Image
+            source={{ uri: item.other_profile.avatar_url, cache: 'force-cache' }}
+            style={styles.convoAvatar}
+          />
         ) : (
           <View
             style={[styles.convoAvatar, styles.convoAvatarFallback, { backgroundColor: muted }]}

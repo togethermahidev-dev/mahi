@@ -118,16 +118,7 @@ export default function TagSlotsSheet({
   const pendingCount = useRef(0);
 
   const filled = friends.length + slots.length;
-  const freeFriends = (friendList ?? []).filter(
-    (p) => personAction(p, false).action === 'tag' && !friends.some((f) => f.user_id === p.id)
-  ).length;
-  const blocked = inviteBlockedReason({ freeFriends, filled, maxTags });
-  // A friend became free after invites went out (they answered, or an invite was declined):
-  // the server wants friends first, so say which way round to fix it.
-  const openInvites = slots.filter((s) =>
-    ['link_ready', 'shared', 'invite_sent'].includes(s.state)
-  ).length;
-  const friendFreedUp = freeFriends > 0 && openInvites > 0 && filled >= maxTags;
+  const blocked = inviteBlockedReason({ filled, maxTags });
 
   const refreshSlots = useCallback(async () => {
     const { data } = await getTagSlots();
@@ -430,9 +421,7 @@ export default function TagSlotsSheet({
 
             <View style={styles.shareBlock}>
               <Text style={styles.shareLabel}>
-                {friendFreedUp
-                  ? 'A friend can be tagged now. Remove a link and tag them first.'
-                  : (blocked ?? 'Not on Mahi? Send them a link. A link fills a tag.')}
+                {blocked ?? 'Not on Mahi? Send them a link. A link fills a tag.'}
               </Text>
               <View style={styles.shareRow}>
                 {SHARE_TARGETS.map(({ target, label }) => (
@@ -570,7 +559,7 @@ function SlotCircle({
         {busy ? (
           <ActivityIndicator color={COLORS.offWhite} />
         ) : avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} style={styles.slotAvatar} />
+          <Image source={{ uri: avatarUrl, cache: 'force-cache' }} style={styles.slotAvatar} />
         ) : empty ? null : (
           <Text style={styles.slotInitial}>{(initial ?? '').toUpperCase()}</Text>
         )}
@@ -627,7 +616,7 @@ function PersonRow({
       accessibilityLabel={`${display}${note ? `, ${note}` : ''}`}
     >
       {person.avatar_url ? (
-        <Image source={{ uri: person.avatar_url }} style={styles.rowAvatar} />
+        <Image source={{ uri: person.avatar_url, cache: 'force-cache' }} style={styles.rowAvatar} />
       ) : (
         <View style={[styles.rowAvatar, styles.rowAvatarFallback]}>
           <Text style={styles.rowInitial}>{display[0].toUpperCase()}</Text>

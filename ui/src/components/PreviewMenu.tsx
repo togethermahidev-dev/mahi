@@ -109,7 +109,13 @@ export function PostPreviewImage({ uri }: { uri: string | null }): React.JSX.Ele
       </View>
     );
   }
-  return <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />;
+  return (
+    <Image
+      source={{ uri, cache: 'force-cache' }}
+      style={StyleSheet.absoluteFill}
+      resizeMode="cover"
+    />
+  );
 }
 
 const styles = StyleSheet.create({

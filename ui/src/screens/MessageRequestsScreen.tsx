@@ -74,7 +74,10 @@ function RequestRow({
         accessibilityLabel={`Message request from ${name}`}
       >
         {item.other_profile.avatar_url ? (
-          <Image source={{ uri: item.other_profile.avatar_url }} style={styles.convoAvatar} />
+          <Image
+            source={{ uri: item.other_profile.avatar_url, cache: 'force-cache' }}
+            style={styles.convoAvatar}
+          />
         ) : (
           <View
             style={[styles.convoAvatar, styles.convoAvatarFallback, { backgroundColor: avatarBg }]}

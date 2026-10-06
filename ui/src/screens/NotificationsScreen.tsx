@@ -247,7 +247,10 @@ export default function NotificationsScreen({
           }}
         >
           {item.actor.avatar_url ? (
-            <Image source={{ uri: item.actor.avatar_url }} style={styles.avatar} />
+            <Image
+              source={{ uri: item.actor.avatar_url, cache: 'force-cache' }}
+              style={styles.avatar}
+            />
           ) : (
             <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}>
               <Text style={[styles.avatarInitials, { color: text }]}>{initials}</Text>

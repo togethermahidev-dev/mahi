@@ -449,7 +449,10 @@ export default function UserProfileScreen({
               onPress={() => setAvatarOpen(true)}
               style={({ pressed }) => pressed && { opacity: ALPHA.a90 }}
             >
-              <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+              <Image
+                source={{ uri: profile.avatar_url, cache: 'force-cache' }}
+                style={styles.avatar}
+              />
             </Pressable>
           ) : (
             <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: iconSurface }]}>

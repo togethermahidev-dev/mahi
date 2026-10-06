@@ -80,7 +80,10 @@ function CommentRow({
         accessibilityHint={`Opens ${name}'s profile`}
       >
         {comment.profiles.avatar_url ? (
-          <Image source={{ uri: comment.profiles.avatar_url }} style={styles.commentAvatar} />
+          <Image
+            source={{ uri: comment.profiles.avatar_url, cache: 'force-cache' }}
+            style={styles.commentAvatar}
+          />
         ) : (
           <View style={[styles.commentAvatar, styles.avatarFallback, { backgroundColor: muted }]}>
             <Text style={[styles.commentAvatarInitial, { color: text }]}>{initials}</Text>

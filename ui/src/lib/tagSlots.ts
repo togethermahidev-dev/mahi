@@ -75,23 +75,14 @@ export function postButtonLabel(missing: number, anyTagged: boolean): string {
   return anyTagged ? `Tag ${missing} more ${friends} to post` : `Tag ${missing} ${friends} to post`;
 }
 
-/**
- * Friends first (the server's rule in create_post): an empty slot may go to an invite only when
- * no friend is left to tag. `freeFriends` = friends who can be tagged now and aren't picked.
- */
 export function inviteBlockedReason({
-  freeFriends,
   filled,
   maxTags,
 }: {
-  freeFriends: number;
   filled: number;
   maxTags: number;
 }): string | null {
   if (filled >= maxTags) return `All ${maxTags} tags used`;
-  if (freeFriends > 0) {
-    return freeFriends === 1 ? 'Tag your friend first' : `Tag your ${freeFriends} friends first`;
-  }
   return null;
 }
 

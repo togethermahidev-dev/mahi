@@ -1,4 +1,4 @@
--- Tag slots: links and in-app invites made on tap (before the post), friends first, and each
+-- Tag slots: links and in-app invites made on tap (before the post), and each
 -- slot's state. Every check reads only this test's own people, so it also runs on a database with
 -- history.
 begin;
@@ -151,17 +151,21 @@ select is(
   (select username from public.get_tag_slots() where challenge_id = (select id from pg_temp.ids where name = 'link')),
   'tsl_n', 'and names who joined');
 
--- 6. Friends first.
+-- 6. A slot may be a current friend or someone not on Mahi, even while friends are available.
 insert into pg_temp.ids select 'spare', (public.make_invite_link() ->> 'challenge_id')::uuid;
-select throws_ok(
+savepoint q3_links;
+select lives_ok(
   $$select public.create_post(p_client_id => '33333333-0000-0000-0000-0000000000a1',
       p_image_path => '00000000-0000-0000-0000-00000000f50a/a1.jpg',
       p_slot_ids => array(select id from pg_temp.ids where name in ('link', 'req', 'spare')))$$,
-  '22023', 'tag your friends first', 'invites cannot stand in for a free friend');
-select throws_ok(
+  'three invites may be chosen while a friend is available');
+rollback to savepoint q3_links;
+savepoint q3_old_app;
+select lives_ok(
   $$select public.create_post(p_client_id => '33333333-0000-0000-0000-0000000000a1',
       p_image_path => '00000000-0000-0000-0000-00000000f50a/a1.jpg', p_invite_count => 3)$$,
-  '22023', 'tag your friends first', 'the older app''s invite count follows the same rule');
+  'the older app may also choose three people not on Mahi');
+rollback to savepoint q3_old_app;
 select throws_ok(
   $$select public.create_post(p_client_id => '33333333-0000-0000-0000-0000000000a1',
       p_image_path => '00000000-0000-0000-0000-00000000f50a/a1.jpg',

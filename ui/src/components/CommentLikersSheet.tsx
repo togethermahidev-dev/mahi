@@ -139,7 +139,10 @@ function Likers({
                   accessibilityHint={isMe ? undefined : 'Opens their profile'}
                 >
                   {item.avatar_url ? (
-                    <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+                    <Image
+                      source={{ uri: item.avatar_url, cache: 'force-cache' }}
+                      style={styles.avatar}
+                    />
                   ) : (
                     <View
                       style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}

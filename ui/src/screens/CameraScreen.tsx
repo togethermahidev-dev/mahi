@@ -1176,7 +1176,7 @@ function TagUserRow({
       onPress={onPress}
     >
       {item.avatar_url ? (
-        <Image source={{ uri: item.avatar_url }} style={styles.tagAvatar} />
+        <Image source={{ uri: item.avatar_url, cache: 'force-cache' }} style={styles.tagAvatar} />
       ) : (
         <View style={[styles.tagAvatar, styles.tagAvatarFallback]}>
           <Text style={styles.tagAvatarInitial}>{initial}</Text>
@@ -1233,10 +1233,7 @@ function TagSheet({
   const filled = selected.length + invites;
   // Friends who can be tagged right now (from the unfiltered list); null until it has loaded.
   const [availableFriends, setAvailableFriends] = useState<number | null>(null);
-  // Friends first (the server's rule since 2026-10-03): an invite only fills a slot no free
-  // friend can, so it waits until every free friend is picked.
   const inviteBlocked = inviteBlockedReason({
-    freeFriends: Math.max(0, (availableFriends ?? 0) - selected.length),
     filled,
     maxTags,
   });

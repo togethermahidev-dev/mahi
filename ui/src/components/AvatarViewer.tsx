@@ -196,7 +196,7 @@ function ZoomablePhoto({
         <View style={styles.stage}>
           <Reanimated.View style={photoStyle}>
             <Image
-              source={{ uri }}
+              source={{ uri, cache: 'force-cache' }}
               style={{ width: size, height: size, borderRadius: size / 2 }}
               resizeMode="cover"
               accessibilityRole="image"

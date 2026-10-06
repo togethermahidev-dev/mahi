@@ -3,7 +3,7 @@
  *
  * A slot is filled on the tag screen before posting: a link made the moment you tap invite, or
  * an in-app invite for someone on Mahi who isn't your friend yet. `create_post` takes the slots
- * (`slotIds`); the server enforces friends first, the cap and every state.
+ * (`slotIds`); the server enforces the cap and every state.
  */
 import { supabase } from '@/lib/supabase';
 import type { TagSlot } from '@/lib/tagSlots';

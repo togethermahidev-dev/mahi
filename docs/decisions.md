@@ -207,7 +207,7 @@ for the invite fixes waits for Q1–Q5 and Q8 so it goes in as one.
 | --- | --- | --- | --- | --- | --- |
 | 65 | Q1 · After "Not now" (or taking an in-app invite back), how soon can you invite that person again? | **1 day** | Decided | 2026-10-06 | `enforce_tag_invite_cooldown` |
 | 66 | Q2 · A daily limit on in-app invites per person? | **No limit** (the concurrent open-invite safety cap remains) | Decided | 2026-10-06 | `invite_to_tag` |
-| 67 | Q3 · Unfollowing free friends to fill slots with invites: does someone you unfollowed in the last 24 hours still count as a friend for friends first? | Yes · no, allow it | Open | 2026-10-05 | `create_post` (friends first) |
+| 67 | Q3 · Unfollowing free friends to fill slots with invites | **Remove friends-first: each tag may be a current friend or someone not on Mahi yet, so unfollowing gives no advantage** | Decided | 2026-10-06 | `create_post`, tag sheet |
 | 68 | Q4 · Blocking the person who tagged you cancels the tag: should it count as a missed tag (points back to 0)? | **No: blocking cancels it without a miss** | Decided | 2026-10-06 | `cancel_tags_on_block` |
 | 69 | Q5 · Deleting posts: allowed at all? If yes, deleting never gives back the free first post (a permanent "has posted before" mark) | **Allowed, with the permanent mark** | Decided | 2026-10-06 | `delete_post`, `reactive_posting_open` |
 | 70 | Q6 · When does a link invite's 48 hours start? | **When the new person installs/joins after the post; when the friend posts if they joined first** | Decided | 2026-10-06 | `claim_invite`, `start_tag`, `claimedText` |
@@ -218,7 +218,7 @@ for the invite fixes waits for Q1–Q5 and Q8 so it goes in as one.
 
 Fixed from the same review without a question (2026-10-05, on main): the invite code goes with
 every link; sign-up takes a code or a pasted link and says when it's wrong; joining says what
-happened; the old tag sheet applies friends first; a refused post keeps its photos and says why.
+happened; a refused post keeps its photos and says why.
 Waiting for the database change (no choice involved, held to go with the answers): a slot can't
 tag back the person whose tag the post answers; a second link from the same person says
 "already linked" instead of a database error.

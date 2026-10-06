@@ -183,7 +183,7 @@ function WorkoutCard({
       ) : (
         <View style={{ width, height: mediaHeight, backgroundColor: tileBg }}>
           <Image
-            source={{ uri: tile.uri }}
+            source={{ uri: tile.uri, cache: 'force-cache' }}
             style={{ width, height: mediaHeight }}
             resizeMode="cover"
             onLoad={() => setImgLoaded(true)}

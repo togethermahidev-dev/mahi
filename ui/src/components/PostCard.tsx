@@ -527,7 +527,10 @@ export default function PostCard({
                       accessibilityLabel={`Open ${name}'s profile`}
                     >
                       {item.profiles.avatar_url ? (
-                        <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
+                        <Image
+                          source={{ uri: item.profiles.avatar_url, cache: 'force-cache' }}
+                          style={styles.avatar}
+                        />
                       ) : (
                         <View
                           style={[

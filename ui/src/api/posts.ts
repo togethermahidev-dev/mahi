@@ -275,7 +275,7 @@ export async function removePostPhotos(paths: string[]): Promise<void> {
  *
  * Errors: "reactive posting: not tagged" (no open tag and not a first post); "tag N
  * friends" (not enough tags); "cannot tag that person"; "photo not found"; "unsupported media";
- * "tag your friends first" (an invite while a friend is free); "that invite is no longer open".
+ * "that invite is no longer open" when a selected invite ended before posting.
  */
 export async function createPost(opts: {
   clientId: string;
