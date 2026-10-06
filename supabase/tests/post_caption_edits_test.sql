@@ -10,6 +10,11 @@ insert into public.profiles (id, username) values
 insert into public.posts (id, user_id, image_url, image_path, caption, streak_day, created_at) values
   ('00000000-0000-0000-0000-00000000e101', '00000000-0000-0000-0000-00000000e001', 'x', 'caption/new.jpg', 'Before', 0, now()),
   ('00000000-0000-0000-0000-00000000e102', '00000000-0000-0000-0000-00000000e001', 'x', 'caption/old.jpg', 'Old', 0, now() - interval '1 hour');
+-- The insert trigger stamps created_at with now(); backdate the old post with triggers off.
+set local session_replication_role = replica;
+update public.posts set created_at = now() - interval '1 hour'
+ where id = '00000000-0000-0000-0000-00000000e102';
+set local session_replication_role = origin;
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000e001","role":"authenticated"}', true);
