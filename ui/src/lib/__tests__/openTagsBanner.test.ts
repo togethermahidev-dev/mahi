@@ -36,10 +36,10 @@ describe('openTagsBanner', () => {
     ).toBe('1 hour left');
   });
 
-  it('says time is up rather than a negative time', () => {
+  it('says last minutes in the grace time, never missed before the server does', () => {
     expect(
       openTagsBanner({ openTags: [tag('sam', -MIN)], serverOffsetMs: 0, deviceNow })?.left
-    ).toBe('time is up');
+    ).toBe('last minutes');
   });
 
   it('shows nothing without open tags', () => {
@@ -64,5 +64,48 @@ describe('openTagsBanner', () => {
         firstPost: true,
       })?.who
     ).toBe('@sam');
+  });
+
+  it('one friend: no extra line', () => {
+    expect(
+      openTagsBanner({ openTags: [tag('sam', 2 * HOUR)], serverOffsetMs: 0, deviceNow })?.note
+    ).toBeUndefined();
+  });
+
+  it('tagged by several friends: one workout answers them all', () => {
+    expect(
+      openTagsBanner({
+        openTags: [tag('sam', 2 * HOUR), tag('ali', 3 * HOUR), tag('jo', 4 * HOUR)],
+        serverOffsetMs: 0,
+        deviceNow,
+      })?.note
+    ).toBe('One workout answers all 3 tags.');
+    expect(
+      openTagsBanner({
+        openTags: [tag('sam', 2 * HOUR), tag('ali', 3 * HOUR)],
+        serverOffsetMs: 0,
+        deviceNow,
+      })?.note
+    ).toBe('One workout answers both tags.');
+  });
+
+  it('a newcomer answering their first tag: any workout counts, even 10 minutes', () => {
+    expect(
+      openTagsBanner({
+        openTags: [tag('sam', 47 * HOUR)],
+        serverOffsetMs: 0,
+        deviceNow,
+        firstPost: true,
+      })?.note
+    ).toBe('Your first post. Any workout counts, even 10 minutes.');
+    // The newcomer line wins over the several-tags line.
+    expect(
+      openTagsBanner({
+        openTags: [tag('sam', 47 * HOUR), tag('ali', 40 * HOUR)],
+        serverOffsetMs: 0,
+        deviceNow,
+        firstPost: true,
+      })?.note
+    ).toBe('Your first post. Any workout counts, even 10 minutes.');
   });
 });

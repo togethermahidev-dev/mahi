@@ -21,7 +21,8 @@ import {
 
 /**
  * Camera overlay: who tagged you and how long is left on the soonest deadline, and under it the
- * "turn on notifications" line for someone who has them off. With no open tags it says "First
+ * "turn on notifications" line for someone who has them off. A second line in the pill says when
+ * one workout answers several tags, or that any workout counts for a newcomer's first post. With no open tags it says "First
  * post · no tag needed" to someone who has never posted (`firstPost`), else renders nothing.
  */
 export default function OpenTagsBanner({
@@ -54,7 +55,7 @@ export default function OpenTagsBanner({
         accessibilityLabel={
           isFirstPost
             ? 'Your first post needs no tag.'
-            : `${banner.who} tagged you. ${banner.left}.`
+            : `${banner.who} tagged you. ${banner.left}.${banner.note ? ` ${banner.note}` : ''}`
         }
       >
         <BlurView
@@ -66,6 +67,12 @@ export default function OpenTagsBanner({
             {isFirstPost ? banner.who : `${banner.who} tagged you`} ·{' '}
             <Text style={[styles.time, { color: colors.accent }]}>{banner.left}</Text>
           </Text>
+          {/* One post answers every open tag; a newcomer hears that any workout counts. */}
+          {banner.note ? (
+            <Text style={[styles.note, { color: colors.offWhite }]} numberOfLines={2}>
+              {banner.note}
+            </Text>
+          ) : null}
         </BlurView>
       </View>
       {/* Tagged with notifications off: one line to turn them on (flag push-core). */}
@@ -104,5 +111,11 @@ const styles = StyleSheet.create({
   },
   time: {
     fontFamily: FONTS.bold,
+  },
+  note: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZE.f13,
+    textAlign: 'center',
+    marginTop: SPACE.s4,
   },
 });
