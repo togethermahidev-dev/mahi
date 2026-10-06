@@ -815,6 +815,11 @@ export default function CreateAccountSheet({
                 textContentType="telephoneNumber"
                 autoComplete="tel"
               />
+              {/* Why these two are asked (#24 keeps both required). Nothing in the app shows them. */}
+              <Text style={[styles.whyNote, { color: muted }]}>
+                We use your date of birth and number to keep Mahi safe for everyone, and never show
+                them on your profile.
+              </Text>
             </View>
           )}
 
@@ -1069,6 +1074,7 @@ const styles = StyleSheet.create({
   fieldNote: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, marginTop: -SPACE.s4 },
   errorText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, marginTop: SPACE.s4 },
   passwordHint: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular, marginTop: -SPACE.s4 },
+  whyNote: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular, marginTop: SPACE.s8 },
 
   atSign: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.semiBold, paddingRight: SPACE.s2 },
   optionalTag: { fontSize: FONT_SIZE.f11, fontFamily: FONTS.regular },
