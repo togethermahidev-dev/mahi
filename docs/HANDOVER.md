@@ -23,12 +23,14 @@ applies to every tool call. Work on branch `updates`; commit by name, no AI attr
 without the owner's go in the same session.
 
 **State on 2026-10-06, late (branch `updates`; `main` is behind):**
-- **On phones (preview lane), published 2026-10-06:** OTA **12.14** confirms an irreversible post
-  before upload, moves light/dark into Settings, groups account actions, adds right-swipe dismissal
-  to conversations, and turns profile workouts into a square two-column grid. The grid fetches four
-  posts per server page; portrait posts open full screen, swipe left/right through the profile's
-  workouts, and swipe down to return to the grid. Feed and inbox pagination are server-backed;
-  conversations already fetch older messages by cursor.
+- **Production OTA 12.16 is live on iOS and Android** (EAS group
+  `cc174c9d-c47c-42a0-b4c7-cf37a2777ec2`). It applies Maximus's Q1–Q10 answers: one-day
+  re-invite cooldown, no daily invite cap, blocking cancels without a miss, owners may delete posts
+  without regaining the free first post, correct invite timing, short share copy without the code,
+  accepted slots survive unfollowing, and each of the three tags may be either a current friend or
+  someone not on Mahi. It also reuses valid signed media URLs, enables native caching for remote
+  media/avatars, and reorganises Settings (appearance icon in the title, Notifications, nested
+  Security and privacy, Support/Help).
 - **On phones (preview lane), published 2026-10-06, not yet checked on a phone:** OTAs **12.07–12.11**
   (below) and **12.12**: the profile workout story (one column, newest first, swipe back), notification
   activity rows, the feed timer matching the server (the feed stays open 24 hours after you post, then
@@ -36,10 +38,10 @@ without the owner's go in the same session.
   messages (requests, edit, unsend) and the design pass (no "Mahi" above screen titles, double tap only
   likes, post sizes follow the phone and text size, the crew strip, the countdown ring, the answer
   celebration, motion tokens with Reduce Motion fades).
-- **Production database:** every migration through `20261006190000_message_requests` is applied,
-  including `20261006180000_post_caption_edits` (posts can't be deleted or changed, except the
-  caption by its owner for an hour through `update_post_caption`; an edited caption is checked
-  again) and `20261006190000_message_requests` (the first message from a non-friend is a request;
+- **Production database:** every migration through `20261006201000_optional_non_user_tags` is
+  applied. `20261006200000_maximus_answers` adds the invite cooldown, permanent
+  `has_posted_before` marker and owner-only `delete_post`; `20261006201000_optional_non_user_tags`
+  removes friends-first. `20261006190000_message_requests` makes the first message from a non-friend a request;
   accept, decline or block; edit for 15 minutes; unsend; the server checks blocks, bans and removed
   messages). Old apps still write conversations directly; `supabase/deferred/contract_messages.sql`
   closes that once every phone has 12.12 (owner).
@@ -111,11 +113,8 @@ without the owner's go in the same session.
 - **This round (12.04–12.06):** pinch to zoom on post photos (no switch), profile picture as a circle
   (tap outside to close), smooth swipe off a profile, like/comment higher, live countdown on the open
   feed, a "No tags to answer" card, invites that carry their code, refused posts keep their photos.
-- **Waiting on the database push (owner):** `20261002190000_tag_and_feed_pushes` and
-  `20261003120000_tag_slots` go together ([go-live-runbook.md](./go-live-runbook.md) step 2). The
-  tag-slots screen stays behind `tag-slots` (off) until then.
-- **Waiting on the team:** Q1–Q8 in Slack #questions-and-answers (decisions #65–#72); the invite-guard
-  database change is held until they're answered.
+- **Q1–Q10 are answered and shipped.** See [decisions.md](./decisions.md). `tag-slots` remains a
+  rollout switch, but its database contract and the clarified friend/non-user choice are live.
 - **After every OTA, build or push:** post in the right Slack channels and bring these notes up to
   date ("/updateacross").
 

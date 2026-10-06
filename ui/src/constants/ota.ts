@@ -7,6 +7,9 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 16 — Maximus's Q1-Q10 answers, deletable posts with permanent first-post history,
+ *     any mix of friends and people not on Mahi in the three tags, stable media caching, and the
+ *     Settings security/privacy reorganisation (2026-10-06)
  *   build 12 · 06 — search magnifier on the Profile screen (2026-10-05)
  *   build 12 · 05 — pinch to zoom on post photos, for everyone (2026-10-05)
  *   build 12 · 04 — profile picture as a circle (tap outside to close), smooth swipe off a profile, like/comment higher, live feed countdown, no-tags card, invites carry their code, refused posts keep their photos; pinch to zoom built but off (2026-10-05)

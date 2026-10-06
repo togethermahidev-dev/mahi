@@ -168,7 +168,7 @@ per device, and again from Settings → Help. Off = never shown, and the Help ro
 **Account:** `auth-password-reset` ("Forgot password?" on the log-in sheet emails a 6-digit code, then
 the code and a new password set it and log you in. Needs the `send-reset-code` and `reset-password`
 functions and migration `20261001100000_password_reset_codes`. Off = no "Forgot password?" link.) ·
-`account-delete` (Settings → "Delete account" asks once, plainly, then deletes the profile, posts,
+`account-delete` (Settings → Security and privacy → "Delete account" asks once, plainly, then deletes the profile, posts,
 photos, messages and points and logs out. Needs the `delete-account` function. Off = no row.)
 
 **Sign-in placeholders** (pills on the welcome screen with no sign-in behind them yet):

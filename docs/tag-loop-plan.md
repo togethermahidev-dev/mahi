@@ -742,7 +742,7 @@ no action-router Edge Functions. From a read-only review of similar apps, these 
 | --- | --- |
 | Expiry checked at read time (`expires_at > now()`), never dependent on a job | P2, P4 |
 | Banned and blocked (both ways) excluded inside every read function | P2, P4, P6 |
-| Feed never shows cached rows: skeleton, then fresh page; generation counter drops stale responses | P4 |
+| Feed rows stay server-fresh; valid signed media URLs are reused in memory and native image caches avoid reloading identical photos and avatars | P4 |
 | Push via Vault secret + `X-Internal-Secret` constant-time check; one owner per device token | P1 |
 | `app_config` holding the minimum app version for forced updates | P3 |
 | Invite codes with a case-insensitive unique index, redeemable only during onboarding | P7 |

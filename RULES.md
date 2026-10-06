@@ -101,7 +101,7 @@
 - Profile data is inserted into `public.profiles` after successful `signInWithPassword`
 - Sign-up keeps date of birth and phone number as required fields (founder, 2026-10-01)
 - Log in → "Forgot password?" (`ForgotPasswordSheet`, `OtpCodeInput`) emails a code; code + new password log you in
-- Settings → "Delete account" (flag `account-delete`; Apple requires in-app deletion) asks once, then calls
+- Settings → Security and privacy → "Delete account" (flag `account-delete`; Apple requires in-app deletion) asks once, then calls
   `delete-account`: photos removed, auth user deleted, every table cascades
   (`20261001100100_account_delete_cascade`)
 
@@ -115,6 +115,9 @@
 - Feed, inbox and conversation pages are server-authoritative. The stores cache rendered pages only:
   feed uses its server cursor, inbox uses ranged `get_inbox` pages, and a conversation asks
   `get_messages` for the cursor before its oldest loaded message. Never fabricate a later page locally.
+- Supabase post-media links rotate. `ui/src/api/posts.ts` reuses each valid signed URL until five
+  minutes before expiry, and remote post/avatar images use native `force-cache`; never persist feed
+  rows or expired links on the device.
 - When writing back to profile after async work, always read from `useUserStore.getState().profile` — never spread a closure snapshot
 
 ## Reactive posting and Mahi points

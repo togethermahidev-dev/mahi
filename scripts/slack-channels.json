@@ -2,7 +2,7 @@
   {
     "name": "account-and-login",
     "purpose": "Sign-up, log in, password reset, delete account and the update prompt",
-    "summary": "Sign-up is four short steps: email and password (with a strength meter), a six-digit code emailed to you that the phone fills in, then name, date of birth and phone number, then a username (checked live), an optional display name and your fitness goals. Coming from a friend's invite, the sign-up knows and their tag starts the moment you join.\n• Log in with email and password; the phone saves them. \"Forgot password?\" emails a code so you can set a new one and you're logged straight in.\n• Delete account lives in Settings: one clear warning, then profile, posts, photos, messages and points go for good (Apple requires this).\n• The update prompt can ask people to update if an old version ever has to stop working. It's off until needed.\n• Not built yet: Apple and Google sign-in buttons (they show but do nothing), edit profile, and the help, privacy and legal pages."
+    "summary": "Sign-up is four short steps: email and password, a six-digit emailed code, personal details, then username and fitness goals. Coming from an invite, the sign-up knows who invited you.\n• Log in with email and password. \"Forgot password?\" emails a code so you can set a new one.\n• Log out and Delete account now sit under Settings → Security and privacy. Deleting removes the profile, posts, photos, messages and points for good.\n• The update prompt can stop an unsafe old version if needed.\n• Not built yet: Apple and Google sign-in, edit profile, and privacy/legal pages."
   },
   {
     "name": "welcome-cards",
@@ -12,12 +12,12 @@
   {
     "name": "camera-and-posting",
     "purpose": "When you can post, the two-photo camera, preview, caption and location",
-    "summary": "The camera is open when you have a tag to answer, or if you've never posted (your first post is free). Otherwise the shutter is replaced by a card: \"No tags to answer. When a friend tags you, you'll have 48 hours to post.\" Your Mahi points sit in the corner, and a pill shows who tagged you and how long is left.\n• Two taps: the first takes one side, the camera flips by itself, the second takes the other. A small window says what's next (\"Selfie next\"), then shows the first photo. Flip with a button or a double tap, a 0.5x wide lens where the phone has one, and hold the phone sideways for a wide photo.\n• A flash button cycles off, on and auto for your view, and lights the screen for selfies. Photos are saved once at high quality, so they're sharper.\n• Video (built, switched off until the next App Store build): each shot can be a photo or a video of up to 15 seconds, chosen with a Photo / Video switch or by holding the shutter. Videos play with a sound on/off button.\n• Preview: your view fills the screen with the selfie in a small window. Tap to swap, drag the window to a corner, pinch to zoom. Closing asks before discarding.\n• Caption up to 200 characters; typing @ brings up your friends and tags the one you pick. Location is off unless you turn it on, saved to about the nearest street block.\n• Before upload, Mahi asks whether you're happy with the post: it cannot be deleted, its caption can be edited for one hour, and posting opens the feed and can notify people you tagged.\n• Posting saves the post, its tags, deadlines, reminders and invites in one go, and the camera comes straight back. If the post answered a tag, a note says so (\"Answered @sam in 3h\"). If a post is refused, the photos and caption come back with the reason."
+    "summary": "The camera is open when you have a tag to answer, or if you've never posted. Otherwise it explains that you need a tag.\n• Two taps capture both sides; preview lets you swap, drag and zoom. Caption is up to 200 characters and location is optional.\n• Before upload, Mahi confirms that posting opens the feed and may notify tagged people. Captions can be edited for one hour, and owners can delete a post later. Deleting never gives the free first post back.\n• Posting saves the post, tags, deadlines, reminders and invites together. A refused post keeps its photos and caption so it can be retried."
   },
   {
     "name": "tagging",
     "purpose": "Every post tags three friends: who can be tagged, who can't, and the nudges",
-    "summary": "Every post tags three friends, who then have 48 hours to answer. Friends are people who follow each other.\n• The list greys out anyone you can't tag and says why: \"tagged you, can't tag back\" (you're answering their tag) or \"waiting on your last tag\" (they still owe you one).\n• It nudges you towards friends nobody has tagged lately.\n• If you haven't got three friends free to tag, invite links fill the empty slots (see #invites). Invites never replace a friend you could tag.\n• The rule that you can't tag straight back the person whose tag you're answering is what keeps the challenge reaching new people."
+    "summary": "Every post fills three tags. Each can be a current Mahi friend or someone not on Mahi yet, so nobody needs to unfollow friends to use an invite link.\n• The list greys out anyone you can't tag and says why: \"tagged you, can't tag back\" or \"waiting on your last tag\".\n• The rule that you can't tag straight back the person whose tag you're answering keeps the challenge moving to new people."
   },
   {
     "name": "tags-and-48-hours",
@@ -33,7 +33,7 @@
   {
     "name": "feed",
     "purpose": "The feed of friends' workouts: what's in it and how the cards work",
-    "summary": "Your friends' workouts and your own, full screen, one at a time, newest first. Pull down to refresh; posts stay visible while the next server cursor page loads.\n• Each card keeps its context in one compact lower layer: poster, time, points, answered tag, caption and tagged names. The selfie window swaps and drags like it does in the camera.\n• Like and comment are the only controls over the photo; the more menu sits beside the poster. Press and hold a post to hide everything but the photo; let go to bring it back.\n• Pinch with two fingers to zoom in on a photo; let go and it springs back.\n• While your feed is open, a live countdown at the top shows how long until it would lock.\n• Tapping any avatar opens that person's profile."
+    "summary": "Your friends' workouts and your own, full screen, one at a time, newest first. Pull down to refresh; posts stay visible while another page loads.\n• Feed rows remain fresh from the server, while valid photo links and native image caches are reused so the same post or avatar no longer visibly reloads on refresh.\n• Cards show poster, time, points, caption and tags; pinch to zoom, like, comment or open a profile. Owners can edit a caption for one hour or delete their own post.\n• A live countdown shows how long the feed remains open."
   },
   {
     "name": "feed-lock",
@@ -48,7 +48,7 @@
   {
     "name": "profiles",
     "purpose": "Your profile, other people's profiles, and Settings",
-    "summary": "Your profile: your photo (tap to open it as a circle — pinch to zoom, tap the dark space or drag it away to close — and + to change it), a magnifier at the top right to search for people, name and handle, your friends list, and two numbers: Points and Best. Below that, \"Suggested for you\" folded away, and a square two-column grid of every post.\n• Other people: their photo, friends list, Points and Best, a Follow button and a Message button. Their grid only opens if you follow them and your feed is open. A menu lets you block or report them.\n• Profiles scroll as one page, so the header moves away and the grid fills the screen. The grid fetches four posts at a time from the server. Tap a square for the portrait post viewer, swipe left or right through that person's workouts, then swipe down to return to the same grid. Swiping right off someone's profile follows your finger and slides it away.\n• Settings: appearance (light/dark), blocked users (with unblock), a grouped account area for log out and delete account, and the version line. The camera is always dark.\n• Not built yet: edit profile, and changing your name or username after sign-up."
+    "summary": "Profiles show photo, search, friends, Points, Best, suggestions and a paged workout grid. Remote avatars and workout images use native caching so returning to a profile is immediate.\n• Settings is a page sheet: the appearance icon sits inline with the Settings title; Notifications opens the phone's controls; Security and privacy contains Blocked users, Log out and Delete account; Help sits under Support.\n• Other profiles offer Follow, Message, Block and Report. Not built yet: edit profile or changing name/username after sign-up."
   },
   {
     "name": "friends-and-suggestions",
@@ -83,7 +83,7 @@
   {
     "name": "invites",
     "purpose": "Invite links and six-character codes for friends who aren't on Mahi yet",
-    "summary": "Each empty tag slot becomes a one-use link and a six-character code that last seven days. Whoever joins with it becomes your friend straight away, gets their 48 hours, and you hear they joined.\n• Invites only fill slots your free friends can't: tag your free friends first.\n• The share message carries the link and the code. After posting, a list shows each invite and whether it's been sent.\n• Sign-up takes the code or a pasted link and says if a code is wrong; joining says what happened, or why it didn't work.\n• Still to come: the invite website (togethermahi.com), so a link opens the app; until then the code is the way in. Open questions are in #questions-and-answers."
+    "summary": "Any of the three tags may be a current friend or someone not on Mahi yet. A one-use link and six-character code last seven days, but the shared message stays short and does not include the code.\n• If the person joins after the post, their 48 hours start when they join. If they join first, the clock starts when the friend posts.\n• Accepted or joined slots still count if that person later unfollows. After \"Not now\" or taking an in-app invite back, wait one day before inviting the same person again. There is no daily invite limit."
   },
   {
     "name": "navigation-and-design",
@@ -118,7 +118,7 @@
   {
     "name": "ota-updates",
     "purpose": "Over-the-air updates: what went out, when, and how to check it on a phone",
-    "summary": "Most changes reach phones as an over-the-air update without an App Store release. The Settings version line shows the build and update number (for example 10.22). To check an update landed: force-quit and open the app twice.\n• Post each update here with its number and what changed."
+    "summary": "Most changes reach phones over the air without an App Store release. The Settings version line shows the build and update number. To check an update landed: force-quit and open the app twice.\n• Latest production release: 12.16 — Maximus's Q1–Q10 answers, mixed friend/non-user tags, post deletion with permanent first-post history, faster cached media, and reorganised Settings."
   },
   {
     "name": "maintenance",

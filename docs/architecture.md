@@ -205,12 +205,12 @@ Rebuilt like PingMee-v2 (migration `20261006190000_message_requests`, live 2026-
   Old apps still insert and update `conversations` directly until
   `supabase/deferred/contract_messages.sql` goes in (after every phone has 12.12).
 
-## Posts are permanent; captions edit for an hour
+## Post deletion and caption editing
 
-Migration `20261006180000_post_caption_edits` (live). The app can't delete or update a post. The owner
-can change the caption for one hour after posting through `update_post_caption` (≤ 200 characters;
-`EditPostCaptionSheet`, rule in `ui/src/lib/postPolicy.ts`). A changed caption is queued for the
-automatic check again (`moderation_scans`).
+Migrations `20261006180000_post_caption_edits` and `20261006200000_maximus_answers` are live. The
+owner can change the caption for one hour through `update_post_caption` and may delete the post
+through `delete_post`. Deletion removes its media and never restores the free first post:
+`profiles.has_posted_before` stays true. Changed captions are checked again.
 
 ## Shared post links
 
@@ -370,7 +370,7 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | Table | Purpose |
 |---|---|
 | `public.profiles` | User profile — display name, avatar, Mahi points (`streak_current`) and best (`streak_highest`) |
-| `public.posts` | Workout posts (permanent: no delete or update by the app; only the caption, by its owner, for one hour through `update_post_caption`), made under reactive posting (above), each carrying the poster's Mahi points after it (`streak_day`). `image_url` = rear/POV photo; `pov_image_url` = front selfie (nullable — null on legacy single-photo posts). `rear_media_type` / `front_media_type` = `'photo'` or `'video'` per shot (video posts, default `'photo'`). No daily limit: one post per tag answered (the old one-a-day unique index was dropped by `20261001120000_reactive_posting.sql`) |
+| `public.posts` | Workout posts made under reactive posting. Owners edit captions for one hour through `update_post_caption` and delete through `delete_post`; direct table mutation remains denied. Media uses short-lived signed URLs. No daily limit: one post per tag answered |
 | `public.post_likes` | One row per user-post like. Unique constraint `(post_id, user_id)`. RLS: authenticated read-all, insert/delete own only. |
 | `public.post_comments` | Comments on posts. Ordered oldest-first. RLS: authenticated read-all, insert/delete own only. |
 | `public.comment_likes` | One row per user-comment like (flag `comment-likes`). Unique `(comment_id, user_id)`, cascades with the comment and the profile. RLS: read where the comment is readable, insert own only and not across a block (`comment_like_allowed`), delete own only. Read through `get_comment_likes(post)` (count + liked by me per comment) and `get_comment_likers(comment)` (newest first, without people blocked either way or banned); written through `toggle_comment_like`. Migration `20261002130000_comment_likes`. |
@@ -488,7 +488,7 @@ Top bar placed from the safe area, `pointerEvents: 'box-none'` so touches pass t
 | `HorizontalNavigator` / `TabsNavigator` | `ui/src/screens/` | Swipe pages and the phone's tab bar (above) |
 | `CameraScreen` | `ui/src/screens/CameraScreen.tsx` | **Two-tap** dual-camera capture. `CaptureState` (`ui/src/lib/captureGuide.ts`): `idle → capturing-first → switching → awaiting-second → capturing-second`. With `camera-pip-guide`, `CapturePipGuide` shows what comes second, then the first photo, in the photo-in-photo spot. Then `DualPhotoPreview` (Modal: big photo + draggable pip, tap to swap), caption, tag sheet (page sheet; `InviteStep` when friends can't fill the slots), Post → `InviteShareSheet` when invites were used. Also `OpenTagsBanner` (who tagged you and the time left to answer) and the reactive-posting gate: a spinner while it loads, "No tags to answer" when closed. Flash button (off → on → auto, kept for the app session; the selfie side lights the screen) and photo quality (`ui/src/lib/cameraCapture.ts`). With `camera-tap-focus` (build 11+, iPhone): one tap focuses and exposes there (`FocusSquare`, native `focusAt` from `patches/expo-camera.patch`); two taps still flip. Haptics come from `haptic(moment)` in `ui/src/lib/haptics.ts`. No microphone |
 | `FeedScreen` | `ui/src/screens/FeedScreen.tsx` | Feed from `useFeed()` (`get_feed`), FlashList; `FeedLockBanner` (flag `feed-lock-explainer`) on top; locked posts say "Answer a tag to see it", with a button only when you can post; each post is a `PostCard` (`ui/src/components/PostCard.tsx`; dual-photo posts use `DraggablePip`); comments in `CommentSheet`, a native page sheet (with `comment-likes`: a heart and count per comment, read fresh on each opening and shown once they arrive; the count opens `CommentLikersSheet`, a page sheet of who liked it — loading, then the live list, nothing kept); avatar → `UserProfileScreen` |
-| `ProfileScreen` | `ui/src/screens/ProfileScreen.tsx` | Own profile as one scrolling list (`ProfileMediaMap`: the header — settings, theme, avatar, stats, "Suggested for you" folded away by default — scrolls away, then the 3-column grid with "N points" badges; pull to refresh). Avatar (`AvatarPicker`: "+" changes it, a tap opens `AvatarViewer`), `FollowListModal` page sheet, `PostViewer`, `SettingsPanel` (Blocked users, Delete account, Help = the welcome cards again, Log out; no rows without an action) |
+| `ProfileScreen` | `ui/src/screens/ProfileScreen.tsx` | Own profile with avatar, stats, suggestions and workout grid. `SettingsPanel` has an inline appearance icon, Notifications, Security and privacy (Blocked users, Log out, Delete account), Support/Help and the version line |
 | `UserProfileScreen` | `ui/src/screens/UserProfileScreen.tsx` | Another person's profile, opened over Feed, search, notifications, messages, friends lists; one scrolling list like your own (back and menu scroll away with the header); swipe right to close — it follows the finger and slides away like a page swipe (`backSwipeX` / `backSwipeCloses` in `swipeRules`, reanimated on the UI thread); tap the photo → `AvatarViewer`; tap a post → `PostViewer`; menu and report reasons via `ActionSheetIOS`; Message (spinner while the chat opens) |
 | `PostViewer` | `ui/src/components/PostViewer.tsx` | A tapped grid post, full screen, in a Modal: up/down pages through all of that profile's posts (only those the grid opens — the feed lock's rule, `openablePosts` in `ui/src/lib/viewer.ts`), each drawn by `PostCard` (videos play on screen); a swipe left or right closes (`swipeCloses`), as do × and back. Owner, 2026-10-02 |
 | `AvatarViewer` | `ui/src/components/AvatarViewer.tsx` | A profile picture as a circle (`avatarCircleSize`, `VIEWER.avatarShare` of the short side): pinch or double tap to zoom (`clampZoom`, `clampPan`); a tap on the dark space (`avatarTapCloses`), a drag away in any direction, × or back closes it |

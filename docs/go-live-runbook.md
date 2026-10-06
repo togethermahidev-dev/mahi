@@ -2,9 +2,9 @@
 
 For the owner to run, on their own machine. Nobody else touches production.
 
-> **Status (checked against prod 2026-10-01):** done. The owner pushed these twelve on 2026-09-23
-> (161 checks rehearsed, then re-run live), and every later migration since — through
-> `20261001100100_account_delete_cascade` — the same way. Steps 0–4 stay here as the procedure for the
+> **Status (checked against prod 2026-10-06):** done. Production is current through
+> `20261006201000_optional_non_user_tags`; the Q1–Q10 changes were backed up, rehearsed and applied
+> before OTA 12.16. Steps 0–4 stay here as the procedure for the
 > next database change (back up → `try` → `push --dry-run` → `push` → `test`). What's left is under
 > **After this**.
 
