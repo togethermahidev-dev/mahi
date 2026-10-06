@@ -16,6 +16,7 @@ import {
   Share,
   AccessibilityInfo,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -63,6 +64,7 @@ import PointsBadge from '@/components/PointsBadge';
 import { CameraIcon } from '@/components/ScreenIcons';
 import { pointsCount, pointsValue, postedToast } from '@/lib/mahiPoints';
 import KeyboardInset from '@/components/KeyboardInset';
+import WorkoutIdeasSheet from '@/components/WorkoutIdeasSheet';
 import FlashButton from '@/components/FlashButton';
 import FocusSquare, { FOCUS_SQUARE_SIZE, type FocusTap } from '@/components/FocusSquare';
 import CapturePipGuide from '@/components/CapturePipGuide';
@@ -1034,6 +1036,8 @@ interface CaptionSheetProps {
 
 function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSheetProps) {
   const [draft, setDraft] = useState(initialValue);
+  // "Need an idea?": what counts as a workout, over this sheet.
+  const [ideasOpen, setIdeasOpen] = useState(false);
   const cursorRef = useRef(0);
 
   // Reseed when the sheet re-opens (ignore initialValue changes while open).
@@ -1096,6 +1100,17 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
           />
           <Pressable
             accessibilityRole="button"
+            accessibilityHint="Shows workouts that count"
+            style={({ pressed }) => [styles.ideaLink, pressed && { opacity: ALPHA.a70 }]}
+            onPress={() => {
+              Keyboard.dismiss();
+              setIdeasOpen(true);
+            }}
+          >
+            <Text style={styles.ideaLinkText}>Need an idea?</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
             style={({ pressed }) => [styles.sheetDone, pressed && { opacity: ALPHA.a85 }]}
             onPress={commit}
           >
@@ -1104,6 +1119,8 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
           <KeyboardInset />
         </View>
       </View>
+      {/* Inside this modal so it opens over it. */}
+      <WorkoutIdeasSheet visible={ideasOpen} onClose={() => setIdeasOpen(false)} />
     </Modal>
   );
 }
@@ -3106,6 +3123,17 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f18,
     fontFamily: FONTS.semiBold,
     lineHeight: LINE_HEIGHT.l20,
+  },
+  // "Need an idea?" under the caption: a text link, 44 pt tall to tap.
+  ideaLink: {
+    alignSelf: 'flex-start',
+    minHeight: SIZE.z44,
+    justifyContent: 'center',
+  },
+  ideaLinkText: {
+    color: COLORS.accent,
+    fontSize: FONT_SIZE.f15,
+    fontFamily: FONTS.semiBold,
   },
   sheetDone: {
     backgroundColor: COLORS.accent,
