@@ -1,5 +1,5 @@
-import { toastDuration } from '../toast';
-import { WAIT } from '@/constants/tokens';
+import { toastDuration, toastLines } from '../toast';
+import { LAYOUT, WAIT } from '@/constants/tokens';
 
 describe('how long a toast stays: long enough to read', () => {
   it('a short toast stays the least time', () => {
@@ -28,5 +28,18 @@ describe('how long a toast stays: long enough to read', () => {
 
   it('extra spaces are not words', () => {
     expect(toastDuration('  Posted.   ', false)).toBe(WAIT.toastMin);
+  });
+});
+
+// Design round 5 (gap 14): at the largest text sizes, 3 lines cut a toast off mid-sentence.
+describe('how many lines a toast wraps to', () => {
+  it('3 lines at the usual text sizes', () => {
+    expect(toastLines(1)).toBe(LAYOUT.toastLines);
+    expect(toastLines(1.3)).toBe(3);
+  });
+
+  it('more lines once the text is large, still a limit so it never fills the screen', () => {
+    expect(toastLines(LAYOUT.largeTextScale)).toBe(LAYOUT.toastLinesLarge);
+    expect(toastLines(3.1)).toBe(6);
   });
 });

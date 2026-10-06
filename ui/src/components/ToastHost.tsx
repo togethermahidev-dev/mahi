@@ -7,11 +7,13 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useToastStore } from '@/store/toastStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { loadScreens } from '@/lib/screensModule';
+import { toastLines } from '@/lib/toast';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -19,7 +21,6 @@ import {
   DURATION,
   ELEVATION,
   FONT_SIZE,
-  LAYOUT,
   OFFSET,
   RADIUS,
   SHADOW_BLUR,
@@ -46,6 +47,8 @@ export function ToastHost(): React.JSX.Element | null {
   const hide = useToastStore((s) => s.hide);
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
+  // More lines at large text, so a toast isn't cut off mid-sentence.
+  const lines = toastLines(useWindowDimensions().fontScale);
 
   // Slides in from the edge it sits on.
   const from = room.top ? -OFFSET.o12 : OFFSET.o12;
@@ -129,7 +132,7 @@ export function ToastHost(): React.JSX.Element | null {
       >
         <Text
           style={[styles.text, action && styles.textWithAction, { color: colors.offWhite }]}
-          numberOfLines={LAYOUT.toastLines}
+          numberOfLines={lines}
         >
           {message}
         </Text>
