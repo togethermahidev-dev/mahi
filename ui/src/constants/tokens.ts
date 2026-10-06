@@ -512,6 +512,8 @@ export const MOTION = {
   skeletonLow: 0.35,
   skeletonHigh: 0.7,
   skeletonMs: 900,
+  /** "Tag answered" stays on the camera this long (ms) before the pill fades away. */
+  celebrateMs: 2400,
   /** Points counting up to a new total (ms). */
   countUpMs: 700,
   /** A tag pill turning into a check. */

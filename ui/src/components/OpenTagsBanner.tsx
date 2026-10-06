@@ -1,10 +1,20 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMinuteTick } from '@/hooks/useMinuteTick';
 import PushNudge from '@/components/PushNudge';
+import { FadeInItem } from '@/components/Motion';
+import Reanimated, {
+  FadeIn,
+  FadeOut,
+  ReduceMotion,
+  ZoomIn,
+  useReducedMotion,
+} from 'react-native-reanimated';
+import Svg, { Path } from 'react-native-svg';
+import { msLeft } from '@/lib/countdown';
 import { openTagsBanner } from '@/lib/openTagsBanner';
 import { appHeaderHeight } from '@/lib/pip';
 import type { OpenTag } from '@/api';
@@ -12,11 +22,15 @@ import { FONTS } from '@/constants/fonts';
 import {
   BLUR_INTENSITY,
   BORDER_WIDTH,
+  DURATION,
   FONT_SIZE,
+  ICON_SIZE,
+  MOTION,
   OFFSET,
   RADIUS,
   SIZE,
   SPACE,
+  STROKE,
 } from '@/constants/tokens';
 
 /**
@@ -40,41 +54,91 @@ export default function OpenTagsBanner({
   // Hours and minutes only, so a refresh every minute keeps it right.
   const deviceNow = useMinuteTick();
 
+  // The moment you answer: the tag pill morphs into a check for a beat. Only when the tags
+  // left while still open (answered), never when they ran out.
+  const reduceMotion = useReducedMotion();
+  const prevTags = useRef(openTags);
+  const [answered, setAnswered] = useState(false);
+  useEffect(() => {
+    const before = prevTags.current;
+    prevTags.current = openTags;
+    const stillOpen = before.some((t) => msLeft(t.expires_at, serverOffsetMs) > 0);
+    if (before.length > 0 && openTags.length === 0 && stillOpen) setAnswered(true);
+  }, [openTags, serverOffsetMs]);
+  useEffect(() => {
+    if (!answered) return;
+    const id = setTimeout(() => setAnswered(false), MOTION.celebrateMs);
+    return () => clearTimeout(id);
+  }, [answered]);
+
   const banner = openTagsBanner({ openTags, serverOffsetMs, deviceNow, firstPost });
+  if (answered) {
+    return (
+      <View style={[styles.wrap, { top }]} pointerEvents="none">
+        <Reanimated.View
+          entering={
+            reduceMotion
+              ? FadeIn.duration(DURATION.d200).reduceMotion(ReduceMotion.Never)
+              : ZoomIn.springify().damping(MOTION.morph.damping).stiffness(MOTION.morph.stiffness)
+          }
+          exiting={FadeOut.duration(DURATION.d300)}
+          style={[styles.pill, styles.donePill, { backgroundColor: colors.accent }]}
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel="Tag answered"
+          accessibilityLiveRegion="polite"
+        >
+          <Svg width={ICON_SIZE.i16} height={ICON_SIZE.i16} viewBox="0 0 24 24">
+            <Path
+              d="M5 12.5l4.5 4.5L19 7.5"
+              stroke={colors.offBlack}
+              strokeWidth={STROKE.s2}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+          <Text style={[styles.text, { color: colors.offBlack }]}>Tag answered</Text>
+        </Reanimated.View>
+      </View>
+    );
+  }
   if (!banner) return null;
   const isFirstPost = banner.firstPost === true;
 
   return (
     // box-none: touches pass through to the camera except on the notifications line.
     <View style={[styles.wrap, { top }]} pointerEvents="box-none">
-      <View
-        style={styles.pillRoom}
-        pointerEvents="none"
-        accessible
-        accessibilityRole="text"
-        accessibilityLabel={
-          isFirstPost
-            ? `Your first post needs no tag. ${banner.note ?? ''}`.trim()
-            : `${banner.who} tagged you. ${banner.left}.${banner.note ? ` ${banner.note}` : ''}`
-        }
-      >
-        <BlurView
-          intensity={BLUR_INTENSITY.i40}
-          tint="dark"
-          style={[styles.pill, { borderColor: colors.accent }]}
+      <FadeInItem style={styles.fadeRoom}>
+        <View
+          style={styles.pillRoom}
+          pointerEvents="none"
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel={
+            isFirstPost
+              ? `Your first post needs no tag. ${banner.note ?? ''}`.trim()
+              : `${banner.who} tagged you. ${banner.left}.${banner.note ? ` ${banner.note}` : ''}`
+          }
         >
-          <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={2}>
-            {isFirstPost ? banner.who : `${banner.who} tagged you`} ·{' '}
-            <Text style={[styles.time, { color: colors.accent }]}>{banner.left}</Text>
-          </Text>
-          {/* One post answers every open tag; a newcomer hears that any workout counts. */}
-          {banner.note ? (
-            <Text style={[styles.note, { color: colors.offWhite }]} numberOfLines={2}>
-              {banner.note}
+          <BlurView
+            intensity={BLUR_INTENSITY.i40}
+            tint="dark"
+            style={[styles.pill, { borderColor: colors.accent }]}
+          >
+            <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={2}>
+              {isFirstPost ? banner.who : `${banner.who} tagged you`} ·{' '}
+              <Text style={[styles.time, { color: colors.accent }]}>{banner.left}</Text>
             </Text>
-          ) : null}
-        </BlurView>
-      </View>
+            {/* One post answers every open tag; a newcomer hears that any workout counts. */}
+            {banner.note ? (
+              <Text style={[styles.note, { color: colors.offWhite }]} numberOfLines={2}>
+                {banner.note}
+              </Text>
+            ) : null}
+          </BlurView>
+        </View>
+      </FadeInItem>
       {/* Tagged with notifications off: one line to turn them on (flag push-core). */}
       {isFirstPost ? null : <PushNudge openTags={openTags} />}
     </View>
@@ -87,6 +151,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
+  },
+  fadeRoom: {
+    alignSelf: 'stretch',
   },
   pillRoom: {
     // Keeps the pill clear of the points counter (top right) on small phones and at large text.
@@ -103,6 +170,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
     justifyContent: 'center',
     overflow: 'hidden',
+  },
+  donePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s6,
+    borderWidth: 0,
   },
   text: {
     fontFamily: FONTS.semiBold,

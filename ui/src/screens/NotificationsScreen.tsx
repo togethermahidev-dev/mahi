@@ -10,6 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
+import { FadeInItem } from '@/components/Motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { refreshTint } from '@/lib/themeColors';
@@ -361,15 +362,24 @@ export default function NotificationsScreen({
                 {...refreshTint(dark)}
               />
             }
-            renderItem={({ item: entry }: { item: NotificationListItem<NotificationWithActor> }) =>
-              entry.kind === 'header' ? (
-                <Text style={[styles.sectionLabel, { color: muted }]} accessibilityRole="header">
-                  {entry.title}
-                </Text>
-              ) : (
-                renderRow(entry.item)
-              )
-            }
+            renderItem={({
+              item: entry,
+              index,
+            }: {
+              item: NotificationListItem<NotificationWithActor>;
+              index: number;
+            }) => (
+              // Rows fade and rise in one after another when the list opens.
+              <FadeInItem index={index}>
+                {entry.kind === 'header' ? (
+                  <Text style={[styles.sectionLabel, { color: muted }]} accessibilityRole="header">
+                    {entry.title}
+                  </Text>
+                ) : (
+                  renderRow(entry.item)
+                )}
+              </FadeInItem>
+            )}
             ListEmptyComponent={
               <ListState
                 kind="empty"

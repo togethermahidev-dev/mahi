@@ -28,6 +28,7 @@ import Reanimated, {
   runOnJS,
   useReducedMotion,
 } from 'react-native-reanimated';
+import { useCountUp } from '@/components/Motion';
 import { haptic, hapticSequence, postedMoments } from '@/lib/haptics';
 import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
 import { BlurView } from 'expo-blur';
@@ -181,6 +182,8 @@ function PointsCounter({ count }: { count: number | null }) {
   const scaleAnim = useRef(new Animated.Value(reduceMotion ? 1 : SCALE.s4)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const lastCount = useRef<number | null>(null);
+  // A point earned counts up to the new total (jumps there with Reduce Motion).
+  const shownCount = useCountUp(count);
   const known = count !== null;
 
   // The landing: once, when the number is first known (the dash just fades in before that).
@@ -233,7 +236,7 @@ function PointsCounter({ count }: { count: number | null }) {
         style={[styles.pointsNumber, !known && { color: themeColors(true).muted }]}
         maxFontSizeMultiplier={LAYOUT.largeTextScale}
       >
-        {pointsValue(count)}
+        {pointsValue(shownCount)}
       </Text>
       <Text style={styles.pointsLabel}>Mahi points</Text>
     </Animated.View>
