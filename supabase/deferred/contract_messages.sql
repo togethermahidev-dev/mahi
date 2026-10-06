@@ -11,3 +11,13 @@ drop policy if exists messages_insert on public.messages;
 revoke insert on public.messages from authenticated;
 
 notify pgrst, 'reload schema';
+
+-- Added with 20261006190000_message_requests: old apps also open, accept and deny requests by
+-- writing to conversations directly. Once every phone answers requests through
+-- accept_message_request / decline_message_request and starts chats with start_conversation:
+drop policy if exists conversations_insert on public.conversations;
+drop policy if exists conversations_update on public.conversations;
+drop policy if exists conversations_delete on public.conversations;
+revoke insert, update, delete on public.conversations from authenticated;
+
+notify pgrst, 'reload schema';

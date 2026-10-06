@@ -33,9 +33,7 @@ select lives_ok($$select public.send_message(pg_temp.convo(), '22222222-0000-000
   'the requester can send the first message');
 select lives_ok($$select public.send_message(pg_temp.convo(), '22222222-0000-0000-0000-000000000001', 'hey')$$,
   'a retry with the same client id is accepted');
-select public.send_message(pg_temp.convo(), '22222222-0000-0000-0000-000000000002', 'you in?');
-select public.send_message(pg_temp.convo(), '22222222-0000-0000-0000-000000000003', 'gym at 6');
-select is((select count(*)::int from public.messages where conversation_id = pg_temp.convo()), 3,
+select is((select count(*)::int from public.messages where conversation_id = pg_temp.convo()), 1,
   'the retry did not make a second message');
 select throws_ok($$select public.send_message(pg_temp.convo(), gen_random_uuid(), '   ')$$, '22023', null,
   'empty messages are refused');
@@ -46,12 +44,15 @@ select throws_ok($$select public.send_message(pg_temp.convo(), gen_random_uuid()
 select throws_ok($$update public.conversations set status = 'active' where id = pg_temp.convo()$$, '42501', null,
   'the requester cannot accept their own request');
 select pg_temp.as_user('b');
-select is((select unread_count from public.get_inbox('requested') where id = pg_temp.convo()), 3,
-  'B sees 3 unread messages in the request');
+select is((select unread_count from public.get_inbox('requested') where id = pg_temp.convo()), 1,
+  'B sees the request unread');
 select lives_ok($$update public.conversations set status = 'active' where id = pg_temp.convo()$$,
   'the receiver can accept');
 reset role;
 select is((select status from public.conversations where id = pg_temp.convo()), 'active', 'the request is now active');
+select pg_temp.as_user('a');
+select public.send_message(pg_temp.convo(), '22222222-0000-0000-0000-000000000002', 'you in?');
+select public.send_message(pg_temp.convo(), '22222222-0000-0000-0000-000000000003', 'gym at 6');
 
 -- 3. Paging and reading.
 select pg_temp.as_user('b');

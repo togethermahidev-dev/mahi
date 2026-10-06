@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { createOrGetConversation, type ConversationPreview } from '@/api';
+import { createOrGetConversation, isDraft, type ConversationPreview } from '@/api';
 import { useAuthStore, useConversationStore, useMessagesStore } from '@/store';
 
 export interface UseMessagesResult {
@@ -55,12 +55,14 @@ export function useMessages(): UseMessagesResult {
       if (!userId) return null;
       const { data, error } = await createOrGetConversation(userId, otherUserId);
       if (error || !data) return null;
+      // A draft has no conversation on the server yet: it joins the inbox with its first message.
+      if (isDraft(data.id)) return data;
       // Ensure the conversation is reflected in the store
       const store = useMessagesStore.getState();
       const inStore =
         store.inbox.some((c) => c.id === data.id) || store.requests.some((c) => c.id === data.id);
       if (!inStore) {
-        if (data.status === 'active') {
+        if (data.status === 'active' || data.is_requester) {
           useMessagesStore.setState((s) => ({ inbox: [data, ...s.inbox] }));
         } else {
           useMessagesStore.setState((s) => ({ requests: [data, ...s.requests] }));

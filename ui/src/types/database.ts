@@ -802,6 +802,30 @@ export type Database = {
           unread_count: number;
         }[];
       };
+      get_conversation_with: {
+        Args: { p_other: string };
+        Returns: Database['public']['Functions']['get_inbox']['Returns'];
+      };
+      start_conversation: {
+        Args: { p_other: string; p_client_id: string; p_content: string };
+        Returns: Json;
+      };
+      accept_message_request: {
+        Args: { p_conversation_id: string };
+        Returns: undefined;
+      };
+      decline_message_request: {
+        Args: { p_conversation_id: string };
+        Returns: undefined;
+      };
+      edit_message: {
+        Args: { p_message_id: string; p_content: string };
+        Returns: Json;
+      };
+      unsend_message: {
+        Args: { p_message_id: string };
+        Returns: Json;
+      };
       register_push_token: {
         Args: { p_platform: string; p_token: string };
         Returns: undefined;

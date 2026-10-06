@@ -4,7 +4,7 @@ import {
   getInbox,
   getRequests,
   acceptRequest,
-  deleteConversation,
+  declineRequest,
   type ConversationPreview,
   type Message,
 } from '@/api';
@@ -24,7 +24,7 @@ interface MessagesState {
 
   sync: () => Promise<void>;
   accept: (conversationId: string) => Promise<void>;
-  /** Optimistic delete from requests (DENY flow). */
+  /** Decline a request: it leaves your requests (the sender isn't told). */
   deny: (conversationId: string) => Promise<void>;
   /** Update the last_message preview for a conversation — called from real-time handlers. */
   patchConversationLastMessage: (
@@ -93,7 +93,7 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
       }));
     }
 
-    const { error } = await deleteConversation(conversationId);
+    const { error } = await declineRequest(conversationId);
     if (error && denied) {
       // Rollback on failure
       set((state) => ({ requests: [...state.requests, denied] }));
@@ -153,8 +153,16 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
             requests: state.requests.filter((c) => c.id !== updated.id),
             inbox: [{ ...conv, status: 'active' as const }, ...state.inbox],
           }));
+          return;
         }
+        // A request you sent was accepted: it stops waiting.
+        set((state) => ({
+          inbox: state.inbox.map((c) => (c.id === updated.id ? { ...c, status: 'active' } : c)),
+        }));
+        return;
       }
+      // Anything else (a block, a new request) — the server's list is the truth.
+      get().sync();
     };
 
     // Channel 1: this user is participant_one

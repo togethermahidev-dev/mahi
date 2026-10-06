@@ -2,7 +2,16 @@ import { create } from 'zustand';
 import { AppState, type NativeEventSubscription } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
-import { getMessages, sendMessage, markConversationRead, MESSAGE_PAGE, type Message } from '@/api';
+import {
+  getMessages,
+  sendMessage,
+  editMessage,
+  unsendMessage,
+  startConversation,
+  markConversationRead,
+  MESSAGE_PAGE,
+  type Message,
+} from '@/api';
 import { useMessagesStore } from './messagesStore';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -49,6 +58,16 @@ interface ConversationState {
   refreshNewest: (conversationId: string) => Promise<void>;
   /** Shows immediately, then the server's row replaces it. False = it didn't send. */
   send: (conversationId: string, userId: string, content: string) => Promise<boolean>;
+  /** Edit your own message. Shows at once; the old words come back if the server says no. */
+  edit: (conversationId: string, messageId: string, content: string) => Promise<boolean>;
+  /** Unsend your own message. Gone at once; back if the server says no. */
+  unsend: (conversationId: string, messageId: string) => Promise<boolean>;
+  /** The first message to someone: the server makes the conversation. Null = it didn't send. */
+  start: (
+    otherUserId: string,
+    userId: string,
+    content: string
+  ) => Promise<{ conversationId: string; status: string } | null>;
   markRead: (conversationId: string) => Promise<void>;
   reset: () => void;
 }
@@ -112,6 +131,26 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
               };
             });
             useMessagesStore.getState().patchConversationLastMessage(conversationId, incoming);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${conversationId}`,
+          },
+          (payload) => {
+            // An edit replaces the words; an unsend takes the message away.
+            const changed = payload.new as Message;
+            set((s) => {
+              const prev = s.threads[conversationId] ?? EMPTY;
+              const messages = changed.unsent_at
+                ? prev.messages.filter((m) => m.id !== changed.id)
+                : prev.messages.map((m) => (m.id === changed.id ? { ...m, ...changed } : m));
+              return { threads: { ...s.threads, [conversationId]: { ...prev, messages } } };
+            });
           }
         )
         .subscribe((status) => {
@@ -230,6 +269,77 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     });
     useMessagesStore.getState().patchConversationLastMessage(conversationId, data);
     return true;
+  },
+
+  edit: async (conversationId, messageId, content) => {
+    const text = content.trim();
+    const before = get().threads[conversationId]?.messages.find((m) => m.id === messageId);
+    if (!text || !before) return false;
+    const put = (m: Message) =>
+      set((s) => {
+        const prev = s.threads[conversationId] ?? EMPTY;
+        return {
+          threads: {
+            ...s.threads,
+            [conversationId]: {
+              ...prev,
+              messages: prev.messages.map((x) => (x.id === messageId ? m : x)),
+            },
+          },
+        };
+      });
+    put({ ...before, content: text, edited_at: new Date().toISOString() });
+    const { data, error } = await editMessage(messageId, text);
+    put(error || !data ? before : data);
+    return !error && !!data;
+  },
+
+  unsend: async (conversationId, messageId) => {
+    const thread = get().threads[conversationId];
+    if (!thread?.messages.some((m) => m.id === messageId)) return false;
+    const keep = thread.messages;
+    set((s) => ({
+      threads: {
+        ...s.threads,
+        [conversationId]: {
+          ...(s.threads[conversationId] ?? EMPTY),
+          messages: keep.filter((m) => m.id !== messageId),
+        },
+      },
+    }));
+    const { error } = await unsendMessage(messageId);
+    if (error) {
+      set((s) => {
+        const prev = s.threads[conversationId] ?? EMPTY;
+        return {
+          threads: {
+            ...s.threads,
+            [conversationId]: { ...prev, messages: merge(prev.messages, keep) },
+          },
+        };
+      });
+      return false;
+    }
+    useMessagesStore.getState().sync();
+    return true;
+  },
+
+  start: async (otherUserId, _userId, content) => {
+    const text = content.trim();
+    if (!text) return null;
+    const { data, error } = await startConversation(otherUserId, randomUUID(), text);
+    if (error || !data) return null;
+    set((s) => {
+      const prev = s.threads[data.conversationId] ?? { ...EMPTY, isLoading: false };
+      return {
+        threads: {
+          ...s.threads,
+          [data.conversationId]: { ...prev, messages: merge(prev.messages, [data.message]) },
+        },
+      };
+    });
+    useMessagesStore.getState().sync();
+    return { conversationId: data.conversationId, status: data.status };
   },
 
   markRead: async (conversationId) => {

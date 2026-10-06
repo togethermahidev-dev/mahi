@@ -1,14 +1,15 @@
 /**
  * Messages API
  *
- * Conversations have two participants and a status:
- *   'requested' — initiated but not yet accepted (REQUESTS tab)
- *   'active'    — accepted by the receiver (INBOX tab)
- *   'blocked'   — one side blocked the other; frozen until they unblock
+ * Works like PingMee-v2's, and the server decides everything:
+ *   - Opening a chat makes nothing. The first message makes the conversation: straight into the
+ *     inbox between friends (people who follow each other), otherwise a message request.
+ *   - While a request waits the sender can't send more; the receiver accepts, declines or blocks.
+ *     Declining is quiet — the sender still sees it waiting.
+ *   - You can edit your own message for 15 minutes (shown "Edited") and unsend it any time.
  *
- * Sending, reading and unread counts all go through server functions (send_message,
- * get_messages, mark_conversation_read, get_inbox), so the rules live in one place and a
- * retry can never make a second message.
+ * Statuses: 'requested' (waiting), 'active', 'blocked'; 'draft' is the app's own — a chat with
+ * no message yet, so nothing on the server.
  */
 
 import { supabase } from '@/lib/supabase';
@@ -24,7 +25,18 @@ export type Message = {
   content: string;
   client_id: string | null;
   created_at: string;
+  /** Set when the sender edited it. */
+  edited_at?: string | null;
+  /** Set when the sender unsent it (the text is then empty). */
+  unsent_at?: string | null;
 };
+
+/** How long after sending a message its sender can still edit it (the server's rule). */
+export const EDIT_WINDOW_MS = 15 * 60 * 1000;
+
+/** A chat with someone you haven't messaged yet has this id until its first message. */
+export const DRAFT_PREFIX = 'draft:';
+export const isDraft = (conversationId: string): boolean => conversationId.startsWith(DRAFT_PREFIX);
 
 export type ConversationPreview = {
   id: string;
@@ -73,7 +85,10 @@ async function fetchConversations(
   return { data: (data ?? []).map(toPreview), error: null };
 }
 
-/** Accepted conversations, newest activity first, each with its unread count. */
+/**
+ * Your conversations, newest activity first, each with its unread count. Includes requests you
+ * sent that are still waiting (status 'requested').
+ */
 export async function getInbox(): Promise<{
   data: ConversationPreview[] | null;
   error: Error | null;
@@ -81,7 +96,7 @@ export async function getInbox(): Promise<{
   return fetchConversations('active');
 }
 
-/** Conversations still waiting to be accepted. */
+/** Requests other people sent you that you haven't answered. */
 export async function getRequests(): Promise<{
   data: ConversationPreview[] | null;
   error: Error | null;
@@ -89,15 +104,20 @@ export async function getRequests(): Promise<{
   return fetchConversations('requested');
 }
 
-/** Accept a message request — moves it from REQUESTS to INBOX. Only the receiver may. */
+/** Accept a message request — moves it from requests to the inbox. Only the receiver may. */
 export async function acceptRequest(conversationId: string): Promise<{ error: Error | null }> {
-  const { error } = await supabase
-    .from('conversations')
-    .update({ status: 'active' })
-    .eq('id', conversationId);
+  const { error } = await supabase.rpc('accept_message_request', {
+    p_conversation_id: conversationId,
+  });
+  return { error: error ? new Error(error.message) : null };
+}
 
-  if (error) return { error: new Error(error.message) };
-  return { error: null };
+/** Decline a message request. Quiet: it leaves your requests and the sender isn't told. */
+export async function declineRequest(conversationId: string): Promise<{ error: Error | null }> {
+  const { error } = await supabase.rpc('decline_message_request', {
+    p_conversation_id: conversationId,
+  });
+  return { error: error ? new Error(error.message) : null };
 }
 
 /**
@@ -120,53 +140,33 @@ export async function sendMessage(
 }
 
 /**
- * Create a new conversation or return the existing one between two users.
- * Uses LEAST/GREATEST ordering so the unique constraint on (participant_one, participant_two)
- * is always satisfied regardless of argument order.
+ * Your conversation with someone. If you've never messaged each other it's a draft (nothing on
+ * the server) until the first message goes through startConversation.
  */
 export async function createOrGetConversation(
   senderId: string,
   receiverId: string
 ): Promise<{ data: ConversationPreview | null; error: Error | null }> {
-  const p1 = senderId < receiverId ? senderId : receiverId;
-  const p2 = senderId < receiverId ? receiverId : senderId;
+  const { data, error } = await supabase.rpc('get_conversation_with', { p_other: receiverId });
+  if (error) return { data: null, error: new Error(error.message) };
+  const row = (data ?? [])[0];
+  if (row) return { data: toPreview(row), error: null };
 
-  // Upsert — ignore duplicate (existing conversation stays as-is)
-  const { error: upsertErr } = await supabase
-    .from('conversations')
-    .upsert(
-      { participant_one: p1, participant_two: p2, status: 'requested', initiated_by: senderId },
-      { onConflict: 'participant_one,participant_two', ignoreDuplicates: true }
-    );
-
-  if (upsertErr) return { data: null, error: new Error(upsertErr.message) };
-
-  const { data: convo, error: fetchErr } = await supabase
-    .from('conversations')
-    .select('id, status, initiated_by, updated_at')
-    .eq('participant_one', p1)
-    .eq('participant_two', p2)
-    .single();
-
-  if (fetchErr || !convo) return { data: null, error: new Error(fetchErr?.message ?? 'Not found') };
-
-  const otherId = senderId === p1 ? p2 : p1;
   const { data: profile, error: profErr } = await supabase
     .from('profiles')
     .select('id, username, display_name, avatar_url')
-    .eq('id', otherId)
+    .eq('id', receiverId)
     .single();
-
   if (profErr || !profile)
     return { data: null, error: new Error(profErr?.message ?? 'Profile not found') };
 
   return {
     data: {
-      id: convo.id,
-      status: convo.status,
-      initiated_by: convo.initiated_by,
-      updated_at: convo.updated_at,
-      is_requester: convo.initiated_by === senderId,
+      id: `${DRAFT_PREFIX}${receiverId}`,
+      status: 'draft',
+      initiated_by: senderId,
+      updated_at: new Date().toISOString(),
+      is_requester: true,
       unread_count: 0,
       other_profile: profile,
       last_message: null,
@@ -175,12 +175,48 @@ export async function createOrGetConversation(
   };
 }
 
-/** Delete a conversation (used for DENY). Cascades to messages via FK. */
-export async function deleteConversation(conversationId: string): Promise<{ error: Error | null }> {
-  const { error } = await supabase.from('conversations').delete().eq('id', conversationId);
+/**
+ * The first message to someone. The server makes the conversation — a request unless you're
+ * friends — and sends the message. Safe to retry with the same client id.
+ */
+export async function startConversation(
+  otherUserId: string,
+  clientId: string,
+  content: string
+): Promise<{
+  data: { conversationId: string; status: string; message: Message } | null;
+  error: Error | null;
+}> {
+  const { data, error } = await supabase.rpc('start_conversation', {
+    p_other: otherUserId,
+    p_client_id: clientId,
+    p_content: content,
+  });
+  if (error) return { data: null, error: new Error(error.message) };
+  const r = data as unknown as { conversation_id: string; status: string; message: Message };
+  return {
+    data: { conversationId: r.conversation_id, status: r.status, message: r.message },
+    error: null,
+  };
+}
 
-  if (error) return { error: new Error(error.message) };
-  return { error: null };
+/** Edit your own message (within 15 minutes of sending it). */
+export async function editMessage(
+  messageId: string,
+  content: string
+): Promise<{ data: Message | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('edit_message', {
+    p_message_id: messageId,
+    p_content: content,
+  });
+  if (error) return { data: null, error: new Error(error.message) };
+  return { data: data as unknown as Message, error: null };
+}
+
+/** Unsend your own message: it's gone for both of you. */
+export async function unsendMessage(messageId: string): Promise<{ error: Error | null }> {
+  const { error } = await supabase.rpc('unsend_message', { p_message_id: messageId });
+  return { error: error ? new Error(error.message) : null };
 }
 
 /** How many messages one page holds. */

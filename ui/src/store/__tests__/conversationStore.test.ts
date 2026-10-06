@@ -11,14 +11,21 @@
 jest.mock('@/api', () => ({
   getMessages: jest.fn(),
   sendMessage: jest.fn(),
+  editMessage: jest.fn(),
+  unsendMessage: jest.fn(),
+  startConversation: jest.fn(),
+  getInbox: jest.fn(async () => ({ data: [], error: null })),
+  getRequests: jest.fn(async () => ({ data: [], error: null })),
   markConversationRead: jest.fn(async () => ({ error: null })),
   MESSAGE_PAGE: 30,
 }));
 
 let insertHandler: ((payload: { new: unknown }) => void) | null = null;
+let updateHandler: ((payload: { new: unknown }) => void) | null = null;
 const fakeChannel = {
-  on: (_event: string, _config: unknown, cb: (payload: { new: unknown }) => void) => {
-    insertHandler = cb;
+  on: (_event: string, config: { event: string }, cb: (payload: { new: unknown }) => void) => {
+    if (config.event === 'UPDATE') updateHandler = cb;
+    else insertHandler = cb;
     return fakeChannel;
   },
   subscribe: (cb?: (status: string) => void) => {
@@ -38,7 +45,14 @@ jest.mock('react-native', () => ({
 }));
 
 import { useConversationStore } from '@/store/conversationStore';
-import { getMessages, sendMessage, type Message } from '@/api';
+import {
+  getMessages,
+  sendMessage,
+  editMessage,
+  unsendMessage,
+  startConversation,
+  type Message,
+} from '@/api';
 
 const CONVO = 'convo-1';
 const ME = 'me';
@@ -74,9 +88,13 @@ const ids = () => thread().messages.map((m) => m.id);
 beforeEach(() => {
   nextId = 0;
   insertHandler = null;
+  updateHandler = null;
   useConversationStore.getState().reset();
   (getMessages as jest.Mock).mockResolvedValue({ data: [], error: null });
   (sendMessage as jest.Mock).mockReset();
+  (editMessage as jest.Mock).mockReset();
+  (unsendMessage as jest.Mock).mockReset();
+  (startConversation as jest.Mock).mockReset();
 });
 
 describe('two quick sends', () => {
@@ -155,5 +173,95 @@ describe('paging', () => {
     expect(contents()[0]).toBe('older');
     expect(thread().messages).toHaveLength(31);
     expect(thread().hasMore).toBe(false);
+  });
+});
+
+describe('editing your own message', () => {
+  it('shows the new words and "edited" at once, then keeps the server row', async () => {
+    (getMessages as jest.Mock).mockResolvedValueOnce({
+      data: [serverRow('s1', 'c1', 'helo', justAfter(0))],
+      error: null,
+    });
+    await useConversationStore.getState().open(CONVO);
+    const saved = { ...serverRow('s1', 'c1', 'hello', justAfter(0)), edited_at: justAfter(1) };
+    (editMessage as jest.Mock).mockResolvedValue({ data: saved, error: null });
+
+    const ok = await useConversationStore.getState().edit(CONVO, 's1', 'hello');
+
+    expect(ok).toBe(true);
+    expect(contents()).toEqual(['hello']);
+    expect(thread().messages[0].edited_at).toBe(saved.edited_at);
+  });
+
+  it('puts the old words back when the server says no', async () => {
+    (getMessages as jest.Mock).mockResolvedValueOnce({
+      data: [serverRow('s1', 'c1', 'helo', justAfter(0))],
+      error: null,
+    });
+    await useConversationStore.getState().open(CONVO);
+    (editMessage as jest.Mock).mockResolvedValue({ data: null, error: new Error('too late') });
+
+    const ok = await useConversationStore.getState().edit(CONVO, 's1', 'hello');
+
+    expect(ok).toBe(false);
+    expect(contents()).toEqual(['helo']);
+    expect(thread().messages[0].edited_at ?? null).toBeNull();
+  });
+});
+
+describe('unsending your own message', () => {
+  it('takes it off the screen, and back on if the server says no', async () => {
+    (getMessages as jest.Mock).mockResolvedValue({
+      data: [serverRow('s1', 'c1', 'one', justAfter(0)), serverRow('s2', 'c2', 'two', justAfter(1))],
+      error: null,
+    });
+    await useConversationStore.getState().open(CONVO);
+
+    (unsendMessage as jest.Mock).mockResolvedValueOnce({ error: null });
+    expect(await useConversationStore.getState().unsend(CONVO, 's1')).toBe(true);
+    expect(contents()).toEqual(['two']);
+
+    (unsendMessage as jest.Mock).mockResolvedValueOnce({ error: new Error('offline') });
+    expect(await useConversationStore.getState().unsend(CONVO, 's2')).toBe(false);
+    expect(contents()).toEqual(['two']);
+  });
+});
+
+describe('the other person edits or unsends', () => {
+  it('shows the edit and drops the unsent message as it happens', async () => {
+    (getMessages as jest.Mock).mockResolvedValueOnce({
+      data: [serverRow('s1', 'c1', 'one', justAfter(0)), serverRow('s2', 'c2', 'two', justAfter(1))],
+      error: null,
+    });
+    await useConversationStore.getState().open(CONVO);
+
+    updateHandler?.({ new: { ...serverRow('s1', 'c1', 'one!', justAfter(0)), edited_at: justAfter(2) } });
+    updateHandler?.({ new: { ...serverRow('s2', 'c2', '', justAfter(1)), unsent_at: justAfter(3) } });
+
+    expect(contents()).toEqual(['one!']);
+  });
+});
+
+describe('the first message to someone', () => {
+  it('starts the conversation on the server and files the message under it', async () => {
+    (startConversation as jest.Mock).mockResolvedValue({
+      data: {
+        conversationId: CONVO,
+        status: 'requested',
+        message: serverRow('s1', 'cid-1', 'hi', justAfter(0)),
+      },
+      error: null,
+    });
+
+    const started = await useConversationStore.getState().start('them', ME, 'hi');
+
+    expect(started).toEqual({ conversationId: CONVO, status: 'requested' });
+    expect(startConversation).toHaveBeenCalledWith('them', 'cid-1', 'hi');
+    expect(contents()).toEqual(['hi']);
+  });
+
+  it('says so when it does not go through', async () => {
+    (startConversation as jest.Mock).mockResolvedValue({ data: null, error: new Error('blocked') });
+    expect(await useConversationStore.getState().start('them', ME, 'hi')).toBeNull();
   });
 });
