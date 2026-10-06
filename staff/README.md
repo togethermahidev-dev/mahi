@@ -5,10 +5,28 @@ it and the person's history, and then dismiss it, hide a post, remove a comment,
 (admins) ban. Everything it does goes through the staff calls in `docs/moderation.md`, which is the
 contract; every action needs a note and is written to the audit log by the database.
 
-Pages: **Reports** (filter by status, what was reported and reason), a report's page (the content
-as it was when reported, the automatic check's result, the person's warnings and bans, other
-reports, what staff did, and the action buttons), **People** (search; everyone suspended or banned
-now; one person's standing) and **Audit log**.
+Pages (a sidebar on wide screens, a tab bar along the bottom on phones; works from 360 wide):
+
+- **Overview** (`/`, the home page): new reports, reports being looked at, reports today, people
+  suspended or banned now, new reports by reason, and the latest actions. Each box opens the list
+  behind it. Counts stop at 200 (shown "200+"), the most one queue call returns.
+- **Reports**: filter chips (status, today only, what was reported, reason), a search over names
+  and the reported words, newest first. Cards on phones, a table on wide screens.
+- **A report**: the post, comment, message or person as reported first; who reported it and why;
+  the person's standing and history; the automatic check; then the actions.
+- **People**: search; standing badges; everyone suspended or banned now; one person's page with the
+  same actions, their history, reports about them and what staff did.
+- **Audit log**: sentences ("@joe hid a post by @sam"), filter by who and by action.
+
+### Actions can't happen by accident
+
+Actions sit in two boxes: **Safe** (take, dismiss, show again, restore, lift a ban: nobody is
+punished, can be undone) and **Serious** (hide, remove, warn, suspend, ban). Each one is three
+steps: the button; what happens and who sees it, plus a required note (and days for a suspension);
+then a confirm step that names the action and the person and repeats the note ("Yes, ban @sam").
+Then a success or failure message. Ban and lift-ban are not shown to moderators, the server action
+checks the role again, and the database checks it a third time. The words for every action live in
+`lib/present.ts`.
 
 ## Run it on your computer
 
@@ -58,8 +76,9 @@ a new migration that deletes their row. Their next page load signs them out.
   member's own session) and never sees a key. Only the public anon key is used; there is no
   service-role key and there must never be one in this app.
 - `proxy.ts` refreshes the session; `lib/staff.ts` is the staff check every page runs;
-  `lib/guard.ts` holds the role rules and `lib/rpc.ts` maps each button to its staff call (both
-  tested in `lib/*.test.ts`).
+  `lib/guard.ts` holds the role rules, `lib/rpc.ts` maps each button to its staff call, and
+  `lib/present.ts` holds the words, groups, times, standing and audit sentences (all tested in
+  `lib/*.test.ts`).
 
 ## Deploying (owner only)
 
