@@ -1,4 +1,5 @@
 import {
+  INITIAL_TAB,
   NATIVE_TABS,
   cameraLift,
   movesPages,
@@ -11,13 +12,13 @@ import {
 import { FONTS } from '@/constants/fonts';
 
 describe('NATIVE_TABS', () => {
-  // Founder, 2026-10-05: the bar reads in the swipe order, Messages last.
-  it('follows the swipe order: Camera, Feed, Profile, then Messages', () => {
-    expect(NATIVE_TABS.map((t) => t.key)).toEqual(['camera', 'feed', 'profile', 'messages']);
+  // Owner, 2026-10-06: Profile leads, Camera sits between Feed and Messages.
+  it('follows the swipe order: Profile, Feed, Camera, then Messages', () => {
+    expect(NATIVE_TABS.map((t) => t.key)).toEqual(['profile', 'feed', 'camera', 'messages']);
   });
 
   it('labels each tab in sentence case', () => {
-    expect(NATIVE_TABS.map((t) => t.title)).toEqual(['Camera', 'Feed', 'Profile', 'Messages']);
+    expect(NATIVE_TABS.map((t) => t.title)).toEqual(['Profile', 'Feed', 'Camera', 'Messages']);
   });
 
   it('gives every tab an Apple icon for both states and a Material icon for Android', () => {
@@ -26,6 +27,12 @@ describe('NATIVE_TABS', () => {
       expect(t.selectedIcon).toBeTruthy();
       expect(t.androidIcon).toBeTruthy();
     }
+  });
+});
+
+describe('INITIAL_TAB', () => {
+  it('keeps Camera as the landing page', () => {
+    expect(INITIAL_TAB).toBe('camera');
   });
 });
 
@@ -78,11 +85,11 @@ describe('cameraLift', () => {
   });
 });
 
-// Founder, 2026-10-05: one row of swipe pages in the tab bar's order, Camera ⇄ Feed ⇄ Profile ⇄
-// Messages; no up/down swiping. Swiping on from Profile reaches Messages.
+// Owner, 2026-10-06: one row of swipe pages in the tab bar's order, Profile ⇄ Feed ⇄ Camera ⇄
+// Messages; no up/down swiping. The app still opens on Camera.
 describe('SWIPE_PAGES', () => {
-  it('is Camera, Feed, Profile, Messages, left to right', () => {
-    expect(SWIPE_PAGES).toEqual(['camera', 'feed', 'profile', 'messages']);
+  it('is Profile, Feed, Camera, Messages, left to right', () => {
+    expect(SWIPE_PAGES).toEqual(['profile', 'feed', 'camera', 'messages']);
   });
 
   it('is the tab bar order', () => {
@@ -92,18 +99,18 @@ describe('SWIPE_PAGES', () => {
 
 describe('pageTab', () => {
   it('names the tab for the page showing', () => {
-    expect(pageTab(0)).toBe('camera');
+    expect(pageTab(0)).toBe('profile');
     expect(pageTab(1)).toBe('feed');
-    expect(pageTab(2)).toBe('profile');
+    expect(pageTab(2)).toBe('camera');
     expect(pageTab(3)).toBe('messages');
   });
 });
 
 describe('tabPage', () => {
   it('finds the swipe page for every tab, Messages included', () => {
-    expect(tabPage('camera')).toBe(0);
+    expect(tabPage('profile')).toBe(0);
     expect(tabPage('feed')).toBe(1);
-    expect(tabPage('profile')).toBe(2);
+    expect(tabPage('camera')).toBe(2);
     expect(tabPage('messages')).toBe(3);
   });
 });

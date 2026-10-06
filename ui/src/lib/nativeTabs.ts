@@ -11,9 +11,13 @@ import { FONTS } from '@/constants/fonts';
 
 export type TabKey = 'camera' | 'feed' | 'messages' | 'profile';
 
+/** Camera stays the app's landing page even though Profile leads the navigation order. */
+export const INITIAL_TAB: TabKey = 'camera';
+
 /**
- * The four tabs in the swipe order, Messages last (founder, 2026-10-05). iPhone: Apple's icons, plain, then filled when selected.
- * Android: Google's Material icons (Android marks the selected tab with its own pill).
+ * The four tabs in the swipe order, Profile first and Messages last (owner, 2026-10-06).
+ * iPhone: Apple's icons, plain, then filled when selected. Android: Google's Material icons
+ * (Android marks the selected tab with its own pill).
  */
 export const NATIVE_TABS: readonly {
   key: TabKey;
@@ -23,11 +27,11 @@ export const NATIVE_TABS: readonly {
   androidIcon: AndroidSymbol;
 }[] = [
   {
-    key: 'camera',
-    title: 'Camera',
-    icon: 'camera',
-    selectedIcon: 'camera.fill',
-    androidIcon: 'photo_camera',
+    key: 'profile',
+    title: 'Profile',
+    icon: 'person',
+    selectedIcon: 'person.fill',
+    androidIcon: 'person',
   },
   // Same three lines as the app's own Feed drawing; it has no filled version.
   {
@@ -38,11 +42,11 @@ export const NATIVE_TABS: readonly {
     androidIcon: 'notes',
   },
   {
-    key: 'profile',
-    title: 'Profile',
-    icon: 'person',
-    selectedIcon: 'person.fill',
-    androidIcon: 'person',
+    key: 'camera',
+    title: 'Camera',
+    icon: 'camera',
+    selectedIcon: 'camera.fill',
+    androidIcon: 'photo_camera',
   },
   {
     key: 'messages',
@@ -83,14 +87,14 @@ export function cameraLift(room: number, resting: number, gap: number): number {
 }
 
 /**
- * The swipe pages, left to right, in the tab bar's order (founder, 2026-10-05): Camera ⇄ Feed ⇄
- * Profile ⇄ Messages, sideways only — no up/down swiping.
+ * The swipe pages, left to right, in the tab bar's order (owner, 2026-10-06): Profile ⇄ Feed ⇄
+ * Camera ⇄ Messages, sideways only — no up/down swiping.
  */
 export const SWIPE_PAGES: readonly TabKey[] = NATIVE_TABS.map((t) => t.key);
 
 /** The tab for the swipe page showing. */
 export function pageTab(index: number): TabKey {
-  return SWIPE_PAGES[index] ?? 'camera';
+  return SWIPE_PAGES[index] ?? INITIAL_TAB;
 }
 
 /** The swipe page a tab shows. */

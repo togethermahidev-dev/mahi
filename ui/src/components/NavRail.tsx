@@ -63,7 +63,7 @@ const ICONS: Record<RailTab, React.ComponentType<IconProps>> = {
   messages: MessagesIcon,
 };
 
-// In the swipe order (Camera, Feed, Profile, Messages), like the pages and the phone's tab bar.
+// In the swipe order (Profile, Feed, Camera, Messages), like the pages and the phone's tab bar.
 const TABS = NATIVE_TABS.map((t) => ({ key: t.key, label: t.title, Icon: ICONS[t.key] }));
 
 // ─── Selector motion (nav-rail-morph) ─────────────────────────────────────────

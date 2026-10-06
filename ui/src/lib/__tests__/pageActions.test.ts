@@ -5,13 +5,13 @@ import { pageActions, pageForAction, pageTitle } from '../pageActions';
 describe('page actions for screen readers', () => {
   it('offers every other page, in the swipe order', () => {
     expect(pageActions('feed').map((a) => a.label)).toEqual([
-      'Go to Camera',
       'Go to Profile',
+      'Go to Camera',
       'Go to Messages',
     ]);
     expect(pageActions('camera').map((a) => a.label)).toEqual([
-      'Go to Feed',
       'Go to Profile',
+      'Go to Feed',
       'Go to Messages',
     ]);
   });
@@ -22,8 +22,8 @@ describe('page actions for screen readers', () => {
 
   it('turns an action back into its page', () => {
     expect(pageActions('profile').map((a) => pageForAction(a.name))).toEqual([
-      'camera',
       'feed',
+      'camera',
       'messages',
     ]);
   });

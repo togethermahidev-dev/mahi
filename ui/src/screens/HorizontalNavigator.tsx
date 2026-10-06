@@ -37,20 +37,21 @@ import PostViewer from '@/components/PostViewer';
 import { useAuthStore, useChromeStore, useNotificationsStore, useProfilePostsStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { TabBarRoomContext, usePageSize } from '@/hooks/useChrome';
-import { SWIPE_PAGES, pageTab, tabPage } from '@/lib/nativeTabs';
+import { INITIAL_TAB, SWIPE_PAGES, pageTab, tabPage } from '@/lib/nativeTabs';
 import { pageActions, pageForAction, pageTitle } from '@/lib/pageActions';
 import { dockShows, railShows } from '@/lib/railSelector';
 import { horizontalRelease, horizontalSwipe, rubberBand, type Rect } from '@/lib/swipeRules';
 import { COLORS, LAYER, LAYOUT, SIZE, SPRING } from '@/constants/tokens';
 
 // ─── Pages ────────────────────────────────────────────────────────────────────
-// One row, left to right, in the tab bar's order (founder, 2026-10-05): Camera ⇄ Feed ⇄ Profile ⇄
-// Messages. Sideways only — no up/down swiping.
+// One row, left to right, in the tab bar's order (owner, 2026-10-06): Profile ⇄ Feed ⇄ Camera ⇄
+// Messages. Sideways only — no up/down swiping. Camera remains the entry page.
 const PAGE_COUNT = SWIPE_PAGES.length;
 const CAMERA = tabPage('camera');
 const FEED = tabPage('feed');
 const PROFILE = tabPage('profile');
 const MESSAGES = tabPage('messages');
+const INITIAL_PAGE = tabPage(INITIAL_TAB);
 
 /** The snap to a page. Runs even with Reduce Motion on, as it always has. */
 const PAGE_SPRING = { ...SPRING.page, reduceMotion: ReduceMotion.Never };
@@ -97,7 +98,7 @@ export default function HorizontalNavigator({
   );
   const unreadNotifications = useNotificationsStore((s) => s.unreadCount);
 
-  const [index, setIndex] = useState(CAMERA);
+  const [index, setIndex] = useState(INITIAL_PAGE);
   // On the Camera page, toasts keep clear of its shutter row and lens switch.
   useEffect(() => {
     useToastStore.getState().setRoom({ camera: index === CAMERA ? CAMERA_CONTROLS_TOP : 0 });
@@ -150,13 +151,13 @@ export default function HorizontalNavigator({
   const headerH = insets.top + SIZE.z48;
 
   // What the swipe reads on the UI thread.
-  const indexSV = useSharedValue(CAMERA);
+  const indexSV = useSharedValue(INITIAL_PAGE);
   const blockedSV = useSharedValue(false);
   useEffect(() => {
     blockedSV.value = overlay || zooming;
   }, [overlay, zooming, blockedSV]);
-  // Where the strip sits, in pages (0 = Camera); fractional mid-swipe.
-  const page = useSharedValue(CAMERA);
+  // Where the strip sits, in pages (Camera is the entry page); fractional mid-swipe.
+  const page = useSharedValue(INITIAL_PAGE);
   // A horizontal card carousel inside Profile owns its finger until release, so the same drag
   // never changes both the card and the whole app page.
   const profileCarouselActive = useSharedValue(false);
@@ -358,7 +359,7 @@ export default function HorizontalNavigator({
   if (tabBar) tabBar.selectRef.current = selectTab;
 
   // Without the phone's tab bar, pages are left by a sideways swipe, which VoiceOver and Switch
-  // Control can't make: each page offers "Go to Camera / Feed / Profile / Messages" as actions.
+  // Control can't make: each page offers "Go to Profile / Feed / Camera / Messages" as actions.
   // Nothing changes on screen. With the tab bar, its tabs already do this.
   const onPageAction = (e: AccessibilityActionEvent) => {
     const next = pageForAction(e.nativeEvent.actionName);
@@ -391,22 +392,22 @@ export default function HorizontalNavigator({
       <View style={styles.root}>
         <Strip ref={blurTargetRef} style={styles.root}>
           <Animated.View style={[styles.strip, { width: width * PAGE_COUNT }, stripStyle]}>
-            {/* Camera — the entry page, always dark. */}
-            <View
-              style={[styles.page, pageStyle, { backgroundColor: COLORS.ink }]}
-              accessibilityActions={pageA11y('camera')}
-              onAccessibilityAction={onPageAction}
-            >
-              <CameraScreen
-                onComposingChange={handleComposingChange}
-                onSeeFeed={() => navigate(FEED)}
-                onFindFriends={() => setSearchVisible(true)}
-                onOpenProfile={setProfileUserId}
-              />
-              <View pointerEvents="box-none" style={styles.header}>
-                {header(true)}
+            {/* Profile — always mounted; `isActive` re-syncs its posts when it comes into view. */}
+            <DockRoom room={dockRoom}>
+              <View
+                style={[styles.page, pageStyle]}
+                accessibilityActions={pageA11y('profile')}
+                onAccessibilityAction={onPageAction}
+              >
+                <ProfileScreen
+                  isActive={index === PROFILE}
+                  listGesture={profileList}
+                  onSearch={() => setSearchVisible(true)}
+                  onOpenCamera={() => navigate(CAMERA)}
+                  onCarouselTouchChange={setProfileCarouselActive}
+                />
               </View>
-            </View>
+            </DockRoom>
 
             {/* Feed — its header slides away as the list scrolls down. */}
             <DockRoom room={dockRoom}>
@@ -449,31 +450,31 @@ export default function HorizontalNavigator({
               </View>
             </DockRoom>
 
-            {/* Profile — always mounted; `isActive` re-syncs its posts when it comes into view. */}
-            <DockRoom room={dockRoom}>
-              <View
-                style={[styles.page, pageStyle]}
-                accessibilityActions={pageA11y('profile')}
-                onAccessibilityAction={onPageAction}
-              >
-                <ProfileScreen
-                  isActive={index === PROFILE}
-                  listGesture={profileList}
-                  onSearch={() => setSearchVisible(true)}
-                  onOpenCamera={() => navigate(CAMERA)}
-                  onCarouselTouchChange={setProfileCarouselActive}
-                />
+            {/* Camera — the entry page, always dark. */}
+            <View
+              style={[styles.page, pageStyle, { backgroundColor: COLORS.ink }]}
+              accessibilityActions={pageA11y('camera')}
+              onAccessibilityAction={onPageAction}
+            >
+              <CameraScreen
+                onComposingChange={handleComposingChange}
+                onSeeFeed={() => navigate(FEED)}
+                onFindFriends={() => setSearchVisible(true)}
+                onOpenProfile={setProfileUserId}
+              />
+              <View pointerEvents="box-none" style={styles.header}>
+                {header(true)}
               </View>
-            </DockRoom>
+            </View>
 
-            {/* Messages — the last page; its back button goes to the page on its left. */}
+            {/* Messages — the last page; its back button goes to Camera on its left. */}
             <DockRoom room={dockRoom}>
               <View
                 style={[styles.page, pageStyle]}
                 accessibilityActions={pageA11y('messages')}
                 onAccessibilityAction={onPageAction}
               >
-                <MessagesScreen onBack={() => navigate(PROFILE)} listGesture={messagesList} />
+                <MessagesScreen onBack={() => navigate(CAMERA)} listGesture={messagesList} />
               </View>
             </DockRoom>
           </Animated.View>

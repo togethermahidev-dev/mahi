@@ -11,7 +11,13 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { PageSizeContext, TabBarRoomContext } from '@/hooks/useChrome';
 import HorizontalNavigator, { type TabBarLink } from '@/screens/HorizontalNavigator';
-import { NATIVE_TABS, TAB_TITLE_APPEARANCE, movesPages, type TabKey } from '@/lib/nativeTabs';
+import {
+  INITIAL_TAB,
+  NATIVE_TABS,
+  TAB_TITLE_APPEARANCE,
+  movesPages,
+  type TabKey,
+} from '@/lib/nativeTabs';
 import { loadScreens } from '@/lib/screensModule';
 import { loadExpoSymbols } from '@/lib/symbolModule';
 import { COLORS, ICON_SIZE, SIZE } from '@/constants/tokens';
@@ -25,14 +31,13 @@ type TabSelected = NativeSyntheticEvent<{
 }>;
 
 /**
- * The phone's own tab bar at the bottom (build 11+, no switch): Camera, Feed, Messages, Profile.
+ * The phone's own tab bar at the bottom (build 11+, no switch): Profile, Feed, Camera, Messages.
  * On iPhone it is Apple's tab bar (Liquid Glass on iOS 26, with Apple's own selection morph); on
  * Android, Material's bottom navigation.
  *
- * The pages are the swipe pages (HorizontalNavigator; founder, 2026-10-05): Camera ⇄ Feed ⇄
- * Profile, sideways only, with Messages opening over them from its tab. They fill the screen
- * above the bar. The bar shows which page is up, and a tap on it moves the pages there. Its own
- * tab pages stay empty behind them.
+ * The pages are the swipe pages (HorizontalNavigator; owner, 2026-10-06): Profile ⇄ Feed ⇄
+ * Camera ⇄ Messages, sideways only. They fill the screen above the bar. The bar shows which
+ * page is up, and a tap on it moves the pages there. Its own tab pages stay empty behind them.
  *
  * Only rendered when `nativeTabsAvailable` (App.tsx): react-native-screens is required lazily,
  * so builds without it never load it.
@@ -44,7 +49,7 @@ export default function TabsNavigator(): React.JSX.Element | null {
   const insets = useSafeAreaInsets();
   const androidIcons = useAndroidIcons();
 
-  const [tab, setTab] = useState<TabKey>('camera');
+  const [tab, setTab] = useState<TabKey>(INITIAL_TAB);
   // The last selection the native bar confirmed: a change asked from here builds on it.
   const [provenance, setProvenance] = useState(0);
   // The post preview covers everything; the bar hides under it.
