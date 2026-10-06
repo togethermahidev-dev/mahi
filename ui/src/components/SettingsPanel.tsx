@@ -11,6 +11,7 @@ import { VERSION_LINE } from '@/lib/appBuild';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
 import { WelcomeCardsModal } from '@/components/WelcomeCards';
+import ThemeToggle from '@/components/ThemeToggle';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -157,6 +158,25 @@ function Sheet({
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + SPACE.s24 }]}
         showsVerticalScrollIndicator={false}
       >
+        <Text style={[styles.sectionLabel, { color: muted }]}>Appearance</Text>
+        <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
+          <View style={styles.themeRow}>
+            <View style={styles.rowCopy}>
+              <Text style={[styles.rowLabel, { color: text }]}>Appearance</Text>
+              <Text style={[styles.rowDetail, { color: muted }]}>
+                Switch between light and dark mode
+              </Text>
+            </View>
+            <View
+              style={[styles.themeControl, { backgroundColor: iconSurface, borderColor: border }]}
+            >
+              <ThemeToggle color={text} size={SIZE.z20} />
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.spacer} />
+
         <Text style={[styles.sectionLabel, { color: muted }]}>Privacy and support</Text>
         <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
           <Pressable
@@ -196,33 +216,32 @@ function Sheet({
         <View style={styles.spacer} />
 
         <Text style={[styles.sectionLabel, { color: muted }]}>Account</Text>
-        <Pressable
-          style={({ pressed }) => [
-            styles.logoutBtn,
-            { backgroundColor: surface, borderColor: border },
-            pressed && styles.pressedMore,
-          ]}
-          onPress={handleLogout}
-          accessibilityRole="button"
-          accessibilityLabel="Log out"
-        >
-          <Text style={[styles.logoutText, { color: muted }]}>Log out</Text>
-        </Pressable>
-
-        {deleteEnabled ? (
+        <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
           <Pressable
-            style={({ pressed }) => [styles.deleteBtn, pressed && styles.pressed]}
-            onPress={handleDeleteAccount}
-            disabled={deleting}
+            style={(state) => rowStyle(state, deleteEnabled)}
+            onPress={handleLogout}
             accessibilityRole="button"
-            accessibilityLabel="Delete account"
-            accessibilityState={{ disabled: deleting, busy: deleting }}
+            accessibilityLabel="Log out"
           >
-            <Text style={[styles.deleteText, { color: danger }]}>
-              {deleting ? 'Deleting your account…' : 'Delete account'}
-            </Text>
+            <Text style={[styles.rowLabel, { color: text }]}>Log out</Text>
+            <Text style={[styles.chevron, { color: muted }]}>›</Text>
           </Pressable>
-        ) : null}
+          {deleteEnabled ? (
+            <Pressable
+              style={(state) => rowStyle(state, false)}
+              onPress={handleDeleteAccount}
+              disabled={deleting}
+              accessibilityRole="button"
+              accessibilityLabel="Delete account"
+              accessibilityState={{ disabled: deleting, busy: deleting }}
+            >
+              <Text style={[styles.rowLabel, { color: danger }]}>
+                {deleting ? 'Deleting your account…' : 'Delete account'}
+              </Text>
+              <Text style={[styles.chevron, { color: danger }]}>›</Text>
+            </Pressable>
+          ) : null}
+        </View>
 
         {/* Version line: v{runtime} {build}.{OTA} — see the version-control skill */}
         <Text style={[styles.versionText, { color: muted }]}>{VERSION_LINE}</Text>
@@ -301,6 +320,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: SPACE.s12,
+  },
+  themeRow: {
+    minHeight: SIZE.z72,
+    paddingVertical: SPACE.s14,
+    paddingHorizontal: SPACE.s16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  themeControl: {
+    width: SIZE.z44,
+    height: SIZE.z44,
+    borderRadius: RADIUS.r22,
+    borderWidth: BORDER_WIDTH.w1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   rowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,

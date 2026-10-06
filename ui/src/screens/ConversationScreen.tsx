@@ -11,7 +11,16 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Reanimated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import KeyboardInset from '@/components/KeyboardInset';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
@@ -33,6 +42,8 @@ import {
   SIZE,
   SPACE,
   TRACKING,
+  SWIPE,
+  VIEWER,
   withAlpha,
 } from '@/constants/tokens';
 
@@ -80,6 +91,30 @@ export default function ConversationScreen({
 
   const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  // The conversation owns its dismissal value. It can run alongside the vertical message list,
+  // while a deliberate right swipe carries the whole screen back to the inbox.
+  const dismissX = useSharedValue(0);
+  const dismiss = Gesture.Pan()
+    .activeOffsetX([SWIPE.slop, SWIPE.slop])
+    .failOffsetY([-SWIPE.slop, SWIPE.slop])
+    .onUpdate((event) => {
+      'worklet';
+      dismissX.value = Math.max(0, event.translationX);
+    })
+    .onEnd((event) => {
+      'worklet';
+      const shouldDismiss =
+        event.translationX > VIEWER.closeDistance || event.velocityX > VIEWER.closeVelocity;
+      if (shouldDismiss) {
+        dismissX.value = withTiming(width, { duration: VIEWER.closeMs }, (finished) => {
+          if (finished) scheduleOnRN(onBack);
+        });
+      } else {
+        dismissX.value = withSpring(0, VIEWER.snapBack);
+      }
+    });
+  const dismissStyle = useAnimatedStyle(() => ({ transform: [{ translateX: dismissX.value }] }));
   // The glass dock along the bottom of Messages would sit on the message bar: it hides here.
   useCoverRail(true);
   // The keyboard covers the home-indicator strip, so that inset only applies while it is closed.
@@ -223,232 +258,244 @@ export default function ConversationScreen({
 
   return (
     <Modal visible animationType="slide" transparent={false} onRequestClose={onBack}>
-      <View style={[styles.root, { backgroundColor: bg }]}>
-        {/* Header */}
-        <View
-          style={[styles.header, { borderBottomColor: border, paddingTop: insets.top + SPACE.s8 }]}
-        >
-          <Pressable
-            style={({ pressed }) => [
-              styles.backBtn,
-              { borderColor: border },
-              pressed && styles.pressed,
-            ]}
-            onPress={onBack}
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
-          >
-            <Text style={[styles.backArrow, { color: text }]}>‹</Text>
-          </Pressable>
-          <Text style={[styles.headerName, { color: text }]} numberOfLines={1}>
-            {otherName}
-          </Text>
-          {/* Spacer to keep name centred */}
-          <View style={styles.backBtn} />
-        </View>
-
-        {/* Request banner — shown to the receiver before they accept */}
-        {isRequest && isReceiver ? (
-          <View style={[styles.requestBanner, { borderBottomColor: border, backgroundColor: bg }]}>
-            <Text style={[styles.requestText, { color: muted }]}>
-              @{convo.other_profile.username} wants to message you. Accept to chat.
-            </Text>
-            <View style={styles.requestActions}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.requestBtn,
-                  { borderColor: text },
-                  pressed && styles.pressed,
-                ]}
-                onPress={handleAccept}
-                accessibilityRole="button"
-                accessibilityLabel="Accept request"
-              >
-                <Text style={[styles.requestBtnText, { color: text }]}>Accept</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.requestBtn,
-                  styles.denyBtn,
-                  { borderColor: dangerText },
-                  pressed && styles.pressed,
-                ]}
-                onPress={handleDeny}
-                accessibilityRole="button"
-                accessibilityLabel="Deny request"
-              >
-                <Text style={[styles.requestBtnText, { color: dangerText }]}>Deny</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.requestBtn,
-                  { borderColor: dangerText },
-                  pressed && styles.pressed,
-                ]}
-                onPress={handleBlock}
-                accessibilityRole="button"
-                accessibilityLabel="Block"
-              >
-                <Text style={[styles.requestBtnText, { color: dangerText }]}>Block</Text>
-              </Pressable>
-            </View>
-          </View>
-        ) : null}
-
-        {/* The sender of a request is told where it went, so silence doesn't read as being ignored. */}
-        {waiting ? (
-          <View style={[styles.requestBanner, { borderBottomColor: border, backgroundColor: bg }]}>
-            <Text style={[styles.requestText, { color: muted }]}>
-              Waiting for @{convo.other_profile.username} to accept
-            </Text>
-          </View>
-        ) : null}
-
-        {/* Message list */}
-        {isLoading ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator color={muted} />
-          </View>
-        ) : (
-          <FlatList
-            ref={flatListRef}
-            data={rows}
-            keyExtractor={(item) => (item.type === 'header' ? item.id : item.msg.id)}
-            inverted
-            contentContainerStyle={styles.listContent}
-            onEndReached={hasMore ? loadOlder : undefined}
-            onEndReachedThreshold={0.4}
-            ListFooterComponent={
-              isLoadingOlder ? (
-                <View style={styles.olderWrap}>
-                  <ActivityIndicator color={muted} size="small" />
-                </View>
-              ) : null
-            }
-            renderItem={({ item }) => {
-              if (item.type === 'header') {
-                return (
-                  <View style={styles.dayHeader}>
-                    <Text style={[styles.dayHeaderText, { color: muted }]}>{item.label}</Text>
-                  </View>
-                );
-              }
-              const msg = item.msg;
-              const isOwn = msg.sender_id === currentUserId;
-              return (
-                <View
-                  style={[styles.bubbleWrap, isOwn ? styles.bubbleWrapOwn : styles.bubbleWrapOther]}
-                >
-                  <Pressable
-                    onLongPress={() => handleHold(msg)}
-                    disabled={!isOwn}
-                    accessibilityHint={isOwn ? 'Hold to edit or unsend' : undefined}
-                    style={[styles.bubble, { backgroundColor: isOwn ? ownBubble : otherBubble }]}
-                  >
-                    <Text style={[styles.bubbleText, { color: text }]}>{msg.content}</Text>
-                  </Pressable>
-                  {item.showTime || msg.edited_at ? (
-                    <Text style={[styles.bubbleTime, { color: muted }]}>
-                      {[
-                        item.showTime
-                          ? new Date(msg.created_at).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              hour12: false,
-                            })
-                          : null,
-                        msg.edited_at ? 'Edited' : null,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </Text>
-                  ) : null}
-                </View>
-              );
-            }}
-            ListEmptyComponent={
-              !isLoading ? (
-                <View style={styles.emptyWrap}>
-                  <Text style={[styles.emptyText, { color: muted }]}>
-                    Say hi to @{convo.other_profile.username}.
-                  </Text>
-                </View>
-              ) : null
-            }
-          />
-        )}
-
-        {/* Input bar — the inset below it grows with the keyboard, so the bar rides on top. */}
-        {!canSend ? (
+      <GestureDetector gesture={dismiss}>
+        <Reanimated.View style={[styles.root, { backgroundColor: bg }, dismissStyle]}>
+          {/* Header */}
           <View
             style={[
-              styles.inputBar,
-              { borderTopColor: border, paddingBottom: Math.max(insets.bottom, SPACE.s10) },
+              styles.header,
+              { borderBottomColor: border, paddingTop: insets.top + SPACE.s8 },
             ]}
           >
-            <Text style={[styles.requestText, styles.lockedText, { color: muted }]}>
-              {isReceiver
-                ? 'Accept the request to reply.'
-                : `You can send more once @${convo.other_profile.username} accepts.`}
-            </Text>
-          </View>
-        ) : null}
-        {editing && canSend ? (
-          <View style={[styles.editBar, { borderTopColor: border, backgroundColor: bg }]}>
-            <Text style={[styles.requestText, { color: muted }]}>Editing message</Text>
-            <Pressable
-              onPress={cancelEdit}
-              accessibilityRole="button"
-              accessibilityLabel="Cancel edit"
-              hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
-            >
-              <Text style={[styles.requestBtnText, { color: text }]}>Cancel</Text>
-            </Pressable>
-          </View>
-        ) : null}
-        <View style={[{ backgroundColor: bg }, !canSend && styles.hidden]}>
-          <View
-            style={[
-              styles.inputBar,
-              {
-                borderTopColor: border,
-                paddingBottom: keyboardOpen ? SPACE.s10 : Math.max(insets.bottom, SPACE.s10),
-              },
-            ]}
-          >
-            <TextInput
-              style={[styles.input, { color: text, borderColor: border }]}
-              placeholder="Message…"
-              placeholderTextColor={muted}
-              value={inputText}
-              onChangeText={setInputText}
-              multiline
-              // Return sends; long messages still wrap and grow the field.
-              submitBehavior="submit"
-              maxLength={1000}
-              returnKeyType="send"
-              enablesReturnKeyAutomatically
-              onSubmitEditing={handleSend}
-            />
             <Pressable
               style={({ pressed }) => [
-                styles.sendBtn,
-                { opacity: inputText.trim() ? 1 : ALPHA.a35 },
+                styles.backBtn,
+                { borderColor: border },
                 pressed && styles.pressed,
               ]}
-              onPress={handleSend}
-              disabled={!inputText.trim() || sending}
+              onPress={onBack}
               accessibilityRole="button"
-              accessibilityLabel={editing ? 'Save edit' : 'Send'}
-              accessibilityState={{ disabled: !inputText.trim() || sending }}
+              accessibilityLabel="Back"
+              hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
             >
-              <Text style={[styles.sendText, { color: text }]}>{editing ? 'Save' : 'Send'}</Text>
+              <Text style={[styles.backArrow, { color: text }]}>‹</Text>
             </Pressable>
+            <Text style={[styles.headerName, { color: text }]} numberOfLines={1}>
+              {otherName}
+            </Text>
+            {/* Spacer to keep name centred */}
+            <View style={styles.backBtn} />
           </View>
-          <KeyboardInset />
-        </View>
-      </View>
+
+          {/* Request banner — shown to the receiver before they accept */}
+          {isRequest && isReceiver ? (
+            <View
+              style={[styles.requestBanner, { borderBottomColor: border, backgroundColor: bg }]}
+            >
+              <Text style={[styles.requestText, { color: muted }]}>
+                @{convo.other_profile.username} wants to message you. Accept to chat.
+              </Text>
+              <View style={styles.requestActions}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.requestBtn,
+                    { borderColor: text },
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={handleAccept}
+                  accessibilityRole="button"
+                  accessibilityLabel="Accept request"
+                >
+                  <Text style={[styles.requestBtnText, { color: text }]}>Accept</Text>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.requestBtn,
+                    styles.denyBtn,
+                    { borderColor: dangerText },
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={handleDeny}
+                  accessibilityRole="button"
+                  accessibilityLabel="Deny request"
+                >
+                  <Text style={[styles.requestBtnText, { color: dangerText }]}>Deny</Text>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.requestBtn,
+                    { borderColor: dangerText },
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={handleBlock}
+                  accessibilityRole="button"
+                  accessibilityLabel="Block"
+                >
+                  <Text style={[styles.requestBtnText, { color: dangerText }]}>Block</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
+
+          {/* The sender of a request is told where it went, so silence doesn't read as being ignored. */}
+          {waiting ? (
+            <View
+              style={[styles.requestBanner, { borderBottomColor: border, backgroundColor: bg }]}
+            >
+              <Text style={[styles.requestText, { color: muted }]}>
+                Waiting for @{convo.other_profile.username} to accept
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Message list */}
+          {isLoading ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator color={muted} />
+            </View>
+          ) : (
+            <FlatList
+              ref={flatListRef}
+              data={rows}
+              keyExtractor={(item) => (item.type === 'header' ? item.id : item.msg.id)}
+              inverted
+              contentContainerStyle={styles.listContent}
+              onEndReached={hasMore ? loadOlder : undefined}
+              onEndReachedThreshold={0.4}
+              ListFooterComponent={
+                isLoadingOlder ? (
+                  <View style={styles.olderWrap}>
+                    <ActivityIndicator color={muted} size="small" />
+                  </View>
+                ) : null
+              }
+              renderItem={({ item }) => {
+                if (item.type === 'header') {
+                  return (
+                    <View style={styles.dayHeader}>
+                      <Text style={[styles.dayHeaderText, { color: muted }]}>{item.label}</Text>
+                    </View>
+                  );
+                }
+                const msg = item.msg;
+                const isOwn = msg.sender_id === currentUserId;
+                return (
+                  <View
+                    style={[
+                      styles.bubbleWrap,
+                      isOwn ? styles.bubbleWrapOwn : styles.bubbleWrapOther,
+                    ]}
+                  >
+                    <Pressable
+                      onLongPress={() => handleHold(msg)}
+                      disabled={!isOwn}
+                      accessibilityHint={isOwn ? 'Hold to edit or unsend' : undefined}
+                      style={[styles.bubble, { backgroundColor: isOwn ? ownBubble : otherBubble }]}
+                    >
+                      <Text style={[styles.bubbleText, { color: text }]}>{msg.content}</Text>
+                    </Pressable>
+                    {item.showTime || msg.edited_at ? (
+                      <Text style={[styles.bubbleTime, { color: muted }]}>
+                        {[
+                          item.showTime
+                            ? new Date(msg.created_at).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false,
+                              })
+                            : null,
+                          msg.edited_at ? 'Edited' : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </Text>
+                    ) : null}
+                  </View>
+                );
+              }}
+              ListEmptyComponent={
+                !isLoading ? (
+                  <View style={styles.emptyWrap}>
+                    <Text style={[styles.emptyText, { color: muted }]}>
+                      Say hi to @{convo.other_profile.username}.
+                    </Text>
+                  </View>
+                ) : null
+              }
+            />
+          )}
+
+          {/* Input bar — the inset below it grows with the keyboard, so the bar rides on top. */}
+          {!canSend ? (
+            <View
+              style={[
+                styles.inputBar,
+                { borderTopColor: border, paddingBottom: Math.max(insets.bottom, SPACE.s10) },
+              ]}
+            >
+              <Text style={[styles.requestText, styles.lockedText, { color: muted }]}>
+                {isReceiver
+                  ? 'Accept the request to reply.'
+                  : `You can send more once @${convo.other_profile.username} accepts.`}
+              </Text>
+            </View>
+          ) : null}
+          {editing && canSend ? (
+            <View style={[styles.editBar, { borderTopColor: border, backgroundColor: bg }]}>
+              <Text style={[styles.requestText, { color: muted }]}>Editing message</Text>
+              <Pressable
+                onPress={cancelEdit}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel edit"
+                hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+              >
+                <Text style={[styles.requestBtnText, { color: text }]}>Cancel</Text>
+              </Pressable>
+            </View>
+          ) : null}
+          <View style={[{ backgroundColor: bg }, !canSend && styles.hidden]}>
+            <View
+              style={[
+                styles.inputBar,
+                {
+                  borderTopColor: border,
+                  paddingBottom: keyboardOpen ? SPACE.s10 : Math.max(insets.bottom, SPACE.s10),
+                },
+              ]}
+            >
+              <TextInput
+                style={[styles.input, { color: text, borderColor: border }]}
+                placeholder="Message…"
+                placeholderTextColor={muted}
+                value={inputText}
+                onChangeText={setInputText}
+                multiline
+                // Return sends; long messages still wrap and grow the field.
+                submitBehavior="submit"
+                maxLength={1000}
+                returnKeyType="send"
+                enablesReturnKeyAutomatically
+                onSubmitEditing={handleSend}
+              />
+              <Pressable
+                style={({ pressed }) => [
+                  styles.sendBtn,
+                  { opacity: inputText.trim() ? 1 : ALPHA.a35 },
+                  pressed && styles.pressed,
+                ]}
+                onPress={handleSend}
+                disabled={!inputText.trim() || sending}
+                accessibilityRole="button"
+                accessibilityLabel={editing ? 'Save edit' : 'Send'}
+                accessibilityState={{ disabled: !inputText.trim() || sending }}
+              >
+                <Text style={[styles.sendText, { color: text }]}>{editing ? 'Save' : 'Send'}</Text>
+              </Pressable>
+            </View>
+            <KeyboardInset />
+          </View>
+        </Reanimated.View>
+      </GestureDetector>
     </Modal>
   );
 }

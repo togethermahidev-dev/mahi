@@ -7,7 +7,6 @@ import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { useAuthStore, useUserStore } from '@/store';
 import { pointsStatsLabel } from '@/lib/mahiPoints';
 import { pointsHint } from '@/lib/pointsHint';
-import ThemeToggle from '@/components/ThemeToggle';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostViewer from '@/components/PostViewer';
 import SettingsPanel from '@/components/SettingsPanel';
@@ -157,9 +156,6 @@ export default function ProfileScreen({
               <SearchIcon size={ICON_SIZE.i22} color={toggleColor} />
             </Pressable>
           ) : null}
-          <View style={[styles.iconButton, { backgroundColor: iconSurface, borderColor: border }]}>
-            <ThemeToggle color={toggleColor} size={ICON_SIZE.i22} />
-          </View>
           <Pressable
             style={({ pressed }) => [
               styles.iconButton,

@@ -48,9 +48,9 @@ interface PostViewerProps {
 
 /**
  * A profile's posts, full screen, starting on the tapped one (owner, 2026-10-02: like Instagram
- * and TikTok). Up/down pages through all of that profile's posts, one per screen, drawn exactly as
- * the feed draws them (PostCard, videos included); a swipe left or right closes it, as do the ✕
- * and the back gesture. Only posts the grid lets you open are shown (the feed lock's rule).
+ * and TikTok). Left/right pages through all of that profile's posts, one per screen, drawn exactly
+ * as the feed draws them (PostCard, videos included); a swipe down closes it, as do the ✕ and the
+ * back gesture. Only posts the grid lets you open are shown (the feed lock's rule).
  */
 export default function PostViewer({
   userId,
@@ -147,7 +147,7 @@ function ViewerPages({
     [inViewId, muted, open, commentPostId]
   );
 
-  // A quiet "Swipe up for more" while the first post shown has another after it; gone after the
+  // A quiet "Swipe for more" while the first post shown has another after it; gone after the
   // first swipe, so it's a hint, not a fixture.
   const [swiped, setSwiped] = useState(false);
   const moreHint = !swiped && (startIndex < posts.length - 1 || hasMore);
@@ -171,36 +171,34 @@ function ViewerPages({
     [userId, myId, onClose, onOpenProfile]
   );
 
-  // ── Swipe left or right to close ─────────────────────────────────────────
-  // The list's scrolling is a gesture the close swipe runs alongside (it grabs a touch after
-  // ~10pt in any direction, before the swipe decides); each takes only its own axis.
+  // ── Swipe down to close ──────────────────────────────────────────────────
+  // Horizontal swipes page through workouts. A deliberate vertical pull dismisses the viewer,
+  // so browsing and closing never compete for the same shared gesture value.
   const list = useMemo(() => Gesture.Native(), []);
-  const dx = useSharedValue(0);
+  const dy = useSharedValue(0);
   const swipe = Gesture.Pan()
     .enabled(!zooming)
     .maxPointers(1)
-    .activeOffsetX([-SWIPE.slop, SWIPE.slop])
-    .failOffsetY([-SWIPE.slop, SWIPE.slop])
+    .activeOffsetY([SWIPE.slop, SWIPE.slop])
+    .failOffsetX([-SWIPE.slop, SWIPE.slop])
     .simultaneousWithExternalGesture(list)
     .onUpdate((e) => {
       'worklet';
-      dx.value = e.translationX;
+      dy.value = Math.max(0, e.translationY);
     })
     .onEnd((e) => {
       'worklet';
-      if (swipeCloses(e.translationX, e.velocityX)) {
-        // Slide off the way it was swiped, then close.
-        const side = Math.sign(e.translationX || e.velocityX) || 1;
-        dx.value = withTiming(side * width, { duration: VIEWER.closeMs }, (done) => {
+      if (swipeCloses(e.translationY, e.velocityY)) {
+        dy.value = withTiming(height, { duration: VIEWER.closeMs }, (done) => {
           if (done) scheduleOnRN(onClose);
         });
       } else {
-        dx.value = withSpring(0, VIEWER.snapBack);
+        dy.value = withSpring(0, VIEWER.snapBack);
       }
     });
 
-  const pagesStyle = useAnimatedStyle(() => ({ transform: [{ translateX: dx.value }] }));
-  const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity(dx.value) }));
+  const pagesStyle = useAnimatedStyle(() => ({ transform: [{ translateY: dy.value }] }));
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity(dy.value) }));
 
   return (
     <View
@@ -220,6 +218,7 @@ function ViewerPages({
               keyExtractor={(item) => item.id}
               extraData={extra}
               initialScrollIndex={startIndex}
+              horizontal
               renderItem={({ item }) => (
                 <PostCard
                   item={item}
@@ -236,7 +235,7 @@ function ViewerPages({
                   onToggleMuted={toggleMuted}
                 />
               )}
-              snapToInterval={height}
+              snapToInterval={width}
               snapToAlignment="start"
               decelerationRate="fast"
               showsVerticalScrollIndicator={false}
@@ -270,7 +269,7 @@ function ViewerPages({
           style={[styles.moreWrap, { top: insets.top }, chrome.style]}
           pointerEvents="none"
         >
-          <Text style={styles.moreText}>Swipe up for more</Text>
+          <Text style={styles.moreText}>Swipe for more</Text>
         </Reanimated.View>
       ) : null}
 

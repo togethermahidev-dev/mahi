@@ -943,7 +943,18 @@ function DualPhotoPreview({
                   return;
                 }
                 if (frozenFront.current && frozenRear.current) {
-                  onPost(frozenFront.current, frozenRear.current);
+                  Alert.alert(
+                    'Happy with your post?',
+                    'Posts can’t be deleted. You can edit the caption for one hour. Posting opens your feed and may notify the friends you tagged.',
+                    [
+                      { text: 'Keep editing', style: 'cancel' },
+                      {
+                        text: 'Post',
+                        onPress: () => onPost(frozenFront.current!, frozenRear.current!),
+                      },
+                    ],
+                    { cancelable: true }
+                  );
                 }
               }}
             >

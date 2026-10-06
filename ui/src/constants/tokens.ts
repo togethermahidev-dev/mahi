@@ -428,7 +428,9 @@ export const LAYOUT = {
   /** A complete progress bar, expressed as a percentage. */
   percentFull: 100,
   /** Columns in a profile's grid of posts. */
-  profileColumns: 3,
+  profileColumns: 2,
+  /** Start the next two-tile profile page shortly before the last row comes into view. */
+  profileEndThreshold: 0.35,
   /** Tagged friends' bubbles shown before "+n". */
   taggedBubbles: 3,
   /** The most lines a toast wraps to before it is cut. */
