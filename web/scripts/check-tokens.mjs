@@ -8,7 +8,7 @@
 // Run: pnpm --filter ./web check-tokens   (also part of `lint` and `build`)
 // The staff portal runs it on its own folder: node … web/scripts/check-tokens.mjs staff
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -116,7 +116,8 @@ async function main() {
   // Another Next.js app that shares these tokens (the staff portal) passes its own folder.
   const webRoot = process.argv[2] ? resolve(process.argv[2]) : fileURLToPath(new URL('..', import.meta.url));
   const lines = [];
-  for (const file of files(join(webRoot, 'app'))) {
+  const dirs = ['app', 'components'].map((d) => join(webRoot, d)).filter((d) => existsSync(d));
+  for (const file of dirs.flatMap(files)) {
     const rel = relative(webRoot, file);
     for (const p of findProblems(readFileSync(file, 'utf8'), rel)) {
       lines.push(`  ${rel}:${p.line}  ${p.text}  — ${p.why}`);
