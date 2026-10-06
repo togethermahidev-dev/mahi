@@ -409,7 +409,7 @@ export default function PostCard({
     ) : (
       <Image
         key={`${primaryUrl}#${attempt}`}
-        source={{ uri: primaryUrl }}
+        source={{ uri: primaryUrl, cache: 'force-cache' }}
         style={StyleSheet.absoluteFill}
         resizeMode={primaryLandscape ? 'contain' : 'cover'}
         onError={() => setFailedUri(primaryUrl)}

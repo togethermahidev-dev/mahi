@@ -78,18 +78,46 @@ type FeedItem = {
 // Photo and video links last an hour; the feed re-reads before its unlock ends.
 const SIGNED_URL_SECONDS = 3600;
 
+// Supabase returns a different signed URL for the same file on every call. Native Image caches by
+// URL, so regenerating them on every refresh made already-seen posts visibly load again. Keep each
+// URL until shortly before it expires: refreshes stay instant while the server remains authoritative.
+const SIGNED_URL_REUSE_MS = (SIGNED_URL_SECONDS - 300) * 1000;
+const signedMedia = new Map<string, { url: string; reuseUntil: number }>();
+
+function cachedSignedUrl(path: string, now: number): string | null {
+  const cached = signedMedia.get(path);
+  if (!cached || cached.reuseUntil <= now) {
+    signedMedia.delete(path);
+    return null;
+  }
+  return cached.url;
+}
+
 /** Turn server items into posts with short-lived signed photo / video URLs ('' when hidden). */
 async function toPosts(items: FeedItem[]): Promise<FeedPost[]> {
-  const paths = items
-    .flatMap((i) => [i.image_path, i.pov_image_path])
-    .filter((p): p is string => !!p);
+  const paths = [
+    ...new Set(
+      items.flatMap((i) => [i.image_path, i.pov_image_path]).filter((p): p is string => !!p)
+    ),
+  ];
   const urls = new Map<string, string>();
-  if (paths.length) {
+  const now = Date.now();
+  const missing: string[] = [];
+  for (const path of paths) {
+    const cached = cachedSignedUrl(path, now);
+    if (cached) urls.set(path, cached);
+    else missing.push(path);
+  }
+  if (missing.length) {
     const { data, error } = await supabase.storage
       .from('posts')
-      .createSignedUrls(paths, SIGNED_URL_SECONDS);
+      .createSignedUrls(missing, SIGNED_URL_SECONDS);
     if (error) throw new Error(error.message);
-    for (const d of data ?? []) if (d.path && d.signedUrl) urls.set(d.path, d.signedUrl);
+    for (const d of data ?? []) {
+      if (!d.path || !d.signedUrl) continue;
+      urls.set(d.path, d.signedUrl);
+      signedMedia.set(d.path, { url: d.signedUrl, reuseUntil: now + SIGNED_URL_REUSE_MS });
+    }
   }
   return items.map((i) => ({
     id: i.id,
@@ -236,6 +264,7 @@ export async function uploadPostMedia(opts: {
 
 /** Remove uploaded photos / videos after a post failed. Best effort. */
 export async function removePostPhotos(paths: string[]): Promise<void> {
+  for (const path of paths) signedMedia.delete(path);
   if (paths.length) await supabase.storage.from('posts').remove(paths);
 }
 
