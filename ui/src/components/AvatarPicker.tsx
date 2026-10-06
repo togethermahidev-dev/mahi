@@ -355,7 +355,7 @@ export default function AvatarPicker({
           // Ten points of slop all round make the small button 44 pt to tap.
           hitSlop={OFFSET.o10}
         >
-          <Text style={styles.editPlus}>+</Text>
+          <Text style={styles.editLabel}>Edit</Text>
         </Pressable>
       )}
 
@@ -374,7 +374,6 @@ export default function AvatarPicker({
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
-    marginBottom: SPACE.s20,
   },
   avatar: {
     width: SIZE.z96,
@@ -399,12 +398,12 @@ const styles = StyleSheet.create({
   },
   editButton: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: SIZE.z24,
-    height: SIZE.z24,
-    borderRadius: RADIUS.r12,
-    backgroundColor: COLORS.white,
+    bottom: -OFFSET.o4,
+    right: -OFFSET.o4,
+    width: SIZE.z48,
+    height: SIZE.z28,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: ELEVATION.e3,
@@ -413,10 +412,10 @@ const styles = StyleSheet.create({
     shadowRadius: SHADOW_BLUR.b3,
     shadowOffset: { width: 0, height: SIZE.z1 },
   },
-  editPlus: {
-    fontSize: FONT_SIZE.f16,
+  editLabel: {
+    fontSize: FONT_SIZE.f12,
     lineHeight: LINE_HEIGHT.l18,
     color: COLORS.offBlack,
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.bold,
   },
 });

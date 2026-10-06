@@ -423,6 +423,8 @@ export const SWIPE = {
 
 // ─── Counts and shares that shape a layout ───────────────────────────────────
 export const LAYOUT = {
+  /** A complete progress bar, expressed as a percentage. */
+  percentFull: 100,
   /** Columns in a profile's grid of posts. */
   profileColumns: 3,
   /** Tagged friends' bubbles shown before "+n". */
