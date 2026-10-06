@@ -227,13 +227,14 @@ have run out and clears `is_banned` unless a ban or another suspension is still 
 
 ## Owner steps to put it live
 
-Nothing here has been applied. Run from the repo root. Three new migrations go in order, after the
+Nothing here has been applied. Run from the repo root. Four new migrations go in order, after the
 two that are already waiting (`20261002190000_tag_and_feed_pushes`, `20261003120000_tag_slots`):
 
 ```
 20261006100000_moderation            reports, staff, actions, hiding, the automatic check's queue
 20261006110000_follow_back           "follows you" on the profile
 20261006120000_push_deadline_wording push words with a day and time, worked out when sent
+20261006130000_private_details       date of birth and phone number readable only by their owner
 ```
 
 1. **Dry run** (applies everything and runs the tests in one transaction on production, then
@@ -244,6 +245,8 @@ two that are already waiting (`20261002190000_tag_and_feed_pushes`, `20261003120
      supabase/migrations/20261006100000_moderation.sql \
      supabase/migrations/20261006110000_follow_back.sql \
      supabase/migrations/20261006120000_push_deadline_wording.sql \
+     supabase/migrations/20261006130000_private_details.sql \
+     supabase/tests/private_details_test.sql supabase/tests/profile_update_columns_test.sql \
      supabase/tests/moderation_test.sql supabase/tests/follow_back_test.sql \
      supabase/tests/push_deadline_wording_test.sql supabase/tests/tag_feed_pushes_test.sql \
      supabase/tests/tag_slots_test.sql supabase/tests/feed_lock_test.sql
@@ -277,11 +280,14 @@ two that are already waiting (`20261002190000_tag_and_feed_pushes`, `20261003120
    (`supabase secrets unset OPENAI_API_KEY --project-ref pzepodsppqtvptzmwxzs`) — checks are then
    skipped — or delete the Vault secrets so nothing is sent at all:
    `psql "<same connection as step 5.4>" -c "delete from vault.secrets where name in ('moderate_content_url','moderate_content_secret');"`
-7. **Undo** (each in reverse order): `supabase/rollbacks/20261006120000_push_deadline_wording.rollback.sql`,
+7. **Undo** (each in reverse order): `supabase/rollbacks/20261006130000_private_details.rollback.sql`,
+   `…20261006120000_push_deadline_wording.rollback.sql`,
    `…20261006110000_follow_back.rollback.sql`, `…20261006100000_moderation.rollback.sql`.
 
 Safe for every app already on phones: their report button, feed, profiles and comments keep
-working. The only change they see is that a hidden post or removed comment disappears.
+working. The only change they see is that a hidden post or removed comment disappears. After
+`private_details`, sign-up still saves the date of birth and phone number (moved to a private
+table only the person can read); other people's profiles simply come back without them.
 
 ## Not covered
 

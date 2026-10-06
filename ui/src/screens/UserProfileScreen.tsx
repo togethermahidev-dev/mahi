@@ -43,8 +43,7 @@ import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostViewer from '@/components/PostViewer';
 import AvatarViewer from '@/components/AvatarViewer';
 import ConversationScreen from '@/screens/ConversationScreen';
-import type { ConversationPreview } from '@/api';
-import type { Database } from '@/types';
+import type { ConversationPreview, PublicProfile } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -66,7 +65,7 @@ import {
 } from '@/constants/tokens';
 import { themeColors } from '@/hooks/useAppTheme';
 
-type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+type ProfileRow = PublicProfile;
 
 /** How far the finger moves sideways before the swipe takes over (up/down that far cancels it). */
 /** The page swipe's spring (HorizontalNavigator), in and back. Runs even with Reduce Motion on. */

@@ -7,8 +7,6 @@ interface UserProfile {
   display_name: string | null;
   first_name: string | null;
   last_name: string | null;
-  date_of_birth: string | null; // ISO date 'YYYY-MM-DD'
-  contact_number: string | null;
   fitness_goals: string[] | null;
   avatar_url: string | null;
   /** Mahi points: +1 per post that answers a tag, back to 0 on a missed tag. */

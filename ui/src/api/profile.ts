@@ -12,13 +12,26 @@ import type { Database } from '@/types';
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 /**
- * Fetch the full profile. Mahi points are `streak_current` (best: `streak_highest`); the
- * server keeps the old column names so apps already on phones keep working.
+ * The profile columns anyone signed in may read. Date of birth and phone number are private
+ * (server: profile_private, read back only by their owner) and are never asked for here.
+ */
+const PROFILE_COLUMNS =
+  'id, username, display_name, first_name, last_name, fitness_goals, avatar_url, streak_current, streak_highest, is_banned, timezone, created_at, updated_at' as const;
+
+export type PublicProfile = Omit<ProfileRow, 'date_of_birth' | 'contact_number'>;
+
+/**
+ * Fetch a profile (anyone's, including your own). Mahi points are `streak_current` (best:
+ * `streak_highest`); the server keeps the old column names so apps already on phones keep working.
  */
 export async function getProfile(
   userId: string
-): Promise<{ data: ProfileRow | null; error: Error | null }> {
-  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+): Promise<{ data: PublicProfile | null; error: Error | null }> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(PROFILE_COLUMNS)
+    .eq('id', userId)
+    .single();
   if (error) return { data: null, error: new Error(error.message) };
   return { data, error: null };
 }
