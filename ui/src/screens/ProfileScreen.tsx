@@ -364,11 +364,6 @@ const styles = StyleSheet.create({
   titleBlock: {
     flexShrink: 1,
   },
-  eyebrow: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
-    marginBottom: SPACE.s2,
-  },
   screenTitle: {
     fontSize: FONT_SIZE.f28,
     lineHeight: LINE_HEIGHT.l28,

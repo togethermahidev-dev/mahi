@@ -713,11 +713,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  eyebrow: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
-    marginBottom: SPACE.s2,
-  },
   screenTitle: {
     fontSize: FONT_SIZE.f20,
     lineHeight: LINE_HEIGHT.l24,

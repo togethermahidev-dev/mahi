@@ -156,7 +156,6 @@ export default function FollowListModal({
                 <Text style={[styles.backArrow, { color: text }]}>{'\u2039'}</Text>
               </Pressable>
               <View style={styles.headerCopy}>
-                <Text style={[styles.headerEyebrow, { color: accentText }]}>Mahi</Text>
                 <Text
                   style={[styles.headerTitle, { color: text }]}
                   numberOfLines={1}
@@ -297,11 +296,6 @@ const styles = StyleSheet.create({
   },
   headerCopy: {
     flex: 1,
-  },
-  headerEyebrow: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
-    marginBottom: SPACE.s2,
   },
   headerTitle: {
     fontSize: FONT_SIZE.f24,

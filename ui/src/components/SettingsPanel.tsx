@@ -134,7 +134,6 @@ function Sheet({
     <View style={[styles.root, { backgroundColor: bg }]}>
       <View style={[styles.header, { paddingTop: insets.top + SPACE.s16 }]}>
         <View>
-          <Text style={[styles.eyebrow, { color: accentText }]}>Mahi</Text>
           <Text style={[styles.title, { color: text }]} accessibilityRole="header">
             Settings
           </Text>
@@ -255,11 +254,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACE.s20,
     paddingBottom: SPACE.s20,
-  },
-  eyebrow: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f12,
-    marginBottom: SPACE.s2,
   },
   title: {
     fontFamily: FONTS.bold,
