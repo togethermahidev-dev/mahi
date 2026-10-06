@@ -11,7 +11,7 @@ export function nudgeLabel(
   nowMs: number = Date.now()
 ): string | null {
   if (hasOpenTag) return null;
-  if (lastTaggedAt === null) return 'not tagged yet — tag them';
+  if (lastTaggedAt === null) return 'First tag for them';
   if (nowMs - Date.parse(lastTaggedAt) < nudgeDays * DAY_MS) return null;
-  return `not tagged in ${nudgeDays} days — tag them`;
+  return `Not tagged in ${nudgeDays} days`;
 }

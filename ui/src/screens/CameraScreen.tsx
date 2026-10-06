@@ -60,7 +60,6 @@ import {
 } from '@/api';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import OpenTagsBanner from '@/components/OpenTagsBanner';
-import PointsBadge from '@/components/PointsBadge';
 import { CameraIcon } from '@/components/ScreenIcons';
 import { pointsCount, pointsValue, postedToast } from '@/lib/mahiPoints';
 import KeyboardInset from '@/components/KeyboardInset';
@@ -1164,9 +1163,9 @@ function TagUserRow({
         </View>
       )}
       <View style={{ flex: 1 }}>
-        <Text style={styles.tagRowName}>
-          {display} · <PointsBadge points={item.points} style={styles.tagRowHandle} />
-        </Text>
+        {/* No points here: a friend's 0 would broadcast their miss (#88), and who to tag is about
+            who you train with, not a score. */}
+        <Text style={styles.tagRowName}>{display}</Text>
         <Text style={styles.tagRowHandle}>
           @{item.username}
           {reason ? ` · ${reason}` : ''}

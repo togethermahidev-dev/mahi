@@ -5,11 +5,11 @@ describe('nudgeLabel', () => {
   const daysAgo = (d: number) => new Date(now - d * 24 * 3600 * 1000).toISOString();
 
   it('nudges a friend nobody has tagged for the set number of days', () => {
-    expect(nudgeLabel(daysAgo(8), false, 7, now)).toBe('not tagged in 7 days — tag them');
+    expect(nudgeLabel(daysAgo(8), false, 7, now)).toBe('Not tagged in 7 days');
   });
 
   it('nudges exactly on the day it runs out', () => {
-    expect(nudgeLabel(daysAgo(7), false, 7, now)).toBe('not tagged in 7 days — tag them');
+    expect(nudgeLabel(daysAgo(7), false, 7, now)).toBe('Not tagged in 7 days');
   });
 
   it('stays quiet for a recent tag', () => {
@@ -17,7 +17,7 @@ describe('nudgeLabel', () => {
   });
 
   it('nudges someone never tagged', () => {
-    expect(nudgeLabel(null, false, 7, now)).toBe('not tagged yet — tag them');
+    expect(nudgeLabel(null, false, 7, now)).toBe('First tag for them');
   });
 
   it('never nudges someone you already have an open tag on', () => {
