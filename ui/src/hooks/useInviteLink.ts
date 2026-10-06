@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { Linking } from 'react-native';
-import { parseInviteLink } from '@/lib/inviteLink';
+import { AppState, Linking } from 'react-native';
+import { claimOnReturn, parseInviteLink } from '@/lib/inviteLink';
 import { useAuthStore, useInviteStore } from '@/store';
 
 /**
@@ -26,5 +26,16 @@ export function useInviteLink(): void {
   useEffect(() => {
     if (!userId) return;
     useInviteStore.getState().claimPending();
+  }, [userId]);
+
+  // An invite kept through a dropped connection is tried again each time Mahi comes back to the
+  // front.
+  useEffect(() => {
+    if (!userId) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      const invite = useInviteStore.getState();
+      if (claimOnReturn(state, { signedIn: true, ...invite })) void invite.claimPending();
+    });
+    return () => sub.remove();
   }, [userId]);
 }

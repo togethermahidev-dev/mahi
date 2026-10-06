@@ -84,3 +84,14 @@ export function claimFailText(message: string, inviter: string | null): string {
   if (message.includes('not valid')) return "That invite code isn't right.";
   return "Couldn't use that invite. Try again.";
 }
+
+/**
+ * Whether to try a kept invite again now: Mahi has come back to the front, someone is signed in,
+ * an invite is still waiting (a dropped connection kept it) and no claim is on its way.
+ */
+export function claimOnReturn(
+  appState: string,
+  s: { signedIn: boolean; pendingToken: string | null; isClaiming: boolean }
+): boolean {
+  return appState === 'active' && s.signedIn && !!s.pendingToken && !s.isClaiming;
+}

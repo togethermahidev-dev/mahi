@@ -4,6 +4,7 @@ import {
   typedInvite,
   claimedText,
   claimFailText,
+  claimOnReturn,
 } from '@/lib/inviteLink';
 
 const TOKEN = '48bafaef17afd63e5c8c6390e2dee7f5';
@@ -112,5 +113,22 @@ describe('claimFailText', () => {
 
   it('anything else: a plain try-again', () => {
     expect(claimFailText('network', null)).toBe("Couldn't use that invite. Try again.");
+  });
+});
+
+describe('claimOnReturn (a kept invite is tried again when Mahi comes back to the front)', () => {
+  const kept = { signedIn: true, pendingToken: 'ABC234', isClaiming: false };
+
+  it('tries again when the app comes back with an invite still kept', () => {
+    expect(claimOnReturn('active', kept)).toBe(true);
+  });
+  it('waits for the app to be in front', () => {
+    expect(claimOnReturn('background', kept)).toBe(false);
+    expect(claimOnReturn('inactive', kept)).toBe(false);
+  });
+  it('does nothing without an invite, before sign-in, or while a claim is on its way', () => {
+    expect(claimOnReturn('active', { ...kept, pendingToken: null })).toBe(false);
+    expect(claimOnReturn('active', { ...kept, signedIn: false })).toBe(false);
+    expect(claimOnReturn('active', { ...kept, isClaiming: true })).toBe(false);
   });
 });
