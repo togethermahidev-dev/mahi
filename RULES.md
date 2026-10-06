@@ -8,6 +8,18 @@
   Install with `pnpm --filter ./ui add <pkg>` (Expo packages: `cd ui && npx expo install <pkg>`).
   EAS commands run from `ui/`.
 
+## Branch and moderation (2026-10-06)
+- Work happens on branch `updates` (reaches `main` by the owner's say-so); commit by name, never push without a same-session go.
+- Moderation is server-side only: reports, staff actions and hiding go through the RPCs in
+  `supabase/migrations/20261006100000_moderation.sql` (contract: `docs/moderation.md`). Never read
+  `user_reports`, `moderation_actions` or `moderation_scans` from the app; never write `staff_users`
+  from any app — staff are added by migration. Every staff action needs a reason (it goes in the audit log).
+- New queries on posts and comments must leave out hidden posts (`hidden_at`) and removed comments
+  (`removed_at`) unless the caller is staff.
+- The automatic check (`moderate-content`) only flags; `app_config.ai_auto_hide` stays off unless the owner says.
+- `staff/` (being built) is the staff portal web app: it talks to Supabase only through the staff RPCs,
+  signed in as a `staff_users` member; it never uses the service role key in the browser.
+
 ## Architecture & Adding Features
 - 5-layer architecture, strict downward deps: `screens/components → hooks → stores → api → lib → supabase`.
   See the **Layering Contract** in `docs/architecture.md` for the per-layer import rules.

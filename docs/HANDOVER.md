@@ -17,6 +17,31 @@ screens/components → hooks → stores (Zustand, optimistic) → api ({data,err
 
 Full data flow + the per-layer import contract: [architecture.md](./architecture.md#layering-contract).
 
+**State on 2026-10-06 (branch `updates`; not pushed to main):**
+- **On phones (preview lane):** OTA **12.07** (the design pass from 2026-10-05/06: Inter only, no
+  italics, tokens for every value, contrast and the 5 research rounds, decisions #76–#93) and OTA
+  **12.08** (the Profile redesign), both published to preview on 2026-10-06. Not yet checked on a phone.
+- **Built after 12.08, not on phones yet (next update):** the glass **dock** along the bottom of Feed,
+  Profile and Messages (`<NavRail dock />`, #51); the notifications page's one **Continue** button that
+  leads to the phone's question and says no pings 10pm–7am (#52); sign-up says why it asks for date of
+  birth and number; a kept **invite is retried** when Mahi comes back to the front; a small success
+  **buzz at points milestones** (first point, new best, 5, 10, 25, 50, 100); the answer toast's
+  **Cheer @sam on** button opening the friend's profile; the unused tracking permission text dropped
+  (takes effect at the next native build).
+- **Server work written and tested, waiting for the owner to apply** (nothing is live):
+  `20261006100000_moderation` (reports, staff, audit log, hidden content, the automatic check —
+  [moderation.md](./moderation.md)), `20261006110000_follow_back` ("follows you" on a profile),
+  `20261006120000_push_deadline_wording` (deadlines as a day and time worked out when sent, #54–#57).
+  They go after the two already waiting (`20261002190000_tag_and_feed_pushes`,
+  `20261003120000_tag_slots`): five in one push, owner steps at the end of moderation.md. Then the
+  `moderate-content` function and its secrets once an OpenAI key exists, and staff rows.
+- **Staff portal:** a `staff/` web app for the moderation list is being built in a separate session
+  (not on `updates` yet); it builds against the contract in moderation.md.
+- **Website:** the footer's email promise now covers test versions for people who ticked the box;
+  live only after a web deploy (owner, `web/DEPLOY.md`).
+- **Switches:** `ios-sf-symbols` ON at 100% (2026-10-06). `context-menu-preview` still off — the owner
+  switches it on at 100%.
+
 **State on 2026-10-05, late (on main, not on phones yet):**
 - **Design system tidy-up, committed on main, not pushed, not in any update yet** (84377ac…3dd23a0):
   Inter on every word, the tab bar titles too, no italic; × for close buttons; camera pills read

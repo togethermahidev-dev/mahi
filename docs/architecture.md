@@ -169,6 +169,21 @@ flag. Both flags are **default off** (`DEFAULT_OFF_FLAGS`). No screen uses them 
   `usePurchasesStore.reset()`, which logs RevenueCat out only if it was configured. No server pieces yet:
   entitlements come from RevenueCat's SDK.
 
+## Moderation
+
+Server-side, written and tested, **not on production yet** (migration `20261006100000_moderation`;
+the full contract and the owner's steps are in [moderation.md](./moderation.md)).
+- Reports: anyone can report a person, post, comment or message (`user_reports`, one per person per
+  thing, with a snapshot). Only staff read the list.
+- Staff: `staff_users` (`admin` / `moderator`), checked by `is_staff`; actions (dismiss, hide a post,
+  remove a comment, warn, suspend, ban) are RPCs that need a reason and write `moderation_actions`.
+  `profiles.is_banned` stays the one switch every rule reads; `user_sanctions` says why.
+- Hidden posts and removed comments are kept but left out of the feed, profiles, comments and counts.
+- The automatic check: function `moderate-content` (`--no-verify-jwt`, called by the database through
+  Vault secrets) sends new posts and comments to OpenAI's free moderation model and flags them; it only
+  hides by itself if `app_config.ai_auto_hide` is on (starts off). Idle until an OpenAI key is set.
+- Staff portal: a `staff/` web app for the list is being built separately; it uses only the RPCs above.
+
 ## Tech Stack
 
 | Layer | Tool | Version |

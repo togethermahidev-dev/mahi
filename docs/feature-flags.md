@@ -17,7 +17,7 @@ account only, to test one push, then for everyone).
 **`video-posts` (added 2026-10-02) is a default-off flag:** the owner wants it OFF for everyone.
 Create it in PostHog **switched off** (or at 0%); it reads as off until PostHog says true.
 **`ios-sf-symbols`, `context-menu-preview` and `camera-tap-focus` (added 2026-10-02) are default-off too:**
-they need build 11; they exist in PostHog **switched off** — turn each on only once build 11 is on the phones
+they need build 11; they exist in PostHog **switched off** (2026-10-06: `ios-sf-symbols` is ON at 100%; `context-menu-preview` waits for the owner) — turn each on only once build 11 is on the phones
 (build 10 ignores them either way).
 **`identity-verification` and `purchases` (added 2026-10-02) are default off too:** dormant until Didit and
 RevenueCat are set up (owner steps in [HANDOVER.md](./HANDOVER.md)). Both exist in PostHog **switched off**.
@@ -109,7 +109,7 @@ posts with a video icon. Needs the `expo-video` native module (a new native buil
 `20261002100000_video_posts`. On a build without the native module (build 10) it reads as off. Off = today's
 photo-only camera exactly, and the app never asks for the microphone.)
 
-**Hold to preview:** `context-menu-preview` (**default off**; iPhone only; needs build 11, which carries
+**Hold to preview:** `context-menu-preview` (**default off; still off in PostHog 2026-10-06 — the owner switches it on at 100%**; iPhone only; needs build 11, which carries
 `@expo/ui`). On: press and hold and the content pops out over a blurred background with a short menu
 below (Apple's own context menu). Profile grid squares: the post's photo, with Open, Like / Unlike and
 Share (Share sends the photo itself — post links expire within the hour — fetched to the phone only
@@ -129,7 +129,7 @@ either way can't like each other's comments and don't show in the list. Counts a
 fresh from the server each time; nothing is kept on the device. Needs migration
 `20261002130000_comment_likes`. Off = comments exactly as before, no hearts.)
 
-**Look:** `ios-sf-symbols` (**default off**; needs build 11). On an iPhone, the app's plain drawn icons
+**Look:** `ios-sf-symbols` (**ON at 100% since 2026-10-06**; default off in code; needs build 11+). On an iPhone, the app's plain drawn icons
 become Apple's own (SF Symbols) at the same size and colour: search → magnifying glass, camera, feed →
 three left-aligned lines, profile → person, settings → gear, notifications → bell, heart (red filled heart
 when liked), video, sound on / sound off (speaker with waves / speaker struck through). The brand "echo"
