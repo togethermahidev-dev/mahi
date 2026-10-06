@@ -314,5 +314,14 @@ table only the person can read); other people's profiles simply come back withou
 - `20261006170000_signed_in_reads`: `get_feed_posts` and `get_follow_data` are for signed-in
   callers only (the app never calls them signed out). Test `tests/signed_in_reads_test.sql`.
 
+- `20261006180000_post_caption_edits`: posts can't be deleted or changed; the owner can change the
+  caption for one hour (`update_post_caption`). A changed caption is queued in `moderation_scans`
+  again, the same as a new post. Test `tests/post_caption_edits_test.sql`.
+- `20261006190000_message_requests`: message requests, edit (15 minutes) and unsend. Sending checks
+  blocks, bans and removed messages; an edit or unsend of a staff-removed message is refused, and only
+  the server sets `edited_at` / `unsent_at`. Unsend empties the message for both people; a report made
+  before keeps its snapshot. Edited messages are not re-checked automatically (messages never were).
+  Test `tests/message_requests_test.sql`.
+
 Undo files for each are in `supabase/rollbacks/`. The `posts` bucket stays public on purpose
 (older builds need it; `supabase/deferred/private_bucket.sql` waits for the update gate).

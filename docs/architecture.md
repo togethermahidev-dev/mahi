@@ -190,6 +190,48 @@ Live on production since 2026-10-06 (migrations `20261006100000_moderation` thro
   Serious actions that need a note and a confirm, people, audit log). It uses only the staff RPCs,
   signed in as the staff member, with the anon key on the server; see [staff/README.md](../staff/README.md).
 
+## Messages
+
+Rebuilt like PingMee-v2 (migration `20261006190000_message_requests`, live 2026-10-06, OTA 12.12).
+- Opening a chat makes nothing. The first message starts the conversation (`start_conversation`):
+  between friends (they follow each other, `are_friends`) it goes straight to the inbox; otherwise
+  it is a message request. The sender waits; the receiver accepts (`accept_message_request`),
+  declines quietly (`decline_message_request`, sets `declined_at`) or blocks.
+- Every send goes through `send_message` (`check_can_send`: blocks, bans, a waiting or declined
+  request). Edit your own message for 15 minutes (`edit_message`, sets `edited_at`); unsend it
+  (`unsend_message`: gone for both, its words not kept). The app has no direct write to `messages`;
+  a trigger refuses `edited_at` / `unsent_at` / removal fields from the app.
+- Reads: `get_inbox(p_status)` (inbox or requests), `get_messages`, `get_conversation_with`.
+  Old apps still insert and update `conversations` directly until
+  `supabase/deferred/contract_messages.sql` goes in (after every phone has 12.12).
+
+## Posts are permanent; captions edit for an hour
+
+Migration `20261006180000_post_caption_edits` (live). The app can't delete or update a post. The owner
+can change the caption for one hour after posting through `update_post_caption` (≤ 200 characters;
+`EditPostCaptionSheet`, rule in `ui/src/lib/postPolicy.ts`). A changed caption is queued for the
+automatic check again (`moderation_scans`).
+
+## Shared post links
+
+Share gives `https://togethermahi.com/p/<post id>` (`ui/src/lib/postShareLink.ts`). With Mahi installed
+the universal link (`applinks:togethermahi.com` in `app.config.js`) opens the post; without it,
+`web/app/p/[postId]/route.ts` sends the person to the App Store or Play Store. The web route is live only
+after a web deploy; Android association needs the next native build.
+
+## Feed timer, crew strip and motion
+
+- The feed timer matches the server: the feed is open for 24 hours after you post, then locks until a
+  friend tags you and you answer. The lock card shows a countdown ring that drains.
+- Crew strip (`CrewStrip`, rules in `ui/src/lib/crew.ts`, no switch): up to three friends you're tied to
+  right now — who tagged you and is waiting (time left), who you tagged and whether they've answered.
+  Never "missed" or "late"; read fresh, nothing kept on the phone.
+- Post sizes follow the phone and text size (`ui/src/lib/feedLayout.ts`); one post per flick; double
+  tap only likes. Answering a tag shows a short celebration.
+- Motion: every animation takes its values from `MOTION` in `tokens.ts`; shared pieces in
+  `ui/src/components/Motion.tsx`. With Reduce Motion on, movement becomes a fade.
+- Screen titles have no "Mahi" label above them.
+
 ## Tech Stack
 
 | Layer | Tool | Version |
@@ -328,14 +370,14 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | Table | Purpose |
 |---|---|
 | `public.profiles` | User profile — display name, avatar, Mahi points (`streak_current`) and best (`streak_highest`) |
-| `public.posts` | Workout posts, made under reactive posting (above), each carrying the poster's Mahi points after it (`streak_day`). `image_url` = rear/POV photo; `pov_image_url` = front selfie (nullable — null on legacy single-photo posts). `rear_media_type` / `front_media_type` = `'photo'` or `'video'` per shot (video posts, default `'photo'`). No daily limit: one post per tag answered (the old one-a-day unique index was dropped by `20261001120000_reactive_posting.sql`) |
+| `public.posts` | Workout posts (permanent: no delete or update by the app; only the caption, by its owner, for one hour through `update_post_caption`), made under reactive posting (above), each carrying the poster's Mahi points after it (`streak_day`). `image_url` = rear/POV photo; `pov_image_url` = front selfie (nullable — null on legacy single-photo posts). `rear_media_type` / `front_media_type` = `'photo'` or `'video'` per shot (video posts, default `'photo'`). No daily limit: one post per tag answered (the old one-a-day unique index was dropped by `20261001120000_reactive_posting.sql`) |
 | `public.post_likes` | One row per user-post like. Unique constraint `(post_id, user_id)`. RLS: authenticated read-all, insert/delete own only. |
 | `public.post_comments` | Comments on posts. Ordered oldest-first. RLS: authenticated read-all, insert/delete own only. |
 | `public.comment_likes` | One row per user-comment like (flag `comment-likes`). Unique `(comment_id, user_id)`, cascades with the comment and the profile. RLS: read where the comment is readable, insert own only and not across a block (`comment_like_allowed`), delete own only. Read through `get_comment_likes(post)` (count + liked by me per comment) and `get_comment_likers(comment)` (newest first, without people blocked either way or banned); written through `toggle_comment_like`. Migration `20261002130000_comment_likes`. |
 | `public.follows` | Follow relationships. Unique constraint `(follower_id, following_id)`, self-follow check constraint. RLS: authenticated read-all, insert/delete own only (`auth.uid() = follower_id`). Explicit UPDATE deny policy. |
 | `public.post_tags` | User-tag junction table: which users were mentioned on which post. Composite PK `(post_id, user_id)`. RLS: authenticated read-all, insert only when the caller owns the referenced post. Aggregated into `tagged_users` by the `get_feed_posts` RPC. |
-| `public.conversations` | Messaging thread — one row per pair, ordered participants constraint |
-| `public.messages` | Individual messages within a conversation |
+| `public.conversations` | Messaging thread — one row per pair, ordered participants constraint; a request until accepted (`declined_at` when declined) — see [Messages](#messages) |
+| `public.messages` | Individual messages within a conversation; `edited_at` / `unsent_at` set only by the server |
 | `public.notifications` | Activity feed (likes, comments, follows, tags, tag answered / missed, `streak_lost`, invites) |
 | `public.user_blocks` / `public.user_reports` | Moderation |
 | `public.tag_challenges` | A tag with its 48-hour deadline (tag loop) |

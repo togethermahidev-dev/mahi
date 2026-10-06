@@ -22,6 +22,27 @@ file, `RULES.md` and `CLAUDE.md` are the rulebook; the guard hook (`.claude/hook
 applies to every tool call. Work on branch `updates`; commit by name, no AI attribution, never push
 without the owner's go in the same session.
 
+**State on 2026-10-06, late (branch `updates`; `main` is behind):**
+- **On phones (preview lane), published 2026-10-06, not yet checked on a phone:** OTAs **12.07–12.11**
+  (below) and **12.12**: the profile workout story (one column, newest first, swipe back), notification
+  activity rows, the feed timer matching the server (the feed stays open 24 hours after you post, then
+  locks until a friend tags you and you answer), shared post links, caption edits for one hour, the new
+  messages (requests, edit, unsend) and the design pass (no "Mahi" above screen titles, double tap only
+  likes, post sizes follow the phone and text size, the crew strip, the countdown ring, the answer
+  celebration, motion tokens with Reduce Motion fades).
+- **Production database:** every migration through `20261006190000_message_requests` is applied,
+  including `20261006180000_post_caption_edits` (posts can't be deleted or changed, except the
+  caption by its owner for an hour through `update_post_caption`; an edited caption is checked
+  again) and `20261006190000_message_requests` (the first message from a non-friend is a request;
+  accept, decline or block; edit for 15 minutes; unsend; the server checks blocks, bans and removed
+  messages). Old apps still write conversations directly; `supabase/deferred/contract_messages.sql`
+  closes that once every phone has 12.12 (owner).
+- **Shared post links:** `togethermahi.com/p/<post>` opens the post in the app (universal link). The
+  web fallback (`web/app/p/[postId]/route.ts`, sends people without Mahi to the store) needs a web
+  deploy (owner); Android link association needs the next native build.
+- **Not live yet:** push notifications (in-app notifications work); the automatic check waits for an
+  OpenAI key; the website waits for a web deploy.
+
 **State on 2026-10-06, 14:00 (branch `updates`; `main` is behind):**
 - **On phones (preview lane), published 2026-10-06, not yet checked on a phone:** OTA **12.07** the
   design pass (Inter only, no italics, tokens for every value, decisions #76–#93); **12.08** the

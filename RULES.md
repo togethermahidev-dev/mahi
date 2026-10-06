@@ -20,6 +20,14 @@
 - `staff/` is the staff portal web app (live database, not hosted yet): it talks to Supabase only through the staff RPCs,
   signed in as a `staff_users` member; it never uses the service role key in the browser.
 
+## Messages and posts (2026-10-06)
+- Messages go through the server functions only: `start_conversation`, `send_message`, `accept_message_request`,
+  `decline_message_request`, `edit_message` (own message, 15 minutes), `unsend_message`; read with `get_inbox`,
+  `get_messages`, `get_conversation_with`. Never insert, update or delete `messages` or `conversations` from the app
+  (the direct conversation writes old apps use go with `supabase/deferred/contract_messages.sql`).
+- Posts are permanent: no delete, no update, except the caption by its owner for one hour through
+  `update_post_caption` (an edited caption is checked by moderation again).
+
 ## Database tools
 - Mahi doesn't use Docker: no `supabase start`, no local stack. Database types come from the Supabase MCP
   generator (`generate_typescript_types`), not `supabase gen types --local`.
@@ -135,7 +143,8 @@
 - Every colour, text size, spacing, radius, shadow, size, offset, icon size, letter spacing, line height and
   border width comes from `ui/src/constants/tokens.ts` (`withAlpha` for opacity). So do the shared values:
   `ALPHA` (see-through amounts, also shadow strength), `STROKE` (icon line widths), `BLUR_INTENSITY`,
-  `DURATION` and `SPRING` (motion), `SCALE`, `WAIT` (search wait, toast times), `SWIPE` (when a drag counts,
+  `DURATION`, `SPRING` and `MOTION` (motion; shared pieces in `ui/src/components/Motion.tsx`, and with Reduce
+  Motion on, movement becomes a fade), `SCALE`, `WAIT` (search wait, toast times), `SWIPE` (when a drag counts,
   moves or closes) and `LAYOUT` (columns, counts, screen shares). `designTokens.test.ts` fails on a raw value
   anywhere else, a numeric constant in a screen or raw layout maths — need a new value? add a token first.
   `app.config.js` can't import tokens, so the brand colour is typed once there (`ACCENT`) and the test checks it

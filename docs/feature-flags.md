@@ -59,7 +59,7 @@ if (!showBell) return null;
 
 ## The flags
 
-Twenty-one keys, every one read by code. (Suggested follows have no flag: they are always on.)
+Twenty-one keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone.)
 
 **Notifications:** `notifications-core` (the bell in the header and the notifications list)
 
