@@ -48,6 +48,7 @@ import { getAppGate, getProfile, signOut, updateTimezone } from '@/api';
 import { gateVerdict, type AppGate } from '@/lib/versionGate';
 import { APP_BUILD, APP_VERSION } from '@/lib/appBuild';
 import UpdateRequiredScreen from '@/components/UpdateRequiredScreen';
+import AccountStanding from '@/components/AccountStanding';
 import WelcomeCards from '@/components/WelcomeCards';
 import PushPrimer from '@/components/PushPrimer';
 import { Sentry } from '@/lib/sentry';
@@ -252,6 +253,8 @@ export default function App(): React.JSX.Element {
         <WelcomeCards userId={session.user.id} onSettled={setWelcomeSettled} />
         {/* One-time "turn on notifications" page, once the cards are out of the way. */}
         <PushPrimer welcomeSettled={welcomeSettled} />
+        {/* A warning or suspension from Mahi's staff, once; a closed account covers the app. */}
+        <AccountStanding userId={session.user.id} />
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       </>
     );
