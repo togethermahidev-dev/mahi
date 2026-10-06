@@ -56,14 +56,14 @@ test('someone without a role can do nothing', () => {
   assert.equal(canDo(null, 'ban_user'), false);
 });
 
-test('after sign-in, only a path on this site is followed', () => {
+test('after sign-in, only a path on this site is followed; otherwise the overview', () => {
   assert.equal(safeNext('/reports/abc'), '/reports/abc');
-  assert.equal(safeNext(null), '/reports');
-  assert.equal(safeNext(''), '/reports');
-  assert.equal(safeNext('https://evil.example'), '/reports');
-  assert.equal(safeNext('//evil.example'), '/reports');
-  assert.equal(safeNext('/\\evil.example'), '/reports');
-  assert.equal(safeNext('/login'), '/reports');
+  assert.equal(safeNext(null), '/');
+  assert.equal(safeNext(''), '/');
+  assert.equal(safeNext('https://evil.example'), '/');
+  assert.equal(safeNext('//evil.example'), '/');
+  assert.equal(safeNext('/\\evil.example'), '/');
+  assert.equal(safeNext('/login'), '/');
 });
 
 test('a token is refreshed when it ends within a minute, or cannot be read', () => {

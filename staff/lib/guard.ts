@@ -37,7 +37,7 @@ export function canDo(role: StaffRole | null, action: StaffAction): boolean {
   return role === 'admin' || !ADMIN_ONLY.has(action);
 }
 
-export const HOME = '/reports';
+export const HOME = '/';
 
 /** Where to go after signing in: only a path on this site, never back to the sign-in page. */
 export function safeNext(next: string | null | undefined): string {
