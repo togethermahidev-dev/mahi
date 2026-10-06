@@ -19,7 +19,8 @@ import { useConversation } from '@/hooks/useConversation';
 import { useCoverRail } from '@/hooks/useChrome';
 import { useMessages } from '@/hooks/useMessages';
 import { groupMessagesByDate, type GroupedRow } from '@/lib/groupMessages';
-import type { ConversationPreview } from '@/api';
+import { canStillEdit, isDraft, type ConversationPreview, type Message } from '@/api';
+import { useBlockStore, useConversationStore, useMessagesStore } from '@/store';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -58,14 +59,24 @@ export default function ConversationScreen({
     ? withAlpha(COLORS.offWhite, ALPHA.a07)
     : withAlpha(COLORS.offBlack, ALPHA.a05);
 
-  const { messages, isLoading, isLoadingOlder, hasMore, send, loadOlder, markRead } =
-    useConversation(conversation.id);
+  // A draft (never messaged) becomes a real conversation when its first message goes through.
+  const [convo, setConvo] = useState(conversation);
+  const draft = isDraft(convo.id);
+  const { messages, isLoading, isLoadingOlder, hasMore, send, loadOlder, markRead, edit, unsend } =
+    useConversation(convo.id);
   const { accept, deny } = useMessages();
+  // The server's latest status for this chat (a live accept moves it on), else what we opened with.
+  const liveStatus = useMessagesStore(
+    (s) =>
+      s.inbox.find((c) => c.id === convo.id)?.status ??
+      s.requests.find((c) => c.id === convo.id)?.status
+  );
+  const status = liveStatus ?? convo.status;
 
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
-  // Track local accepted state so the banner dismisses immediately
-  const [accepted, setAccepted] = useState(conversation.status === 'active');
+  // The message being edited, if any: the field holds its words and Send saves them.
+  const [editing, setEditing] = useState<Message | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
@@ -87,21 +98,73 @@ export default function ConversationScreen({
     };
   }, []);
 
-  const otherName = conversation.other_profile.display_name ?? conversation.other_profile.username;
+  const otherName = convo.other_profile.display_name ?? convo.other_profile.username;
 
-  const isRequest = !accepted;
-  const isReceiver = conversation.initiated_by !== currentUserId;
+  const isRequest = status === 'requested';
+  const isReceiver = convo.initiated_by !== currentUserId;
+  // A request is one message: the sender waits for an answer, the receiver answers before replying.
+  const canSend = draft || !isRequest;
+  const waiting = isRequest && !isReceiver;
 
   const handleSend = async () => {
     const content = inputText.trim();
     if (!content || sending) return;
     setSending(true);
     setInputText('');
-    const sent = await send(content);
+    let sent: boolean;
+    if (editing) {
+      sent = await edit(editing.id, content);
+      if (sent) setEditing(null);
+      else Alert.alert('Couldn’t save the edit', 'Messages can be edited for 15 minutes.');
+    } else if (draft) {
+      const started = await useConversationStore
+        .getState()
+        .start(convo.other_profile.id, currentUserId, content);
+      sent = !!started;
+      if (started) {
+        setConvo({ ...convo, id: started.conversationId, status: started.status });
+      } else {
+        Alert.alert('Couldn’t send', `You can’t message @${convo.other_profile.username} right now.`);
+      }
+    } else {
+      sent = await send(content);
+    }
     // Put the text back rather than losing it — the send is safe to try again.
     if (!sent) setInputText(content);
     setSending(false);
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  };
+
+  // Hold your own message: edit it (for 15 minutes) or unsend it.
+  const handleHold = (msg: Message) => {
+    if (msg.sender_id !== currentUserId || msg.id.startsWith('temp_')) return;
+    const canEdit = canStillEdit(msg.created_at) && canSend;
+    Alert.alert('Your message', undefined, [
+      ...(canEdit
+        ? [
+            {
+              text: 'Edit',
+              onPress: () => {
+                setEditing(msg);
+                setInputText(msg.content);
+              },
+            },
+          ]
+        : []),
+      {
+        text: 'Unsend',
+        style: 'destructive' as const,
+        onPress: async () => {
+          if (!(await unsend(msg.id))) Alert.alert('Couldn’t unsend', 'Try again in a moment.');
+        },
+      },
+      { text: 'Cancel', style: 'cancel' as const },
+    ]);
+  };
+
+  const cancelEdit = () => {
+    setEditing(null);
+    setInputText('');
   };
 
   // Read on open, and again as each message arrives while the screen is up.
@@ -109,24 +172,42 @@ export default function ConversationScreen({
   useEffect(() => {
     if (!isLoading) markRead();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversation.id, isLoading, newest]);
+  }, [convo.id, isLoading, newest]);
 
   const handleAccept = async () => {
-    await accept(conversation.id);
-    setAccepted(true);
+    await accept(convo.id);
+    setConvo({ ...convo, status: 'active' });
+  };
+
+  const handleBlock = () => {
+    Alert.alert(
+      `Block @${convo.other_profile.username}?`,
+      'They won’t be able to message you, and the request goes.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: async () => {
+            await useBlockStore.getState().block(currentUserId, convo.other_profile.id);
+            onBack();
+          },
+        },
+      ]
+    );
   };
 
   const handleDeny = () => {
     Alert.alert(
       'Deny request?',
-      `The request from @${conversation.other_profile.username} and its messages will be deleted.`,
+      `It leaves your requests. @${convo.other_profile.username} won’t be told.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Deny',
           style: 'destructive',
           onPress: async () => {
-            await deny(conversation.id);
+            await deny(convo.id);
             onBack();
           },
         },
@@ -168,7 +249,7 @@ export default function ConversationScreen({
         {isRequest && isReceiver ? (
           <View style={[styles.requestBanner, { borderBottomColor: border, backgroundColor: bg }]}>
             <Text style={[styles.requestText, { color: muted }]}>
-              @{conversation.other_profile.username} wants to message you. Accept to chat.
+              @{convo.other_profile.username} wants to message you. Accept to chat.
             </Text>
             <View style={styles.requestActions}>
               <Pressable
@@ -196,16 +277,27 @@ export default function ConversationScreen({
               >
                 <Text style={[styles.requestBtnText, { color: dangerText }]}>Deny</Text>
               </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.requestBtn,
+                  { borderColor: dangerText },
+                  pressed && styles.pressed,
+                ]}
+                onPress={handleBlock}
+                accessibilityRole="button"
+                accessibilityLabel="Block"
+              >
+                <Text style={[styles.requestBtnText, { color: dangerText }]}>Block</Text>
+              </Pressable>
             </View>
           </View>
         ) : null}
 
         {/* The sender of a request is told where it went, so silence doesn't read as being ignored. */}
-        {isRequest && !isReceiver ? (
+        {waiting ? (
           <View style={[styles.requestBanner, { borderBottomColor: border, backgroundColor: bg }]}>
             <Text style={[styles.requestText, { color: muted }]}>
-              @{conversation.other_profile.username} will see this in their message requests. You
-              can chat once they accept.
+              Waiting for @{convo.other_profile.username} to accept
             </Text>
           </View>
         ) : null}
@@ -245,18 +337,28 @@ export default function ConversationScreen({
                 <View
                   style={[styles.bubbleWrap, isOwn ? styles.bubbleWrapOwn : styles.bubbleWrapOther]}
                 >
-                  <View
+                  <Pressable
+                    onLongPress={() => handleHold(msg)}
+                    disabled={!isOwn}
+                    accessibilityHint={isOwn ? 'Hold to edit or unsend' : undefined}
                     style={[styles.bubble, { backgroundColor: isOwn ? ownBubble : otherBubble }]}
                   >
                     <Text style={[styles.bubbleText, { color: text }]}>{msg.content}</Text>
-                  </View>
-                  {item.showTime ? (
+                  </Pressable>
+                  {item.showTime || msg.edited_at ? (
                     <Text style={[styles.bubbleTime, { color: muted }]}>
-                      {new Date(msg.created_at).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                      })}
+                      {[
+                        item.showTime
+                          ? new Date(msg.created_at).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: false,
+                            })
+                          : null,
+                        msg.edited_at ? 'Edited' : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </Text>
                   ) : null}
                 </View>
@@ -266,7 +368,7 @@ export default function ConversationScreen({
               !isLoading ? (
                 <View style={styles.emptyWrap}>
                   <Text style={[styles.emptyText, { color: muted }]}>
-                    Say hi to @{conversation.other_profile.username}.
+                    Say hi to @{convo.other_profile.username}.
                   </Text>
                 </View>
               ) : null
@@ -275,7 +377,34 @@ export default function ConversationScreen({
         )}
 
         {/* Input bar — the inset below it grows with the keyboard, so the bar rides on top. */}
-        <View style={{ backgroundColor: bg }}>
+        {!canSend ? (
+          <View
+            style={[
+              styles.inputBar,
+              { borderTopColor: border, paddingBottom: Math.max(insets.bottom, SPACE.s10) },
+            ]}
+          >
+            <Text style={[styles.requestText, styles.lockedText, { color: muted }]}>
+              {isReceiver
+                ? 'Accept the request to reply.'
+                : `You can send more once @${convo.other_profile.username} accepts.`}
+            </Text>
+          </View>
+        ) : null}
+        {editing && canSend ? (
+          <View style={[styles.editBar, { borderTopColor: border, backgroundColor: bg }]}>
+            <Text style={[styles.requestText, { color: muted }]}>Editing message</Text>
+            <Pressable
+              onPress={cancelEdit}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel edit"
+              hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+            >
+              <Text style={[styles.requestBtnText, { color: text }]}>Cancel</Text>
+            </Pressable>
+          </View>
+        ) : null}
+        <View style={[{ backgroundColor: bg }, !canSend && styles.hidden]}>
           <View
             style={[
               styles.inputBar,
@@ -308,10 +437,10 @@ export default function ConversationScreen({
               onPress={handleSend}
               disabled={!inputText.trim() || sending}
               accessibilityRole="button"
-              accessibilityLabel="Send"
+              accessibilityLabel={editing ? 'Save edit' : 'Send'}
               accessibilityState={{ disabled: !inputText.trim() || sending }}
             >
-              <Text style={[styles.sendText, { color: text }]}>Send</Text>
+              <Text style={[styles.sendText, { color: text }]}>{editing ? 'Save' : 'Send'}</Text>
             </Pressable>
           </View>
           <KeyboardInset />
@@ -378,6 +507,21 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s6,
   },
   denyBtn: {},
+  lockedText: {
+    flex: 1,
+    paddingBottom: SPACE.s8,
+  },
+  editBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACE.s16,
+    paddingTop: SPACE.s8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  hidden: {
+    display: 'none',
+  },
   requestBtnText: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,

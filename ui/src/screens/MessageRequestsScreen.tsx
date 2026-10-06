@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { refreshTint } from '@/lib/themeColors';
 import { useMessages } from '@/hooks/useMessages';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useBlockStore } from '@/store';
 import ConversationScreen from '@/screens/ConversationScreen';
 import ListState from '@/components/ListState';
 import type { ConversationPreview } from '@/api';
@@ -31,6 +31,7 @@ function RequestRow({
   onPress,
   onAccept,
   onDeny,
+  onBlock,
   text,
   muted,
   border,
@@ -42,6 +43,7 @@ function RequestRow({
   onPress: () => void;
   onAccept: () => void;
   onDeny: () => void;
+  onBlock: () => void;
   text: string;
   muted: string;
   border: string;
@@ -124,6 +126,18 @@ function RequestRow({
             >
               <Text style={[styles.actionBtnText, { color: colors.dangerText }]}>Deny</Text>
             </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionBtn,
+                { borderColor: colors.dangerText },
+                pressed && styles.pressed,
+              ]}
+              onPress={onBlock}
+              accessibilityRole="button"
+              accessibilityLabel={`Block ${name}`}
+            >
+              <Text style={[styles.actionBtnText, { color: colors.dangerText }]}>Block</Text>
+            </Pressable>
           </View>
         </View>
       ) : null}
@@ -196,10 +210,26 @@ export default function MessageRequestsScreen({
               onDeny={() =>
                 Alert.alert(
                   'Deny request?',
-                  `The request from @${item.other_profile.username} and its messages will be deleted.`,
+                  `It leaves your requests. @${item.other_profile.username} won’t be told.`,
                   [
                     { text: 'Cancel', style: 'cancel' },
                     { text: 'Deny', style: 'destructive', onPress: () => deny(item.id) },
+                  ]
+                )
+              }
+              onBlock={() =>
+                Alert.alert(
+                  `Block @${item.other_profile.username}?`,
+                  'They won’t be able to message you, and the request goes.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Block',
+                      style: 'destructive',
+                      onPress: () => {
+                        if (userId) useBlockStore.getState().block(userId, item.other_profile.id);
+                      },
+                    },
                   ]
                 )
               }

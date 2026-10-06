@@ -253,3 +253,7 @@ export async function markConversationRead(
   if (error) return { error: new Error(error.message) };
   return { error: null };
 }
+
+/** Still inside the 15 minutes its sender has to edit it. */
+export const canStillEdit = (createdAt: string, now: number = Date.now()): boolean =>
+  now - new Date(createdAt).getTime() < EDIT_WINDOW_MS;

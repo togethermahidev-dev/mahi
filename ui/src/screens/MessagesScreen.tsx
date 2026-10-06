@@ -79,7 +79,11 @@ function ConvoRow({
 }) {
   const name = item.other_profile.display_name ?? item.other_profile.username;
   const initials = (item.other_profile.username ?? '?')[0].toUpperCase();
-  const preview = item.last_message?.content
+  // A request you sent says where it is, like the chat itself does.
+  const waiting = item.status === 'requested' && item.is_requester;
+  const preview = waiting
+    ? `Waiting for @${item.other_profile.username} to accept`
+    : item.last_message?.content
     ? item.last_message.content.length > 40
       ? item.last_message.content.slice(0, 40) + '…'
       : item.last_message.content
@@ -228,7 +232,6 @@ export default function MessagesScreen({
           <View style={styles.headerSpacer} />
         )}
         <View style={styles.headerCopy}>
-          <Text style={[styles.headerEyebrow, { color: accent }]}>Mahi</Text>
           <Text style={[styles.headerTitle, { color: text }]}>Messages</Text>
         </View>
         <Pressable
@@ -397,11 +400,6 @@ const styles = StyleSheet.create({
   },
   headerCopy: {
     flex: 1,
-  },
-  headerEyebrow: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
-    marginBottom: SPACE.s2,
   },
   headerIconBtn: {
     width: SIZE.z44,
