@@ -95,7 +95,8 @@ const config = {
       NSPhotoLibraryUsageDescription: 'Mahi uses your photos so you can pick a profile photo.',
       NSLocationWhenInUseUsageDescription:
         'Mahi uses your location to optionally tag where a post was taken.',
-      NSUserTrackingUsageDescription: 'Mahi uses analytics to improve your fitness experience.',
+      // No NSUserTrackingUsageDescription: nothing in the app asks to track (no App Tracking
+      // Transparency prompt, no advertising ID). Takes effect at the next native build.
     },
   },
   updates: {
