@@ -40,6 +40,18 @@ $$;
 create function auth.jwt() returns jsonb language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
 $$;
+-- Sign-ins (the columns sanction_user's sign-out uses; user_id is text in refresh_tokens, as live).
+create table auth.sessions (
+  id uuid primary key,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz default now()
+);
+create table auth.refresh_tokens (
+  id bigserial primary key,
+  token varchar(255),
+  user_id varchar(255),
+  session_id uuid references auth.sessions (id) on delete cascade
+);
 
 -- storage
 create table storage.buckets (
