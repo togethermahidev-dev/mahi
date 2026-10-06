@@ -429,6 +429,12 @@ export const LAYOUT = {
   taggedBubbles: 3,
   /** The most lines a toast wraps to before it is cut. */
   toastLines: 3,
+  /** The phone's text size from which text counts as large (1 = the default size). */
+  largeTextScale: 1.35,
+  /** The most lines a toast wraps to at large text. */
+  toastLinesLarge: 6,
+  /** The Mahi wordmark is already display size: it doesn't grow with the text setting. */
+  wordmarkMaxScale: 1,
   /** Pages of someone's posts read past the first to find a post a notification opens. */
   viewerExtraPages: 2,
   /** Search results' height at most, as a share of the window. */

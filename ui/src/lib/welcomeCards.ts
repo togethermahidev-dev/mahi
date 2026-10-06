@@ -38,7 +38,7 @@ export function isLastCard(index: number, count: number): boolean {
 }
 
 export function cardButtonLabel(index: number, count: number): string {
-  return isLastCard(index, count) ? 'Start training' : 'Next';
+  return isLastCard(index, count) ? 'Get started' : 'Next';
 }
 
 export function cardPositionLabel(index: number, count: number): string {
@@ -50,4 +50,28 @@ export function pageFromOffset(offsetX: number, pageWidth: number, count: number
   if (pageWidth <= 0) return 0;
   const page = Math.round(offsetX / pageWidth);
   return Math.min(Math.max(page, 0), count - 1);
+}
+
+/** Who sent the invite Mahi was opened with (the parts of the preview this screen uses). */
+export interface WelcomeInviter {
+  username: string;
+  /** Still unclaimed and not expired. */
+  open: boolean;
+}
+
+/**
+ * The first screen's words for someone who came from an invite link: who sent it, and either that
+ * any workout counts or that the invite has ended. Null until the invite is loaded. The 48 hours
+ * are left to the sign-up screen.
+ */
+export function welcomeInvite(
+  inviter: WelcomeInviter | null
+): { who: string; line: string } | null {
+  if (!inviter) return null;
+  return {
+    who: `@${inviter.username} invited you to Mahi`,
+    line: inviter.open
+      ? 'Train together. Any workout counts.'
+      : 'That invite has ended, but you can still join.',
+  };
 }

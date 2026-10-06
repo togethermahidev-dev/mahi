@@ -5,6 +5,7 @@ import {
   pageFromOffset,
   cardButtonLabel,
   cardPositionLabel,
+  welcomeInvite,
 } from '../welcomeCards';
 
 describe('welcome cards', () => {
@@ -54,10 +55,11 @@ describe('welcome cards', () => {
     expect(isLastCard(2, 3)).toBe(true);
   });
 
-  it('labels the button Next, then Start training on the last card', () => {
+  // Design round 5 (gap 17): "training" says gym to a walker or a beginner.
+  it('labels the button Next, then Get started on the last card', () => {
     expect(cardButtonLabel(0, 3)).toBe('Next');
     expect(cardButtonLabel(1, 3)).toBe('Next');
-    expect(cardButtonLabel(2, 3)).toBe('Start training');
+    expect(cardButtonLabel(2, 3)).toBe('Get started');
   });
 
   it('announces the position as "Card N of 3"', () => {
@@ -86,6 +88,34 @@ describe('welcome cards', () => {
 
     it('is page 0 before the width is known', () => {
       expect(pageFromOffset(100, 0, 3)).toBe(0);
+    });
+  });
+
+  // Design round 5 (gap 4): the friend who tapped a link sees who sent it on the first screen.
+  describe('welcomeInvite', () => {
+    it('says who invited you, and that any workout counts', () => {
+      expect(welcomeInvite({ username: 'sam', open: true })).toEqual({
+        who: '@sam invited you to Mahi',
+        line: 'Train together. Any workout counts.',
+      });
+    });
+
+    it('says plainly when the invite has ended, and that you can still join', () => {
+      expect(welcomeInvite({ username: 'sam', open: false })).toEqual({
+        who: '@sam invited you to Mahi',
+        line: 'That invite has ended, but you can still join.',
+      });
+    });
+
+    it('shows nothing until the invite is loaded', () => {
+      expect(welcomeInvite(null)).toBeNull();
+    });
+
+    it('never names the 48 hours on this screen', () => {
+      for (const open of [true, false]) {
+        const text = welcomeInvite({ username: 'sam', open });
+        expect(`${text?.who} ${text?.line}`).not.toMatch(/48|hour/);
+      }
     });
   });
 });
