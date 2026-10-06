@@ -34,6 +34,7 @@ describe('SF_SYMBOLS — which Apple icon replaces each drawing', () => {
       video: 'video',
       soundOn: 'speaker.wave.2',
       soundOff: 'speaker.slash',
+      more: 'ellipsis',
       // Brand "echo" drawings (blue offset layer, like the MAHI logo) have no Apple match.
       like: null,
       comment: null,

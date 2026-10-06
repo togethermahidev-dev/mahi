@@ -31,7 +31,10 @@ import { useChromeFade, useTabBarRoom } from '@/hooks/useChrome';
 import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
 import { pinchOffset } from '@/lib/viewer';
 import { ListGestureContext } from '@/components/GestureScrollView';
-import { HeartIcon, CommentIcon } from '@/components/ScreenIcons';
+import { HeartIcon, CommentIcon, MoreIcon } from '@/components/ScreenIcons';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { startReport } from '@/lib/reportFlow';
+import { showNativeMenu } from '@/lib/nativeMenu';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import CaptionText from '@/components/CaptionText';
 import DraggablePip from '@/components/DraggablePip';
@@ -134,6 +137,9 @@ export default function PostCard({
 
   // ── Store selectors ──────────────────────────────────────────────────────
   const currentUser = useUserStore((s) => s.profile);
+  // '…' with Report, on other people's posts only (flag content-reports).
+  const reportsOn = useFeatureFlag('content-reports');
+  const canReport = reportsOn && !!currentUser && currentUser.id !== item.user_id;
   const likedByMe = useSocialStore((s) => s.likedByMe[item.id] ?? item.liked_by_me);
   // Counts move in the feed's copy of the post and the profile grid's (see socialStore).
   const feedCounts = useFeedStore((s) => s.posts.find((p) => p.id === item.id));
@@ -632,10 +638,27 @@ export default function PostCard({
             <CommentIcon size={ICON_SIZE.i32} color={COLORS.white} />
             <Text style={styles.sideActionCount}>{commentCount}</Text>
           </Pressable>
+          {canReport ? (
+            <Pressable
+              style={({ pressed }) => [styles.sideActionBtn, pressed && { opacity: ALPHA.a70 }]}
+              onPress={() => showPostMenu(() => startReport('post', item.id))}
+              hitSlop={{ top: OFFSET.o20, bottom: OFFSET.o20, left: OFFSET.o4, right: OFFSET.o20 }}
+              accessibilityRole="button"
+              accessibilityLabel="More"
+              accessibilityHint="Report this post"
+            >
+              <MoreIcon size={ICON_SIZE.i32} color={COLORS.white} />
+            </Pressable>
+          ) : null}
         </Reanimated.View>
       </View>
     </View>
   );
+}
+
+/** The post's '…' menu: Report (the only choice for now; more may join it). */
+function showPostMenu(onReport: () => void) {
+  showNativeMenu({ actions: [{ text: 'Report', destructive: true, run: onReport }] });
 }
 
 const styles = StyleSheet.create({

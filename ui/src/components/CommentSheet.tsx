@@ -20,7 +20,9 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import KeyboardInset from '@/components/KeyboardInset';
 import CommentLikersSheet from '@/components/CommentLikersSheet';
 import UserProfileScreen from '@/screens/UserProfileScreen';
-import { HeartIcon } from '@/components/ScreenIcons';
+import { HeartIcon, MoreIcon } from '@/components/ScreenIcons';
+import { showNativeMenu } from '@/lib/nativeMenu';
+import { startReport } from '@/lib/reportFlow';
 import { relativeTime } from '@/lib/relativeTime';
 import type { CommentWithProfile } from '@/api/social';
 import { FONTS } from '@/constants/fonts';
@@ -45,6 +47,7 @@ function CommentRow({
   showLikes,
   onShowLikers,
   onOpenProfile,
+  canReport,
 }: {
   comment: CommentWithProfile;
   dark: boolean;
@@ -54,6 +57,8 @@ function CommentRow({
   onShowLikers: (commentId: string) => void;
   /** Tap on the photo, name or words: open the commenter's profile. */
   onOpenProfile: (userId: string) => void;
+  /** Someone else's comment, with flag content-reports on: a '…' with Report. */
+  canReport: boolean;
 }) {
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const { muted } = themeColors(dark);
@@ -117,6 +122,27 @@ function CommentRow({
             </Pressable>
           ) : null}
         </View>
+      ) : null}
+      {canReport && !sending ? (
+        <Pressable
+          style={({ pressed }) => [styles.likeBtn, pressed && { opacity: ALPHA.a60 }]}
+          onPress={() =>
+            showNativeMenu({
+              actions: [
+                {
+                  text: 'Report',
+                  destructive: true,
+                  run: () => startReport('comment', comment.id),
+                },
+              ],
+            })
+          }
+          accessibilityRole="button"
+          accessibilityLabel={`More for ${name}'s comment`}
+          accessibilityHint="Report this comment"
+        >
+          <MoreIcon size={ICON_SIZE.i16} color={muted} />
+        </Pressable>
       ) : null}
     </View>
   );
@@ -220,6 +246,7 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
   // Comment likes (flag comment-likes): read fresh each time the comments open; the hearts show
   // once they've arrived, so a count never jumps from an old number to a new one.
   const likesOn = useFeatureFlag('comment-likes');
+  const reportsOn = useFeatureFlag('content-reports');
   const likesReady = useSocialStore((s) => s.commentLikesReady[postId] === true);
   const showLikes = likesOn && likesReady;
   useEffect(() => {
@@ -290,7 +317,7 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
           <FlashList
             data={comments}
             keyExtractor={(c) => c.id}
-            extraData={showLikes}
+            extraData={`${showLikes}${reportsOn}`}
             renderItem={({ item: comment }) => (
               <CommentRow
                 comment={comment}
@@ -298,6 +325,7 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
                 showLikes={showLikes}
                 onShowLikers={showLikers}
                 onOpenProfile={openProfile}
+                canReport={reportsOn && !!currentUser && comment.user_id !== currentUser.id}
               />
             )}
             keyboardShouldPersistTaps="handled"

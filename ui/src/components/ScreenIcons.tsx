@@ -328,6 +328,17 @@ function SoundOffDrawing({ size, color }: IconProps) {
   );
 }
 
+/** Three dots in a row: the '…' menu on posts and comments. */
+function MoreDrawing({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      <Circle cx={5} cy={12} r={2} />
+      <Circle cx={12} cy={12} r={2} />
+      <Circle cx={19} cy={12} r={2} />
+    </Svg>
+  );
+}
+
 // ── The icons the app uses ──
 
 export function SearchIcon(props: IconProps) {
@@ -411,6 +422,14 @@ export function SoundOffIcon(props: IconProps) {
   return (
     <SymbolOr icon="soundOff" {...props}>
       <SoundOffDrawing {...props} />
+    </SymbolOr>
+  );
+}
+
+export function MoreIcon(props: IconProps) {
+  return (
+    <SymbolOr icon="more" {...props}>
+      <MoreDrawing {...props} />
     </SymbolOr>
   );
 }

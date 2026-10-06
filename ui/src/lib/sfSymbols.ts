@@ -23,6 +23,7 @@ export type ScreenIconKey =
   | 'video'
   | 'soundOn'
   | 'soundOff'
+  | 'more'
   | 'like'
   | 'comment'
   | 'messages';
@@ -43,6 +44,7 @@ export const SF_SYMBOLS: Record<ScreenIconKey, SFSymbolName | null> = {
   video: 'video',
   soundOn: 'speaker.wave.2',
   soundOff: 'speaker.slash', // Apple's standard "muted" speaker
+  more: 'ellipsis', // the '…' menu on posts and comments
   like: null,
   comment: null,
   messages: null,
