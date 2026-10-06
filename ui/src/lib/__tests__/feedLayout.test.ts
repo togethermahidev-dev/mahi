@@ -15,12 +15,12 @@ describe('doubleTapLikes', () => {
 });
 
 describe('feedLayout', () => {
-  it('keeps today’s layout on a regular phone at regular text size', () => {
+  it('keeps the controls and single shade in the lower part of a regular phone', () => {
     expect(feedLayout({ width: 390, height: 844, fontScale: 1 })).toEqual({
       captionLines: 2,
       actionIcon: 32,
-      shadeHeight: 0.5,
-      actionsBottom: 0.4,
+      shadeHeight: 0.38,
+      actionsBottom: 0.26,
     });
   });
 

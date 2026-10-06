@@ -463,13 +463,12 @@ export const NAV_RAIL = {
 
 // ─── Full-screen posts (feed and post viewer) ───────────────────────────────────
 export const POST_CARD = {
-  /** The like / comment column's bottom edge, as a share of the post's height: near the middle,
-   *  in line with Reels (founder, 2026-10-05: "move further up a bit"; was 0.3). */
-  actionsBottom: 0.4,
-  /** The shade behind the name, caption and buttons covers this share of the post, full width… */
-  shadeHeight: 0.5,
-  /** …darkening to this opacity part-way down (behind the buttons)… */
-  shadeMid: 0.35,
+  /** The essential actions live beside the compact post details, not over the workout's centre. */
+  actionsBottom: 0.26,
+  /** The single shade behind the compact post details covers only the lower photo… */
+  shadeHeight: 0.38,
+  /** …stays nearly clear until it reaches the content… */
+  shadeMid: 0.18,
   /** …and this at the bottom (behind the name and caption). */
   shadeBottom: 0.7,
   /** The soft shadow under the like / comment icons and counts, so they read on light photos. */

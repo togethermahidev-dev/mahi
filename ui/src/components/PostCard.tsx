@@ -36,7 +36,6 @@ import { ListGestureContext } from '@/components/GestureScrollView';
 import { HeartIcon, CommentIcon, MoreIcon } from '@/components/ScreenIcons';
 import { startReport } from '@/lib/reportFlow';
 import { showNativeMenu } from '@/lib/nativeMenu';
-import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import CaptionText from '@/components/CaptionText';
 import DraggablePip from '@/components/DraggablePip';
 import PostVideo, { SoundButton } from '@/components/PostVideo';
@@ -73,7 +72,6 @@ import {
   SIZE,
   SPACE,
   SPRING,
-  TRACKING,
   VIEWER,
   withAlpha,
 } from '@/constants/tokens';
@@ -349,16 +347,7 @@ export default function PostCard({
 
   // ── Like handler (action bar tap) ───────────────────────────────────────
   const handleLike = useCallback(() => {
-    console.log(
-      '[FeedScreen] like button tap post',
-      item.id,
-      '| likedByMe:',
-      likedByMe,
-      '| user:',
-      currentUser?.id
-    );
     if (!currentUser) {
-      console.warn('[FeedScreen] like: no currentUser');
       return;
     }
     haptic('tick');
@@ -494,40 +483,12 @@ export default function PostCard({
                   </Pressable>
                 </View>
               ) : null}
-              {/* Everything over the photo; fades away while the post is held */}
+              {/* One information layer over the photo; fades away while the post is held. */}
               <Reanimated.View
                 style={[StyleSheet.absoluteFill, chrome.style]}
                 pointerEvents={chrome.viewing ? 'none' : 'box-none'}
               >
-                {/* Top gradient — tagged pills + points badge inline */}
-                <LinearGradient
-                  colors={[withAlpha(COLORS.black, ALPHA.a60), 'transparent']}
-                  style={[styles.postOverlay, { paddingTop: headerH + SPACE.s4 + topSpace }]}
-                  pointerEvents="box-none"
-                >
-                  <View style={styles.taggedColumn} pointerEvents="box-none">
-                    {item.tagged_users.length > 0 ? (
-                      <Text style={styles.taggedLabel}>Tagged</Text>
-                    ) : null}
-                    <TaggedBubbleStack
-                      users={item.tagged_users}
-                      onPressUser={(u) => onAvatarPress(u.user_id)}
-                      style={styles.topTaggedPills}
-                    />
-                  </View>
-                  {points || item.response ? (
-                    <View style={styles.pointsBadge}>
-                      {points ? <Text style={styles.pointsText}>{points}</Text> : null}
-                      {/* Who it answered, never how fast: a speed score shames busy people. */}
-                      {item.response ? (
-                        <Text style={styles.responseText}>
-                          Answered @{item.response.tagger_username}
-                        </Text>
-                      ) : null}
-                    </View>
-                  ) : null}
-                </LinearGradient>
-                {/* Bottom shade, full width — behind the profile row, caption and the buttons */}
+                {/* A single bottom shade keeps controls legible without masking the workout. */}
                 <LinearGradient
                   colors={[
                     'transparent',
@@ -541,32 +502,54 @@ export default function PostCard({
                   ]}
                   pointerEvents="box-none"
                 >
-                  <Pressable
-                    style={({ pressed }) => [styles.avatarRow, pressed && { opacity: ALPHA.a75 }]}
-                    onPress={() => onAvatarPress(item.profiles.id)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Open ${name}'s profile`}
-                  >
-                    {item.profiles.avatar_url ? (
-                      <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
-                    ) : (
-                      <View
-                        style={[
-                          styles.avatar,
-                          styles.avatarFallback,
-                          { backgroundColor: withAlpha(COLORS.white, ALPHA.a30) },
-                        ]}
-                      >
-                        <Text style={styles.avatarInitial}>{initials}</Text>
+                  <View style={styles.identityRow}>
+                    <PressScale
+                      style={styles.avatarRow}
+                      onPress={() => onAvatarPress(item.profiles.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open ${name}'s profile`}
+                    >
+                      {item.profiles.avatar_url ? (
+                        <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
+                      ) : (
+                        <View
+                          style={[
+                            styles.avatar,
+                            styles.avatarFallback,
+                            { backgroundColor: withAlpha(COLORS.white, ALPHA.a30) },
+                          ]}
+                        >
+                          <Text style={styles.avatarInitial}>{initials}</Text>
+                        </View>
+                      )}
+                      <View style={styles.userInfo}>
+                        <Text style={styles.usernameOverlay}>{name}</Text>
+                        <Text style={styles.timeOverlay} numberOfLines={1}>
+                          {postingVideo ? 'Posting…' : relativeTime(item.created_at)}
+                          {points ? ` · ${points}` : ''}
+                          {item.response ? ` · Answered @${item.response.tagger_username}` : ''}
+                        </Text>
                       </View>
-                    )}
-                    <View style={styles.userInfo}>
-                      <Text style={styles.usernameOverlay}>{name}</Text>
-                      <Text style={styles.timeOverlay}>
-                        {postingVideo ? 'Posting…' : relativeTime(item.created_at)}
-                      </Text>
-                    </View>
-                  </Pressable>
+                    </PressScale>
+                    {canReport || ownPost ? (
+                      <PressScale
+                        style={styles.moreButton}
+                        onPress={() =>
+                          ownPost
+                            ? showOwnPostMenu(canEditCaption, () => setEditingCaption(true))
+                            : showPostMenu(() => startReport('post', item.id))
+                        }
+                        hitSlop={OFFSET.o12}
+                        accessibilityRole="button"
+                        accessibilityLabel="More"
+                        accessibilityHint={
+                          ownPost ? 'Edit caption and see post policy' : 'Report this post'
+                        }
+                      >
+                        <MoreIcon size={ICON_SIZE.i20} color={COLORS.white} />
+                      </PressScale>
+                    ) : null}
+                  </View>
                   {item.caption ? (
                     <CaptionText
                       caption={item.caption}
@@ -575,6 +558,22 @@ export default function PostCard({
                       onPressUser={(u) => onAvatarPress(u.user_id)}
                       numberOfLines={layout.captionLines}
                     />
+                  ) : null}
+                  {item.tagged_users.length > 0 ? (
+                    <Text style={styles.taggedText} numberOfLines={1}>
+                      With{' '}
+                      {item.tagged_users.map((user, index) => (
+                        <Text
+                          key={user.user_id}
+                          style={styles.taggedPerson}
+                          onPress={() => onAvatarPress(user.user_id)}
+                          accessibilityRole="link"
+                        >
+                          @{user.username}
+                          {index < item.tagged_users.length - 1 ? ', ' : ''}
+                        </Text>
+                      ))}
+                    </Text>
                   ) : null}
                 </LinearGradient>
               </Reanimated.View>
@@ -598,7 +597,6 @@ export default function PostCard({
             </View>
           </GestureDetector>
         </PreviewMenu>
-        {/* (Tagged pills moved to top gradient row) */}
         {/* Draggable PIP — uses RNGH so it wins over scroll/navigation gestures */}
         {hasDual && pipUrl && (
           <DraggablePip
@@ -648,22 +646,6 @@ export default function PostCard({
             <CommentIcon size={layout.actionIcon} color={COLORS.white} />
             <Text style={styles.sideActionCount}>{commentCount}</Text>
           </PressScale>
-          {canReport || ownPost ? (
-            <Pressable
-              style={({ pressed }) => [styles.sideActionBtn, pressed && { opacity: ALPHA.a70 }]}
-              onPress={() =>
-                ownPost
-                  ? showOwnPostMenu(canEditCaption, () => setEditingCaption(true))
-                  : showPostMenu(() => startReport('post', item.id))
-              }
-              hitSlop={{ top: OFFSET.o20, bottom: OFFSET.o20, left: OFFSET.o4, right: OFFSET.o20 }}
-              accessibilityRole="button"
-              accessibilityLabel="More"
-              accessibilityHint={ownPost ? 'Edit caption and see post policy' : 'Report this post'}
-            >
-              <MoreIcon size={layout.actionIcon} color={COLORS.white} />
-            </Pressable>
-          ) : null}
         </Reanimated.View>
       </View>
       {editingCaption ? (
@@ -722,35 +704,12 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     overflow: 'hidden',
   },
-  postOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+  identityRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACE.s12,
-    paddingBottom: SPACE.s32,
-  },
-  taggedColumn: {
-    flex: 1,
-    gap: SPACE.s4,
-  },
-  taggedLabel: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
-    color: COLORS.white,
-  },
-  topTaggedPills: {
-    position: 'relative',
-    left: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACE.s6,
+    alignItems: 'center',
   },
   avatarRow: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.s10,
@@ -770,12 +729,12 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   userInfo: {
+    flex: 1,
     gap: SPACE.s2,
   },
   usernameOverlay: {
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t1_5,
     color: COLORS.white,
   },
   timeOverlay: {
@@ -783,22 +742,20 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.regular,
     color: withAlpha(COLORS.white, ALPHA.a75),
   },
-  pointsBadge: {
-    paddingHorizontal: SPACE.s14,
-    paddingVertical: SPACE.s6,
-    borderRadius: RADIUS.r50,
-    backgroundColor: withAlpha(COLORS.white, ALPHA.a20),
+  moreButton: {
+    width: SIZE.z44,
+    height: SIZE.z44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  pointsText: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
-    color: COLORS.white,
+  taggedText: {
+    color: withAlpha(COLORS.white, ALPHA.a75),
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.regular,
   },
-  responseText: {
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.semiBold,
+  taggedPerson: {
     color: COLORS.white,
-    marginTop: SPACE.s2,
+    fontFamily: FONTS.semiBold,
   },
   imageContainer: {
     position: 'relative',
