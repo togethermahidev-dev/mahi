@@ -226,7 +226,12 @@ function PointsCounter({ count }: { count: number | null }) {
       accessible
       accessibilityLabel={known ? `Mahi points: ${pointsCount(count)}` : 'Mahi points loading'}
     >
-      <Text style={[styles.pointsNumber, !known && { color: themeColors(true).muted }]}>
+      {/* Already display size: it grows with the text setting only up to large text, so at the
+          largest sizes it stays clear of the header and the tags pill. */}
+      <Text
+        style={[styles.pointsNumber, !known && { color: themeColors(true).muted }]}
+        maxFontSizeMultiplier={LAYOUT.largeTextScale}
+      >
         {pointsValue(count)}
       </Text>
       <Text style={styles.pointsLabel}>Points</Text>
