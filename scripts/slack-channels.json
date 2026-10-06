@@ -63,7 +63,7 @@
   {
     "name": "messages",
     "purpose": "Private chats and message requests",
-    "summary": "Private chats that update live, with day headers and older messages loading as you scroll up. Conversations fetch the page before the oldest loaded message from the server; opening a chat marks it read, and a failed send puts your text back in the box. Swipe right to leave a conversation.\n• The inbox itself loads another server page when its current rows run out, so long inboxes stay quick.\n• Every new chat starts as a request until the other person accepts it, even between friends. Turning one down asks first. Your own outgoing requests show as Pending.\n• Blocking stops all messages both ways."
+    "summary": "Private chats that update live, with day headers and older messages loading as you scroll up. Conversations fetch the page before the oldest loaded message from the server; opening a chat marks it read, and a failed send puts your text back in the box. Swipe right to leave a conversation and return to Messages.\n• The inbox itself loads another server page when its current rows run out, so long inboxes stay quick. From Messages, the main sideways navigation can take you back through Profile and Feed to Camera.\n• Every new chat starts as a request until the other person accepts it, even between friends. Turning one down asks first. Your own outgoing requests show as Pending.\n• Blocking stops all messages both ways."
   },
   {
     "name": "notifications",
