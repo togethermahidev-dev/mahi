@@ -52,7 +52,7 @@ describe('slotLabel', () => {
   });
 
   it('numbers a link nobody has joined from yet', () => {
-    expect(slotLabel(slot(), 1)).toBe('Invite 2');
+    expect(slotLabel(slot(), 1)).toBe('Link 2');
   });
 });
 
@@ -97,7 +97,7 @@ describe('personAction', () => {
     });
     expect(personAction({ ...p, has_open_tag: true }, false)).toEqual({
       action: 'none',
-      note: 'you tagged them. You can tag them again once they post or their time is up.',
+      note: 'you tagged them, open until they answer',
     });
     expect(personAction({ ...p, is_friend: false, has_open_tag: true }, false)).toEqual({
       action: 'none',
@@ -147,12 +147,13 @@ describe('mergeSlots', () => {
 describe('slotErrorText', () => {
   it('turns server refusals into plain words', () => {
     expect(slotErrorText('too many open invites')).toBe(
-      'Too many invites waiting. Remove one first.'
+      'Too many links and tag requests waiting. Take one back first.'
     );
     expect(slotErrorText('already friends')).toBe('You’re friends already. Tag them instead.');
+    expect(slotErrorText('invite links are off')).toBe('Links are off right now.');
     expect(slotErrorText('already invited')).toBe('Tag request already sent.');
-    expect(slotErrorText('cannot invite that person')).toBe('You can’t invite them.');
-    expect(slotErrorText('that invite is no longer open')).toBe('That invite has ended.');
+    expect(slotErrorText('cannot invite that person')).toBe('You can’t send them a tag request.');
+    expect(slotErrorText('that invite is no longer open')).toBe('That link has ended.');
     expect(slotErrorText('tag your friends first')).toBe('Tag your friends first.');
     expect(slotErrorText('network down')).toBe('Couldn’t do that. Try again.');
   });

@@ -78,16 +78,16 @@ export default function InviteStep({
       {invites > 0 ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Remove an invite"
+          accessibilityLabel="Remove a link"
           hitSlop={SPACE.s8}
           onPress={onRemove}
           style={({ pressed }) => [styles.remove, pressed && { opacity: ALPHA.a70 }]}
         >
-          <Text style={styles.removeText}>Remove an invite</Text>
+          <Text style={styles.removeText}>Remove a link</Text>
         </Pressable>
       ) : null}
 
-      <Text style={styles.after}>You'll send each invite link after you post.</Text>
+      <Text style={styles.after}>You'll send each link after you post.</Text>
     </View>
   );
 }

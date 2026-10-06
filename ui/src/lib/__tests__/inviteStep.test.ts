@@ -6,20 +6,20 @@ describe('slotCount', () => {
       filled: 2,
       remaining: 1,
       total: 3,
-      text: '2 of 3 filled · 1 friend, 1 invite',
+      text: '2 of 3 tags · 1 friend, 1 link',
     });
   });
 
   it('says plainly when nothing is filled yet', () => {
-    expect(slotCount({ maxTags: 3, friends: 0, invites: 0 }).text).toBe('0 of 3 filled');
+    expect(slotCount({ maxTags: 3, friends: 0, invites: 0 }).text).toBe('0 of 3 tags');
   });
 
   it('names only what is there, with plurals', () => {
     expect(slotCount({ maxTags: 3, friends: 0, invites: 3 }).text).toBe(
-      '3 of 3 filled · 3 invites'
+      '3 of 3 tags · 3 links'
     );
     expect(slotCount({ maxTags: 3, friends: 2, invites: 0 }).text).toBe(
-      '2 of 3 filled · 2 friends'
+      '2 of 3 tags · 2 friends'
     );
   });
 
@@ -66,20 +66,20 @@ describe('inviteStepCopy', () => {
       why: 'Every post tags 3 friends. Invite people you’d like to train with. They’ll get 48 hours to answer with any workout. A walk counts.',
       button: 'Invite a friend',
       canAdd: true,
-      count: '0 of 3 filled',
+      count: '0 of 3 tags',
     });
   });
 
   it('asks only for the slots friends cannot fill', () => {
     const copy = inviteStepCopy({ maxTags: 3, availableFriends: 2, friends: 2, invites: 0 });
     expect(copy.headline).toBe('Invite 1 friend to post');
-    expect(copy.count).toBe('2 of 3 filled · 2 friends');
+    expect(copy.count).toBe('2 of 3 tags · 2 friends');
   });
 
   it('stops offering more invites once every slot is filled', () => {
     const copy = inviteStepCopy({ maxTags: 3, availableFriends: 0, friends: 0, invites: 3 });
     expect(copy.canAdd).toBe(false);
     expect(copy.button).toBe('All 3 tags used');
-    expect(copy.count).toBe('3 of 3 filled · 3 invites');
+    expect(copy.count).toBe('3 of 3 tags · 3 links');
   });
 });

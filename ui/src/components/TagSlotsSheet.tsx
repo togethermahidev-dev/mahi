@@ -112,6 +112,9 @@ export default function TagSlotsSheet({
   const [searching, setSearching] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // The first read failed: say so, with Try again (bumping this reads again).
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadTry, setLoadTry] = useState(0);
   const pendingCount = useRef(0);
 
   const filled = friends.length + slots.length;
@@ -140,13 +143,15 @@ export default function TagSlotsSheet({
     setResults([]);
     setQuery('');
     setNotice(null);
+    setLoadFailed(false);
     setLoaded(false);
     let stale = false;
     (async () => {
       const [slotRes, friendRes] = await Promise.all([getTagSlots(), searchTagPeople('', 100)]);
       if (stale) return;
       if (slotRes.error || friendRes.error) {
-        setNotice('Couldn’t load your tags. Close and try again.');
+        setNotice('Couldn’t load your tags.');
+        setLoadFailed(true);
       }
       setSlots(slotRes.data ?? []);
       setFriendList(friendRes.data ?? []);
@@ -156,7 +161,7 @@ export default function TagSlotsSheet({
       stale = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
+  }, [visible, loadTry]);
 
   // Live while open: someone joins, accepts, says not now — your slots read again.
   useEffect(() => {
@@ -317,10 +322,15 @@ export default function TagSlotsSheet({
   // A link or a tag request may already be with someone: ask before taking it back (the bigger
   // × makes a stray tap likelier).
   const confirmRemove = (slot: ScreenSlot) => {
-    Alert.alert('Take back this invite?', undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Take back', style: 'destructive', onPress: () => void removeSlot(slot) },
-    ]);
+    const link = slot.kind === 'link';
+    Alert.alert(
+      link ? 'Take back this link?' : 'Take back this tag request?',
+      link ? 'It stops working.' : undefined,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Take back', style: 'destructive', onPress: () => void removeSlot(slot) },
+      ]
+    );
   };
 
   const removeSlot = async (slot: ScreenSlot) => {
@@ -429,7 +439,7 @@ export default function TagSlotsSheet({
                   <Pressable
                     key={target}
                     accessibilityRole="button"
-                    accessibilityLabel={`Invite by ${label}`}
+                    accessibilityLabel={`Send a link by ${label}`}
                     accessibilityState={{ disabled: !!blocked }}
                     style={({ pressed }) => [
                       styles.shareButton,
@@ -448,6 +458,15 @@ export default function TagSlotsSheet({
               <Text style={styles.notice} accessibilityLiveRegion="polite">
                 {notice}
               </Text>
+            ) : null}
+            {loadFailed ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setLoadTry((n) => n + 1)}
+                style={({ pressed }) => [styles.retry, pressed && { opacity: ALPHA.a70 }]}
+              >
+                <Text style={styles.retryText}>Try again</Text>
+              </Pressable>
             ) : null}
 
             <TextInput
@@ -711,6 +730,8 @@ const styles = StyleSheet.create({
   shareButtonOff: { opacity: ALPHA.a35 },
   shareButtonText: { color: COLORS.offWhite, fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
   notice: { color: COLORS.amber, fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular },
+  retry: { alignSelf: 'flex-start', minHeight: SIZE.z44, justifyContent: 'center' },
+  retryText: { color: COLORS.accent, fontSize: FONT_SIZE.f15, fontFamily: FONTS.semiBold },
   search: {
     height: SIZE.z44,
     color: COLORS.offWhite,

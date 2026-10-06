@@ -42,7 +42,7 @@ export default function InviteShareSheet({
     }
     const n = summary.unsent;
     Alert.alert(
-      `Close without sending ${n === 1 ? '1 invite' : `${n} invites`}?`,
+      `Close without sending ${n === 1 ? '1 link' : `${n} links`}?`,
       "You won't be able to get these links back later.",
       [
         { text: 'Keep sending', style: 'cancel' },
@@ -107,12 +107,12 @@ export default function InviteShareSheet({
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={nextIndex >= 0 ? `Send invite ${nextIndex + 1}` : 'Done'}
+            accessibilityLabel={nextIndex >= 0 ? `Send link ${nextIndex + 1}` : 'Done'}
             onPress={() => (nextIndex >= 0 ? onSend(invites[nextIndex].token) : onClose())}
             style={({ pressed }) => [styles.main, pressed && { opacity: ALPHA.a85 }]}
           >
             <Text style={styles.mainText}>
-              {nextIndex >= 0 ? `Send invite ${nextIndex + 1}` : 'Done'}
+              {nextIndex >= 0 ? `Send link ${nextIndex + 1}` : 'Done'}
             </Text>
           </Pressable>
           <KeyboardInset />

@@ -31,10 +31,10 @@ export function inviteRow(
   const n = index + 1;
   const sent = item.status === 'sent';
   return {
-    title: `Invite ${n}`,
+    title: `Link ${n}`,
     status: sent ? 'Sent · waiting for them to join' : 'Not sent yet',
     button: sent ? 'Resend to the same person' : 'Send',
-    a11y: sent ? `Resend invite ${n} to the same person` : `Send invite ${n}`,
+    a11y: sent ? `Resend link ${n} to the same person` : `Send link ${n}`,
   };
 }
 
@@ -48,7 +48,7 @@ export function inviteListSummary(list: InviteItem[]): {
   const sent = list.filter((i) => i.status === 'sent').length;
   const unsent = list.length - sent;
   return {
-    headline: list.length === 1 ? 'Send your invite' : `Send your ${list.length} invites`,
+    headline: list.length === 1 ? 'Send your link' : `Send your ${list.length} links`,
     count: `${sent} of ${list.length} sent`,
     unsent,
     allSent: unsent === 0,

@@ -22,13 +22,13 @@ export function slotCount({
   const filled = friends + invites;
   const parts = [
     friends > 0 ? count(friends, 'friend', 'friends') : null,
-    invites > 0 ? count(invites, 'invite', 'invites') : null,
+    invites > 0 ? count(invites, 'link', 'links') : null,
   ].filter(Boolean);
   return {
     filled,
     remaining: Math.max(0, maxTags - filled),
     total: maxTags,
-    text: `${filled} of ${maxTags} filled${parts.length ? ` · ${parts.join(', ')}` : ''}`,
+    text: `${filled} of ${maxTags} tags${parts.length ? ` · ${parts.join(', ')}` : ''}`,
   };
 }
 

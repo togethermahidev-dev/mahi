@@ -44,16 +44,16 @@ describe('inviteRow', () => {
   it('numbers each link and says what tapping does', () => {
     const [first] = inviteList([invite(1)]);
     expect(inviteRow(first, 0)).toEqual({
-      title: 'Invite 1',
+      title: 'Link 1',
       status: 'Not sent yet',
       button: 'Send',
-      a11y: 'Send invite 1',
+      a11y: 'Send link 1',
     });
     expect(inviteRow({ ...first, status: 'sent' }, 0)).toEqual({
-      title: 'Invite 1',
+      title: 'Link 1',
       status: 'Sent · waiting for them to join',
       button: 'Resend to the same person',
-      a11y: 'Resend invite 1 to the same person',
+      a11y: 'Resend link 1 to the same person',
     });
   });
 });
@@ -62,7 +62,7 @@ describe('inviteListSummary', () => {
   it('counts what is left to send', () => {
     const list = markInvite(inviteList([invite(1), invite(2), invite(3)]), 't1', true);
     expect(inviteListSummary(list)).toEqual({
-      headline: 'Send your 3 invites',
+      headline: 'Send your 3 links',
       count: '1 of 3 sent',
       unsent: 2,
       allSent: false,
@@ -72,7 +72,7 @@ describe('inviteListSummary', () => {
   it('says so when every link is out', () => {
     const list = markInvite(inviteList([invite(1)]), 't1', true);
     expect(inviteListSummary(list)).toEqual({
-      headline: 'Send your invite',
+      headline: 'Send your link',
       count: '1 of 1 sent',
       unsent: 0,
       allSent: true,

@@ -60,9 +60,9 @@ export function slotStateText(state: SlotState): string {
   return STATE_TEXT[state];
 }
 
-/** The name under a slot: its person, or "Invite 2" for a link nobody has joined from yet. */
+/** The name under a slot: its person, or "Link 2" for a link nobody has joined from yet. */
 export function slotLabel(slot: ScreenSlot, index: number): string {
-  return slot.username ? `@${slot.username}` : `Invite ${index + 1}`;
+  return slot.username ? `@${slot.username}` : `Link ${index + 1}`;
 }
 
 /**
@@ -104,10 +104,7 @@ export function personAction(
   if (person.tagged_you) return { action: 'none', note: 'tagged you, can’t tag back' };
   if (person.has_open_tag) {
     return person.is_friend
-      ? {
-          action: 'none',
-          note: 'you tagged them. You can tag them again once they post or their time is up.',
-        }
+      ? { action: 'none', note: 'you tagged them, open until they answer' }
       : { action: 'none', note: 'request sent' };
   }
   return person.is_friend
@@ -157,13 +154,13 @@ export function mergeSlots(server: TagSlot[], local: ScreenSlot[]): ScreenSlot[]
 /** A server refusal, in plain words. */
 export function slotErrorText(message: string): string {
   if (message.includes('too many open invites'))
-    return 'Too many invites waiting. Remove one first.';
+    return 'Too many links and tag requests waiting. Take one back first.';
   if (message.includes('already friends')) return 'You’re friends already. Tag them instead.';
   if (message.includes('already invited')) return 'Tag request already sent.';
-  if (message.includes('cannot invite that person')) return 'You can’t invite them.';
-  if (message.includes('no longer open')) return 'That invite has ended.';
+  if (message.includes('cannot invite that person')) return 'You can’t send them a tag request.';
+  if (message.includes('no longer open')) return 'That link has ended.';
   if (message.includes('friends first')) return 'Tag your friends first.';
-  if (message.includes('invite links are off')) return 'Invites are switched off right now.';
+  if (message.includes('invite links are off')) return 'Links are off right now.';
   return 'Couldn’t do that. Try again.';
 }
 

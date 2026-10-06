@@ -352,7 +352,7 @@ function GlassPill({ active, children }: { active?: boolean; children: React.Rea
 /** `others`: slots filled by an invite or a link (flag `tag-slots`). */
 function tagPillLabel(tagged: TaggedUser[], others = 0): string {
   if (tagged.length === 0 && others === 0) return '+ Tag people';
-  if (tagged.length === 0) return others === 1 ? '1 invite' : `${others} invites`;
+  if (tagged.length === 0) return others === 1 ? '1 link' : `${others} links`;
   const more = tagged.length - 1 + others;
   return more > 0 ? `@${tagged[0].username} +${more}` : `@${tagged[0].username}`;
 }
@@ -1374,7 +1374,7 @@ function TagSheet({
                 {query.trim()
                   ? 'No friends found.'
                   : step === 'invite'
-                    ? 'Friends who follow you show up here once you follow them back.'
+                    ? 'Follow each other and you can tag each other.'
                     : 'Follow each other and you can tag each other.'}
               </Text>
             )
@@ -1392,16 +1392,16 @@ function TagSheet({
           <View style={styles.inviteRow}>
             <Text style={styles.inviteLabel}>
               {invites > 0
-                ? `${invites} to invite. You’ll get ${invites > 1 ? 'links' : 'a link'} to share after posting.`
+                ? `${invites === 1 ? '1 link' : `${invites} links`} to send after you post.`
                 : inviteBlocked && filled < maxTags
-                  ? `Not on Mahi yet? ${inviteBlocked}, then invite them.`
-                  : 'Not on Mahi yet? Invite them instead.'}
+                  ? `Not on Mahi yet? ${inviteBlocked}, then send a link.`
+                  : 'Not on Mahi yet? Send them a link instead.'}
             </Text>
             <View style={styles.inviteSteppers}>
               {invites > 0 ? (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Remove an invite"
+                  accessibilityLabel="Remove a link"
                   style={({ pressed }) => [
                     styles.inviteStepTarget,
                     pressed && { opacity: ALPHA.a70 },
@@ -1415,7 +1415,7 @@ function TagSheet({
               ) : null}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Add an invite"
+                accessibilityLabel="Add a link"
                 accessibilityState={{ disabled: filled >= maxTags }}
                 style={({ pressed }) => [
                   styles.inviteStepTarget,

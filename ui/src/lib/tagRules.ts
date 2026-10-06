@@ -20,7 +20,6 @@ export function cantTagReason(friend: {
   tagged_you?: boolean;
 }): string | null {
   if (friend.tagged_you) return 'tagged you, can’t tag back';
-  if (friend.has_open_tag)
-    return 'you tagged them. You can tag them again once they post or their time is up.';
+  if (friend.has_open_tag) return 'you tagged them, open until they answer';
   return null;
 }
