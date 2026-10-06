@@ -38,6 +38,13 @@ export type NotificationTarget =
   | { to: 'camera' }
   | { to: 'profile'; userId: string };
 
+/** A short, visible affordance that makes the destination of an activity row unambiguous. */
+export function notificationAction(target: NotificationTarget): string {
+  if (target.to === 'camera') return 'Answer tag';
+  if (target.to === 'post') return target.comments ? 'View comments' : 'View post';
+  return 'View profile';
+}
+
 /**
  * A row opens what it says (round 3 gap 1). Likes and comments are on your post; an answer is
  * the answerer's new post; a tag still open goes to the camera to answer it, and once over to the

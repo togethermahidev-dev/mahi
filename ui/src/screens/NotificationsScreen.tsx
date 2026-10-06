@@ -19,6 +19,7 @@ import { useToastStore } from '@/store/toastStore';
 import { getTagInviteRows, respondTagInvite, type NotificationWithActor } from '@/api';
 import ListState from '@/components/ListState';
 import {
+  notificationAction,
   notificationSections,
   notificationTarget,
   notificationText,
@@ -206,6 +207,7 @@ export default function NotificationsScreen({
     const caption = notificationText(item.type, username);
     const time = relativeTime(item.created_at);
     const target = notificationTarget(item, myId ?? '', tagOpen(item));
+    const action = notificationAction(target);
     const inviteState =
       item.type === 'tag_invite' && item.challenge_id
         ? (inviteStates[item.challenge_id] ?? 'loading')
@@ -272,7 +274,10 @@ export default function NotificationsScreen({
                 caption
               )}
             </Text>
-            <Text style={[styles.rowTime, { color: muted }]}>{time}</Text>
+            <View style={styles.rowMeta}>
+              <Text style={[styles.rowTime, { color: muted }]}>{time}</Text>
+              <Text style={[styles.rowAction, { color: muted }]}>{action}</Text>
+            </View>
           </Pressable>
           {inviteState && item.challenge_id ? (
             <InviteAnswer
@@ -286,7 +291,12 @@ export default function NotificationsScreen({
           ) : null}
         </View>
 
-        {item.is_read === false ? <View style={styles.unreadDot} /> : null}
+        <View style={styles.rowEnd}>
+          {item.is_read === false ? <View style={styles.unreadDot} /> : null}
+          <Text style={[styles.rowChevron, { color: muted }]} accessibilityElementsHidden>
+            ›
+          </Text>
+        </View>
       </View>
     );
   };
@@ -316,10 +326,10 @@ export default function NotificationsScreen({
             <Text style={[styles.backArrow, { color: text }]}>‹</Text>
           </Pressable>
           <View style={styles.headerCopy}>
-            <Text style={styles.headerEyebrow}>Mahi</Text>
             <Text style={[styles.headerName, { color: text }]} numberOfLines={1}>
               Notifications
             </Text>
+            <Text style={[styles.headerLine, { color: muted }]}>Your activity history</Text>
           </View>
           <View style={styles.headerSpacer} />
         </View>
@@ -501,11 +511,10 @@ const styles = StyleSheet.create({
   headerCopy: {
     flex: 1,
   },
-  headerEyebrow: {
-    color: COLORS.accent,
+  headerLine: {
+    marginTop: SPACE.s2,
     fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
-    marginBottom: SPACE.s2,
+    fontFamily: FONTS.regular,
   },
   headerName: {
     fontSize: FONT_SIZE.f24,
@@ -565,11 +574,28 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f11,
     fontFamily: FONTS.regular,
   },
+  rowMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s8,
+  },
+  rowAction: {
+    fontSize: FONT_SIZE.f11,
+    fontFamily: FONTS.semiBold,
+  },
+  rowEnd: {
+    alignItems: 'center',
+    gap: SPACE.s8,
+  },
+  rowChevron: {
+    fontSize: FONT_SIZE.f20,
+    fontFamily: FONTS.regular,
+    lineHeight: LINE_HEIGHT.l22,
+  },
   unreadDot: {
     width: SIZE.z8,
     height: SIZE.z8,
     borderRadius: RADIUS.r4,
     backgroundColor: COLORS.accent,
-    marginLeft: 'auto',
   },
 });

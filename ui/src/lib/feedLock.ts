@@ -145,7 +145,7 @@ export function feedCountdown({
     };
   }
   if (!left) {
-    const line = 'Your feed stays open until a friend tags you.';
+    const line = 'Your feed is open. It will lock when a friend tags you.';
     return { label: line, ms: null, spoken: line };
   }
   return {

@@ -126,9 +126,9 @@ describe('feedCountdown', () => {
 
   it('after the 24 hours but not locked: open until a tag, no clock', () => {
     expect(feedCountdown({ ...base, unlockedUntil: at(-MIN) })).toEqual({
-      label: 'Your feed stays open until a friend tags you.',
+      label: 'Your feed is open. It will lock when a friend tags you.',
       ms: null,
-      spoken: 'Your feed stays open until a friend tags you.',
+      spoken: 'Your feed is open. It will lock when a friend tags you.',
     });
   });
 

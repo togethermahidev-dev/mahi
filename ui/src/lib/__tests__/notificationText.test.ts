@@ -1,4 +1,9 @@
-import { notificationSections, notificationTarget, notificationText } from '../notificationText';
+import {
+  notificationAction,
+  notificationSections,
+  notificationTarget,
+  notificationText,
+} from '../notificationText';
 
 // The same words the server puts in each push (20261002190000_tag_and_feed_pushes.sql), minus
 // anything that goes out of date in a list: a push says "just" and how long is left at the
@@ -107,6 +112,19 @@ describe('where a notification row opens', () => {
       to: 'profile',
       userId: 'sam-id',
     });
+  });
+});
+
+describe('notification row action', () => {
+  it('plainly names every supported destination', () => {
+    expect(notificationAction({ to: 'post', ownerId: 'me', postId: 'p1', comments: false })).toBe(
+      'View post'
+    );
+    expect(notificationAction({ to: 'post', ownerId: 'me', postId: 'p1', comments: true })).toBe(
+      'View comments'
+    );
+    expect(notificationAction({ to: 'camera' })).toBe('Answer tag');
+    expect(notificationAction({ to: 'profile', userId: 'sam' })).toBe('View profile');
   });
 });
 
