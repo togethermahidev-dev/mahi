@@ -2,7 +2,7 @@
   {
     "name": "account-and-login",
     "purpose": "Sign-up, log in, password reset, delete account and the update prompt",
-    "summary": "Sign-up is four short steps: email and password, a six-digit emailed code, personal details, then username and fitness goals. Coming from an invite, the sign-up knows who invited you.\n• Log in with email and password. \"Forgot password?\" emails a code so you can set a new one.\n• Log out and Delete account now sit under Settings → Security and privacy. Deleting removes the profile, posts, photos, messages and points for good.\n• The update prompt can stop an unsafe old version if needed.\n• Not built yet: Apple and Google sign-in, edit profile, and privacy/legal pages."
+    "summary": "Email and code sign-up in four steps; \"Got an invite link?\" accepts the link or code; the profile loads first time and an invite is claimed once it exists. Password reset by emailed code; delete account in Settings; the update prompt when a build is too old. Build 13 adds Sign in with Apple as an equal option (Google is not built; its switch is off)."
   },
   {
     "name": "welcome-cards",
@@ -12,23 +12,23 @@
   {
     "name": "camera-and-posting",
     "purpose": "When you can post, the two-photo camera, preview, caption and location",
-    "summary": "The camera is open when you have a tag to answer, or if you've never posted. Otherwise it explains that you need a tag.\n• Two taps capture both sides; preview lets you swap, drag and zoom. Caption is up to 200 characters and location is optional.\n• Before upload, Mahi confirms that posting opens the feed and may notify tagged people. Captions can be edited for one hour, and owners can delete a post later. Deleting never gives the free first post back.\n• Posting saves the post, tags, deadlines, reminders and invites together. A refused post keeps its photos and caption so it can be retried."
+    "summary": "You post your first Mahi free (it earns your first point), then only when a mate tags you. The camera says exactly what to do next: \"You were tagged by @sam. You have 47:59:59 to post your Mahi and get your first point\", or \"Post your first Mahi to get your first point and tag 3 mates\". Two photos: what you see, then a selfie. Preview, caption (emoji keyboard button from build 13), location, the three mate circles, then post. Waiting for a tag: a card explaining why, with Invite a mate, See your invites and Find mates in your contacts; from the next update you can pull the camera down a little to reveal it. Build 13: Share to Mahi from Photos, Apple's shutter sound, a Control Centre button."
   },
   {
     "name": "tagging",
     "purpose": "Every post tags three friends: who can be tagged, who can't, and the nudges",
-    "summary": "Every post fills three tags. Each can be a current Mahi friend or someone not on Mahi yet, so nobody needs to unfollow friends to use an invite link.\n• The list greys out anyone you can't tag and says why: \"tagged you, can't tag back\" or \"waiting on your last tag\".\n• The rule that you can't tag straight back the person whose tag you're answering keeps the challenge moving to new people."
+    "summary": "Every post tags 3 mates: friends on Mahi, people on Mahi you don't follow yet (in-app invite), or anyone by link. Three circles fill as you pick them, and the title says \"@sam, @ali and @kim will keep you going\". A first post that answers a mate's tag needs no tags. You can tag back the mate whose tag you answer; your own open tag on someone blocks tagging them again until they answer. The camera shows your mates on the clock and how long they have."
   },
   {
     "name": "tags-and-48-hours",
     "purpose": "The 48-hour window, reminders, missed tags and cancelled tags",
-    "summary": "A tagged friend has 48 hours to post. Any post they make in that time answers every open tag they hold.\n• Reminders arrive when 24 hours and 2 hours are left, never between 10pm and 7am (once push notifications are switched on).\n• Missed tags are checked every five minutes. The person who tagged hears \"@x missed your tag\"; the person who missed hears \"You missed @x's tag. Your points are back to 0.\" Only the two of them see it.\n• Blocking someone, or an account being deleted, cancels any open tag between you along with its reminders. A cancelled tag never locks anyone's feed."
+    "summary": "Every tag gives 48 hours to post any workout back. The camera counts down to the second: \"@sam is waiting on you · 41:20:00 left\", yellow under 6 hours with \"Only 05:59:59 left to answer @sam\". Answering can tag that mate back, so two mates keep each other going. Miss the 48 hours and your points go back to 0 (best stays), shown once as \"You missed @sam's tag\" the next time you open Mahi; the mate who tagged you is told too. A miss at 0 points sends no points-lost message."
   },
   {
     "name": "mahi-points",
     "was": "streak-and-points",
     "purpose": "How Mahi points work, and where they show",
-    "summary": "Mahi points: every post that answers a tag on time earns one point, however many tags it answers. Miss a tag's 48 hours and your points go back to nought. Your best never goes down and always shows (\"Best: 48\"). Posts, the profile grid, the tag list and search say \"N points\".\n• Only the person who answers earns: no point for the tagger, and no daily limit.\n• This is not a streak (streaks are a daily thing): there is no daily streak, no training days, rest days or calendars. The only thing that counts is answering the friend who called on you.\n• Only the server can change your points or best; the app can't."
+    "summary": "Your first post earns 1 point. Each answer to a mate's tag earns 1 more. Miss one and your points go back to 0; your best stays. Earning a point shows a +1 (from the next update it flies into the counter; the first point and a miss get a full-screen moment). Posts say \"Answered @sam in 2h\". The profile points card shows your points, your best, and soon the last mates you answered."
   },
   {
     "name": "feed",
@@ -63,7 +63,7 @@
   {
     "name": "messages",
     "purpose": "Private chats and message requests",
-    "summary": "Private chats that update live, with day headers and older messages loading as you scroll up. Conversations fetch the page before the oldest loaded message from the server; opening a chat marks it read, and a failed send puts your text back in the box. Swipe right to leave a conversation and return to Messages.\n• The inbox itself loads another server page when its current rows run out, so long inboxes stay quick. From Messages, the main sideways navigation can take you back through Profile and Feed to Camera.\n• Every new chat starts as a request until the other person accepts it, even between friends. Turning one down asks first. Your own outgoing requests show as Pending.\n• Blocking stops all messages both ways."
+    "summary": "Private chats like PingMee-v2: the first message is a request to accept, decline or block; edit for 15 minutes; unsend. Coming in the next update: hold a message for Apple's own menu with a quick emoji row (👍 ❤️ 😂 🔥 💪 👏) and a + for the full emoji keyboard, reaction badges under bubbles, double-tap to ❤️. Build 13 adds the emoji keyboard button with search and suggestions."
   },
   {
     "name": "notifications",
@@ -73,7 +73,7 @@
   {
     "name": "push-notifications",
     "purpose": "Alerts on the phone: built, waiting to be switched on",
-    "summary": "Alerts on the phone. Built and waiting to be switched on; nothing is sent yet.\n• Asking: a full-screen page, once per phone, after the welcome cards: \"When do you post on Mahi?\", one line of why, and a card \"Please turn on notifications\" with Allow and Not now. Someone who says no sees a small line on the camera the next time a friend tags them, \"Turn on notifications so you never miss a tag\", which opens the phone's Settings. It can be dismissed until the next tag.\n• Tagged: \"You've just been tagged by @sam. 48 hours left to post your Mahi!\" Reminders 24 hours and 2 hours before the deadline: \"24 hours left to post your Mahi! @sam is waiting.\"\n• Feed: \"Your feed locks in 1 hour. Post your answer to @sam to keep it open.\" an hour before an open feed locks, and \"Your feed is locked. Post your answer to @sam to open it.\" when it does. Only for someone who has been tagged, and taken back if they post first. Each can be switched off and the hour can be changed.\n• Also: \"@sam answered your tag in 3h\", \"@sam missed your tag\", \"You missed @sam's tag. Your points are back to 0.\", likes, comments, follows, a friend joining from your invite and new messages.\n• Quiet hours are 10pm to 7am in each person's own time zone; anything due then waits until 7am, and several at once are grouped. An alert that is more than an hour late is dropped rather than sent with the wrong time on it.\n• Tapping an alert: a follow or a joined invite opens the profile; a tag, a reminder or a feed alert opens the camera; a message opens Messages; everything else opens the notifications list.\n• Works on the app people have now: no new App Store build needed for iPhone. Still to do: check the Apple push key, switch on the sending service, then turn the page on, first for one phone as a test. Android comes later. The wording is waiting for the founder's OK.\n• Coming with the next server update: deadlines as a real day and time (\"@sam tagged you. Post any workout by Thu 10:40pm.\", \"Answer @sam's tag by 10:40pm tomorrow.\", \"Last call: answer @sam's tag by 10:40pm tonight.\") and \"@sam missed your tag. A quick message could get them back to it.\" The notifications page will have one Continue button that leads to the phone's question."
+    "summary": "Built and waiting for build 13 (owner, 2026-10-07: set up through EAS at the production build). Then every tag, answer, like, comment, message and missed tag sends a push; the first time, Mahi asks with its own page before the phone's question. The switch goes on for everyone at once, never for one account first. There are 38 old alerts queued that will be cleared before the first phone registers."
   },
   {
     "name": "moderation-safety",
@@ -83,7 +83,7 @@
   {
     "name": "invites",
     "purpose": "Invite links and six-character codes for friends who aren't on Mahi yet",
-    "summary": "Any of the three tags may be a current friend or someone not on Mahi yet. A one-use link and six-character code last seven days, but the shared message stays short and does not include the code.\n• If the person joins after the post, their 48 hours start when they join. If they join first, the clock starts when the friend posts.\n• Accepted or joined slots still count if that person later unfollows. After \"Not now\" or taking an in-app invite back, wait one day before inviting the same person again. There is no daily invite limit."
+    "summary": "Invite links open Mahi straight from Messages or WhatsApp when it is installed, and show a web page (who tagged you, 48 hours, Get Mahi) when it isn't. Invite a mate any time from the camera's waiting card; joining makes you follow each other, and a tag starts only if one came with the link. Your invites (Profile, Settings, and \"See your invites\" with a count on the camera) lists every link: waiting, joined (with who), expired or cancelled; resend once a day up to 3 times; cancel stops the link. Build 13 adds inviting straight from your contacts and an App Clip so the link works before Mahi is installed. Invites and opens are counted in PostHog."
   },
   {
     "name": "navigation-and-design",
@@ -157,7 +157,7 @@
   {
     "name": "hold-to-preview",
     "purpose": "Hold to pop a post or chat up for a quick look",
-    "summary": "Hold a post in the feed, a square on a profile, or a chat in Messages, and it pops up over a blurred background with a short menu underneath, the way iPhone apps do. On the feed this replaces holding to see just the photo. Ships in the next App Store build and stays switched off until we turn it on.",
+    "summary": "Hold a post, a profile square or a chat to pop it up with Apple's own menu for a quick look. Coming in the next update: hold a message for the emoji reaction row and menu, and hold to react on more places.",
     "invite": [
       "U0C61CMGGH0",
       "U0C657NMXMJ"
@@ -221,5 +221,25 @@
     "name": "openai-moderation-setup",
     "purpose": "Setting up the OpenAI key and automated content moderation",
     "summary": "The automated check for concerning posts and comments, flagging them for staff review.\n• Needs the OpenAI API key stored in Supabase Vault, the `moderate-content` function deployed, and the moderation secret in place.\n• Once live, new reports trigger an automatic check. Staff still decide on any action. See docs/moderation.md for the full owner steps."
+  },
+  {
+    "name": "find-your-mates",
+    "purpose": "Finding mates from your contacts, and who is on Mahi",
+    "summary": "From build 13: Find your mates shows which of your contacts are already on Mahi (with a Follow button) and lets you invite the rest by text with a ready-made message. It appears once after sign-up, and from Settings, Your invites and the camera. Your contacts stay private: only scrambled codes of numbers and emails leave the phone, Mahi saves nothing, and matching is limited to 10 checks an hour. Not yet on phones; needs build 13."
+  },
+  {
+    "name": "lock-screen-and-widgets",
+    "purpose": "The lock-screen countdown, Dynamic Island and the home-screen widget",
+    "summary": "From build 13: while a mate's tag is open, the lock screen and Dynamic Island show \"@sam is waiting on you\" with a live countdown that turns yellow under 6 hours; tapping it opens the camera. A home-screen widget (small and medium) shows the same, or your points and best when nothing is waiting. The widget keeps the soonest tag on the phone so it can count down with Mahi closed (the one exception to the no-stored-data rule). The tagger's photo is being added. Not yet on phones; needs build 13."
+  },
+  {
+    "name": "build-13",
+    "purpose": "Everything in the next App Store build and where it stands",
+    "summary": "Build 13 (not built yet) carries: Find your mates from contacts; the lock-screen countdown and home-screen widget; the native emoji keyboard button in comments, messages and captions; push notifications switched on; Sign in with Apple; Share to Mahi from the Photos app; a Post a workout control for Control Centre; Spotlight search of your mates; Siri shortcuts; Apple's own shutter sound; background refresh for the widget; and an App Clip so an invite link works before Mahi is installed. The owner runs the build (EAS creates the Apple records). Phone checks are listed in docs/HANDOVER.md."
+  },
+  {
+    "name": "tips-and-guidance",
+    "purpose": "One-time tips, reminders and the words that explain how Mahi works",
+    "summary": "Six one-time tips appear where people get lost: your points, the two photos, tagging 3 mates, the locked feed, waiting for a tag, and a tag arriving. On iPhone they are Apple's own pop-up bubbles pointing at the exact button; older builds get a spotlight version. Each shows once per account per phone. Reminders: the tag clock turns yellow under 6 hours, a toast says how long is left when you open Mahi with a tag waiting, and the camera says who is waiting on you and what a miss would cost."
   }
 ]
