@@ -5,6 +5,7 @@
  */
 const track = jest.fn();
 jest.mock('@/lib/analytics', () => ({ track: (...a: unknown[]) => track(...a) }));
+jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 
 jest.mock('@/api', () => ({
   getFollowData: jest.fn(),
