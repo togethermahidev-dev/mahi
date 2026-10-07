@@ -7,6 +7,9 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 34 — the camera names the mates on your clock; "@sam is waiting on you"; a miss
+ *     moment once per miss; mates wording throughout; invite messages say 48 hours; the website
+ *     invite page says who tagged you (2026-10-07)
  *   build 12 · 33 — you can tag back the mate you answer; three mate circles fill as you tag;
  *     posts say "Answered @sam in 2h"; new sign-ups load their profile and claim their invite
  *     reliably (2026-10-07)
@@ -70,4 +73,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 33;
+export const OTA_NUMBER = 34;

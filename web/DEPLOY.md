@@ -5,4 +5,4 @@ Netlify only builds the waitlist site when this file changes. Every other push i
 To deploy: on GitHub, signed in as **togethermahidev-dev**, edit this file, change the date
 below, and commit it to the branch Netlify deploys. The full steps are in `web/README.md`.
 
-Last deploy requested: 2026-10-07 (second that day: count invite and post link opens)
+Last deploy requested: 2026-10-07 (third that day: invite page says who tagged you)
