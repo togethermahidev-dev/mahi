@@ -165,6 +165,15 @@ points and feed-lock rules are unchanged.
 | 101 | No "Mahi" in screen titles | The small "Mahi" label above each screen title is gone | Keep the label | Built (OTA 12.12) | 2026-10-06 | screen headers |
 | 102 | Invites and tag requests create mutual follows | Accepting an in-app tag request or claiming an invite link automatically makes both people follow each other; declining creates no follows. Say this before the request/link is accepted or joined and confirm it afterward in the request, notification and slot/link states | Make it optional · leave the consequence implicit | Built, DB live (`20261007105647_explicit_mutual_follow_wording`), OTA 12.21 | 2026-10-07 | `TagSlotsSheet`, `InviteShareSheet`, `NotificationsScreen`, `notificationText.ts`, `inviteLink.ts`, `welcomeCards.ts`, `push_on_notification` |
 | 103 | What the feed shows | The people you follow, newest first; of your own posts only your latest, in its place by time. Older posts stay on your Profile | Every one of your posts mixed into the feed | Decided by owner | 2026-10-07 | `latestOwnPostOnly` (`ui/src/lib/feedPosts.ts`), `useFeed` |
+| 104 | Two first-post paths | Tagged by a mate: "You were tagged by @sam. You have 47:59:59 to post your Mahi and get your first point." Came alone: "Post your first Mahi to get your first point and tag 3 mates." (Maximus) | One message for everyone | Built (OTA 12.28) | 2026-10-07 | `openTagsBanner.ts`, `joined_via` on `signup_completed` |
+| 105 | First post earns a point | Every first post earns 1 Mahi point, free or answering a tag; never 2 | First post earns nothing | Built, DB live (`20261007180000_first_post_point`), OTA 12.28 | 2026-10-07 | `create_post` |
+| 106 | Ticking clocks | Every tag countdown ticks in hours, minutes and seconds (47:59:59) | "41 hours left" | Built (OTA 12.28) | 2026-10-07 | `openTagsBanner.ts`, `feedLock.ts` |
+| 107 | Points feel earned | A post that earns a point shows a full-screen +1 with the total and what it means | A toast | Built (OTA 12.28) | 2026-10-07 | `PointCelebration`, `pointCelebration` |
+| 108 | No switch for onboarding | The guided first-post work replaces what was there, without a PostHog switch | Behind a switch | Decided by owner | 2026-10-07 | — |
+| 109 | First answer needs no tags | A first post that answers a mate's tag can go with 0 tags; tagging 3 mates is encouraged | 3 tags required | Decided, building | 2026-10-07 | `create_post` |
+| 110 | Invites any time | Someone who has posted can send invite links without a post, from the waiting card ("Invite a mate") | Only while posting | Decided, building | 2026-10-07 | `make_invite_link` |
+| 111 | Invite links open the app | togethermahi.com/i/… opens Mahi when installed (Universal Links), with a fallback page | Code only | Decided, building (needs a web deploy) | 2026-10-07 | `web/` |
+| 112 | Deleting posts | Kept as decided in #69: allowed any time; the free first post never comes back | No deleting · time limit | Confirmed by owner | 2026-10-07 | `delete_post` |
 
 The owner's design-system rules (2026-10-05), enforced by tests so they can't drift back.
 

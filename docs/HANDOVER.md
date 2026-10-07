@@ -33,6 +33,7 @@ without the owner's go in the same session.
   directional follow. An accepted link or in-app tag invite continues to make both people follow
   each other; declining creates neither row. A normal profile Follow remains one-way until it is
   followed back, which is when the pair appears in Friends.
+- **OTA 12.28 live on preview 2026-10-07 16:17 UTC** (EAS group `6fcf3a45-7b81-4985-957f-a4a444849c90`): new people guided by how they arrived (Maximus's Type A/B words), first post earns the first point (`20261007180000_first_post_point`, live in prod), every tag countdown ticks, 'Waiting for a mate to tag you' card, full-screen +1 celebration, `joined_via` on sign-up.
 - **OTA 12.27 live on preview 2026-10-07 15:28 UTC** (EAS group `490c1120-a02a-4d34-b2e0-e0ea4ec13585`): the camera's tag pill sits under the points counter; the camera and an empty own profile read `profiles.has_posted_before`, so deleting every post never offers a free first post the server would refuse.
 - **OTA 12.26 live on preview 2026-10-07 15:22 UTC** (EAS group `b026ffa4-29cb-48e4-a845-5d8b79103f4c`): profile workout grids have hairline gaps between rows again.
 - **OTA 12.25 live on preview 2026-10-07 15:12 UTC** (EAS group `4396ab1a-c9cb-4843-bd1c-d373c1b64a5d`): the camera tells a first-time poster whose tag their post answers. `20261007170000_username_available` is live in prod (checked against prod). The twelve switches made standard in 12.24 are deleted in PostHog.
