@@ -715,6 +715,10 @@ export type Database = {
         Args: { p_post: string; p_caption: string };
         Returns: Json;
       };
+      username_available: {
+        Args: { p_username: string };
+        Returns: boolean;
+      };
       claim_invite: {
         Args: { p_token: string };
         Returns: Json;

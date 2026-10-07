@@ -113,9 +113,9 @@ export default function CreateAccountSheet({
   const [codeSentAt, setCodeSentAt] = useState<number | null>(null);
 
   // Step 4 — username availability
-  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>(
-    'idle'
-  );
+  const [usernameStatus, setUsernameStatus] = useState<
+    'idle' | 'checking' | 'available' | 'taken' | 'unknown'
+  >('idle');
   const usernameTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Step 1 — email-exists hint (debounced, non-blocking)
@@ -175,13 +175,16 @@ export default function CreateAccountSheet({
     if (usernameTimer.current) clearTimeout(usernameTimer.current);
     setUsernameStatus('checking');
     usernameTimer.current = setTimeout(async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('username', username.toLowerCase())
-        .maybeSingle();
-      if (error) reportError(error, { flow: 'signup', action: 'checkUsername', level: 'warning' });
-      setUsernameStatus(data ? 'taken' : 'available');
+      // Signed out, profiles can't be read; the server answers free or taken only.
+      const { data, error } = await supabase.rpc('username_available', {
+        p_username: username,
+      });
+      if (error) {
+        reportError(error, { flow: 'signup', action: 'checkUsername', level: 'warning' });
+        setUsernameStatus('unknown');
+        return;
+      }
+      setUsernameStatus(data ? 'available' : 'taken');
     }, 500);
   }, [username]);
 
@@ -859,6 +862,11 @@ export default function CreateAccountSheet({
               )}
               {usernameStatus === 'taken' && (
                 <Text style={[styles.fieldNote, { color: red }]}>✗ Already taken</Text>
+              )}
+              {usernameStatus === 'unknown' && (
+                <Text style={[styles.fieldNote, { color: muted }]}>
+                  Couldn’t check this name right now.
+                </Text>
               )}
 
               <Text style={[styles.label, { color: muted }]}>
