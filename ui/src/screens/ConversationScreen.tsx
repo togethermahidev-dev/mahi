@@ -25,6 +25,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import KeyboardInset from '@/components/KeyboardInset';
 import { EmojiKeyboardButton, EmojiPanel, useEmojiKeyboard } from '@/components/EmojiKeyboard';
 import { FREE_TEXT_PREDICTION } from '@/lib/emojiKeyboard';
+import MessageHoldMenu from '@/components/MessageHoldMenu';
+import ReactionBadges from '@/components/ReactionBadges';
+import EmojiKeyboardSheet from '@/components/EmojiKeyboardSheet';
+import { messageHoldActions, myReaction, reactionsOf } from '@/lib/messageReactions';
+import { useToastStore } from '@/store/toastStore';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useConversation } from '@/hooks/useConversation';
 import { useCoverRail } from '@/hooks/useChrome';
@@ -75,8 +80,18 @@ export default function ConversationScreen({
   // A draft (never messaged) becomes a real conversation when its first message goes through.
   const [convo, setConvo] = useState(conversation);
   const draft = isDraft(convo.id);
-  const { messages, isLoading, isLoadingOlder, hasMore, send, loadOlder, markRead, edit, unsend } =
-    useConversation(convo.id);
+  const {
+    messages,
+    isLoading,
+    isLoadingOlder,
+    hasMore,
+    send,
+    loadOlder,
+    markRead,
+    edit,
+    unsend,
+    react,
+  } = useConversation(convo.id);
   const { accept, deny } = useMessages();
   // The server's latest status for this chat (a live accept moves it on), else what we opened with.
   const liveStatus = useMessagesStore(
@@ -90,6 +105,8 @@ export default function ConversationScreen({
   const [sending, setSending] = useState(false);
   // The message being edited, if any: the field holds its words and Send saves them.
   const [editing, setEditing] = useState<Message | null>(null);
+  // The message whose "+" (any emoji) sheet is open, if any.
+  const [emojiFor, setEmojiFor] = useState<string | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
@@ -144,6 +161,8 @@ export default function ConversationScreen({
   // A request is one message: the sender waits for an answer, the receiver answers before replying.
   const canSend = draft || !isRequest;
   const waiting = isRequest && !isReceiver;
+  // Reactions live in an open chat: not a draft, not a waiting request, not a closed one.
+  const canReact = !draft && status === 'active';
 
   const handleSend = async () => {
     const content = inputText.trim();
@@ -177,31 +196,21 @@ export default function ConversationScreen({
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
 
-  // Hold your own message: edit it (for 15 minutes) or unsend it.
-  const handleHold = (msg: Message) => {
-    if (msg.sender_id !== currentUserId || msg.id.startsWith('temp_')) return;
-    const canEdit = canStillEdit(msg.created_at) && canSend;
-    Alert.alert('Your message', undefined, [
-      ...(canEdit
-        ? [
-            {
-              text: 'Edit',
-              onPress: () => {
-                setEditing(msg);
-                setInputText(msg.content);
-              },
-            },
-          ]
-        : []),
-      {
-        text: 'Unsend',
-        style: 'destructive' as const,
-        onPress: async () => {
-          if (!(await unsend(msg.id))) Alert.alert('Couldn’t unsend', 'Try again in a moment.');
-        },
-      },
-      { text: 'Cancel', style: 'cancel' as const },
-    ]);
+  // Hold your own message: edit it (for 15 minutes) or unsend it (the hold menu's choices).
+  const runHoldAction = async (msg: Message, action: 'edit' | 'unsend') => {
+    if (action === 'edit') {
+      setEditing(msg);
+      setInputText(msg.content);
+      return;
+    }
+    if (!(await unsend(msg.id))) Alert.alert('Couldn’t unsend', 'Try again in a moment.');
+  };
+
+  // React to a message: shows at once; a refusal puts it back and says so.
+  const onReact = async (messageId: string, emoji: string) => {
+    if (!(await react(messageId, emoji))) {
+      useToastStore.getState().show('Couldn’t react. Try again in a moment.');
+    }
   };
 
   const cancelEdit = () => {
@@ -383,6 +392,12 @@ export default function ConversationScreen({
                 }
                 const msg = item.msg;
                 const isOwn = msg.sender_id === currentUserId;
+                const sending = msg.id.startsWith('temp_');
+                const actions = messageHoldActions({
+                  own: isOwn && !sending,
+                  canEdit: canStillEdit(msg.created_at) && canSend,
+                });
+                const reactions = reactionsOf(msg);
                 return (
                   <View
                     style={[
@@ -390,14 +405,32 @@ export default function ConversationScreen({
                       isOwn ? styles.bubbleWrapOwn : styles.bubbleWrapOther,
                     ]}
                   >
-                    <Pressable
-                      onLongPress={() => handleHold(msg)}
-                      disabled={!isOwn}
-                      accessibilityHint={isOwn ? 'Hold to edit or unsend' : undefined}
-                      style={[styles.bubble, { backgroundColor: isOwn ? ownBubble : otherBubble }]}
+                    <MessageHoldMenu
+                      enabled={!sending && (canReact || actions.length > 0)}
+                      canReact={canReact}
+                      mine={myReaction(reactions)}
+                      actions={actions}
+                      dark={dark}
+                      onReact={(emoji) => void onReact(msg.id, emoji)}
+                      onMore={() => setEmojiFor(msg.id)}
+                      onAction={(action) => void runHoldAction(msg, action)}
                     >
-                      <Text style={[styles.bubbleText, { color: text }]}>{msg.content}</Text>
-                    </Pressable>
+                      <View
+                        style={[
+                          styles.bubble,
+                          { backgroundColor: isOwn ? ownBubble : otherBubble },
+                        ]}
+                      >
+                        <Text style={[styles.bubbleText, { color: text }]}>{msg.content}</Text>
+                      </View>
+                    </MessageHoldMenu>
+                    <ReactionBadges
+                      messageId={msg.id}
+                      reactions={reactions}
+                      own={isOwn}
+                      dark={dark}
+                      onToggle={(emoji) => void onReact(msg.id, emoji)}
+                    />
                     {item.showTime || msg.edited_at ? (
                       <Text style={[styles.bubbleTime, { color: muted }]}>
                         {[
@@ -505,6 +538,18 @@ export default function ConversationScreen({
             <EmojiPanel emoji={emoji} />
             <KeyboardInset />
           </View>
+          {/* Any emoji (the hold menu's "+"). */}
+          {emojiFor ? (
+            <EmojiKeyboardSheet
+              dark={dark}
+              onClose={() => setEmojiFor(null)}
+              onPick={(emoji) => {
+                const id = emojiFor;
+                setEmojiFor(null);
+                void onReact(id, emoji);
+              }}
+            />
+          ) : null}
         </Reanimated.View>
       </GestureDetector>
     </Modal>

@@ -141,6 +141,13 @@ function interCharacters(): Set<number> {
   return chars;
 }
 
+/**
+ * Emoji are pictures, not words: no text font draws them, the phone's own emoji font does, so
+ * message reactions (owner, 2026-10-07) may name them. An emoji's parts: the picture, a skin
+ * tone, a flag's letters, and the joiners (ZWJ, variation selector, keycap).
+ */
+const EMOJI_CHAR = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Regional_Indicator}‍️⃣]/u;
+
 /** Characters in the app's own words (strings and JSX text, not comments) that Inter lacks. */
 function charactersOutsideInter(file: string, inter: Set<number>): string[] {
   const sf = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
@@ -155,7 +162,7 @@ function charactersOutsideInter(file: string, inter: Set<number>): string[] {
       ts.isTemplateTail(n)
     )
       for (const ch of n.text)
-        if (!/\s/.test(ch) && !inter.has(ch.codePointAt(0)!))
+        if (!/\s/.test(ch) && !EMOJI_CHAR.test(ch) && !inter.has(ch.codePointAt(0)!))
           found.push(
             `${rel(file)}:${sf.getLineAndCharacterOfPosition(n.getStart()).line + 1} ${ch}`
           );

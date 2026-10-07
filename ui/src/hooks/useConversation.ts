@@ -13,6 +13,8 @@ export interface UseConversationResult {
   markRead: () => void;
   edit: (messageId: string, content: string) => Promise<boolean>;
   unsend: (messageId: string) => Promise<boolean>;
+  /** React with one emoji (the same again takes it off). False when the server said no. */
+  react: (messageId: string, emoji: string) => Promise<boolean>;
 }
 
 /** One conversation, live. All of it lives in conversationStore; this is the screen's view. */
@@ -49,5 +51,7 @@ export function useConversation(conversationId: string): UseConversationResult {
     edit: (messageId, content) =>
       useConversationStore.getState().edit(conversationId, messageId, content),
     unsend: (messageId) => useConversationStore.getState().unsend(conversationId, messageId),
+    react: (messageId, emoji) =>
+      useConversationStore.getState().react(conversationId, messageId, emoji),
   };
 }
