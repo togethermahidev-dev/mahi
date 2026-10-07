@@ -160,9 +160,10 @@ import PointCelebration, { type PointCelebrationContent } from '@/components/Poi
  */
 const NO_TAGS_TITLE = 'Waiting for a mate to tag you';
 const NO_TAGS_LINE =
-  'On Mahi you post when a mate tags you. Answer within 48 hours to earn a Mahi point.';
+  'On Mahi you post when a mate tags you, so you keep each other going. Answer within 48 hours to earn a Mahi point.';
 /** The locked camera with no tag, with Find friends under it. */
-const QUIET_LINE = 'On Mahi you post when a mate tags you. More mates means more tags.';
+const QUIET_LINE =
+  'On Mahi you post when a mate tags you, so you keep each other going. More mates means more tags.';
 /** The tags or the feed couldn't be read (no connection). */
 const OFFLINE_TITLE = 'Couldn’t reach Mahi';
 const OFFLINE_LINE = 'Check your connection. Your tags will show here.';
