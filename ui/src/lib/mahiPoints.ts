@@ -112,6 +112,38 @@ export function postedToast({
 }
 
 /**
+ * Who a post just started 48 hours for: the named mates (or how many), then any links still to
+ * send. null when it tagged nobody. The full-screen moment shows it, and so does the toast after
+ * the +1 flight's card (walkthrough 2026-10-07), so an answer always says whose clock it started.
+ */
+export function taggedClockLine({
+  friends,
+  links,
+  names = [],
+}: {
+  friends: number;
+  links: number;
+  names?: string[];
+}): string | null {
+  // A link's 48 hours only start once that mate joins, so links get their own line.
+  const onClock =
+    names.length > 0
+      ? `${namesList(names)} now ${names.length === 1 ? 'has' : 'have'} 48 hours to answer you.`
+      : friends > 0
+        ? `Your ${friends} ${friends === 1 ? 'mate has' : 'mates have'} 48 hours to answer you.`
+        : null;
+  const line = [
+    onClock,
+    links > 0
+      ? `Send your ${links} ${links === 1 ? 'link' : 'links'} next. Each mate gets 48 hours once they join.`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return line || null;
+}
+
+/**
  * The full-screen moment after a post that earns a Mahi point (owner, 2026-10-07: "gamified, and
  * say what it means"). Every first post earns the first point (`20261007180000_first_post_point`),
  * and it teaches reactive posting; a later answer shows +1 and the total. null when no point was
@@ -142,22 +174,8 @@ export function pointCelebration({
   const total = `You have ${mahiPointsCount(points)}.`;
   const others = answered.length - 1;
   const more = others > 0 ? ` and ${others} ${others === 1 ? 'other' : 'others'}` : '';
-  // A link's 48 hours only start once that mate joins, so links get their own line.
-  const { friends, links, names = [] } = tagged;
-  const onClock =
-    names.length > 0
-      ? `${namesList(names)} now ${names.length === 1 ? 'has' : 'have'} 48 hours to answer you.`
-      : friends > 0
-        ? `Your ${friends} ${friends === 1 ? 'mate has' : 'mates have'} 48 hours to answer you.`
-        : null;
-  const mates = [
-    onClock,
-    links > 0
-      ? `Send your ${links} ${links === 1 ? 'link' : 'links'} next. Each mate gets 48 hours once they join.`
-      : null,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const names = tagged.names ?? [];
+  const mates = taggedClockLine(tagged) ?? '';
 
   if (firstPost) {
     const answeredLine = answered.length > 0 ? `You answered @${answered[0]}’s tag${more}.` : null;
