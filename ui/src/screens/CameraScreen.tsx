@@ -242,25 +242,30 @@ function PointsCounter({
   }, [count]);
 
   return (
-    <Animated.View
+    // The tip measures this still frame, not the pill inside it: the pill's landing zoom (from 4×)
+    // would otherwise be measured instead of where it rests.
+    <View
       ref={anchorRef}
-      style={[
-        styles.pointsCounter,
-        { top: topRightY(insets.top), transform: [{ scale: scaleAnim }], opacity: opacityAnim },
-      ]}
-      accessible
-      accessibilityLabel={known ? `Mahi points: ${pointsCount(count)}` : 'Mahi points loading'}
+      collapsable={false}
+      pointerEvents="box-none"
+      style={[styles.pointsSpot, { top: topRightY(insets.top) }]}
     >
-      {/* This compact status chip grows only up to large text, so it stays clear of the header
-          and the open-tag pill at the largest settings. */}
-      <Text
-        style={[styles.pointsNumber, !known && { color: themeColors(true).muted }]}
-        maxFontSizeMultiplier={LAYOUT.largeTextScale}
+      <Animated.View
+        style={[styles.pointsCounter, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}
+        accessible
+        accessibilityLabel={known ? `Mahi points: ${pointsCount(count)}` : 'Mahi points loading'}
       >
-        {pointsValue(shownCount)}
-      </Text>
-      <Text style={styles.pointsLabel}>Mahi points</Text>
-    </Animated.View>
+        {/* This compact status chip grows only up to large text, so it stays clear of the header
+          and the open-tag pill at the largest settings. */}
+        <Text
+          style={[styles.pointsNumber, !known && { color: themeColors(true).muted }]}
+          maxFontSizeMultiplier={LAYOUT.largeTextScale}
+        >
+          {pointsValue(shownCount)}
+        </Text>
+        <Text style={styles.pointsLabel}>Mahi points</Text>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -1710,9 +1715,13 @@ export default function CameraScreen({
     }
   };
 
-  // One-time tips: the points pill, the shutter (two photos) and the waiting card.
+  // One-time tips: the points pill, the shutter (two photos) and the waiting card. The points
+  // pill is drawn under the waiting card's frosted cover, so its tip waits for an open camera.
   const cameraOn = cameraPermission?.granted === true;
-  const pointsTip = useCoachAnchor('points', cameraOn && pointsCountNow !== null);
+  const pointsTip = useCoachAnchor(
+    'points',
+    cameraOn && gate === 'open' && pointsCountNow !== null
+  );
   const shutterTip = useCoachAnchor(
     'twoPhotos',
     cameraOn && !blocked && captureState === 'idle' && guidePhotoUri === null
@@ -2973,9 +2982,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.ink,
   },
-  pointsCounter: {
+  pointsSpot: {
     position: 'absolute',
     right: OFFSET.o24,
+  },
+  pointsCounter: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.s6,

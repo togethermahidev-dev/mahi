@@ -229,8 +229,6 @@ export const SIZE = {
   z170: 170,
   z180: 180,
   z200: 200,
-  /** A tip's bubble at its widest. */
-  z280: 280,
   z360: 360,
   z400: 400,
   z420: 420,
@@ -532,6 +530,33 @@ export const MOTION = {
   /** The countdown ring's line width and size. */
   ringStroke: 3,
   ringSize: 22,
+} as const;
+
+// ─── One-time tips (coach marks): the bright cut-out, its ring, the bubble and its arrow ──────
+export const COACH = {
+  /** Room around the thing a tip points at, inside the bright cut-out. */
+  spotPad: 6,
+  /** The cut-out's corners at most (a pill keeps fully round ends). */
+  spotRadius: 16,
+  /** How dark the page goes around the cut-out. */
+  dim: 0.6,
+  /** The ring around the cut-out breathes out to this scale and back… */
+  pulseScale: 1.08,
+  /** …this fast (ms) each way (still with Reduce Motion). */
+  pulseMs: 900,
+  /** The bubble springs in from this scale (Reduce Motion: it only fades). */
+  enterScale: 0.96,
+  /** The bubble at its widest. */
+  bubbleWidth: 300,
+  /** The bubble's arrow: its base and how far it reaches. */
+  arrowWidth: 18,
+  arrowHeight: 9,
+  /** The bubble's glass: the colour over the blur, so it reads over a bright photo. */
+  glass: 0.82,
+  /** While a tip shows, the thing it points at is measured again this often (ms). */
+  remeasureMs: 400,
+  /** Apple's popover (iPhone): its content's width. */
+  popoverWidth: 260,
 } as const;
 
 // ─── The shutter after sign-in: two halves snap shut, MAHI lands, the shutter fires open ─────
