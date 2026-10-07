@@ -176,6 +176,9 @@ points and feed-lock rules are unchanged.
 | 112 | Tagging back | An answer can tag back the mate it answers; only your own open tag on someone blocks tagging them again (Maximus, option A) | No tag-back · first post tags the inviter · both | Built, DB live (`20261007240000_tag_back`), OTA 12.33 | 2026-10-07 | `taggable_friends`, `tagRules.ts` |
 | 113 | Widget may keep the soonest tag | The home-screen widget keeps the soonest open tag and its deadline on the phone (it can't ask the server); never shows an expired one, clears on sign-out, corrected each time Mahi opens. The one exception to "no expiring data on the phone" | Widget shows points only | Decided by owner | 2026-10-07 | `liveTagWidgets.tsx`, `useLiveTag.ts` |
 | 114 | Live Activity and widget without a switch | On for everyone on build 13+ (the build decides) | Behind `live-tag` | Decided by owner | 2026-10-07 | `useLiveTag.ts` |
+| 115 | Pull down on the camera | When you can't post, pulling down on the camera nudges it down a little (rubber band) and reveals what sits behind it: the waiting card, tips and invite circles. A clear, modern hint shows it can be pulled. Replaces the vertical-gesture part of #60–64 for this one case | Sideways only (tap to reveal) | Decided by owner | 2026-10-07 | `CameraScreen` |
+| 116 | Point moment | The +1 springs up then flies into the points counter, which rolls up; a small card says who kept you going. Replaces the full-screen pop-up | Full-screen pop-up | Decided by owner | 2026-10-07 | `PointCelebration` |
+| 117 | Tagger's photo on the lock screen | The Live Activity and widget show the tagger's profile photo next to "@sam is waiting on you" | Username only | Decided by owner | 2026-10-07 | `liveTagWidgets.tsx` |
 
 The owner's design-system rules (2026-10-05), enforced by tests so they can't drift back.
 
