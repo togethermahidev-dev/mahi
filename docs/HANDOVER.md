@@ -33,7 +33,7 @@ without the owner's go in the same session.
   directional follow. An accepted link or in-app tag invite continues to make both people follow
   each other; declining creates neither row. A normal profile Follow remains one-way until it is
   followed back, which is when the pair appears in Friends.
-- **OTA 12.22 is live on preview** (EAS group , commit 11cc8ce): sideways swipes work on Profile again
+- **OTA 12.22 is live on preview** (EAS group `5e32caf5-fd3c-41c6-92f9-3f8f4f2c6345`, commit 11cc8ce): sideways swipes work on Profile again
   (the Profile list was holding the page swipe on every touch); Messages and Profile swapped places,
   so the order is Messages, Feed, Camera, Profile (decision #95); the crew strip over the feed is
   removed (decision #100). Not checked on a phone.
