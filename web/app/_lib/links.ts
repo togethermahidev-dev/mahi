@@ -102,6 +102,19 @@ export type InvitePreview = {
   tag?: boolean;
 } | null;
 
+/** What get_invite_preview sent, as the page uses it; keeps `tag` so a tag link says "tagged you". */
+export function parseInvitePreview(value: unknown): InvitePreview {
+  if (!value || typeof value !== 'object') return null;
+  const v = value as Record<string, unknown>;
+  if (typeof v.username !== 'string') return null;
+  return {
+    username: v.username,
+    display_name: typeof v.display_name === 'string' ? v.display_name : null,
+    open: v.open === true,
+    ...(typeof v.tag === 'boolean' ? { tag: v.tag } : {}),
+  };
+}
+
 /** A link that still works and has a tag behind it (usability walkthrough, 2026-10-07). */
 function isTagLink(preview: InvitePreview): boolean {
   return !!preview && preview.open && preview.tag === true;

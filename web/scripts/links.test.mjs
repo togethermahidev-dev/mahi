@@ -14,6 +14,7 @@ import {
   inviteHeadline,
   inviteLine,
   invitePreviewRequest,
+  parseInvitePreview,
   pageOpenedEvent,
   postIdFromPath,
   storeFor,
@@ -169,4 +170,20 @@ test('an opened link page is counted in PostHog without a person or the token', 
     JSON.parse(pageOpenedEvent('post', 'Android', 'x').init.body).event,
     'post_page_opened'
   );
+});
+
+// The page read get_invite_preview and dropped `tag`, so a tag link always said "invited you"
+// (found 2026-10-07 while building the App Clip).
+test('the page keeps whether a tag comes with the link', () => {
+  assert.deepEqual(
+    parseInvitePreview({ username: 'sam', display_name: 'Sam', open: true, tag: true }),
+    { username: 'sam', display_name: 'Sam', open: true, tag: true }
+  );
+  assert.equal(
+    inviteHeadline(parseInvitePreview({ username: 'sam', display_name: null, open: true, tag: true })),
+    '@sam tagged you on Mahi'
+  );
+  assert.equal(parseInvitePreview({ username: 'sam', open: true }).tag, undefined);
+  assert.equal(parseInvitePreview(null), null);
+  assert.equal(parseInvitePreview({ display_name: 'x' }), null);
 });

@@ -7,6 +7,7 @@ import {
   inviteHeadline,
   inviteLine,
   invitePreviewRequest,
+  parseInvitePreview,
   webInviteLink,
   type InvitePreview,
 } from '../_lib/links';
@@ -24,17 +25,6 @@ const stepTitle = 'text-f18 leading-l24 font-semi-bold text-ink-deep';
 const stepNumber =
   'flex size-z32 shrink-0 items-center justify-center rounded-pill bg-ink-deep text-f15 leading-l20 font-bold text-white';
 
-function asPreview(value: unknown): InvitePreview {
-  if (!value || typeof value !== 'object') return null;
-  const v = value as Record<string, unknown>;
-  if (typeof v.username !== 'string') return null;
-  return {
-    username: v.username,
-    display_name: typeof v.display_name === 'string' ? v.display_name : null,
-    open: v.open === true,
-  };
-}
-
 /**
  * Who sent the invite, read fresh each time and never kept: null until it has loaded, then the
  * preview (null inside when it couldn't be read — the page says "a mate" instead).
@@ -50,7 +40,7 @@ function useInvitePreview(invite: string | null): { preview: InvitePreview } | n
       .then((res) => (res.ok ? res.json() : null))
       .catch(() => null)
       .then((value) => {
-        if (live) setLoaded({ invite, preview: asPreview(value) });
+        if (live) setLoaded({ invite, preview: parseInvitePreview(value) });
       });
     return () => {
       live = false;
