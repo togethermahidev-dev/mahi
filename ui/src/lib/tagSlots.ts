@@ -131,7 +131,7 @@ export function personAction(
 
 /** The low-pressure message that goes with an invite link. */
 export function slotShareMessage(url: string, _code: string): string {
-  return `I tagged you on Mahi. Join, then post any workout within 48 hours. We’ll keep each other going.\n${url}`;
+  return `I tagged you on Mahi. You’ll have 48 hours from when you join to post any workout back. We’ll keep each other going.\n${url}`;
 }
 
 /**
