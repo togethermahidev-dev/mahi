@@ -101,7 +101,6 @@ function WorkoutCard({
   dark,
   width,
   mediaHeight,
-  cardHeight,
   onPress,
   menuOn,
 }: {
@@ -109,7 +108,6 @@ function WorkoutCard({
   dark: boolean;
   width: number;
   mediaHeight: number;
-  cardHeight: number;
   onPress: () => void;
   /** Hold to preview (flag context-menu-preview, iPhone, build 11). */
   menuOn: boolean;
@@ -213,7 +211,7 @@ function WorkoutCard({
   return (
     <PreviewMenu
       width={width}
-      height={cardHeight}
+      height={mediaHeight}
       style={styles.gridCard}
       dark={dark}
       items={items}
@@ -274,8 +272,8 @@ export default function ProfileMediaMap({
   const menuOn = useContextMenuPreview();
   const { width } = useWindowDimensions();
   const cardWidth = (width - SPACE.s1 * (LAYOUT.profileColumns + 1)) / LAYOUT.profileColumns;
+  // Square photos with hairline gaps; the hold-to-preview wrapper is exactly the photo's size.
   const mediaHeight = cardWidth;
-  const cardHeight = mediaHeight + SIZE.z120;
 
   // Pull to refresh: the spinner shows until the fresh posts are in.
   const [refreshing, setRefreshing] = useState(false);
@@ -334,7 +332,6 @@ export default function ProfileMediaMap({
               dark={dark}
               width={cardWidth}
               mediaHeight={mediaHeight}
-              cardHeight={cardHeight}
               onPress={() => onPostPress?.(item)}
               menuOn={menuOn}
             />
