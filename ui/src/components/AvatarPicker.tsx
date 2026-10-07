@@ -178,13 +178,8 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
         setLocalUri(null); // clear optimistic preview; parent now holds the persisted URL
       } catch (e) {
         reportError(e, { flow: 'profile', action: 'uploadAvatar', extra: { userId, step, bytes } });
-        // Attempt best-effort cleanup of the orphaned storage file
-        // in case the upload succeeded but the DB write failed.
-        try {
-          await supabase.storage.from('avatars').remove([`${userId}/avatar.jpg`]);
-        } catch {
-          // Non-blocking — ignore cleanup failure
-        }
+        // No clean-up: the file path never changes, so the stored file is the photo the profile
+        // already shows (the old one if the upload failed). Deleting it broke the current photo.
         setLocalUri(null);
         Alert.alert('Couldn’t update your photo', 'Check your connection and try again.');
       } finally {
@@ -225,12 +220,22 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
     if (!ok) return;
 
     // The same square crop as the library, so the circle shows what was framed.
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: 'images',
-      quality: 0.8,
-      allowsEditing: true,
-      aspect: [1, 1],
-    });
+    let result: ImagePicker.ImagePickerResult;
+    try {
+      result = await ImagePicker.launchCameraAsync({
+        mediaTypes: 'images',
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [1, 1],
+      });
+    } catch (e) {
+      reportError(e, { flow: 'profile', action: 'openCamera' });
+      Alert.alert(
+        'Couldn’t open the camera',
+        'Try again. If it keeps happening, close and reopen Mahi.'
+      );
+      return;
+    }
     if (!result.canceled && result.assets[0]) {
       await processAndUpload(result.assets[0].uri);
     }
@@ -241,12 +246,22 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
     const ok = await ensurePermission(libraryPermission, requestLibraryPermission, 'photos');
     if (!ok) return;
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: 'images',
-      quality: 0.8,
-      allowsEditing: true,
-      aspect: [1, 1],
-    });
+    let result: ImagePicker.ImagePickerResult;
+    try {
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [1, 1],
+      });
+    } catch (e) {
+      reportError(e, { flow: 'profile', action: 'openLibrary' });
+      Alert.alert(
+        'Couldn’t open your photos',
+        'Try again. If it keeps happening, close and reopen Mahi.'
+      );
+      return;
+    }
     if (!result.canceled && result.assets[0]) {
       await processAndUpload(result.assets[0].uri);
     }
