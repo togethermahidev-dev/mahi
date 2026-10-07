@@ -14,8 +14,8 @@ Since 2026-10-07 the code no longer reads twelve of these (see
 **`push-core` is deliberately not created** (checked 2026-10-02), and since 2026-10-02 it is a
 default-off flag, so it reads as off — even while flags load — until push notifications are set up on
 the server and the owner creates it (steps in
-[go-live-runbook.md](./go-live-runbook.md#switching-push-notifications-on): first for the owner's
-account only, to test one push, then for everyone).
+[go-live-runbook.md](./go-live-runbook.md#switching-push-notifications-on)), on for everyone at 100%
+(never for one account first, owner 2026-10-07).
 **`video-posts` (added 2026-10-02) is a default-off flag:** the owner wants it OFF for everyone.
 Create it in PostHog **switched off** (or at 0%); it reads as off until PostHog says true.
 **`ios-sf-symbols`, `context-menu-preview` and `camera-tap-focus` (added 2026-10-02) are default-off too:**

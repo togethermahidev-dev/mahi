@@ -287,10 +287,10 @@ The page and the reminder line ship as an OTA update (`/version-control` skill; 
 Publish it to preview and open the app twice on the phone so it lands. Nothing shows yet:
 `push-core` is still off.
 
-### 6. Test one push on one phone
+### 6. Turn push on for everyone, then test one push
 
-1. In PostHog create the flag `push-core` (boolean, active) with **one** release condition:
-   person property `email` equals your own account's email, 100%. Only your phone gets the page.
+1. In PostHog create the flag `push-core` (boolean, active) for **everyone, 100%** — never for
+   one account first (owner, 2026-10-07: switches go on for everyone).
 2. Force-quit and reopen Mahi. The page "When do you post on Mahi?" appears (after the welcome
    cards if you haven't closed them). Tap **Allow**, then **Allow** on the phone's own question.
 3. Check a phone registered (a read-only query, with the `psql` connection from step 4):
