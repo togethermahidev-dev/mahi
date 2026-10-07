@@ -743,6 +743,16 @@ export type Database = {
           username: string;
         }[];
       };
+      get_mates_on_clock: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          challenge_id: string;
+          expires_at: string;
+          server_now: string;
+          user_id: string;
+          username: string;
+        }[];
+      };
       get_feed: {
         Args: { p_cursor_id?: string | null; p_cursor_ts?: string | null; p_limit?: number };
         Returns: Json;

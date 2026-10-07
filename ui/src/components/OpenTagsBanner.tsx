@@ -18,6 +18,7 @@ import { msLeft } from '@/lib/countdown';
 import { bannerText, openTagsBanner } from '@/lib/openTagsBanner';
 import { openTagsTop } from '@/lib/pip';
 import type { OpenTag } from '@/api';
+import { useUserStore } from '@/store';
 import { FONTS } from '@/constants/fonts';
 import {
   BLUR_INTENSITY,
@@ -71,7 +72,9 @@ export default function OpenTagsBanner({
     return () => clearTimeout(id);
   }, [answered]);
 
-  const banner = openTagsBanner({ openTags, serverOffsetMs, deviceNow, firstPost });
+  // What a miss would cost: "Miss it and your 4 points go back to 0" (null until loaded).
+  const points = useUserStore((s) => s.profile?.streak_current ?? null);
+  const banner = openTagsBanner({ openTags, serverOffsetMs, deviceNow, firstPost, points });
   if (answered) {
     return (
       <View style={[styles.wrap, { top }]} pointerEvents="none">

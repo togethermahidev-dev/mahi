@@ -7,6 +7,7 @@ import {
   postRefusal,
   personAction,
   postButtonLabel,
+  postConfirmText,
   shareAppUrl,
   slotErrorText,
   slotLabel,
@@ -276,5 +277,32 @@ describe('postButtonLabel', () => {
   it('says how many more once some are tagged', () => {
     expect(postButtonLabel(1, true)).toBe('Tag 1 more mate to post');
     expect(postButtonLabel(2, true)).toBe('Tag 2 more mates to post');
+  });
+});
+
+// Usability walkthrough 2026-10-07: the "are you sure" before posting says what posting does.
+describe('postConfirmText', () => {
+  it('a post that answers nothing: your mates get 48 hours, and the feed opens', () => {
+    expect(postConfirmText({ answering: [], anyTagged: true })).toEqual({
+      title: 'Happy with your post?',
+      body: 'Your mates get 48 hours to answer you. Posting opens your feed for 24 hours.',
+    });
+  });
+
+  it('answering a tag: names whose, and says it earns a point', () => {
+    expect(postConfirmText({ answering: ['sam'], anyTagged: true })).toEqual({
+      title: 'Answer @sam?',
+      body: 'This earns a Mahi point. Your mates get 48 hours to answer you.',
+    });
+    expect(postConfirmText({ answering: ['sam', 'ali'], anyTagged: true }).title).toBe(
+      'Answer @sam +1?'
+    );
+  });
+
+  it('a first answer that tags nobody promises no 48 hours', () => {
+    expect(postConfirmText({ answering: ['sam'], anyTagged: false })).toEqual({
+      title: 'Answer @sam?',
+      body: 'This earns a Mahi point.',
+    });
   });
 });

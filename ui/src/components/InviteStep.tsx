@@ -24,6 +24,7 @@ export default function InviteStep({
   availableFriends,
   friends,
   invites,
+  tagsOptional = false,
   onAdd,
   onRemove,
 }: {
@@ -31,10 +32,12 @@ export default function InviteStep({
   availableFriends: number;
   friends: number;
   invites: number;
+  /** This post needs no tags: invite mates to keep you going. */
+  tagsOptional?: boolean;
   onAdd: () => void;
   onRemove: () => void;
 }): React.JSX.Element {
-  const copy = inviteStepCopy({ maxTags, availableFriends, friends, invites });
+  const copy = inviteStepCopy({ maxTags, availableFriends, friends, invites, tagsOptional });
 
   return (
     <View style={styles.card}>

@@ -57,6 +57,29 @@ export async function getOpenTags(): Promise<{ data: OpenTag[] | null; error: Er
   return { data: (data ?? []) as OpenTag[], error: null };
 }
 
+/** One of your tags whose 48 hours are running: a mate on the clock to answer you. */
+export type MateOnClock = {
+  challenge_id: string;
+  user_id: string;
+  username: string;
+  expires_at: string;
+  /** Server clock at read time, so countdowns don't trust the phone's clock. */
+  server_now: string;
+};
+
+/**
+ * Your mates on the clock, soonest first (`get_mates_on_clock`, 20261007260000). Read fresh each
+ * time the waiting camera shows; never kept on the phone (tags end).
+ */
+export async function getMatesOnClock(): Promise<{
+  data: MateOnClock[] | null;
+  error: Error | null;
+}> {
+  const { data, error } = await supabase.rpc('get_mates_on_clock');
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
+  return { data: (data ?? []) as MateOnClock[], error: null };
+}
+
 /** How many tags a post needs, as the server enforces it. */
 export async function getTagRules(): Promise<{ data: TagRules | null; error: Error | null }> {
   const { data, error } = await supabase

@@ -75,6 +75,32 @@ export function postButtonLabel(missing: number, anyTagged: boolean): string {
   return anyTagged ? `Tag ${missing} more ${mates} to post` : `Tag ${missing} ${mates} to post`;
 }
 
+/**
+ * The question before a post goes (usability walkthrough, 2026-10-07): what posting does. An answer
+ * names whose tag ("Answer @sam?") and that it earns a point; any post with mates in it says they
+ * get 48 hours. `answering`: the open tags this post answers, soonest first.
+ */
+export function postConfirmText({
+  answering,
+  anyTagged,
+}: {
+  answering: string[];
+  anyTagged: boolean;
+}): { title: string; body: string } {
+  const mates = anyTagged ? 'Your mates get 48 hours to answer you.' : null;
+  if (answering.length > 0) {
+    const more = answering.length > 1 ? ` +${answering.length - 1}` : '';
+    return {
+      title: `Answer @${answering[0]}${more}?`,
+      body: ['This earns a Mahi point.', mates].filter(Boolean).join(' '),
+    };
+  }
+  return {
+    title: 'Happy with your post?',
+    body: [mates, 'Posting opens your feed for 24 hours.'].filter(Boolean).join(' '),
+  };
+}
+
 export function inviteBlockedReason({
   filled,
   maxTags,

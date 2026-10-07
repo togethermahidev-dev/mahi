@@ -51,17 +51,27 @@ import { randomUUID } from 'expo-crypto';
 import { track } from '@/lib/analytics';
 import {
   createPost,
+  getMatesOnClock,
   getTaggableFriends,
   removePostPhotos,
   uploadPostMedia,
   type TaggedUser,
   type FeedPost,
   type TaggableFriend,
+  type MateOnClock,
 } from '@/api';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import OpenTagsBanner from '@/components/OpenTagsBanner';
 import { CameraIcon } from '@/components/ScreenIcons';
-import { pointCelebration, pointsCount, pointsValue, postedToast } from '@/lib/mahiPoints';
+import {
+  pointCelebration,
+  pointsCount,
+  pointsRowText,
+  pointsValue,
+  postedToast,
+} from '@/lib/mahiPoints';
+import { matesOnClock } from '@/lib/openTagsBanner';
+import { useSecondTick } from '@/hooks/useSecondTick';
 import KeyboardInset from '@/components/KeyboardInset';
 import WorkoutIdeasSheet from '@/components/WorkoutIdeasSheet';
 import FlashButton from '@/components/FlashButton';
@@ -80,7 +90,13 @@ import { getMyInvites } from '@/api/invites';
 import { inviteBadgeCount } from '@/lib/myInvites';
 import { getTagSlots } from '@/api/tagSlots';
 import { inviteAMate } from '@/lib/inviteAMate';
-import { inviteBlockedReason, postButtonLabel, postRefusal, type ScreenSlot } from '@/lib/tagSlots';
+import {
+  inviteBlockedReason,
+  postButtonLabel,
+  postConfirmText,
+  postRefusal,
+  type ScreenSlot,
+} from '@/lib/tagSlots';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useCoachAnchor } from '@/hooks/useCoachMarks';
 import CoachMarkHost from '@/components/CoachMark';
@@ -273,6 +289,62 @@ function PointsCounter({
   );
 }
 
+// ─── Waiting card words ───────────────────────────────────────────────────────
+
+/**
+ * The words on the camera's no-tag card. While your own tags are running it says who is on the
+ * clock and ticks (usability walkthrough, 2026-10-07), in its own component so only these words
+ * re-render each second. `mates` is null while the server is asked: a spinner, never words that
+ * then change. `points` is the "4 Mahi points · Best 6" row (the points pill sits under the
+ * card's blur).
+ */
+function WaitingCardWords({
+  title,
+  line,
+  mates,
+  points,
+}: {
+  title: string;
+  line: string;
+  mates: { list: MateOnClock[]; offsetMs: number } | null | undefined;
+  points: string | null;
+}) {
+  const ticking = !!mates && mates.list.length > 0;
+  const deviceNow = useSecondTick(ticking);
+  if (mates === null) {
+    return (
+      <View
+        style={styles.noTagsWords}
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel="Checking your tags"
+      >
+        <ActivityIndicator color={COLORS.accent} />
+      </View>
+    );
+  }
+  const onClock = mates
+    ? matesOnClock({ mates: mates.list, serverOffsetMs: mates.offsetMs, deviceNow })
+    : null;
+  const t = onClock?.title ?? title;
+  const l = onClock?.line ?? line;
+  return (
+    <View
+      style={styles.noTagsWords}
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={`${t}. ${l}${points ? ` ${points}.` : ''}`}
+    >
+      <View style={styles.noTagsIcon}>
+        <CameraIcon size={ICON_SIZE.i24} color={COLORS.accent} />
+      </View>
+      <Text style={styles.postedTitle}>{t}</Text>
+      <Text style={styles.postedSub}>{l}</Text>
+      {points ? <Text style={styles.waitingPoints}>{points}</Text> : null}
+    </View>
+  );
+}
+
 // ─── Flip Icon ────────────────────────────────────────────────────────────────
 
 function FlipIcon({ color }: { color: string }) {
@@ -415,6 +487,8 @@ interface DualPhotoPreviewProps {
   onSlotsChange: (slots: ScreenSlot[]) => void;
   /** Tags this post needs before POST unlocks (server enforces the same rule). */
   requiredTags: number;
+  /** Usernames whose open tags this post answers, soonest first (empty: it answers none). */
+  answering: string[];
   /** Per-post location toggle. Default OFF — explicit opt-in, never silent. */
   locationEnabled: boolean;
   /** Toggle the per-post location pill. On the first enable this triggers the
@@ -439,6 +513,7 @@ function DualPhotoPreview({
   slots,
   onSlotsChange,
   requiredTags,
+  answering,
   locationEnabled,
   onToggleLocation,
 }: DualPhotoPreviewProps) {
@@ -976,9 +1051,13 @@ function DualPhotoPreview({
                   return;
                 }
                 if (frozenFront.current && frozenRear.current) {
+                  const confirm = postConfirmText({
+                    answering,
+                    anyTagged: taggedUsers.length + inviteCount + slots.length > 0,
+                  });
                   Alert.alert(
-                    'Happy with your post?',
-                    'You can edit the caption for one hour or delete the post later. Posting opens your feed and may notify the friends you tagged.',
+                    confirm.title,
+                    confirm.body,
                     [
                       { text: 'Keep editing', style: 'cancel' },
                       {
@@ -1030,6 +1109,7 @@ function DualPhotoPreview({
           initialSelected={taggedUsers}
           initialInvites={inviteCount}
           singleShot={captionAtIndex !== null}
+          tagsOptional={requiredTags === 0}
           onCancel={() => {
             // If we came from the caption `@` bridge, return to the caption
             // sheet (the `@` stays in the text). Otherwise, close entirely.
@@ -1246,6 +1326,8 @@ interface TagSheetProps {
    * single-shot autocomplete, not multi-select.
    */
   singleShot?: boolean;
+  /** This post needs no tags (a first post that answers a tag). */
+  tagsOptional?: boolean;
 }
 
 function TagSheet({
@@ -1255,6 +1337,7 @@ function TagSheet({
   onCancel,
   onCommit,
   singleShot,
+  tagsOptional = false,
 }: TagSheetProps) {
   const [selected, setSelected] = useState<TaggedUser[]>(initialSelected);
   const [invites, setInvites] = useState(initialInvites);
@@ -1415,6 +1498,7 @@ function TagSheet({
             availableFriends={availableFriends}
             friends={selected.length}
             invites={invites}
+            tagsOptional={tagsOptional}
             onAdd={addInvite}
             onRemove={() => setInvites((n) => Math.max(0, n - 1))}
           />
@@ -1717,6 +1801,26 @@ export default function CameraScreen({
   // list closes), never kept on the phone; no number until the server has answered.
   const [myInviteCount, setMyInviteCount] = useState<number | null>(null);
   const waitingCard = gate === 'closed' && !offline;
+  // Your mates on the clock: read fresh each time the waiting card shows, never kept on the phone.
+  // null while asking (the card shows a spinner, not words that then change); a failed read
+  // falls back to "Waiting for a mate to tag you".
+  const [mates, setMates] = useState<{ list: MateOnClock[]; offsetMs: number } | null>(null);
+  useEffect(() => {
+    if (!waitingCard) {
+      setMates(null);
+      return;
+    }
+    let live = true;
+    void getMatesOnClock().then(({ data }) => {
+      if (!live) return;
+      const list = data ?? [];
+      const offsetMs = list[0] ? Date.parse(list[0].server_now) - Date.now() : 0;
+      setMates({ list, offsetMs });
+    });
+    return () => {
+      live = false;
+    };
+  }, [waitingCard]);
   useEffect(() => {
     if (!waitingCard || invitesOpen) return;
     let live = true;
@@ -2355,7 +2459,16 @@ export default function CameraScreen({
             points: result.streak.streak_current,
             bestBefore: profile.streak_highest,
             firstPost: firstPostNow,
-            tagged: taggedCounts,
+            // The mates whose 48 hours start now, named (in-app requests start once accepted).
+            tagged: {
+              ...taggedCounts,
+              names: [
+                ...taggedUsersSnapshot.map((u) => u.username),
+                ...slotsSnapshot
+                  .filter((x) => x.kind === 'friend' && x.username)
+                  .map((x) => x.username as string),
+              ],
+            },
           });
       const invitesToSend = tagSlotsOn ? [] : inviteList(result.invites);
       useTagStore.getState().syncOpenTags();
@@ -2692,18 +2805,17 @@ export default function CameraScreen({
           <BlurView intensity={BLUR_INTENSITY.i60} tint="dark" style={styles.postedOverlay}>
             <View ref={waitingTip} style={styles.noTagsCard}>
               {/* The words read as one; the button is its own element. */}
-              <View
-                style={styles.noTagsWords}
-                accessible
-                accessibilityRole="text"
-                accessibilityLabel={`${card.title}. ${card.line}`}
-              >
-                <View style={styles.noTagsIcon}>
-                  <CameraIcon size={ICON_SIZE.i24} color={COLORS.accent} />
-                </View>
-                <Text style={styles.postedTitle}>{card.title}</Text>
-                <Text style={styles.postedSub}>{card.line}</Text>
-              </View>
+              <WaitingCardWords
+                title={card.title}
+                line={card.line}
+                // Offline: no server to ask, so the offline words straight away.
+                mates={waitingCard ? mates : undefined}
+                points={
+                  waitingCard
+                    ? pointsRowText(pointsCountNow, profile?.streak_highest ?? null)
+                    : null
+                }
+              />
               {card.button ? (
                 <Pressable
                   style={({ pressed }) => [styles.seeFeedButton, pressed && { opacity: ALPHA.a70 }]}
@@ -2985,6 +3097,7 @@ export default function CameraScreen({
           slots={slots}
           onSlotsChange={setSlots}
           requiredTags={postRequiredTags}
+          answering={answersATag(openTags, serverOffsetMs) ? openTags.map((t) => t.username) : []}
           locationEnabled={locationEnabled}
           onToggleLocation={handleToggleLocation}
         />
@@ -3172,6 +3285,12 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f15,
     lineHeight: LINE_HEIGHT.l22,
     fontFamily: FONTS.regular,
+    textAlign: 'center',
+  },
+  waitingPoints: {
+    color: COLORS.accent,
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.semiBold,
     textAlign: 'center',
   },
   controlsRow: {
