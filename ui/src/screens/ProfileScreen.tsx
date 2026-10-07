@@ -4,8 +4,10 @@ import type { NativeGesture } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
-import { useAuthStore, useUserStore } from '@/store';
-import { pointsStatsLabel } from '@/lib/mahiPoints';
+import { useAuthStore, useProfilePostsStore, useUserStore } from '@/store';
+import { answeredMatesLine, lastAnsweredMates, pointsStatsLabel } from '@/lib/mahiPoints';
+import RollingNumber from '@/components/RollingNumber';
+import PointsBar from '@/components/PointsBar';
 import { POINTS_RULE, pointsHint } from '@/lib/pointsHint';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostViewer from '@/components/PostViewer';
@@ -125,7 +127,11 @@ export default function ProfileScreen({
   // recover a raced/empty first load — passing `isActive` lets useProfilePosts
   // re-sync when this panel becomes active and the store is empty/stale.
   // The grid (ProfileMediaMap) reads the same singleton store, so it re-renders.
-  useProfilePosts(userId ?? '', isActive && !!userId);
+  const { posts: myPosts } = useProfilePosts(userId ?? '', isActive && !!userId);
+  // The last three mates you answered: only once your posts have been read (never a guess).
+  const myPostsRead = useProfilePostsStore((s) => s.userId === userId && s.lastSyncedAt !== null);
+  const answeredMates = myPostsRead ? lastAnsweredMates(myPosts) : [];
+  const matesLine = answeredMatesLine(answeredMates);
 
   useEffect(() => {
     if (!isActive || !userId || invitesOpen) return;
@@ -252,23 +258,44 @@ export default function ProfileScreen({
         </View>
         <View style={styles.metricsRow}>
           <View style={styles.metric}>
-            <Text style={[styles.metricValue, { color: profile ? text : muted }]}>
-              {profile ? currentPoints : '–'}
-            </Text>
+            <RollingNumber
+              value={profile ? currentPoints : null}
+              style={[styles.metricValue, { color: profile ? text : muted }]}
+              font={{ family: FONTS.bold, size: FONT_SIZE.f38, color: text }}
+            />
             <Text style={[styles.metricLabel, { color: muted }]}>Current</Text>
           </View>
           <View style={[styles.metricDivider, { backgroundColor: border }]} />
           <View style={styles.metric}>
-            <Text style={[styles.metricValue, { color: profile ? text : muted }]}>
-              {profile ? bestPoints : '–'}
-            </Text>
+            <RollingNumber
+              value={profile ? bestPoints : null}
+              style={[styles.metricValue, { color: profile ? text : muted }]}
+              font={{ family: FONTS.bold, size: FONT_SIZE.f38, color: text }}
+            />
             <Text style={[styles.metricLabel, { color: muted }]}>Personal best</Text>
           </View>
         </View>
         <View style={[styles.progressTrack, { backgroundColor: iconSurface }]}>
-          <View style={[styles.progressFill, { width: `${progress}%` }]} />
+          <PointsBar progress={progress} replay={isActive && !!profile} />
         </View>
         {hint ? <Text style={[styles.pointsHint, { color: muted }]}>{hint}</Text> : null}
+        {/* Your points are made of people: the last three mates you answered. */}
+        {matesLine ? (
+          <View style={styles.matesRow}>
+            <View style={styles.matesFaces}>
+              {answeredMates.map((name) => (
+                <View key={name} style={[styles.mateFace, { borderColor: COLORS.accent }]}>
+                  <Text style={[styles.mateInitial, { color: text }]}>
+                    {(name[0] ?? '?').toUpperCase()}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <Text style={[styles.matesLine, { color: muted }]} numberOfLines={2}>
+              {matesLine}
+            </Text>
+          </View>
+        ) : null}
       </Pressable>
 
       {/* Two explicit routes avoid icon-only guesswork: Friends is always a list, never a made-up
@@ -491,10 +518,32 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
     overflow: 'hidden',
   },
-  progressFill: {
-    height: '100%',
+  matesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s10,
+    marginTop: SPACE.s12,
+  },
+  matesFaces: {
+    flexDirection: 'row',
+    gap: SPACE.s4,
+  },
+  mateFace: {
+    width: SIZE.z24,
+    height: SIZE.z24,
     borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.accent,
+    borderWidth: BORDER_WIDTH.w1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mateInitial: {
+    fontFamily: FONTS.bold,
+    fontSize: FONT_SIZE.f11,
+  },
+  matesLine: {
+    flexShrink: 1,
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZE.f13,
   },
   pointsHint: {
     fontSize: FONT_SIZE.f13,

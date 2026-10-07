@@ -9,6 +9,8 @@ import {
   pointsMilestone,
   pointsValue,
   postedToast,
+  lastAnsweredMates,
+  answeredMatesLine,
 } from '../mahiPoints';
 
 describe('pointsCount', () => {
@@ -368,5 +370,45 @@ describe('pointsRowText — the points row on the waiting card', () => {
 
   it('nothing until the profile has loaded (never a 0 that then changes)', () => {
     expect(pointsRowText(null, null)).toBeNull();
+  });
+});
+
+describe('lastAnsweredMates (the mates on the profile’s points card)', () => {
+  const post = (id: string, tagger: string | null, created_at: string) => ({
+    id,
+    created_at,
+    response: tagger ? { tagger_username: tagger, seconds: 1 } : null,
+  });
+  it('names the last three mates answered, newest first, each once', () => {
+    expect(
+      lastAnsweredMates([
+        post('1', 'sam', '2026-10-07T10:00:00Z'),
+        post('2', 'jo', '2026-10-06T10:00:00Z'),
+        post('3', 'sam', '2026-10-05T10:00:00Z'),
+        post('4', null, '2026-10-04T10:00:00Z'),
+        post('5', 'al', '2026-10-03T10:00:00Z'),
+        post('6', 'bo', '2026-10-02T10:00:00Z'),
+      ])
+    ).toEqual(['sam', 'jo', 'al']);
+  });
+  it('orders by date, whatever order the posts came in', () => {
+    expect(
+      lastAnsweredMates([
+        post('2', 'jo', '2026-10-06T10:00:00Z'),
+        post('1', 'sam', '2026-10-07T10:00:00Z'),
+      ])
+    ).toEqual(['sam', 'jo']);
+  });
+  it('is empty with no answers yet', () => {
+    expect(lastAnsweredMates([post('4', null, '2026-10-04T10:00:00Z')])).toEqual([]);
+    expect(lastAnsweredMates([])).toEqual([]);
+  });
+});
+
+describe('answeredMatesLine', () => {
+  it('says who your points are made of', () => {
+    expect(answeredMatesLine(['sam'])).toBe('Your last answer: @sam');
+    expect(answeredMatesLine(['sam', 'jo', 'al'])).toBe('Your last answers: @sam, @jo and @al');
+    expect(answeredMatesLine([])).toBeNull();
   });
 });

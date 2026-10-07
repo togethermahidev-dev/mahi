@@ -588,6 +588,8 @@ export const MOTION = {
    *  (ms) so the roll is seen first. */
   countDownMs: 900,
   missAfterRollMs: 1300,
+  /** The profile's points bar fills toward your best over this long (ms), each time it opens. */
+  barFillMs: 700,
 } as const;
 
 // ─── One-time tips (coach marks): the bright cut-out, its ring, the bubble and its arrow ──────

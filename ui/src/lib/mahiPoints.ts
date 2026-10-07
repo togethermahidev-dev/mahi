@@ -214,3 +214,28 @@ export function pointsRowText(points: number | null, best: number | null): strin
   if (points === null) return null;
   return `${mahiPointsCount(points)} · Best ${best ?? 0}`;
 }
+
+/**
+ * The last three mates whose tags you answered, newest first, each once (the profile's points
+ * card: your points are made of people). From your own posts' `response`, read fresh with them.
+ */
+export function lastAnsweredMates(
+  posts: { created_at: string; response?: { tagger_username: string } | null }[]
+): string[] {
+  const names: string[] = [];
+  const newestFirst = [...posts].sort(
+    (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)
+  );
+  for (const p of newestFirst) {
+    const name = p.response?.tagger_username;
+    if (name && !names.includes(name)) names.push(name);
+    if (names.length === 3) break;
+  }
+  return names;
+}
+
+/** "Your last answers: @sam, @jo and @al"; null before your first answer. */
+export function answeredMatesLine(usernames: string[]): string | null {
+  if (usernames.length === 0) return null;
+  return `Your last ${usernames.length === 1 ? 'answer' : 'answers'}: ${namesList(usernames)}`;
+}
