@@ -78,6 +78,12 @@ a friend gets an in-app invite ("@x wants to tag you", Accept / Not now in their
 row (WhatsApp, Messages, Copy or more) makes a personal link on tap and fills a slot. Friends first:
 invites wait until every friend you could tag is tagged. Live while open; nothing kept on the phone.
 Off = today's tag sheet (with the invite step). The caption's `@` still picks one friend either way.
+**Find your mates (no switch, owner 2026-10-07):** on for everyone on build 13+ (expo-contacts), needs migration `20261007270000_contact_match`. "Find your mates" — once
+after sign-up for a new account (after the welcome cards, before the notifications page), and from
+Settings → Mates, Your invites and the camera's waiting card. Asks for contacts with a plain why first;
+a no gets "Invite by link instead". Contacts on Mahi can be followed; everyone else with a number gets
+"Invite", which opens a text with a mate link. Only hashes of numbers and emails reach the server;
+nothing is kept on the phone. Builds 10–12 never show it, switch or not.
 
 **Lock screen and widget:** `live-tag` (**default off**; added 2026-10-07; needs build 13, which carries
 `expo-widgets`; **not in PostHog yet** — create it switched off). On: while you have a tag to answer, a Live

@@ -50,7 +50,7 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * `identity-verification` and `purchases`: dormant until the owner sets up Didit / RevenueCat.
  * `tag-slots`: needs migration 20261003120000_tag_slots on the server first; off, the tag sheet
  * stays exactly as today.
- */
+*/
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'push-core',
   'video-posts',

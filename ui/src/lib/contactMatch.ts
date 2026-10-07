@@ -5,7 +5,7 @@
  *
  * Contacts never leave the phone as they are: each number is written the international way
  * (E.164) and each email in lower case, then hashed (SHA-256), and only the hashes go to the
- * server's match_contacts (supabase/migrations/20261007220000_contact_match.sql). The number
+ * server's match_contacts (supabase/migrations/20261007270000_contact_match.sql). The number
  * rules here are the same as the server's normalise_phone, so both sides make the same hash.
  * Contacts and matches are read fresh on every open and never kept on the phone.
  */

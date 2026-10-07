@@ -14,7 +14,7 @@
 --     call and contact_match_calls_per_hour (10) calls an hour. Leaves out yourself, banned
 --     accounts and anyone blocked either way.
 -- Test: supabase/tests/contact_match_test.sql
--- Undo: supabase/rollbacks/20261007220000_contact_match.rollback.sql
+-- Undo: supabase/rollbacks/20261007270000_contact_match.rollback.sql
 
 -- 1. Settings. Changing one is a one-line migration: update public.app_config set ... ;
 alter table public.app_config

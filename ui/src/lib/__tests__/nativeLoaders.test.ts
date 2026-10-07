@@ -12,6 +12,8 @@ const screensRequired = jest.fn();
 const widgetsRequired = jest.fn();
 const expoModules: Record<string, unknown> = {};
 const platform = { OS: 'ios' };
+const optionalGet = jest.fn();
+const contactsRequired = jest.fn();
 
 jest.mock('react-native', () => ({
   TurboModuleRegistry: { get: (name: string) => turboGet(name) },
@@ -19,11 +21,15 @@ jest.mock('react-native', () => ({
   Platform: platform,
 }));
 jest.mock('expo', () => ({
-  requireOptionalNativeModule: (name: string) => expoModules[name] ?? null,
+  requireOptionalNativeModule: (name: string) => expoModules[name] ?? optionalGet(name) ?? null,
 }));
 jest.mock('../../widgets/liveTagWidgets', () => {
   widgetsRequired();
   return { tagWidget: {}, tagActivity: {} };
+});
+jest.mock('expo-contacts', () => {
+  contactsRequired();
+  return { getPermissionsAsync: jest.fn() };
 });
 jest.mock('@didit-protocol/sdk-react-native', () => {
   diditRequired();
@@ -51,6 +57,8 @@ beforeEach(() => {
   screensRequired.mockReset();
   widgetsRequired.mockReset();
   platform.OS = 'ios';
+  optionalGet.mockReset();
+  contactsRequired.mockReset();
   for (const k of Object.keys(nativeModules)) delete nativeModules[k];
   for (const k of Object.keys(expoModules)) delete expoModules[k];
 });
@@ -179,6 +187,11 @@ describe('expo-widgets loader (Live Activity and home-screen widget, build 13+)'
     let mod!: typeof import('../widgetsModule');
     jest.isolateModules(() => {
       mod = jest.requireActual('../widgetsModule');
+describe('expo-contacts loader (find your mates, build 13+)', () => {
+  function loadContactsModule(): typeof import('../contactsModule') {
+    let mod!: typeof import('../contactsModule');
+    jest.isolateModules(() => {
+      mod = jest.requireActual('../contactsModule');
     });
     return mod;
   }
@@ -216,5 +229,42 @@ describe('expo-widgets loader (Live Activity and home-screen widget, build 13+)'
     expect(m.loadLiveTagWidgets()).not.toBeNull();
     m.loadLiveTagWidgets();
     expect(widgetsRequired).toHaveBeenCalledTimes(1);
+  it('looks for both of the package’s native modules by name', () => {
+    optionalGet.mockReturnValue({});
+    loadContactsModule().hasNativeContacts();
+    expect(optionalGet).toHaveBeenCalledWith('ExpoContactsNext');
+    expect(optionalGet).toHaveBeenCalledWith('ExpoContacts');
+  });
+
+  it('never requires the package on a build without the module (builds 10 to 12)', () => {
+    optionalGet.mockReturnValue(null);
+    const m = loadContactsModule();
+    expect(m.hasNativeContacts()).toBe(false);
+    expect(m.loadContacts()).toBeNull();
+    expect(contactsRequired).not.toHaveBeenCalled();
+  });
+
+  it('needs both modules: the package loads its old one too', () => {
+    optionalGet.mockImplementation((name: string) => (name === 'ExpoContactsNext' ? {} : null));
+    const m = loadContactsModule();
+    expect(m.loadContacts()).toBeNull();
+    expect(contactsRequired).not.toHaveBeenCalled();
+  });
+
+  it('treats a lookup that throws as missing', () => {
+    optionalGet.mockImplementation(() => {
+      throw new Error('no');
+    });
+    const m = loadContactsModule();
+    expect(m.hasNativeContacts()).toBe(false);
+    expect(m.loadContacts()).toBeNull();
+  });
+
+  it('requires the package once when the modules are there', () => {
+    optionalGet.mockReturnValue({});
+    const m = loadContactsModule();
+    expect(m.loadContacts()).not.toBeNull();
+    m.loadContacts();
+    expect(contactsRequired).toHaveBeenCalledTimes(1);
   });
 });

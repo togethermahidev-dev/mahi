@@ -1,4 +1,4 @@
--- Undo 20261007220000_contact_match: no finding mates from contacts. The stored hashes and the
+-- Undo 20261007270000_contact_match: no finding mates from contacts. The stored hashes and the
 -- tries go with their tables. Apps that call match_contacts get an error and show "Couldn’t check
 -- your contacts".
 begin;

@@ -1,7 +1,7 @@
 -- Find your mates from your contacts (owner, 2026-10-07): the phone sends SHA-256 hashes of its
 -- contacts' numbers (E.164) and emails (lowercased), never the contacts themselves; the server
 -- answers with the Mahi accounts those hashes belong to, and never hands back a phone or email.
--- Migration: 20261007220000_contact_match.
+-- Migration: 20261007270000_contact_match.
 begin;
 select plan(34);
 

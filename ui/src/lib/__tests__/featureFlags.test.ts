@@ -88,6 +88,9 @@ describe('default-off flags (video-posts)', () => {
     ]);
   });
 
+  // Finding mates from contacts needs build 13 and migration 20261007270000_contact_match, and the
+  // after-sign-up step must never pop up while flags load: off until PostHog says true.
+
   // The new tag screen needs its server change applied first, and must never swap in front of
   // someone while flags load: off until PostHog says true.
   it('keeps tag-slots off until switched on', () => {
