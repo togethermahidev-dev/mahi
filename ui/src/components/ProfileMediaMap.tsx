@@ -242,8 +242,6 @@ interface ProfileMediaMapProps {
   username?: string | null;
   /** Your own empty grid: a button to the camera, when the screen can open it. */
   onOpenCamera?: () => void;
-  /** Prevents the parent page swipe from stealing a drag across the workout carousel. */
-  onCarouselTouchChange?: (active: boolean) => void;
 }
 
 /** A profile page as one scrolling list: the header, then a calm, two-column workout grid. */
@@ -255,7 +253,6 @@ export default function ProfileMediaMap({
   listGesture,
   username,
   onOpenCamera,
-  onCarouselTouchChange,
 }: ProfileMediaMapProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
@@ -352,9 +349,6 @@ export default function ProfileMediaMap({
             </View>
           ) : null
         }
-        onTouchStart={() => onCarouselTouchChange?.(true)}
-        onTouchEnd={() => onCarouselTouchChange?.(false)}
-        onTouchCancel={() => onCarouselTouchChange?.(false)}
       />
     </ListGestureContext.Provider>
   );

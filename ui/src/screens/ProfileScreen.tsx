@@ -302,7 +302,6 @@ export default function ProfileScreen({
           onPostPress={(post) => setViewerPostId(post.id)}
           listGesture={listGesture}
           onOpenCamera={onOpenCamera}
-          onCarouselTouchChange={onCarouselTouchChange}
         />
       ) : (
         header

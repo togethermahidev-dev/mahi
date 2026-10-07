@@ -20,7 +20,6 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { answersATag } from '@/lib/reactivePosting';
 import FeedLockBanner from '@/components/FeedLockBanner';
-import CrewStrip from '@/components/CrewStrip';
 import { Skeleton } from '@/components/Motion';
 import { useSocialStore, useAuthStore, useChromeStore, useFeedStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
@@ -465,15 +464,6 @@ export default function FeedScreen({
             onPost={() => onGoToCamera?.()}
             onFindFriends={onFindFriends}
           />
-          {/* Your crew: the friends you're tied to and how they're doing (open feed only; a
-              locked feed's card already says who is waiting). */}
-          {!locked ? (
-            <CrewStrip
-              posts={posts}
-              serverOffsetMs={serverOffsetMs}
-              onPressPerson={handleAvatarPress}
-            />
-          ) : null}
         </Animated.View>
       ) : null}
 

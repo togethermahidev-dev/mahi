@@ -12,13 +12,13 @@ import {
 import { FONTS } from '@/constants/fonts';
 
 describe('NATIVE_TABS', () => {
-  // Owner, 2026-10-06: Profile leads, Camera sits between Feed and Messages.
-  it('follows the swipe order: Profile, Feed, Camera, then Messages', () => {
-    expect(NATIVE_TABS.map((t) => t.key)).toEqual(['profile', 'feed', 'camera', 'messages']);
+  // Owner, 2026-10-07: Messages leads and Profile sits last (swapped from 2026-10-06).
+  it('follows the swipe order: Messages, Feed, Camera, then Profile', () => {
+    expect(NATIVE_TABS.map((t) => t.key)).toEqual(['messages', 'feed', 'camera', 'profile']);
   });
 
   it('labels each tab in sentence case', () => {
-    expect(NATIVE_TABS.map((t) => t.title)).toEqual(['Profile', 'Feed', 'Camera', 'Messages']);
+    expect(NATIVE_TABS.map((t) => t.title)).toEqual(['Messages', 'Feed', 'Camera', 'Profile']);
   });
 
   it('gives every tab an Apple icon for both states and a Material icon for Android', () => {
@@ -85,11 +85,11 @@ describe('cameraLift', () => {
   });
 });
 
-// Owner, 2026-10-06: one row of swipe pages in the tab bar's order, Profile ⇄ Feed ⇄ Camera ⇄
-// Messages; no up/down swiping. The app still opens on Camera.
+// Owner, 2026-10-07: one row of swipe pages in the tab bar's order, Messages ⇄ Feed ⇄ Camera ⇄
+// Profile; no up/down swiping. The app still opens on Camera.
 describe('SWIPE_PAGES', () => {
-  it('is Profile, Feed, Camera, Messages, left to right', () => {
-    expect(SWIPE_PAGES).toEqual(['profile', 'feed', 'camera', 'messages']);
+  it('is Messages, Feed, Camera, Profile, left to right', () => {
+    expect(SWIPE_PAGES).toEqual(['messages', 'feed', 'camera', 'profile']);
   });
 
   it('is the tab bar order', () => {
@@ -99,19 +99,19 @@ describe('SWIPE_PAGES', () => {
 
 describe('pageTab', () => {
   it('names the tab for the page showing', () => {
-    expect(pageTab(0)).toBe('profile');
+    expect(pageTab(0)).toBe('messages');
     expect(pageTab(1)).toBe('feed');
     expect(pageTab(2)).toBe('camera');
-    expect(pageTab(3)).toBe('messages');
+    expect(pageTab(3)).toBe('profile');
   });
 });
 
 describe('tabPage', () => {
   it('finds the swipe page for every tab, Messages included', () => {
-    expect(tabPage('profile')).toBe(0);
+    expect(tabPage('messages')).toBe(0);
     expect(tabPage('feed')).toBe(1);
     expect(tabPage('camera')).toBe(2);
-    expect(tabPage('messages')).toBe(3);
+    expect(tabPage('profile')).toBe(3);
   });
 });
 

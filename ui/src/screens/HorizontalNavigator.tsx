@@ -44,8 +44,8 @@ import { horizontalRelease, horizontalSwipe, rubberBand, type Rect } from '@/lib
 import { COLORS, LAYER, LAYOUT, SIZE, SPRING } from '@/constants/tokens';
 
 // ─── Pages ────────────────────────────────────────────────────────────────────
-// One row, left to right, in the tab bar's order (owner, 2026-10-06): Profile ⇄ Feed ⇄ Camera ⇄
-// Messages. Sideways only — no up/down swiping. Camera remains the entry page.
+// One row, left to right, in the tab bar's order (owner, 2026-10-07): Messages ⇄ Feed ⇄ Camera ⇄
+// Profile. Sideways only — no up/down swiping. Camera remains the entry page.
 const PAGE_COUNT = SWIPE_PAGES.length;
 const CAMERA = tabPage('camera');
 const FEED = tabPage('feed');
@@ -329,7 +329,7 @@ export default function HorizontalNavigator({
     })
     .onUpdate((e) => {
       'worklet';
-      // Follows the finger; rubber-band resistance past Camera and Messages.
+      // Follows the finger; rubber-band resistance past the first and last pages.
       page.value = rubberBand(base.value - (e.absoluteX - startX.value) / width, 0, PAGE_COUNT - 1);
     })
     .onEnd((e, success) => {
@@ -392,23 +392,16 @@ export default function HorizontalNavigator({
       <View style={styles.root}>
         <Strip ref={blurTargetRef} style={styles.root}>
           <Animated.View style={[styles.strip, { width: width * PAGE_COUNT }, stripStyle]}>
-            {/* Profile — always mounted; `isActive` re-syncs its posts when it comes into view. */}
+            {/* Messages — the first page; its back button goes to Camera, the landing page. */}
             <DockRoom room={dockRoom}>
               <View
                 style={[styles.page, pageStyle]}
-                accessibilityActions={pageA11y('profile')}
+                accessibilityActions={pageA11y('messages')}
                 onAccessibilityAction={onPageAction}
               >
-                <ProfileScreen
-                  isActive={index === PROFILE}
-                  listGesture={profileList}
-                  onSearch={() => setSearchVisible(true)}
-                  onOpenCamera={() => navigate(CAMERA)}
-                  onCarouselTouchChange={setProfileCarouselActive}
-                />
+                <MessagesScreen onBack={() => navigate(CAMERA)} listGesture={messagesList} />
               </View>
             </DockRoom>
-
             {/* Feed — its header slides away as the list scrolls down. */}
             <DockRoom room={dockRoom}>
               <View
@@ -467,14 +460,20 @@ export default function HorizontalNavigator({
               </View>
             </View>
 
-            {/* Messages — the last page; its back button goes to Camera on its left. */}
+            {/* Profile — the last page, always mounted; `isActive` re-syncs its posts when it comes into view. */}
             <DockRoom room={dockRoom}>
               <View
                 style={[styles.page, pageStyle]}
-                accessibilityActions={pageA11y('messages')}
+                accessibilityActions={pageA11y('profile')}
                 onAccessibilityAction={onPageAction}
               >
-                <MessagesScreen onBack={() => navigate(CAMERA)} listGesture={messagesList} />
+                <ProfileScreen
+                  isActive={index === PROFILE}
+                  listGesture={profileList}
+                  onSearch={() => setSearchVisible(true)}
+                  onOpenCamera={() => navigate(CAMERA)}
+                  onCarouselTouchChange={setProfileCarouselActive}
+                />
               </View>
             </DockRoom>
           </Animated.View>

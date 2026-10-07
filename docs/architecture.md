@@ -221,13 +221,10 @@ the universal link (`applinks:togethermahi.com` in `app.config.js`) opens the po
 `web/app/p/[postId]/route.ts` sends the person to the App Store or Play Store. The web route is live only
 after a web deploy; Android association needs the next native build.
 
-## Feed timer, crew strip and motion
+## Feed timer and motion
 
 - The feed timer matches the server: the feed is open for 24 hours after you post, then locks until a
   friend tags you and you answer. The lock card shows a countdown ring that drains.
-- Crew strip (`CrewStrip`, rules in `ui/src/lib/crew.ts`, no switch): up to three friends you're tied to
-  right now — who tagged you and is waiting (time left), who you tagged and whether they've answered.
-  Never "missed" or "late"; read fresh, nothing kept on the phone.
 - Post sizes follow the phone and text size (`ui/src/lib/feedLayout.ts`); one post per flick; double
   tap only likes. Answering a tag shows a short celebration.
 - Motion: every animation takes its values from `MOTION` in `tokens.ts`; shared pieces in

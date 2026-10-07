@@ -31,12 +31,12 @@ type TabSelected = NativeSyntheticEvent<{
 }>;
 
 /**
- * The phone's own tab bar at the bottom (build 11+, no switch): Profile, Feed, Camera, Messages.
+ * The phone's own tab bar at the bottom (build 11+, no switch): Messages, Feed, Camera, Profile.
  * On iPhone it is Apple's tab bar (Liquid Glass on iOS 26, with Apple's own selection morph); on
  * Android, Material's bottom navigation.
  *
- * The pages are the swipe pages (HorizontalNavigator; owner, 2026-10-06): Profile ⇄ Feed ⇄
- * Camera ⇄ Messages, sideways only. They fill the screen above the bar. The bar shows which
+ * The pages are the swipe pages (HorizontalNavigator; owner, 2026-10-07): Messages ⇄ Feed ⇄
+ * Camera ⇄ Profile, sideways only. They fill the screen above the bar. The bar shows which
  * page is up, and a tap on it moves the pages there. Its own tab pages stay empty behind them.
  *
  * Only rendered when `nativeTabsAvailable` (App.tsx): react-native-screens is required lazily,
