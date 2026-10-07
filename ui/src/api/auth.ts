@@ -9,6 +9,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
+import { reportError } from '@/lib/sentry';
 import { unregisterPushToken } from './push';
 
 const SUPABASE_URL = env.supabaseUrl;
@@ -19,7 +20,11 @@ export async function signIn(email: string, password: string) {
 
 export async function signOut() {
   // Must run while still signed in; a failure must not block signing out.
-  await unregisterPushToken().catch(() => {});
+  await unregisterPushToken()
+    .then(({ error }) => {
+      if (error) reportError(error, { flow: 'push', action: 'unregister', level: 'warning' });
+    })
+    .catch((err) => reportError(err, { flow: 'push', action: 'unregister', level: 'warning' }));
   return supabase.auth.signOut();
 }
 

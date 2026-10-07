@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSocialStore } from '@/store';
 import type { CommentLiker } from '@/api';
+import { reportError } from '@/lib/sentry';
 
 export type CommentLikersState =
   { status: 'loading' } | { status: 'ready'; likers: CommentLiker[] } | { status: 'error' };
@@ -22,6 +23,13 @@ export function useCommentLikers(commentId: string | null): CommentLikersState {
       .getState()
       .getCommentLikers(commentId)
       .then(({ data, error }) => {
+        if (error || !data) {
+          reportError(error ?? new Error('get_comment_likers returned no data'), {
+            flow: 'social',
+            action: 'loadCommentLikers',
+            extra: { commentId, rpc: 'get_comment_likers' },
+          });
+        }
         if (!live) return;
         setState({
           id: commentId,

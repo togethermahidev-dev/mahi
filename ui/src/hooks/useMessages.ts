@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { createOrGetConversation, isDraft, type ConversationPreview } from '@/api';
 import { useAuthStore, useConversationStore, useMessagesStore } from '@/store';
+import { reportError } from '@/lib/sentry';
 
 export interface UseMessagesResult {
   inbox: ConversationPreview[];
@@ -62,7 +63,14 @@ export function useMessages(): UseMessagesResult {
     startConversation: async (otherUserId) => {
       if (!userId) return null;
       const { data, error } = await createOrGetConversation(userId, otherUserId);
-      if (error || !data) return null;
+      if (error || !data) {
+        reportError(error ?? new Error('createOrGetConversation returned no data'), {
+          flow: 'messages',
+          action: 'createOrGetConversation',
+          extra: { otherUserId },
+        });
+        return null;
+      }
       // A draft has no conversation on the server yet: it joins the inbox with its first message.
       if (isDraft(data.id)) return data;
       // Ensure the conversation is reflected in the store

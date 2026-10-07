@@ -4,6 +4,7 @@ import { Camera } from 'expo-camera';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { PUSH_PRIMER_DELAY_MS, shouldShowPushPrimer } from '@/lib/pushPrimer';
 import { usePushStore } from '@/store';
+import { reportError } from '@/lib/sentry';
 
 /**
  * Whether the phone's own camera question is out of the way (answered either way). The camera
@@ -20,7 +21,8 @@ function useCameraSettled(recheck: boolean): boolean {
         .then((p) => {
           if (!cancelled) setSettled(p.status !== 'undetermined');
         })
-        .catch(() => {
+        .catch((err) => {
+          reportError(err, { flow: 'camera', action: 'getCameraPermissions', level: 'warning' });
           // Can't tell: don't hold the page back for ever.
           if (!cancelled) setSettled(true);
         });

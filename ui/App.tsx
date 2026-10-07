@@ -51,7 +51,7 @@ import UpdateRequiredScreen from '@/components/UpdateRequiredScreen';
 import AccountStanding from '@/components/AccountStanding';
 import WelcomeCards from '@/components/WelcomeCards';
 import PushPrimer from '@/components/PushPrimer';
-import { Sentry } from '@/lib/sentry';
+import { reportError, Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastHost } from '@/components/ToastHost';
@@ -77,7 +77,13 @@ function syncTimezone(userId: string, current: string): void {
   const deviceTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   if (!deviceTz || deviceTz === current) return;
   updateTimezone(userId, deviceTz).then(({ error }) => {
-    if (error) Sentry.captureException(error, { tags: { flow: 'auth', action: 'updateTimezone' } });
+    if (error) {
+      reportError(error, {
+        flow: 'auth',
+        action: 'updateTimezone',
+        extra: { timezone: deviceTz, previous: current },
+      });
+    }
   });
 }
 
@@ -90,10 +96,15 @@ function syncTimezone(userId: string, current: string): void {
  */
 async function hydrateForUser(userId: string): Promise<void> {
   try {
-    const { data } = await getProfile(userId);
+    const { data, error } = await getProfile(userId);
+    if (error) reportError(error, { flow: 'auth', action: 'getProfile', extra: { userId } });
     if (data) {
       if (data.is_banned) {
-        signOut().catch(() => {});
+        signOut()
+          .then(({ error: signOutError }) => {
+            if (signOutError) reportError(signOutError, { flow: 'auth', action: 'signOutBanned' });
+          })
+          .catch((err) => reportError(err, { flow: 'auth', action: 'signOutBanned' }));
         return;
       }
       useUserStore.getState().setProfile(data);
@@ -102,7 +113,7 @@ async function hydrateForUser(userId: string): Promise<void> {
   } catch (err) {
     // Never let the profile fetch reject silently (e.g. revoked/expired session).
     console.error('[App] hydrateForUser getProfile failed', err);
-    Sentry.captureException(err, { tags: { flow: 'auth', action: 'getProfile' } });
+    reportError(err, { flow: 'auth', action: 'getProfile', extra: { userId } });
   }
 
   // Background-hydrate stores (non-blocking). Each guards against duplicate work. The feed and
@@ -141,7 +152,8 @@ export default function App(): React.JSX.Element {
     // Rehydrate theme preference before any screen renders
     rehydrateTheme();
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    supabase.auth.getSession().then(({ data: { session: s }, error }) => {
+      if (error) reportError(error, { flow: 'auth', action: 'getSession' });
       setSession(s);
       setIsLoading(false);
       // Load the profile and hydrate stores on cold-start restore
@@ -159,7 +171,11 @@ export default function App(): React.JSX.Element {
         Sentry.setUser({ id: s.user.id, email: s.user.email });
         posthog.identify(s.user.id, { email: s.user.email ?? null });
         // Re-evaluate feature flags for the now-identified user.
-        posthog.reloadFeatureFlagsAsync().catch(() => {});
+        posthog
+          .reloadFeatureFlagsAsync()
+          .catch((err) =>
+            reportError(err, { flow: 'flags', action: 'reloadFeatureFlags', level: 'warning' })
+          );
       } else {
         useUserStore.getState().reset();
         useFeedStore.getState().reset();
@@ -200,7 +216,15 @@ export default function App(): React.JSX.Element {
   // blocks, and the gate stays switched off on the server until the owner turns it on.
   useEffect(() => {
     if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
-    getAppGate(Platform.OS).then(({ data }) => {
+    getAppGate(Platform.OS).then(({ data, error }) => {
+      if (error) {
+        reportError(error, {
+          flow: 'settings',
+          action: 'getAppGate',
+          level: 'warning',
+          extra: { platform: Platform.OS, rpc: 'get_app_gate' },
+        });
+      }
       if (gateVerdict({ version: APP_VERSION, build: APP_BUILD }, data) === 'blocked')
         setBlockingGate(data);
     });

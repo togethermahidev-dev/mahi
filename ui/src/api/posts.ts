@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import { reportError } from '@/lib/sentry';
 import {
   mediaTypeArgs,
   mediaTypeOrPhoto,
@@ -265,7 +266,16 @@ export async function uploadPostMedia(opts: {
 /** Remove uploaded photos / videos after a post failed. Best effort. */
 export async function removePostPhotos(paths: string[]): Promise<void> {
   for (const path of paths) signedMedia.delete(path);
-  if (paths.length) await supabase.storage.from('posts').remove(paths);
+  if (!paths.length) return;
+  const { error } = await supabase.storage.from('posts').remove(paths);
+  if (error) {
+    reportError(error, {
+      flow: 'posts',
+      action: 'removePostPhotos',
+      level: 'warning',
+      extra: { count: paths.length, bucket: 'posts' },
+    });
+  }
 }
 
 /**
