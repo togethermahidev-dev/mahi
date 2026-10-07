@@ -150,7 +150,7 @@ describe('postedToast', () => {
   it('round numbers: 5, 10, 25, 50 and 100 answers without a miss', () => {
     for (const n of [5, 10, 25, 50, 100]) {
       expect(postedToast({ answered: ['sam'], points: n, bestBefore: 200 })).toBe(
-        `Answered @sam. +1 Mahi point. That’s ${n} answers without a miss.`
+        `Answered @sam. +1 Mahi point. That’s ${n} Mahi points without a miss.`
       );
     }
   });

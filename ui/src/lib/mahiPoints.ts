@@ -59,7 +59,7 @@ function taggedLine({ friends, links }: { friends: number; links: number }): str
 
 /**
  * Whether a post's points are a milestone the toast celebrates with its own line: the first point,
- * a new best, or 5 / 10 / 25 / 50 / 100 answers without a miss. `points` is the total after the
+ * a new best, or 5 / 10 / 25 / 50 / 100 Mahi points without a miss (the first post earns one too). `points` is the total after the
  * post, `bestBefore` the best before it (null = unknown, as in `postedToast`). Felt as a small
  * success buzz (`postedMoments` in haptics.ts).
  */
@@ -102,7 +102,7 @@ export function postedToast({
   // Back from a miss: a fresh start, without a reminder of what was lost.
   if (points === 1) return `${who} Welcome back. +1 Mahi point.`;
   if (ROUND_NUMBERS.includes(points)) {
-    return `${who} +1 Mahi point. That’s ${points} answers without a miss.`;
+    return `${who} +1 Mahi point. That’s ${points} Mahi points without a miss.`;
   }
   if (points === bestBefore) return `${who} +1 Mahi point. That’s your best again: ${points}.`;
   if (bestBefore - points <= NEAR_BEST) {

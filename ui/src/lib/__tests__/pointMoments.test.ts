@@ -89,7 +89,7 @@ describe('the point earned moment (#116)', () => {
     });
     it('says a round number', () => {
       const card = flightCard({ tagger: 'jo', points: 10, bestBefore: 30 });
-      expect(card.line).toBe('That’s 10 answers without a miss.');
+      expect(card.line).toBe('That’s 10 Mahi points without a miss.');
       expect(card.milestone).toBe(true);
     });
     it('welcomes you back after a miss, without a milestone', () => {
