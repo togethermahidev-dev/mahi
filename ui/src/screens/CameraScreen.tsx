@@ -158,6 +158,7 @@ import {
   ICON_SIZE,
   LAYOUT,
   LINE_HEIGHT,
+  MOTION,
   OFFSET,
   RADIUS,
   SCALE,
@@ -177,6 +178,8 @@ import PointCelebration, { type PointCelebrationContent } from '@/components/Poi
 import { PullHandle, useCameraPull } from '@/components/CameraPull';
 import PointFlight, { type Flight } from '@/components/PointFlight';
 import RollingNumber from '@/components/RollingNumber';
+import AnswerStamp from '@/components/AnswerStamp';
+import { answeredStamp } from '@/lib/answerStamp';
 import { flightCard, pointMoment, willFly } from '@/lib/pointMoments';
 import { openTagsTop } from '@/lib/pip';
 
@@ -537,6 +540,11 @@ function DualPhotoPreview({
   const [primaryFacing, setPrimaryFacing] = useState<'rear' | 'front'>('rear');
   // Video posts: the big video's sound. Every preview starts muted.
   const [previewMuted, setPreviewMuted] = useState(true);
+  // "Answered @sam", pressed onto the photo as an answer posts; cleared for the next preview.
+  const [stamp, setStamp] = useState<string | null>(null);
+  useEffect(() => {
+    if (frontPhoto) setStamp(null);
+  }, [frontPhoto]);
 
   // Frozen refs so image stays visible during slide-out animation. Declared
   // here (before the PIP layout math) because pipH below reads the pip photo's
@@ -910,6 +918,8 @@ function DualPhotoPreview({
             </GestureDetector>
           )}
 
+          {stamp ? <AnswerStamp text={stamp} /> : null}
+
           {/* Sound — top left, when the big shot is a video. */}
           {primaryShot?.kind === 'video' && (
             <SoundButton
@@ -1067,7 +1077,15 @@ function DualPhotoPreview({
                       { text: 'Keep editing', style: 'cancel' },
                       {
                         text: 'Post',
-                        onPress: () => onPost(frozenFront.current!, frozenRear.current!),
+                        onPress: () => {
+                          const front = frozenFront.current!;
+                          const rear = frozenRear.current!;
+                          // An answer gets its stamp first; the photo lifts away after a beat.
+                          const words = answeredStamp(answering);
+                          if (!words) return onPost(front, rear);
+                          setStamp(words);
+                          setTimeout(() => onPost(front, rear), MOTION.stampHoldMs);
+                        },
                       },
                     ],
                     { cancelable: true }

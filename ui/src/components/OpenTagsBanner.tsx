@@ -24,6 +24,8 @@ import { hasNativeExpoUI, loadSwiftUI } from '@/lib/expoUiModule';
 import { nativeDigits } from '@/lib/pointMoments';
 import { crossedLastHour, urgentPillLines, urgentRing } from '@/lib/urgentRing';
 import { useCoachStore } from '@/store/coachStore';
+import { isLiquidGlassAvailable } from 'expo-glass-effect';
+import { answeredMorph, answeredStamp } from '@/lib/answerStamp';
 import Svg, { Path } from 'react-native-svg';
 import { msLeft } from '@/lib/countdown';
 import { bannerText, openTagsBanner } from '@/lib/openTagsBanner';
@@ -72,18 +74,27 @@ export default function OpenTagsBanner({
   // left while still open (answered), never when they ran out.
   const reduceMotion = useReducedMotion();
   const prevTags = useRef(openTags);
-  const [answered, setAnswered] = useState(false);
+  // The words on the tick: "Answered @sam" (null while there is nothing to celebrate).
+  const [answered, setAnswered] = useState<string | null>(null);
   useEffect(() => {
     const before = prevTags.current;
     prevTags.current = openTags;
-    const stillOpen = before.some((t) => msLeft(t.expires_at, serverOffsetMs) > 0);
-    if (before.length > 0 && openTags.length === 0 && stillOpen) setAnswered(true);
+    const open = before.filter((t) => msLeft(t.expires_at, serverOffsetMs) > 0);
+    if (before.length > 0 && openTags.length === 0 && open.length > 0) {
+      const sorted = [...open].sort((a, b) => Date.parse(a.expires_at) - Date.parse(b.expires_at));
+      setAnswered(answeredStamp(sorted.map((t) => t.username)));
+    }
   }, [openTags, serverOffsetMs]);
   useEffect(() => {
     if (!answered) return;
-    const id = setTimeout(() => setAnswered(false), MOTION.celebrateMs);
+    const id = setTimeout(() => setAnswered(null), MOTION.celebrateMs);
     return () => clearTimeout(id);
   }, [answered]);
+  const morph = answeredMorph({
+    glass: isLiquidGlassAvailable(),
+    expoUiPresent: hasNativeExpoUI(),
+    reduceMotion,
+  });
 
   // What a miss would cost: "Miss it and your 4 points go back to 0" (null until loaded).
   const points = useUserStore((s) => s.profile?.streak_current ?? null);
@@ -107,11 +118,26 @@ export default function OpenTagsBanner({
   }, [leftMs, onCamera]);
 
   if (answered) {
+    const swift = morph === 'glass' ? loadSwiftUI() : null;
+    if (swift) {
+      return (
+        <View
+          style={[styles.wrap, { top }]}
+          pointerEvents="none"
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel={answered}
+          accessibilityLiveRegion="polite"
+        >
+          <GlassAnswered swift={swift} words={answered} />
+        </View>
+      );
+    }
     return (
       <View style={[styles.wrap, { top }]} pointerEvents="none">
         <Reanimated.View
           entering={
-            reduceMotion
+            morph === 'fade'
               ? FadeIn.duration(DURATION.d200).reduceMotion(ReduceMotion.Never)
               : ZoomIn.springify().damping(MOTION.morph.damping).stiffness(MOTION.morph.stiffness)
           }
@@ -119,7 +145,7 @@ export default function OpenTagsBanner({
           style={[styles.pill, styles.donePill, { backgroundColor: colors.accent }]}
           accessible
           accessibilityRole="text"
-          accessibilityLabel="Tag answered"
+          accessibilityLabel={answered}
           accessibilityLiveRegion="polite"
         >
           <Svg width={ICON_SIZE.i16} height={ICON_SIZE.i16} viewBox="0 0 24 24">
@@ -132,7 +158,7 @@ export default function OpenTagsBanner({
               strokeLinejoin="round"
             />
           </Svg>
-          <Text style={[styles.text, { color: colors.offBlack }]}>Tag answered</Text>
+          <Text style={[styles.text, { color: colors.offBlack }]}>{answered}</Text>
         </Reanimated.View>
       </View>
     );
@@ -192,6 +218,69 @@ export default function OpenTagsBanner({
       {/* Tagged with notifications off: one line to turn them on (flag push-core). */}
       {isFirstPost ? null : <PushNudge openTags={openTags} />}
     </View>
+  );
+}
+
+/**
+ * iOS 26 with @expo/ui: the tag pill becomes the tick in Apple's Liquid Glass. A glass capsule
+ * with the mate's name appears, then morphs (same glass id, SwiftUI spring) into the accent tick
+ * with "Answered @sam".
+ */
+function GlassAnswered({
+  swift,
+  words,
+}: {
+  swift: NonNullable<ReturnType<typeof loadSwiftUI>>;
+  words: string;
+}) {
+  const ns = React.useId();
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setDone(true), DURATION.d150);
+    return () => clearTimeout(id);
+  }, []);
+  const { GlassEffectContainer, HStack, Host, Image: SImage, Namespace, Text: SText } = swift.ui;
+  const m = swift.modifiers;
+  const pad = m.padding({ horizontal: SPACE.s16, vertical: SPACE.s8 });
+  const label = m.font({ family: FONTS.semiBold, size: FONT_SIZE.f14 });
+  const who = words.replace(/^Answered /, '');
+  return (
+    <Host matchContents>
+      <Namespace id={ns}>
+        <GlassEffectContainer
+          modifiers={[m.animation(m.Animation.spring(MOTION.glassMorph), done)]}
+        >
+          {done ? (
+            <HStack
+              spacing={SPACE.s6}
+              modifiers={[
+                pad,
+                m.glassEffect({
+                  glass: { variant: 'regular', tint: COLORS.accent },
+                  shape: 'capsule',
+                }),
+                m.glassEffectId('tagPill', ns),
+              ]}
+            >
+              <SImage systemName="checkmark" size={ICON_SIZE.i14} color={COLORS.offBlack} />
+              <SText modifiers={[label, m.foregroundStyle(COLORS.offBlack)]}>{words}</SText>
+            </HStack>
+          ) : (
+            <SText
+              modifiers={[
+                label,
+                m.foregroundStyle(COLORS.offWhite),
+                pad,
+                m.glassEffect({ glass: { variant: 'regular' }, shape: 'capsule' }),
+                m.glassEffectId('tagPill', ns),
+              ]}
+            >
+              {who}
+            </SText>
+          )}
+        </GlassEffectContainer>
+      </Namespace>
+    </Host>
   );
 }
 

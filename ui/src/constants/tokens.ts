@@ -577,6 +577,13 @@ export const MOTION = {
   /** The last 6 hours: the ring round the tagger's face on the camera pill, and the face. */
   urgentRingSize: 34,
   urgentAvatarSize: 26,
+  /** The "Answered @sam" stamp lands on the photo from this scale, tilted this much (deg), and
+   *  holds this long (ms) before the photo lifts away. */
+  stampFromScale: 1.3,
+  stampTiltDeg: -6,
+  stampHoldMs: 600,
+  /** iOS 26: Apple's glass morphing the tag pill into the tick (SwiftUI spring: seconds, 0–1). */
+  glassMorph: { response: 0.45, dampingFraction: 0.75 },
 } as const;
 
 // ─── One-time tips (coach marks): the bright cut-out, its ring, the bubble and its arrow ──────
