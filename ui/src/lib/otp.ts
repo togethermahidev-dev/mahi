@@ -36,7 +36,10 @@ export async function sendOTP(email: string): Promise<void> {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error ?? 'Failed to send verification email.');
+    throw Object.assign(
+      new Error((err as { error?: string }).error ?? 'Failed to send verification email.'),
+      { status: res.status }
+    );
   }
 
   // Store only the send timestamp for cooldown purposes.
@@ -60,7 +63,10 @@ export async function verifyOTP(email: string, code: string): Promise<void> {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error ?? 'Could not check the code.');
+    throw Object.assign(
+      new Error((err as { error?: string }).error ?? 'Could not check the code.'),
+      { status: res.status }
+    );
   }
 }
 

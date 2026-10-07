@@ -1,6 +1,7 @@
 import {
   authErrorText,
   DELETE_ACCOUNT_CONFIRM,
+  isPersonAuthAnswer,
   PASSWORD_CHANGED_NOTICE,
   resetFormError,
   WEAK_PASSWORD_MESSAGE,
@@ -101,6 +102,36 @@ describe('authErrorText (log in, reset and sign up never show raw server text)',
     );
     expect(authErrorText('', 'check-code')).toBe('Couldn’t check the code. Try again.');
     expect(authErrorText('boom', 'reset')).toBe('Couldn’t change your password. Try again.');
+  });
+});
+
+describe('isPersonAuthAnswer (what the person typed or did, not a bug to report)', () => {
+  it('is true for answers about what the person entered or how often they asked', () => {
+    for (const raw of [
+      'Invalid login credentials',
+      'Invalid or expired code',
+      'Your code has expired. Go back and ask for a new one.',
+      'Please wait a minute before asking for another code.',
+      'Too many codes requested. Please try again later.',
+      'This email already has an account. Log in instead.',
+      'Valid email required',
+      'Use 8 or more characters with two of: a capital letter, a number, a symbol.',
+      'Enter the 6-digit code.',
+    ]) {
+      expect(isPersonAuthAnswer(raw)).toBe(true);
+    }
+  });
+
+  it('is false for a lost connection and for anything unknown, so those get reported', () => {
+    for (const raw of [
+      'Network request failed',
+      'Profile save failed: duplicate key value violates unique constraint',
+      'Method not allowed',
+      '',
+      undefined,
+    ]) {
+      expect(isPersonAuthAnswer(raw)).toBe(false);
+    }
   });
 });
 

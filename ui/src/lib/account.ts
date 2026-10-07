@@ -67,6 +67,27 @@ export function authErrorText(
   return FALLBACK[step];
 }
 
+const PERSON_ANSWERS = [
+  /invalid login credentials/i,
+  /invalid or expired code|code has expired/i,
+  /wait a minute/i,
+  /too many/i,
+  /already has an account|already registered/i,
+  /two of: a capital letter/i,
+  /valid email/i,
+  /enter the \d+-digit code/i,
+];
+
+/**
+ * True when an auth error is about what the person typed or how often they asked (wrong
+ * password, old code, too many tries): expected, so not reported as a bug. A lost connection
+ * and anything unknown are false.
+ */
+export function isPersonAuthAnswer(raw: string | null | undefined): boolean {
+  const m = raw ?? '';
+  return PERSON_ANSWERS.some((re) => re.test(m));
+}
+
 /** The one native confirmation before an account is deleted. */
 export const DELETE_ACCOUNT_CONFIRM = {
   title: 'Delete your account?',

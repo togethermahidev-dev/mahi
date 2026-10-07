@@ -136,6 +136,8 @@ export function mergeSlots(server: TagSlot[], local: ScreenSlot[]): ScreenSlot[]
   ];
 }
 
+const SLOT_FALLBACK = 'Couldn’t do that. Try again.';
+
 /** A server refusal, in plain words. */
 export function slotErrorText(message: string): string {
   if (message.includes('too many open invites'))
@@ -146,7 +148,12 @@ export function slotErrorText(message: string): string {
   if (message.includes('no longer open')) return 'That link has ended.';
   if (message.includes('friends first')) return 'Tag your friends first.';
   if (message.includes('invite links are off')) return 'Links are off right now.';
-  return 'Couldn’t do that. Try again.';
+  return SLOT_FALLBACK;
+}
+
+/** True when a tag rule said no (a known refusal), so it isn't reported as a bug. */
+export function isSlotRefusal(message: string): boolean {
+  return slotErrorText(message) !== SLOT_FALLBACK;
 }
 
 /** How long an in-app invite stays open (app_config.invite_ttl). */

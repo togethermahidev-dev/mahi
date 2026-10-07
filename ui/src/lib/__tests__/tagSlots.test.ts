@@ -1,5 +1,6 @@
 import {
   inviteBlockedReason,
+  isSlotRefusal,
   mergeSlots,
   postRefusal,
   personAction,
@@ -147,6 +148,16 @@ describe('slotErrorText', () => {
     expect(slotErrorText('that invite is no longer open')).toBe('That link has ended.');
     expect(slotErrorText('tag your friends first')).toBe('Tag your friends first.');
     expect(slotErrorText('network down')).toBe('Couldn’t do that. Try again.');
+  });
+});
+
+describe('isSlotRefusal (a rule said no, not a bug to report)', () => {
+  it('is true for the server’s known refusals and false for anything else', () => {
+    expect(isSlotRefusal('too many open invites')).toBe(true);
+    expect(isSlotRefusal('already invited')).toBe(true);
+    expect(isSlotRefusal('that invite is no longer open')).toBe(true);
+    expect(isSlotRefusal('network down')).toBe(false);
+    expect(isSlotRefusal('')).toBe(false);
   });
 });
 

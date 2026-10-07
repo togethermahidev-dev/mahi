@@ -86,7 +86,7 @@ export function recordingLabel(left: number): string {
 }
 
 /** Under this long, a recording that didn't save was let go too soon, not a camera fault. */
-const TOO_SHORT_SECONDS = 1;
+export const TOO_SHORT_SECONDS = 1;
 
 /**
  * The toast when a video didn't save. Says what to do next without blaming: a too-short clip
