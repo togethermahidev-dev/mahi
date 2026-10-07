@@ -215,7 +215,7 @@ Installed as `~57.0.3`. `expo-glass-effect` (`~57.0.4`) draws the nav rail's gla
 
 All drag gestures use RNGH `Gesture.Pan` + Reanimated shared values, running on the UI thread — the full-screen navigators as well as localised drag surfaces.
 
-**Navigator** — `HorizontalNavigator` pages sideways between Camera ⇄ Feed ⇄ Profile ⇄ Messages with one manually-activated `Gesture.Pan` (no up/down page swiping since 2026-10-05, decision #60). Every activate/fail decision, release target and rubber-band comes from the worklet rules in `ui/src/lib/swipeRules.ts` (tested in `swipeRules.test.ts`): sideways only, system-edge exclusion, the rail's rectangle.
+**Navigator** — `HorizontalNavigator` pages sideways between Messages ⇄ Feed ⇄ Camera ⇄ Profile with one manually-activated `Gesture.Pan` (no up/down page swiping since 2026-10-05, decision #60). Every activate/fail decision, release target and rubber-band comes from the worklet rules in `ui/src/lib/swipeRules.ts` (tested in `swipeRules.test.ts`): sideways only, system-edge exclusion, the rail's rectangle.
 
 **Simultaneous-gesture rule (owner-verified on a phone, OTA 10.21):** the page pan and each page's list (`Gesture.Native()`: `feedList`, `profileList`, `messagesList`) must be allowed to track the same touch — the pan is `.simultaneousWithExternalGesture(feedList, profileList, messagesList)`. Leave a list out and iOS hands the touch to it, so sideways swipes on that page silently stop working.
 

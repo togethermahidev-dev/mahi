@@ -33,7 +33,13 @@ without the owner's go in the same session.
   directional follow. An accepted link or in-app tag invite continues to make both people follow
   each other; declining creates neither row. A normal profile Follow remains one-way until it is
   followed back, which is when the pair appears in Friends.
-- **OTA 12.21 is prepared for preview:** every tag-request and invite-link path explains before
+- **OTA 12.22 is committed (d7762a5), not yet published:** sideways swipes work on Profile again
+  (the Profile list was holding the page swipe on every touch); Messages and Profile swapped places,
+  so the order is Messages, Feed, Camera, Profile (decision #95); the crew strip over the feed is
+  removed (decision #100). Publishing to preview is the owner's step:
+  `cd ui && npx -y eas-cli@24.7.0 update --channel preview --environment preview --message "12.22 — …"`.
+  Not checked on a phone.
+- **OTA 12.21 is live on preview** (EAS group `85b104e9-9081-4527-8499-5c02e548865c`): every tag-request and invite-link path explains before
   acceptance/joining that both people will automatically follow each other, then confirms it after.
   Declining still creates no follows. Production migration
   `20261007105647_explicit_mutual_follow_wording` is live and gives the same explicit wording to

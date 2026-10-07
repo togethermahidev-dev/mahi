@@ -24,7 +24,7 @@ every other feature does.
 - **No `process.env`** — read config from `ui/src/lib/env.ts`. **No hardcoded values** — use `ui/src/constants/tokens.ts` (and `useAppTheme()` for light/dark). **Every new store's `reset()` must be wired into the `App.tsx` sign-out branch.**
 
 > ⚠ **Codebase fact that overrides any tooling suggestion:** this app uses **hand-rolled gesture navigation**
-> (`HorizontalNavigator`: one row of swipe pages, Camera ⇄ Feed ⇄ Profile ⇄ Messages, with the phone's tab bar
+> (`HorizontalNavigator`: one row of swipe pages, Messages ⇄ Feed ⇄ Camera ⇄ Profile, with the phone's tab bar
 > around it on build 12+ — `TabsNavigator`). There is **no `react-navigation`**. Do NOT introduce
 > `useFocusEffect`, `@react-navigation/*`, or a router. "Focus" = the navigator's active-index changing.
 

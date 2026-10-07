@@ -41,6 +41,14 @@
   but must reconcile from the RPC's committed state. Friends/follow lists always load fresh server data
   and subscribe to follow changes while open; never cache them on-device.
 
+## Swipe pages and tab bar (2026-10-07)
+- Order, left to right, everywhere (tab bar, swipe pages, glass rail, screen-reader actions):
+  Messages, Feed, Camera, Profile. Camera is still the landing page. Change it only in `NATIVE_TABS`
+  (`ui/src/lib/nativeTabs.ts`) and the page strip in `HorizontalNavigator`, which must match it.
+- Only a real sideways carousel may hold the page swipe (`onCarouselTouchChange`). Never wire it to a
+  whole-screen list: every touch would hold the swipe and the page could not be left by swiping
+  (the cause of "can't swipe from Profile", fixed in OTA 12.22).
+
 ## Database tools
 - Mahi doesn't use Docker: no `supabase start`, no local stack. Database types come from the Supabase MCP
   generator (`generate_typescript_types`), not `supabase gen types --local`.
