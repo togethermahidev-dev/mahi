@@ -33,7 +33,8 @@ without the owner's go in the same session.
   directional follow. An accepted link or in-app tag invite continues to make both people follow
   each other; declining creates neither row. A normal profile Follow remains one-way until it is
   followed back, which is when the pair appears in Friends.
-- **Audit 2026-10-07 (checked against prod) and its fixes, on `updates`, not yet on phones:**
+- **OTA 12.24 live on preview 2026-10-07 14:57 UTC** (EAS group `bedd3fdd-602e-48bb-8c52-3427563769a0`): the audit fixes below, twelve switches made standard, Sentry reporting everywhere (`reportError`, docs/integrations.md), PostHog one-person-per-account and core action events, profile photo save fix, server username check. Source maps uploaded. Not yet checked on a phone. `20261007170000_username_available` is NOT on prod yet (owner pushes; tried on prod 7/7 and backed up by Claude).
+- **Audit 2026-10-07 (checked against prod) and its fixes, on `updates`, now in OTA 12.24:**
   migration `20261007150000_live_updates_and_hardening` (live updates for follows, likes and
   comments; tags readable only by signed-in people and never on hidden posts; fixed search paths;
   trigger functions not callable through the API; indexes on 27 foreign keys) — tried with
