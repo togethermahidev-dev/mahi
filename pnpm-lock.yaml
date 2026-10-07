@@ -359,6 +359,9 @@ importers:
       '@eslint/compat':
         specifier: ^2.1.1
         version: 2.1.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))
+      '@sentry/expo-upload-sourcemaps':
+        specifier: 8.26.0
+        version: 8.26.0(@expo/env@2.4.3(supports-color@8.1.1))(dotenv@17.4.2)
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0

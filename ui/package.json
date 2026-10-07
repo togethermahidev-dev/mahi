@@ -18,7 +18,8 @@
     "build:testflight": "node ../scripts/release-check.cjs --release && npx -y eas-cli@24.7.0 build --profile testflight --platform ios --auto-submit",
     "build:prod": "node ../scripts/release-check.cjs --release && npx -y eas-cli@24.7.0 build --profile production --platform ios",
     "submit:ios": "npx -y eas-cli@24.7.0 submit --profile production --platform ios",
-    "ota:preview": "node ../scripts/release-check.cjs && npx -y eas-cli@24.7.0 update --channel preview --environment preview --message",
+    "ota:preview": "node ../scripts/release-check.cjs && node ../scripts/ota-publish.cjs preview",
+    "sentry:sourcemaps": "sentry-expo-upload-sourcemaps dist",
     "ota:prod": "node ../scripts/release-check.cjs && npx -y eas-cli@24.7.0 update --channel production --environment production --message",
     "eas:builds": "npx -y eas-cli@24.7.0 build:list --limit 10"
   },
@@ -72,6 +73,7 @@
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.1",
+    "@sentry/expo-upload-sourcemaps": "8.26.0",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.2.14",
     "@typescript/native": "npm:typescript@^7.0.2",
