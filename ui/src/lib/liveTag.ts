@@ -73,7 +73,7 @@ export interface TagView {
   kind: 'tag';
   /** "@sam is waiting on you". */
   title: string;
-  /** "+2 more" with several tags, else null. */
+  /** "2 more waiting" with several tags, else null. */
   more: string | null;
   line: string;
   /** The word beside the timer. */
@@ -83,6 +83,9 @@ export interface TagView {
   deadline: number;
   /** 6 hours or less left: drawn in the warning colour (from the 6-hour mark on). */
   warning: boolean;
+  /** What the Live Activity says once its time has run out (stale with `warning` set: its stale
+   *  date is then the deadline), instead of the title. */
+  timeUp: string;
   /** The tagger's photo, saved where the widget can read it (a file URL), or null. */
   photo: string | null;
   look: LiveTagLook;
@@ -142,6 +145,8 @@ export interface LiveTagInput {
   best: number;
   /** Taggers' photos saved for the widget, by username (none when the switch is off). */
   photos?: Record<string, string>;
+  /** False for someone who has never posted: their first post needs no tag. */
+  postedBefore?: boolean;
 }
 
 /** What the Live Activity and widget show at `deviceNow`. */
@@ -152,13 +157,16 @@ export function liveTagView({
   points,
   best,
   photos = {},
+  postedBefore = true,
 }: LiveTagInput): TagView | WaitingView {
   const open = openTagsAt(tags, serverOffsetMs, deviceNow);
   const first = open[0];
   if (!first) {
     return {
       kind: 'waiting',
-      title: 'Waiting for a mate to tag you',
+      title: postedBefore
+        ? 'Waiting for a mate to tag you'
+        : 'Post your first workout to get your first point',
       points: mahiPointsCount(points),
       best: `Best: ${best}`,
       look: LIVE_TAG_LOOK,
@@ -169,12 +177,13 @@ export function liveTagView({
   return {
     kind: 'tag',
     title: `@${first.username} is waiting on you`,
-    more: others > 0 ? `+${others} more` : null,
+    more: others > 0 ? `${others} more waiting` : null,
     line: 'Answer with any workout',
     left: 'left',
     start: Math.min(Date.parse(first.created_at) - serverOffsetMs, deviceNow),
     deadline,
     warning: deadline - deviceNow <= URGENT_TAG_MS,
+    timeUp: 'Time’s up · open Mahi',
     photo: photos[first.username] ?? null,
     look: LIVE_TAG_LOOK,
   };

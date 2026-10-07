@@ -67,7 +67,11 @@ describe('liveTagView — what the Live Activity and widget show', () => {
       points: 0,
       best: 0,
     });
-    expect(v).toMatchObject({ kind: 'tag', title: '@sam is waiting on you', more: '+2 more' });
+    expect(v).toMatchObject({
+      kind: 'tag',
+      title: '@sam is waiting on you',
+      more: '2 more waiting',
+    });
   });
 
   it('turns to the warning colour from the 6-hour mark on', () => {
@@ -121,6 +125,32 @@ describe('liveTagView — what the Live Activity and widget show', () => {
     ).toMatchObject({ points: '1 Mahi point', best: 'Best: 1' });
   });
 
+  // Walkthrough 2026-10-07: a first post needs no tag, so a brand-new person isn't told to wait.
+  it('with no open tag and no post yet, says the first workout earns the first point', () => {
+    const v = liveTagView({
+      tags: [],
+      serverOffsetMs: 0,
+      deviceNow,
+      points: 0,
+      best: 0,
+      postedBefore: false,
+    });
+    expect(v).toMatchObject({
+      kind: 'waiting',
+      title: 'Post your first workout to get your first point',
+    });
+    expect(
+      liveTagView({
+        tags: [],
+        serverOffsetMs: 0,
+        deviceNow,
+        points: 0,
+        best: 0,
+        postedBefore: true,
+      })
+    ).toMatchObject({ title: 'Waiting for a mate to tag you' });
+  });
+
   it('carries only the username and points, never names, photos or ids', () => {
     const t = { ...tag('secret-id', 'sam', 30 * HOUR), display_name: 'Sam Smith', avatar_url: 'x' };
     const json = JSON.stringify(
@@ -153,6 +183,24 @@ describe('liveActivityStaleAt — when the Live Activity turns to the warning co
   it('is the 6-hour mark while that is still ahead, else the deadline', () => {
     expect(liveActivityStaleAt(deviceNow + 30 * HOUR, deviceNow)).toBe(deviceNow + 24 * HOUR);
     expect(liveActivityStaleAt(deviceNow + 2 * HOUR, deviceNow)).toBe(deviceNow + 2 * HOUR);
+  });
+
+  // Walkthrough 2026-10-07: at 0:00 the activity must stop saying "@sam is waiting on you". The
+  // layout swaps to `timeUp` when it is stale and `warning` is set, because a warning view is
+  // always given the deadline as its stale date.
+  it('carries the time-up words, and a warning view always goes stale at the deadline', () => {
+    for (const left of [30 * HOUR, 6 * HOUR + 1000, 6 * HOUR, 2 * HOUR, MIN]) {
+      const v = liveTagView({
+        tags: [tag('a', 'sam', left)],
+        serverOffsetMs: 0,
+        deviceNow,
+        points: 0,
+        best: 0,
+      });
+      if (v.kind !== 'tag') throw new Error('expected a tag view');
+      expect(v.timeUp).toBe('Time’s up · open Mahi');
+      expect(liveActivityStaleAt(v.deadline, deviceNow) === v.deadline).toBe(v.warning);
+    }
   });
 });
 
@@ -194,7 +242,7 @@ describe('widgetTimeline — the widget changes on time without the app', () => 
       [14 * HOUR, '@ben is waiting on you'],
       [20 * HOUR, 'Waiting for a mate to tag you'],
     ]);
-    expect(entries[0].props).toMatchObject({ more: '+1 more', warning: true });
+    expect(entries[0].props).toMatchObject({ more: '1 more waiting', warning: true });
     expect(entries[1].props).toMatchObject({ more: null, warning: false });
     expect(entries[2].props).toMatchObject({ warning: true });
   });

@@ -109,11 +109,27 @@ describe('inviteWhatText — what the link does', () => {
     expect(inviteWhatText(invite())).toBe('You’ll follow each other when they join.');
   });
 
-  it('joined', () => {
-    expect(inviteWhatText(invite({ status: 'joined', joined: SAM }))).toBe('Joined · follows you');
-    expect(inviteWhatText(invite({ kind: 'tag', status: 'joined', joined: SAM }))).toBe(
-      'Joined · follows you'
+  it('joined: you follow each other, the same mutual follow every other screen promises', () => {
+    expect(inviteWhatText(invite({ status: 'joined', joined: SAM }))).toBe(
+      'Joined · you follow each other'
     );
+    expect(inviteWhatText(invite({ kind: 'tag', status: 'joined', joined: SAM }))).toBe(
+      'Joined · you follow each other'
+    );
+  });
+});
+
+describe('inviteWhatText — a link that has ended', () => {
+  it('expired: this link has ended, not the 48-hours line', () => {
+    expect(inviteWhatText(invite({ kind: 'tag', status: 'expired' }))).toBe('This link has ended.');
+    expect(inviteWhatText(invite({ status: 'expired' }))).toBe('This link has ended.');
+  });
+
+  it('cancelled: you cancelled this link', () => {
+    expect(inviteWhatText(invite({ kind: 'tag', status: 'cancelled' }))).toBe(
+      'You cancelled this link.'
+    );
+    expect(inviteWhatText(invite({ status: 'cancelled' }))).toBe('You cancelled this link.');
   });
 });
 

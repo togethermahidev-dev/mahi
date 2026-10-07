@@ -127,7 +127,7 @@ describe('mateInviteErrorText', () => {
 describe('slotShareMessage', () => {
   it('keeps the invitation low-pressure and leaves out the signup code', () => {
     expect(slotShareMessage('https://togethermahi.com/i/t1', 'ABC234')).toBe(
-      'I tagged you on Mahi. Join, then post any workout within 48 hours. We’ll keep each other going.\nhttps://togethermahi.com/i/t1'
+      'I tagged you on Mahi. You’ll have 48 hours from when you join to post any workout back. We’ll keep each other going.\nhttps://togethermahi.com/i/t1'
     );
   });
 });
@@ -295,7 +295,7 @@ describe('postConfirmText', () => {
       body: 'This earns a Mahi point. Your mates get 48 hours to answer you.',
     });
     expect(postConfirmText({ answering: ['sam', 'ali'], anyTagged: true }).title).toBe(
-      'Answer @sam +1?'
+      'Answer @sam and 1 more?'
     );
   });
 

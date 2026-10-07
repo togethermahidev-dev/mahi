@@ -94,7 +94,7 @@ export function flightCard({
   const line = newBest
     ? `New best: ${total}.`
     : ROUND_NUMBERS.includes(points)
-      ? `That’s ${points} answers without a miss.`
+      ? `That’s ${points} Mahi points without a miss.`
       : points === 1 && bestBefore > 0
         ? `Welcome back. You have ${total}.`
         : `You have ${total}.`;

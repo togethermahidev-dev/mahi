@@ -245,9 +245,12 @@ export default function ProfileScreen({
         ]}
         onPress={explainPoints}
         accessibilityRole="button"
+        // The card's label replaces what's inside it, so it carries the hint and mates lines too.
         accessibilityLabel={
           profile
-            ? pointsStatsLabel(profile.streak_current, profile.streak_highest)
+            ? [pointsStatsLabel(profile.streak_current, profile.streak_highest), hint, matesLine]
+                .filter(Boolean)
+                .join(' ')
             : 'Mahi points loading'
         }
         accessibilityHint="Explains Mahi points"

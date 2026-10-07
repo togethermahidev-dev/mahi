@@ -48,10 +48,11 @@ export const COACH_TIPS = {
     icon: 'notifications',
   },
   // The waiting camera gives when pulled down (owner, 2026-10-07, #115): the handle says so, and
-  // this says it once in words.
+  // this says it once in words. Pulling only nudges the card that is already showing, so the words
+  // promise no hidden list (walkthrough 2026-10-07). Not shown with VoiceOver, which can't pull.
   pullDown: {
-    title: 'Pull down for your mates',
-    body: 'See who’s on the clock behind it.',
+    title: 'Pull down to peek',
+    body: 'The card shows who you’re waiting on.',
     page: 'camera',
     icon: 'people',
   },

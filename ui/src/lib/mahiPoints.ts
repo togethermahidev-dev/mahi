@@ -59,7 +59,7 @@ function taggedLine({ friends, links }: { friends: number; links: number }): str
 
 /**
  * Whether a post's points are a milestone the toast celebrates with its own line: the first point,
- * a new best, or 5 / 10 / 25 / 50 / 100 answers without a miss. `points` is the total after the
+ * a new best, or 5 / 10 / 25 / 50 / 100 Mahi points without a miss (the first post earns one too). `points` is the total after the
  * post, `bestBefore` the best before it (null = unknown, as in `postedToast`). Felt as a small
  * success buzz (`postedMoments` in haptics.ts).
  */
@@ -102,13 +102,45 @@ export function postedToast({
   // Back from a miss: a fresh start, without a reminder of what was lost.
   if (points === 1) return `${who} Welcome back. +1 Mahi point.`;
   if (ROUND_NUMBERS.includes(points)) {
-    return `${who} +1 Mahi point. That’s ${points} answers without a miss.`;
+    return `${who} +1 Mahi point. That’s ${points} Mahi points without a miss.`;
   }
   if (points === bestBefore) return `${who} +1 Mahi point. That’s your best again: ${points}.`;
   if (bestBefore - points <= NEAR_BEST) {
     return `${who} +1 Mahi point. ${bestBefore - points + 1} more to beat your best.`;
   }
   return `${who} +1 Mahi point. You have ${points}.`;
+}
+
+/**
+ * Who a post just started 48 hours for: the named mates (or how many), then any links still to
+ * send. null when it tagged nobody. The full-screen moment shows it, and so does the toast after
+ * the +1 flight's card (walkthrough 2026-10-07), so an answer always says whose clock it started.
+ */
+export function taggedClockLine({
+  friends,
+  links,
+  names = [],
+}: {
+  friends: number;
+  links: number;
+  names?: string[];
+}): string | null {
+  // A link's 48 hours only start once that mate joins, so links get their own line.
+  const onClock =
+    names.length > 0
+      ? `${namesList(names)} now ${names.length === 1 ? 'has' : 'have'} 48 hours to answer you.`
+      : friends > 0
+        ? `Your ${friends} ${friends === 1 ? 'mate has' : 'mates have'} 48 hours to answer you.`
+        : null;
+  const line = [
+    onClock,
+    links > 0
+      ? `Send your ${links} ${links === 1 ? 'link' : 'links'} next. Each mate gets 48 hours once they join.`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return line || null;
 }
 
 /**
@@ -142,22 +174,8 @@ export function pointCelebration({
   const total = `You have ${mahiPointsCount(points)}.`;
   const others = answered.length - 1;
   const more = others > 0 ? ` and ${others} ${others === 1 ? 'other' : 'others'}` : '';
-  // A link's 48 hours only start once that mate joins, so links get their own line.
-  const { friends, links, names = [] } = tagged;
-  const onClock =
-    names.length > 0
-      ? `${namesList(names)} now ${names.length === 1 ? 'has' : 'have'} 48 hours to answer you.`
-      : friends > 0
-        ? `Your ${friends} ${friends === 1 ? 'mate has' : 'mates have'} 48 hours to answer you.`
-        : null;
-  const mates = [
-    onClock,
-    links > 0
-      ? `Send your ${links} ${links === 1 ? 'link' : 'links'} next. Each mate gets 48 hours once they join.`
-      : null,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const names = tagged.names ?? [];
+  const mates = taggedClockLine(tagged) ?? '';
 
   if (firstPost) {
     const answeredLine = answered.length > 0 ? `You answered @${answered[0]}’s tag${more}.` : null;

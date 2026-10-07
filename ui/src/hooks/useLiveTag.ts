@@ -107,6 +107,7 @@ export function syncLiveTag(
     points: profile.streak_current,
     best: profile.streak_highest,
     photos: photosOn ? photos : {},
+    postedBefore: profile.has_posted_before !== false,
   };
   if (enabled && signedIn && photosOn && loaded) savePhotos(widgets, openTags, again);
 
@@ -122,6 +123,7 @@ export function syncLiveTag(
         input.points,
         input.best,
         input.photos,
+        input.postedBefore,
       ]);
       setWidget(widgets, key, () => widgetTimeline(input));
     }

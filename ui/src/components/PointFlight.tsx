@@ -2,7 +2,8 @@
  * A Mahi point landing (owner, 2026-10-07, #116): "+1" springs up near the shutter, holds a beat,
  * then curves into the points counter, which rolls up and pops (the camera's PointsCounter does
  * that when `onLanded` releases its number). A small glass card under the counter names the mate
- * ("@sam kept you going") with Cheer, and hides by itself. A milestone bursts a ring of accent
+ * ("@sam kept you going") with Cheer, and hides by itself — except with VoiceOver on, when a card
+ * with Cheer stays (with a Done button) so the button can be reached. A milestone bursts a ring of accent
  * dots round the counter. Rules and words: src/lib/pointMoments.ts.
  *
  * Reduce Motion: the "+1" fades in at the counter, no flight and no dots; the number just changes.
@@ -26,6 +27,7 @@ import { BlurView } from 'expo-blur';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { burstDots, flyPoint, type Point } from '@/lib/pointMoments';
 import { useCoachBlock } from '@/hooks/useCoachMarks';
+import { useScreenReader } from '@/hooks/useScreenReader';
 import { FONTS } from '@/constants/fonts';
 import {
   ALPHA,
@@ -91,6 +93,9 @@ function FlightRun({
   const chipOpacity = useSharedValue(reduceMotion ? 0 : 1);
   const burst = useSharedValue(0);
   const [landed, setLanded] = React.useState(false);
+  // A button that goes by itself can't be reached with VoiceOver: the card waits for Done.
+  const screenReader = useScreenReader();
+  const stays = screenReader && !!flight.cheer;
 
   useEffect(() => {
     const land = () => {
@@ -125,10 +130,14 @@ function FlightRun({
     if (flight.milestone && !reduceMotion) {
       burst.value = withTiming(1, { duration: MOTION.burstMs });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [landed]);
+  useEffect(() => {
+    if (!landed || stays) return;
     const id = setTimeout(onDone, MOTION.flightCardMs);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landed]);
+  }, [landed, stays]);
 
   const { from, to } = flight;
   const chipStyle = useAnimatedStyle(() => {
@@ -173,7 +182,7 @@ function FlightRun({
           style={[styles.cardSpot, { top: flight.cardTop }]}
           pointerEvents="box-none"
         >
-          <FlightCard flight={flight} onDone={onDone} />
+          <FlightCard flight={flight} onDone={onDone} stays={stays} />
         </Reanimated.View>
       ) : null}
     </View>
@@ -200,9 +209,23 @@ function Dot({
 }
 
 /** The glass card: Liquid Glass on iOS 26, a frosted blur elsewhere. */
-function FlightCard({ flight, onDone }: { flight: Flight; onDone: () => void }) {
+function FlightCard({
+  flight,
+  onDone,
+  stays,
+}: {
+  flight: Flight;
+  onDone: () => void;
+  /** VoiceOver is on: the card stays until Cheer or Done. */
+  stays: boolean;
+}) {
   const body = (
-    <View style={styles.cardBody} accessible={!flight.cheer} accessibilityLiveRegion="polite">
+    <View
+      style={styles.cardBody}
+      accessible={!flight.cheer}
+      accessibilityLiveRegion="polite"
+      onAccessibilityEscape={stays ? onDone : undefined}
+    >
       <Text style={styles.cardTitle} accessibilityLabel={flight.liveText}>
         {flight.title}
       </Text>
@@ -217,6 +240,15 @@ function FlightCard({ flight, onDone }: { flight: Flight; onDone: () => void }) 
           style={({ pressed }) => [styles.cheer, pressed && { opacity: ALPHA.a70 }]}
         >
           <Text style={styles.cheerText}>{flight.cheer.label}</Text>
+        </Pressable>
+      ) : null}
+      {stays ? (
+        <Pressable
+          onPress={onDone}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.cheer, pressed && { opacity: ALPHA.a70 }]}
+        >
+          <Text style={styles.doneText}>Done</Text>
         </Pressable>
       ) : null}
     </View>
@@ -297,5 +329,10 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZE.f15,
     color: COLORS.accent,
+  },
+  doneText: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZE.f15,
+    color: COLORS.offWhite,
   },
 });

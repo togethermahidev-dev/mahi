@@ -5,8 +5,8 @@ describe('the "Answered" stamp (design research, 2026-10-07)', () => {
     expect(answeredStamp(['sam'])).toBe('Answered @sam');
   });
   it('counts the others when one post answers several tags', () => {
-    expect(answeredStamp(['sam', 'jo'])).toBe('Answered @sam +1');
-    expect(answeredStamp(['sam', 'jo', 'al'])).toBe('Answered @sam +2');
+    expect(answeredStamp(['sam', 'jo'])).toBe('Answered @sam and 1 more');
+    expect(answeredStamp(['sam', 'jo', 'al'])).toBe('Answered @sam and 2 more');
   });
   it('has no stamp for a post that answers nothing', () => {
     expect(answeredStamp([])).toBeNull();

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Animated, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useReducedMotion } from 'react-native-reanimated';
 import KeyboardInset from '@/components/KeyboardInset';
 import ReactionRow from '@/components/ReactionRow';
 import { themeColors } from '@/hooks/useAppTheme';
@@ -29,7 +30,8 @@ const ACTION_WORDS: Record<MessageHoldAction, string> = { edit: 'Edit', unsend: 
  * On an iPhone build with @expo/ui (build 11+): Apple's own context menu lifts the bubble and
  * shows, above the menu, the quick row of six emoji and a "+" (a ControlGroup, Apple's compact
  * row), then Edit / Unsend for your own message. Elsewhere (build 10, Android): a bottom sheet
- * with the same row and choices. A double tap is a heart, with a heart popping off the bubble.
+ * with the same row and choices. A double tap is a heart, with a heart popping off the bubble
+ * (Reduce Motion: it fades in and out, no spring).
  * Picking is felt (`selection`); the double tap too (`tick`).
  *
  * `children` stay what they were: the bubble, its taps intact.
@@ -64,9 +66,20 @@ export default function MessageHoldMenu({
   const { bg, text, dangerText, border } = themeColors(dark);
 
   // The heart that pops off the bubble on a double tap.
+  const reduceMotion = useReducedMotion();
   const [heartScale] = useState(() => new Animated.Value(0));
   const [heartFade] = useState(() => new Animated.Value(0));
   const popHeart = () => {
+    if (reduceMotion) {
+      // No spring: the heart shows at its size, and fades.
+      heartScale.setValue(1);
+      heartFade.setValue(0);
+      Animated.sequence([
+        Animated.timing(heartFade, { toValue: 1, duration: DURATION.d200, useNativeDriver: true }),
+        Animated.timing(heartFade, { toValue: 0, duration: DURATION.d400, useNativeDriver: true }),
+      ]).start();
+      return;
+    }
     heartScale.setValue(0);
     heartFade.setValue(1);
     Animated.sequence([
@@ -90,13 +103,17 @@ export default function MessageHoldMenu({
   const a11yActions = enabled
     ? [
         ...(canReact
-          ? QUICK_EMOJI.map((e) => ({ name: `react:${e}`, label: `React with ${e}` }))
+          ? [
+              ...QUICK_EMOJI.map((e) => ({ name: `react:${e}`, label: `React with ${e}` })),
+              { name: 'more', label: 'Any other emoji' },
+            ]
           : []),
         ...actions.map((a) => ({ name: a, label: ACTION_WORDS[a] })),
       ]
     : undefined;
   const onA11yAction = (name: string) => {
     if (name.startsWith('react:')) pick(name.slice('react:'.length));
+    else if (name === 'more') onMore();
     else if (name === 'edit' || name === 'unsend') onAction(name);
   };
 

@@ -6,6 +6,7 @@ import {
   appleSignInShown,
   isAppleUser,
   profileStep,
+  PROFILE_LOAD_ERROR,
 } from '../appleSignIn';
 
 const sha256 = async (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
@@ -130,8 +131,19 @@ describe('profileStep (an Apple account with no profile yet goes through the pro
     expect(profileStep({ apple: true, status: 'present', hasProfile: true })).toBe('app');
   });
 
-  it('never blocks on a failed profile read', () => {
-    expect(profileStep({ apple: true, status: 'error', hasProfile: false })).toBe('app');
+  // Walkthrough 2026-10-07: an Apple account let into the app with no profile can't post, and
+  // nothing says why. After the read has been tried twice, a plain error with Try again.
+  it('a failed profile read shows the error step, not the app with no profile', () => {
+    expect(profileStep({ apple: true, status: 'error', hasProfile: false })).toBe('error');
+    expect(profileStep({ apple: true, status: 'error', hasProfile: true })).toBe('app');
+  });
+
+  it('says what went wrong in plain words', () => {
+    expect(PROFILE_LOAD_ERROR).toEqual({
+      title: 'Couldn’t load your profile',
+      body: 'Check your connection and try again.',
+      button: 'Try again',
+    });
   });
 
   it('leaves email accounts exactly as today (their sheet saves the profile itself)', () => {

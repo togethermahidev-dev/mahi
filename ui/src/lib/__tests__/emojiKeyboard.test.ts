@@ -3,7 +3,9 @@ import { join } from 'path';
 import { EMOJI_PANEL } from '@/constants/tokens';
 import {
   EMOJI_KEYBOARD_START,
+  EMOJI_KEYBOARD_OFF,
   FREE_TEXT_PREDICTION,
+  anyEmojiHelp,
   emojiPanelHeight,
   stepEmojiKeyboard,
   type EmojiKeyboardState,
@@ -109,6 +111,33 @@ describe('stepEmojiKeyboard on Android — the emoji panel in place of the keybo
     expect(
       stepEmojiKeyboard('android', { emoji: false, waiting: true }, { type: 'blurred' })
     ).toEqual({ state: letters, effects: [] });
+  });
+});
+
+// Walkthrough 2026-10-07: on an iPhone with no Emoji keyboard turned on, the button quietly stayed
+// on letters. Say why, and where to turn it on.
+describe('EMOJI_KEYBOARD_OFF — when the iPhone has no Emoji keyboard', () => {
+  it('says where to turn it on', () => {
+    expect(EMOJI_KEYBOARD_OFF).toBe('Turn on the Emoji keyboard in Settings › General › Keyboard.');
+  });
+});
+
+describe('anyEmojiHelp — the line on the "+" sheet', () => {
+  it('build 13: the app opens the emoji keyboard itself', () => {
+    expect(anyEmojiHelp({ emojiButton: true, typedLetters: false })).toBe(
+      'Pick one from the emoji keyboard.'
+    );
+  });
+
+  it('older builds: the globe key opens it', () => {
+    expect(anyEmojiHelp({ emojiButton: false, typedLetters: false })).toBe(
+      'Type one. The globe key on the keyboard opens the emoji.'
+    );
+  });
+
+  it('letters typed: asks for an emoji', () => {
+    expect(anyEmojiHelp({ emojiButton: true, typedLetters: true })).toBe('Pick an emoji.');
+    expect(anyEmojiHelp({ emojiButton: false, typedLetters: true })).toBe('Pick an emoji.');
   });
 });
 

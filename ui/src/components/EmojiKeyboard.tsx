@@ -3,6 +3,7 @@ import { Keyboard, Platform, Pressable, StyleSheet, type TextInput } from 'react
 import { EmojiIcon, KeyboardIcon } from '@/components/ScreenIcons';
 import { ALPHA, ICON_SIZE, SIZE } from '@/constants/tokens';
 import {
+  EMOJI_KEYBOARD_OFF,
   EMOJI_KEYBOARD_START,
   emojiPanelHeight,
   stepEmojiKeyboard,
@@ -16,6 +17,7 @@ import {
 } from '@/lib/emojiKeyboardModule';
 import { TAP_AREA, tapSlop } from '@/lib/tapArea';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { useToastStore } from '@/store/toastStore';
 
 /**
  * The emoji button in a composer, and (Android) the emoji panel that takes the keyboard's place.
@@ -84,11 +86,13 @@ export function useEmojiKeyboard(
         if (effect === 'focusInput') {
           inputRef.current?.focus();
         } else if (effect === 'askEmoji') {
-          // False: the phone has no Emoji keyboard turned on; stay on letters.
+          // False: the phone has no Emoji keyboard turned on; stay on letters, and say why.
           native
             ?.setEmojiMode(true)
             .then((ok) => {
-              if (!ok) fallBack();
+              if (ok) return;
+              fallBack();
+              useToastStore.getState().show(EMOJI_KEYBOARD_OFF);
             })
             .catch(fallBack);
         } else if (android) {

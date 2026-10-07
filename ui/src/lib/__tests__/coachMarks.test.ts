@@ -30,7 +30,7 @@ describe('coach tips — the words', () => {
       bell: ['A mate tagged you', 'Tap to answer.', 'feed'],
       twoPhotos: ['Two photos', 'What you see, then a selfie.', 'camera'],
       waiting: ['You’ll post again when a mate tags you', 'Check back each day.', 'camera'],
-      pullDown: ['Pull down for your mates', 'See who’s on the clock behind it.', 'camera'],
+      pullDown: ['Pull down to peek', 'The card shows who you’re waiting on.', 'camera'],
       feedLocked: ['Your feed opens when you post', 'Answer tags to keep it open.', 'feed'],
       tagMates: ['Tag 3 mates', 'Each gets 48 hours to post back.', 'compose'],
     });

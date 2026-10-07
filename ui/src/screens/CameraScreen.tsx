@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -72,6 +72,7 @@ import {
   pointsRowText,
   pointsValue,
   postedToast,
+  taggedClockLine,
 } from '@/lib/mahiPoints';
 import { matesOnClock } from '@/lib/openTagsBanner';
 import { useSecondTick } from '@/hooks/useSecondTick';
@@ -105,6 +106,7 @@ import {
 } from '@/lib/tagSlots';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useCoachAnchor } from '@/hooks/useCoachMarks';
+import { useScreenReader } from '@/hooks/useScreenReader';
 import CoachMarkHost from '@/components/CoachMark';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useVideoPosts } from '@/hooks/useVideoPosts';
@@ -554,10 +556,11 @@ function DualPhotoPreview({
   const [primaryFacing, setPrimaryFacing] = useState<'rear' | 'front'>('rear');
   // Video posts: the big video's sound. Every preview starts muted.
   const [previewMuted, setPreviewMuted] = useState(true);
-  // "Answered @sam", pressed onto the photo as an answer posts; cleared for the next preview.
+  // "Answered @sam", pressed onto the photo as an answer posts; cleared for the next preview —
+  // before it is drawn, so photos handed back after a failed post never show "Answered".
   const [stamp, setStamp] = useState<string | null>(null);
   const stampOn = useFeatureFlag('answered-stamp');
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (frontPhoto) setStamp(null);
   }, [frontPhoto]);
 
@@ -1730,10 +1733,20 @@ export default function CameraScreen({
   // The point-earned moment after a post, and the invite links waiting until it closes.
   const [celebration, setCelebration] = useState<PointCelebrationContent | null>(null);
   const invitesAfterCelebration = useRef<InviteItem[]>([]);
+  // Who the answer just tagged, said once the +1 flight's card has gone.
+  const toastAfterFlight = useRef<string | null>(null);
   // A later answer's point flies into the counter (#116); until it lands the counter keeps the
   // number it had when Post was pressed.
   const [flight, setFlight] = useState<Flight | null>(null);
   const [heldPoints, setHeldPoints] = useState<number | null>(null);
+  // "Answered @sam" on the tag pill for a beat, from the post's own result (never guessed from
+  // tags leaving the list).
+  const [answeredTick, setAnsweredTick] = useState<string | null>(null);
+  useEffect(() => {
+    if (!answeredTick) return;
+    const id = setTimeout(() => setAnsweredTick(null), MOTION.celebrateMs);
+    return () => clearTimeout(id);
+  }, [answeredTick]);
   const rootRef = useRef<View>(null);
   // Kill switch: off, every point gets today's full-screen moment.
   const flyOn = useFeatureFlag('point-fly-in');
@@ -1914,7 +1927,9 @@ export default function CameraScreen({
   const { fontScale } = useWindowDimensions();
   const pullOn = useFeatureFlag('camera-pull-down') && cameraOn && waitingCard;
   const pull = useCameraPull(pullOn, safeTop);
-  const pullTip = useCoachAnchor('pullDown', pullOn);
+  // VoiceOver can't pull, so the pull tip waits for a sighted session.
+  const screenReader = useScreenReader();
+  const pullTip = useCoachAnchor('pullDown', pullOn && !screenReader);
 
   // Tap to focus (flag `camera-tap-focus`): switch on, an iPhone, and a build whose camera can
   // focus on a point (build 11+). OTA updates also reach build 10, which can't: there it's off.
@@ -2571,6 +2586,9 @@ export default function CameraScreen({
       }
 
       if (result.answered.length > 0 || firstPostNow) useUserStore.getState().refresh(userId);
+      if (result.answered.length > 0) {
+        setAnsweredTick(answeredStamp(result.answered.map((a) => a.username)));
+      }
       // An answer's toast offers a way to the friend whose tag it answered (the oldest one).
       const tagger = result.answered[0];
       const cheer =
@@ -2584,6 +2602,16 @@ export default function CameraScreen({
         friends: taggedUsersSnapshot.length + slotsSnapshot.filter((x) => x.kind !== 'link').length,
         links: inviteCountSnapshot + slotsSnapshot.filter((x) => x.kind === 'link').length,
       };
+      // The mates whose 48 hours start now, named (in-app requests start once accepted).
+      const taggedNow = {
+        ...taggedCounts,
+        names: [
+          ...taggedUsersSnapshot.map((u) => u.username),
+          ...slotsSnapshot
+            .filter((x) => x.kind === 'friend' && x.username)
+            .map((x) => x.username as string),
+        ],
+      };
       // A post that earns a point gets its full-screen moment; any other post, the toast.
       const celebrate = result.replayed
         ? null
@@ -2592,22 +2620,15 @@ export default function CameraScreen({
             points: result.streak.streak_current,
             bestBefore: profile.streak_highest,
             firstPost: firstPostNow,
-            // The mates whose 48 hours start now, named (in-app requests start once accepted).
-            tagged: {
-              ...taggedCounts,
-              names: [
-                ...taggedUsersSnapshot.map((u) => u.username),
-                ...slotsSnapshot
-                  .filter((x) => x.kind === 'friend' && x.username)
-                  .map((x) => x.username as string),
-              ],
-            },
+            tagged: taggedNow,
           });
       const invitesToSend = tagSlotsOn ? [] : inviteList(result.invites);
       useTagStore.getState().syncOpenTags();
       if (moment === 'fly') {
-        // The invite list waits until the card has gone: one thing at a time.
+        // The invite list waits until the card has gone: one thing at a time. So do the words
+        // saying whose 48 hours this post just started (the card itself only names the tagger).
         invitesAfterCelebration.current = invitesToSend;
+        toastAfterFlight.current = taggedClockLine(taggedNow);
         launchFlight({
           ...flightCard({
             tagger: tagger?.username ?? null,
@@ -2973,6 +2994,7 @@ export default function CameraScreen({
             serverOffsetMs={serverOffsetMs}
             // Never posted (not even a deleted post): "First post · no tag needed".
             firstPost={hasPosted === false && tagsLoaded}
+            answered={answeredTick}
           />
         )}
 
@@ -3357,6 +3379,9 @@ export default function CameraScreen({
           }}
           onDone={() => {
             setFlight(null);
+            const tagged = toastAfterFlight.current;
+            toastAfterFlight.current = null;
+            if (tagged) useToastStore.getState().show(tagged, WAIT.toastLong);
             const waiting = invitesAfterCelebration.current;
             invitesAfterCelebration.current = [];
             if (waiting.length > 0) setPostInvites(waiting);

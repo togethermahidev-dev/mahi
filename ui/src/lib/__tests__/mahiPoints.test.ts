@@ -11,6 +11,7 @@ import {
   postedToast,
   lastAnsweredMates,
   answeredMatesLine,
+  taggedClockLine,
 } from '../mahiPoints';
 
 describe('pointsCount', () => {
@@ -149,7 +150,7 @@ describe('postedToast', () => {
   it('round numbers: 5, 10, 25, 50 and 100 answers without a miss', () => {
     for (const n of [5, 10, 25, 50, 100]) {
       expect(postedToast({ answered: ['sam'], points: n, bestBefore: 200 })).toBe(
-        `Answered @sam. +1 Mahi point. That’s ${n} answers without a miss.`
+        `Answered @sam. +1 Mahi point. That’s ${n} Mahi points without a miss.`
       );
     }
   });
@@ -344,6 +345,37 @@ describe('pointCelebration — the moment a post earns a point', () => {
 });
 
 // Usability walkthrough 2026-10-07: the next open after a miss says so, once.
+// Walkthrough 2026-10-07: with the +1 flight on, an answer never said whose 48 hours it started.
+// The words shown after the flight's card are the full-screen moment's own.
+describe('taggedClockLine — who now has 48 hours', () => {
+  it('names the mates', () => {
+    expect(taggedClockLine({ friends: 3, links: 0, names: ['jo', 'kim', 'lee'] })).toBe(
+      '@jo, @kim and @lee now have 48 hours to answer you.'
+    );
+    expect(taggedClockLine({ friends: 1, links: 0, names: ['jo'] })).toBe(
+      '@jo now has 48 hours to answer you.'
+    );
+  });
+
+  it('counts mates it can’t name, and keeps the links line', () => {
+    expect(taggedClockLine({ friends: 2, links: 1 })).toBe(
+      'Your 2 mates have 48 hours to answer you. Send your 1 link next. Each mate gets 48 hours once they join.'
+    );
+  });
+
+  it('nothing when the post tagged nobody', () => {
+    expect(taggedClockLine({ friends: 0, links: 0 })).toBeNull();
+  });
+
+  it('is the same line the full-screen moment shows', () => {
+    const tagged = { friends: 3, links: 0, names: ['a', 'b', 'c'] };
+    expect(
+      pointCelebration({ answered: ['sam'], points: 3, bestBefore: 5, firstPost: false, tagged })
+        ?.lines[1]
+    ).toBe(taggedClockLine(tagged));
+  });
+});
+
 describe('missMoment — the moment after a miss', () => {
   it('names whose tag, the reset and the best that stays', () => {
     expect(missMoment({ tagger: 'sam', best: 5 })).toEqual({

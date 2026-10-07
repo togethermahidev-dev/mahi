@@ -153,7 +153,7 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
             <View style={styles.buttons}>
               {showApple && apple.sdk ? (
                 <apple.sdk.AppleAuthenticationButton
-                  buttonType={apple.sdk.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonType={apple.sdk.AppleAuthenticationButtonType.CONTINUE}
                   buttonStyle={
                     dark
                       ? apple.sdk.AppleAuthenticationButtonStyle.WHITE

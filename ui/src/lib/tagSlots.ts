@@ -89,7 +89,7 @@ export function postConfirmText({
 }): { title: string; body: string } {
   const mates = anyTagged ? 'Your mates get 48 hours to answer you.' : null;
   if (answering.length > 0) {
-    const more = answering.length > 1 ? ` +${answering.length - 1}` : '';
+    const more = answering.length > 1 ? ` and ${answering.length - 1} more` : '';
     return {
       title: `Answer @${answering[0]}${more}?`,
       body: ['This earns a Mahi point.', mates].filter(Boolean).join(' '),
@@ -131,7 +131,7 @@ export function personAction(
 
 /** The low-pressure message that goes with an invite link. */
 export function slotShareMessage(url: string, _code: string): string {
-  return `I tagged you on Mahi. Join, then post any workout within 48 hours. We’ll keep each other going.\n${url}`;
+  return `I tagged you on Mahi. You’ll have 48 hours from when you join to post any workout back. We’ll keep each other going.\n${url}`;
 }
 
 /**

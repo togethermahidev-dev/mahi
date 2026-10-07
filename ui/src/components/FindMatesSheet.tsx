@@ -18,6 +18,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FlashList } from '@shopify/flash-list';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 import { matchContacts } from '@/api/contacts';
+import type { MateInvite } from '@/api/tagSlots';
 import { useAuthStore } from '@/store';
 import { useFollowStore } from '@/store/followStore';
 import { useToastStore } from '@/store/toastStore';
@@ -134,7 +135,11 @@ function FindMates({
   const [asking, setAsking] = useState(false);
   const [linking, setLinking] = useState(false);
   const [invitingId, setInvitingId] = useState<string | null>(null);
+  // Contacts whose text was opened in Messages. Opening it doesn't mean it was sent, so the row
+  // says "Text opened", and a second tap opens the same link again rather than making a new one
+  // (walkthrough 2026-10-07). Kept only while the sheet is open.
   const [invited, setInvited] = useState<Set<string>>(() => new Set());
+  const linkFor = useRef(new Map<string, MateInvite>());
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const live = useRef(true);
   const matchIds = useRef<string[]>([]);
@@ -309,7 +314,8 @@ function FindMates({
     setInvitingId(contact.id);
     haptic('selection');
     try {
-      const link = await makeMateLink();
+      const earlier = linkFor.current.get(contact.id);
+      const link = earlier ?? (await makeMateLink());
       if (!link) return;
       const sms = smsInviteUrl(
         contact.phone,
@@ -319,11 +325,14 @@ function FindMates({
       try {
         await Linking.openURL(sms);
         track('invite_shared', { via: 'messages' });
-        noteInviteSent(link.token, 'contact', contact.name, contact.phone);
+        if (!earlier) {
+          noteInviteSent(link.token, 'contact', contact.name, contact.phone);
+          linkFor.current.set(contact.id, link);
+        }
         if (live.current) setInvited((s) => new Set(s).add(contact.id));
       } catch (e) {
         reportError(e, { flow: 'invites', action: 'openMessagesInvite' });
-        discardUnsentLink(link.token);
+        if (!earlier) discardUnsentLink(link.token);
         show('Couldn’t open your messages app. Try again.');
       }
     } finally {
@@ -442,18 +451,20 @@ function FindMates({
             pressed && styles.pressed,
           ]}
           onPress={() => void invite(contact)}
-          disabled={done || !!invitingId}
+          disabled={!!invitingId}
           hitSlop={OFFSET.o8}
           accessibilityRole="button"
-          accessibilityLabel={done ? `Invited ${contact.name}` : `Invite ${contact.name}`}
-          accessibilityHint={done ? undefined : 'Opens a text to them with your invite link'}
-          accessibilityState={{ disabled: done, busy }}
+          accessibilityLabel={done ? `Text opened for ${contact.name}` : `Invite ${contact.name}`}
+          accessibilityHint={
+            done ? 'Opens the same text again' : 'Opens a text to them with your invite link'
+          }
+          accessibilityState={{ busy }}
         >
           {busy ? (
             <ActivityIndicator size="small" color={muted} />
           ) : (
             <Text style={[styles.pillText, { color: done ? muted : accentText }]}>
-              {done ? 'Invited' : 'Invite'}
+              {done ? 'Text opened' : 'Invite'}
             </Text>
           )}
         </Pressable>
