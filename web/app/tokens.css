@@ -129,7 +129,6 @@
   --mahi-size-z170: 10.625rem;
   --mahi-size-z180: 11.25rem;
   --mahi-size-z200: 12.5rem;
-  --mahi-size-z280: 17.5rem;
   --mahi-size-z360: 22.5rem;
   --mahi-size-z400: 25rem;
   --mahi-size-z420: 26.25rem;
@@ -378,7 +377,6 @@
   --spacing-z170: var(--mahi-size-z170);
   --spacing-z180: var(--mahi-size-z180);
   --spacing-z200: var(--mahi-size-z200);
-  --spacing-z280: var(--mahi-size-z280);
   --spacing-z360: var(--mahi-size-z360);
   --spacing-z400: var(--mahi-size-z400);
   --spacing-z420: var(--mahi-size-z420);
