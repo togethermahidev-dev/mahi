@@ -187,8 +187,12 @@ describe('fonts', () => {
     expect(offenders.map(rel)).toEqual([]);
   });
 
+  // The home-screen widget and Live Activity (src/widgets) are drawn by iOS in the widget
+  // extension, which can't load Inter (expo-widgets has no way to add a font to it): their text
+  // is SwiftUI's, in Apple's system font. Everything the app itself draws stays Inter.
   it('gives every piece of text an Inter face', () => {
-    expect(files.flatMap(textWithoutInter)).toEqual([]);
+    const widgets = join('src', 'widgets', '');
+    expect(files.filter((f) => !f.includes(widgets)).flatMap(textWithoutInter)).toEqual([]);
   });
 
   // A character Inter lacks is drawn in the phone's own font, Inter face or not.

@@ -9,11 +9,22 @@ const diditRequired = jest.fn();
 const purchasesRequired = jest.fn();
 const purchasesUiRequired = jest.fn();
 const screensRequired = jest.fn();
+const widgetsRequired = jest.fn();
+const expoModules: Record<string, unknown> = {};
+const platform = { OS: 'ios' };
 
 jest.mock('react-native', () => ({
   TurboModuleRegistry: { get: (name: string) => turboGet(name) },
   NativeModules: nativeModules,
+  Platform: platform,
 }));
+jest.mock('expo', () => ({
+  requireOptionalNativeModule: (name: string) => expoModules[name] ?? null,
+}));
+jest.mock('../../widgets/liveTagWidgets', () => {
+  widgetsRequired();
+  return { tagWidget: {}, tagActivity: {} };
+});
 jest.mock('@didit-protocol/sdk-react-native', () => {
   diditRequired();
   return { startVerification: jest.fn() };
@@ -38,7 +49,10 @@ beforeEach(() => {
   purchasesRequired.mockReset();
   purchasesUiRequired.mockReset();
   screensRequired.mockReset();
+  widgetsRequired.mockReset();
+  platform.OS = 'ios';
   for (const k of Object.keys(nativeModules)) delete nativeModules[k];
+  for (const k of Object.keys(expoModules)) delete expoModules[k];
 });
 
 function loadDiditModule(): typeof import('../diditModule') {
@@ -157,5 +171,50 @@ describe('react-native-screens loader (native tab bar)', () => {
     expect(m.loadScreens()).not.toBeNull();
     m.loadScreens();
     expect(screensRequired).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('expo-widgets loader (Live Activity and home-screen widget, build 13+)', () => {
+  function loadWidgetsModule(): typeof import('../widgetsModule') {
+    let mod!: typeof import('../widgetsModule');
+    jest.isolateModules(() => {
+      mod = jest.requireActual('../widgetsModule');
+    });
+    return mod;
+  }
+
+  it('never loads the widgets on a build without ExpoWidgets (builds 10–12)', () => {
+    expoModules.ExpoUI = {};
+    const m = loadWidgetsModule();
+    expect(m.hasNativeWidgets()).toBe(false);
+    expect(m.loadLiveTagWidgets()).toBeNull();
+    expect(widgetsRequired).not.toHaveBeenCalled();
+  });
+
+  it('needs @expo/ui too: the layouts are drawn with it', () => {
+    expoModules.ExpoWidgets = {};
+    const m = loadWidgetsModule();
+    expect(m.hasNativeWidgets()).toBe(false);
+    expect(m.loadLiveTagWidgets()).toBeNull();
+    expect(widgetsRequired).not.toHaveBeenCalled();
+  });
+
+  it('is iPhone only', () => {
+    platform.OS = 'android';
+    expoModules.ExpoWidgets = {};
+    expoModules.ExpoUI = {};
+    const m = loadWidgetsModule();
+    expect(m.hasNativeWidgets()).toBe(false);
+    expect(m.loadLiveTagWidgets()).toBeNull();
+    expect(widgetsRequired).not.toHaveBeenCalled();
+  });
+
+  it('loads the widgets once when both modules are there', () => {
+    expoModules.ExpoWidgets = {};
+    expoModules.ExpoUI = {};
+    const m = loadWidgetsModule();
+    expect(m.loadLiveTagWidgets()).not.toBeNull();
+    m.loadLiveTagWidgets();
+    expect(widgetsRequired).toHaveBeenCalledTimes(1);
   });
 });
