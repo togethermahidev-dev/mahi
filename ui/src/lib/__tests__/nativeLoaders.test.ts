@@ -187,11 +187,6 @@ describe('expo-widgets loader (Live Activity and home-screen widget, build 13+)'
     let mod!: typeof import('../widgetsModule');
     jest.isolateModules(() => {
       mod = jest.requireActual('../widgetsModule');
-describe('expo-contacts loader (find your mates, build 13+)', () => {
-  function loadContactsModule(): typeof import('../contactsModule') {
-    let mod!: typeof import('../contactsModule');
-    jest.isolateModules(() => {
-      mod = jest.requireActual('../contactsModule');
     });
     return mod;
   }
@@ -229,6 +224,18 @@ describe('expo-contacts loader (find your mates, build 13+)', () => {
     expect(m.loadLiveTagWidgets()).not.toBeNull();
     m.loadLiveTagWidgets();
     expect(widgetsRequired).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('expo-contacts loader (find your mates, build 13+)', () => {
+  function loadContactsModule(): typeof import('../contactsModule') {
+    let mod!: typeof import('../contactsModule');
+    jest.isolateModules(() => {
+      mod = jest.requireActual('../contactsModule');
+    });
+    return mod;
+  }
+
   it('looks for both of the package’s native modules by name', () => {
     optionalGet.mockReturnValue({});
     loadContactsModule().hasNativeContacts();

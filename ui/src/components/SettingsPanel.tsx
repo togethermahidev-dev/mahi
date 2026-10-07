@@ -91,7 +91,7 @@ function Sheet({
       live = false;
     };
   }, [invitesOpen]);
-  // "Find your mates" (build 13+, switch contacts-finder).
+  // "Find your mates" (build 13+, no switch).
   const contactsFinder = useContactsFinder();
   const [findMatesOpen, setFindMatesOpen] = useState(false);
   const [securityOpen, setSecurityOpen] = useState(false);

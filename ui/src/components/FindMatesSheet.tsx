@@ -72,7 +72,7 @@ interface FindMatesSheetProps {
 
 /**
  * "Find your mates": who in your contacts is on Mahi (follow them), and everyone else (invite them
- * by text). Shown only on builds with expo-contacts and with the `contacts-finder` switch on
+ * by text). Shown only on builds with expo-contacts (build 13+; no switch)
  * (useContactsFinder). Contacts and matches can change, so nothing is kept on the phone: each open
  * asks the phone and the server again, with a loading state first.
  */

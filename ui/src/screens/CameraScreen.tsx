@@ -1710,7 +1710,7 @@ export default function CameraScreen({
   // behind it, made on tap; joining from it makes you follow each other, and no tag starts.
   const [invitingMate, setInvitingMate] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
-  // "Find your mates" from contacts (build 13+, switch contacts-finder).
+  // "Find your mates" from contacts (build 13+, no switch).
   const contactsFinder = useContactsFinder();
   const [findMatesOpen, setFindMatesOpen] = useState(false);
   // The number on "See your invites": read fresh each time the waiting card shows (and after the
