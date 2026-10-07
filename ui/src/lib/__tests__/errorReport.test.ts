@@ -17,7 +17,12 @@ describe('buildErrorReport', () => {
       'posts.create failed: new row violates row-level security policy [code 42501]'
     );
     expect(r.error.name).toBe('PostgrestError');
-    expect(r.tags).toMatchObject({ flow: 'posts', action: 'create', kind: 'database', code: '42501' });
+    expect(r.tags).toMatchObject({
+      flow: 'posts',
+      action: 'create',
+      kind: 'database',
+      code: '42501',
+    });
     expect(r.context).toMatchObject({ details: 'Failing row contains (…)' });
     expect(r.level).toBe('error');
   });
@@ -31,10 +36,15 @@ describe('buildErrorReport', () => {
   });
 
   it('turns a plain object or string into a readable error', () => {
-    const obj = buildErrorReport({ message: 'duplicate key', code: '23505' }, { flow: 'follow', action: 'set' });
+    const obj = buildErrorReport(
+      { message: 'duplicate key', code: '23505' },
+      { flow: 'follow', action: 'set' }
+    );
     expect(obj.error.message).toBe('follow.set failed: duplicate key [code 23505]');
     expect(obj.error.name).toBe('DatabaseError');
-    expect(buildErrorReport('boom', { flow: 'x', action: 'y' }).error.message).toBe('x.y failed: boom');
+    expect(buildErrorReport('boom', { flow: 'x', action: 'y' }).error.message).toBe(
+      'x.y failed: boom'
+    );
     expect(buildErrorReport(undefined, { flow: 'x', action: 'y' }).error.message).toBe(
       'x.y failed: unknown error (undefined)'
     );
@@ -42,29 +52,49 @@ describe('buildErrorReport', () => {
 
   it('sorts auth, server function, storage and network failures', () => {
     expect(
-      buildErrorReport(supabaseError('AuthApiError', 'Invalid login credentials', { status: 400, code: 'invalid_credentials' }), {
-        flow: 'auth',
-        action: 'signIn',
-      }).tags
+      buildErrorReport(
+        supabaseError('AuthApiError', 'Invalid login credentials', {
+          status: 400,
+          code: 'invalid_credentials',
+        }),
+        {
+          flow: 'auth',
+          action: 'signIn',
+        }
+      ).tags
     ).toMatchObject({ kind: 'auth', http_status: '400', code: 'invalid_credentials' });
     expect(
-      buildErrorReport(supabaseError('FunctionsHttpError', 'Edge Function returned a non-2xx status code', {}), {
+      buildErrorReport(
+        supabaseError('FunctionsHttpError', 'Edge Function returned a non-2xx status code', {}),
+        {
+          flow: 'f',
+          action: 'a',
+        }
+      ).tags.kind
+    ).toBe('server-function');
+    expect(
+      buildErrorReport(supabaseError('StorageApiError', 'Payload too large', { status: 413 }), {
         flow: 'f',
         action: 'a',
       }).tags.kind
-    ).toBe('server-function');
-    expect(
-      buildErrorReport(supabaseError('StorageApiError', 'Payload too large', { status: 413 }), { flow: 'f', action: 'a' }).tags
-        .kind
     ).toBe('storage');
-    const net = buildErrorReport(new TypeError('Network request failed'), { flow: 'f', action: 'a' });
+    const net = buildErrorReport(new TypeError('Network request failed'), {
+      flow: 'f',
+      action: 'a',
+    });
     expect(net.tags.kind).toBe('network');
     expect(net.level).toBe('warning');
   });
 
   it('groups by place and cause, not by ids inside the message', () => {
-    const a = buildErrorReport(new Error('post 1b2c3d4e-0000-4000-8000-000000000001 not found'), { flow: 'p', action: 'open' });
-    const b = buildErrorReport(new Error('post 9f8e7d6c-0000-4000-8000-000000000002 not found'), { flow: 'p', action: 'open' });
+    const a = buildErrorReport(new Error('post 1b2c3d4e-0000-4000-8000-000000000001 not found'), {
+      flow: 'p',
+      action: 'open',
+    });
+    const b = buildErrorReport(new Error('post 9f8e7d6c-0000-4000-8000-000000000002 not found'), {
+      flow: 'p',
+      action: 'open',
+    });
     expect(a.fingerprint).toEqual(b.fingerprint);
     expect(a.fingerprint).not.toEqual(
       buildErrorReport(new Error('post 1 not found'), { flow: 'p', action: 'other' }).fingerprint
@@ -77,7 +107,12 @@ describe('buildErrorReport', () => {
       action: 'a',
       extra: { postId: 'p1', password: 'hunter2', accessToken: 't', otp: '123456' },
     });
-    expect(r.context).toMatchObject({ postId: 'p1', password: '[removed]', accessToken: '[removed]', otp: '[removed]' });
+    expect(r.context).toMatchObject({
+      postId: 'p1',
+      password: '[removed]',
+      accessToken: '[removed]',
+      otp: '[removed]',
+    });
   });
 
   it('reads the database code from an error passed on as a cause', () => {
@@ -88,13 +123,17 @@ describe('buildErrorReport', () => {
     });
     const wrapped = new Error(db.message, { cause: db });
     const r = buildErrorReport(wrapped, { flow: 'posts', action: 'load' });
-    expect(r.error.message).toBe('posts.load failed: permission denied for table posts [code 42501]');
+    expect(r.error.message).toBe(
+      'posts.load failed: permission denied for table posts [code 42501]'
+    );
     expect(r.tags).toMatchObject({ kind: 'database', code: '42501' });
     expect(r.context).toMatchObject({ details: 'd', hint: 'h' });
   });
 
   it('lets the caller choose the level', () => {
-    expect(buildErrorReport(new Error('x'), { flow: 'f', action: 'a', level: 'fatal' }).level).toBe('fatal');
+    expect(buildErrorReport(new Error('x'), { flow: 'f', action: 'a', level: 'fatal' }).level).toBe(
+      'fatal'
+    );
   });
 });
 

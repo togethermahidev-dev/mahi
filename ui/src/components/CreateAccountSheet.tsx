@@ -391,7 +391,8 @@ export default function CreateAccountSheet({
         contact_number: contactNumber.trim() || null,
         fitness_goals: fitnessGoals.length > 0 ? fitnessGoals : null,
       });
-      if (profileError) throw new Error('Profile save failed: ' + profileError.message, { cause: profileError });
+      if (profileError)
+        throw new Error('Profile save failed: ' + profileError.message, { cause: profileError });
 
       // 4. Track completed sign-up — fitness_goals is used in PostHog dashboards.
       posthog.capture('signup_completed', {
