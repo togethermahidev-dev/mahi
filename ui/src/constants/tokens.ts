@@ -570,6 +570,13 @@ export const MOTION = {
   /** Feed develop: after you post, each mate's post clears from this blur to sharp over this
    *  long (ms), each this much (ms) after the one before, up to this many; the rest clear together. */
   develop: { fromBlur: 60, ms: 900, staggerMs: 120, staggerMax: 6 },
+  /** The last hour of a tag: the ring round the tagger's face breathes to this opacity, this
+   *  fast (ms) each way. */
+  urgentBreatheMs: 1400,
+  urgentBreatheLow: 0.35,
+  /** The last 6 hours: the ring round the tagger's face on the camera pill, and the face. */
+  urgentRingSize: 34,
+  urgentAvatarSize: 26,
 } as const;
 
 // ─── One-time tips (coach marks): the bright cut-out, its ring, the bubble and its arrow ──────

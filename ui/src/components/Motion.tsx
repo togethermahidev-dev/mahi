@@ -97,12 +97,14 @@ export function CountdownRing({
   progress,
   color,
   track,
+  size = MOTION.ringSize,
 }: {
   progress: number;
   color: string;
   track: string;
+  /** Width and height (default MOTION.ringSize). */
+  size?: number;
 }): React.JSX.Element {
-  const size = MOTION.ringSize;
   const stroke = MOTION.ringStroke;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;

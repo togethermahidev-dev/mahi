@@ -1,18 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSecondTick } from '@/hooks/useSecondTick';
 import PushNudge from '@/components/PushNudge';
-import { FadeInItem } from '@/components/Motion';
+import { CountdownRing, FadeInItem } from '@/components/Motion';
 import Reanimated, {
+  Easing,
   FadeIn,
   FadeOut,
   ReduceMotion,
   ZoomIn,
+  cancelAnimation,
+  useAnimatedStyle,
   useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withTiming,
 } from 'react-native-reanimated';
+import { haptic } from '@/lib/haptics';
+import { hasNativeExpoUI, loadSwiftUI } from '@/lib/expoUiModule';
+import { nativeDigits } from '@/lib/pointMoments';
+import { crossedLastHour, urgentPillLines, urgentRing } from '@/lib/urgentRing';
+import { useCoachStore } from '@/store/coachStore';
 import Svg, { Path } from 'react-native-svg';
 import { msLeft } from '@/lib/countdown';
 import { bannerText, openTagsBanner } from '@/lib/openTagsBanner';
@@ -21,6 +32,7 @@ import type { OpenTag } from '@/api';
 import { useUserStore } from '@/store';
 import { FONTS } from '@/constants/fonts';
 import {
+  ALPHA,
   BLUR_INTENSITY,
   BORDER_WIDTH,
   COLORS,
@@ -32,6 +44,7 @@ import {
   SIZE,
   SPACE,
   STROKE,
+  withAlpha,
 } from '@/constants/tokens';
 
 /**
@@ -75,6 +88,24 @@ export default function OpenTagsBanner({
   // What a miss would cost: "Miss it and your 4 points go back to 0" (null until loaded).
   const points = useUserStore((s) => s.profile?.streak_current ?? null);
   const banner = openTagsBanner({ openTags, serverOffsetMs, deviceNow, firstPost, points });
+
+  // The last 6 hours: the soonest tag's face in a draining ring; one gentle tap as the last hour
+  // begins, only while the camera is on screen.
+  const soonestTag = openTags.length
+    ? [...openTags].sort((a, b) => Date.parse(a.expires_at) - Date.parse(b.expires_at))[0]
+    : null;
+  const leftMs = soonestTag ? msLeft(soonestTag.expires_at, serverOffsetMs, deviceNow) : null;
+  const onCamera = useCoachStore((s) => s.page === 'camera');
+  const lastLeft = useRef<number | null>(null);
+  useEffect(() => {
+    if (leftMs === null) {
+      lastLeft.current = null;
+      return;
+    }
+    if (crossedLastHour(lastLeft.current, leftMs) && onCamera) haptic('tick');
+    lastLeft.current = leftMs;
+  }, [leftMs, onCamera]);
+
   if (answered) {
     return (
       <View style={[styles.wrap, { top }]} pointerEvents="none">
@@ -127,17 +158,28 @@ export default function OpenTagsBanner({
             tint="dark"
             style={[styles.pill, { borderColor: colors.accent }]}
           >
-            <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={3}>
-              {banner.parts.map((part, i) =>
-                part.accent ? (
-                  <Text key={i} style={[styles.time, { color: clockColor }]}>
-                    {part.text}
-                  </Text>
-                ) : (
-                  part.text
-                )
-              )}
-            </Text>
+            {banner.urgent && !isFirstPost && soonestTag && leftMs !== null ? (
+              <UrgentLine
+                parts={banner.parts}
+                avatarUrl={soonestTag.avatar_url}
+                username={soonestTag.username}
+                leftMs={leftMs}
+                color={clockColor}
+                textColor={colors.offWhite}
+              />
+            ) : (
+              <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={3}>
+                {banner.parts.map((part, i) =>
+                  part.accent ? (
+                    <Text key={i} style={[styles.time, { color: clockColor }]}>
+                      {part.text}
+                    </Text>
+                  ) : (
+                    part.text
+                  )
+                )}
+              </Text>
+            )}
             {/* One post answers every open tag; a newcomer hears that any workout counts. */}
             {banner.note ? (
               <Text style={[styles.note, { color: colors.offWhite }]} numberOfLines={2}>
@@ -153,7 +195,141 @@ export default function OpenTagsBanner({
   );
 }
 
+/**
+ * The urgent pill's first line: the tagger's face in a ring that drains over the last 6 hours
+ * (breathing slowly in the last hour), then who is waiting and the clock. On an iPhone build with
+ * @expo/ui the seconds roll like an odometer (Apple's numericText); elsewhere they change in
+ * place. Reduce Motion: the ring holds still and the digits don't roll.
+ */
+function UrgentLine({
+  parts,
+  avatarUrl,
+  username,
+  leftMs,
+  color,
+  textColor,
+}: {
+  parts: Parameters<typeof urgentPillLines>[0];
+  avatarUrl: string | null;
+  username: string;
+  leftMs: number;
+  color: string;
+  textColor: string;
+}) {
+  const reduceMotion = useReducedMotion();
+  const { progress, breathing } = urgentRing(leftMs);
+  const lines = urgentPillLines(parts);
+  const glow = useSharedValue(1);
+  useEffect(() => {
+    if (!breathing || reduceMotion) {
+      cancelAnimation(glow);
+      glow.value = 1;
+      return;
+    }
+    glow.value = withRepeat(
+      withTiming(MOTION.urgentBreatheLow, {
+        duration: MOTION.urgentBreatheMs,
+        easing: Easing.inOut(Easing.quad),
+      }),
+      -1,
+      true
+    );
+  }, [breathing, reduceMotion, glow]);
+  const ringStyle = useAnimatedStyle(() => ({ opacity: glow.value }));
+  const native =
+    lines.clock !== null &&
+    nativeDigits({ platform: Platform.OS, expoUiPresent: hasNativeExpoUI(), reduceMotion });
+  const swift = native ? loadSwiftUI() : null;
+
+  return (
+    <View style={styles.urgentRow}>
+      <View style={styles.ringSpot}>
+        <Reanimated.View style={[StyleSheet.absoluteFill, ringStyle]}>
+          <CountdownRing
+            progress={progress}
+            color={color}
+            track={withAlpha(COLORS.white, ALPHA.a20)}
+            size={MOTION.urgentRingSize}
+          />
+        </Reanimated.View>
+        {avatarUrl ? (
+          <Image source={{ uri: avatarUrl, cache: 'force-cache' }} style={styles.urgentAvatar} />
+        ) : (
+          <View style={[styles.urgentAvatar, styles.urgentInitialBg]}>
+            <Text style={[styles.urgentInitial, { color: textColor }]}>
+              {(username[0] ?? '?').toUpperCase()}
+            </Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.urgentWords}>
+        <Text style={[styles.text, styles.urgentText, { color: textColor }]} numberOfLines={2}>
+          {lines.words}
+        </Text>
+        <View style={styles.clockRow}>
+          {swift && lines.clock ? (
+            <swift.ui.Host matchContents>
+              <swift.ui.Text
+                modifiers={[
+                  swift.modifiers.font({ family: FONTS.bold, size: FONT_SIZE.f14 }),
+                  swift.modifiers.monospacedDigit(),
+                  swift.modifiers.foregroundStyle(color),
+                  swift.modifiers.contentTransition('numericText', { countsDown: true }),
+                  swift.modifiers.animation(
+                    swift.modifiers.Animation.default,
+                    Math.floor(leftMs / 1000)
+                  ),
+                ]}
+              >
+                {lines.clock}
+              </swift.ui.Text>
+            </swift.ui.Host>
+          ) : lines.clock ? (
+            <Text style={[styles.text, styles.time, { color }]}>{lines.clock}</Text>
+          ) : null}
+          <Text style={[styles.text, styles.time, { color }]}>{lines.after}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  urgentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s10,
+  },
+  ringSpot: {
+    width: MOTION.urgentRingSize,
+    height: MOTION.urgentRingSize,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  urgentAvatar: {
+    width: MOTION.urgentAvatarSize,
+    height: MOTION.urgentAvatarSize,
+    borderRadius: RADIUS.pill,
+  },
+  urgentInitialBg: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: withAlpha(COLORS.white, ALPHA.a15),
+  },
+  urgentInitial: {
+    fontFamily: FONTS.bold,
+    fontSize: FONT_SIZE.f12,
+  },
+  urgentWords: {
+    flexShrink: 1,
+  },
+  urgentText: {
+    textAlign: 'left',
+  },
+  clockRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   wrap: {
     position: 'absolute',
     left: 0,
