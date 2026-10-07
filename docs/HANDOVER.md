@@ -8,7 +8,9 @@ The single entry point for continuing work on Mahi. Read this first. It encodes 
 ## 0. Build 13 phone checks (2026-10-07; nothing below is phone-checked yet)
 
 Build 13 carries: contacts (Find your mates), expo-widgets (lock-screen Live Activity + home-screen
-widget), the local emoji-keyboard module, and push notifications switched on. OTAs 12.24–12.33
+widget), the local emoji-keyboard module, push notifications switched on, Sign in with Apple, Share to
+Mahi (share extension), a Control Centre control, Spotlight, Siri shortcuts, Apple's shutter sound,
+widget background refresh and an App Clip for invite links. OTAs 12.24–12.33
 plus everything after are also unchecked on a phone. Check, in this order, on a build-13 iPhone:
 
 - Sign-up from an invite link: profile loads first time; "@sam tagged you" at the top; claim works.
@@ -56,6 +58,7 @@ without the owner's go in the same session.
   directional follow. An accepted link or in-app tag invite continues to make both people follow
   each other; declining creates neither row. A normal profile Follow remains one-way until it is
   followed back, which is when the pair appears in Friends.
+- **OTAs 12.32–12.34 live on preview 2026-10-07** (12.34 group `655b1b1a-3807-45b3-8bde-326a4ad314a3`): Apple-popover tips, invites badge + Settings row, tag back (#112), mate circles, "Answered @sam in 2h", sign-up profile fix, "@sam is waiting on you", mates on the clock, miss moment, mates wording, website invite page says who tagged you. Prod DB through `20261007275000_mates_on_clock`.
 - **OTAs 12.29–12.31 live on preview 2026-10-07** (12.31 group `48a2a28e-8a91-41bd-9685-44cb52860bb0`): Invite a mate any time; a first answer needs no tags; one-time tips; yellow tag clock under 6 hours; open-tag reminder; padlock on the Feed tab; invite link opens and `app_update` in PostHog; Your invites (Profile card, resend once a day up to 3 times, cancel). Prod DB through `20261007210000_my_invites`. Website live with `/i/` and `/p/` pages and the Apple app-association file.
 - **OTA 12.28 live on preview 2026-10-07 16:17 UTC** (EAS group `6fcf3a45-7b81-4985-957f-a4a444849c90`): new people guided by how they arrived (Maximus's Type A/B words), first post earns the first point (`20261007180000_first_post_point`, live in prod), every tag countdown ticks, 'Waiting for a mate to tag you' card, full-screen +1 celebration, `joined_via` on sign-up.
 - **OTA 12.27 live on preview 2026-10-07 15:28 UTC** (EAS group `490c1120-a02a-4d34-b2e0-e0ea4ec13585`): the camera's tag pill sits under the points counter; the camera and an empty own profile read `profiles.has_posted_before`, so deleting every post never offers a free first post the server would refuse.
