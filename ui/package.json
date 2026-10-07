@@ -24,6 +24,7 @@
     "eas:builds": "npx -y eas-cli@24.7.0 build:list --limit 10"
   },
   "dependencies": {
+    "@bacons/apple-targets": "^5.0.0",
     "@didit-protocol/sdk-react-native": "4.9.0",
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo/ui": "~57.0.21",
@@ -34,7 +35,9 @@
     "@supabase/supabase-js": "^2.117.2",
     "base64-arraybuffer": "^1.0.2",
     "expo": "~57.0.23",
+    "expo-apple-authentication": "~57.0.2",
     "expo-background-fetch": "~57.0.18",
+    "expo-background-task": "~57.0.21",
     "expo-blur": "~57.0.3",
     "expo-build-properties": "~57.0.20",
     "expo-camera": "~57.0.5",
@@ -52,6 +55,7 @@
     "expo-location": "~57.0.18",
     "expo-notifications": "~57.0.19",
     "expo-sensors": "~57.0.3",
+    "expo-share-intent": "^8.0.1",
     "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.3",
