@@ -52,7 +52,13 @@ import UpdateRequiredScreen from '@/components/UpdateRequiredScreen';
 import AccountStanding from '@/components/AccountStanding';
 import WelcomeCards from '@/components/WelcomeCards';
 import CreateAccountSheet from '@/components/CreateAccountSheet';
-import { isAppleUser, profileStep, type ProfileStatus } from '@/lib/appleSignIn';
+import ListState from '@/components/ListState';
+import {
+  PROFILE_LOAD_ERROR,
+  isAppleUser,
+  profileStep,
+  type ProfileStatus,
+} from '@/lib/appleSignIn';
 import FindMatesStep from '@/components/FindMatesStep';
 import MissMoment from '@/components/MissMoment';
 import PushPrimer from '@/components/PushPrimer';
@@ -106,7 +112,9 @@ async function hydrateForUser(
   onProfile: (status: ProfileStatus) => void
 ): Promise<void> {
   try {
-    const { data, error } = await getProfile(userId);
+    // One retry for a bad signal: an Apple account whose read fails is shown an error step.
+    let { data, error } = await getProfile(userId);
+    if (error) ({ data, error } = await getProfile(userId));
     if (error) reportError(error, { flow: 'auth', action: 'getProfile', extra: { userId } });
     // A new Apple account has no profile row yet; App then shows the profile steps.
     onProfile(error ? 'error' : data ? 'present' : 'missing');
@@ -311,6 +319,28 @@ export default function App(): React.JSX.Element {
       <>
         <View style={{ flex: 1, justifyContent: 'center', backgroundColor: colors.bg }}>
           <ActivityIndicator color={colors.muted} />
+        </View>
+        <StatusBar style="auto" />
+      </>
+    );
+  } else if (session && appleStep === 'error') {
+    // An Apple account whose profile couldn't be read (tried twice): say so, with Try again,
+    // rather than let it into the app where posting would quietly do nothing.
+    const userId = session.user.id;
+    content = (
+      <>
+        <View style={{ flex: 1, backgroundColor: colors.bg }}>
+          <ListState
+            kind="error"
+            dark={colorScheme === 'dark'}
+            title={PROFILE_LOAD_ERROR.title}
+            line={PROFILE_LOAD_ERROR.body}
+            actionLabel={PROFILE_LOAD_ERROR.button}
+            onAction={() => {
+              setProfileStatus('loading');
+              void hydrateForUser(userId, setProfileStatus);
+            }}
+          />
         </View>
         <StatusBar style="auto" />
       </>

@@ -90,19 +90,28 @@ export function isAppleUser(
 /** What the first profile read found. */
 export type ProfileStatus = 'loading' | 'present' | 'missing' | 'error';
 
+/** What the Apple account sees when its profile couldn't be read (after one retry). */
+export const PROFILE_LOAD_ERROR = {
+  title: 'Couldn’t load your profile',
+  body: 'Check your connection and try again.',
+  button: 'Try again',
+} as const;
+
 /**
  * What a signed-in person sees. An Apple account with no profile row yet goes through the same
  * profile steps as an email sign-up; while its profile is loading, a plain wait, so the camera
- * never shows and then swaps away. Email accounts are unchanged: their sign-up sheet saves the
- * profile itself. A failed read never blocks.
+ * never shows and then swaps away. A read that failed (already retried once) shows
+ * PROFILE_LOAD_ERROR with Try again: with no profile, posting would quietly do nothing.
+ * Email accounts are unchanged: their sign-up sheet saves the profile itself.
  */
 export function profileStep(input: {
   apple: boolean;
   status: ProfileStatus;
   hasProfile: boolean;
-}): 'app' | 'wait' | 'profile' {
+}): 'app' | 'wait' | 'profile' | 'error' {
   if (!input.apple || input.hasProfile) return 'app';
   if (input.status === 'loading') return 'wait';
   if (input.status === 'missing') return 'profile';
+  if (input.status === 'error') return 'error';
   return 'app';
 }
