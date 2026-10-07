@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.mahiemojikeyboard'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.mahiemojikeyboard"
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // Google's emoji picker: categories, recents and skin tones. It has no search.
+  implementation 'androidx.emoji2:emoji2-emojipicker:1.5.0'
+}

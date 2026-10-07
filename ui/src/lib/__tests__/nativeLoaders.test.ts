@@ -14,6 +14,7 @@ const expoModules: Record<string, unknown> = {};
 const platform = { OS: 'ios' };
 const optionalGet = jest.fn();
 const contactsRequired = jest.fn();
+const nativeViewRequired = jest.fn();
 
 jest.mock('react-native', () => ({
   TurboModuleRegistry: { get: (name: string) => turboGet(name) },
@@ -22,6 +23,10 @@ jest.mock('react-native', () => ({
 }));
 jest.mock('expo', () => ({
   requireOptionalNativeModule: (name: string) => expoModules[name] ?? optionalGet(name) ?? null,
+  requireNativeView: (name: string) => {
+    nativeViewRequired(name);
+    return () => null;
+  },
 }));
 jest.mock('../../widgets/liveTagWidgets', () => {
   widgetsRequired();
@@ -59,6 +64,7 @@ beforeEach(() => {
   platform.OS = 'ios';
   optionalGet.mockReset();
   contactsRequired.mockReset();
+  nativeViewRequired.mockReset();
   for (const k of Object.keys(nativeModules)) delete nativeModules[k];
   for (const k of Object.keys(expoModules)) delete expoModules[k];
 });
@@ -273,5 +279,65 @@ describe('expo-contacts loader (find your mates, build 13+)', () => {
     expect(m.loadContacts()).not.toBeNull();
     m.loadContacts();
     expect(contactsRequired).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('emoji keyboard loader (local module mahi-emoji-keyboard, build 13+)', () => {
+  function loadEmojiModule(): typeof import('../emojiKeyboardModule') {
+    let mod!: typeof import('../emojiKeyboardModule');
+    jest.isolateModules(() => {
+      mod = jest.requireActual('../emojiKeyboardModule');
+    });
+    return mod;
+  }
+
+  it('looks for the module by its native name', () => {
+    optionalGet.mockReturnValue(null);
+    loadEmojiModule().hasNativeEmojiKeyboard();
+    expect(optionalGet).toHaveBeenCalledWith('MahiEmojiKeyboard');
+  });
+
+  it('hides the button on a build without the module (builds 10 to 12)', () => {
+    optionalGet.mockReturnValue(null);
+    const m = loadEmojiModule();
+    expect(m.hasNativeEmojiKeyboard()).toBe(false);
+    expect(m.loadEmojiKeyboard()).toBeNull();
+    platform.OS = 'android';
+    expect(loadEmojiModule().loadEmojiPanelView()).toBeNull();
+    expect(nativeViewRequired).not.toHaveBeenCalled();
+  });
+
+  it('treats a lookup that throws as missing', () => {
+    optionalGet.mockImplementation(() => {
+      throw new Error('no');
+    });
+    const m = loadEmojiModule();
+    expect(m.hasNativeEmojiKeyboard()).toBe(false);
+    expect(m.loadEmojiKeyboard()).toBeNull();
+  });
+
+  it('gives the module on iPhone, with no panel view (the phone’s own keyboard is used)', () => {
+    const native = { setEmojiMode: jest.fn() };
+    expoModules.MahiEmojiKeyboard = native;
+    const m = loadEmojiModule();
+    expect(m.loadEmojiKeyboard()).toBe(native);
+    expect(m.loadEmojiPanelView()).toBeNull();
+    expect(nativeViewRequired).not.toHaveBeenCalled();
+  });
+
+  it('gives the panel view on Android, looked up once', () => {
+    platform.OS = 'android';
+    expoModules.MahiEmojiKeyboard = {};
+    const m = loadEmojiModule();
+    expect(m.loadEmojiPanelView()).not.toBeNull();
+    m.loadEmojiPanelView();
+    expect(nativeViewRequired).toHaveBeenCalledTimes(1);
+    expect(nativeViewRequired).toHaveBeenCalledWith('MahiEmojiKeyboard');
+  });
+
+  it('is off on any other platform', () => {
+    platform.OS = 'web';
+    expoModules.MahiEmojiKeyboard = {};
+    expect(loadEmojiModule().hasNativeEmojiKeyboard()).toBe(false);
   });
 });

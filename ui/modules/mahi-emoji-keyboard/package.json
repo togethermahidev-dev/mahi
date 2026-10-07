@@ -1,0 +1,9 @@
+{
+  "name": "mahi-emoji-keyboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mahi: switch a text field to the phone's emoji keyboard (iOS) or an emoji panel (Android)",
+  "license": "UNLICENSED",
+  "author": "Mahi",
+  "homepage": "https://mahi.app"
+}
