@@ -10,6 +10,7 @@
  * `FEATURE_FLAGS` does for flags. See docs/tag-loop-plan.md, Phase 8.
  */
 import { posthog } from '@/lib/posthog';
+import { identityStep } from '@/lib/analyticsIdentity';
 
 export type TagLoopEvents = {
   /** A post went out with its slots filled. One per post, not one per tag. */
@@ -47,5 +48,25 @@ export function track<K extends keyof TagLoopEvents>(event: K, props: TagLoopEve
     posthog.capture(event, props);
   } catch {
     // An analytics SDK that isn't ready is not worth a crash.
+  }
+}
+
+/**
+ * Keep PostHog's person equal to the signed-in Supabase account (see `analyticsIdentity.ts`).
+ * Call on every auth change; it only acts when the account actually changed. Waits for PostHog
+ * to load its saved ids first, so a cold start compares against this phone's real ids.
+ */
+export async function syncAnalyticsIdentity(
+  user: { id: string; email?: string | null } | null
+): Promise<void> {
+  try {
+    await posthog.ready();
+    const step = identityStep(user?.id ?? null, posthog.getDistinctId(), posthog.getAnonymousId());
+    if (step === 'reset' || step === 'reset_then_identify') posthog.reset();
+    if (user && (step === 'identify' || step === 'reset_then_identify')) {
+      posthog.identify(user.id, { email: user.email ?? null });
+    }
+  } catch {
+    // Same as `track`: analytics never breaks signing in or out.
   }
 }

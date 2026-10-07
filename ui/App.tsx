@@ -53,6 +53,7 @@ import WelcomeCards from '@/components/WelcomeCards';
 import PushPrimer from '@/components/PushPrimer';
 import { reportError, Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
+import { syncAnalyticsIdentity } from '@/lib/analytics';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastHost } from '@/components/ToastHost';
 
@@ -171,7 +172,7 @@ export default function App(): React.JSX.Element {
       if (s?.user) {
         hydrateForUser(s.user.id);
         Sentry.setUser({ id: s.user.id, email: s.user.email });
-        posthog.identify(s.user.id, { email: s.user.email ?? null });
+        void syncAnalyticsIdentity(s.user);
         // Re-evaluate feature flags for the now-identified user.
         posthog
           .reloadFeatureFlagsAsync()
@@ -197,7 +198,9 @@ export default function App(): React.JSX.Element {
         // Logs RevenueCat out only if it was configured (flag `purchases`); otherwise a no-op.
         usePurchasesStore.getState().reset();
         Sentry.setUser(null);
-        posthog.reset();
+        // Forgets the account only if this phone was carrying one: a signed-out launch keeps
+        // its one anonymous id instead of counting as a new person every time.
+        void syncAnalyticsIdentity(null);
       }
     });
 
