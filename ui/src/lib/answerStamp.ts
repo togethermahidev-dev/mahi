@@ -5,11 +5,11 @@
  * and OpenTagsBanner.tsx.
  */
 
-/** "Answered @sam", "Answered @sam +2"; null for a post that answers no tag. */
+/** "Answered @sam", "Answered @sam and 2 more"; null for a post that answers no tag. */
 export function answeredStamp(usernames: string[]): string | null {
   if (usernames.length === 0) return null;
   const others = usernames.length - 1;
-  return `Answered @${usernames[0]}${others > 0 ? ` +${others}` : ''}`;
+  return `Answered @${usernames[0]}${others > 0 ? ` and ${others} more` : ''}`;
 }
 
 /**

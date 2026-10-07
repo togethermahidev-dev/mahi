@@ -295,7 +295,7 @@ describe('postConfirmText', () => {
       body: 'This earns a Mahi point. Your mates get 48 hours to answer you.',
     });
     expect(postConfirmText({ answering: ['sam', 'ali'], anyTagged: true }).title).toBe(
-      'Answer @sam +1?'
+      'Answer @sam and 1 more?'
     );
   });
 

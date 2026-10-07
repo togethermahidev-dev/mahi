@@ -89,7 +89,7 @@ export function postConfirmText({
 }): { title: string; body: string } {
   const mates = anyTagged ? 'Your mates get 48 hours to answer you.' : null;
   if (answering.length > 0) {
-    const more = answering.length > 1 ? ` +${answering.length - 1}` : '';
+    const more = answering.length > 1 ? ` and ${answering.length - 1} more` : '';
     return {
       title: `Answer @${answering[0]}${more}?`,
       body: ['This earns a Mahi point.', mates].filter(Boolean).join(' '),

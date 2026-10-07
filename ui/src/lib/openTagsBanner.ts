@@ -73,7 +73,7 @@ export function openTagsBanner({
   }
   const first = soonest(openTags);
   const others = openTags.length - 1;
-  const who = `@${first.username}${others > 0 ? ` +${others}` : ''}`;
+  const who = `@${first.username}${others > 0 ? ` and ${others} more` : ''}`;
   const tags = others === 1 ? 'both' : `all ${others + 1}`;
   // The 10-minute grace after the 48 hours: never "missed" before the server says so.
   const ms = msLeft(first.expires_at, serverOffsetMs, deviceNow);

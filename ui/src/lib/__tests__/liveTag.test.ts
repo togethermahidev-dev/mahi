@@ -67,7 +67,11 @@ describe('liveTagView — what the Live Activity and widget show', () => {
       points: 0,
       best: 0,
     });
-    expect(v).toMatchObject({ kind: 'tag', title: '@sam is waiting on you', more: '+2 more' });
+    expect(v).toMatchObject({
+      kind: 'tag',
+      title: '@sam is waiting on you',
+      more: '2 more waiting',
+    });
   });
 
   it('turns to the warning colour from the 6-hour mark on', () => {
@@ -238,7 +242,7 @@ describe('widgetTimeline — the widget changes on time without the app', () => 
       [14 * HOUR, '@ben is waiting on you'],
       [20 * HOUR, 'Waiting for a mate to tag you'],
     ]);
-    expect(entries[0].props).toMatchObject({ more: '+1 more', warning: true });
+    expect(entries[0].props).toMatchObject({ more: '1 more waiting', warning: true });
     expect(entries[1].props).toMatchObject({ more: null, warning: false });
     expect(entries[2].props).toMatchObject({ warning: true });
   });

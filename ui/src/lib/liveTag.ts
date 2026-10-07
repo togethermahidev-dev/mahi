@@ -73,7 +73,7 @@ export interface TagView {
   kind: 'tag';
   /** "@sam is waiting on you". */
   title: string;
-  /** "+2 more" with several tags, else null. */
+  /** "2 more waiting" with several tags, else null. */
   more: string | null;
   line: string;
   /** The word beside the timer. */
@@ -177,7 +177,7 @@ export function liveTagView({
   return {
     kind: 'tag',
     title: `@${first.username} is waiting on you`,
-    more: others > 0 ? `+${others} more` : null,
+    more: others > 0 ? `${others} more waiting` : null,
     line: 'Answer with any workout',
     left: 'left',
     start: Math.min(Date.parse(first.created_at) - serverOffsetMs, deviceNow),

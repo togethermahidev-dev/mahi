@@ -49,7 +49,7 @@ describe('openTagsBanner — someone a mate tagged, before their first post (Typ
       firstPost: true,
     });
     expect(b && bannerText(b)).toBe(
-      'You were tagged by @ali +1. You have 40:00:00 to post your Mahi and get your first point.'
+      'You were tagged by @ali and 1 more. You have 40:00:00 to post your Mahi and get your first point.'
     );
     expect(b?.note).toBe('One post answers both tags. Any workout counts, even 10 minutes.');
   });
@@ -101,7 +101,7 @@ describe('openTagsBanner — tagged after that', () => {
       serverOffsetMs: 0,
       deviceNow,
     });
-    expect(b && bannerText(b)).toBe('@sam +2 are waiting on you · 07:00:00 left');
+    expect(b && bannerText(b)).toBe('@sam and 2 more are waiting on you · 07:00:00 left');
     expect(b?.note).toBe('One workout answers all 3 tags and earns a point.');
     const withPoints = openTagsBanner({
       openTags: [tag('sam', 7 * HOUR), tag('ali', 8 * HOUR)],
