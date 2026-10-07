@@ -27,7 +27,7 @@ const stepNumber =
 
 /**
  * Who sent the invite, read fresh each time and never kept: null until it has loaded, then the
- * preview (null inside when it couldn't be read — the page says "a mate" instead).
+ * preview (null inside when it couldn't be read — the page says "a friend" instead).
  */
 function useInvitePreview(invite: string | null): { preview: InvitePreview } | null {
   const [loaded, setLoaded] = useState<{ invite: string; preview: InvitePreview } | null>(null);
@@ -73,7 +73,8 @@ export function InviteLanding() {
       <LandingShell>
         <h1 className={heading}>This invite link isn&apos;t right</h1>
         <p className={body}>
-          Check you have the whole link, or ask your mate to send it again. You can still get Mahi.
+          Check you have the whole link, or ask your friend to send it again. You can still get
+          Mahi.
         </p>
         <GetMahiButton />
       </LandingShell>
