@@ -342,6 +342,49 @@ describe('emoji keyboard loader (local module mahi-emoji-keyboard, build 13+)', 
   });
 });
 
+describe('Apple extras loader (local module mahi-apple-extras, build 13+)', () => {
+  function loadExtrasModule(): typeof import('../appleExtrasModule') {
+    let mod!: typeof import('../appleExtrasModule');
+    jest.isolateModules(() => {
+      mod = jest.requireActual('../appleExtrasModule');
+    });
+    return mod;
+  }
+
+  it('looks for the module by its native name', () => {
+    optionalGet.mockReturnValue(null);
+    loadExtrasModule().loadAppleExtras();
+    expect(optionalGet).toHaveBeenCalledWith('MahiAppleExtras');
+  });
+
+  it('gives nothing on a build without the module (builds 10 to 12)', () => {
+    optionalGet.mockReturnValue(null);
+    expect(loadExtrasModule().loadAppleExtras()).toBeNull();
+  });
+
+  it('treats a lookup that throws as missing', () => {
+    optionalGet.mockImplementation(() => {
+      throw new Error('no');
+    });
+    expect(loadExtrasModule().loadAppleExtras()).toBeNull();
+  });
+
+  it('gives the module on iPhone, looked up once', () => {
+    const native = { takePendingLink: jest.fn() };
+    optionalGet.mockReturnValue(native);
+    const m = loadExtrasModule();
+    expect(m.loadAppleExtras()).toBe(native);
+    m.loadAppleExtras();
+    expect(optionalGet).toHaveBeenCalledTimes(1);
+  });
+
+  it('is iPhone only', () => {
+    platform.OS = 'android';
+    optionalGet.mockReturnValue({});
+    expect(loadExtrasModule().loadAppleExtras()).toBeNull();
+  });
+});
+
 describe('share intent loader (expo-share-intent, build 13+)', () => {
   function loadShareModule(): typeof import('../shareIntentModule') {
     let mod!: typeof import('../shareIntentModule');

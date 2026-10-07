@@ -163,6 +163,9 @@ don't have the native parts, so the switches do nothing there.
   page with them as the shots (two fill the preview; one is the first shot and the selfie side takes the
   second). Off: Mahi still appears in the share sheet (that can't change without a build), but the app
   ignores the share — it deletes the copied photos and opens as it is.
+- `control-post-workout`: "Post a workout" in Control Centre, on the lock screen or on the Action button
+  (iOS 18+). On: a tap opens Mahi on the camera. Off: the app writes the switch to the App Group, the
+  button then reads "Open Mahi", and a tap just opens Mahi where it was.
 
 ## Removed from code 2026-10-07
 

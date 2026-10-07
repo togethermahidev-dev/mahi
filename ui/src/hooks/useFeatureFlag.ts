@@ -3,6 +3,11 @@ import { env } from '@/lib/env';
 import { posthog } from '@/lib/posthog';
 import { flagDefaultOn, resolveFlag, type FeatureFlag } from '@/lib/featureFlags';
 
+/** A flag as it reads right now, for code outside a render (a native event, a background task). */
+export function isFlagOn(flag: FeatureFlag): boolean {
+  return resolveFlag(posthog.isFeatureEnabled(flag), env.posthogKey != null, flagDefaultOn(flag));
+}
+
 /**
  * Read a PostHog feature flag as a boolean (default-on).
  *

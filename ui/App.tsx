@@ -46,6 +46,7 @@ import { usePurchasesStore } from '@/store/purchasesStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useInviteLink } from '@/hooks/useInviteLink';
 import { useLiveTag } from '@/hooks/useLiveTag';
+import { useAppleExtras } from '@/hooks/useAppleExtras';
 import { getAppGate, getProfile, signOut, updateTimezone } from '@/api';
 import { gateVerdict, type AppGate } from '@/lib/versionGate';
 import { APP_BUILD, APP_VERSION } from '@/lib/appBuild';
@@ -156,6 +157,8 @@ export default function App(): React.JSX.Element {
   // A mate's tag on the lock screen and the home-screen widget (build 13+, switch `live-tag`);
   // ended and cleared on sign-out.
   useLiveTag();
+  // Build 13's iPhone extras: their switches, written where the extensions can read them.
+  useAppleExtras();
   const [blockingGate, setBlockingGate] = useState<AppGate | null>(null);
   const { colorScheme } = useAppTheme();
 

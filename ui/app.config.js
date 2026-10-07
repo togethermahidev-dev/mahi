@@ -50,6 +50,10 @@ const config = {
         ],
       },
     ],
+    // Extra Apple extensions from ui/targets/ (build 13+): the Control Centre / lock screen button
+    // "Post a workout" (targets/controls, bundle com.mahi.app.controls, iOS 18+, switch
+    // `control-post-workout`). Its _shared/ intents are compiled into the app too.
+    '@bacons/apple-targets',
     // Share one or two photos from Photos to Mahi (build 13+, switch `share-to-mahi`;
     // src/hooks/useSharedPhotos.ts). Adds the share extension com.mahi.app.share-extension,
     // shown as "Post to Mahi", in the same App Group. Photos only, at most two; iPhone only.

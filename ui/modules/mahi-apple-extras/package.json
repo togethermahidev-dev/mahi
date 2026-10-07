@@ -1,0 +1,9 @@
+{
+  "name": "mahi-apple-extras",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mahi: the App Group switches and links that Mahi's iPhone extras (controls, Siri, Spotlight) share with the app",
+  "license": "UNLICENSED",
+  "author": "Mahi",
+  "homepage": "https://mahi.app"
+}

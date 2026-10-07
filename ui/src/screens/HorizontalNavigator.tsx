@@ -33,6 +33,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
 import { useSharedPhotos } from '@/hooks/useSharedPhotos';
+import { useAppActions } from '@/hooks/useAppActions';
 import PostViewer from '@/components/PostViewer';
 import CoachMarkHost from '@/components/CoachMark';
 import { useCoachBlock, useOpenTagReminder } from '@/hooks/useCoachMarks';
@@ -280,6 +281,14 @@ export default function HorizontalNavigator({
     setNotifOpen(false);
     setProfileUserId(null);
     navigate(CAMERA);
+  });
+  // The iPhone extras (Control Centre button): each opens its page if its switch is on.
+  useAppActions({
+    openCamera: () => {
+      setNotifOpen(false);
+      setProfileUserId(null);
+      navigate(CAMERA);
+    },
   });
 
   // The lists' scrolling as gestures, so a sideways swipe on them still moves the pages: a
