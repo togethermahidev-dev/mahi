@@ -5,6 +5,29 @@ The single entry point for continuing work on Mahi. Read this first. It encodes 
 
 ---
 
+## 0. Build 13 phone checks (2026-10-07; nothing below is phone-checked yet)
+
+Build 13 carries: contacts (Find your mates), expo-widgets (lock-screen Live Activity + home-screen
+widget), the local emoji-keyboard module, and push notifications switched on. OTAs 12.24–12.33
+plus everything after are also unchecked on a phone. Check, in this order, on a build-13 iPhone:
+
+- Sign-up from an invite link: profile loads first time; "@sam tagged you" at the top; claim works.
+- Find your mates: the why-first page, saying no, saying yes, the On Mahi / Invite sections,
+  Follow from the list, Invite opening Messages with the text filled, keyboard on the search box.
+- Camera: Type A/B first-post words; ticking clock; yellow under 6 h; waiting card (with "Invite a
+  mate", "See your invites" + count, "Find mates in your contacts"); the tips as Apple popovers
+  pointing at the right things; the points pill visible when the camera is open.
+- Posting: the three mate circles fill as you tag (tag back the mate you answer); confirm words;
+  the +1 moment; links sheet; "Answered @sam in 2h" on the post.
+- Lock screen: the Live Activity appears with an open tag, ticks, turns yellow at 6 h, opens the
+  camera on tap, ends on answer; the widget at both sizes; the tagger's photo shows.
+- Messages: hold a bubble → native menu with the emoji row; badges; double-tap ❤️; "+" opens the
+  emoji keyboard with search and suggestions; the keyboard never covers the composer.
+- Feed: padlock on the tab while locked; "Feed open · next tag locks it after"; reactions.
+- Your invites: list, resend (share sheet), cancel; Settings → Mates rows.
+- Push: after the server steps, one tag push arrives and opens the camera.
+- Miss: the "You missed @sam's tag" moment once; points to 0, best kept.
+
 ## 1. Where things stand
 
 **Architecture (stable — do not rewrite).** React Native + Expo talking directly to Supabase, no backend server.
