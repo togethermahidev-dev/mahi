@@ -8,6 +8,7 @@ import { useAuthStore, useProfilePostsStore, useUserStore } from '@/store';
 import { answeredMatesLine, lastAnsweredMates, pointsStatsLabel } from '@/lib/mahiPoints';
 import RollingNumber from '@/components/RollingNumber';
 import PointsBar from '@/components/PointsBar';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { POINTS_RULE, pointsHint } from '@/lib/pointsHint';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostViewer from '@/components/PostViewer';
@@ -130,7 +131,9 @@ export default function ProfileScreen({
   const { posts: myPosts } = useProfilePosts(userId ?? '', isActive && !!userId);
   // The last three mates you answered: only once your posts have been read (never a guess).
   const myPostsRead = useProfilePostsStore((s) => s.userId === userId && s.lastSyncedAt !== null);
-  const answeredMates = myPostsRead ? lastAnsweredMates(myPosts) : [];
+  // Kill switch: off, today's still card (plain numbers, a still bar, no mates line).
+  const cardOn = useFeatureFlag('profile-points-card');
+  const answeredMates = cardOn && myPostsRead ? lastAnsweredMates(myPosts) : [];
   const matesLine = answeredMatesLine(answeredMates);
 
   useEffect(() => {
@@ -258,25 +261,41 @@ export default function ProfileScreen({
         </View>
         <View style={styles.metricsRow}>
           <View style={styles.metric}>
-            <RollingNumber
-              value={profile ? currentPoints : null}
-              style={[styles.metricValue, { color: profile ? text : muted }]}
-              font={{ family: FONTS.bold, size: FONT_SIZE.f38, color: text }}
-            />
+            {cardOn ? (
+              <RollingNumber
+                value={profile ? currentPoints : null}
+                style={[styles.metricValue, { color: profile ? text : muted }]}
+                font={{ family: FONTS.bold, size: FONT_SIZE.f38, color: text }}
+              />
+            ) : (
+              <Text style={[styles.metricValue, { color: profile ? text : muted }]}>
+                {profile ? currentPoints : '–'}
+              </Text>
+            )}
             <Text style={[styles.metricLabel, { color: muted }]}>Current</Text>
           </View>
           <View style={[styles.metricDivider, { backgroundColor: border }]} />
           <View style={styles.metric}>
-            <RollingNumber
-              value={profile ? bestPoints : null}
-              style={[styles.metricValue, { color: profile ? text : muted }]}
-              font={{ family: FONTS.bold, size: FONT_SIZE.f38, color: text }}
-            />
+            {cardOn ? (
+              <RollingNumber
+                value={profile ? bestPoints : null}
+                style={[styles.metricValue, { color: profile ? text : muted }]}
+                font={{ family: FONTS.bold, size: FONT_SIZE.f38, color: text }}
+              />
+            ) : (
+              <Text style={[styles.metricValue, { color: profile ? text : muted }]}>
+                {profile ? bestPoints : '–'}
+              </Text>
+            )}
             <Text style={[styles.metricLabel, { color: muted }]}>Personal best</Text>
           </View>
         </View>
         <View style={[styles.progressTrack, { backgroundColor: iconSurface }]}>
-          <PointsBar progress={progress} replay={isActive && !!profile} />
+          {cardOn ? (
+            <PointsBar progress={progress} replay={isActive && !!profile} />
+          ) : (
+            <View style={[styles.progressFill, { width: `${progress}%` }]} />
+          )}
         </View>
         {hint ? <Text style={[styles.pointsHint, { color: muted }]}>{hint}</Text> : null}
         {/* Your points are made of people: the last three mates you answered. */}
@@ -517,6 +536,11 @@ const styles = StyleSheet.create({
     height: SIZE.z8,
     borderRadius: RADIUS.pill,
     overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.accent,
   },
   matesRow: {
     flexDirection: 'row',

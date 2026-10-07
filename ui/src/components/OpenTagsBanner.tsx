@@ -26,6 +26,7 @@ import { crossedLastHour, urgentPillLines, urgentRing } from '@/lib/urgentRing';
 import { useCoachStore } from '@/store/coachStore';
 import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { answeredMorph, answeredStamp } from '@/lib/answerStamp';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import Svg, { Path } from 'react-native-svg';
 import { msLeft } from '@/lib/countdown';
 import { bannerText, openTagsBanner } from '@/lib/openTagsBanner';
@@ -107,18 +108,20 @@ export default function OpenTagsBanner({
     : null;
   const leftMs = soonestTag ? msLeft(soonestTag.expires_at, serverOffsetMs, deviceNow) : null;
   const onCamera = useCoachStore((s) => s.page === 'camera');
+  const ringOn = useFeatureFlag('tag-drain-ring');
+  const stampOn = useFeatureFlag('answered-stamp');
   const lastLeft = useRef<number | null>(null);
   useEffect(() => {
     if (leftMs === null) {
       lastLeft.current = null;
       return;
     }
-    if (crossedLastHour(lastLeft.current, leftMs) && onCamera) haptic('tick');
+    if (ringOn && crossedLastHour(lastLeft.current, leftMs) && onCamera) haptic('tick');
     lastLeft.current = leftMs;
-  }, [leftMs, onCamera]);
+  }, [leftMs, onCamera, ringOn]);
 
   if (answered) {
-    const swift = morph === 'glass' ? loadSwiftUI() : null;
+    const swift = stampOn && morph === 'glass' ? loadSwiftUI() : null;
     if (swift) {
       return (
         <View
@@ -145,7 +148,7 @@ export default function OpenTagsBanner({
           style={[styles.pill, styles.donePill, { backgroundColor: colors.accent }]}
           accessible
           accessibilityRole="text"
-          accessibilityLabel={answered}
+          accessibilityLabel={stampOn ? answered : 'Tag answered'}
           accessibilityLiveRegion="polite"
         >
           <Svg width={ICON_SIZE.i16} height={ICON_SIZE.i16} viewBox="0 0 24 24">
@@ -158,7 +161,9 @@ export default function OpenTagsBanner({
               strokeLinejoin="round"
             />
           </Svg>
-          <Text style={[styles.text, { color: colors.offBlack }]}>{answered}</Text>
+          <Text style={[styles.text, { color: colors.offBlack }]}>
+            {stampOn ? answered : 'Tag answered'}
+          </Text>
         </Reanimated.View>
       </View>
     );
@@ -184,7 +189,7 @@ export default function OpenTagsBanner({
             tint="dark"
             style={[styles.pill, { borderColor: colors.accent }]}
           >
-            {banner.urgent && !isFirstPost && soonestTag && leftMs !== null ? (
+            {ringOn && banner.urgent && !isFirstPost && soonestTag && leftMs !== null ? (
               <UrgentLine
                 parts={banner.parts}
                 avatarUrl={soonestTag.avatar_url}

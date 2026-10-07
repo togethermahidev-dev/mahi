@@ -17,6 +17,8 @@ export default function RollingNumber({
   style,
   font,
   maxFontSizeMultiplier,
+  appleDigits = true,
+  rollDown = true,
 }: {
   value: number | null;
   /** Our text's style (also used for the dash). */
@@ -24,9 +26,13 @@ export default function RollingNumber({
   /** Apple's digits: the same face, size and colour as `style`. */
   font: { family: string; size: number; color: string };
   maxFontSizeMultiplier?: number;
+  /** Apple's rolling digits where the build has them (a kill switch can say no). */
+  appleDigits?: boolean;
+  /** Roll down when the number falls; otherwise it just changes. */
+  rollDown?: boolean;
 }): React.JSX.Element {
   const reduceMotion = useReducedMotion();
-  const shown = useCountRoll(value);
+  const shown = useCountRoll(value, rollDown);
   // Apple's digits roll downwards when the number falls (after a miss).
   const last = useRef(value);
   const down = last.current !== null && value !== null && value < last.current;
@@ -34,6 +40,7 @@ export default function RollingNumber({
     last.current = value;
   }, [value]);
   const native =
+    appleDigits &&
     value !== null &&
     nativeDigits({ platform: Platform.OS, expoUiPresent: hasNativeExpoUI(), reduceMotion });
   const swift = native ? loadSwiftUI() : null;
@@ -53,12 +60,16 @@ export default function RollingNumber({
             sFont({ family: font.family, size: font.size }),
             foregroundStyle(font.color),
             contentTransition('numericText', { countsDown: down }),
-            animation(
-              Animation.spring({
-                duration: (down ? MOTION.countDownMs : MOTION.countUpMs) / 1000,
-              }),
-              value
-            ),
+            ...(down && !rollDown
+              ? []
+              : [
+                  animation(
+                    Animation.spring({
+                      duration: (down ? MOTION.countDownMs : MOTION.countUpMs) / 1000,
+                    }),
+                    value
+                  ),
+                ]),
           ]}
         >
           {String(value)}

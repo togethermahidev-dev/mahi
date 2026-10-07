@@ -139,7 +139,7 @@ export function CountdownRing({
  * MOTION.countDownMs (after a miss). The first value, an unknown, or Reduce Motion jumps straight
  * there.
  */
-export function useCountRoll(value: number | null): number | null {
+export function useCountRoll(value: number | null, rollDown = true): number | null {
   const reduceMotion = useReducedMotion();
   const [shown, setShown] = useState(value);
   const from = useRef(value);
@@ -147,7 +147,7 @@ export function useCountRoll(value: number | null): number | null {
     const start = from.current;
     from.current = value;
     const way = pointsRoll(start, value);
-    if (value === null || start === null || !way || reduceMotion) {
+    if (value === null || start === null || !way || reduceMotion || (way === 'down' && !rollDown)) {
       setShown(value);
       return;
     }
@@ -161,7 +161,7 @@ export function useCountRoll(value: number | null): number | null {
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-  }, [value, reduceMotion]);
+  }, [value, reduceMotion, rollDown]);
   return shown;
 }
 

@@ -30,6 +30,7 @@ import { pointsBadgeText } from '@/lib/mahiPoints';
 import { lockExplainer as lockCardFor, lockedPostText } from '@/lib/feedLock';
 import { feedLockMoment, haptic } from '@/lib/haptics';
 import { developPlan, developWords } from '@/lib/feedDevelop';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { BlurView } from 'expo-blur';
 import Reanimated, {
   ReduceMotion,
@@ -239,6 +240,7 @@ export default function FeedScreen({
   const lockSeen = useRef<boolean | null>(null);
   // Posts seen locked this session: when the feed opens, they "develop" one by one.
   const reduceMotion = useReducedMotion();
+  const developOn = useFeatureFlag('feed-develop');
   const seenLocked = useRef(new Set<string>());
   const postsNow = useRef(posts);
   postsNow.current = posts;
@@ -255,7 +257,7 @@ export default function FeedScreen({
     lockSeen.current = felt.seen;
     if (felt.moment) haptic(felt.moment);
     const viewerId = useAuthStore.getState().user?.id;
-    if (felt.moment === 'feedUnlocked' && viewerId) {
+    if (felt.moment === 'feedUnlocked' && viewerId && developOn) {
       const fresh = postsNow.current;
       const plan = developPlan({
         posts: fresh,

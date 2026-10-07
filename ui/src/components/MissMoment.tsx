@@ -6,6 +6,7 @@ import { useCoachStore } from '@/store/coachStore';
 import { missMoment } from '@/lib/mahiPoints';
 import { missSeenKey, missToShow, parseSeenMisses, seenMissesAfter } from '@/lib/missMoment';
 import { MOTION } from '@/constants/tokens';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 
 /**
  * The moment after a miss (usability walkthrough, 2026-10-07): "You missed @sam's tag", in the
@@ -22,6 +23,7 @@ export default function MissMoment({ userId }: { userId: string }): React.JSX.El
   const quiet = useCoachStore((s) => s.blocks === 0 && s.current === null && !s.composing);
   // null until this account's seen list has been read.
   const [seen, setSeen] = useState<string[] | null>(null);
+  const missRoll = useFeatureFlag('miss-roll-down');
   const [showing, setShowing] = useState<{ id: string; tagger: string } | null>(null);
 
   useEffect(() => {
@@ -43,9 +45,9 @@ export default function MissMoment({ userId }: { userId: string }): React.JSX.El
     const miss = missToShow(items, seen);
     if (!miss) return;
     // The camera's counter rolls down to 0 first (once, not in red); then this.
-    const id = setTimeout(() => setShowing(miss), MOTION.missAfterRollMs);
+    const id = setTimeout(() => setShowing(miss), missRoll ? MOTION.missAfterRollMs : 0);
     return () => clearTimeout(id);
-  }, [showing, seen, loaded, profileLoaded, quiet, items]);
+  }, [showing, seen, loaded, profileLoaded, quiet, items, missRoll]);
 
   const close = () => {
     if (!showing) return;

@@ -233,6 +233,9 @@ function PointsCounter({
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const lastCount = useRef<number | null>(null);
   const known = count !== null;
+  // Kill switches: Apple's rolling digits come with the +1 flying in; the roll down after a miss.
+  const appleDigits = useFeatureFlag('point-fly-in');
+  const missRoll = useFeatureFlag('miss-roll-down');
 
   // The landing: once, when the number is first known (the dash just fades in before that).
   useEffect(() => {
@@ -265,7 +268,7 @@ function PointsCounter({
     const before = lastCount.current;
     lastCount.current = count;
     const way = pointsRoll(before, count);
-    if (way === 'down') haptic('warning');
+    if (way === 'down' && missRoll) haptic('warning');
     if (way !== 'up' || reduceMotion) return;
     scaleAnim.setValue(SCALE.s1_3);
     Animated.spring(scaleAnim, { toValue: 1, ...SPRING.land, useNativeDriver: true }).start();
@@ -293,6 +296,8 @@ function PointsCounter({
           style={[styles.pointsNumber, !known && { color: themeColors(true).muted }]}
           font={{ family: FONTS.bold, size: FONT_SIZE.f20, color: COLORS.white }}
           maxFontSizeMultiplier={LAYOUT.largeTextScale}
+          appleDigits={appleDigits}
+          rollDown={missRoll}
         />
         <Text style={styles.pointsLabel}>Mahi points</Text>
       </Animated.View>
@@ -545,6 +550,7 @@ function DualPhotoPreview({
   const [previewMuted, setPreviewMuted] = useState(true);
   // "Answered @sam", pressed onto the photo as an answer posts; cleared for the next preview.
   const [stamp, setStamp] = useState<string | null>(null);
+  const stampOn = useFeatureFlag('answered-stamp');
   useEffect(() => {
     if (frontPhoto) setStamp(null);
   }, [frontPhoto]);
@@ -1084,7 +1090,7 @@ function DualPhotoPreview({
                           const front = frozenFront.current!;
                           const rear = frozenRear.current!;
                           // An answer gets its stamp first; the photo lifts away after a beat.
-                          const words = answeredStamp(answering);
+                          const words = stampOn ? answeredStamp(answering) : null;
                           if (!words) return onPost(front, rear);
                           setStamp(words);
                           setTimeout(() => onPost(front, rear), MOTION.stampHoldMs);
@@ -1723,6 +1729,8 @@ export default function CameraScreen({
   const [flight, setFlight] = useState<Flight | null>(null);
   const [heldPoints, setHeldPoints] = useState<number | null>(null);
   const rootRef = useRef<View>(null);
+  // Kill switch: off, every point gets today's full-screen moment.
+  const flyOn = useFeatureFlag('point-fly-in');
   // The first photo, shown in the small window on the live camera until the second is taken.
   const [guidePhotoUri, setGuidePhotoUri] = useState<string | null>(null);
   const [guideIsVideo, setGuideIsVideo] = useState(false);
@@ -1898,8 +1906,9 @@ export default function CameraScreen({
   // The waiting camera gives a little when pulled down, showing the card "behind" it (#115).
   const safeTop = useSafeAreaInsets().top;
   const { fontScale } = useWindowDimensions();
-  const pull = useCameraPull(cameraOn && waitingCard, safeTop);
-  const pullTip = useCoachAnchor('pullDown', cameraOn && waitingCard);
+  const pullOn = useFeatureFlag('camera-pull-down') && cameraOn && waitingCard;
+  const pull = useCameraPull(pullOn, safeTop);
+  const pullTip = useCoachAnchor('pullDown', pullOn);
 
   // Tap to focus (flag `camera-tap-focus`): switch on, an iPhone, and a build whose camera can
   // focus on a point (build 11+). OTA updates also reach build 10, which can't: there it's off.
@@ -2333,7 +2342,10 @@ export default function CameraScreen({
     const firstPostNow = hasPosted === false;
     const optimisticPoints =
       profile.streak_current + (firstPostNow || answersATag(openTags, serverOffsetMs) ? 1 : 0);
-    if (willFly({ firstPost: firstPostNow, answersTag: answersATag(openTags, serverOffsetMs) })) {
+    if (
+      flyOn &&
+      willFly({ firstPost: firstPostNow, answersTag: answersATag(openTags, serverOffsetMs) })
+    ) {
       setHeldPoints(profile.streak_current);
     }
     const captionValue = caption || null;
@@ -2472,11 +2484,13 @@ export default function CameraScreen({
       useFeedStore.getState().confirmPending(tempId, posted);
       // Tags reached friends, then (when the server says so) a Mahi point was earned. A point
       // that flies into the counter is felt when it lands instead.
-      const moment = pointMoment({
-        firstPost: firstPostNow,
-        answered: result.answered.length,
-        replayed: result.replayed === true,
-      });
+      const moment = flyOn
+        ? pointMoment({
+            firstPost: firstPostNow,
+            answered: result.answered.length,
+            replayed: result.replayed === true,
+          })
+        : null;
       hapticSequence(
         postedMoments({
           tags: taggedUsersSnapshot.length + inviteCountSnapshot + slotsSnapshot.length,
@@ -2998,7 +3012,7 @@ export default function CameraScreen({
                   ) : null}
                 </View>
               </Reanimated.View>
-              {waitingCard ? (
+              {pullOn ? (
                 <Reanimated.View
                   style={[StyleSheet.absoluteFill, pull.cameraStyle]}
                   pointerEvents="none"

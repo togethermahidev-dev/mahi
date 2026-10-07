@@ -105,6 +105,18 @@ apart. Moving the phone (a new scene) goes back to normal autofocus. iPhone only
 says. Native side: the `focusAt` patch to expo-camera in `patches/expo-camera.patch`. Off = no tap to
 focus, and the double tap to switch camera is exactly as before.)
 
+**Build 13 native features — kill switches, on for everyone** (owner, 2026-10-07; default on, so
+create each in PostHog at 100%). Off = today's behaviour, no new motion:
+`camera-pull-down` (the waiting camera gives when pulled down, its handle and one-time tip),
+`point-fly-in` (a later answer's +1 flies into the counter, Apple's rolling digits; off = the full-screen
+moment for every point), `feed-develop` (locked posts clear one by one after you post),
+`tag-drain-ring` (last 6 hours: the tagger's face in a draining ring, one tap at the last hour),
+`answered-stamp` ("Answered @sam" on the photo and the pill-to-tick morph; off = "Tag answered"),
+`camera-tab-badge` (a number on the Camera tab while a tag waits), `miss-roll-down` (the counter rolls
+down after a miss, the miss moment waits for it), `profile-points-card` (the bar fills, numbers roll, the
+last three mates answered), `widget-tagger-photo` (the tagger's photo on the widget and Live Activity;
+off = no photo).
+
 **Posts:** `video-posts` (**default off**; owner: off for everyone). On: each of a post's two shots can be a
 photo or a video of up to 15 seconds — a Photo / Video switch by the shutter, and press and hold the shutter
 to record (tap still takes a photo; letting go or 15 seconds stops). The microphone is asked for only the

@@ -21,6 +21,7 @@ import {
   tabIcons,
 } from '@/lib/nativeTabs';
 import { useOpenTags } from '@/hooks/useOpenTags';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { loadScreens } from '@/lib/screensModule';
 import { useFeedStore } from '@/store';
 import { loadExpoSymbols } from '@/lib/symbolModule';
@@ -58,6 +59,7 @@ export default function TabsNavigator(): React.JSX.Element | null {
   const feedLocked = useFeedStore((s) => s.loaded && s.locked);
   // A tag waiting for your post: a number on the Camera tab (once the tags have been read).
   const { openTags, loaded: tagsLoaded } = useOpenTags();
+  const badgeOn = useFeatureFlag('camera-tab-badge');
   // The last selection the native bar confirmed: a change asked from here builds on it.
   const [provenance, setProvenance] = useState(0);
   // The post preview covers everything; the bar hides under it.
@@ -124,7 +126,11 @@ export default function TabsNavigator(): React.JSX.Element | null {
             key={t.key}
             screenKey={t.key}
             title={t.title}
-            badgeValue={cameraBadge(t.key, { count: openTags.length, loaded: tagsLoaded })}
+            badgeValue={
+              badgeOn
+                ? cameraBadge(t.key, { count: openTags.length, loaded: tagsLoaded })
+                : undefined
+            }
             style={{ backgroundColor: pageBg(t.key) }}
             ios={{
               icon: { type: 'sfSymbol', name: tabIcons(t, feedLocked).icon },

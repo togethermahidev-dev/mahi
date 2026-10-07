@@ -148,3 +148,24 @@ describe('pinch-zoom', () => {
     expect(FEATURE_FLAGS as readonly string[]).not.toContain('pinch-zoom');
   });
 });
+
+// Owner, 2026-10-07: every build 13 native moment has a kill switch, on for everyone.
+describe('build 13 kill switches', () => {
+  const KILL_SWITCHES = [
+    'camera-pull-down',
+    'point-fly-in',
+    'feed-develop',
+    'tag-drain-ring',
+    'answered-stamp',
+    'camera-tab-badge',
+    'miss-roll-down',
+    'profile-points-card',
+    'widget-tagger-photo',
+  ];
+  it('lists each one, on unless PostHog says off', () => {
+    for (const key of KILL_SWITCHES) {
+      expect(FEATURE_FLAGS as readonly string[]).toContain(key);
+      expect(flagDefaultOn(key as FeatureFlag)).toBe(true);
+    }
+  });
+});
