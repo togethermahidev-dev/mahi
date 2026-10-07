@@ -88,7 +88,7 @@ export function inviteTitle(invite: ScreenInvite): string {
 
 /** The second line: what the link does. */
 export function inviteWhatText(invite: ScreenInvite): string {
-  if (invite.status === 'joined') return 'Joined · follows you';
+  if (invite.status === 'joined') return 'Joined · you follow each other';
   return invite.kind === 'tag'
     ? 'They’ll have 48 hours to post back once they join.'
     : 'You’ll follow each other when they join.';
