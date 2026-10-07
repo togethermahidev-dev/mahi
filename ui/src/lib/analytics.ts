@@ -38,6 +38,8 @@ export type TagLoopEvents = {
   tag_invite_answered: { challenge_id: string; accepted: boolean };
   /** Mahi opened from an invite link (`cold`: the link started the app). Counts link opens. */
   invite_link_opened: { cold: boolean; signed_in: boolean };
+  /** Mahi took an invite the App Clip handed over (switch `app-clip`): the clip's install funnel. */
+  invite_clip_handover: { signed_in: boolean };
   /** A link was sent again from "Your invites", once the server took it (`kind`: mate or tag link). */
   invite_resent: { kind: 'mate' | 'tag' };
   /** A link was cancelled from "Your invites", once the server took it. */

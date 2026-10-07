@@ -45,6 +45,7 @@ export const FEATURE_FLAGS = [
   'miss-roll-down', // after a miss the counter rolls down to 0 before the miss moment
   'profile-points-card', // the profile's bar fills, numbers roll, and the last three mates answered
   'widget-tagger-photo', // the tagger's photo on the widget and Live Activity
+  'app-clip', // the app takes the invite the App Clip handed over (off: drops it unread); the clip itself is off via App Store Connect
 
   // Sign-in
   'auth-apple-signin', // Sign in with Apple on the welcome screen; build 13+ iPhones only (default ON, kill switch)
