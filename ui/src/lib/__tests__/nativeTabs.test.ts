@@ -9,8 +9,21 @@ import {
   SWIPE_PAGES,
   TAB_TITLE_APPEARANCE,
   tabPage,
+  cameraBadge,
 } from '@/lib/nativeTabs';
 import { FONTS } from '@/constants/fonts';
+
+describe('cameraBadge (a tag waiting shows on the Camera tab)', () => {
+  it('counts the open tags on the Camera tab once they have been read', () => {
+    expect(cameraBadge('camera', { count: 1, loaded: true })).toBe('1');
+    expect(cameraBadge('camera', { count: 3, loaded: true })).toBe('3');
+  });
+  it('shows nothing with no tag, before the first read, or on another tab', () => {
+    expect(cameraBadge('camera', { count: 0, loaded: true })).toBeUndefined();
+    expect(cameraBadge('camera', { count: 2, loaded: false })).toBeUndefined();
+    expect(cameraBadge('feed', { count: 2, loaded: true })).toBeUndefined();
+  });
+});
 
 describe('NATIVE_TABS', () => {
   // Owner, 2026-10-07: Messages leads and Profile sits last (swapped from 2026-10-06).

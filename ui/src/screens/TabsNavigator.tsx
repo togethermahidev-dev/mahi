@@ -15,10 +15,12 @@ import {
   INITIAL_TAB,
   NATIVE_TABS,
   TAB_TITLE_APPEARANCE,
+  cameraBadge,
   movesPages,
   type TabKey,
   tabIcons,
 } from '@/lib/nativeTabs';
+import { useOpenTags } from '@/hooks/useOpenTags';
 import { loadScreens } from '@/lib/screensModule';
 import { useFeedStore } from '@/store';
 import { loadExpoSymbols } from '@/lib/symbolModule';
@@ -54,6 +56,8 @@ export default function TabsNavigator(): React.JSX.Element | null {
   const [tab, setTab] = useState<TabKey>(INITIAL_TAB);
   // A locked feed shows a padlock on its tab (only once the feed has been read: never a guess).
   const feedLocked = useFeedStore((s) => s.loaded && s.locked);
+  // A tag waiting for your post: a number on the Camera tab (once the tags have been read).
+  const { openTags, loaded: tagsLoaded } = useOpenTags();
   // The last selection the native bar confirmed: a change asked from here builds on it.
   const [provenance, setProvenance] = useState(0);
   // The post preview covers everything; the bar hides under it.
@@ -120,6 +124,7 @@ export default function TabsNavigator(): React.JSX.Element | null {
             key={t.key}
             screenKey={t.key}
             title={t.title}
+            badgeValue={cameraBadge(t.key, { count: openTags.length, loaded: tagsLoaded })}
             style={{ backgroundColor: pageBg(t.key) }}
             ios={{
               icon: { type: 'sfSymbol', name: tabIcons(t, feedLocked).icon },

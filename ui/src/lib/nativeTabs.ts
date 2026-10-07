@@ -69,6 +69,19 @@ export function tabIcons(
   return { icon: tab.icon, selectedIcon: tab.selectedIcon };
 }
 
+/**
+ * The badge on a tab (Apple's / Google's own): the Camera tab shows how many tags wait for your
+ * post, gone the moment you answer (design research, 2026-10-07). Nothing until the tags have
+ * been read this session: never a guess.
+ */
+export function cameraBadge(
+  tab: TabKey,
+  tags: { count: number; loaded: boolean }
+): string | undefined {
+  if (tab !== 'camera' || !tags.loaded || tags.count <= 0) return undefined;
+  return String(tags.count);
+}
+
 /** The tab titles in Inter, like every other word in the app (owner, 2026-10-05). */
 const TAB_TITLE = { tabBarItemTitleFontFamily: FONTS.semiBold };
 const TAB_TITLE_STATES = { normal: TAB_TITLE, selected: TAB_TITLE };
