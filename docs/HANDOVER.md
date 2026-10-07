@@ -23,6 +23,16 @@ applies to every tool call. Work on branch `updates`; commit by name, no AI attr
 without the owner's go in the same session.
 
 **State on 2026-10-06, late (branch `updates`; `main` is behind):**
+- **OTA 12.20 is live on the preview channel (iOS and Android)** (EAS group
+  `2eba344a-907a-45be-9366-cd573ddc888a`): right-swipe dismissal works again on another person's
+  profile and now dismisses a friends list too. Follow/unfollow stays optimistic, then reconciles
+  from the database's committed answer; every subscriber to a shared realtime follow channel is
+  refreshed. Production migration `20261007104406_authoritative_follow_mutations` is live. It adds
+  the atomic `set_following` RPC and rejects self, banned and blocked follows. Production was
+  audited before and after: 48 follow rows, 16 mutual pairs, and no claimed invite missing either
+  directional follow. An accepted link or in-app tag invite continues to make both people follow
+  each other; declining creates neither row. A normal profile Follow remains one-way until it is
+  followed back, which is when the pair appears in Friends.
 - **Production OTA 12.16 is live on iOS and Android** (EAS group
   `cc174c9d-c47c-42a0-b4c7-cf37a2777ec2`). It applies Maximus's Q1–Q10 answers: one-day
   re-invite cooldown, no daily invite cap, blocking cancels without a miss, owners may delete posts

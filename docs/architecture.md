@@ -399,7 +399,7 @@ All tables use Row Level Security (RLS). Writes for posting and messaging go thr
 | `tags.ts` | `getTaggableFriends`, `getOpenTags`, `getTagRules` |
 | `invites.ts` | `getInvitePreview`, `claimInvite` |
 | `social.ts` | `toggleLike` (single-RPC atomic toggle), `getComments`, `addComment`, comment likes: `getCommentLikes`, `toggleCommentLike`, `getCommentLikers` |
-| `follows.ts` | `followUser`, `unfollowUser`, `getFollowData`, `getFollowList`, `getFriends`, `getSuggestedFollows` |
+| `follows.ts` | `setFollowing` (atomic mutation + committed state), `getFollowData`, `getFollowList`, `getFriends`, `getSuggestedFollows` |
 | `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `createOrGetConversation`, `deleteConversation`, `getMessages`, `markConversationRead` |
 | `notifications.ts` | `getNotifications`, `getUnreadCount`, `markAsRead`, `markAllAsRead` |
 | `moderation.ts` | `blockUser`, `unblockUser`, `getBlockedUsers`, `getBlockedIds`, `reportUser`, `hasReported` |
@@ -414,7 +414,7 @@ All barrel-exported from `ui/src/api/index.ts`.
 
 ## Navigation
 
-The app uses **state-driven navigation** — no React Navigation, no router (don't add one). Transitions are handled by conditional rendering in `App.tsx` and by one gesture-driven navigator (with the phone's tab bar around it on build 12+). Pop-ups are native: page sheets (`<Modal presentationStyle="pageSheet">`) for comments, tags, notifications, requests, blocked users and friends; `ActionSheetIOS` for menus (profile menu, report reasons).
+The app uses **state-driven navigation** — no React Navigation, no router (don't add one). Transitions are handled by conditional rendering in `App.tsx` and by one gesture-driven navigator (with the phone's tab bar around it on build 12+). Pop-ups are native: page sheets (`<Modal presentationStyle="pageSheet">`) for comments, tags, notifications, requests and blocked users; the friends list is an over-full-screen modal so a right swipe reveals the profile beneath it; `ActionSheetIOS` for menus (profile menu, report reasons).
 
 ### The swipe pages
 

@@ -52,6 +52,10 @@ profile's `points` column once every phone has the Mahi points update.
 
 Rules (enforced by `.claude/hooks/guard.cjs`):
 
+Latest production migration: `20261007104406_authoritative_follow_mutations` (live 2026-10-07).
+It adds `set_following`, the atomic follow/unfollow path used by OTA 12.20. The production social
+graph was audited before and after the push; no accepted invite was missing either follow direction.
+
 - Create migrations with `supabase migration new <name>` (14-digit timestamp prefix, newest last).
   Never edit a migration once it has been pushed; add a new one.
 - Each migration has an undo script in `rollbacks/<same name>.rollback.sql` and a pgTAP test in
