@@ -24,7 +24,13 @@ jest.mock('@/api', () => ({
 let insertHandler: ((payload: { new: unknown }) => void) | null = null;
 let updateHandler: ((payload: { new: unknown }) => void) | null = null;
 const fakeChannel = {
-  on: (_event: string, config: { event: string }, cb: (payload: { new: unknown }) => void) => {
+  on: (
+    _event: string,
+    config: { event: string; table: string },
+    cb: (payload: { new: unknown }) => void
+  ) => {
+    // The channel also listens to message_reactions (messageReactionsStore.test.ts covers those).
+    if (config.table !== 'messages') return fakeChannel;
     if (config.event === 'UPDATE') updateHandler = cb;
     else insertHandler = cb;
     return fakeChannel;

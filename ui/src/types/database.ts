@@ -810,6 +810,14 @@ export type Database = {
         Args: { p_conversation_id: string };
         Returns: undefined;
       };
+      react_to_message: {
+        Args: { p_message: string; p_emoji: string };
+        Returns: Json;
+      };
+      get_message_reactions: {
+        Args: { p_message: string };
+        Returns: Json;
+      };
       get_inbox: {
         Args: { p_status?: string };
         Returns: {

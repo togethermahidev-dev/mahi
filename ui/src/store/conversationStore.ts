@@ -11,9 +11,12 @@ import {
   unsendMessage,
   startConversation,
   markConversationRead,
+  reactToMessage,
+  getMessageReactions,
   MESSAGE_PAGE,
   type Message,
 } from '@/api';
+import { reactionsOf, toggleReaction, type ReactionSummary } from '@/lib/messageReactions';
 import { useMessagesStore } from './messagesStore';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -35,6 +38,9 @@ export interface Thread {
 }
 
 const EMPTY: Thread = { messages: [], isLoading: true, isLoadingOlder: false, hasMore: false };
+
+/** One row of message_reactions as realtime sends it (a delete carries only its key). */
+type ReactionRow = { message_id: string };
 
 /** Server rows win over the optimistic row that carries the same client_id. */
 function merge(existing: Message[], incoming: Message[]): Message[] {
@@ -64,6 +70,11 @@ interface ConversationState {
   edit: (conversationId: string, messageId: string, content: string) => Promise<boolean>;
   /** Unsend your own message. Gone at once; back if the server says no. */
   unsend: (conversationId: string, messageId: string) => Promise<boolean>;
+  /**
+   * React to a message (the same emoji again takes yours off). Shows at once; the server's own
+   * summary then replaces the guess, or the guess goes back if the server said no.
+   */
+  react: (conversationId: string, messageId: string, emoji: string) => Promise<boolean>;
   /** The first message to someone: the server makes the conversation. Null = it didn't send. */
   start: (
     otherUserId: string,
@@ -74,192 +85,209 @@ interface ConversationState {
   reset: () => void;
 }
 
-export const useConversationStore = create<ConversationState>((set, get) => ({
-  threads: {},
-
-  refreshNewest: async (conversationId) => {
-    const { data, error } = await getMessages(conversationId);
-    if (error) {
-      reportError(error, { flow: 'messages', action: 'loadMessages', extra: { conversationId } });
-    }
-    if (!data) {
-      set((s) => ({
-        threads: {
-          ...s.threads,
-          [conversationId]: { ...(s.threads[conversationId] ?? EMPTY), isLoading: false },
-        },
-      }));
-      return;
-    }
+export const useConversationStore = create<ConversationState>((set, get) => {
+  /** Put one message's reactions in place (the thread may have been closed meanwhile). */
+  const putReactions = (conversationId: string, messageId: string, reactions: ReactionSummary[]) =>
     set((s) => {
-      const prev = s.threads[conversationId] ?? EMPTY;
-      return {
-        threads: {
-          ...s.threads,
-          [conversationId]: {
-            messages: merge(prev.messages, data),
-            isLoading: false,
-            isLoadingOlder: false,
-            // Only the first page can tell us this; later pages keep what loadOlder found.
-            hasMore: prev.messages.length === 0 ? data.length === MESSAGE_PAGE : prev.hasMore,
-          },
-        },
-      };
-    });
-  },
-
-  open: async (conversationId) => {
-    if (!get().threads[conversationId]) {
-      set((s) => ({ threads: { ...s.threads, [conversationId]: EMPTY } }));
-    }
-
-    if (!convoChannels.has(conversationId)) {
-      const channel = supabase
-        .channel(`convo:${conversationId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${conversationId}`,
-          },
-          (payload) => {
-            const incoming = payload.new as Message;
-            set((s) => {
-              const prev = s.threads[conversationId] ?? EMPTY;
-              return {
-                threads: {
-                  ...s.threads,
-                  [conversationId]: { ...prev, messages: merge(prev.messages, [incoming]) },
-                },
-              };
-            });
-            useMessagesStore.getState().patchConversationLastMessage(conversationId, incoming);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${conversationId}`,
-          },
-          (payload) => {
-            // An edit replaces the words; an unsend takes the message away.
-            const changed = payload.new as Message;
-            set((s) => {
-              const prev = s.threads[conversationId] ?? EMPTY;
-              const messages = changed.unsent_at
-                ? prev.messages.filter((m) => m.id !== changed.id)
-                : prev.messages.map((m) => (m.id === changed.id ? { ...m, ...changed } : m));
-              return { threads: { ...s.threads, [conversationId]: { ...prev, messages } } };
-            });
-          }
-        )
-        .subscribe((status) => {
-          if (status !== 'SUBSCRIBED') return;
-          // A reconnect may have missed messages while it was down.
-          if (everConnected.has(conversationId)) get().refreshNewest(conversationId);
-          everConnected.add(conversationId);
-        });
-      convoChannels.set(conversationId, channel);
-    }
-
-    if (!appStateSub) {
-      appStateSub = AppState.addEventListener('change', (next) => {
-        if (next !== 'active') return;
-        for (const id of convoChannels.keys()) get().refreshNewest(id);
-      });
-    }
-
-    await get().refreshNewest(conversationId);
-  },
-
-  close: (conversationId) => {
-    const ch = convoChannels.get(conversationId);
-    if (ch) {
-      supabase.removeChannel(ch);
-      convoChannels.delete(conversationId);
-      everConnected.delete(conversationId);
-    }
-    if (convoChannels.size === 0 && appStateSub) {
-      appStateSub.remove();
-      appStateSub = null;
-    }
-  },
-
-  loadOlder: async (conversationId) => {
-    const thread = get().threads[conversationId];
-    if (!thread || !thread.hasMore || thread.isLoadingOlder || thread.isLoading) return;
-    const oldest = thread.messages[0];
-    if (!oldest) return;
-
-    set((s) => ({
-      threads: { ...s.threads, [conversationId]: { ...thread, isLoadingOlder: true } },
-    }));
-
-    const { data, error } = await getMessages(conversationId, {
-      createdAt: oldest.created_at,
-      id: oldest.id,
-    });
-    if (error) {
-      reportError(error, {
-        flow: 'messages',
-        action: 'loadOlder',
-        extra: { conversationId, loaded: thread.messages.length },
-      });
-    }
-
-    set((s) => {
-      const prev = s.threads[conversationId] ?? EMPTY;
+      const prev = s.threads[conversationId];
+      if (!prev) return {};
       return {
         threads: {
           ...s.threads,
           [conversationId]: {
             ...prev,
-            messages: data ? merge(prev.messages, data) : prev.messages,
-            isLoadingOlder: false,
-            hasMore: data ? data.length === MESSAGE_PAGE : prev.hasMore,
+            messages: prev.messages.map((m) => (m.id === messageId ? { ...m, reactions } : m)),
           },
         },
       };
     });
-  },
 
-  send: async (conversationId, userId, content) => {
-    const text = content.trim();
-    if (!text) return false;
-
-    // The client id is what makes a retry safe: the server hands back the same message.
-    const clientId = randomUUID();
-    const optimistic: Message = {
-      id: `temp_${clientId}`,
-      conversation_id: conversationId,
-      sender_id: userId,
-      content: text,
-      client_id: clientId,
-      created_at: new Date().toISOString(),
-    };
-    set((s) => {
-      const prev = s.threads[conversationId] ?? EMPTY;
-      return {
-        threads: {
-          ...s.threads,
-          [conversationId]: { ...prev, messages: [...prev.messages, optimistic] },
-        },
-      };
-    });
-
-    const { data, error } = await sendMessage(conversationId, clientId, text);
-
+  /** A reaction changed live (either phone): re-read that one message's reactions. */
+  const onReactionChange = async (
+    conversationId: string,
+    payload: { new?: unknown; old?: unknown }
+  ) => {
+    const row = (payload.new ?? payload.old) as Partial<ReactionRow> | undefined;
+    const messageId = row?.message_id;
+    if (!messageId) return;
+    if (!get().threads[conversationId]?.messages.some((m) => m.id === messageId)) return;
+    const { data, error } = await getMessageReactions(messageId);
     if (error || !data) {
-      reportError(error ?? new Error('send_message returned no message'), {
+      reportError(error ?? new Error('get_message_reactions returned nothing'), {
         flow: 'messages',
-        action: 'sendMessage',
-        extra: { conversationId, clientId, rpc: 'send_message' },
+        action: 'liveReactions',
+        extra: { conversationId, messageId, rpc: 'get_message_reactions' },
       });
+      return;
+    }
+    putReactions(conversationId, messageId, data);
+  };
+
+  return {
+    threads: {},
+
+    refreshNewest: async (conversationId) => {
+      const { data, error } = await getMessages(conversationId);
+      if (error) {
+        reportError(error, { flow: 'messages', action: 'loadMessages', extra: { conversationId } });
+      }
+      if (!data) {
+        set((s) => ({
+          threads: {
+            ...s.threads,
+            [conversationId]: { ...(s.threads[conversationId] ?? EMPTY), isLoading: false },
+          },
+        }));
+        return;
+      }
+      set((s) => {
+        const prev = s.threads[conversationId] ?? EMPTY;
+        return {
+          threads: {
+            ...s.threads,
+            [conversationId]: {
+              messages: merge(prev.messages, data),
+              isLoading: false,
+              isLoadingOlder: false,
+              // Only the first page can tell us this; later pages keep what loadOlder found.
+              hasMore: prev.messages.length === 0 ? data.length === MESSAGE_PAGE : prev.hasMore,
+            },
+          },
+        };
+      });
+    },
+
+    open: async (conversationId) => {
+      if (!get().threads[conversationId]) {
+        set((s) => ({ threads: { ...s.threads, [conversationId]: EMPTY } }));
+      }
+
+      if (!convoChannels.has(conversationId)) {
+        const channel = supabase
+          .channel(`convo:${conversationId}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'messages',
+              filter: `conversation_id=eq.${conversationId}`,
+            },
+            (payload) => {
+              const incoming = payload.new as Message;
+              set((s) => {
+                const prev = s.threads[conversationId] ?? EMPTY;
+                return {
+                  threads: {
+                    ...s.threads,
+                    [conversationId]: { ...prev, messages: merge(prev.messages, [incoming]) },
+                  },
+                };
+              });
+              useMessagesStore.getState().patchConversationLastMessage(conversationId, incoming);
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'messages',
+              filter: `conversation_id=eq.${conversationId}`,
+            },
+            (payload) => {
+              // An edit replaces the words; an unsend takes the message away.
+              const changed = payload.new as Message;
+              set((s) => {
+                const prev = s.threads[conversationId] ?? EMPTY;
+                const messages = changed.unsent_at
+                  ? prev.messages.filter((m) => m.id !== changed.id)
+                  : prev.messages.map((m) => (m.id === changed.id ? { ...m, ...changed } : m));
+                return { threads: { ...s.threads, [conversationId]: { ...prev, messages } } };
+              });
+            }
+          )
+          // Reactions, as they change on either phone. A delete carries only its key (no
+          // conversation), so it is heard for every chat and matched to this one's messages.
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'message_reactions',
+              filter: `conversation_id=eq.${conversationId}`,
+            },
+            (payload) => void onReactionChange(conversationId, payload)
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'message_reactions',
+              filter: `conversation_id=eq.${conversationId}`,
+            },
+            (payload) => void onReactionChange(conversationId, payload)
+          )
+          .on(
+            'postgres_changes',
+            { event: 'DELETE', schema: 'public', table: 'message_reactions' },
+            (payload) => void onReactionChange(conversationId, payload)
+          )
+          .subscribe((status) => {
+            if (status !== 'SUBSCRIBED') return;
+            // A reconnect may have missed messages while it was down.
+            if (everConnected.has(conversationId)) get().refreshNewest(conversationId);
+            everConnected.add(conversationId);
+          });
+        convoChannels.set(conversationId, channel);
+      }
+
+      if (!appStateSub) {
+        appStateSub = AppState.addEventListener('change', (next) => {
+          if (next !== 'active') return;
+          for (const id of convoChannels.keys()) get().refreshNewest(id);
+        });
+      }
+
+      await get().refreshNewest(conversationId);
+    },
+
+    close: (conversationId) => {
+      const ch = convoChannels.get(conversationId);
+      if (ch) {
+        supabase.removeChannel(ch);
+        convoChannels.delete(conversationId);
+        everConnected.delete(conversationId);
+      }
+      if (convoChannels.size === 0 && appStateSub) {
+        appStateSub.remove();
+        appStateSub = null;
+      }
+    },
+
+    loadOlder: async (conversationId) => {
+      const thread = get().threads[conversationId];
+      if (!thread || !thread.hasMore || thread.isLoadingOlder || thread.isLoading) return;
+      const oldest = thread.messages[0];
+      if (!oldest) return;
+
+      set((s) => ({
+        threads: { ...s.threads, [conversationId]: { ...thread, isLoadingOlder: true } },
+      }));
+
+      const { data, error } = await getMessages(conversationId, {
+        createdAt: oldest.created_at,
+        id: oldest.id,
+      });
+      if (error) {
+        reportError(error, {
+          flow: 'messages',
+          action: 'loadOlder',
+          extra: { conversationId, loaded: thread.messages.length },
+        });
+      }
+
       set((s) => {
         const prev = s.threads[conversationId] ?? EMPTY;
         return {
@@ -267,137 +295,219 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             ...s.threads,
             [conversationId]: {
               ...prev,
-              messages: prev.messages.filter((m) => m.client_id !== clientId),
+              messages: data ? merge(prev.messages, data) : prev.messages,
+              isLoadingOlder: false,
+              hasMore: data ? data.length === MESSAGE_PAGE : prev.hasMore,
             },
           },
         };
       });
-      return false;
-    }
+    },
 
-    set((s) => {
-      const prev = s.threads[conversationId] ?? EMPTY;
-      return {
-        threads: {
-          ...s.threads,
-          [conversationId]: { ...prev, messages: merge(prev.messages, [data]) },
-        },
+    send: async (conversationId, userId, content) => {
+      const text = content.trim();
+      if (!text) return false;
+
+      // The client id is what makes a retry safe: the server hands back the same message.
+      const clientId = randomUUID();
+      const optimistic: Message = {
+        id: `temp_${clientId}`,
+        conversation_id: conversationId,
+        sender_id: userId,
+        content: text,
+        client_id: clientId,
+        created_at: new Date().toISOString(),
       };
-    });
-    track('message_sent', { message_id: data.id, conversation_id: conversationId, first: false });
-    useMessagesStore.getState().patchConversationLastMessage(conversationId, data);
-    return true;
-  },
-
-  edit: async (conversationId, messageId, content) => {
-    const text = content.trim();
-    const before = get().threads[conversationId]?.messages.find((m) => m.id === messageId);
-    if (!text || !before) return false;
-    const put = (m: Message) =>
       set((s) => {
         const prev = s.threads[conversationId] ?? EMPTY;
         return {
           threads: {
             ...s.threads,
-            [conversationId]: {
-              ...prev,
-              messages: prev.messages.map((x) => (x.id === messageId ? m : x)),
-            },
+            [conversationId]: { ...prev, messages: [...prev.messages, optimistic] },
           },
         };
       });
-    put({ ...before, content: text, edited_at: new Date().toISOString() });
-    const { data, error } = await editMessage(messageId, text);
-    if (error || !data) {
-      reportError(error ?? new Error('edit_message returned no message'), {
-        flow: 'messages',
-        action: 'editMessage',
-        extra: { conversationId, messageId, rpc: 'edit_message' },
-      });
-    }
-    put(error || !data ? before : data);
-    return !error && !!data;
-  },
 
-  unsend: async (conversationId, messageId) => {
-    const thread = get().threads[conversationId];
-    if (!thread?.messages.some((m) => m.id === messageId)) return false;
-    const keep = thread.messages;
-    set((s) => ({
-      threads: {
-        ...s.threads,
-        [conversationId]: {
-          ...(s.threads[conversationId] ?? EMPTY),
-          messages: keep.filter((m) => m.id !== messageId),
-        },
-      },
-    }));
-    const { error } = await unsendMessage(messageId);
-    if (error) {
-      reportError(error, {
-        flow: 'messages',
-        action: 'unsendMessage',
-        extra: { conversationId, messageId, rpc: 'unsend_message' },
-      });
+      const { data, error } = await sendMessage(conversationId, clientId, text);
+
+      if (error || !data) {
+        reportError(error ?? new Error('send_message returned no message'), {
+          flow: 'messages',
+          action: 'sendMessage',
+          extra: { conversationId, clientId, rpc: 'send_message' },
+        });
+        set((s) => {
+          const prev = s.threads[conversationId] ?? EMPTY;
+          return {
+            threads: {
+              ...s.threads,
+              [conversationId]: {
+                ...prev,
+                messages: prev.messages.filter((m) => m.client_id !== clientId),
+              },
+            },
+          };
+        });
+        return false;
+      }
+
       set((s) => {
         const prev = s.threads[conversationId] ?? EMPTY;
         return {
           threads: {
             ...s.threads,
-            [conversationId]: { ...prev, messages: merge(prev.messages, keep) },
+            [conversationId]: { ...prev, messages: merge(prev.messages, [data]) },
           },
         };
       });
-      return false;
-    }
-    useMessagesStore.getState().sync();
-    return true;
-  },
+      track('message_sent', { message_id: data.id, conversation_id: conversationId, first: false });
+      useMessagesStore.getState().patchConversationLastMessage(conversationId, data);
+      return true;
+    },
 
-  start: async (otherUserId, _userId, content) => {
-    const text = content.trim();
-    if (!text) return null;
-    const { data, error } = await startConversation(otherUserId, randomUUID(), text);
-    if (error || !data) {
-      reportError(error ?? new Error('start_conversation returned no data'), {
-        flow: 'messages',
-        action: 'startConversation',
-        extra: { otherUserId, rpc: 'start_conversation' },
-      });
-      return null;
-    }
-    track('message_sent', {
-      message_id: data.message.id,
-      conversation_id: data.conversationId,
-      first: true,
-    });
-    set((s) => {
-      const prev = s.threads[data.conversationId] ?? { ...EMPTY, isLoading: false };
-      return {
+    edit: async (conversationId, messageId, content) => {
+      const text = content.trim();
+      const before = get().threads[conversationId]?.messages.find((m) => m.id === messageId);
+      if (!text || !before) return false;
+      const put = (m: Message) =>
+        set((s) => {
+          const prev = s.threads[conversationId] ?? EMPTY;
+          return {
+            threads: {
+              ...s.threads,
+              [conversationId]: {
+                ...prev,
+                messages: prev.messages.map((x) => (x.id === messageId ? m : x)),
+              },
+            },
+          };
+        });
+      put({ ...before, content: text, edited_at: new Date().toISOString() });
+      const { data, error } = await editMessage(messageId, text);
+      if (error || !data) {
+        reportError(error ?? new Error('edit_message returned no message'), {
+          flow: 'messages',
+          action: 'editMessage',
+          extra: { conversationId, messageId, rpc: 'edit_message' },
+        });
+      }
+      put(error || !data ? before : data);
+      return !error && !!data;
+    },
+
+    unsend: async (conversationId, messageId) => {
+      const thread = get().threads[conversationId];
+      if (!thread?.messages.some((m) => m.id === messageId)) return false;
+      const keep = thread.messages;
+      set((s) => ({
         threads: {
           ...s.threads,
-          [data.conversationId]: { ...prev, messages: merge(prev.messages, [data.message]) },
+          [conversationId]: {
+            ...(s.threads[conversationId] ?? EMPTY),
+            messages: keep.filter((m) => m.id !== messageId),
+          },
         },
-      };
-    });
-    useMessagesStore.getState().sync();
-    return { conversationId: data.conversationId, status: data.status };
-  },
+      }));
+      const { error } = await unsendMessage(messageId);
+      if (error) {
+        reportError(error, {
+          flow: 'messages',
+          action: 'unsendMessage',
+          extra: { conversationId, messageId, rpc: 'unsend_message' },
+        });
+        set((s) => {
+          const prev = s.threads[conversationId] ?? EMPTY;
+          return {
+            threads: {
+              ...s.threads,
+              [conversationId]: { ...prev, messages: merge(prev.messages, keep) },
+            },
+          };
+        });
+        return false;
+      }
+      useMessagesStore.getState().sync();
+      return true;
+    },
 
-  markRead: async (conversationId) => {
-    useMessagesStore.getState().clearUnread(conversationId);
-    const { error } = await markConversationRead(conversationId);
-    if (error) {
-      reportError(error, { flow: 'messages', action: 'markRead', extra: { conversationId } });
-    }
-  },
+    react: async (conversationId, messageId, emoji) => {
+      const before = get().threads[conversationId]?.messages.find((m) => m.id === messageId);
+      if (!before || before.id.startsWith('temp_')) return false;
+      const was = reactionsOf(before);
+      putReactions(conversationId, messageId, toggleReaction(was, emoji));
+      const { data, error } = await reactToMessage(messageId, emoji);
+      if (error || !data) {
+        reportError(error ?? new Error('react_to_message returned nothing'), {
+          flow: 'messages',
+          action: 'reactToMessage',
+          extra: { conversationId, messageId, emoji, rpc: 'react_to_message' },
+        });
+        set((s) => {
+          const prev = s.threads[conversationId];
+          if (!prev) return {};
+          return {
+            threads: {
+              ...s.threads,
+              [conversationId]: {
+                ...prev,
+                messages: prev.messages.map((m) => (m.id === messageId ? before : m)),
+              },
+            },
+          };
+        });
+        return false;
+      }
+      putReactions(conversationId, messageId, data);
+      // Taking a reaction off is not a reaction.
+      if (data.some((r) => r.mine && r.emoji === emoji)) track('message_reacted', { emoji });
+      return true;
+    },
 
-  reset: () => {
-    convoChannels.forEach((ch) => supabase.removeChannel(ch));
-    convoChannels.clear();
-    everConnected.clear();
-    appStateSub?.remove();
-    appStateSub = null;
-    set({ threads: {} });
-  },
-}));
+    start: async (otherUserId, _userId, content) => {
+      const text = content.trim();
+      if (!text) return null;
+      const { data, error } = await startConversation(otherUserId, randomUUID(), text);
+      if (error || !data) {
+        reportError(error ?? new Error('start_conversation returned no data'), {
+          flow: 'messages',
+          action: 'startConversation',
+          extra: { otherUserId, rpc: 'start_conversation' },
+        });
+        return null;
+      }
+      track('message_sent', {
+        message_id: data.message.id,
+        conversation_id: data.conversationId,
+        first: true,
+      });
+      set((s) => {
+        const prev = s.threads[data.conversationId] ?? { ...EMPTY, isLoading: false };
+        return {
+          threads: {
+            ...s.threads,
+            [data.conversationId]: { ...prev, messages: merge(prev.messages, [data.message]) },
+          },
+        };
+      });
+      useMessagesStore.getState().sync();
+      return { conversationId: data.conversationId, status: data.status };
+    },
+
+    markRead: async (conversationId) => {
+      useMessagesStore.getState().clearUnread(conversationId);
+      const { error } = await markConversationRead(conversationId);
+      if (error) {
+        reportError(error, { flow: 'messages', action: 'markRead', extra: { conversationId } });
+      }
+    },
+
+    reset: () => {
+      convoChannels.forEach((ch) => supabase.removeChannel(ch));
+      convoChannels.clear();
+      everConnected.clear();
+      appStateSub?.remove();
+      appStateSub = null;
+      set({ threads: {} });
+    },
+  };
+});

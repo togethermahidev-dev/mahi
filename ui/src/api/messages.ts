@@ -14,6 +14,7 @@
 
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types';
+import type { ReactionSummary } from '@/lib/messageReactions';
 
 type ProfRow = Database['public']['Tables']['profiles']['Row'];
 
@@ -29,6 +30,8 @@ export type Message = {
   edited_at?: string | null;
   /** Set when the sender unsent it (the text is then empty). */
   unsent_at?: string | null;
+  /** Its reactions, first reaction first (get_messages only; a fresh send has none). */
+  reactions?: ReactionSummary[];
 };
 
 /** How long after sending a message its sender can still edit it (the server's rule). */
@@ -223,6 +226,31 @@ export async function editMessage(
 export async function unsendMessage(messageId: string): Promise<{ error: Error | null }> {
   const { error } = await supabase.rpc('unsend_message', { p_message_id: messageId });
   return { error: error ? new Error(error.message, { cause: error }) : null };
+}
+
+/**
+ * React to a message with one emoji. The same emoji again takes yours off; a different one
+ * replaces it. Hands back the message's reactions as the server now has them.
+ */
+export async function reactToMessage(
+  messageId: string,
+  emoji: string
+): Promise<{ data: ReactionSummary[] | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('react_to_message', {
+    p_message: messageId,
+    p_emoji: emoji,
+  });
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
+  return { data: (data ?? []) as unknown as ReactionSummary[], error: null };
+}
+
+/** One message's reactions, fresh (read when they change live). */
+export async function getMessageReactions(
+  messageId: string
+): Promise<{ data: ReactionSummary[] | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('get_message_reactions', { p_message: messageId });
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
+  return { data: (data ?? []) as unknown as ReactionSummary[], error: null };
 }
 
 /** How many messages one page holds. */

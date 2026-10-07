@@ -71,6 +71,8 @@ export type TagLoopEvents = {
   comment_added: { comment_id: string; post_id: string };
   /** A message was saved; `first` when it started the conversation. */
   message_sent: { message_id: string; conversation_id: string; first: boolean };
+  /** I reacted to a message with `emoji` (sent once the server has it; taking one off is not sent). */
+  message_reacted: { emoji: string };
 };
 
 /** Send one tag-loop event. Never throws: analytics must not break what the user just did. */
