@@ -8,8 +8,9 @@
  *
  * History (newest first):
  *   build 12 · 24 — live follow/unfollow, likes and comments; blank names no longer crash; twelve
- *     always-on switches made standard; crash reports and founder analytics (Sentry, PostHog)
- *     (2026-10-07)
+ *     always-on switches made standard; crash reports and founder analytics (Sentry, PostHog);
+ *     a failed profile photo save keeps your photo; sign-up checks if a username is free on the
+ *     server (2026-10-07)
  *   build 12 · 23 — the feed shows only your latest post among the people you follow, newest
  *     first; older posts stay on your Profile (2026-10-07)
  *   build 12 · 22 — sideways swipes work on Profile again; Messages and Profile swap places
