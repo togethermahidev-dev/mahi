@@ -47,6 +47,14 @@ export const COACH_TIPS = {
     page: 'camera',
     icon: 'notifications',
   },
+  // The waiting camera gives when pulled down (owner, 2026-10-07, #115): the handle says so, and
+  // this says it once in words.
+  pullDown: {
+    title: 'Pull down for your mates',
+    body: 'See who’s on the clock behind it.',
+    page: 'camera',
+    icon: 'people',
+  },
   feedLocked: {
     title: 'Your feed opens when you post',
     body: 'Answer tags to keep it open.',
@@ -68,6 +76,7 @@ export const COACH_TIP_ORDER: readonly CoachTipId[] = [
   'points',
   'twoPhotos',
   'waiting',
+  'pullDown',
   'feedLocked',
   'bell',
   'tagMates',

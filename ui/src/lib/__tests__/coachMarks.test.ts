@@ -21,7 +21,7 @@ import {
 // Owner, 2026-10-07: "Make it clear to the users — they can't just be expected to know." One-time
 // tips where people get lost, in the founder's words ("mates"): a bold title and one line.
 describe('coach tips — the words', () => {
-  it('has the six tips, each split into a title and one line', () => {
+  it('has the seven tips, each split into a title and one line', () => {
     const words = Object.fromEntries(
       Object.entries(COACH_TIPS).map(([id, t]) => [id, [t.title, t.body, t.page]])
     );
@@ -30,6 +30,7 @@ describe('coach tips — the words', () => {
       bell: ['A mate tagged you', 'Tap to answer.', 'feed'],
       twoPhotos: ['Two photos', 'What you see, then a selfie.', 'camera'],
       waiting: ['You’ll post again when a mate tags you', 'Check back each day.', 'camera'],
+      pullDown: ['Pull down for your mates', 'See who’s on the clock behind it.', 'camera'],
       feedLocked: ['Your feed opens when you post', 'Answer tags to keep it open.', 'feed'],
       tagMates: ['Tag 3 mates', 'Each gets 48 hours to post back.', 'compose'],
     });

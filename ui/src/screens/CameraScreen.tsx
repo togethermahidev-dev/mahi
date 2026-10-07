@@ -17,6 +17,7 @@ import {
   AccessibilityInfo,
   ActivityIndicator,
   Keyboard,
+  useWindowDimensions,
 } from 'react-native';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -174,6 +175,8 @@ import {
 import { themeColors } from '@/lib/themeColors';
 import { cameraCornerTop } from '@/lib/pip';
 import PointCelebration, { type PointCelebrationContent } from '@/components/PointCelebration';
+import { PullHandle, useCameraPull } from '@/components/CameraPull';
+import { openTagsTop } from '@/lib/pip';
 
 /**
  * The camera when there's no open tag to answer: says how Mahi works (reactive posting) and what
@@ -1866,6 +1869,11 @@ export default function CameraScreen({
     cameraOn && !blocked && captureState === 'idle' && guidePhotoUri === null
   );
   const waitingTip = useCoachAnchor('waiting', cameraOn && gate === 'closed' && !offline);
+  // The waiting camera gives a little when pulled down, showing the card "behind" it (#115).
+  const safeTop = useSafeAreaInsets().top;
+  const { fontScale } = useWindowDimensions();
+  const pull = useCameraPull(cameraOn && waitingCard, safeTop);
+  const pullTip = useCoachAnchor('pullDown', cameraOn && waitingCard);
 
   // Tap to focus (flag `camera-tap-focus`): switch on, an iPhone, and a build whose camera can
   // focus on a point (build 11+). OTA updates also reach build 10, which can't: there it's off.
@@ -2717,46 +2725,49 @@ export default function CameraScreen({
   return (
     <GestureDetector gesture={doubleTapToFlip}>
       <View style={styles.root}>
-        <CameraView
-          ref={cameraRef}
-          style={StyleSheet.absoluteFill}
-          facing={facing}
-          // Flash: off / on / auto as set; on the selfie side "on" lights the screen instead.
-          flash={flashMode(flashChoice, facing)}
-          // 0.5× ultra-wide is a back-camera-only physical lens (iOS). Only pass
-          // a selectedLens when the user opted in AND we're on the back camera —
-          // never feed a back-cam lens id to the selfie cam. undefined ⇒ default
-          // wide-angle (1×). No-op on Android (selectedLens is iOS-only).
-          selectedLens={
-            facing === 'back' && useUltraWide && ultraWideLens ? ultraWideLens : undefined
-          }
-          onCameraReady={() => {
-            refreshAvailableLenses();
-            // Build 11+ has native tap to focus; build 10 (reached by OTA) doesn't.
-            setNativeFocus(cameraRef.current?.isFocusAtAvailable?.() ?? false);
-          }}
-          onAvailableLensesChanged={(e) => setAvailableLenses(e.lenses)}
-          // Landscape capture WITHOUT a global orientation unlock. The app stays
-          // portrait-locked (app.config.js orientation:'portrait' — every other
-          // screen + the hand-rolled navigators hardcode portrait dimensions, so
-          // a global unlock would break them). This iOS-only flag lets ONLY the
-          // camera sense physical tilt and bake the matching EXIF orientation into
-          // the shot: hold the phone sideways and you get a true landscape photo,
-          // while the camera chrome stays upright. No-op on Android (falls back to
-          // a portrait-aspect shot), no native dep, no prebuild required.
-          responsiveOrientationWhenOrientationLocked
-          onResponsiveOrientationChanged={(e) =>
-            console.log('[CameraScreen] responsive orientation', e.orientation)
-          }
-          // Video posts: video mode only while the switch says Video or a hold is recording.
-          // Muted until the microphone is granted, so turning to video never asks for it.
-          // With video off none of these are passed: the camera is exactly today's.
-          mode={videoOn ? cameraMode : undefined}
-          mute={videoOn ? micStatus !== 'granted' : undefined}
-          videoQuality={videoOn ? VIDEO_RECORDING.quality : undefined}
-          videoBitrate={videoOn ? VIDEO_RECORDING.bitrate : undefined}
-          videoStabilizationMode={videoOn ? VIDEO_RECORDING.stabilization : undefined}
-        />
+        {/* The camera layer: pulled down a little while waiting (see CameraPull). */}
+        <Reanimated.View style={[StyleSheet.absoluteFill, pull.cameraStyle]}>
+          <CameraView
+            ref={cameraRef}
+            style={StyleSheet.absoluteFill}
+            facing={facing}
+            // Flash: off / on / auto as set; on the selfie side "on" lights the screen instead.
+            flash={flashMode(flashChoice, facing)}
+            // 0.5× ultra-wide is a back-camera-only physical lens (iOS). Only pass
+            // a selectedLens when the user opted in AND we're on the back camera —
+            // never feed a back-cam lens id to the selfie cam. undefined ⇒ default
+            // wide-angle (1×). No-op on Android (selectedLens is iOS-only).
+            selectedLens={
+              facing === 'back' && useUltraWide && ultraWideLens ? ultraWideLens : undefined
+            }
+            onCameraReady={() => {
+              refreshAvailableLenses();
+              // Build 11+ has native tap to focus; build 10 (reached by OTA) doesn't.
+              setNativeFocus(cameraRef.current?.isFocusAtAvailable?.() ?? false);
+            }}
+            onAvailableLensesChanged={(e) => setAvailableLenses(e.lenses)}
+            // Landscape capture WITHOUT a global orientation unlock. The app stays
+            // portrait-locked (app.config.js orientation:'portrait' — every other
+            // screen + the hand-rolled navigators hardcode portrait dimensions, so
+            // a global unlock would break them). This iOS-only flag lets ONLY the
+            // camera sense physical tilt and bake the matching EXIF orientation into
+            // the shot: hold the phone sideways and you get a true landscape photo,
+            // while the camera chrome stays upright. No-op on Android (falls back to
+            // a portrait-aspect shot), no native dep, no prebuild required.
+            responsiveOrientationWhenOrientationLocked
+            onResponsiveOrientationChanged={(e) =>
+              console.log('[CameraScreen] responsive orientation', e.orientation)
+            }
+            // Video posts: video mode only while the switch says Video or a hold is recording.
+            // Muted until the microphone is granted, so turning to video never asks for it.
+            // With video off none of these are passed: the camera is exactly today's.
+            mode={videoOn ? cameraMode : undefined}
+            mute={videoOn ? micStatus !== 'granted' : undefined}
+            videoQuality={videoOn ? VIDEO_RECORDING.quality : undefined}
+            videoBitrate={videoOn ? VIDEO_RECORDING.bitrate : undefined}
+            videoStabilizationMode={videoOn ? VIDEO_RECORDING.stabilization : undefined}
+          />
+        </Reanimated.View>
 
         {/* Tap to focus: the live camera's empty area, under every control. */}
         {focusOn && (
@@ -2816,83 +2827,112 @@ export default function CameraScreen({
 
         {/* Reactive posting: nothing to answer (or no connection to find out), so no shutter. */}
         {gate === 'closed' || offline ? (
-          <BlurView intensity={BLUR_INTENSITY.i60} tint="dark" style={styles.postedOverlay}>
-            <View ref={waitingTip} style={styles.noTagsCard}>
-              {/* The words read as one; the button is its own element. */}
-              <WaitingCardWords
-                title={card.title}
-                line={card.line}
-                // Offline: no server to ask, so the offline words straight away.
-                mates={waitingCard ? mates : undefined}
-                points={
-                  waitingCard
-                    ? pointsRowText(pointsCountNow, profile?.streak_highest ?? null)
-                    : null
-                }
-              />
-              {card.button ? (
-                <Pressable
-                  style={({ pressed }) => [styles.seeFeedButton, pressed && { opacity: ALPHA.a70 }]}
-                  onPress={card.button.onPress}
-                  disabled={card.button.busy}
-                  accessibilityRole="button"
-                  accessibilityLabel={card.button.label}
-                  accessibilityState={{ busy: card.button.busy }}
+          <GestureDetector gesture={pull.gesture}>
+            <View style={StyleSheet.absoluteFill}>
+              {/* The frost moves with the camera; the card sits behind the glass. */}
+              <Reanimated.View style={[StyleSheet.absoluteFill, pull.frostStyle]}>
+                <BlurView
+                  intensity={BLUR_INTENSITY.i60}
+                  tint="dark"
+                  style={StyleSheet.absoluteFill}
+                />
+              </Reanimated.View>
+              <Reanimated.View style={[styles.postedOverlay, pull.behindStyle]}>
+                <View ref={waitingTip} style={styles.noTagsCard}>
+                  {/* The words read as one; the button is its own element. */}
+                  <WaitingCardWords
+                    title={card.title}
+                    line={card.line}
+                    // Offline: no server to ask, so the offline words straight away.
+                    mates={waitingCard ? mates : undefined}
+                    points={
+                      waitingCard
+                        ? pointsRowText(pointsCountNow, profile?.streak_highest ?? null)
+                        : null
+                    }
+                  />
+                  {card.button ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.seeFeedButton,
+                        pressed && { opacity: ALPHA.a70 },
+                      ]}
+                      onPress={card.button.onPress}
+                      disabled={card.button.busy}
+                      accessibilityRole="button"
+                      accessibilityLabel={card.button.label}
+                      accessibilityState={{ busy: card.button.busy }}
+                    >
+                      {card.button.busy ? (
+                        <ActivityIndicator color={COLORS.offBlack} />
+                      ) : (
+                        <Text style={styles.seeFeedText}>{card.button.label}</Text>
+                      )}
+                    </Pressable>
+                  ) : null}
+                  {gate === 'closed' && !offline ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.inviteMateButton,
+                        pressed && { opacity: ALPHA.a70 },
+                      ]}
+                      onPress={() => void inviteMate()}
+                      disabled={invitingMate}
+                      accessibilityRole="button"
+                      accessibilityLabel="Invite a mate"
+                      accessibilityHint="Makes a link to share. When they join, you’ll follow each other."
+                      accessibilityState={{ busy: invitingMate }}
+                    >
+                      {invitingMate ? (
+                        <ActivityIndicator color={COLORS.accent} />
+                      ) : (
+                        <Text style={styles.inviteMateText}>Invite a mate</Text>
+                      )}
+                    </Pressable>
+                  ) : null}
+                  {gate === 'closed' && !offline ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.seeInvites,
+                        pressed && { opacity: ALPHA.a70 },
+                      ]}
+                      onPress={() => setInvitesOpen(true)}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        myInviteCount ? `See your invites, ${myInviteCount}` : 'See your invites'
+                      }
+                      accessibilityHint="Shows the links you’ve sent and who joined"
+                    >
+                      <Text style={styles.seeInvitesText}>See your invites</Text>
+                      <CountBadge count={myInviteCount ?? 0} />
+                    </Pressable>
+                  ) : null}
+                  {gate === 'closed' && !offline && contactsFinder ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.seeInvites,
+                        pressed && { opacity: ALPHA.a70 },
+                      ]}
+                      onPress={() => setFindMatesOpen(true)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Find mates in your contacts"
+                      accessibilityHint="Shows who from your contacts is on Mahi, and lets you invite the rest"
+                    >
+                      <Text style={styles.seeInvitesText}>Find mates in your contacts</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </Reanimated.View>
+              {waitingCard ? (
+                <Reanimated.View
+                  style={[StyleSheet.absoluteFill, pull.cameraStyle]}
+                  pointerEvents="none"
                 >
-                  {card.button.busy ? (
-                    <ActivityIndicator color={COLORS.offBlack} />
-                  ) : (
-                    <Text style={styles.seeFeedText}>{card.button.label}</Text>
-                  )}
-                </Pressable>
-              ) : null}
-              {gate === 'closed' && !offline ? (
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.inviteMateButton,
-                    pressed && { opacity: ALPHA.a70 },
-                  ]}
-                  onPress={() => void inviteMate()}
-                  disabled={invitingMate}
-                  accessibilityRole="button"
-                  accessibilityLabel="Invite a mate"
-                  accessibilityHint="Makes a link to share. When they join, you’ll follow each other."
-                  accessibilityState={{ busy: invitingMate }}
-                >
-                  {invitingMate ? (
-                    <ActivityIndicator color={COLORS.accent} />
-                  ) : (
-                    <Text style={styles.inviteMateText}>Invite a mate</Text>
-                  )}
-                </Pressable>
-              ) : null}
-              {gate === 'closed' && !offline ? (
-                <Pressable
-                  style={({ pressed }) => [styles.seeInvites, pressed && { opacity: ALPHA.a70 }]}
-                  onPress={() => setInvitesOpen(true)}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    myInviteCount ? `See your invites, ${myInviteCount}` : 'See your invites'
-                  }
-                  accessibilityHint="Shows the links you’ve sent and who joined"
-                >
-                  <Text style={styles.seeInvitesText}>See your invites</Text>
-                  <CountBadge count={myInviteCount ?? 0} />
-                </Pressable>
-              ) : null}
-              {gate === 'closed' && !offline && contactsFinder ? (
-                <Pressable
-                  style={({ pressed }) => [styles.seeInvites, pressed && { opacity: ALPHA.a70 }]}
-                  onPress={() => setFindMatesOpen(true)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Find mates in your contacts"
-                  accessibilityHint="Shows who from your contacts is on Mahi, and lets you invite the rest"
-                >
-                  <Text style={styles.seeInvitesText}>Find mates in your contacts</Text>
-                </Pressable>
+                  <PullHandle top={openTagsTop(safeTop, fontScale)} anchorRef={pullTip} />
+                </Reanimated.View>
               ) : null}
             </View>
-          </BlurView>
+          </GestureDetector>
         ) : null}
 
         {gate === 'loading' && !offline ? (

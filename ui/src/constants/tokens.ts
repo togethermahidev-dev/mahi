@@ -391,6 +391,8 @@ export const SPRING = {
   /** …and following a dragging finger: the leading edge keeps up, the trailing edge lags. */
   railLead: { damping: 24, stiffness: 600, mass: 0.5 },
   railTrail: { damping: 22, stiffness: 260, mass: 0.6 },
+  /** The pulled-down camera springing back up. */
+  pullBack: { damping: 20, stiffness: 240, mass: 0.8 },
 } as const;
 
 // ─── Motion: how big things grow or shrink (transform scale) ──────────────────
@@ -538,6 +540,18 @@ export const MOTION = {
   /** The countdown ring's line width and size. */
   ringStroke: 3,
   ringSize: 22,
+
+  // ─── Moments that make the clock feel alive (design research, 2026-10-07) ───
+  /** The waiting camera, pulled down: how far it gives at most (pt, a rubber band), the share of
+   *  that the layer behind it moves, and the scale that layer grows from as it shows. */
+  pull: { limit: 48, parallax: 0.3, fromScale: 0.96 },
+  /** A pull past this share of its limit is felt once (a tick). */
+  pullFeltAt: 0.6,
+  /** The pull handle breathes out to this scale once, this fast (ms) each way, when it shows. */
+  pullHandleScale: 1.12,
+  pullHandleMs: 700,
+  /** Reduce Motion: the pulled frost thins to this, instead of moving. */
+  pullFrostLow: 0.85,
 } as const;
 
 // ─── One-time tips (coach marks): the bright cut-out, its ring, the bubble and its arrow ──────
