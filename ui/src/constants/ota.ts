@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 27 — the camera's tag pill no longer covers the points counter; after deleting your
+ *     posts the camera no longer offers a free first post (2026-10-07)
  *   build 12 · 26 — profile workout grids have hairline gaps between rows again (2026-10-07)
  *   build 12 · 25 — the camera tells someone posting for the first time whose tag their post
  *     answers (2026-10-07)
@@ -52,4 +54,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 26;
+export const OTA_NUMBER = 27;
