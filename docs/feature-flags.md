@@ -19,7 +19,7 @@ account only, to test one push, then for everyone).
 **`video-posts` (added 2026-10-02) is a default-off flag:** the owner wants it OFF for everyone.
 Create it in PostHog **switched off** (or at 0%); it reads as off until PostHog says true.
 **`ios-sf-symbols`, `context-menu-preview` and `camera-tap-focus` (added 2026-10-02) are default-off too:**
-they need build 11; they exist in PostHog **switched off** (2026-10-06: `ios-sf-symbols` and `context-menu-preview` are ON at 100%; the code no longer reads `context-menu-preview` — delete it in PostHog once every phone has 12.09+) — turn each on only once build 11 is on the phones
+they need build 11; they exist in PostHog **switched off** (2026-10-06: `ios-sf-symbols` and `context-menu-preview` are ON at 100%; the code no longer reads `context-menu-preview`; deleted from PostHog 2026-10-07) — turn each on only once build 11 is on the phones
 (build 10 ignores them either way).
 **`identity-verification` and `purchases` (added 2026-10-02) are default off too:** dormant until Didit and
 RevenueCat are set up (owner steps in [HANDOVER.md](./HANDOVER.md)). Both exist in PostHog **switched off**.
@@ -96,14 +96,14 @@ posts with a video icon. Needs the `expo-video` native module (a new native buil
 `20261002100000_video_posts`. On a build without the native module (build 10) it reads as off. Off = today's
 photo-only camera exactly, and the app never asks for the microphone.)
 
-**Reports:** no switch since 2026-10-06 (owner): standard for everyone. `content-reports` still exists in PostHog at 100% only for older updates; delete it once every phone has OTA 12.09 or later (12.11 is the newest). A '…'
+**Reports:** no switch since 2026-10-06 (owner): standard for everyone. `content-reports` was deleted from PostHog on 2026-10-07. A '…'
 button on every post (feed and post viewer) and every comment opens the phone's own menu — Report on
 other people's posts and comments (a list of reasons, then "Thanks. We'll take a look."). Your own posts
 and comments show no '…' yet (no delete in the app, no clipboard package). Needs migration `20261006100000_moderation`; without it a
 report says "Couldn't send your report. Try again." Off = no '…' on posts and comments; the profile's
 report keeps working.
 
-**Hold to preview:** no switch since 2026-10-06 (owner): standard on every iPhone build that has @expo/ui. `context-menu-preview` is on at 100% in PostHog for phones still on 12.08; delete it once every phone has OTA 12.09 (was: iPhone only; needs build 11, which carries
+**Hold to preview:** no switch since 2026-10-06 (owner): standard on every iPhone build that has @expo/ui. `context-menu-preview` was deleted from PostHog on 2026-10-07 (was: iPhone only; needs build 11, which carries
 `@expo/ui`). On: press and hold and the content pops out over a blurred background with a short menu
 below (Apple's own context menu). Profile grid squares: the post's photo, with Open, Like / Unlike and
 Share (Share sends the photo itself — post links expire within the hour — fetched to the phone only
