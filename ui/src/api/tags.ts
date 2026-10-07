@@ -68,7 +68,7 @@ export type MateOnClock = {
 };
 
 /**
- * Your mates on the clock, soonest first (`get_mates_on_clock`, 20261007260000). Read fresh each
+ * Your mates on the clock, soonest first (`get_mates_on_clock`, 20261007275000). Read fresh each
  * time the waiting camera shows; never kept on the phone (tags end).
  */
 export async function getMatesOnClock(): Promise<{

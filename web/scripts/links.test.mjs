@@ -25,7 +25,8 @@ const TOKEN = '0123456789abcdef0123456789abcdef';
 test('the Apple file lets invite and post links open the app', () => {
   const aasa = JSON.parse(read('../public/.well-known/apple-app-site-association'));
   const team = JSON.parse(read('../../ui/eas.json')).submit.production.ios.appleTeamId;
-  const bundle = /bundleIdentifier:\s*'([^']+)'/.exec(read('../../ui/app.config.js'))[1];
+  // The app's own id (the widget extension has its own `com.mahi.app.widgets` line too).
+  const bundle = /^\s{4}bundleIdentifier:\s*'([^']+)'/m.exec(read('../../ui/app.config.js'))[1];
   const appID = `${team}.${bundle}`;
 
   assert.deepEqual(aasa.applinks.apps, []);
