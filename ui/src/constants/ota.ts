@@ -7,6 +7,10 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 38 — "friends" instead of "mates" everywhere; invite buttons say "Hold someone else
+ *     accountable"; fixes from the new-user walkthrough (joined invites say you follow each other,
+ *     ended links say so, who you just tagged after the +1, plain "and 2 more", VoiceOver and
+ *     Reduce Motion fixes) (2026-10-08)
  *   build 12 · 37 — closing the share sheet no longer leaves an unsent invite; buttons say "Invite an
  *     accountability mate"; the camera gives when pulled down; the +1 flies into the counter;
  *     the feed clears post by post; last-6-hours ring; Answered stamp; Camera tab badge; miss
@@ -82,4 +86,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 37;
+export const OTA_NUMBER = 38;
