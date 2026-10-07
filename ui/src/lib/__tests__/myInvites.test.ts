@@ -119,6 +119,20 @@ describe('inviteWhatText — what the link does', () => {
   });
 });
 
+describe('inviteWhatText — a link that has ended', () => {
+  it('expired: this link has ended, not the 48-hours line', () => {
+    expect(inviteWhatText(invite({ kind: 'tag', status: 'expired' }))).toBe('This link has ended.');
+    expect(inviteWhatText(invite({ status: 'expired' }))).toBe('This link has ended.');
+  });
+
+  it('cancelled: you cancelled this link', () => {
+    expect(inviteWhatText(invite({ kind: 'tag', status: 'cancelled' }))).toBe(
+      'You cancelled this link.'
+    );
+    expect(inviteWhatText(invite({ status: 'cancelled' }))).toBe('You cancelled this link.');
+  });
+});
+
 describe('dayText', () => {
   it('reads like "Wed 7 Oct"', () => {
     expect(dayText(WED)).toBe('Wed 7 Oct');
