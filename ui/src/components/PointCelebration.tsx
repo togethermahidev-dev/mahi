@@ -8,6 +8,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { PressScale } from '@/components/Motion';
+import { useCoachBlock } from '@/hooks/useCoachMarks';
 import { FONTS } from '@/constants/fonts';
 import {
   ALPHA,
@@ -46,6 +47,8 @@ export default function PointCelebration({
   const { colors, dark } = useAppTheme();
   const reduceMotion = useReducedMotion();
   const card = dark ? COLORS.surfaceDark : COLORS.white;
+  // No one-time tip while the point is celebrated.
+  useCoachBlock(content !== null);
 
   return (
     <Modal visible={content !== null} transparent animationType="fade" onRequestClose={onClose}>

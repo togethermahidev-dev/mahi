@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useCoachAnchor } from '@/hooks/useCoachMarks';
+import { useTagStore } from '@/store';
 import { ProfileIcon, MessagesIcon, NotificationsIcon } from '@/components/ScreenIcons';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -45,6 +47,10 @@ export default function AppHeader({
 }: AppHeaderProps): React.JSX.Element {
   const { dark: systemDark } = useAppTheme();
   const insets = useSafeAreaInsets();
+  // The first time a mate's tag is waiting, a one-time tip points at the bell on the Feed (the
+  // Camera already says who tagged you).
+  const tagged = useTagStore((s) => s.openTags.length > 0);
+  const bellTip = useCoachAnchor('bell', !isDark && tagged);
   // isDark = camera screen (always dark bg); systemDark = OS-level dark mode
   const onDark = isDark || systemDark;
   const mahiColor = onDark ? COLORS.white : COLORS.offBlack;
@@ -100,6 +106,7 @@ export default function AppHeader({
         {/* Notifications bell pill — opens NotificationsScreen overlay (absolutely positioned,
             so it leaves the other pills undisturbed). */}
         <Pressable
+          ref={bellTip}
           style={({ pressed }) => [
             styles.bellPill,
             { backgroundColor: pillBg },

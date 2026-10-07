@@ -22,6 +22,7 @@ import { FONTS } from '@/constants/fonts';
 import {
   BLUR_INTENSITY,
   BORDER_WIDTH,
+  COLORS,
   DURATION,
   FONT_SIZE,
   ICON_SIZE,
@@ -104,6 +105,8 @@ export default function OpenTagsBanner({
   }
   if (!banner) return null;
   const isFirstPost = banner.firstPost === true;
+  // Under 6 hours left: the clock turns the warning colour (the note says who's waiting).
+  const clockColor = banner.urgent ? COLORS.warning : colors.accent;
 
   return (
     // box-none: touches pass through to the camera except on the notifications line.
@@ -124,7 +127,7 @@ export default function OpenTagsBanner({
             <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={3}>
               {banner.parts.map((part, i) =>
                 part.accent ? (
-                  <Text key={i} style={[styles.time, { color: colors.accent }]}>
+                  <Text key={i} style={[styles.time, { color: clockColor }]}>
                     {part.text}
                   </Text>
                 ) : (

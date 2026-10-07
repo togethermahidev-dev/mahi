@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, Modal, Alert, StyleSheet } from 'react-native';
 import KeyboardInset from '@/components/KeyboardInset';
+import { useCoachBlock } from '@/hooks/useCoachMarks';
 import { inviteListSummary, inviteRow, type InviteItem } from '@/lib/inviteShare';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -33,6 +34,8 @@ export default function InviteShareSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const summary = inviteListSummary(invites);
+  // No one-time tip on the camera while this sheet is up.
+  useCoachBlock(invites.length > 0);
   const nextIndex = invites.findIndex((i) => i.status === 'not-sent');
 
   const close = () => {

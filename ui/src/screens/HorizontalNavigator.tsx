@@ -33,6 +33,9 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
 import PostViewer from '@/components/PostViewer';
+import CoachMarkHost from '@/components/CoachMark';
+import { useCoachBlock, useOpenTagReminder } from '@/hooks/useCoachMarks';
+import { useCoachStore } from '@/store/coachStore';
 import { useAuthStore, useChromeStore, useNotificationsStore, useProfilePostsStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { TabBarRoomContext, usePageSize } from '@/hooks/useChrome';
@@ -91,6 +94,7 @@ export default function HorizontalNavigator({
     (open: boolean) => {
       onComposingChange?.(open);
       useToastStore.getState().setRoom({ top: open });
+      useCoachStore.getState().setComposing(open);
     },
     [onComposingChange]
   );
@@ -130,6 +134,14 @@ export default function HorizontalNavigator({
   const zooming = useChromeStore((s) => s.zooming);
   const railShown = railShows({ on: showRail, tab, overlay, covered });
   const dockShown = dockShows({ on: showRail, tab, overlay, covered });
+
+  // One-time tips follow the page on screen and wait while anything is open over the pages; the
+  // tag reminder shows once per app open, away from the camera.
+  useEffect(() => {
+    useCoachStore.getState().setPage(tab);
+  }, [tab]);
+  useCoachBlock(overlay || covered);
+  useOpenTagReminder();
 
   // Toasts sit above the phone's tab bar (the room it takes is what the pages leave below them),
   // or above the dock while it shows.
@@ -490,6 +502,9 @@ export default function HorizontalNavigator({
           />
         ) : null}
         {dockShown ? <NavRail dock active={tab} onSelect={selectTab} onDark={dark} /> : null}
+
+        {/* One-time tips over the pages (never over the sheets and views below). */}
+        <CoachMarkHost />
 
         <NotificationsScreen
           visible={notifOpen}

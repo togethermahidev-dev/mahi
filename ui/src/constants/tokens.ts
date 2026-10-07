@@ -49,6 +49,8 @@ export const COLORS = {
   amberDeep: '#B07020',
   /** Amber words on light backgrounds (readable at 4.5:1). */
   amberText: '#A5691E',
+  /** Time running short on a tag (under 6 hours): the camera pill's clock. */
+  warning: '#FFC93B',
 } as const;
 
 /** A token colour at the given opacity: withAlpha(COLORS.offWhite, ALPHA.a45). */
@@ -227,6 +229,8 @@ export const SIZE = {
   z170: 170,
   z180: 180,
   z200: 200,
+  /** A tip's bubble at its widest. */
+  z280: 280,
   z360: 360,
   z400: 400,
   z420: 420,
@@ -277,6 +281,8 @@ export const LAYER = {
   overlay: 500,
   /** Someone's profile, opened over search. */
   profile: 510,
+  /** A one-time tip, over everything on the page it explains. */
+  coach: 600,
 } as const;
 
 /** Android shadow depth (elevation), lowest first. */
@@ -411,6 +417,8 @@ export const WAIT = {
   toastAction: 8000,
   /** The least an older caller asks for when a toast explains something to act on. */
   toastLong: 5000,
+  /** A tip waits this long after its page settles (a swipe, a sheet closing) before it shows. */
+  coachMark: 700,
 } as const;
 
 // ─── Swipes: when a drag counts, and when it moves or closes something ───────

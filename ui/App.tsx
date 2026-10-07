@@ -51,6 +51,7 @@ import UpdateRequiredScreen from '@/components/UpdateRequiredScreen';
 import AccountStanding from '@/components/AccountStanding';
 import WelcomeCards from '@/components/WelcomeCards';
 import PushPrimer from '@/components/PushPrimer';
+import { useCoachBlock } from '@/hooks/useCoachMarks';
 import { reportError, Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { syncAnalyticsIdentity } from '@/lib/analytics';
@@ -132,6 +133,8 @@ export default function App(): React.JSX.Element {
   const [introDone, setIntroDone] = useState(false);
   // The welcome cards are out of the way, so the notifications page may show.
   const [welcomeSettled, setWelcomeSettled] = useState(false);
+  // One-time tips and the tag reminder start only once the welcome cards are closed.
+  useCoachBlock(!welcomeSettled);
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_600SemiBold,

@@ -5,6 +5,7 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { PUSH_PRIMER_DELAY_MS, shouldShowPushPrimer } from '@/lib/pushPrimer';
 import { usePushStore } from '@/store';
 import { reportError } from '@/lib/sentry';
+import { useCoachBlock } from '@/hooks/useCoachMarks';
 
 /**
  * Whether the phone's own camera question is out of the way (answered either way). The camera
@@ -66,6 +67,9 @@ export function usePushPrimer(welcomeSettled: boolean): UsePushPrimerResult {
     welcomeSettled,
     cameraSettled,
   });
+
+  // No one-time tip shows while the page is on its way or up.
+  useCoachBlock(wanted);
 
   // A beat after the last thing on screen has gone: a page can't open while another is closing.
   const [delayPassed, setDelayPassed] = useState(false);

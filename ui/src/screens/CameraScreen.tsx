@@ -82,6 +82,8 @@ import {
   type ScreenSlot,
 } from '@/lib/tagSlots';
 import { useOpenTags } from '@/hooks/useOpenTags';
+import { useCoachAnchor } from '@/hooks/useCoachMarks';
+import CoachMarkHost from '@/components/CoachMark';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useVideoPosts } from '@/hooks/useVideoPosts';
 import { usePageSize, useRailRoom, useTabBarRoom } from '@/hooks/useChrome';
@@ -190,7 +192,14 @@ function topRightY(insetTop: number): number {
  * loaded: a muted dash, never a 0 that then changes. The number lands (zoom + fade) the first
  * time it's known, and pops a little when it goes up; with Reduce Motion it only fades.
  */
-function PointsCounter({ count }: { count: number | null }) {
+function PointsCounter({
+  count,
+  anchorRef,
+}: {
+  count: number | null;
+  /** Where the points tip points (one-time tip). */
+  anchorRef?: React.Ref<View>;
+}) {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const scaleAnim = useRef(new Animated.Value(reduceMotion ? 1 : SCALE.s4)).current;
@@ -237,6 +246,7 @@ function PointsCounter({ count }: { count: number | null }) {
 
   return (
     <Animated.View
+      ref={anchorRef}
       style={[
         styles.pointsCounter,
         { top: topRightY(insets.top), transform: [{ scale: scaleAnim }], opacity: opacityAnim },
@@ -524,6 +534,8 @@ function DualPhotoPreview({
   // reopen the caption sheet. When null, the tag sheet was opened via the
   // tag pill and commits/cancels go straight back to 'none'.
   const [captionAtIndex, setCaptionAtIndex] = useState<number | null>(null);
+  // One-time tip on the tag pill, the first time the preview is up with no sheet over it.
+  const tagTip = useCoachAnchor('tagMates', modalOpen && activeSheet === 'none' && !isUploading);
 
   // Reduce Motion: the preview fades in and out instead of sliding (owner approved 2026-10-05).
   const reduceMotion = useReducedMotion();
@@ -849,6 +861,7 @@ function DualPhotoPreview({
               }}
             >
               <Pressable
+                ref={tagTip}
                 accessibilityRole="button"
                 accessibilityLabel={
                   taggedUsers.length + slots.length > 0
@@ -1052,6 +1065,9 @@ function DualPhotoPreview({
             }
           }}
         />
+
+        {/* The preview is its own window: its one-time tip shows here. */}
+        <CoachMarkHost compose />
       </GestureHandlerRootView>
     </Modal>
   );
@@ -1699,6 +1715,15 @@ export default function CameraScreen({
       setInvitingMate(false);
     }
   };
+
+  // One-time tips: the points pill, the shutter (two photos) and the waiting card.
+  const cameraOn = cameraPermission?.granted === true;
+  const pointsTip = useCoachAnchor('points', cameraOn && pointsCountNow !== null);
+  const shutterTip = useCoachAnchor(
+    'twoPhotos',
+    cameraOn && !blocked && captureState === 'idle' && guidePhotoUri === null
+  );
+  const waitingTip = useCoachAnchor('waiting', cameraOn && gate === 'closed' && !offline);
 
   // Tap to focus (flag `camera-tap-focus`): switch on, an iPhone, and a build whose camera can
   // focus on a point (build 11+). OTA updates also reach build 10, which can't: there it's off.
@@ -2596,7 +2621,7 @@ export default function CameraScreen({
           </GestureDetector>
         )}
 
-        <PointsCounter count={pointsCountNow} />
+        <PointsCounter count={pointsCountNow} anchorRef={pointsTip} />
 
         {!blocked && (
           <OpenTagsBanner
@@ -2638,7 +2663,7 @@ export default function CameraScreen({
         {/* Reactive posting: nothing to answer (or no connection to find out), so no shutter. */}
         {gate === 'closed' || offline ? (
           <BlurView intensity={BLUR_INTENSITY.i60} tint="dark" style={styles.postedOverlay}>
-            <View style={styles.noTagsCard}>
+            <View ref={waitingTip} style={styles.noTagsCard}>
               {/* The words read as one; the button is its own element. */}
               <View
                 style={styles.noTagsWords}
@@ -2836,7 +2861,7 @@ export default function CameraScreen({
               <FlipIcon color={flipColor} />
             </Pressable>
 
-            <View style={styles.shutterSlot}>
+            <View ref={shutterTip} style={styles.shutterSlot}>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={shutterLabel({

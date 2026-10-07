@@ -12,6 +12,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useOpenTags } from '@/hooks/useOpenTags';
+import { useCoachAnchor } from '@/hooks/useCoachMarks';
 import { useSecondTick } from '@/hooks/useSecondTick';
 import { clockText, feedCountdown, lockExplainer } from '@/lib/feedLock';
 import { FEED_WINDOW_MS, ringProgress } from '@/lib/feedLayout';
@@ -69,9 +70,11 @@ function LockedCard({
   const { openTags, loaded } = useOpenTags();
   // The tag clock ticks every second, like every tag countdown.
   const deviceNow = useSecondTick(openTags.length > 0);
-  if (!loaded) return null;
-
-  const card = lockExplainer({ locked: true, unlockedUntil, openTags, serverOffsetMs, deviceNow });
+  const card = loaded
+    ? lockExplainer({ locked: true, unlockedUntil, openTags, serverOffsetMs, deviceNow })
+    : null;
+  // The first locked feed: a one-time tip on this card.
+  const lockTip = useCoachAnchor('feedLocked', card !== null);
   if (!card) return null;
   const toFriends = card.target === 'friends';
   const onPress = toFriends ? onFindFriends : onPost;
@@ -80,6 +83,7 @@ function LockedCard({
     // Only the button takes touches, so the feed's scroll and swipe still start anywhere else.
     <FadeInItem>
       <View
+        ref={lockTip}
         pointerEvents="box-none"
         style={[
           styles.card,
