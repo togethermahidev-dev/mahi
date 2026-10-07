@@ -13,3 +13,7 @@ $PNPM --filter ./web deploy --prod=false .web-deploy
 (cd .web-deploy && $PNPM run build)
 rm -rf web/out
 mv .web-deploy/out web/out
+# The Apple file that lets invite and post links open the app lives in a dot-folder, which a
+# package copy may leave out. Copy it straight from the repo so it is always published.
+mkdir -p web/out/.well-known
+cp web/public/.well-known/apple-app-site-association web/out/.well-known/

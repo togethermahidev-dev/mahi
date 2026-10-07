@@ -83,6 +83,9 @@ netlify deploy --prod --dir web/out
 | `app/page.tsx` | The page: headline, the waitlist card, how it works, footer |
 | `app/_components/WaitlistForm.tsx` | The Netlify form, with loading, success and error states |
 | `app/thanks/page.tsx` | Where the form lands if JavaScript is off |
+| `public/.well-known/apple-app-site-association` | Lets invite (`/i/…`) and post (`/p/…`) links open the Mahi iPhone app |
+| `app/i/`, `app/p/` | The pages those links show when Mahi isn't installed (one page each; `netlify.toml` serves it for every link) |
+| `app/_lib/links.ts` | Reads the links, who sent an invite, and the store links (tests: `scripts/links.test.mjs`) |
 | `app/tokens.css` | Generated from the app's tokens — don't edit |
 | `scripts/build-tokens.mjs` | Builds `tokens.css` |
 | `scripts/check-tokens.mjs` | Fails on any hand-typed design value (tests: `pnpm --filter ./web test`) |

@@ -23,3 +23,22 @@
   NPM_FLAGS = "--version"
   PNPM_VERSION = "12.4.2"
   PNPM_FLAGS = "--help"
+
+# Lets invite links (/i/…) and post links (/p/…) open the Mahi iPhone app. Apple reads this file
+# with no extension, so it is named as JSON here. Tests: web/scripts/links.test.mjs
+[[headers]]
+  for = "/.well-known/apple-app-site-association"
+  [headers.values]
+    Content-Type = "application/json"
+
+# Without the app, every invite and post link gets the one fallback page; the page reads the link
+# from the address. (A real file at the path, like /i/index.html itself, still wins.)
+[[redirects]]
+  from = "/i/*"
+  to = "/i/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/p/*"
+  to = "/p/index.html"
+  status = 200

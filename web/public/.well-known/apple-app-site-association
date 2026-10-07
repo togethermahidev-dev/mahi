@@ -1,0 +1,16 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["733RLXDJNY.com.mahi.app"],
+        "components": [
+          { "/": "/i/*", "comment": "Invite links" },
+          { "/": "/p/*", "comment": "Shared posts" }
+        ],
+        "appID": "733RLXDJNY.com.mahi.app",
+        "paths": ["/i/*", "/p/*"]
+      }
+    ]
+  }
+}
