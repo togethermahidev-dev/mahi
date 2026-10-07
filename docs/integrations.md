@@ -272,29 +272,57 @@ EXPO_PUBLIC_POSTHOG_HOST   # default: https://us.i.posthog.com
 
 ## Sentry — `ui/src/lib/sentry.ts`
 
-**Status: Active**
+**Status: Active.** Error and crash reporting via `@sentry/react-native` v8. Org `mahi-org`,
+project `react-native` (EU region, `mahi-org.sentry.io`).
 
-Error and crash reporting via `@sentry/react-native` v8.
+**When it sends.** In every installed app (preview, TestFlight, App Store) once
+`EXPO_PUBLIC_SENTRY_DSN` is baked in; never on a dev machine (`__DEV__`). The Sentry
+*environment* is the update channel (`preview` / `production`), so test phones and real users
+never mix. Every event is tagged `ota` (the OTA number), `update_id`, `runtime` and `channel`;
+Sentry's own `release`/`dist` carry the app version and build number.
 
-- `initSentry()` called at app startup in `index.ts`
-- Config plugin in `app.config.js` (org: `mahi-org`, project: `react-native`)
-- Only enabled when `EXPO_PUBLIC_APP_ENV === 'production'`
-- `Sentry.setUser({ id, email })` set on login, cleared on logout (`App.tsx`)
+**How to report a failure — always `reportError`, never raw `Sentry.capture*`:**
+```ts
+import { reportError } from '@/lib/sentry';
+const { error } = await supabase.rpc('set_following', …);
+if (error) reportError(error, { flow: 'follows', action: 'setFollowing', extra: { otherUserId } });
+```
+It builds the report in `ui/src/lib/errorReport.ts` (pure, tested in
+`ui/src/lib/__tests__/errorReport.test.ts`):
+- **Title:** `follows.setFollowing failed: <what the server or code said> [code 42501] [HTTP 403]`.
+- **Tags** to filter on: `flow`, `action`, `kind` (`database`, `auth`, `server-function`,
+  `storage`, `network`, `app`), `code`, `http_status`.
+- **"failure" context:** Supabase `details` and `hint`, the original message, your `extra`
+  (keys like password/token/otp/pin are replaced with `[removed]`), and for a server function
+  failure the function's own reply (`server_reply`, first 1000 characters) — that is where the
+  real reason is.
+- **Grouping:** one issue per flow + action + kind + code (ids and numbers in the message are
+  ignored), so one bug is one issue however many people hit it.
+- **Level:** `error`; a lost connection is `warning`; pass `level: 'fatal'` for a dead end.
+- The original error is kept as `cause`, so its stack trace is shown too.
 
-**Instrumented flows:**
+**Where to call it:** where the error stops travelling — a `catch` that doesn't rethrow, or a
+Supabase `{ error }` handled on the spot. A function that throws or returns the error onward
+does not report; its caller does. That keeps each failure counted once. Not reported (at most a
+breadcrumb): wrong password or code typed by the person, a cancelled picker, a declined
+permission, a native module missing from an older build.
 
-| Flow | File | Logging |
+**Also captured automatically:** crashes and unhandled promise rejections (SDK default), screen
+render errors (`ErrorBoundary`, level `fatal`), and the taps before each error
+(`Sentry.wrap(App)` in `ui/index.ts`). `Sentry.setUser({ id, email })` on sign-in, cleared on
+sign-out (`App.tsx`). Keep `Sentry.addBreadcrumb` for steps worth seeing in the trail.
+
+**Readable stack traces.** `ui/metro.config.js` uses `getSentryExpoConfig`, which stamps each
+bundle with a debug id. Native builds upload their source maps during the EAS build
+(`SENTRY_AUTH_TOKEN` on EAS). OTA updates: `pnpm ota:preview "<message>"` publishes and then
+runs `sentry-expo-upload-sourcemaps dist` (`scripts/ota-publish.cjs`); after a production OTA,
+or if that upload fails, run `pnpm --dir ui sentry:sourcemaps` from the same checkout.
+
+**Settings:**
+| Where | Name | What |
 |---|---|---|
-| Login | `LoginSheet.tsx` | `captureMessage` on sign-in error |
-| Signup | `CreateAccountSheet.tsx` | `captureException` on OTP send / account creation failure; breadcrumbs for OTP sent, verified, account created |
-| Search | `GlobalSearchOverlay.tsx` | `captureException` on search error; breadcrumbs for overlay open, profile tap |
-| Camera upload | `CameraScreen.tsx` | `captureException` on upload failure |
-| Follow | `UserProfileScreen.tsx` | `captureMessage` on toggle follow/unfollow error; breadcrumb on follow tap |
+| EAS preview + production, "sensitive" | `EXPO_PUBLIC_SENTRY_DSN` | Where the app sends errors. Must be on EAS: `eas update` ignores `ui/.env`. |
+| EAS preview + production, secret | `SENTRY_AUTH_TOKEN` | Uploads source maps during builds. |
+| `ui/.env` (local) | `SENTRY_AUTH_TOKEN`, `EXPO_PUBLIC_SENTRY_DSN` | Source map upload after an OTA; local runs. |
 
-**Pattern:** use `Sentry.captureException(err, { tags: { flow }, extra })` for caught errors and `Sentry.addBreadcrumb({ category, message, level })` for navigation/action events. Use `console.error('[ComponentName]')` alongside for dev debugging.
-
-**Required env vars:**
-```
-EXPO_PUBLIC_SENTRY_DSN
-EXPO_PUBLIC_APP_ENV   # 'development' | 'production' — Sentry only active in production
-```
+`EXPO_PUBLIC_APP_ENV` no longer decides whether Sentry sends.
