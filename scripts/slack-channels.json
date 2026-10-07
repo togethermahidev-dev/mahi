@@ -33,7 +33,7 @@
   {
     "name": "feed",
     "purpose": "The feed of friends' workouts: what's in it and how the cards work",
-    "summary": "Your friends' workouts and your own, full screen, one at a time, newest first. Pull down to refresh; posts stay visible while another page loads.\n• Feed rows remain fresh from the server, while valid photo links and native image caches are reused so the same post or avatar no longer visibly reloads on refresh.\n• Cards show poster, time, points, caption and tags; pinch to zoom, like, comment or open a profile. Owners can edit a caption for one hour or delete their own post.\n• A live countdown shows how long the feed remains open."
+    "summary": "Workouts from the people you follow, full screen, one at a time, newest first, plus only your own latest post in its place by time; older posts stay on your profile. Pull down to refresh; posts stay visible while another page loads.\n• Feed rows remain fresh from the server, while valid photo links and native image caches are reused so the same post or avatar no longer visibly reloads on refresh.\n• Cards show poster, time, points, caption and tags; pinch to zoom, like, comment or open a profile. Owners can edit a caption for one hour or delete their own post.\n• A live countdown shows how long the feed remains open."
   },
   {
     "name": "feed-lock",
