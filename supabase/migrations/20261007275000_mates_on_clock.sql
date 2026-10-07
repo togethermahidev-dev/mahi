@@ -10,7 +10,7 @@
 --    told as before.
 -- Bodies of break_missed_streaks and mark_missed_tags are 20261001120000_reactive_posting's,
 -- checked against prod 2026-10-07. Test: supabase/tests/mates_on_clock_test.sql
--- Rollback: supabase/rollbacks/20261007260000_mates_on_clock.rollback.sql
+-- Rollback: supabase/rollbacks/20261007275000_mates_on_clock.rollback.sql
 
 -- 1. Your mates on the clock.
 create function public.get_mates_on_clock()

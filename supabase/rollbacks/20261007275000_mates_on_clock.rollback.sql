@@ -1,4 +1,4 @@
--- Undo 20261007260000_mates_on_clock: the waiting camera loses who is on the clock (apps that read
+-- Undo 20261007275000_mates_on_clock: the waiting camera loses who is on the clock (apps that read
 -- it fall back to "Waiting for a mate to tag you"), and every miss tells the person who missed
 -- again, even at 0 points. Bodies are 20261001120000_reactive_posting's (production's before).
 begin;

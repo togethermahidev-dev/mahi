@@ -1,4 +1,4 @@
--- Mates on the clock (usability walkthrough, 2026-10-07). Migration: 20261007260000_mates_on_clock.
+-- Mates on the clock (usability walkthrough, 2026-10-07). Migration: 20261007275000_mates_on_clock.
 -- 1. get_mates_on_clock: the waiting camera names the mates whose 48 hours to answer you are
 --    running, soonest first. Only your own started, open tags with a person on Mahi.
 -- 2. A miss tells the person who missed only when it cost them points: at 0 points there is
