@@ -1,10 +1,12 @@
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { hasNativeContacts } from '@/lib/contactsModule';
 
 /**
- * Whether "Find your mates" shows anywhere: this build has expo-contacts (build 13+). No switch
- * (owner, 2026-10-07): on for everyone on the build. Builds 10 to 12 get OTA updates too and never
+ * Whether "Find your mates" shows anywhere: this build has expo-contacts (build 13+) and the
+ * `contacts-finder` switch is on (on for everyone; the owner's off switch, 2026-10-07). Builds 10 to 12 get OTA updates too and never
  * show it.
  */
 export function useContactsFinder(): boolean {
-  return hasNativeContacts();
+  const on = useFeatureFlag('contacts-finder');
+  return on && hasNativeContacts();
 }

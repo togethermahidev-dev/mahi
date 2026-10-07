@@ -30,6 +30,13 @@ export const FEATURE_FLAGS = [
   'identity-verification', // Didit identity check (default OFF)
   'purchases', // RevenueCat in-app purchases and paywall (default OFF)
 
+  // Build 13 native features — kill switches, on for everyone (owner, 2026-10-07). Off = the
+  // feature hides and the app behaves as before it.
+  'contacts-finder', // Find your mates from the phone's contacts
+  'live-activity', // a mate's tag on the lock screen, Dynamic Island and home-screen widget
+  'emoji-keyboard', // the emoji button and panel (search, suggestions) in a conversation
+  'message-reactions', // hold a message to react, reaction badges, double tap for a heart
+
   // Sign-in placeholders — pills on the welcome screen with nothing behind them yet.
   'auth-apple-signin',
   'auth-google-signin',
@@ -50,7 +57,7 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * `identity-verification` and `purchases`: dormant until the owner sets up Didit / RevenueCat.
  * `tag-slots`: needs migration 20261003120000_tag_slots on the server first; off, the tag sheet
  * stays exactly as today.
-*/
+ */
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'push-core',
   'video-posts',

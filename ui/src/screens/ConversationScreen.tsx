@@ -32,6 +32,7 @@ import { messageHoldActions, myReaction, reactionsOf } from '@/lib/messageReacti
 import { useToastStore } from '@/store/toastStore';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useConversation } from '@/hooks/useConversation';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useCoverRail } from '@/hooks/useChrome';
 import { useMessages } from '@/hooks/useMessages';
 import { groupMessagesByDate, type GroupedRow } from '@/lib/groupMessages';
@@ -162,7 +163,9 @@ export default function ConversationScreen({
   const canSend = draft || !isRequest;
   const waiting = isRequest && !isReceiver;
   // Reactions live in an open chat: not a draft, not a waiting request, not a closed one.
-  const canReact = !draft && status === 'active';
+  // `message-reactions`: the owner's off switch (on for everyone, 2026-10-07).
+  const reactionsOn = useFeatureFlag('message-reactions');
+  const canReact = reactionsOn && !draft && status === 'active';
 
   const handleSend = async () => {
     const content = inputText.trim();
@@ -424,13 +427,15 @@ export default function ConversationScreen({
                         <Text style={[styles.bubbleText, { color: text }]}>{msg.content}</Text>
                       </View>
                     </MessageHoldMenu>
-                    <ReactionBadges
-                      messageId={msg.id}
-                      reactions={reactions}
-                      own={isOwn}
-                      dark={dark}
-                      onToggle={(emoji) => void onReact(msg.id, emoji)}
-                    />
+                    {reactionsOn ? (
+                      <ReactionBadges
+                        messageId={msg.id}
+                        reactions={reactions}
+                        own={isOwn}
+                        dark={dark}
+                        onToggle={(emoji) => void onReact(msg.id, emoji)}
+                      />
+                    ) : null}
                     {item.showTime || msg.edited_at ? (
                       <Text style={[styles.bubbleTime, { color: muted }]}>
                         {[

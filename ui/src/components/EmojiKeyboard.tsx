@@ -15,6 +15,7 @@ import {
   type EmojiPanelHandle,
 } from '@/lib/emojiKeyboardModule';
 import { TAP_AREA, tapSlop } from '@/lib/tapArea';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 
 /**
  * The emoji button in a composer, and (Android) the emoji panel that takes the keyboard's place.
@@ -52,7 +53,9 @@ export function useEmojiKeyboard(
 ): EmojiKeyboardControl {
   const native = loadEmojiKeyboard();
   const android = Platform.OS === 'android';
-  const available = native != null && (!android || loadEmojiPanelView() != null);
+  // `emoji-keyboard`: the owner's off switch (on for everyone, 2026-10-07).
+  const switchOn = useFeatureFlag('emoji-keyboard');
+  const available = switchOn && native != null && (!android || loadEmojiPanelView() != null);
   const [state, setState] = useState(EMOJI_KEYBOARD_START);
   const stateRef = useRef(state);
   const panelRef = useRef<EmojiPanelHandle | null>(null);

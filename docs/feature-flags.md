@@ -156,6 +156,37 @@ and RevenueCat is never started.)
 `auth-apple-signin` · `auth-google-signin`. **Currently on at 100%** — the owner's choice on 2026-09-23 to
 preview the look; tapping them does nothing. Set both to 0% before real users see the welcome screen.
 
+## Build 13 native features: off switches (owner, 2026-10-07)
+
+The owner asked for a way to turn off every new native feature. Each one below is a default-on switch.
+All of them were created in PostHog on 2026-10-07, active at 100% for everyone, before any update read them.
+Turning one off hides that feature for everyone, and the app behaves as it did before the feature.
+They are not rollouts: never on for one account first. Once a feature is proven on phones, the
+removal rule applies as usual: take the switch out of the code, then delete it in PostHog.
+
+| Switch | What it turns off |
+|---|---|
+| `contacts-finder` | Find your mates from the phone's contacts (camera, Settings, Your invites, welcome step) |
+| `live-activity` | A mate's tag on the lock screen, Dynamic Island and home-screen widget |
+| `emoji-keyboard` | The emoji button and panel in a conversation |
+| `message-reactions` | Hold a message to react, reaction badges, double tap for a heart |
+| `camera-pull-down` | Pulling the locked camera down to see what's behind it |
+| `point-fly-in` | The +1 flying into the points counter |
+| `feed-develop` | Locked posts clearing one by one after you post |
+| `tag-drain-ring` | The ring draining around the tagger in the last 6 hours |
+| `answered-stamp` | The "Answered @sam" stamp and tick |
+| `camera-tab-badge` | The badge on the Camera tab while a tag waits |
+| `miss-roll-down` | The counter rolling down before the miss moment |
+| `profile-points-card` | The profile points card with the last three mates |
+| `widget-tagger-photo` | The tagger's photo on the lock screen and widget |
+| `share-to-mahi` | Sharing a photo from Photos into Mahi |
+| `control-post-workout` | The Control Centre and lock screen "Post a workout" control |
+| `spotlight` | Mahi's actions in Spotlight |
+| `siri-shortcuts` | Mahi's Siri and Shortcuts actions |
+| `shutter-sound` | Apple's shutter sound on capture |
+| `widget-background-refresh` | The widget refreshing while Mahi is closed |
+| `auth-apple-signin` | Sign in with Apple (already existed) |
+
 ## Removed from code 2026-10-07
 
 These twelve were on at 100% for everyone since about 2026-10-01. The owner made them standard on
