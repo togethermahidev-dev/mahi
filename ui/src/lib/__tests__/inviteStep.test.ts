@@ -56,7 +56,7 @@ describe('inviteStepCopy', () => {
     expect(inviteStepCopy({ maxTags: 3, availableFriends: 0, friends: 0, invites: 0 })).toEqual({
       headline: 'Invite 3 mates to post',
       why: 'Every post tags 3 mates. When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.',
-      button: 'Invite an accountability mate',
+      button: 'Invite an accountability partner',
       canAdd: true,
       count: '0 of 3 tags',
     });
@@ -88,7 +88,7 @@ describe('inviteStepCopy — when this post needs no tags', () => {
       tagsOptional: true,
     });
     expect(copy.headline).toBe('Invite mates to keep you going');
-    expect(copy.button).toBe('Invite an accountability mate');
+    expect(copy.button).toBe('Invite an accountability partner');
     expect(copy.why).toBe(
       'When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.'
     );
