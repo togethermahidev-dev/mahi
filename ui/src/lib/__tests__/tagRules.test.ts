@@ -1,4 +1,4 @@
-import { cantTagReason, requiredTagCount } from '../tagRules';
+import { cantTagReason, postTagsRequired, requiredTagCount } from '../tagRules';
 
 describe('requiredTagCount', () => {
   const rules = { tagCount: 3, tagsRequired: true, inviteLinksEnabled: false };
@@ -16,6 +16,24 @@ describe('requiredTagCount', () => {
     expect(requiredTagCount({ ...rules, tagsRequired: false, inviteLinksEnabled: true }, 5)).toBe(
       0
     );
+  });
+});
+
+describe('postTagsRequired — a first post that answers a mate needs no tags', () => {
+  it('asks for nothing when your first post answers a mate’s tag', () => {
+    expect(postTagsRequired(3, { firstPost: true, answersTag: true })).toBe(0);
+  });
+
+  it('keeps the rule for a first post with no tag to answer', () => {
+    expect(postTagsRequired(3, { firstPost: true, answersTag: false })).toBe(3);
+  });
+
+  it('keeps the rule for every post after the first', () => {
+    expect(postTagsRequired(3, { firstPost: false, answersTag: true })).toBe(3);
+  });
+
+  it('keeps the rule while it isn’t known yet whether you have posted', () => {
+    expect(postTagsRequired(3, { firstPost: null, answersTag: true })).toBe(3);
   });
 });
 

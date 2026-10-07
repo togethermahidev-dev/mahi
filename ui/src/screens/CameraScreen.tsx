@@ -105,7 +105,7 @@ import {
 } from '@/lib/cameraCapture';
 import { answersATag, hasPostedBefore, reactivePostingGate } from '@/lib/reactivePosting';
 import { nudgeLabel } from '@/lib/tagNudge';
-import { cantTagReason } from '@/lib/tagRules';
+import { cantTagReason, postTagsRequired } from '@/lib/tagRules';
 import { inviteList, inviteShareMessage, markInvite, type InviteItem } from '@/lib/inviteShare';
 import { tagSheetStep } from '@/lib/inviteStep';
 import {
@@ -1615,6 +1615,11 @@ export default function CameraScreen({
     serverOffsetMs,
   });
   const blocked = gate !== 'open';
+  // A first post that answers a mate's tag may tag nobody; every other post tags `requiredTags`.
+  const postRequiredTags = postTagsRequired(requiredTags, {
+    firstPost: hasPosted === null ? null : !hasPosted,
+    answersTag: answersATag(openTags, serverOffsetMs),
+  });
   // Offline at the gym: a failed read would otherwise leave the shutter spinning forever. Say so,
   // with Try again (re-reads the tags and the feed), instead of a spinner with no words.
   const tagsError = useTagStore((s) => s.openTagsError);
@@ -2841,7 +2846,7 @@ export default function CameraScreen({
           slotsOn={tagSlotsOn}
           slots={slots}
           onSlotsChange={setSlots}
-          requiredTags={requiredTags}
+          requiredTags={postRequiredTags}
           locationEnabled={locationEnabled}
           onToggleLocation={handleToggleLocation}
         />

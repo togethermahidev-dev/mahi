@@ -12,6 +12,19 @@ export function requiredTagCount(
 }
 
 /**
+ * Tags this post needs (owner, 2026-10-07): your first ever post that answers a mate's open tag
+ * may tag nobody — tagging is encouraged, not required. Every other post needs `required`.
+ * `firstPost` is null until it's known, and then the usual rule holds. The server
+ * (20261007190000_first_answer_no_tags) enforces the same.
+ */
+export function postTagsRequired(
+  required: number,
+  s: { firstPost: boolean | null; answersTag: boolean }
+): number {
+  return s.firstPost === true && s.answersTag ? 0 : required;
+}
+
+/**
  * Why a friend is greyed out in the tag list; null when they can be tagged. Your own tag on them
  * ends when they post or its 48 hours run out (the server's taggable_friends rule).
  */
