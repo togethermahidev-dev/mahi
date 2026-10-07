@@ -52,6 +52,7 @@ import UpdateRequiredScreen from '@/components/UpdateRequiredScreen';
 import AccountStanding from '@/components/AccountStanding';
 import WelcomeCards from '@/components/WelcomeCards';
 import FindMatesStep from '@/components/FindMatesStep';
+import MissMoment from '@/components/MissMoment';
 import PushPrimer from '@/components/PushPrimer';
 import { useCoachBlock } from '@/hooks/useCoachMarks';
 import { reportError, Sentry } from '@/lib/sentry';
@@ -298,6 +299,7 @@ export default function App(): React.JSX.Element {
             />
             <PushPrimer welcomeSettled={onboardingSettled} />
             <AccountStanding userId={session.user.id} />
+            <MissMoment userId={session.user.id} />
           </>
         )}
         {!introDone && (

@@ -30,12 +30,16 @@ export interface PointCelebrationContent {
   lines: string[];
   /** "Cheer @sam on": a way to the mate whose tag was answered. */
   cheer?: { label: string; onPress: () => void };
+  /** What the round badge says (default "+1"; the miss moment shows "0"), and VoiceOver's words. */
+  badge?: string;
+  badgeLabel?: string;
 }
 
 /**
  * The moment a post earns a Mahi point: a big "+1" that lands, the new total, and what it means
  * (reactive posting). Words come from `pointCelebration` in `@/lib/mahiPoints`. With Reduce Motion
- * the "+1" fades in instead of springing.
+ * the "+1" fades in instead of springing. The same moment, with a "0", says a miss
+ * (`missMoment`, shown by MissMoment.tsx).
  */
 export default function PointCelebration({
   content,
@@ -68,9 +72,11 @@ export default function PointCelebration({
               }
               style={[styles.badge, { backgroundColor: colors.accent }]}
               accessible
-              accessibilityLabel="Plus 1 Mahi point"
+              accessibilityLabel={content.badgeLabel ?? 'Plus 1 Mahi point'}
             >
-              <Text style={[styles.plusOne, { color: COLORS.offBlack }]}>+1</Text>
+              <Text style={[styles.plusOne, { color: COLORS.offBlack }]}>
+                {content.badge ?? '+1'}
+              </Text>
             </Reanimated.View>
             <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>
               {content.title}
