@@ -33,6 +33,18 @@ without the owner's go in the same session.
   directional follow. An accepted link or in-app tag invite continues to make both people follow
   each other; declining creates neither row. A normal profile Follow remains one-way until it is
   followed back, which is when the pair appears in Friends.
+- **Audit 2026-10-07 (checked against prod) and its fixes, on `updates`, not yet on phones:**
+  migration `20261007150000_live_updates_and_hardening` (live updates for follows, likes and
+  comments; tags readable only by signed-in people and never on hidden posts; fixed search paths;
+  trigger functions not callable through the API; indexes on 27 foreign keys) — tried with
+  `scripts/db.sh try` (9/9), waiting for the owner's backup → push. App: unfollows/unlikes arrive
+  live, live comments get their commenter, no duplicate own comment, blank names no longer crash
+  (55b90b6). `check-email` source now in the repo (eac0aeb). Sign-in placeholders
+  `auth-apple-signin` / `auth-google-signin` set to 0% in PostHog. Twelve 100% switches are being
+  removed from the code. Found, not fixed (owner): send-push, moderate-content and didit functions
+  not deployed; the update gate is off while old messaging is removed; post photos are public by
+  link (deferred `private_bucket.sql` waits on the gate); leaked-password protection off;
+  `messages_test.sql` fails since `contract_messages` (it writes conversations directly).
 - **OTA 12.23 is live on preview** (EAS group `6127092f-5dce-44a0-b839-cadb60becb80`, commit 4454e3e):
   the feed shows the people you follow, newest first, and only your latest post among them; older
   posts stay on your Profile (decision #103). Not checked on a phone. Production is still on 12.16;

@@ -49,6 +49,14 @@
   whole-screen list: every touch would hold the swipe and the page could not be left by swiping
   (the cause of "can't swipe from Profile", fixed in OTA 12.22).
 
+## Live updates (2026-10-07)
+- A table sends live updates only if it is in the `supabase_realtime` publication (check against prod
+  with `pg_publication_tables`). Since `20261007150000_live_updates_and_hardening`: conversations,
+  messages, notifications, tag_challenges, follows, post_likes, post_comments.
+- Supabase can't filter DELETE events (they carry only the row id). Listen for DELETE without a
+  filter and re-read, as `followStore` and `socialStore` do. A live INSERT row has no joined data:
+  fetch what the screen shows (e.g. the commenter) before adding it.
+
 ## Database tools
 - Mahi doesn't use Docker: no `supabase start`, no local stack. Database types come from the Supabase MCP
   generator (`generate_typescript_types`), not `supabase gen types --local`.
