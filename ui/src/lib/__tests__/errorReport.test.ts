@@ -80,6 +80,19 @@ describe('buildErrorReport', () => {
     expect(r.context).toMatchObject({ postId: 'p1', password: '[removed]', accessToken: '[removed]', otp: '[removed]' });
   });
 
+  it('reads the database code from an error passed on as a cause', () => {
+    const db = supabaseError('PostgrestError', 'permission denied for table posts', {
+      code: '42501',
+      details: 'd',
+      hint: 'h',
+    });
+    const wrapped = new Error(db.message, { cause: db });
+    const r = buildErrorReport(wrapped, { flow: 'posts', action: 'load' });
+    expect(r.error.message).toBe('posts.load failed: permission denied for table posts [code 42501]');
+    expect(r.tags).toMatchObject({ kind: 'database', code: '42501' });
+    expect(r.context).toMatchObject({ details: 'd', hint: 'h' });
+  });
+
   it('lets the caller choose the level', () => {
     expect(buildErrorReport(new Error('x'), { flow: 'f', action: 'a', level: 'fatal' }).level).toBe('fatal');
   });

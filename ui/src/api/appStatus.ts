@@ -14,6 +14,6 @@ export async function getAppGate(
     .rpc('get_app_gate', { p_platform: platform })
     .abortSignal(controller.signal);
   clearTimeout(timer);
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: (data ?? null) as AppGate | null, error: null };
 }

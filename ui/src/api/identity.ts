@@ -73,6 +73,6 @@ export async function getMyIdentityVerifications(
     .eq('user_id', userId)
     .order('updated_at', { ascending: false });
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: (data ?? []) as IdentityVerificationRow[], error: null };
 }

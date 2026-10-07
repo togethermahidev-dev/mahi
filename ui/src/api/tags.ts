@@ -46,14 +46,14 @@ export async function getTaggableFriends(
     p_query: query,
     p_limit: limit,
   });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: (data ?? []) as TaggableFriend[], error: null };
 }
 
 /** Tags waiting for your post, soonest deadline first. */
 export async function getOpenTags(): Promise<{ data: OpenTag[] | null; error: Error | null }> {
   const { data, error } = await supabase.rpc('get_open_tags');
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: (data ?? []) as OpenTag[], error: null };
 }
 
@@ -63,7 +63,7 @@ export async function getTagRules(): Promise<{ data: TagRules | null; error: Err
     .from('app_config')
     .select('tag_count, tags_required, nudge_days, invite_links_enabled')
     .single();
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return {
     data: {
       tagCount: data.tag_count,

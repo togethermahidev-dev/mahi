@@ -34,7 +34,7 @@ export async function toggleLike(
     p_user_id: userId,
   });
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   const row = (data as { liked: boolean; like_count: number }[] | null)?.[0];
   if (!row) return { data: null, error: new Error('toggle_like returned no rows') };
   return { data: row, error: null };
@@ -61,7 +61,7 @@ export async function getComments(
     .eq('post_id', postId)
     .order('created_at', { ascending: true });
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: data as unknown as CommentWithProfile[], error: null };
 }
 
@@ -88,7 +88,7 @@ export async function addComment(
     )
     .single();
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: data as unknown as CommentWithProfile, error: null };
 }
 
@@ -111,7 +111,7 @@ export async function getCommentLikes(
   postId: string
 ): Promise<{ data: CommentLikes[] | null; error: Error | null }> {
   const { data, error } = await supabase.rpc('get_comment_likes', { p_post_id: postId });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: (data as CommentLikes[] | null) ?? [], error: null };
 }
 
@@ -120,7 +120,7 @@ export async function toggleCommentLike(
   commentId: string
 ): Promise<{ data: { liked: boolean; like_count: number } | null; error: Error | null }> {
   const { data, error } = await supabase.rpc('toggle_comment_like', { p_comment_id: commentId });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   const row = (data as { liked: boolean; like_count: number }[] | null)?.[0];
   if (!row) return { data: null, error: new Error('toggle_comment_like returned no rows') };
   return { data: row, error: null };
@@ -131,6 +131,6 @@ export async function getCommentLikers(
   commentId: string
 ): Promise<{ data: CommentLiker[] | null; error: Error | null }> {
   const { data, error } = await supabase.rpc('get_comment_likers', { p_comment_id: commentId });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: (data as CommentLiker[] | null) ?? [], error: null };
 }

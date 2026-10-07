@@ -56,7 +56,7 @@ export async function reportContent(
       p_details: details ?? null,
     } as never
   );
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: data as unknown as ReportResult, error: null };
 }
 
@@ -70,14 +70,14 @@ export type Standing = {
 /** Your own standing: unseen warnings, and a suspension or ban if there is one. */
 export async function getMyStanding(): Promise<{ data: Standing | null; error: Error | null }> {
   const { data, error } = await supabase.rpc('get_my_standing' as never);
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: data as unknown as Standing, error: null };
 }
 
 /** Stop the current warnings appearing in getMyStanding. */
 export async function markWarningsSeen(): Promise<{ data: null; error: Error | null }> {
   const { error } = await supabase.rpc('mark_warnings_seen' as never);
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: null, error: null };
 }
 
@@ -94,7 +94,7 @@ export async function blockUser(
       { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
     );
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: null, error: null };
 }
 
@@ -109,7 +109,7 @@ export async function unblockUser(
     .eq('blocker_id', blockerId)
     .eq('blocked_id', blockedId);
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: null, error: null };
 }
 
@@ -125,7 +125,7 @@ export async function getBlockedUsers(
     .eq('blocker_id', userId)
     .order('created_at', { ascending: false });
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
 
   const users: BlockedUser[] = (data ?? []).map((row: any) => ({
     id: row.id,
@@ -184,7 +184,7 @@ export async function reportUser(opts: {
   if (error) {
     // Unique constraint violation = already reported this user
     if (error.code === '23505') return { data: null, error: new Error('Already reported') };
-    return { data: null, error: new Error(error.message) };
+    return { data: null, error: new Error(error.message, { cause: error }) };
   }
   return { data: null, error: null };
 }
@@ -200,6 +200,6 @@ export async function hasReported(
     .eq('reporter_id', reporterId)
     .eq('reported_user_id', reportedUserId);
 
-  if (error) return { data: false, error: new Error(error.message) };
+  if (error) return { data: false, error: new Error(error.message, { cause: error }) };
   return { data: (count ?? 0) > 0, error: null };
 }

@@ -85,12 +85,19 @@ function cleanExtra(extra: Record<string, unknown> | undefined): Record<string, 
   return out;
 }
 
+/** An error re-thrown as `new Error(msg, { cause })` keeps Supabase's fields on the cause. */
+function detailSource(raw: unknown): unknown {
+  const cause = raw instanceof Error ? (raw as Error & { cause?: unknown }).cause : undefined;
+  return cause && typeof cause === 'object' && !field(raw, 'code') ? cause : raw;
+}
+
 export function buildErrorReport(raw: unknown, ctx: ErrorContext): ErrorReport {
   const message = rawMessage(raw);
-  const rawName = raw instanceof Error ? raw.name : field(raw, 'name');
-  const kind = kindOf(raw, rawName, message);
-  const code = field(raw, 'code');
-  const status = field(raw, 'status');
+  const source = detailSource(raw);
+  const rawName = source instanceof Error ? source.name : field(source, 'name');
+  const kind = kindOf(source, rawName, message);
+  const code = field(source, 'code');
+  const status = field(source, 'status');
 
   let title = `${ctx.flow}.${ctx.action} failed: ${message}`;
   if (code) title += ` [code ${code}]`;
@@ -112,8 +119,8 @@ export function buildErrorReport(raw: unknown, ctx: ErrorContext): ErrorReport {
     action: ctx.action,
     original_message: message,
     ...(code && { code }),
-    ...(field(raw, 'details') && { details: field(raw, 'details') }),
-    ...(field(raw, 'hint') && { hint: field(raw, 'hint') }),
+    ...(field(source, 'details') && { details: field(source, 'details') }),
+    ...(field(source, 'hint') && { hint: field(source, 'hint') }),
     ...(status && { status }),
     ...cleanExtra(ctx.extra),
   };

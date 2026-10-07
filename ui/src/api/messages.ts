@@ -87,7 +87,7 @@ async function fetchConversations(
   let query = supabase.rpc('get_inbox', { p_status: status });
   if (page) query = query.range(page.from, page.to);
   const { data, error } = await query;
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: (data ?? []).map(toPreview), error: null };
 }
 
@@ -115,7 +115,7 @@ export async function acceptRequest(conversationId: string): Promise<{ error: Er
   const { error } = await supabase.rpc('accept_message_request', {
     p_conversation_id: conversationId,
   });
-  return { error: error ? new Error(error.message) : null };
+  return { error: error ? new Error(error.message, { cause: error }) : null };
 }
 
 /** Decline a message request. Quiet: it leaves your requests and the sender isn't told. */
@@ -123,7 +123,7 @@ export async function declineRequest(conversationId: string): Promise<{ error: E
   const { error } = await supabase.rpc('decline_message_request', {
     p_conversation_id: conversationId,
   });
-  return { error: error ? new Error(error.message) : null };
+  return { error: error ? new Error(error.message, { cause: error }) : null };
 }
 
 /**
@@ -141,7 +141,7 @@ export async function sendMessage(
     p_content: content,
   });
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: data as unknown as Message, error: null };
 }
 
@@ -154,7 +154,7 @@ export async function createOrGetConversation(
   receiverId: string
 ): Promise<{ data: ConversationPreview | null; error: Error | null }> {
   const { data, error } = await supabase.rpc('get_conversation_with', { p_other: receiverId });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   const row = (data ?? [])[0];
   if (row) return { data: toPreview(row), error: null };
 
@@ -198,7 +198,7 @@ export async function startConversation(
     p_client_id: clientId,
     p_content: content,
   });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   const r = data as unknown as { conversation_id: string; status: string; message: Message };
   return {
     data: { conversationId: r.conversation_id, status: r.status, message: r.message },
@@ -215,14 +215,14 @@ export async function editMessage(
     p_message_id: messageId,
     p_content: content,
   });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: data as unknown as Message, error: null };
 }
 
 /** Unsend your own message: it's gone for both of you. */
 export async function unsendMessage(messageId: string): Promise<{ error: Error | null }> {
   const { error } = await supabase.rpc('unsend_message', { p_message_id: messageId });
-  return { error: error ? new Error(error.message) : null };
+  return { error: error ? new Error(error.message, { cause: error }) : null };
 }
 
 /** How many messages one page holds. */
@@ -243,7 +243,7 @@ export async function getMessages(
     p_limit: MESSAGE_PAGE,
   });
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   // The server returns newest first; the screen reads oldest first.
   return { data: (data as unknown as Message[]).slice().reverse(), error: null };
 }
@@ -256,7 +256,7 @@ export async function markConversationRead(
     p_conversation_id: conversationId,
   });
 
-  if (error) return { error: new Error(error.message) };
+  if (error) return { error: new Error(error.message, { cause: error }) };
   return { error: null };
 }
 

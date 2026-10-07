@@ -44,7 +44,7 @@ export async function getInvitePreview(
   token: string
 ): Promise<{ data: InvitePreview | null; error: Error | null }> {
   const { data, error } = await supabase.rpc('get_invite_preview', { p_token: token });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: (data as unknown as InvitePreview | null) ?? null, error: null };
 }
 
@@ -53,6 +53,6 @@ export async function claimInvite(
   token: string
 ): Promise<{ data: InviteClaim | null; error: Error | null }> {
   const { data, error } = await supabase.rpc('claim_invite', { p_token: token });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: data as unknown as InviteClaim, error: null };
 }

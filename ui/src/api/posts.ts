@@ -113,7 +113,7 @@ async function toPosts(items: FeedItem[]): Promise<FeedPost[]> {
     const { data, error } = await supabase.storage
       .from('posts')
       .createSignedUrls(missing, SIGNED_URL_SECONDS);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message, { cause: error });
     for (const d of data ?? []) {
       if (!d.path || !d.signedUrl) continue;
       urls.set(d.path, d.signedUrl);
@@ -160,7 +160,7 @@ export async function getFeed(
     p_cursor_ts: cursor?.ts ?? null,
     p_cursor_id: cursor?.id ?? null,
   });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   const page = data as unknown as {
     locked: boolean;
     unlocked_until: string | null;
@@ -199,7 +199,7 @@ export async function getUserPosts(
     p_cursor_ts: cursor?.ts ?? null,
     p_cursor_id: cursor?.id ?? null,
   });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   try {
     const page = data as unknown as { items: FeedItem[] };
     return { data: await toPosts(page.items), error: null };
@@ -259,7 +259,7 @@ export async function uploadPostMedia(opts: {
     }),
   ]);
   const err = rear.error ?? front.error;
-  if (err) return { data: null, error: new Error(err.message) };
+  if (err) return { data: null, error: new Error(err.message, { cause: err }) };
   return { data: { rearPath, frontPath }, error: null };
 }
 
@@ -317,7 +317,7 @@ export async function createPost(opts: {
     // Only when there are slots: without them it is the call a server before tag slots knows.
     ...(opts.slotIds?.length ? { p_slot_ids: opts.slotIds } : {}),
   });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: data as unknown as CreatePostResult, error: null };
 }
 
@@ -330,14 +330,14 @@ export async function updatePostCaption(
     p_post: postId,
     p_caption: caption,
   });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: data as unknown as { caption: string | null }, error: null };
 }
 
 /** Delete the caller's post, then remove its media after the database confirms deletion. */
 export async function deletePost(postId: string): Promise<{ error: Error | null }> {
   const { data, error } = await supabase.rpc('delete_post', { p_post: postId });
-  if (error) return { error: new Error(error.message) };
+  if (error) return { error: new Error(error.message, { cause: error }) };
   const paths = [
     (data as { image_path?: string | null } | null)?.image_path,
     (data as { pov_image_path?: string | null } | null)?.pov_image_path,

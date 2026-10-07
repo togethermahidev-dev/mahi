@@ -40,7 +40,7 @@ type Result<T> = { data: T | null; error: Error | null };
 /** Your slots not posted with yet, or (with `postId`) the slots of your post. */
 export async function getTagSlots(postId?: string): Promise<Result<TagSlot[]>> {
   const { data, error } = await supabase.rpc('get_tag_slots', { p_post: postId ?? null });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: (data ?? []) as TagSlot[], error: null };
 }
 
@@ -50,30 +50,30 @@ export async function searchTagPeople(query = '', limit = 50): Promise<Result<Ta
     p_query: query,
     p_limit: limit,
   });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: (data ?? []) as TagPerson[], error: null };
 }
 
 export async function makeInviteLink(): Promise<Result<SlotLink>> {
   const { data, error } = await supabase.rpc('make_invite_link');
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: data as unknown as SlotLink, error: null };
 }
 
 export async function inviteToTag(userId: string): Promise<Result<{ challenge_id: string }>> {
   const { data, error } = await supabase.rpc('invite_to_tag', { p_user: userId });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: data as unknown as { challenge_id: string }, error: null };
 }
 
 export async function cancelTagSlot(challengeId: string): Promise<{ error: Error | null }> {
   const { error } = await supabase.rpc('cancel_tag_slot', { p_challenge: challengeId });
-  return { error: error ? new Error(error.message) : null };
+  return { error: error ? new Error(error.message, { cause: error }) : null };
 }
 
 export async function markInviteShared(challengeId: string): Promise<{ error: Error | null }> {
   const { error } = await supabase.rpc('mark_invite_shared', { p_challenge: challengeId });
-  return { error: error ? new Error(error.message) : null };
+  return { error: error ? new Error(error.message, { cause: error }) : null };
 }
 
 /** Accept (friends, and the tag lands) or "Not now". */
@@ -85,7 +85,7 @@ export async function respondTagInvite(
     p_challenge: challengeId,
     p_accept: accept,
   });
-  return { error: error ? new Error(error.message) : null };
+  return { error: error ? new Error(error.message, { cause: error }) : null };
 }
 
 /** Where each in-app invite to you is at. */
@@ -95,6 +95,6 @@ export async function getTagInviteRows(ids: string[]): Promise<Result<TagInviteR
     .from('tag_challenges')
     .select('id, requested_at, accepted_at, declined_at, cancelled_at')
     .in('id', ids);
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: (data ?? []) as TagInviteRow[], error: null };
 }

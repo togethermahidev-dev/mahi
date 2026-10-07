@@ -9,7 +9,7 @@ export async function registerPushToken(): Promise<{ error: Error | null }> {
     p_token: token,
     p_platform: pushPlatform(),
   });
-  return { error: error ? new Error(error.message) : null };
+  return { error: error ? new Error(error.message, { cause: error }) : null };
 }
 
 /** Stop pushes to this device for the signed-in user. Call before signing out. */
@@ -17,5 +17,5 @@ export async function unregisterPushToken(): Promise<{ error: Error | null }> {
   const token = await getPushToken();
   if (!token) return { error: null };
   const { error } = await supabase.rpc('unregister_push_token', { p_token: token });
-  return { error: error ? new Error(error.message) : null };
+  return { error: error ? new Error(error.message, { cause: error }) : null };
 }

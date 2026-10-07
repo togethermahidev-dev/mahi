@@ -32,7 +32,7 @@ export async function getProfile(
     .select(PROFILE_COLUMNS)
     .eq('id', userId)
     .single();
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data, error: null };
 }
 
@@ -57,7 +57,7 @@ export async function searchProfiles(
     )
     .limit(limit);
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data, error: null };
 }
 
@@ -77,5 +77,5 @@ export async function updateTimezone(
   timezone: string
 ): Promise<{ error: Error | null }> {
   const { error } = await supabase.from('profiles').update({ timezone }).eq('id', userId);
-  return { error: error ? new Error(error.message) : null };
+  return { error: error ? new Error(error.message, { cause: error }) : null };
 }

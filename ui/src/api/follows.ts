@@ -18,7 +18,7 @@ export async function followUser(
       { onConflict: 'follower_id,following_id', ignoreDuplicates: true }
     );
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: null, error: null };
 }
 
@@ -33,7 +33,7 @@ export async function unfollowUser(
     .eq('follower_id', followerId)
     .eq('following_id', followingId);
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: null, error: null };
 }
 
@@ -51,7 +51,7 @@ export async function setFollowing(
     p_target_user_id: targetUserId,
     p_following: following,
   });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   const row = (data as FollowMutationData[] | null)?.[0];
   if (!row) return { data: null, error: new Error('set_following returned no rows') };
   return { data: row, error: null };
@@ -80,7 +80,7 @@ export async function getFollowList(
       .eq('following_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) return { data: null, error: new Error(error.message) };
+    if (error) return { data: null, error: new Error(error.message, { cause: error }) };
     const users = (data ?? []).map((row: any) => row.profiles as FollowListUser);
     return { data: users, error: null };
   }
@@ -93,7 +93,7 @@ export async function getFollowList(
     .eq('follower_id', userId)
     .order('created_at', { ascending: false });
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   const users = (data ?? []).map((row: any) => row.profiles as FollowListUser);
   return { data: users, error: null };
 }
@@ -109,7 +109,7 @@ export async function getFriends(
     p_limit: limit,
     p_offset: offset,
   });
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: (data ?? []) as FollowListUser[], error: null };
 }
 
@@ -131,7 +131,7 @@ export async function getFollowData(
     p_target_user_id: targetUserId,
   });
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   const row = (data as Partial<FollowData>[] | null)?.[0];
   if (!row) return { data: null, error: new Error('get_follow_data returned no rows') };
   return { data: { ...(row as FollowData), follows_you: row.follows_you === true }, error: null };
@@ -159,6 +159,6 @@ export async function getSuggestedFollows(
     p_offset: offset,
   });
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: (data ?? []) as SuggestedUser[], error: null };
 }

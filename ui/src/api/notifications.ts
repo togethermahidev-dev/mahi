@@ -19,7 +19,7 @@ export async function getNotifications(
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (notifsErr) return { data: null, error: new Error(notifsErr.message) };
+  if (notifsErr) return { data: null, error: new Error(notifsErr.message, { cause: notifsErr }) };
   if (!notifs || notifs.length === 0) return { data: [], error: null };
 
   const actorIds = [...new Set(notifs.map((n) => n.actor_id))];
@@ -29,7 +29,8 @@ export async function getNotifications(
     .select('id, username, display_name, avatar_url')
     .in('id', actorIds);
 
-  if (profilesErr) return { data: null, error: new Error(profilesErr.message) };
+  if (profilesErr)
+    return { data: null, error: new Error(profilesErr.message, { cause: profilesErr }) };
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
 
@@ -51,7 +52,7 @@ export async function getUnreadCount(
     .eq('user_id', userId)
     .eq('is_read', false);
 
-  if (error) return { data: null, error: new Error(error.message) };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: count ?? 0, error: null };
 }
 
@@ -61,7 +62,7 @@ export async function markAsRead(notificationId: string): Promise<{ error: Error
     .update({ is_read: true })
     .eq('id', notificationId);
 
-  if (error) return { error: new Error(error.message) };
+  if (error) return { error: new Error(error.message, { cause: error }) };
   return { error: null };
 }
 
@@ -72,6 +73,6 @@ export async function markAllAsRead(userId: string): Promise<{ error: Error | nu
     .eq('user_id', userId)
     .eq('is_read', false);
 
-  if (error) return { error: new Error(error.message) };
+  if (error) return { error: new Error(error.message, { cause: error }) };
   return { error: null };
 }
