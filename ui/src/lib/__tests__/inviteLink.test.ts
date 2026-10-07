@@ -5,6 +5,7 @@ import {
   claimedText,
   claimFailText,
   claimOnReturn,
+  invitePreviewLine,
 } from '@/lib/inviteLink';
 
 const TOKEN = '48bafaef17afd63e5c8c6390e2dee7f5';
@@ -91,6 +92,34 @@ describe('claimedText', () => {
   it('no post yet: friends now, the tag starts when they post', () => {
     expect(claimedText({ inviter: 'sam', expiresAt: null })).toBe(
       'You and @sam follow each other now. Their tag starts when they post.'
+    );
+  });
+
+  it('an invite for a mate, with no tag: just following each other', () => {
+    expect(claimedText({ inviter: 'sam', expiresAt: null, tag: false })).toBe(
+      'You and @sam follow each other now.'
+    );
+  });
+});
+
+describe('invitePreviewLine (said before joining)', () => {
+  it('an invite for a mate: following each other, and no tag', () => {
+    expect(invitePreviewLine({ open: true, tag: false })).toBe(
+      'Join and you’ll automatically follow each other.'
+    );
+  });
+
+  it('a tag invite: following each other, then the 48 hours', () => {
+    const line =
+      'Join and you’ll automatically follow each other. Their tag starts when you join — you’ll have 48 hours to post back.';
+    expect(invitePreviewLine({ open: true, tag: true })).toBe(line);
+    // An older server that doesn't say: as before, a tag.
+    expect(invitePreviewLine({ open: true })).toBe(line);
+  });
+
+  it('a used or ended invite', () => {
+    expect(invitePreviewLine({ open: false, tag: false })).toBe(
+      'That invite has already been used, but you can still sign up.'
     );
   });
 });

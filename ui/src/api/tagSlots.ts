@@ -26,6 +26,9 @@ export type TagPerson = {
 /** A link made on tap. */
 export type SlotLink = { challenge_id: string; token: string; code: string; url: string };
 
+/** A link for a mate (no tag slot behind it). */
+export type MateInvite = { token: string; code: string; url: string };
+
 /** Where an in-app invite to you is at (your own rows; RLS keeps it so). */
 export type TagInviteRow = {
   id: string;
@@ -58,6 +61,14 @@ export async function makeInviteLink(): Promise<Result<SlotLink>> {
   const { data, error } = await supabase.rpc('make_invite_link');
   if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: data as unknown as SlotLink, error: null };
+}
+
+/** A link for a mate, with no tag behind it: any time, no post needed (joining makes you follow
+ * each other). Server: 20261007190100_invite_a_mate. */
+export async function makeMateInvite(): Promise<Result<MateInvite>> {
+  const { data, error } = await supabase.rpc('make_mate_invite');
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
+  return { data: data as unknown as MateInvite, error: null };
 }
 
 export async function inviteToTag(userId: string): Promise<Result<{ challenge_id: string }>> {

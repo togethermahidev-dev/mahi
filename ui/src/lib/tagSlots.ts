@@ -108,6 +108,11 @@ export function slotShareMessage(url: string, _code: string): string {
   return `I tagged you on Mahi. Join me for a workout — we’ll automatically follow each other when you join.\n${url}`;
 }
 
+/** The message with an invite for a mate (no tag behind it: nothing to answer). */
+export function mateInviteMessage(url: string): string {
+  return `Join me on Mahi. We’ll automatically follow each other when you join.\n${url}`;
+}
+
 /** A link that opens WhatsApp or Messages with the message already written. */
 export function shareAppUrl(
   app: 'whatsapp' | 'messages',
@@ -149,6 +154,13 @@ export function slotErrorText(message: string): string {
   if (message.includes('friends first')) return 'Tag your friends first.';
   if (message.includes('invite links are off')) return 'Links are off right now.';
   return SLOT_FALLBACK;
+}
+
+/** A refusal of an invite for a mate, in plain words (these can't be taken back, only used or run out). */
+export function mateInviteErrorText(message: string): string {
+  if (message.includes('too many open invites'))
+    return 'Too many invites waiting. Try again when a mate joins.';
+  return slotErrorText(message);
 }
 
 /** True when a tag rule said no (a known refusal), so it isn't reported as a bug. */

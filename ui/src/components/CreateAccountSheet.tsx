@@ -19,7 +19,7 @@ import { sendOTP, verifyOTP, clearOTP, getOTPState, OTP_LENGTH } from '@/lib/otp
 import { sanitiseOtp, reusableCode, codeTimes } from '@/lib/otpCode';
 import { completeSignup } from '@/api/auth';
 import { useSignUpStore, useInviteStore } from '@/store';
-import { typedInvite } from '@/lib/inviteLink';
+import { invitePreviewLine, typedInvite } from '@/lib/inviteLink';
 import {
   getPasswordStrength,
   MIN_PASSWORD_LENGTH,
@@ -490,9 +490,7 @@ export default function CreateAccountSheet({
                     @{invitePreview.username} invited you
                   </Text>
                   <Text style={[styles.inviteWhat, { color: muted }]}>
-                    {invitePreview.open
-                      ? "Their tag starts when you join — you'll have 48 hours to post back."
-                      : 'That invite has already been used, but you can still sign up.'}
+                    {invitePreviewLine(invitePreview)}
                   </Text>
                 </View>
               ) : pendingInvite && !codeInput && !inviteChecked ? null : (

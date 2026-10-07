@@ -16,6 +16,8 @@ export type InvitePreview = {
   avatar_url: string | null;
   /** Still unclaimed and not expired. */
   open: boolean;
+  /** A tag comes with it (false: an invite for a mate). Missing from an older server. */
+  tag?: boolean;
 };
 
 export type InviteClaim = {
@@ -28,6 +30,8 @@ export type InviteClaim = {
   };
   /** When the tag this invite carried runs out. */
   expires_at: string | null;
+  /** A tag came with it (false: an invite for a mate). Missing from an older server. */
+  tag?: boolean;
   server_now: string;
 };
 

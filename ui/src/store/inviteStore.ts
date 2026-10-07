@@ -95,7 +95,9 @@ export const useInviteStore = create<InviteState>((set, get) => ({
     useTagStore.getState().syncOpenTags();
     useToastStore
       .getState()
-      .show(claimedText({ inviter: data.inviter.username, expiresAt: data.expires_at }));
+      .show(
+        claimedText({ inviter: data.inviter.username, expiresAt: data.expires_at, tag: data.tag })
+      );
     return true;
   },
 

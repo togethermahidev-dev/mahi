@@ -71,8 +71,16 @@ import PostVideo, { SoundButton } from '@/components/PostVideo';
 import InviteStep from '@/components/InviteStep';
 import InviteShareSheet from '@/components/InviteShareSheet';
 import TagSlotsSheet from '@/components/TagSlotsSheet';
-import { getTagSlots } from '@/api/tagSlots';
-import { inviteBlockedReason, postButtonLabel, postRefusal, type ScreenSlot } from '@/lib/tagSlots';
+import { getTagSlots, makeMateInvite } from '@/api/tagSlots';
+import {
+  inviteBlockedReason,
+  isSlotRefusal,
+  mateInviteErrorText,
+  mateInviteMessage,
+  postButtonLabel,
+  postRefusal,
+  type ScreenSlot,
+} from '@/lib/tagSlots';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useVideoPosts } from '@/hooks/useVideoPosts';
@@ -1659,6 +1667,39 @@ export default function CameraScreen({
           button: onFindFriends ? { label: 'Find friends', onPress: onFindFriends } : null,
         };
 
+  // Nothing to answer: you can still bring a mate in (owner, 2026-10-07). A link with no tag
+  // behind it, made on tap; joining from it makes you follow each other, and no tag starts.
+  const [invitingMate, setInvitingMate] = useState(false);
+  const inviteMate = async () => {
+    if (invitingMate) return;
+    haptic('selection');
+    setInvitingMate(true);
+    try {
+      const { data, error } = await makeMateInvite();
+      if (error || !data) {
+        const message = error?.message ?? '';
+        if (!isSlotRefusal(message)) {
+          reportError(error ?? new Error('make_mate_invite returned no data'), {
+            flow: 'invites',
+            action: 'makeMateInvite',
+            extra: { rpc: 'make_mate_invite' },
+          });
+        }
+        useToastStore.getState().show(mateInviteErrorText(message));
+        return;
+      }
+      try {
+        const result = await Share.share({ message: mateInviteMessage(data.url) });
+        if (result.action === Share.sharedAction) track('invite_shared', {});
+      } catch (e) {
+        reportError(e, { flow: 'invites', action: 'shareMateInvite' });
+        useToastStore.getState().show('Couldn’t open sharing. Try again.');
+      }
+    } finally {
+      setInvitingMate(false);
+    }
+  };
+
   // Tap to focus (flag `camera-tap-focus`): switch on, an iPhone, and a build whose camera can
   // focus on a point (build 11+). OTA updates also reach build 10, which can't: there it's off.
   const tapFocusOn = useFeatureFlag('camera-tap-focus');
@@ -2627,6 +2668,26 @@ export default function CameraScreen({
                   )}
                 </Pressable>
               ) : null}
+              {gate === 'closed' && !offline ? (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.inviteMateButton,
+                    pressed && { opacity: ALPHA.a70 },
+                  ]}
+                  onPress={() => void inviteMate()}
+                  disabled={invitingMate}
+                  accessibilityRole="button"
+                  accessibilityLabel="Invite a mate"
+                  accessibilityHint="Makes a link to share. When they join, you’ll follow each other."
+                  accessibilityState={{ busy: invitingMate }}
+                >
+                  {invitingMate ? (
+                    <ActivityIndicator color={COLORS.accent} />
+                  ) : (
+                    <Text style={styles.inviteMateText}>Invite a mate</Text>
+                  )}
+                </Pressable>
+              ) : null}
             </View>
           </BlurView>
         ) : null}
@@ -2968,6 +3029,23 @@ const styles = StyleSheet.create({
   },
   seeFeedText: {
     color: COLORS.offBlack,
+    fontSize: FONT_SIZE.f15,
+    fontFamily: FONTS.bold,
+  },
+  // The second choice on the no-tag card: the same pill, outlined in the accent.
+  inviteMateButton: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: RADIUS.pill,
+    borderWidth: BORDER_WIDTH.w1_5,
+    borderColor: COLORS.accent,
+    paddingVertical: SPACE.s12,
+    paddingHorizontal: SPACE.s24,
+    minHeight: SIZE.z44,
+  },
+  inviteMateText: {
+    color: COLORS.accent,
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.bold,
   },

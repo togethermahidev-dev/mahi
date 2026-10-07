@@ -1,6 +1,8 @@
 import {
   inviteBlockedReason,
   isSlotRefusal,
+  mateInviteErrorText,
+  mateInviteMessage,
   mergeSlots,
   postRefusal,
   personAction,
@@ -96,6 +98,27 @@ describe('personAction', () => {
       action: 'none',
       note: 'request sent',
     });
+  });
+});
+
+describe('mateInviteMessage', () => {
+  it('invites a mate without promising a tag', () => {
+    expect(mateInviteMessage('https://togethermahi.com/i/t1')).toBe(
+      'Join me on Mahi. We’ll automatically follow each other when you join.\nhttps://togethermahi.com/i/t1'
+    );
+  });
+});
+
+describe('mateInviteErrorText', () => {
+  it('too many waiting: wait for a mate to join (there is nothing to take back)', () => {
+    expect(mateInviteErrorText('too many open invites')).toBe(
+      'Too many invites waiting. Try again when a mate joins.'
+    );
+  });
+
+  it('anything else: as on the tag screen', () => {
+    expect(mateInviteErrorText('invite links are off')).toBe('Links are off right now.');
+    expect(mateInviteErrorText('network down')).toBe('Couldn’t do that. Try again.');
   });
 });
 

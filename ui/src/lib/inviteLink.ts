@@ -59,18 +59,34 @@ export function typedInvite(input: string | null | undefined): string | null {
 /**
  * The note after joining from an invite. A slot that is already on a post starts its 48 hours
  * now; one shared before posting (`expiresAt` null) makes you friends, and its tag starts when
- * they post.
+ * they post. An invite for a mate (`tag` false: no tag behind it) only makes you follow each
+ * other. `tag` is missing from an older server: read as a tag, as before.
  */
 export function claimedText({
   inviter,
   expiresAt,
+  tag,
 }: {
   inviter: string;
   expiresAt: string | null;
+  tag?: boolean;
 }): string {
+  if (tag === false) return `You and @${inviter} follow each other now.`;
   return expiresAt
     ? `You and @${inviter} follow each other now. You have 48 hours to answer their tag.`
     : `You and @${inviter} follow each other now. Their tag starts when they post.`;
+}
+
+/**
+ * The line under "@sam invited you" on the sign-up screen: the automatic follow both ways is said
+ * before joining, and a tag only when one comes with the link (`tag` missing: an older server).
+ */
+export function invitePreviewLine({ open, tag }: { open: boolean; tag?: boolean }): string {
+  if (!open) return 'That invite has already been used, but you can still sign up.';
+  const follow = 'Join and you’ll automatically follow each other.';
+  return tag === false
+    ? follow
+    : `${follow} Their tag starts when you join — you’ll have 48 hours to post back.`;
 }
 
 /** Why an invite couldn't be used, in plain words (the server's refusal in `message`). */
