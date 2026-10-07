@@ -146,7 +146,9 @@ select is((select count(*)::int from public.push_outbox
            where challenge_id = (pg_temp.challenge('tag_a', 'tag_d')).id and sent_at is null), 0,
   'cancelling removes the unsent pushes');
 
--- 5. A's tag on C runs out: both are told, and a late post doesn't count.
+-- 5. A's tag on C runs out: both are told, and a late post doesn't count. C has points to lose
+--    (a miss at 0 points tells only the tagger: 20261007260000_mates_on_clock).
+update public.profiles set streak_current = 2 where id = '00000000-0000-0000-0000-00000000c00c';
 update public.tag_challenges set expires_at = now() - interval '1 hour'
 where id = (pg_temp.challenge('tag_a', 'tag_c')).id;
 select public.mark_missed_tags();
