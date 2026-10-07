@@ -18,7 +18,8 @@ import { supabase } from '@/lib/supabase';
 import { sendOTP, verifyOTP, clearOTP, getOTPState, OTP_LENGTH } from '@/lib/otp';
 import { sanitiseOtp, reusableCode, codeTimes } from '@/lib/otpCode';
 import { completeSignup } from '@/api/auth';
-import { useSignUpStore, useInviteStore } from '@/store';
+import { useFeedStore, useInviteStore, useSignUpStore, useTagStore, useUserStore } from '@/store';
+import { getProfile } from '@/api';
 import { invitePreviewLine, typedInvite } from '@/lib/inviteLink';
 import {
   getPasswordStrength,
@@ -396,6 +397,19 @@ export default function CreateAccountSheet({
       });
       if (profileError)
         throw new Error('Profile save failed: ' + profileError.message, { cause: profileError });
+
+      // Signing in (step 2) already started loading the profile, before it existed. Load it again
+      // now it's saved, so the camera and the invite claim (which waits for it) can go ahead.
+      const { data: savedProfile, error: reloadError } = await getProfile(
+        signInData.session.user.id
+      );
+      if (reloadError) {
+        reportError(reloadError, { flow: 'signup', action: 'reloadProfile' });
+      } else if (savedProfile) {
+        useUserStore.getState().setProfile(savedProfile);
+        useFeedStore.getState().sync(true);
+        useTagStore.getState().syncOpenTags();
+      }
 
       // 4. Track completed sign-up — fitness_goals is used in PostHog dashboards. `joined_via`
       //    splits the two paths (Maximus, 2026-10-07): an invite from a mate, or downloaded alone.

@@ -3,7 +3,7 @@ import { AppState, Linking } from 'react-native';
 import { claimOnReturn, parseInviteLink } from '@/lib/inviteLink';
 import { track } from '@/lib/analytics';
 import { reportError } from '@/lib/sentry';
-import { useAuthStore, useInviteStore } from '@/store';
+import { useAuthStore, useInviteStore, useUserStore } from '@/store';
 
 /**
  * Wires invite links into the app: one that opened it cold, one that arrived while it was
@@ -27,12 +27,13 @@ export function useInviteLink(): void {
     return () => sub.remove();
   }, []);
 
-  // Claim as soon as there's an account to claim it for — straight after sign-up, or when a
-  // link arrives while someone is already signed in.
+  // Claim once the account's profile exists — a brand-new account's profile is saved just after
+  // sign-in, and claiming before it would be refused — or when a link arrives while signed in.
+  const profileId = useUserStore((s) => s.profile?.id);
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || profileId !== userId) return;
     useInviteStore.getState().claimPending();
-  }, [userId]);
+  }, [userId, profileId]);
 
   // An invite kept through a dropped connection is tried again each time Mahi comes back to the
   // front.
