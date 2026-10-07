@@ -16,6 +16,8 @@ export const DEFAULT_COUNTRY_CODE = '44';
 export const MAX_HASHES_PER_CALL = 2000;
 /** At most this many calls per look, so one look never uses up the hourly limit (10). */
 export const MAX_CALLS_PER_LOOK = 3;
+/** While the list is open, a follow change re-reads the follow state of at most this many mates. */
+export const LIVE_FOLLOW_CAP = 50;
 
 /** A number written as +<country><number>, or null when it isn't one. */
 export function normalisePhone(
@@ -235,4 +237,32 @@ export function matchErrorText(message: string): string {
 export function smsInviteUrl(phone: string, text: string, platform: 'ios' | 'android'): string {
   const body = encodeURIComponent(text);
   return platform === 'ios' ? `sms:${phone}&body=${body}` : `sms:${phone}?body=${body}`;
+}
+
+/** An account this new gets the step after sign-up (the same day as invite_claim's rule). */
+const NEW_ACCOUNT_MS = 24 * 60 * 60 * 1000;
+
+/** AsyncStorage key for "this account has seen the find-your-mates step on this device". */
+export function findMatesSeenKey(userId: string): string {
+  return `@mahi:find_mates_seen:${userId}`;
+}
+
+/**
+ * The step after sign-up: once per account and device, only for an account made in the last day
+ * (people already here find it in Settings and Your invites), only where the feature is available.
+ */
+export function showFindMatesStep({
+  available,
+  createdAt,
+  seen,
+  now,
+}: {
+  available: boolean;
+  createdAt: string | undefined;
+  seen: boolean;
+  now: number;
+}): boolean {
+  if (!available || seen) return false;
+  const made = Date.parse(createdAt ?? '');
+  return Number.isFinite(made) && now - made < NEW_ACCOUNT_MS;
 }

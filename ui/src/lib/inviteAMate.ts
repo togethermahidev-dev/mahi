@@ -25,6 +25,14 @@ export async function shareMateLink(url: string, action: string): Promise<void> 
 /** Make a link for a mate and share it. True when a link was made (whether or not it was sent). */
 export async function inviteAMate(): Promise<boolean> {
   haptic('selection');
+  const url = await makeMateLink();
+  if (!url) return false;
+  await shareMateLink(url, 'shareMateInvite');
+  return true;
+}
+
+/** Make a link for a mate (no tag behind it). Null, with a toast saying why, when it couldn't. */
+export async function makeMateLink(): Promise<string | null> {
   const { data, error } = await makeMateInvite();
   if (error || !data) {
     const message = error?.message ?? '';
@@ -36,8 +44,7 @@ export async function inviteAMate(): Promise<boolean> {
       });
     }
     useToastStore.getState().show(mateInviteErrorText(message));
-    return false;
+    return null;
   }
-  await shareMateLink(data.url, 'shareMateInvite');
-  return true;
+  return data.url;
 }

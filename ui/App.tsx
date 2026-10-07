@@ -51,6 +51,7 @@ import { APP_BUILD, APP_VERSION } from '@/lib/appBuild';
 import UpdateRequiredScreen from '@/components/UpdateRequiredScreen';
 import AccountStanding from '@/components/AccountStanding';
 import WelcomeCards from '@/components/WelcomeCards';
+import FindMatesStep from '@/components/FindMatesStep';
 import PushPrimer from '@/components/PushPrimer';
 import { useCoachBlock } from '@/hooks/useCoachMarks';
 import { reportError, Sentry } from '@/lib/sentry';
@@ -134,8 +135,11 @@ export default function App(): React.JSX.Element {
   const [introDone, setIntroDone] = useState(false);
   // The welcome cards are out of the way, so the notifications page may show.
   const [welcomeSettled, setWelcomeSettled] = useState(false);
-  // One-time tips and the tag reminder start only once the welcome cards are closed.
-  useCoachBlock(!welcomeSettled);
+  // "Find your mates" after the cards (new accounts only); then the notifications page may show.
+  const [findMatesSettled, setFindMatesSettled] = useState(false);
+  const onboardingSettled = welcomeSettled && findMatesSettled;
+  // One-time tips and the tag reminder start only once the welcome pages are closed.
+  useCoachBlock(!onboardingSettled);
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_600SemiBold,
@@ -248,6 +252,7 @@ export default function App(): React.JSX.Element {
       setShowCamera(false);
       setIntroDone(false);
       setWelcomeSettled(false);
+      setFindMatesSettled(false);
     }
   }, [session]);
 
@@ -285,7 +290,13 @@ export default function App(): React.JSX.Element {
         {introDone && (
           <>
             <WelcomeCards userId={session.user.id} onSettled={setWelcomeSettled} />
-            <PushPrimer welcomeSettled={welcomeSettled} />
+            <FindMatesStep
+              userId={session.user.id}
+              createdAt={session.user.created_at}
+              after={welcomeSettled}
+              onSettled={setFindMatesSettled}
+            />
+            <PushPrimer welcomeSettled={onboardingSettled} />
             <AccountStanding userId={session.user.id} />
           </>
         )}

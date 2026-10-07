@@ -4,12 +4,14 @@ import {
   buildMatchPlan,
   buildRows,
   contactsAccess,
+  findMatesSeenKey,
   findMatesView,
   followLabel,
   isMatchRefusal,
   matchErrorText,
   normaliseEmail,
   normalisePhone,
+  showFindMatesStep,
   smsInviteUrl,
   type DeviceContact,
   type MatchedAccount,
@@ -113,7 +115,9 @@ describe('buildRows', () => {
           ? `# ${r.title}`
           : r.kind === 'account'
             ? `@${r.account.username}`
-            : r.contact.name
+            : r.kind === 'contact'
+              ? r.contact.name
+              : '(none)'
       )
     ).toEqual(['# On Mahi', '@bea', '@cal', '# Invite to Mahi', 'Al', 'zoe', '07700 900777']);
   });
@@ -202,5 +206,35 @@ describe('smsInviteUrl', () => {
       'sms:+447700900666&body=Join%20me%20%26%20go'
     );
     expect(smsInviteUrl('+447700900666', 'Hi', 'android')).toBe('sms:+447700900666?body=Hi');
+  });
+});
+
+describe('the step after sign-up', () => {
+  const now = Date.parse('2026-10-07T12:00:00Z');
+  const ago = (h: number) => new Date(now - h * 3_600_000).toISOString();
+
+  it('shows once, to a new account, on a build and switch that have it', () => {
+    expect(showFindMatesStep({ available: true, createdAt: ago(0.1), seen: false, now })).toBe(
+      true
+    );
+    expect(showFindMatesStep({ available: true, createdAt: ago(0.1), seen: true, now })).toBe(
+      false
+    );
+    expect(showFindMatesStep({ available: false, createdAt: ago(0.1), seen: false, now })).toBe(
+      false
+    );
+  });
+
+  it('never to an account that was already here (they find it in Settings and Your invites)', () => {
+    expect(showFindMatesStep({ available: true, createdAt: ago(25), seen: false, now })).toBe(
+      false
+    );
+    expect(showFindMatesStep({ available: true, createdAt: undefined, seen: false, now })).toBe(
+      false
+    );
+  });
+
+  it('remembers per account', () => {
+    expect(findMatesSeenKey('u1')).toBe('@mahi:find_mates_seen:u1');
   });
 });

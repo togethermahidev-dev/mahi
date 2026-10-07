@@ -44,6 +44,8 @@ import ListState from '@/components/ListState';
 import MateCircles from '@/components/MateCircles';
 import { ProfileIcon } from '@/components/ScreenIcons';
 import UserProfileScreen from '@/screens/UserProfileScreen';
+import FindMatesSheet from '@/components/FindMatesSheet';
+import { useContactsFinder } from '@/hooks/useContactsFinder';
 import { FONTS } from '@/constants/fonts';
 import {
   ALPHA,
@@ -109,6 +111,9 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
   const [refreshing, setRefreshing] = useState(false);
   const [inviting, setInviting] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  // "Find your mates" (build 13+, switch contacts-finder): opened over this sheet.
+  const contactsFinder = useContactsFinder();
+  const [findMatesOpen, setFindMatesOpen] = useState(false);
   // Server time minus phone time, so "Resend in 5h" counts on the server's clock.
   const [offset, setOffset] = useState(0);
   const now = useMinuteTick() + offset;
@@ -420,6 +425,25 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
           <View style={styles.spacer} />
         </View>
 
+        {contactsFinder ? (
+          <Pressable
+            style={({ pressed }) => [
+              styles.findMates,
+              { borderBottomColor: border },
+              pressed && styles.pressed,
+            ]}
+            onPress={() => setFindMatesOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Find mates in your contacts"
+            accessibilityHint="Shows who from your contacts is on Mahi, and lets you invite the rest"
+          >
+            <Text style={[styles.findMatesText, { color: accentText }]}>
+              Find mates in your contacts
+            </Text>
+            <Text style={[styles.findMatesText, { color: muted }]}>›</Text>
+          </Pressable>
+        ) : null}
+
         {phase === 'loading' ? (
           <ListState kind="loading" dark={dark} />
         ) : phase === 'error' ? (
@@ -466,6 +490,7 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
         )}
       </View>
 
+      <FindMatesSheet visible={findMatesOpen} onClose={() => setFindMatesOpen(false)} dark={dark} />
       {profileUserId ? (
         <UserProfileScreen
           key={profileUserId}
@@ -618,5 +643,17 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: SIZE.z1,
+  },
+  findMates: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: SIZE.z44,
+    paddingHorizontal: SPACE.s20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  findMatesText: {
+    fontSize: FONT_SIZE.f14,
+    fontFamily: FONTS.semiBold,
   },
 });

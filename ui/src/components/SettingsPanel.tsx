@@ -11,6 +11,8 @@ import { VERSION_LINE } from '@/lib/appBuild';
 import { reportError } from '@/lib/sentry';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
 import MyInvitesSheet from '@/components/MyInvitesSheet';
+import FindMatesSheet from '@/components/FindMatesSheet';
+import { useContactsFinder } from '@/hooks/useContactsFinder';
 import CountBadge from '@/components/CountBadge';
 import { getMyInvites } from '@/api/invites';
 import { inviteBadgeCount, inviteSummary } from '@/lib/myInvites';
@@ -89,6 +91,9 @@ function Sheet({
       live = false;
     };
   }, [invitesOpen]);
+  // "Find your mates" (build 13+, switch contacts-finder).
+  const contactsFinder = useContactsFinder();
+  const [findMatesOpen, setFindMatesOpen] = useState(false);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -243,6 +248,22 @@ function Sheet({
           <>
             <Text style={[styles.sectionLabel, { color: muted }]}>Mates</Text>
             <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
+              {contactsFinder ? (
+                <Pressable
+                  style={(state) => rowStyle(state, true)}
+                  onPress={() => setFindMatesOpen(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Find your mates"
+                >
+                  <View style={styles.rowCopy}>
+                    <Text style={[styles.rowLabel, { color: text }]}>Find your mates</Text>
+                    <Text style={[styles.rowDetail, { color: muted }]}>
+                      See who from your contacts is on Mahi
+                    </Text>
+                  </View>
+                  <Text style={[styles.chevron, { color: muted }]}>›</Text>
+                </Pressable>
+              ) : null}
               <Pressable
                 style={(state) => rowStyle(state, false)}
                 onPress={() => setInvitesOpen(true)}
@@ -323,6 +344,7 @@ function Sheet({
 
       {/* Opened from inside this sheet so they present over it. */}
       <MyInvitesSheet visible={invitesOpen} onClose={() => setInvitesOpen(false)} dark={dark} />
+      <FindMatesSheet visible={findMatesOpen} onClose={() => setFindMatesOpen(false)} dark={dark} />
       <BlockedUsersSheet
         visible={blockedListOpen}
         onClose={() => setBlockedListOpen(false)}

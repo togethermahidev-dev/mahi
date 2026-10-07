@@ -73,6 +73,8 @@ import MateCircles from '@/components/MateCircles';
 import InviteShareSheet from '@/components/InviteShareSheet';
 import TagSlotsSheet from '@/components/TagSlotsSheet';
 import MyInvitesSheet from '@/components/MyInvitesSheet';
+import FindMatesSheet from '@/components/FindMatesSheet';
+import { useContactsFinder } from '@/hooks/useContactsFinder';
 import CountBadge from '@/components/CountBadge';
 import { getMyInvites } from '@/api/invites';
 import { inviteBadgeCount } from '@/lib/myInvites';
@@ -1708,6 +1710,9 @@ export default function CameraScreen({
   // behind it, made on tap; joining from it makes you follow each other, and no tag starts.
   const [invitingMate, setInvitingMate] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
+  // "Find your mates" from contacts (build 13+, switch contacts-finder).
+  const contactsFinder = useContactsFinder();
+  const [findMatesOpen, setFindMatesOpen] = useState(false);
   // The number on "See your invites": read fresh each time the waiting card shows (and after the
   // list closes), never kept on the phone; no number until the server has answered.
   const [myInviteCount, setMyInviteCount] = useState<number | null>(null);
@@ -2749,6 +2754,17 @@ export default function CameraScreen({
                   <CountBadge count={myInviteCount ?? 0} />
                 </Pressable>
               ) : null}
+              {gate === 'closed' && !offline && contactsFinder ? (
+                <Pressable
+                  style={({ pressed }) => [styles.seeInvites, pressed && { opacity: ALPHA.a70 }]}
+                  onPress={() => setFindMatesOpen(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Find mates in your contacts"
+                  accessibilityHint="Shows who from your contacts is on Mahi, and lets you invite the rest"
+                >
+                  <Text style={styles.seeInvitesText}>Find mates in your contacts</Text>
+                </Pressable>
+              ) : null}
             </View>
           </BlurView>
         ) : null}
@@ -2980,6 +2996,11 @@ export default function CameraScreen({
         />
 
         <MyInvitesSheet visible={invitesOpen} onClose={() => setInvitesOpen(false)} dark={dark} />
+        <FindMatesSheet
+          visible={findMatesOpen}
+          onClose={() => setFindMatesOpen(false)}
+          dark={dark}
+        />
 
         <PointCelebration
           content={celebration}
