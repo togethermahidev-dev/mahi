@@ -46,7 +46,7 @@ export type TagLoopEvents = {
   invite_cancelled: { kind: 'mate' | 'tag' };
   /** A mate circle on the tag step filled (`index` from 0): a friend tagged or a link added. */
   mate_circle_filled: { kind: 'friend' | 'link'; index: number };
-  /** The phone's contacts question was answered on "Find your mates" (`granted`: allowed). */
+  /** The phone's contacts question was answered on "Find friends in your contacts" (`granted`: allowed). */
   contacts_permission: { granted: boolean };
   /** A look through contacts came back: how many are on Mahi, out of how many contacts read. */
   contacts_matched: { count_on_mahi: number; count_total: number };

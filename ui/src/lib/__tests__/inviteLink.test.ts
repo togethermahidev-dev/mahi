@@ -95,7 +95,7 @@ describe('claimedText', () => {
     );
   });
 
-  it('an invite for a mate, with no tag: just following each other', () => {
+  it('an invite for a friend, with no tag: just following each other', () => {
     expect(claimedText({ inviter: 'sam', expiresAt: null, tag: false })).toBe(
       'You and @sam follow each other now.'
     );
@@ -103,7 +103,7 @@ describe('claimedText', () => {
 });
 
 describe('invitePreviewLine (said before joining)', () => {
-  it('an invite for a mate: following each other, and no tag', () => {
+  it('an invite for a friend: following each other, and no tag', () => {
     expect(invitePreviewLine({ open: true, tag: false })).toBe(
       'Join and you’ll automatically follow each other.'
     );

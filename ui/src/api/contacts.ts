@@ -1,5 +1,5 @@
 /**
- * Find your mates (server: 20261007270000_contact_match). Only SHA-256 hashes of numbers and
+ * Find friends in your contacts (server: 20261007270000_contact_match). Only SHA-256 hashes of numbers and
  * emails are sent; what comes back is the accounts found, never a number or an email.
  */
 import { supabase } from '@/lib/supabase';

@@ -40,7 +40,7 @@ describe('openTagsAt — which tags are still open', () => {
 });
 
 describe('liveTagView — what the Live Activity and widget show', () => {
-  it('names the mate, counts down to the deadline and says any workout answers it', () => {
+  it('names the friend, counts down to the deadline and says any workout answers it', () => {
     const v = liveTagView({
       tags: [tag('a', 'sam', 30 * HOUR)],
       serverOffsetMs: 0,
@@ -112,11 +112,11 @@ describe('liveTagView — what the Live Activity and widget show', () => {
     expect(v).toMatchObject({ kind: 'tag', start: deviceNow });
   });
 
-  it('with no open tag, waits for a mate and shows the points and best', () => {
+  it('with no open tag, waits for a friend and shows the points and best', () => {
     const v = liveTagView({ tags: [], serverOffsetMs: 0, deviceNow, points: 12, best: 20 });
     expect(v).toMatchObject({
       kind: 'waiting',
-      title: 'Waiting for a mate to tag you',
+      title: 'Waiting for a friend to tag you',
       points: '12 Mahi points',
       best: 'Best: 20',
     });
@@ -148,7 +148,7 @@ describe('liveTagView — what the Live Activity and widget show', () => {
         best: 0,
         postedBefore: true,
       })
-    ).toMatchObject({ title: 'Waiting for a mate to tag you' });
+    ).toMatchObject({ title: 'Waiting for a friend to tag you' });
   });
 
   it('carries only the username and points, never names, photos or ids', () => {
@@ -240,7 +240,7 @@ describe('widgetTimeline — the widget changes on time without the app', () => 
       [0, '@amy is waiting on you'],
       [2 * HOUR, '@ben is waiting on you'],
       [14 * HOUR, '@ben is waiting on you'],
-      [20 * HOUR, 'Waiting for a mate to tag you'],
+      [20 * HOUR, 'Waiting for a friend to tag you'],
     ]);
     expect(entries[0].props).toMatchObject({ more: '1 more waiting', warning: true });
     expect(entries[1].props).toMatchObject({ more: null, warning: false });
@@ -340,7 +340,7 @@ describe('the tagger’s photo on the Live Activity and widget (owner, 2026-10-0
     });
     expect(v).toMatchObject({ kind: 'tag', photo: null });
   });
-  it('names the saved file after the mate, in the shared folder', () => {
+  it('names the saved file after the friend, in the shared folder', () => {
     expect(taggerPhotoFile('file:///group/ExpoWidgets/', 'sam_1')).toBe(
       'file:///group/ExpoWidgets/tagger-sam_1.jpg'
     );

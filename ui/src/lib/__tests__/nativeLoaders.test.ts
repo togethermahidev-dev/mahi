@@ -252,7 +252,7 @@ describe('expo-widgets loader (Live Activity and home-screen widget, build 13+)'
   });
 });
 
-describe('expo-contacts loader (find your mates, build 13+)', () => {
+describe('expo-contacts loader (find your friends, build 13+)', () => {
   function loadContactsModule(): typeof import('../contactsModule') {
     let mod!: typeof import('../contactsModule');
     jest.isolateModules(() => {

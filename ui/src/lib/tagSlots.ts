@@ -71,7 +71,7 @@ export function slotLabel(slot: ScreenSlot, index: number): string {
  */
 export function postButtonLabel(missing: number, anyTagged: boolean): string {
   if (missing <= 0) return 'Post';
-  const mates = missing === 1 ? 'mate' : 'mates';
+  const mates = missing === 1 ? 'friend' : 'friends';
   return anyTagged ? `Tag ${missing} more ${mates} to post` : `Tag ${missing} ${mates} to post`;
 }
 
@@ -87,7 +87,7 @@ export function postConfirmText({
   answering: string[];
   anyTagged: boolean;
 }): { title: string; body: string } {
-  const mates = anyTagged ? 'Your mates get 48 hours to answer you.' : null;
+  const mates = anyTagged ? 'Your friends get 48 hours to answer you.' : null;
   if (answering.length > 0) {
     const more = answering.length > 1 ? ` and ${answering.length - 1} more` : '';
     return {
@@ -183,7 +183,7 @@ export function slotErrorText(message: string): string {
   if (message.includes('already invited')) return 'Tag request already sent.';
   if (message.includes('cannot invite that person')) return 'You can’t send them a tag request.';
   if (message.includes('no longer open')) return 'That link has ended.';
-  if (message.includes('friends first')) return 'Tag your mates first.';
+  if (message.includes('friends first')) return 'Tag your friends first.';
   if (message.includes('invite links are off')) return 'Links are off right now.';
   return SLOT_FALLBACK;
 }
@@ -191,7 +191,7 @@ export function slotErrorText(message: string): string {
 /** A refusal of an invite for a mate, in plain words (these can't be taken back, only used or run out). */
 export function mateInviteErrorText(message: string): string {
   if (message.includes('too many open invites'))
-    return 'Too many invites waiting. Try again when a mate joins.';
+    return 'Too many invites waiting. Try again when someone joins.';
   return slotErrorText(message);
 }
 
@@ -236,7 +236,7 @@ export function postRefusal(message: string): {
 } {
   if (message.includes('reactive posting')) {
     return {
-      text: 'Your tag has ended, so this can’t be posted. You can post again when a mate tags you.',
+      text: 'Your tag has ended, so this can’t be posted. You can post again when a friend tags you.',
       keepPhotos: false,
       refused: true,
       report: false,
@@ -244,7 +244,7 @@ export function postRefusal(message: string): {
   }
   if (message.includes('friends first')) {
     return {
-      text: 'Tag your mates first. A link only fills a tag your mates can’t.',
+      text: 'Tag your friends first. A link only fills a tag your friends can’t.',
       keepPhotos: true,
       refused: true,
       report: false,

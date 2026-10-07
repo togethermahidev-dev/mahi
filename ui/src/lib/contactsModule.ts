@@ -5,7 +5,7 @@
  * requiring the package there throws at load (it calls requireNativeModule('ExpoContactsNext')
  * and, for its old API, requireNativeModule('ExpoContacts') at the top level). So nothing imports
  * it at the top level: `loadContacts()` checks for both native modules first and only then
- * requires the package. No module = no "Find your mates" anywhere. Same pattern as expoUiModule.ts.
+ * requires the package. No module = no "Find friends in your contacts" anywhere. Same pattern as expoUiModule.ts.
  * Tested in src/lib/__tests__/nativeLoaders.test.ts.
  */
 import { requireOptionalNativeModule } from 'expo';

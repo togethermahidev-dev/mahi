@@ -284,7 +284,7 @@ export default function HorizontalNavigator({
     navigate(CAMERA);
   });
   // The iPhone extras (Control Centre button, Spotlight): each opens its page if its switch is
-  // on. Your invites and Find your mates open over the Camera page, where they live.
+  // on. Your invites and Find friends in your contacts open over the Camera page, where they live.
   const toCamera = (request?: CameraRequest) => {
     setNotifOpen(false);
     setProfileUserId(null);

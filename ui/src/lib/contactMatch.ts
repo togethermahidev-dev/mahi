@@ -1,5 +1,5 @@
 /**
- * Find your mates from your contacts (owner, 2026-10-07). Pure and SDK-free so the rules are
+ * Find friends in your contacts (owner, 2026-10-07). Pure and SDK-free so the rules are
  * unit-tested; the screen is src/components/FindMatesSheet.tsx, the native loader
  * src/lib/contactsModule.ts.
  *

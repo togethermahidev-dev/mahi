@@ -4,14 +4,14 @@ const sam: CircleMate = { user_id: 'u-sam', username: 'sam', avatar_url: 'https:
 const ali: CircleMate = { user_id: 'u-ali', username: 'ali', avatar_url: null };
 const kim: CircleMate = { user_id: 'u-kim', username: 'kim', avatar_url: null };
 
-describe('mateCircles: one circle per mate the post needs', () => {
-  it('starts as empty circles, one per required mate', () => {
+describe('mateCircles: one circle per friend the post needs', () => {
+  it('starts as empty circles, one per required friend', () => {
     const circles = mateCircles({ total: 3, friends: [], links: 0 });
     expect(circles.map((c) => c.kind)).toEqual(['empty', 'empty', 'empty']);
     expect(circles.map((c) => c.a11y)).toEqual([
-      'Mate 1 of 3, empty',
-      'Mate 2 of 3, empty',
-      'Mate 3 of 3, empty',
+      'Friend 1 of 3, empty',
+      'Friend 2 of 3, empty',
+      'Friend 3 of 3, empty',
     ]);
   });
 
@@ -26,7 +26,7 @@ describe('mateCircles: one circle per mate the post needs', () => {
         avatarUrl: 'https://x/sam.jpg',
         initial: 'S',
         caption: '@sam',
-        a11y: 'Mate 1 of 3, @sam',
+        a11y: 'Friend 1 of 3, @sam',
       },
       {
         kind: 'friend',
@@ -36,7 +36,7 @@ describe('mateCircles: one circle per mate the post needs', () => {
         avatarUrl: null,
         initial: 'A',
         caption: '@ali',
-        a11y: 'Mate 2 of 3, @ali',
+        a11y: 'Friend 2 of 3, @ali',
       },
       {
         kind: 'link',
@@ -44,7 +44,7 @@ describe('mateCircles: one circle per mate the post needs', () => {
         key: 'link-1',
         link: 1,
         caption: 'Link 1',
-        a11y: 'Mate 3 of 3, Link 1',
+        a11y: 'Friend 3 of 3, Link 1',
       },
     ]);
   });
@@ -67,15 +67,15 @@ describe('mateCircles: one circle per mate the post needs', () => {
 });
 
 describe('mateCirclesTitle', () => {
-  it('asks for the mates until every circle is filled', () => {
+  it('asks for the friends until every circle is filled', () => {
     expect(mateCirclesTitle({ total: 3, friends: [], links: 0 })).toBe(
-      'Pick 3 mates to keep you going'
+      'Pick 3 friends to keep you going'
     );
     expect(mateCirclesTitle({ total: 3, friends: [sam, ali], links: 0 })).toBe(
-      'Pick 3 mates to keep you going'
+      'Pick 3 friends to keep you going'
     );
     expect(mateCirclesTitle({ total: 1, friends: [], links: 0 })).toBe(
-      'Pick a mate to keep you going'
+      'Pick a friend to keep you going'
     );
   });
 
@@ -91,21 +91,21 @@ describe('mateCirclesTitle', () => {
     );
   });
 
-  it('links only: your mates', () => {
+  it('links only: your friends', () => {
     expect(mateCirclesTitle({ total: 3, friends: [], links: 3 })).toBe(
-      'Your 3 mates will keep you going'
+      'Your 3 friends will keep you going'
     );
     expect(mateCirclesTitle({ total: 1, friends: [], links: 1 })).toBe(
-      'Your mate will keep you going'
+      'Your friend will keep you going'
     );
   });
 
-  it('friends and links: names the friends, counts the invited mates', () => {
+  it('friends and links: names the friends, counts the invited friends', () => {
     expect(mateCirclesTitle({ total: 3, friends: [sam], links: 2 })).toBe(
-      '@sam and 2 invited mates will keep you going'
+      '@sam and 2 invited friends will keep you going'
     );
     expect(mateCirclesTitle({ total: 3, friends: [sam, ali], links: 1 })).toBe(
-      '@sam, @ali and 1 invited mate will keep you going'
+      '@sam, @ali and 1 invited friend will keep you going'
     );
   });
 });

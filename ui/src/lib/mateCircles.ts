@@ -24,7 +24,7 @@ type Picks = { total: number; friends: CircleMate[]; links: number };
 
 export function mateCircles({ total, friends, links }: Picks): MateCircle[] {
   return Array.from({ length: Math.max(0, total) }, (_, index): MateCircle => {
-    const where = `Mate ${index + 1} of ${total}`;
+    const where = `Friend ${index + 1} of ${total}`;
     const friend = friends[index];
     if (friend) {
       const caption = `@${friend.username}`;
@@ -61,18 +61,18 @@ function listOf(words: string[]): string {
   return `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
 }
 
-const mates = (n: number) => (n === 1 ? 'mate' : 'mates');
+const mates = (n: number) => (n === 1 ? 'friend' : 'friends');
 
 /** The line over the circles: asks until every circle is filled, then names who's in. */
 export function mateCirclesTitle(picks: Picks): string {
   const { total } = picks;
   const circles = mateCircles(picks);
   const full = circles.length > 0 && circles.every((c) => c.kind !== 'empty');
-  if (!full) return `Pick ${total === 1 ? 'a mate' : `${total} mates`} to keep you going`;
+  if (!full) return `Pick ${total === 1 ? 'a friend' : `${total} friends`} to keep you going`;
   const names = circles.flatMap((c) => (c.kind === 'friend' ? [c.caption] : []));
   const links = circles.length - names.length;
   if (names.length === 0) {
-    return `Your ${links === 1 ? 'mate' : `${links} mates`} will keep you going`;
+    return `Your ${links === 1 ? 'friend' : `${links} friends`} will keep you going`;
   }
   const invited = links > 0 ? [`${links} invited ${mates(links)}`] : [];
   return `${listOf([...names, ...invited])} will keep you going`;

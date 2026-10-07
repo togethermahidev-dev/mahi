@@ -88,7 +88,7 @@ export function flightCard({
   /** The best before the post. */
   bestBefore: number;
 }): { title: string; line: string; milestone: boolean; liveText: string } {
-  const title = tagger ? `@${tagger} kept you going` : 'A mate kept you going';
+  const title = tagger ? `@${tagger} kept you going` : 'A friend kept you going';
   const total = mahiPointsCount(points);
   const newBest = points > bestBefore;
   const line = newBest

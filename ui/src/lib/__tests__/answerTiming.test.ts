@@ -38,7 +38,7 @@ describe('the on-time line under a poster’s name', () => {
     expect(answerTimingLine({ answered: null, first_post: true })).toBe('First Mahi');
   });
 
-  it('a first post that answered a tag names the mate', () => {
+  it('a first post that answered a tag names the friend', () => {
     expect(answerTimingLine({ ...answered(2 * HOUR, 46 * HOUR), first_post: true })).toBe(
       'Answered @sam in 2h'
     );
@@ -49,7 +49,7 @@ describe('the on-time line under a poster’s name', () => {
     expect(answerTimingLine({})).toBeNull();
   });
 
-  it('a server without the new fields still names the mate and the time from the old one', () => {
+  it('a server without the new fields still names the friend and the time from the old one', () => {
     expect(answerTimingLine({ response: { tagger_username: 'ali', seconds: 3 * HOUR } })).toBe(
       'Answered @ali in 3h'
     );

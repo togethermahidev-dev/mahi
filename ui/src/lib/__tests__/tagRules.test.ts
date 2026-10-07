@@ -19,8 +19,8 @@ describe('requiredTagCount', () => {
   });
 });
 
-describe('postTagsRequired — a first post that answers a mate needs no tags', () => {
-  it('asks for nothing when your first post answers a mate’s tag', () => {
+describe('postTagsRequired — a first post that answers a friend needs no tags', () => {
+  it('asks for nothing when your first post answers a friend’s tag', () => {
     expect(postTagsRequired(3, { firstPost: true, answersTag: true })).toBe(0);
   });
 

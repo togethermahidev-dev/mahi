@@ -195,12 +195,12 @@ import { openTagsTop } from '@/lib/pip';
  * The camera when there's no open tag to answer: says how Mahi works (reactive posting) and what
  * comes next, never a dead end (the refusal toast's words live in postRefusal).
  */
-const NO_TAGS_TITLE = 'Waiting for a mate to tag you';
+const NO_TAGS_TITLE = 'Waiting for a friend to tag you';
 const NO_TAGS_LINE =
-  'On Mahi you post when a mate tags you, so you keep each other going. Answer within 48 hours to earn a Mahi point.';
+  'On Mahi you post when a friend tags you, so you keep each other going. Answer within 48 hours to earn a Mahi point.';
 /** The locked camera with no tag, with Find friends under it. */
 const QUIET_LINE =
-  'On Mahi you post when a mate tags you, so you keep each other going. More mates means more tags.';
+  'On Mahi you post when a friend tags you, so you keep each other going. More friends means more tags.';
 /** The tags or the feed couldn't be read (no connection). */
 const OFFLINE_TITLE = 'Couldn’t reach Mahi';
 const OFFLINE_LINE = 'Check your connection. Your tags will show here.';
@@ -1861,7 +1861,7 @@ export default function CameraScreen({
   // behind it, made on tap; joining from it makes you follow each other, and no tag starts.
   const [invitingMate, setInvitingMate] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
-  // "Find your mates" from contacts (build 13+, no switch).
+  // "Find friends in your contacts" from contacts (build 13+, no switch).
   const contactsFinder = useContactsFinder();
   const [findMatesOpen, setFindMatesOpen] = useState(false);
   // The number on "See your invites": read fresh each time the waiting card shows (and after the
@@ -1870,7 +1870,7 @@ export default function CameraScreen({
   const waitingCard = gate === 'closed' && !offline;
   // Your mates on the clock: read fresh each time the waiting card shows, never kept on the phone.
   // null while asking (the card shows a spinner, not words that then change); a failed read
-  // falls back to "Waiting for a mate to tag you".
+  // falls back to "Waiting for a friend to tag you".
   const [mates, setMates] = useState<{ list: MateOnClock[]; offsetMs: number } | null>(null);
   useEffect(() => {
     if (!waitingCard) {
@@ -2743,7 +2743,7 @@ export default function CameraScreen({
   // Photos shared from Photos (switch `share-to-mahi`, src/hooks/useSharedPhotos.ts) become the
   // shots: two fill the preview; one is the first shot and the selfie side takes the second. Same
   // posting rules as the shutter. The share extension's copies are deleted once read.
-  // Spotlight's Your invites / Find your mates (switch `spotlight`) open their sheets here.
+  // Spotlight's Your invites / Find friends in your contacts (switch `spotlight`) open their sheets here.
   const cameraRequest = useCameraRequestStore((s) => s.request);
   useEffect(() => {
     if (!cameraRequest) return;
@@ -3117,10 +3117,10 @@ export default function CameraScreen({
                       ]}
                       onPress={() => setFindMatesOpen(true)}
                       accessibilityRole="button"
-                      accessibilityLabel="Find mates in your contacts"
+                      accessibilityLabel="Find friends in your contacts"
                       accessibilityHint="Shows who from your contacts is on Mahi, and lets you invite the rest"
                     >
-                      <Text style={styles.seeInvitesText}>Find mates in your contacts</Text>
+                      <Text style={styles.seeInvitesText}>Find friends in your contacts</Text>
                     </Pressable>
                   ) : null}
                 </View>

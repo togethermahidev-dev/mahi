@@ -165,7 +165,7 @@ export function liveTagView({
     return {
       kind: 'waiting',
       title: postedBefore
-        ? 'Waiting for a mate to tag you'
+        ? 'Waiting for a friend to tag you'
         : 'Post your first workout to get your first point',
       points: mahiPointsCount(points),
       best: `Best: ${best}`,

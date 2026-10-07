@@ -1,7 +1,7 @@
 import { answeredStamp, answeredMorph } from '../answerStamp';
 
 describe('the "Answered" stamp (design research, 2026-10-07)', () => {
-  it('names the mate whose tag the post answers', () => {
+  it('names the friend whose tag the post answers', () => {
     expect(answeredStamp(['sam'])).toBe('Answered @sam');
   });
   it('counts the others when one post answers several tags', () => {

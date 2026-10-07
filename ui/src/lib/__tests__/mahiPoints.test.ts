@@ -129,10 +129,10 @@ describe('postedToast', () => {
   it('the first post says who it tagged', () => {
     expect(
       postedToast({ answered: [], points: 0, bestBefore: 0, tagged: { friends: 3, links: 0 } })
-    ).toBe('Posted. You tagged 3 mates. Your feed is open for 24 hours.');
+    ).toBe('Posted. You tagged 3 friends. Your feed is open for 24 hours.');
     expect(
       postedToast({ answered: [], points: 0, bestBefore: 0, tagged: { friends: 1, links: 2 } })
-    ).toBe('Posted. You tagged 1 mate and 2 people by link. Your feed is open for 24 hours.');
+    ).toBe('Posted. You tagged 1 friend and 2 people by link. Your feed is open for 24 hours.');
     expect(
       postedToast({ answered: [], points: 0, bestBefore: 0, tagged: { friends: 0, links: 1 } })
     ).toBe('Posted. You tagged 1 person by link. Your feed is open for 24 hours.');
@@ -227,14 +227,14 @@ describe('pointCelebration — the moment a post earns a point', () => {
       title: 'Your first Mahi point!',
       total: 'You have 1 Mahi point.',
       lines: [
-        'Send your 3 links next. Each mate gets 48 hours once they join. Your feed is open for 24 hours.',
-        'From now on you post when a mate tags you. Answer each tag within 48 hours for another point.',
+        'Send your 3 links next. Each friend gets 48 hours once they join. Your feed is open for 24 hours.',
+        'From now on you post when a friend tags you. Answer each tag within 48 hours for another point.',
         'Miss a tag and your points go back to 0. Your best stays.',
       ],
     });
   });
 
-  it('a first post that answers a mate: names them', () => {
+  it('a first post that answers a friend: names them', () => {
     const c = pointCelebration({
       answered: ['sam'],
       points: 1,
@@ -244,12 +244,12 @@ describe('pointCelebration — the moment a post earns a point', () => {
     });
     expect(c?.title).toBe('Your first Mahi point!');
     expect(c?.lines[0]).toBe(
-      'You answered @sam’s tag. Your 3 mates have 48 hours to answer you. Your feed is open for 24 hours.'
+      'You answered @sam’s tag. Your 3 friends have 48 hours to answer you. Your feed is open for 24 hours.'
     );
   });
 
   // Usability walkthrough 2026-10-07: name who is now on the clock.
-  it('names the mates it tagged, who now have 48 hours', () => {
+  it('names the friends it tagged, who now have 48 hours', () => {
     const c = pointCelebration({
       answered: [],
       points: 1,
@@ -271,11 +271,11 @@ describe('pointCelebration — the moment a post earns a point', () => {
       tagged: { friends: 1, links: 2, names: ['a'] },
     });
     expect(c?.lines[0]).toBe(
-      '@a now has 48 hours to answer you. Send your 2 links next. Each mate gets 48 hours once they join. Your feed is open for 24 hours.'
+      '@a now has 48 hours to answer you. Send your 2 links next. Each friend gets 48 hours once they join. Your feed is open for 24 hours.'
     );
   });
 
-  it('a later answer that tagged mates names them too', () => {
+  it('a later answer that tagged friends names them too', () => {
     expect(
       pointCelebration({
         answered: ['sam'],
@@ -348,7 +348,7 @@ describe('pointCelebration — the moment a post earns a point', () => {
 // Walkthrough 2026-10-07: with the +1 flight on, an answer never said whose 48 hours it started.
 // The words shown after the flight's card are the full-screen moment's own.
 describe('taggedClockLine — who now has 48 hours', () => {
-  it('names the mates', () => {
+  it('names the friends', () => {
     expect(taggedClockLine({ friends: 3, links: 0, names: ['jo', 'kim', 'lee'] })).toBe(
       '@jo, @kim and @lee now have 48 hours to answer you.'
     );
@@ -357,9 +357,9 @@ describe('taggedClockLine — who now has 48 hours', () => {
     );
   });
 
-  it('counts mates it can’t name, and keeps the links line', () => {
+  it('counts friends it can’t name, and keeps the links line', () => {
     expect(taggedClockLine({ friends: 2, links: 1 })).toBe(
-      'Your 2 mates have 48 hours to answer you. Send your 1 link next. Each mate gets 48 hours once they join.'
+      'Your 2 friends have 48 hours to answer you. Send your 1 link next. Each friend gets 48 hours once they join.'
     );
   });
 
@@ -381,7 +381,7 @@ describe('missMoment — the moment after a miss', () => {
     expect(missMoment({ tagger: 'sam', best: 5 })).toEqual({
       title: 'You missed @sam’s tag',
       total: 'Your points are back to 0. Your best of 5 stays.',
-      lines: ['Post when a mate tags you to start again.'],
+      lines: ['Post when a friend tags you to start again.'],
       badge: '0',
       badgeLabel: 'Mahi points back to 0',
     });
@@ -405,13 +405,13 @@ describe('pointsRowText — the points row on the waiting card', () => {
   });
 });
 
-describe('lastAnsweredMates (the mates on the profile’s points card)', () => {
+describe('lastAnsweredMates (the friends on the profile’s points card)', () => {
   const post = (id: string, tagger: string | null, created_at: string) => ({
     id,
     created_at,
     response: tagger ? { tagger_username: tagger, seconds: 1 } : null,
   });
-  it('names the last three mates answered, newest first, each once', () => {
+  it('names the last three friends answered, newest first, each once', () => {
     expect(
       lastAnsweredMates([
         post('1', 'sam', '2026-10-07T10:00:00Z'),

@@ -105,7 +105,7 @@ describe('inviteWhatText — what the link does', () => {
     );
   });
 
-  it('a link for a mate: you follow each other', () => {
+  it('a link for a friend: you follow each other', () => {
     expect(inviteWhatText(invite())).toBe('You’ll follow each other when they join.');
   });
 
