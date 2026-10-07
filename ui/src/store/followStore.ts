@@ -1,9 +1,5 @@
 import { create } from 'zustand';
-import {
-  followUser as apiFollow,
-  unfollowUser as apiUnfollow,
-  getFollowData as apiGetFollowData,
-} from '@/api';
+import { getFollowData as apiGetFollowData, setFollowing as apiSetFollowing } from '@/api';
 import { supabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -39,7 +35,10 @@ interface FollowState {
 }
 
 /** Active realtime channels keyed by userId. */
-const followChannels = new Map<string, { channel: RealtimeChannel; refCount: number }>();
+const followChannels = new Map<
+  string,
+  { channel: RealtimeChannel; refCount: number; listeners: Set<FollowChangeListener> }
+>();
 
 export const useFollowStore = create<FollowState>((set, get) => ({
   followingByMe: {},
@@ -94,12 +93,11 @@ export const useFollowStore = create<FollowState>((set, get) => ({
       }));
     }
 
-    const { error } = wasFollowing
-      ? await apiUnfollow(currentUserId, targetUserId)
-      : await apiFollow(currentUserId, targetUserId);
+    const { data, error } = await apiSetFollowing(targetUserId, !wasFollowing);
 
-    if (error) {
-      console.log('[followStore] toggleFollow error |', error.message);
+    if (error || !data) {
+      const mutationError = error ?? new Error('Follow update returned no server state');
+      console.log('[followStore] toggleFollow error |', mutationError.message);
       // Rollback target counts
       set((s) => ({
         followingByMe: { ...s.followingByMe, [targetUserId]: wasFollowing },
@@ -111,8 +109,29 @@ export const useFollowStore = create<FollowState>((set, get) => ({
           counts: { ...s.counts, [currentUserId]: myPrevCounts },
         }));
       }
-      return { error };
+      return { error: mutationError };
     }
+
+    // The tap felt immediate above; now replace estimates with the database's committed answer.
+    set((s) => ({
+      followingByMe: { ...s.followingByMe, [targetUserId]: data.is_following },
+      followsMe: { ...s.followsMe, [targetUserId]: data.follows_you },
+      counts: {
+        ...s.counts,
+        [targetUserId]: {
+          follower_count: data.follower_count,
+          following_count: data.following_count,
+        },
+        ...(myPrevCounts
+          ? {
+              [currentUserId]: {
+                ...myPrevCounts,
+                following_count: data.current_following_count,
+              },
+            }
+          : {}),
+      },
+    }));
 
     return { error: null };
   },
@@ -122,7 +141,9 @@ export const useFollowStore = create<FollowState>((set, get) => ({
     const existing = followChannels.get(key);
     if (existing) {
       existing.refCount++;
+      if (onChange) existing.listeners.add(onChange);
       return () => {
+        if (onChange) existing.listeners.delete(onChange);
         existing.refCount--;
         if (existing.refCount <= 0) {
           supabase.removeChannel(existing.channel);
@@ -135,7 +156,7 @@ export const useFollowStore = create<FollowState>((set, get) => ({
       // Re-fetch counts from server
       get().loadFollowData(currentUserId, userId);
       // Notify listener (e.g. FollowListModal re-fetches its list)
-      onChange?.();
+      for (const listener of followChannels.get(key)?.listeners ?? []) listener();
     };
 
     const channel = supabase
@@ -152,11 +173,16 @@ export const useFollowStore = create<FollowState>((set, get) => ({
       )
       .subscribe();
 
-    followChannels.set(key, { channel, refCount: 1 });
+    followChannels.set(key, {
+      channel,
+      refCount: 1,
+      listeners: new Set(onChange ? [onChange] : []),
+    });
 
     return () => {
       const entry = followChannels.get(key);
       if (!entry) return;
+      if (onChange) entry.listeners.delete(onChange);
       entry.refCount--;
       if (entry.refCount <= 0) {
         supabase.removeChannel(entry.channel);

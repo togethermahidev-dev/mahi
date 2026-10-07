@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 20 — right-swipe dismissal restored on profiles and added to friends lists;
+ *     follow/unfollow reconciles from the database and open friend lists update live (2026-10-07)
  *   build 12 · 19 — six-blade launch iris, focus/capture/release haptics, direct app reveal and
  *     Reduce Motion fade (2026-10-07)
  *   build 12 · 16 — Maximus's Q1-Q10 answers, deletable posts with permanent first-post history,
@@ -37,4 +39,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 19;
+export const OTA_NUMBER = 20;

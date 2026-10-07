@@ -676,6 +676,16 @@ export type Database = {
           follows_you: boolean;
         }[];
       };
+      set_following: {
+        Args: { p_following: boolean; p_target_user_id: string };
+        Returns: {
+          current_following_count: number;
+          follower_count: number;
+          following_count: number;
+          follows_you: boolean;
+          is_following: boolean;
+        }[];
+      };
       get_suggested_follows: {
         Args: { p_current_user_id: string; p_limit?: number; p_offset?: number };
         Returns: {

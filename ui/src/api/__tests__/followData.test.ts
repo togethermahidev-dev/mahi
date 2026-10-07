@@ -1,7 +1,7 @@
 const rpc = jest.fn();
 jest.mock('@/lib/supabase', () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
 
-import { getFollowData } from '@/api/follows';
+import { getFollowData, setFollowing } from '@/api/follows';
 import { followButtonLabel } from '@/lib/followBack';
 
 describe('getFollowData', () => {
@@ -16,6 +16,25 @@ describe('getFollowData', () => {
       error: null,
     });
     expect((await getFollowData('a', 'b')).data?.follows_you).toBe(false);
+  });
+});
+
+describe('setFollowing', () => {
+  it('returns the authoritative state from the mutation RPC', async () => {
+    const answer = {
+      is_following: true,
+      follower_count: 4,
+      following_count: 3,
+      follows_you: false,
+      current_following_count: 7,
+    };
+    rpc.mockResolvedValue({ data: [answer], error: null });
+
+    await expect(setFollowing('target', true)).resolves.toEqual({ data: answer, error: null });
+    expect(rpc).toHaveBeenLastCalledWith('set_following', {
+      p_target_user_id: 'target',
+      p_following: true,
+    });
   });
 });
 

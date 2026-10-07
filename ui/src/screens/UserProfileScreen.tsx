@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   View,
@@ -150,17 +150,13 @@ export default function UserProfileScreen({
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [suggestedUserId, setSuggestedUserId] = useState<string | null>(null);
 
-  // The page is one scrolling list. Its scrolling is a gesture the swipe back runs alongside:
-  // a vertical list grabs a touch after ~10pt in any direction, before the swipe decides.
-  const pageList = useMemo(() => Gesture.Native(), []);
-
   // Swipe right to close. The pan only takes over once the finger has clearly moved right, so
-  // taps and up/down scrolls stay with the buttons and lists inside. Off while a screen opened
-  // from here is on top, so a swipe there closes that one only.
+  // taps and up/down scrolls stay with the buttons and list inside. This intentionally matches
+  // ConversationScreen: wrapping the FlashList in a second Native gesture made the list win and
+  // caused profile dismissal to disappear on current gesture-handler builds.
   const swipeBack = Gesture.Pan()
     .enabled(!suggestedUserId && !activeConvo)
-    .simultaneousWithExternalGesture(pageList)
-    .activeOffsetX(SWIPE.slop)
+    .activeOffsetX([SWIPE.slop, SWIPE.slop])
     .failOffsetX(-SWIPE.slop)
     .failOffsetY([-SWIPE.slop, SWIPE.slop])
     .onStart(() => {
@@ -598,7 +594,6 @@ export default function UserProfileScreen({
             isSelf={false}
             header={header}
             onPostPress={(post) => setViewerPostId(post.id)}
-            listGesture={pageList}
             username={profile.username}
           />
         ) : (

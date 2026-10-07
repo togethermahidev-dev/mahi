@@ -37,6 +37,26 @@ export async function unfollowUser(
   return { data: null, error: null };
 }
 
+export type FollowMutationData = FollowData & {
+  /** The signed-in user's committed following count after this mutation. */
+  current_following_count: number;
+};
+
+/** Set one follow relationship and return the committed server state. */
+export async function setFollowing(
+  targetUserId: string,
+  following: boolean
+): Promise<{ data: FollowMutationData | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('set_following', {
+    p_target_user_id: targetUserId,
+    p_following: following,
+  });
+  if (error) return { data: null, error: new Error(error.message) };
+  const row = (data as FollowMutationData[] | null)?.[0];
+  if (!row) return { data: null, error: new Error('set_following returned no rows') };
+  return { data: row, error: null };
+}
+
 export type FollowListUser = {
   id: string;
   username: string;
