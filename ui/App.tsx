@@ -150,7 +150,9 @@ export default function App(): React.JSX.Element {
   // enabled on the supabase client via AsyncStorage in src/lib/supabase.ts.
   useEffect(() => {
     // Rehydrate theme preference before any screen renders
-    rehydrateTheme();
+    rehydrateTheme().catch((err) =>
+      reportError(err, { flow: 'settings', action: 'rehydrateTheme', level: 'warning' })
+    );
 
     supabase.auth.getSession().then(({ data: { session: s }, error }) => {
       if (error) reportError(error, { flow: 'auth', action: 'getSession' });
@@ -240,7 +242,9 @@ export default function App(): React.JSX.Element {
   }, [session]);
 
   const onSplashLayout = useCallback(() => {
-    SplashScreen.hideAsync().then(() => setSplashDone(true));
+    SplashScreen.hideAsync()
+      .catch((err) => reportError(err, { flow: 'startup', action: 'hideSplash' }))
+      .finally(() => setSplashDone(true));
   }, []);
 
   let content: React.JSX.Element;

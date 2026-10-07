@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { AppState, Linking } from 'react-native';
 import { claimOnReturn, parseInviteLink } from '@/lib/inviteLink';
+import { reportError } from '@/lib/sentry';
 import { useAuthStore, useInviteStore } from '@/store';
 
 /**
@@ -16,7 +17,9 @@ export function useInviteLink(): void {
       if (token) useInviteStore.getState().setPending(token);
     };
 
-    Linking.getInitialURL().then(take);
+    Linking.getInitialURL()
+      .then(take)
+      .catch((err) => reportError(err, { flow: 'invites', action: 'readOpeningLink' }));
     const sub = Linking.addEventListener('url', ({ url }) => take(url));
     return () => sub.remove();
   }, []);
