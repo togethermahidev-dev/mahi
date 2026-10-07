@@ -164,9 +164,13 @@ restore and RevenueCat's paywall. No screen uses it yet. Needs the RevenueCat na
 `EXPO_PUBLIC_REVENUECAT_IOS_KEY` in the lane. On a build without RevenueCat, or with no key, it reads as off
 and RevenueCat is never started.)
 
-**Sign-in placeholders** (pills on the welcome screen with no sign-in behind them yet):
-`auth-apple-signin` · `auth-google-signin`. **Currently on at 100%** — the owner's choice on 2026-09-23 to
-preview the look; tapping them does nothing. Set both to 0% before real users see the welcome screen.
+**Sign in with Apple**: `auth-apple-signin` (default on in code; the owner's kill switch). Shows Apple's
+own button on the welcome screen on iPhones with build 13+ (the `expo-apple-authentication` native module)
+where Apple says sign-in works; off hides it. Builds 10–12, Android and the web never show it. In PostHog
+it is at 0% (checked 2026-10-07): set it to 100% when build 13 ships.
+
+**Sign-in placeholder**: `auth-google-signin` — a pill on the welcome screen with no sign-in behind it
+yet; tapping it does nothing. At 0% in PostHog (checked 2026-10-07).
 
 ## Build 13 native features: off switches (owner, 2026-10-07)
 

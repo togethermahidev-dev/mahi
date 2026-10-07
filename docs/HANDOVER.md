@@ -29,6 +29,28 @@ plus everything after are also unchecked on a phone. Check, in this order, on a 
 - Your invites: list, resend (share sheet), cancel; Settings → Mates rows.
 - Push: after the server steps, one tag push arrives and opens the camera.
 - Miss: the "You missed @sam's tag" moment once; points to 0, best kept.
+- Sign in with Apple (after the owner steps below): Apple's black button on the light welcome
+  screen, white on dark; cancel says nothing; a new Apple account goes to "Getting started" with
+  the name filled in, then "Your profile", then the camera; Cancel there goes back to the welcome
+  screen; an invite link still says who invited you and is claimed; signing out and in again with
+  Apple goes straight to the camera; a build-12 phone on the same OTA shows no Apple button.
+
+### Sign in with Apple — owner steps before build 13 ships
+
+No secrets in code; native sign-in needs only the bundle ID.
+1. Apple Developer → Identifiers → `com.mahi.app`: the Sign in with Apple capability. EAS turns it
+   on when it builds (app.config.js sets `ios.usesAppleSignIn` and the `expo-apple-authentication`
+   plugin); check it's ticked after the build.
+2. Supabase dashboard → Authentication → Sign In / Providers → Apple: enable it, Client IDs =
+   `com.mahi.app`. Leave Secret Key empty (that is only for web sign-in, and it expires every 6 months).
+3. PostHog switch `auth-apple-signin`: set to 100% (it is at 0% now, checked 2026-10-07). It is the
+   kill switch: off hides the button. Builds 10–12 never show it.
+4. Account deletion: Apple asks apps to revoke an Apple account's tokens when the account is
+   deleted. Supabase has no route that does this, and doing it ourselves needs Apple's private key
+   (.p8) on the server plus Apple's authorisation code, which the app doesn't keep. Not built.
+   Decide before App Review: either add a server function holding the key (needs your go and the
+   key), or rely on deletion removing all Mahi data; a person can also stop using Apple ID with
+   Mahi in iPhone Settings → Apple Account → Sign in with Apple.
 
 ## 1. Where things stand
 
