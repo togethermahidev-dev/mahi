@@ -15,6 +15,7 @@ const platform = { OS: 'ios' };
 const optionalGet = jest.fn();
 const contactsRequired = jest.fn();
 const nativeViewRequired = jest.fn();
+const appleAuthRequired = jest.fn();
 
 jest.mock('react-native', () => ({
   TurboModuleRegistry: { get: (name: string) => turboGet(name) },
@@ -31,6 +32,10 @@ jest.mock('expo', () => ({
 jest.mock('../../widgets/liveTagWidgets', () => {
   widgetsRequired();
   return { tagWidget: {}, tagActivity: {} };
+});
+jest.mock('expo-apple-authentication', () => {
+  appleAuthRequired();
+  return { isAvailableAsync: jest.fn(), signInAsync: jest.fn() };
 });
 jest.mock('expo-contacts', () => {
   contactsRequired();
@@ -65,6 +70,7 @@ beforeEach(() => {
   optionalGet.mockReset();
   contactsRequired.mockReset();
   nativeViewRequired.mockReset();
+  appleAuthRequired.mockReset();
   for (const k of Object.keys(nativeModules)) delete nativeModules[k];
   for (const k of Object.keys(expoModules)) delete expoModules[k];
 });
@@ -339,5 +345,55 @@ describe('emoji keyboard loader (local module mahi-emoji-keyboard, build 13+)', 
     platform.OS = 'web';
     expoModules.MahiEmojiKeyboard = {};
     expect(loadEmojiModule().hasNativeEmojiKeyboard()).toBe(false);
+  });
+});
+
+describe('Sign in with Apple loader (expo-apple-authentication, build 13+)', () => {
+  function loadAppleModule(): typeof import('../appleAuthModule') {
+    let mod!: typeof import('../appleAuthModule');
+    jest.isolateModules(() => {
+      mod = jest.requireActual('../appleAuthModule');
+    });
+    return mod;
+  }
+
+  it('looks for the module by its native name', () => {
+    optionalGet.mockReturnValue(null);
+    loadAppleModule().hasNativeAppleAuth();
+    expect(optionalGet).toHaveBeenCalledWith('ExpoAppleAuthentication');
+  });
+
+  it('never requires the package on a build without the module (builds 10 to 12)', () => {
+    optionalGet.mockReturnValue(null);
+    const m = loadAppleModule();
+    expect(m.hasNativeAppleAuth()).toBe(false);
+    expect(m.loadAppleAuth()).toBeNull();
+    expect(appleAuthRequired).not.toHaveBeenCalled();
+  });
+
+  it('treats a lookup that throws as missing', () => {
+    optionalGet.mockImplementation(() => {
+      throw new Error('no');
+    });
+    const m = loadAppleModule();
+    expect(m.hasNativeAppleAuth()).toBe(false);
+    expect(m.loadAppleAuth()).toBeNull();
+  });
+
+  it('is iPhone only', () => {
+    platform.OS = 'android';
+    expoModules.ExpoAppleAuthentication = {};
+    const m = loadAppleModule();
+    expect(m.hasNativeAppleAuth()).toBe(false);
+    expect(m.loadAppleAuth()).toBeNull();
+    expect(appleAuthRequired).not.toHaveBeenCalled();
+  });
+
+  it('requires the package once when the module is there', () => {
+    expoModules.ExpoAppleAuthentication = {};
+    const m = loadAppleModule();
+    expect(m.loadAppleAuth()).not.toBeNull();
+    m.loadAppleAuth();
+    expect(appleAuthRequired).toHaveBeenCalledTimes(1);
   });
 });
