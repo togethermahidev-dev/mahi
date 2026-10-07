@@ -25,7 +25,7 @@ import { nativeDigits } from '@/lib/pointMoments';
 import { crossedLastHour, urgentPillLines, urgentRing } from '@/lib/urgentRing';
 import { useCoachStore } from '@/store/coachStore';
 import { isLiquidGlassAvailable } from 'expo-glass-effect';
-import { answeredMorph, answeredStamp } from '@/lib/answerStamp';
+import { answeredMorph } from '@/lib/answerStamp';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import Svg, { Path } from 'react-native-svg';
 import { msLeft } from '@/lib/countdown';
@@ -59,10 +59,17 @@ export default function OpenTagsBanner({
   openTags,
   serverOffsetMs,
   firstPost = false,
+  answered = null,
 }: {
   openTags: OpenTag[];
   serverOffsetMs: number;
   firstPost?: boolean;
+  /**
+   * "Answered @sam" for a beat after a post the server says answered a tag (null otherwise). It
+   * comes from the post's own result, never from tags leaving the list, which can also happen
+   * when a tagger blocks you, deletes their account, or a read comes back empty.
+   */
+  answered?: string | null;
 }): React.JSX.Element | null {
   const { colors } = useAppTheme();
   // Just under the app header, whose height follows the status bar / notch.
@@ -71,26 +78,8 @@ export default function OpenTagsBanner({
   // Every tag countdown ticks in hours, minutes and seconds (owner, 2026-10-07).
   const deviceNow = useSecondTick(openTags.length > 0);
 
-  // The moment you answer: the tag pill morphs into a check for a beat. Only when the tags
-  // left while still open (answered), never when they ran out.
+  // The moment you answer: the tag pill morphs into a check for a beat (`answered`).
   const reduceMotion = useReducedMotion();
-  const prevTags = useRef(openTags);
-  // The words on the tick: "Answered @sam" (null while there is nothing to celebrate).
-  const [answered, setAnswered] = useState<string | null>(null);
-  useEffect(() => {
-    const before = prevTags.current;
-    prevTags.current = openTags;
-    const open = before.filter((t) => msLeft(t.expires_at, serverOffsetMs) > 0);
-    if (before.length > 0 && openTags.length === 0 && open.length > 0) {
-      const sorted = [...open].sort((a, b) => Date.parse(a.expires_at) - Date.parse(b.expires_at));
-      setAnswered(answeredStamp(sorted.map((t) => t.username)));
-    }
-  }, [openTags, serverOffsetMs]);
-  useEffect(() => {
-    if (!answered) return;
-    const id = setTimeout(() => setAnswered(null), MOTION.celebrateMs);
-    return () => clearTimeout(id);
-  }, [answered]);
   const morph = answeredMorph({
     glass: isLiquidGlassAvailable(),
     expoUiPresent: hasNativeExpoUI(),

@@ -1733,6 +1733,14 @@ export default function CameraScreen({
   // number it had when Post was pressed.
   const [flight, setFlight] = useState<Flight | null>(null);
   const [heldPoints, setHeldPoints] = useState<number | null>(null);
+  // "Answered @sam" on the tag pill for a beat, from the post's own result (never guessed from
+  // tags leaving the list).
+  const [answeredTick, setAnsweredTick] = useState<string | null>(null);
+  useEffect(() => {
+    if (!answeredTick) return;
+    const id = setTimeout(() => setAnsweredTick(null), MOTION.celebrateMs);
+    return () => clearTimeout(id);
+  }, [answeredTick]);
   const rootRef = useRef<View>(null);
   // Kill switch: off, every point gets today's full-screen moment.
   const flyOn = useFeatureFlag('point-fly-in');
@@ -2537,6 +2545,9 @@ export default function CameraScreen({
       }
 
       if (result.answered.length > 0 || firstPostNow) useUserStore.getState().refresh(userId);
+      if (result.answered.length > 0) {
+        setAnsweredTick(answeredStamp(result.answered.map((a) => a.username)));
+      }
       // An answer's toast offers a way to the friend whose tag it answered (the oldest one).
       const tagger = result.answered[0];
       const cheer =
@@ -2892,6 +2903,7 @@ export default function CameraScreen({
             serverOffsetMs={serverOffsetMs}
             // Never posted (not even a deleted post): "First post · no tag needed".
             firstPost={hasPosted === false && tagsLoaded}
+            answered={answeredTick}
           />
         )}
 
