@@ -39,7 +39,7 @@ function setWidget(
  * signed in. Safe to call often: nothing is sent when nothing changed. Returns when it next needs
  * to look again by itself (a 6-hour mark or a deadline), or null.
  */
-function syncLiveTag(enabled: boolean): number | null {
+export function syncLiveTag(enabled: boolean): number | null {
   const widgets = loadLiveTagWidgets();
   if (!widgets) return null;
   const signedIn = !!useAuthStore.getState().user;

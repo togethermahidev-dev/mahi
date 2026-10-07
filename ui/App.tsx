@@ -47,6 +47,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useInviteLink } from '@/hooks/useInviteLink';
 import { useLiveTag } from '@/hooks/useLiveTag';
 import { useAppleExtras } from '@/hooks/useAppleExtras';
+import { useWidgetRefresh } from '@/lib/widgetRefreshTask';
 import { getAppGate, getProfile, signOut, updateTimezone } from '@/api';
 import { gateVerdict, type AppGate } from '@/lib/versionGate';
 import { APP_BUILD, APP_VERSION } from '@/lib/appBuild';
@@ -159,6 +160,8 @@ export default function App(): React.JSX.Element {
   useLiveTag();
   // Build 13's iPhone extras: their switches, written where the extensions can read them.
   useAppleExtras();
+  // The widget and Live Activity, refreshed in the background (switch `widget-background-refresh`).
+  useWidgetRefresh();
   const [blockingGate, setBlockingGate] = useState<AppGate | null>(null);
   const { colorScheme } = useAppTheme();
 

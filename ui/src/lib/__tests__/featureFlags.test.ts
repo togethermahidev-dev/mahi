@@ -144,6 +144,7 @@ describe('build 13 native kill switches', () => {
     'spotlight',
     'siri-shortcuts',
     'shutter-sound',
+    'widget-background-refresh',
   ];
 
   it('are in the registry and on by default', () => {

@@ -56,6 +56,10 @@ const config = {
         ],
       },
     ],
+    // iOS wakes Mahi now and then (15 minutes at the least) to refresh the widget and the Live
+    // Activity (build 13+, switch `widget-background-refresh`; src/lib/widgetRefreshTask.ts).
+    // Adds the "processing" background mode and the task's identifier.
+    'expo-background-task',
     // Share one or two photos from Photos to Mahi (build 13+, switch `share-to-mahi`;
     // src/hooks/useSharedPhotos.ts). Adds the share extension com.mahi.app.share-extension,
     // shown as "Post to Mahi", in the same App Group. Photos only, at most two; iPhone only.

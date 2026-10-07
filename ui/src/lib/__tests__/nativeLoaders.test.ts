@@ -15,6 +15,8 @@ const platform = { OS: 'ios' };
 const optionalGet = jest.fn();
 const contactsRequired = jest.fn();
 const nativeViewRequired = jest.fn();
+const taskManagerRequired = jest.fn();
+const backgroundTaskRequired = jest.fn();
 
 jest.mock('react-native', () => ({
   TurboModuleRegistry: { get: (name: string) => turboGet(name) },
@@ -35,6 +37,14 @@ jest.mock('../../widgets/liveTagWidgets', () => {
 jest.mock('expo-contacts', () => {
   contactsRequired();
   return { getPermissionsAsync: jest.fn() };
+});
+jest.mock('expo-task-manager', () => {
+  taskManagerRequired();
+  return { defineTask: jest.fn(), isTaskRegisteredAsync: jest.fn() };
+});
+jest.mock('expo-background-task', () => {
+  backgroundTaskRequired();
+  return { registerTaskAsync: jest.fn(), unregisterTaskAsync: jest.fn() };
 });
 jest.mock('@didit-protocol/sdk-react-native', () => {
   diditRequired();
@@ -65,6 +75,8 @@ beforeEach(() => {
   optionalGet.mockReset();
   contactsRequired.mockReset();
   nativeViewRequired.mockReset();
+  taskManagerRequired.mockReset();
+  backgroundTaskRequired.mockReset();
   for (const k of Object.keys(nativeModules)) delete nativeModules[k];
   for (const k of Object.keys(expoModules)) delete expoModules[k];
 });
@@ -382,6 +394,58 @@ describe('Apple extras loader (local module mahi-apple-extras, build 13+)', () =
     platform.OS = 'android';
     optionalGet.mockReturnValue({});
     expect(loadExtrasModule().loadAppleExtras()).toBeNull();
+  });
+});
+
+describe('background task loader (expo-background-task + expo-task-manager, build 13+)', () => {
+  function loadBgModule(): typeof import('../backgroundTaskModule') {
+    let mod!: typeof import('../backgroundTaskModule');
+    jest.isolateModules(() => {
+      mod = jest.requireActual('../backgroundTaskModule');
+    });
+    return mod;
+  }
+
+  it('looks for both native modules by name', () => {
+    optionalGet.mockReturnValue({});
+    loadBgModule().loadBackgroundTask();
+    expect(optionalGet).toHaveBeenCalledWith('ExpoBackgroundTask');
+    expect(optionalGet).toHaveBeenCalledWith('ExpoTaskManager');
+  });
+
+  it('never requires either package on a build without them (builds 10 to 12)', () => {
+    optionalGet.mockReturnValue(null);
+    expect(loadBgModule().loadBackgroundTask()).toBeNull();
+    expect(taskManagerRequired).not.toHaveBeenCalled();
+    expect(backgroundTaskRequired).not.toHaveBeenCalled();
+  });
+
+  it('needs both: a build with only the task manager gets nothing', () => {
+    optionalGet.mockImplementation((name: string) => (name === 'ExpoTaskManager' ? {} : null));
+    expect(loadBgModule().loadBackgroundTask()).toBeNull();
+    expect(taskManagerRequired).not.toHaveBeenCalled();
+  });
+
+  it('treats a lookup that throws as missing', () => {
+    optionalGet.mockImplementation(() => {
+      throw new Error('no');
+    });
+    expect(loadBgModule().loadBackgroundTask()).toBeNull();
+  });
+
+  it('requires both packages once when the modules are there (iPhone)', () => {
+    optionalGet.mockReturnValue({});
+    const m = loadBgModule();
+    expect(m.loadBackgroundTask()).not.toBeNull();
+    m.loadBackgroundTask();
+    expect(taskManagerRequired).toHaveBeenCalledTimes(1);
+    expect(backgroundTaskRequired).toHaveBeenCalledTimes(1);
+  });
+
+  it('is iPhone only (the widget is)', () => {
+    platform.OS = 'android';
+    optionalGet.mockReturnValue({});
+    expect(loadBgModule().loadBackgroundTask()).toBeNull();
   });
 });
 

@@ -180,6 +180,12 @@ don't have the native parts, so the switches do nothing there.
   haptic. The phone's silent switch silences it. Today the camera already makes that sound itself, but
   only once the photo is taken (after the 0.3 s settle on the first shot); with this on, the camera's
   own sound is turned off so there's only one. Off: exactly today's.
+- `widget-background-refresh`: iOS wakes Mahi in the background now and then (15 minutes at the
+  least; iOS decides, and wakes rarely-used apps less) to read the open tags and the points again, so
+  the home-screen widget and the lock-screen tag stay right with Mahi closed (owner-approved exception
+  #113). On: the task is registered at launch. Off: it is unregistered at the next launch, and the
+  widget updates only when Mahi is opened, as before. A failed refresh is reported to Sentry and
+  leaves the widget as it was.
 
 ## Removed from code 2026-10-07
 

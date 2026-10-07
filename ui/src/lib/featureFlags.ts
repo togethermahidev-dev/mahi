@@ -36,6 +36,7 @@ export const FEATURE_FLAGS = [
   'spotlight', // Spotlight offers Post a workout, Your invites, Find your mates (off: the items are removed from the phone's index)
   'siri-shortcuts', // "Post a workout in Mahi", "Open my invites in Mahi", "Find my mates in Mahi" (off: they just open Mahi)
   'shutter-sound', // Apple's shutter sound at the press, in step with the haptic; silent switch respected (off: today's camera sound)
+  'widget-background-refresh', // iOS wakes Mahi every 15 min or more to refresh the widget and Live Activity (off: the task is unregistered)
 
   // Sign-in placeholders — pills on the welcome screen with nothing behind them yet.
   'auth-apple-signin',
