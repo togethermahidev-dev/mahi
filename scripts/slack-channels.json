@@ -103,7 +103,12 @@
   {
     "name": "analytics-posthog",
     "purpose": "What we measure in PostHog and the feature switches",
-    "summary": "Counted: sign-ups and log-ins, password resets, tags sent, answered and missed, points lost, invites shared and claimed, feed unlocks, pushes opened, blocks and reports.\n• Fifteen feature switches can turn a feature off from outside the app without an update, in case one misbehaves. Every switch in PostHog matches one the app reads; the unused ones were deleted on 1 October 2026.\n• Crashes go to Sentry, but only from builds marked production."
+    "summary": "Counted: sign-ups and log-ins, password resets, posts, tags sent, answered and missed, points lost, invites shared and claimed, follows and unfollows, likes, comments, messages, feed unlocks, pushes opened, blocks and reports. Each action is counted once, only after the server has saved it.\n• One person per account: a phone that opens Mahi signed out no longer counts as a new person.\n• Founder metrics dashboard: active people per day, week and month, how often people come back (day 1, 7, 30 and weekly), new sign-ups, sign-up to first post to first answered tag, actions per week, and who has gone quiet. https://eu.posthog.com/project/130791/dashboard/1004897\n• The database's own totals (the numbers of record) are ready to connect to PostHog once the owner gives it a read-only login.\n• Fifteen feature switches can turn a feature off from outside the app without an update, in case one misbehaves.\n• Errors and crashes go to Sentry: see #error-reporting-sentry."
+  },
+  {
+    "name": "error-reporting-sentry",
+    "purpose": "What goes wrong in the app, as Sentry sees it",
+    "summary": "Every failure a person could notice is sent to Sentry with a plain title saying where it broke and why, for example \"posts.create failed: <reason> [code 42501]\", plus the server's own explanation and the taps just before it. Passwords, codes, messages and emails are never sent.\n• One problem shows as one issue however many people hit it. Wrong passwords, cancelled pickers and declined permissions are not counted as bugs.\n• Test phones and App Store phones are kept apart, and each report says which update it came from.\n• Crash lines point to the real code once each update's maps are uploaded (automatic for preview updates).\n• Sentry: https://mahi-org.sentry.io (project react-native)."
   },
   {
     "name": "apple-ios-store",
