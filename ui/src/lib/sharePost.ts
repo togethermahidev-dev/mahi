@@ -8,6 +8,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { shareTarget } from '@/lib/contextMenuPreview';
 import { useToastStore } from '@/store/toastStore';
 import { postShareMessage } from '@/lib/postShareLink';
+import { reportError } from '@/lib/sentry';
 import type { FeedPost } from '@/api';
 
 export async function sharePost(post: FeedPost): Promise<void> {
@@ -27,7 +28,12 @@ export async function sharePost(post: FeedPost): Promise<void> {
       url,
       message: postShareMessage(post),
     });
-  } catch {
+  } catch (e) {
+    reportError(e, {
+      flow: 'share',
+      action: 'sharePost',
+      extra: { postId: post.id, ext: target.ext, local: target.local },
+    });
     useToastStore.getState().show('Couldn’t open sharing. Try again.');
   } finally {
     if (temp) FileSystem.deleteAsync(temp, { idempotent: true }).catch(() => {});

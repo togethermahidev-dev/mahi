@@ -51,6 +51,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
+import { reportError } from '@/lib/sentry';
 import { updateAvatarUrl } from '@/api/profile';
 import AvatarViewer from '@/components/AvatarViewer';
 import { FONTS } from '@/constants/fonts';
@@ -142,12 +143,16 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
     async (uri: string) => {
       setLocalUri(uri); // optimistic preview
       setUploading(true);
+      let step = 'read';
+      let bytes: number | undefined;
       try {
         // Read as Base64 (matches the pattern used in CameraScreen.tsx)
         const base64 = await FileSystem.readAsStringAsync(uri, {
           encoding: FileSystem.EncodingType.Base64,
         });
         const buffer = decode(base64);
+        bytes = buffer.byteLength;
+        step = 'upload';
 
         // Deterministic path — upsert overwrites the previous avatar in-place.
         const storagePath = `${userId}/avatar.jpg`;
@@ -165,12 +170,14 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
         // with ephemeral timestamps.
         const publicUrl = supabase.storage.from('avatars').getPublicUrl(storagePath).data.publicUrl;
 
+        step = 'saveUrl';
         const { error: dbError } = await updateAvatarUrl(userId, publicUrl);
         if (dbError) throw dbError;
 
         onUpdate(`${publicUrl}?t=${Date.now()}`);
         setLocalUri(null); // clear optimistic preview; parent now holds the persisted URL
-      } catch {
+      } catch (e) {
+        reportError(e, { flow: 'profile', action: 'uploadAvatar', extra: { userId, step, bytes } });
         // Attempt best-effort cleanup of the orphaned storage file
         // in case the upload succeeded but the DB write failed.
         try {

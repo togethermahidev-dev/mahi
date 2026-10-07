@@ -12,9 +12,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { resetPassword, sendResetCode, signIn } from '@/api/auth';
 import { authErrorText, CODE_LENGTH, PASSWORD_CHANGED_NOTICE, resetFormError } from '@/lib/account';
+import { reportAuthError } from '@/lib/authReport';
 import { RESEND_AFTER_MS } from '@/lib/otpCode';
 import { PASSWORD_HINT, PASSWORD_PLACEHOLDER, PASSWORD_RULES } from '@/lib/password';
 import { posthog } from '@/lib/posthog';
+import { reportError } from '@/lib/sentry';
 import OtpCodeInput from '@/components/OtpCodeInput';
 import { FONTS } from '@/constants/fonts';
 import { COLORS, ALPHA, FONT_SIZE, RADIUS, SPACE, TRACKING } from '@/constants/tokens';
@@ -77,6 +79,7 @@ export default function ForgotPasswordSheet({
     const { error: sendError } = await sendResetCode(email);
     setLoading(false);
     if (sendError) {
+      reportAuthError(sendError, 'auth', 'sendResetCode');
       setError(authErrorText(sendError.message, 'send-code'));
       return;
     }
@@ -99,6 +102,7 @@ export default function ForgotPasswordSheet({
     if (resetError) {
       setLoading(false);
       posthog.capture('password_reset_failed', { error: resetError.message });
+      reportAuthError(resetError, 'auth', 'resetPassword');
       setError(authErrorText(resetError.message, 'reset'));
       return;
     }
@@ -106,6 +110,7 @@ export default function ForgotPasswordSheet({
     const { error: signInError } = await signIn(email.trim().toLowerCase(), password);
     setLoading(false);
     if (signInError) {
+      reportError(signInError, { flow: 'auth', action: 'signInAfterReset', level: 'warning' });
       // Rare: the password did change. Back to the log-in sheet to use it.
       setNotice(PASSWORD_CHANGED_NOTICE);
       return;

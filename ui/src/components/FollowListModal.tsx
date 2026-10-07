@@ -22,6 +22,7 @@ import { FlashList } from '@shopify/flash-list';
 import { getFollowList, getFriends, type FollowListUser } from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
+import { reportError } from '@/lib/sentry';
 import ListState from '@/components/ListState';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
@@ -112,6 +113,7 @@ export default function FollowListModal({
   const fetchList = useCallback(async () => {
     const { data, error } =
       type === 'friends' ? await getFriends(userId) : await getFollowList(userId, type);
+    if (error) reportError(error, { flow: 'follows', action: 'loadList', extra: { userId, type } });
     setFailed(!!error || !data);
     const filtered = (data ?? []).filter((u) => !useBlockStore.getState().isBlocked(u.id));
     setUsers(filtered);
@@ -145,6 +147,7 @@ export default function FollowListModal({
       setUsers((prev) => prev.filter((u) => u.id !== targetUserId));
       const { error } = await toggleFollow(currentUserId, targetUserId);
       if (error) {
+        reportError(error, { flow: 'follows', action: 'unfollow', extra: { targetUserId } });
         // Rollback — re-fetch the list, and say why the row came back
         fetchList();
         useToastStore.getState().show(`Couldn’t unfollow ${handle}. Try again.`);

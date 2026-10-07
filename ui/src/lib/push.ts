@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { reportError } from '@/lib/sentry';
 import type { PushPermission } from './pushPrimer';
 import type { PushData } from './pushRoute';
 
@@ -85,6 +86,7 @@ export async function getPushToken(): Promise<string | null> {
     return (await Notifications.getExpoPushTokenAsync()).data;
   } catch (err) {
     console.log('[push] token unavailable', err);
+    reportError(err, { flow: 'push', action: 'getToken', extra: { platform: Platform.OS } });
     return null;
   }
 }
@@ -114,7 +116,7 @@ export function onPushOpened(cb: (data: PushData) => void): () => void {
   };
   Notifications.getLastNotificationResponseAsync()
     .then(handle)
-    .catch(() => {});
+    .catch((err) => reportError(err, { flow: 'push', action: 'lastOpened', level: 'warning' }));
   const sub = Notifications.addNotificationResponseReceivedListener(handle);
   return () => sub.remove();
 }

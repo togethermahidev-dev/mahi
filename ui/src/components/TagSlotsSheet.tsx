@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { haptic } from '@/lib/haptics';
+import { reportError } from '@/lib/sentry';
 import { track } from '@/lib/analytics';
 import { useAuthStore } from '@/store';
 import KeyboardInset from '@/components/KeyboardInset';
@@ -31,6 +32,7 @@ import {
 } from '@/api';
 import {
   inviteBlockedReason,
+  isSlotRefusal,
   mergeSlots,
   personAction,
   shareAppUrl,
@@ -121,7 +123,8 @@ export default function TagSlotsSheet({
   const blocked = inviteBlockedReason({ filled, maxTags });
 
   const refreshSlots = useCallback(async () => {
-    const { data } = await getTagSlots();
+    const { data, error } = await getTagSlots();
+    if (error) reportError(error, { flow: 'tags', action: 'refreshSlots', level: 'warning' });
     if (data) setSlots((local) => mergeSlots(data, local));
   }, []);
 
@@ -140,6 +143,8 @@ export default function TagSlotsSheet({
     (async () => {
       const [slotRes, friendRes] = await Promise.all([getTagSlots(), searchTagPeople('', 100)]);
       if (stale) return;
+      if (slotRes.error) reportError(slotRes.error, { flow: 'tags', action: 'loadSlots' });
+      if (friendRes.error) reportError(friendRes.error, { flow: 'tags', action: 'loadFriends' });
       if (slotRes.error || friendRes.error) {
         setNotice('Couldn’t load your tags.');
         setLoadFailed(true);
@@ -187,7 +192,15 @@ export default function TagSlotsSheet({
     setSearching(true);
     let stale = false;
     const timer = setTimeout(async () => {
-      const { data } = await searchTagPeople(q, 50);
+      const { data, error } = await searchTagPeople(q, 50);
+      if (error) {
+        reportError(error, {
+          flow: 'tags',
+          action: 'searchPeople',
+          level: 'warning',
+          extra: { queryLength: q.length },
+        });
+      }
       if (stale) return;
       setResults(data ?? []);
       setSearching(false);
@@ -259,6 +272,9 @@ export default function TagSlotsSheet({
       avatar_url: p.avatar_url,
     });
     const { data, error } = await inviteToTag(p.id);
+    if (error && !isSlotRefusal(error.message)) {
+      reportError(error, { flow: 'tags', action: 'inviteToTag', extra: { targetUserId: p.id } });
+    }
     if (error || !data) {
       dropSlot(tempId);
       return say(slotErrorText(error?.message ?? ''));
@@ -296,13 +312,27 @@ export default function TagSlotsSheet({
       // The app isn't on this phone: the phone's own sheet instead.
       try {
         shared = (await Share.share({ message })).action === Share.sharedAction;
-      } catch {
+      } catch (e) {
+        reportError(e, {
+          flow: 'tags',
+          action: 'shareLink',
+          extra: { challengeId: slot.challenge_id, target },
+        });
         return say('Couldn’t open sharing. Try again.');
       }
     }
     if (!shared) return;
     replaceSlot(slot.challenge_id, { state: 'shared' });
-    void markInviteShared(slot.challenge_id);
+    void markInviteShared(slot.challenge_id).then(({ error }) => {
+      if (error) {
+        reportError(error, {
+          flow: 'tags',
+          action: 'markInviteShared',
+          level: 'warning',
+          extra: { challengeId: slot.challenge_id },
+        });
+      }
+    });
     track('invite_shared', { via: target });
   };
 
@@ -312,6 +342,9 @@ export default function TagSlotsSheet({
     setNotice(null);
     const tempId = addPending({ kind: 'link', state: 'link_ready' });
     const { data, error } = await makeInviteLink();
+    if (error && !isSlotRefusal(error.message)) {
+      reportError(error, { flow: 'tags', action: 'makeInviteLink' });
+    }
     if (error || !data) {
       dropSlot(tempId);
       return say(slotErrorText(error?.message ?? ''));
@@ -341,6 +374,13 @@ export default function TagSlotsSheet({
     dropSlot(slot.challenge_id);
     const { error } = await cancelTagSlot(slot.challenge_id);
     if (error) {
+      if (!isSlotRefusal(error.message)) {
+        reportError(error, {
+          flow: 'tags',
+          action: 'cancelSlot',
+          extra: { challengeId: slot.challenge_id },
+        });
+      }
       // Not taken back after all (it may have just been posted with or joined): show it again.
       void refreshSlots();
       say(slotErrorText(error.message));

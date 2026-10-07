@@ -5,6 +5,7 @@ import { updatePostCaption } from '@/api';
 import { useFeedStore, useProfilePostsStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { reportError } from '@/lib/sentry';
 import { FONTS } from '@/constants/fonts';
 import { ALPHA, COLORS, FONT_SIZE, RADIUS, SIZE, SPACE, withAlpha } from '@/constants/tokens';
 
@@ -28,6 +29,8 @@ export default function EditPostCaptionSheet({
     setSaving(false);
     if (result.error) {
       const ended = result.error.message.includes('editing has ended');
+      if (!ended)
+        reportError(result.error, { flow: 'posts', action: 'saveCaption', extra: { postId } });
       useToastStore
         .getState()
         .show(ended ? 'The one-hour editing window has ended.' : 'Couldn’t save your caption.');

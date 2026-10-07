@@ -84,6 +84,7 @@ import {
   VIDEO_RECORDING,
   discardTitle,
   recordingFailedText,
+  TOO_SHORT_SECONDS,
   recordingLabel,
   secondsLeft,
   shutterHint,
@@ -115,7 +116,7 @@ import {
   previewPipRestTop,
   type CaptureState,
 } from '@/lib/captureGuide';
-import { Sentry } from '@/lib/sentry';
+import { reportError } from '@/lib/sentry';
 import { requestLocationPermission, getCurrentLocation } from '@/lib/location';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -1283,7 +1284,15 @@ function TagSheet({
     let stale = false;
     debounceRef.current = setTimeout(
       async () => {
-        const { data } = await getTaggableFriends(q, 50);
+        const { data, error } = await getTaggableFriends(q, 50);
+        if (error) {
+          reportError(error, {
+            flow: 'tags',
+            action: 'loadTaggableFriends',
+            level: 'warning',
+            extra: { queryLength: q.length },
+          });
+        }
         if (stale) return;
         setResults(data ?? []);
         // The whole list (no search) says how many friends can fill a slot; a failed read counts as none.
@@ -1476,7 +1485,8 @@ async function shareInvites(invites: PostInvite[]): Promise<void> {
       const result = await Share.share({ message: inviteShareMessage(invite.url, invite.code) });
       // Only a link that actually went somewhere counts as shared.
       if (result.action === Share.sharedAction) track('invite_shared', {});
-    } catch {
+    } catch (e) {
+      reportError(e, { flow: 'invites', action: 'shareInvites', extra: { count: invites.length } });
       // A share sheet that won't open shouldn't undo a post that already landed.
       return;
     }
@@ -1720,6 +1730,12 @@ export default function CameraScreen({
       console.log('[CameraScreen] available lenses', lenses);
     } catch (err) {
       console.log('[CameraScreen] getAvailableLensesAsync failed', err);
+      reportError(err, {
+        flow: 'camera',
+        action: 'availableLenses',
+        level: 'warning',
+        extra: { facing },
+      });
       setAvailableLenses([]);
     }
   };
@@ -1857,12 +1873,16 @@ export default function CameraScreen({
       }
     } catch (err) {
       console.log('[CameraScreen] recording failed', err);
-      useToastStore.getState().show(
-        recordingFailedText({
-          press: videoByHoldRef.current ? 'hold' : 'tap',
-          seconds: (Date.now() - startedAt) / 1000,
-        })
-      );
+      const seconds = (Date.now() - startedAt) / 1000;
+      const press = videoByHoldRef.current ? 'hold' : 'tap';
+      if (seconds >= TOO_SHORT_SECONDS) {
+        reportError(err, {
+          flow: 'camera',
+          action: 'recordVideo',
+          extra: { seconds, press, facing },
+        });
+      }
+      useToastStore.getState().show(recordingFailedText({ press, seconds }));
       return null;
     } finally {
       recordingRef.current = false;
@@ -2117,6 +2137,7 @@ export default function CameraScreen({
       retry && retry.front === front && retry.rear === rear ? retry.clientId : randomUUID();
     retryRef.current = null;
     let uploadedPaths: string[] = [];
+    let step = 'readMedia';
 
     try {
       // A photo's bytes are already in memory; a video is read from its file only now.
@@ -2128,11 +2149,14 @@ export default function CameraScreen({
               })
             : shot.base64
         );
+      const rearBody = await bodyOf(rear);
+      const frontBody = await bodyOf(front);
+      step = 'upload';
       const { data: paths, error: uploadErr } = await uploadPostMedia({
         userId,
         clientId,
-        rear: { shot: { kind: rear.kind, uri: rear.uri }, body: await bodyOf(rear) },
-        front: { shot: { kind: front.kind, uri: front.uri }, body: await bodyOf(front) },
+        rear: { shot: { kind: rear.kind, uri: rear.uri }, body: rearBody },
+        front: { shot: { kind: front.kind, uri: front.uri }, body: frontBody },
       });
       if (uploadErr || !paths) throw uploadErr ?? new Error('upload failed');
       uploadedPaths = [paths.rearPath, paths.frontPath];
@@ -2142,6 +2166,7 @@ export default function CameraScreen({
       // rounds to ~city-block precision. A null here means we post with no coords;
       // location must NEVER block or crash the post.
       let coords: { latitude: number; longitude: number } | null = null;
+      step = 'createPost';
       if (locationEnabledSnapshot) {
         coords = await getCurrentLocation();
         console.log('[CameraScreen] location for post', coords ? 'attached' : 'unavailable');
@@ -2162,6 +2187,7 @@ export default function CameraScreen({
         frontMediaType: front.kind,
       });
       if (postErr || !result) throw postErr ?? new Error('post failed');
+      step = 'afterPost';
 
       // The post as the feed shows it; the profile grid (and its post viewer) shows the same.
       const posted = {
@@ -2253,7 +2279,6 @@ export default function CameraScreen({
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error('[uploadPhotos] upload failed', err);
       haptic('error');
       useFeedStore.getState().removePending(tempId);
       const current = useUserStore.getState().profile;
@@ -2283,9 +2308,20 @@ export default function CameraScreen({
         useTagStore.getState().syncOpenTags();
       }
       if (refusal.report) {
-        Sentry.captureException(err, {
-          tags: { flow: 'camera', action: 'upload' },
-          extra: { userId },
+        reportError(err, {
+          flow: 'camera',
+          action: 'upload',
+          extra: {
+            userId,
+            clientId,
+            step,
+            retry: retry?.clientId === clientId,
+            rearType: rear.kind,
+            frontType: front.kind,
+            tags: taggedUsersSnapshot.length,
+            invites: inviteCountSnapshot,
+            slots: slotsSnapshot.length,
+          },
         });
       }
     } finally {
@@ -2305,7 +2341,8 @@ export default function CameraScreen({
   useEffect(() => {
     if (!hasPreview || !tagSlotsOn) return;
     let stale = false;
-    getTagSlots().then(({ data }) => {
+    getTagSlots().then(({ data, error }) => {
+      if (error) reportError(error, { flow: 'tags', action: 'loadSlotsForPost', level: 'warning' });
       if (!stale && data) setSlots(data);
     });
     return () => {
@@ -2327,7 +2364,8 @@ export default function CameraScreen({
       const shared = result.action === Share.sharedAction;
       if (shared) track('invite_shared', {});
       setPostInvites((list) => markInvite(list, token, shared));
-    } catch {
+    } catch (e) {
+      reportError(e, { flow: 'invites', action: 'sendInvite' });
       useToastStore.getState().show('Couldn’t open sharing. Try again.');
     }
   };

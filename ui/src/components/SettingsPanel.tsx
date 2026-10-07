@@ -8,6 +8,7 @@ import {
 import { deleteAccount, signOut } from '@/api/auth';
 import { DELETE_ACCOUNT_CONFIRM } from '@/lib/account';
 import { VERSION_LINE } from '@/lib/appBuild';
+import { reportError } from '@/lib/sentry';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
 import { WelcomeCardsModal } from '@/components/WelcomeCards';
@@ -89,7 +90,8 @@ function Sheet({
           text: 'Log out',
           style: 'destructive',
           onPress: async () => {
-            await signOut();
+            const { error } = await signOut();
+            if (error) reportError(error, { flow: 'settings', action: 'signOut' });
             // App.tsx onAuthStateChange resets all stores + transitions to WelcomeScreen
           },
         },
@@ -114,6 +116,7 @@ function Sheet({
             setDeleting(true);
             const { error } = await deleteAccount();
             if (error) {
+              reportError(error, { flow: 'settings', action: 'deleteAccount' });
               setDeleting(false);
               Alert.alert('Couldn’t delete your account', error.message);
             }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Sentry } from '@/lib/sentry';
+import { reportError } from '@/lib/sentry';
 import { FONTS } from '@/constants/fonts';
 import { COLORS, ALPHA, FONT_SIZE, LINE_HEIGHT, RADIUS, SPACE } from '@/constants/tokens';
 
@@ -27,9 +27,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('[ErrorBoundary]', error, info.componentStack);
-    Sentry.captureException(error, {
-      tags: { flow: 'error-boundary' },
+    reportError(error, {
+      flow: 'screen',
+      action: 'render',
+      level: 'fatal',
       extra: { componentStack: info.componentStack },
     });
   }

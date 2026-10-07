@@ -29,7 +29,8 @@ import {
   type Strength,
 } from '@/lib/password';
 import { authErrorText, WEAK_PASSWORD_MESSAGE } from '@/lib/account';
-import { Sentry } from '@/lib/sentry';
+import { reportAuthError } from '@/lib/authReport';
+import { Sentry, reportError } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { env } from '@/lib/env';
 import { FONTS } from '@/constants/fonts';
@@ -174,11 +175,12 @@ export default function CreateAccountSheet({
     if (usernameTimer.current) clearTimeout(usernameTimer.current);
     setUsernameStatus('checking');
     usernameTimer.current = setTimeout(async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('username')
         .eq('username', username.toLowerCase())
         .maybeSingle();
+      if (error) reportError(error, { flow: 'signup', action: 'checkUsername', level: 'warning' });
       setUsernameStatus(data ? 'taken' : 'available');
     }, 500);
   }, [username]);
@@ -199,7 +201,8 @@ export default function CreateAccountSheet({
         });
         const json = await res.json();
         setEmailExists(json.exists === true);
-      } catch {
+      } catch (e) {
+        reportError(e, { flow: 'signup', action: 'checkEmail', level: 'warning' });
         setEmailExists(false); // never block sign-up on error
       }
     }, 700);
@@ -266,10 +269,7 @@ export default function CreateAccountSheet({
       setCodeSentAt(Date.now());
       setStep(2);
     } catch (e: any) {
-      Sentry.captureException(e, {
-        tags: { flow: 'signup', step: 'send_otp' },
-        extra: { email: email.trim().toLowerCase() },
-      });
+      reportAuthError(e, 'signup', 'send_otp');
       setError(authErrorText(e?.message, 'send-code'));
     } finally {
       setLoading(false);
@@ -297,6 +297,7 @@ export default function CreateAccountSheet({
       setStep(3);
     } catch (e: any) {
       posthog.capture('signup_otp_rejected');
+      reportAuthError(e, 'signup', 'verify_otp');
       setError(authErrorText(e?.message, 'check-code'));
       setOtp('');
       otpRef.current?.focus();
@@ -316,6 +317,7 @@ export default function CreateAccountSheet({
       setEnteredCode('');
       setCodeSentAt(Date.now());
     } catch (e: any) {
+      reportAuthError(e, 'signup', 'resend_otp');
       setError(authErrorText(e?.message, 'send-code'));
     } finally {
       setLoading(false);
@@ -403,10 +405,7 @@ export default function CreateAccountSheet({
       //    switching to CameraScreen. onAuthComplete triggers the exit animation.
       onAuthComplete();
     } catch (e: any) {
-      Sentry.captureException(e, {
-        tags: { flow: 'signup', step: 'create_account' },
-        extra: { email: email.trim().toLowerCase(), username: username.trim() },
-      });
+      reportAuthError(e, 'signup', 'create_account');
       setError(authErrorText(e?.message, 'create'));
     } finally {
       setLoading(false);

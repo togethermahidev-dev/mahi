@@ -6,7 +6,7 @@ import { reportContent, type ReportKind } from '@/api/moderation';
 import { showNativeMenu } from '@/lib/nativeMenu';
 import { REPORT_REASONS, reportToast } from '@/lib/reports';
 import { posthog } from '@/lib/posthog';
-import { Sentry } from '@/lib/sentry';
+import { reportError } from '@/lib/sentry';
 import { useToastStore } from '@/store/toastStore';
 
 const TITLES: Record<ReportKind, string> = {
@@ -24,9 +24,10 @@ export function startReport(kind: ReportKind, id: string, title?: string, onDone
       run: async () => {
         const result = await reportContent(kind, id, r.code);
         if (result.error) {
-          Sentry.captureMessage(result.error.message, {
+          reportError(result.error, {
+            flow: 'moderation',
+            action: 'report',
             level: 'warning',
-            tags: { flow: 'moderation', step: 'report' },
             extra: { kind, id, reason: r.code },
           });
         } else {

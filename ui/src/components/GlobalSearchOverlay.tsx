@@ -22,7 +22,7 @@ import { searchProfiles, type ProfileSearchResult } from '@/api';
 import PointsBadge from '@/components/PointsBadge';
 import { useAuthStore, useBlockStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
-import { Sentry } from '@/lib/sentry';
+import { Sentry, reportError } from '@/lib/sentry';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -196,10 +196,11 @@ export default function GlobalSearchOverlay({
       const { data, error } = await searchProfiles(value);
       if (error) {
         console.log('[GlobalSearch] search error |', error.message);
-        Sentry.captureMessage(error.message, {
+        reportError(error, {
+          flow: 'search',
+          action: 'searchProfiles',
           level: 'warning',
-          tags: { flow: 'search' },
-          extra: { query: value },
+          extra: { queryLength: value.length },
         });
       }
       const filtered = (data ?? []).filter((u) => !useBlockStore.getState().isBlocked(u.id));
@@ -209,7 +210,11 @@ export default function GlobalSearchOverlay({
       setSearched(true);
     } catch (e) {
       console.log('[GlobalSearch] search exception |', e);
-      Sentry.captureException(e, { tags: { flow: 'search' }, extra: { query: value } });
+      reportError(e, {
+        flow: 'search',
+        action: 'searchProfiles',
+        extra: { queryLength: value.length },
+      });
       setResults([]);
       setFailed(true);
       setSearched(true);

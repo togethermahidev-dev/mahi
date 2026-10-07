@@ -32,7 +32,7 @@ import { useToastStore } from '@/store/toastStore';
 import { pointsCount } from '@/lib/mahiPoints';
 import { useCoverRail } from '@/hooks/useChrome';
 import { posthog } from '@/lib/posthog';
-import { Sentry } from '@/lib/sentry';
+import { Sentry, reportError } from '@/lib/sentry';
 import FollowListModal from '@/components/FollowListModal';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
@@ -202,9 +202,10 @@ export default function UserProfileScreen({
       .then(({ data, error }) => {
         if (!live) return;
         if (error) {
-          Sentry.captureMessage(error.message, {
+          reportError(error, {
+            flow: 'profile',
+            action: 'fetch',
             level: 'warning',
-            tags: { flow: 'profile', step: 'fetch' },
             extra: { userId },
           });
         }
@@ -213,7 +214,7 @@ export default function UserProfileScreen({
       })
       .catch((e) => {
         if (!live) return;
-        Sentry.captureException(e, { tags: { flow: 'profile', step: 'fetch' }, extra: { userId } });
+        reportError(e, { flow: 'profile', action: 'fetch', extra: { userId } });
         setProfile(null);
         setLoading(false);
       });
@@ -246,9 +247,10 @@ export default function UserProfileScreen({
       setMessaging(false);
       if (error || !data) {
         if (error) {
-          Sentry.captureMessage(error.message, {
+          reportError(error, {
+            flow: 'profile',
+            action: 'message',
             level: 'warning',
-            tags: { flow: 'profile', step: 'message' },
             extra: { userId },
           });
         }
@@ -257,7 +259,7 @@ export default function UserProfileScreen({
       }
       setActiveConvo(data);
     } catch (e) {
-      Sentry.captureException(e, { tags: { flow: 'profile', step: 'message' }, extra: { userId } });
+      reportError(e, { flow: 'profile', action: 'message', extra: { userId } });
       setMessaging(false);
       toast(`Couldn’t open a chat with ${handle}. Try again.`);
     }
@@ -273,10 +275,11 @@ export default function UserProfileScreen({
     });
     const { error } = await toggleFollow(currentUserId, userId);
     if (error) {
-      Sentry.captureMessage(error.message, {
+      reportError(error, {
+        flow: 'profile',
+        action: 'follow',
         level: 'warning',
-        tags: { flow: 'profile', step: 'follow' },
-        extra: { userId, action: wasFollowing ? 'unfollow' : 'follow' },
+        extra: { userId, direction: wasFollowing ? 'unfollow' : 'follow' },
       });
       // The button has already gone back; say why.
       toast(
@@ -318,11 +321,6 @@ export default function UserProfileScreen({
             });
             const { error } = await blockAction(currentUserId, userId);
             if (error) {
-              Sentry.captureMessage(error.message, {
-                level: 'warning',
-                tags: { flow: 'moderation', step: 'block' },
-                extra: { userId },
-              });
               // Stay here: they aren't blocked.
               toast(`Couldn’t block ${handle}. Try again.`);
               return;
@@ -352,11 +350,6 @@ export default function UserProfileScreen({
             });
             const { error } = await unblockAction(currentUserId, userId);
             if (error) {
-              Sentry.captureMessage(error.message, {
-                level: 'warning',
-                tags: { flow: 'moderation', step: 'unblock' },
-                extra: { userId },
-              });
               toast(`Couldn’t unblock ${handle}. Try again.`);
             }
           },

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { getMessages, type Message } from '@/api';
+import { reportError } from '@/lib/sentry';
 import { previewMessages } from '@/lib/contextMenuPreview';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -44,7 +45,10 @@ export default function ChatPreview({
 
   useEffect(() => {
     let live = true;
-    getMessages(conversationId).then(({ data }) => {
+    getMessages(conversationId).then(({ data, error }) => {
+      if (error) {
+        reportError(error, { flow: 'messages', action: 'loadPreview', extra: { conversationId } });
+      }
       if (!live) return;
       if (data) setMessages(previewMessages(data));
       else setFailed(true);

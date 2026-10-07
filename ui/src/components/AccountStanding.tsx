@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { getMyStanding, markWarningsSeen, signOut } from '@/api';
 import { standingNotice, type StandingNotice } from '@/lib/reports';
+import { reportError } from '@/lib/sentry';
 import { FONTS } from '@/constants/fonts';
 import { ALPHA, FONT_SIZE, LINE_HEIGHT, RADIUS, SPACE } from '@/constants/tokens';
 
@@ -20,7 +21,10 @@ export default function AccountStanding({ userId }: { userId: string }): React.J
 
   useEffect(() => {
     let live = true;
-    getMyStanding().then(({ data }) => {
+    getMyStanding().then(({ data, error }) => {
+      if (error) {
+        reportError(error, { flow: 'moderation', action: 'loadStanding', extra: { userId } });
+      }
       if (!live || !data) return;
       const notice = standingNotice(data);
       if (!notice) return;
@@ -33,7 +37,19 @@ export default function AccountStanding({ userId }: { userId: string }): React.J
         toldThisLaunch.add(userId);
       }
       Alert.alert(notice.title, notice.body, [
-        { text: 'OK', onPress: () => void markWarningsSeen() },
+        {
+          text: 'OK',
+          onPress: () =>
+            void markWarningsSeen().then(({ error }) => {
+              if (error) {
+                reportError(error, {
+                  flow: 'moderation',
+                  action: 'markWarningsSeen',
+                  level: 'warning',
+                });
+              }
+            }),
+        },
       ]);
     });
     return () => {
@@ -56,7 +72,11 @@ export default function AccountStanding({ userId }: { userId: string }): React.J
           { backgroundColor: colors.text },
           pressed && { opacity: ALPHA.a80 },
         ]}
-        onPress={() => void signOut()}
+        onPress={() =>
+          void signOut().then(({ error }) => {
+            if (error) reportError(error, { flow: 'moderation', action: 'signOut' });
+          })
+        }
       >
         <Text style={[styles.buttonText, { color: colors.bg }]}>Sign out</Text>
       </Pressable>

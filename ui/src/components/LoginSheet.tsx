@@ -11,11 +11,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import ForgotPasswordSheet from '@/components/ForgotPasswordSheet';
 import { authErrorText } from '@/lib/account';
+import { reportAuthError } from '@/lib/authReport';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -72,11 +72,7 @@ export default function LoginSheet({
     });
     setLoading(false);
     if (signInError) {
-      Sentry.captureMessage(signInError.message, {
-        level: 'warning',
-        tags: { flow: 'login' },
-        extra: { email: email.trim().toLowerCase() },
-      });
+      reportAuthError(signInError, 'login', 'signIn');
       posthog.capture('login_failed', { error: signInError.message });
       // Plain words, never the server's own text.
       setError(authErrorText(signInError.message, 'login', { canReset: resetEnabled }));

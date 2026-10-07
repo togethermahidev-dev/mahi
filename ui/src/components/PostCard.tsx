@@ -53,6 +53,7 @@ import {
   shareTarget,
 } from '@/lib/contextMenuPreview';
 import { sharePost } from '@/lib/sharePost';
+import { reportError } from '@/lib/sentry';
 import { canEditPostCaption } from '@/lib/postPolicy';
 import { deletePost } from '@/api';
 import { useToastStore } from '@/store/toastStore';
@@ -154,6 +155,7 @@ export default function PostCard({
     const { error } = await deletePost(item.id);
     setDeleting(false);
     if (error) {
+      reportError(error, { flow: 'posts', action: 'deletePost', extra: { postId: item.id } });
       useToastStore.getState().show('Couldn’t delete your post.');
       return;
     }

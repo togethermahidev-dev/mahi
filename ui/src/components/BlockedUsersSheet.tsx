@@ -17,7 +17,7 @@ import { getBlockedUsers, type BlockedUser } from '@/api';
 import { useAuthStore, useBlockStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { posthog } from '@/lib/posthog';
-import { Sentry } from '@/lib/sentry';
+import { Sentry, reportError } from '@/lib/sentry';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -87,7 +87,8 @@ function Sheet({ onClose, dark }: Omit<BlockedUsersSheetProps, 'visible'>) {
 
   const fetchList = useCallback(async () => {
     if (!currentUserId) return;
-    const { data } = await getBlockedUsers(currentUserId);
+    const { data, error } = await getBlockedUsers(currentUserId);
+    if (error) reportError(error, { flow: 'moderation', action: 'loadBlocked' });
     setUsers(data ?? []);
     setLoading(false);
   }, [currentUserId]);

@@ -29,7 +29,8 @@ import {
 } from '@/lib/notificationText';
 import { relativeTime } from '@/lib/relativeTime';
 import { msLeft } from '@/lib/countdown';
-import { slotErrorText, tagInviteState } from '@/lib/tagSlots';
+import { isSlotRefusal, slotErrorText, tagInviteState } from '@/lib/tagSlots';
+import { reportError } from '@/lib/sentry';
 import { track } from '@/lib/analytics';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -154,7 +155,14 @@ export default function NotificationsScreen({
       return next;
     });
     (async () => {
-      const { data } = await getTagInviteRows(inviteIds);
+      const { data, error } = await getTagInviteRows(inviteIds);
+      if (error) {
+        reportError(error, {
+          flow: 'notifications',
+          action: 'loadTagInvites',
+          extra: { count: inviteIds.length },
+        });
+      }
       if (stale || !data) return;
       const now = Date.now();
       setInviteStates((s) => {
@@ -178,6 +186,13 @@ export default function NotificationsScreen({
     setInviteStates((s) => ({ ...s, [challengeId]: accept ? 'accepted' : 'declined' }));
     const { error } = await respondTagInvite(challengeId, accept);
     if (error) {
+      if (!isSlotRefusal(error.message)) {
+        reportError(error, {
+          flow: 'notifications',
+          action: 'answerInvite',
+          extra: { challengeId, accept },
+        });
+      }
       const ended = error.message.includes('no longer open');
       setInviteStates((s) => ({ ...s, [challengeId]: ended ? 'ended' : 'open' }));
       useToastStore.getState().show(slotErrorText(error.message));
