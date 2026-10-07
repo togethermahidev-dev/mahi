@@ -173,7 +173,6 @@ points and feed-lock rules are unchanged.
 | 109 | First answer needs no tags | A first post that answers a mate's tag can go with 0 tags; tagging 3 mates is encouraged | 3 tags required | Decided, building | 2026-10-07 | `create_post` |
 | 110 | Invites any time | Someone who has posted can send invite links without a post, from the waiting card ("Invite a mate") | Only while posting | Decided, building | 2026-10-07 | `make_invite_link` |
 | 111 | Invite links open the app | togethermahi.com/i/… opens Mahi when installed (Universal Links), with a fallback page | Code only | Decided, building (needs a web deploy) | 2026-10-07 | `web/` |
-| 112 | Deleting posts | Kept as decided in #69: allowed any time; the free first post never comes back | No deleting · time limit | Confirmed by owner | 2026-10-07 | `delete_post` |
 
 The owner's design-system rules (2026-10-05), enforced by tests so they can't drift back.
 
