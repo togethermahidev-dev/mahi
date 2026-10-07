@@ -7,6 +7,9 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 24 — live follow/unfollow, likes and comments; blank names no longer crash; twelve
+ *     always-on switches made standard; crash reports and founder analytics (Sentry, PostHog)
+ *     (2026-10-07)
  *   build 12 · 23 — the feed shows only your latest post among the people you follow, newest
  *     first; older posts stay on your Profile (2026-10-07)
  *   build 12 · 22 — sideways swipes work on Profile again; Messages and Profile swap places
@@ -45,4 +48,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 23;
+export const OTA_NUMBER = 24;
