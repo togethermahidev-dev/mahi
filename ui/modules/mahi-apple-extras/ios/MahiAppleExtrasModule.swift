@@ -31,7 +31,7 @@ public class MahiAppleExtrasModule: Module {
   private var observing = false
 
   /// Leaves a link for the app to take and tells it (the Spotlight handler uses this; the
-  /// intents in ui/targets/controls/_shared do the same in their own code).
+  /// intents in ../swift/MahiIntents.swift do the same in their own code).
   static func leavePendingLink(_ link: String) {
     UserDefaults(suiteName: appGroup)?.set(link, forKey: pendingLinkKey)
     CFNotificationCenterPostNotification(

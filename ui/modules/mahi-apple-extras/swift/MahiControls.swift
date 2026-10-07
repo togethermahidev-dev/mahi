@@ -2,16 +2,13 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
-/// Mahi's controls (iOS 18+): add "Post a workout" in Control Centre, on the lock screen or to the
-/// Action button. A tap opens Mahi on the camera. Switch `control-post-workout` off: the button
-/// reads "Open Mahi" and just opens Mahi.
-@main
-struct MahiControlsBundle: WidgetBundle {
-  var body: some Widget {
-    PostWorkoutControl()
-  }
-}
-
+/// "Post a workout" in Control Centre, on the lock screen or on the Action button (iOS 18+,
+/// switch `control-post-workout`). A tap opens Mahi on the camera. Switch off: the button reads
+/// "Open Mahi" and just opens Mahi.
+///
+/// Lives in the Mahi widget extension (ExpoWidgetsTarget) beside the MahiTag widget: added to it,
+/// and to its WidgetBundle, by ui/modules/mahi-apple-extras/app.plugin.js.
+@available(iOS 18.0, *)
 struct PostWorkoutControl: ControlWidget {
   static let kind = "com.mahi.app.controls.post-workout"
 

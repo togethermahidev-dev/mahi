@@ -3,7 +3,7 @@
  * "Post a workout" (switch `control-post-workout`) and Spotlight's items (switch `spotlight`).
  * `mahi://invites` and `mahi://find-mates` also work as plain links.
  *
- * The Swift side (ui/targets/controls/_shared/MahiIntents.swift) can't open a screen itself: it
+ * The Swift side (ui/modules/mahi-apple-extras/swift/MahiIntents.swift) can't open a screen itself: it
  * leaves a link such as `mahi://camera?from=control` in the shared App Group and opens Mahi; the
  * app takes it (src/hooks/useAppActions.ts) and runs it here, if that source's switch is on. The
  * switches the Swift reads are written to the App Group by src/hooks/useAppleExtras.ts.

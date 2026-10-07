@@ -1,9 +1,9 @@
 import AppIntents
 import Foundation
 
-// Compiled into both the app and the MahiControls extension (apple-targets' _shared folder): an
-// intent that opens the app must be in the app too. Names match ui/src/lib/appActions.ts (its
-// test checks them).
+// Compiled into both the app and the Mahi widget extension (ExpoWidgetsTarget, as
+// MahiControlIntents.swift) by ui/modules/mahi-apple-extras/app.plugin.js: an intent that opens
+// the app must be in the app too. Names match ui/src/lib/appActions.ts (its test checks them).
 
 /// The App Group hand-over to the app: an intent can't open a screen itself, so it leaves a link
 /// for the app to take, tells it, and Mahi opens (`openAppWhenRun`). With the switch off nothing

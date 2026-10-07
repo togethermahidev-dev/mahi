@@ -32,6 +32,10 @@ const config = {
     ],
     '@react-native-community/datetimepicker',
     ['expo-notifications', { color: ACCENT, defaultChannel: 'default' }],
+    // Mahi's own Swift (build 13+): the Control Centre / lock screen button "Post a workout" (iOS
+    // 18+, switch `control-post-workout`), added to the widget extension below, and its intents,
+    // in the app too. Must stay ABOVE expo-widgets (see the plugin's notes).
+    './modules/mahi-apple-extras/app.plugin.js',
     // A mate's tag on the lock screen and Dynamic Island (Live Activity) and a home-screen widget
     // (build 13+; src/widgets/liveTagWidgets.tsx). Adds the widget extension target, the App Group
     // both share, and NSSupportsLiveActivities. The widget's name must match createWidget's.
@@ -50,10 +54,6 @@ const config = {
         ],
       },
     ],
-    // Extra Apple extensions from ui/targets/ (build 13+): the Control Centre / lock screen button
-    // "Post a workout" (targets/controls, bundle com.mahi.app.controls, iOS 18+, switch
-    // `control-post-workout`). Its _shared/ intents are compiled into the app too.
-    '@bacons/apple-targets',
     // Share one or two photos from Photos to Mahi (build 13+, switch `share-to-mahi`;
     // src/hooks/useSharedPhotos.ts). Adds the share extension com.mahi.app.share-extension,
     // shown as "Post to Mahi", in the same App Group. Photos only, at most two; iPhone only.

@@ -102,6 +102,21 @@ describe('Spotlight (switch spotlight)', () => {
   });
 });
 
+describe('where the control is built', () => {
+  // expo-widgets rebuilds its extension on every prebuild; Expo runs a later plugin's iOS steps
+  // first, so ours must be listed earlier to add the control after. @bacons/apple-targets can't
+  // add a second widget extension beside expo-widgets' one (it takes that one over).
+  it('the Mahi Swift plugin is listed before expo-widgets, and apple-targets is not used', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { plugins } = require(join(UI, 'app.config.js')) as { plugins: unknown[] };
+    const names = plugins.map((p) => (Array.isArray(p) ? p[0] : p));
+    const ours = names.indexOf('./modules/mahi-apple-extras/app.plugin.js');
+    expect(ours).toBeGreaterThanOrEqual(0);
+    expect(ours).toBeLessThan(names.indexOf('expo-widgets'));
+    expect(names).not.toContain('@bacons/apple-targets');
+  });
+});
+
 describe('the App Group the extensions read', () => {
   it('is the one App Group the app and its extensions share', () => {
     expect(APP_GROUP).toBe('group.com.mahi.app');
@@ -117,7 +132,7 @@ describe('the App Group the extensions read', () => {
   });
 
   it('uses the same names in the Swift that reads them', () => {
-    const intents = read('targets/controls/_shared/MahiIntents.swift');
+    const intents = read('modules/mahi-apple-extras/swift/MahiIntents.swift');
     const module = read('modules/mahi-apple-extras/ios/MahiAppleExtrasModule.swift');
     for (const swift of [intents, module]) {
       expect(swift).toContain(`"${APP_GROUP}"`);
