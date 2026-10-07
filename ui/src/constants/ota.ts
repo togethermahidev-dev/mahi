@@ -7,6 +7,9 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 32 — tips redone: Apple's own popover on the thing it explains (spotlight on older
+ *     builds); a count badge on See your invites and a Your invites row in Settings; the waiting
+ *     card says why you post when tagged (2026-10-07)
  *   build 12 · 31 — Your invites: see who you invited and who joined; resend once a day (3 times)
  *     or cancel a link (Profile, and the camera's waiting card) (2026-10-07)
  *   build 12 · 30 — a padlock on the Feed tab while the feed is locked; invite link opens and the
@@ -64,4 +67,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 31;
+export const OTA_NUMBER = 32;
