@@ -260,12 +260,36 @@ Product analytics via `posthog-react-native`. Singleton client created with `EXP
 | `user_blocked` / `user_unblocked` / `user_reported` | `UserProfileScreen.tsx`, `BlockedUsersSheet.tsx` | Moderation |
 | Tag-loop events (`tag_sent`, `tag_answered`, `tag_missed`, `streak_lost`, `invite_shared`, `invite_claimed`, `feed_unlocked`, …) | `ui/src/lib/analytics.ts` (one typed map) | Sent after the server confirms |
 
+| Core actions: `user_followed` (`became_friends`), `user_unfollowed`, `post_liked`, `comment_added`, `message_sent` | the stores that make them | After the server saves the row; each carries the row id |
+
 Feature flags are read through the same client — see [feature-flags.md](./feature-flags.md).
 
-**Required env vars:**
+**One person per account (`ui/src/lib/analyticsIdentity.ts`).** A PostHog person is the
+Supabase user id (`identify` on sign-in). `reset()` runs only when the phone was carrying an
+account (sign-out), and before a different account signs in on the same phone — never on a
+signed-out launch, which used to make a new "person" every time (25 "users" for 6 accounts,
+checked against prod 2026-10-07).
+
+**Rules for events — no double numbers:**
+- Send an action only after the server confirms it, from one place (the store that makes it),
+  with its row id (`post_id`, `challenge_id`, `comment_id`, …) so a retry can be spotted.
+- Never send the secret invite token or code, message text, captions, emails or phone numbers.
+
+**Founder metrics dashboard:** https://eu.posthog.com/project/130791/dashboard/1004897 (pinned).
+Signed-in people only. Active people (daily/weekly/monthly), stickiness, new signups, weekly and
+day 1/7/30 retention, activation funnel (signed up → posted → answered a tag, 14 days), core
+actions per week, churn watch (new / returning / back / gone quiet).
+
+**Numbers of record — Supabase `stats` schema** (`20261007160000_founder_stats`): daily actions,
+active people, retention, activation and weekly lifecycle computed from the database itself.
+The `posthog_reader` role can read only those totals (no app table, no per-person rows). Once
+the owner gives it a login and connects it as a PostHog Supabase source (schema `stats`), these
+become the tiles to trust when PostHog and the database disagree.
+
+**Required env vars** (EAS preview + production, "sensitive"):
 ```
-EXPO_PUBLIC_POSTHOG_API_KEY
-EXPO_PUBLIC_POSTHOG_HOST   # default: https://us.i.posthog.com
+EXPO_PUBLIC_POSTHOG_API_KEY   # project 130791
+EXPO_PUBLIC_POSTHOG_HOST      # https://eu.i.posthog.com — the code default (us) is wrong for Mahi
 ```
 
 ---
