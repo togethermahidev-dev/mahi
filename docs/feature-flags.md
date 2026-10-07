@@ -141,9 +141,9 @@ preview the look; tapping them does nothing. Set both to 0% before real users se
 ## Removed from code 2026-10-07
 
 These twelve were on at 100% for everyone since about 2026-10-01. The owner made them standard on
-2026-10-07: the code no longer reads them and always behaves as they did when on. **They still exist in
-PostHog. The owner deletes each one there only after every phone has the update that removed them** (an
-older update still reads them, and a key missing from PostHog reads as off).
+2026-10-07: the code no longer reads them and always behaves as they did when on (OTA 12.24).
+**Deleted from PostHog on 2026-10-07** (owner's go, once their phone had 12.24). A phone still on an
+older update reads them as off until it loads 12.24, since a key missing from PostHog reads as off.
 
 - `notifications-core` — the bell in the header and the notifications list.
 - `tag-challenges` — the camera's open-tags banner.
