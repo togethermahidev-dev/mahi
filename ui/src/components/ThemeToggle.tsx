@@ -17,6 +17,7 @@ import Svg, { Path, Circle, G } from 'react-native-svg';
 import { useThemeStore } from '@/store';
 import type { ThemeMode } from '@/store/themeStore';
 import { COLORS, ICON_SIZE, SCALE, SPRING, STROKE } from '@/constants/tokens';
+import { haptic } from '@/lib/haptics';
 import { TAP_AREA, tapSlop } from '@/lib/tapArea';
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
@@ -103,6 +104,8 @@ export default function ThemeToggle({
   const Icon = MODE_ICON[mode];
 
   const handlePress = () => {
+    // A switch is felt as one (the same as every other pick in the app).
+    haptic('selection');
     // Compress then spring back — confirms the tap and switches the icon
     if (!reduceMotion) {
       Animated.sequence([
