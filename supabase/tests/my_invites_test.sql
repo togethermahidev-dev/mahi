@@ -50,7 +50,7 @@ select throws_ok($$select * from public.get_my_invites()$$, '42501', null, 'sign
 reset role;
 select pg_temp.as_user('00000000-0000-0000-0000-0000000fb201');
 select is(
-  (select array_agg(kind order by ord) from public.get_my_invites() with ordinality t(token, code, url, kind, status, created_at, expires_at, last_sent_at, send_count, joined, can_resend, resend_at, server_now, ord)),
+  (select array_agg(kind order by t.ordinality) from public.get_my_invites() with ordinality t),
   array['tag', 'mate'], 'newest first: the tag link, then the link for a mate');
 select is((select status from public.get_my_invites() where token = pg_temp.token('mate')), 'waiting',
   'a link nobody used yet is waiting');
