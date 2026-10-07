@@ -67,6 +67,26 @@ export function stepEmojiKeyboard(
   return { state: EMOJI_ON, effects: [] };
 }
 
+/** Said when the iPhone has no Emoji keyboard turned on, so the button can't switch to it. */
+export const EMOJI_KEYBOARD_OFF = 'Turn on the Emoji keyboard in Settings › General › Keyboard.';
+
+/**
+ * The help line on the "+" sheet (any emoji as a reaction). `emojiButton`: this build can open the
+ * emoji keyboard itself (build 13+). `typedLetters`: something that isn't an emoji was typed.
+ */
+export function anyEmojiHelp({
+  emojiButton,
+  typedLetters,
+}: {
+  emojiButton: boolean;
+  typedLetters: boolean;
+}): string {
+  if (typedLetters) return 'Pick an emoji.';
+  return emojiButton
+    ? 'Pick one from the emoji keyboard.'
+    : 'Type one. The globe key on the keyboard opens the emoji.';
+}
+
 /** Android's panel height: the last keyboard's, so the composer stays where it was. */
 export function emojiPanelHeight(lastKeyboardHeight: number | null): number {
   if (!lastKeyboardHeight) return EMOJI_PANEL.fallbackHeight;

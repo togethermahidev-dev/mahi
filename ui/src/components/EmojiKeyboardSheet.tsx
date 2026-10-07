@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import KeyboardInset from '@/components/KeyboardInset';
+import { EmojiKeyboardButton, EmojiPanel, useEmojiKeyboard } from '@/components/EmojiKeyboard';
+import { anyEmojiHelp } from '@/lib/emojiKeyboard';
 import { themeColors } from '@/hooks/useAppTheme';
 import { firstEmoji } from '@/lib/messageReactions';
 import { FONTS } from '@/constants/fonts';
@@ -8,8 +10,9 @@ import { ALPHA, COLORS, FONT_SIZE, RADIUS, SIZE, SPACE, withAlpha } from '@/cons
 
 /**
  * Any emoji as a reaction (the hold menu's "+"): a field that opens the keyboard; the first emoji
- * typed is the reaction and the sheet closes. The phone's own emoji keyboard is a tap away (the
- * globe key); there is no way to open it directly, and no emoji picker is drawn by the app.
+ * typed is the reaction and the sheet closes. On build 13+ the iPhone opens straight on its own
+ * emoji keyboard and the emoji button sits beside the field (Android: the emoji panel); older
+ * builds have only the globe key. Letters typed get "Pick an emoji."
  */
 export default function EmojiKeyboardSheet({
   dark,
@@ -22,6 +25,16 @@ export default function EmojiKeyboardSheet({
 }): React.JSX.Element {
   const { bg, text, muted, border } = themeColors(dark);
   const [typed, setTyped] = useState('');
+  const inputRef = useRef<TextInput>(null);
+  const emoji = useEmojiKeyboard(inputRef);
+  // iPhone, build 13+: open straight on the emoji keyboard (it focuses the field itself).
+  const openOnEmoji = emoji.available && Platform.OS === 'ios';
+  const opened = useRef(false);
+  useEffect(() => {
+    if (!openOnEmoji || opened.current) return;
+    opened.current = true;
+    emoji.toggle();
+  }, [openOnEmoji, emoji]);
   const onChange = (value: string) => {
     const emoji = firstEmoji(value);
     if (emoji) {
@@ -36,20 +49,25 @@ export default function EmojiKeyboardSheet({
         <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Close" />
         <View style={[styles.sheet, { backgroundColor: bg }]}>
           <Text style={[styles.title, { color: text }]}>Any emoji</Text>
-          <Text style={[styles.help, { color: muted }]}>
-            Type one — the globe key on the keyboard opens the emoji.
+          <Text style={[styles.help, { color: muted }]} accessibilityLiveRegion="polite">
+            {anyEmojiHelp({ emojiButton: emoji.available, typedLetters: typed.trim() !== '' })}
           </Text>
-          <TextInput
-            value={typed}
-            onChangeText={onChange}
-            autoFocus
-            maxLength={16}
-            keyboardAppearance={dark ? 'dark' : 'light'}
-            placeholder="Your emoji"
-            placeholderTextColor={muted}
-            accessibilityLabel="Emoji"
-            style={[styles.input, { color: text, borderColor: border }]}
-          />
+          <View style={styles.inputRow}>
+            <TextInput
+              ref={inputRef}
+              value={typed}
+              onChangeText={onChange}
+              onBlur={emoji.onBlur}
+              autoFocus={!openOnEmoji}
+              maxLength={16}
+              keyboardAppearance={dark ? 'dark' : 'light'}
+              placeholder="Your emoji"
+              placeholderTextColor={muted}
+              accessibilityLabel="Emoji"
+              style={[styles.input, { color: text, borderColor: border }]}
+            />
+            <EmojiKeyboardButton emoji={emoji} color={muted} />
+          </View>
           <Pressable
             onPress={onClose}
             accessibilityRole="button"
@@ -57,6 +75,7 @@ export default function EmojiKeyboardSheet({
           >
             <Text style={[styles.cancelText, { color: text }]}>Cancel</Text>
           </Pressable>
+          <EmojiPanel emoji={emoji} />
           <KeyboardInset />
         </View>
       </View>
@@ -75,7 +94,9 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: FONTS.bold, fontSize: FONT_SIZE.f22 },
   help: { fontFamily: FONTS.regular, fontSize: FONT_SIZE.f14, lineHeight: SIZE.z20 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s8 },
   input: {
+    flex: 1,
     minHeight: SIZE.z52,
     borderWidth: SIZE.z1,
     borderRadius: RADIUS.r16,
