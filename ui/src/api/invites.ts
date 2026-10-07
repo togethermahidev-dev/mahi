@@ -96,6 +96,21 @@ export async function cancelInvite(
  * 20261007290000_invite_sent_to). Your own links only; the same call twice changes nothing more,
  * and it never counts as a resend.
  */
+/**
+ * Take back a link for a mate that never went anywhere (the share sheet was closed): it is deleted,
+ * so it doesn't show in "Your invites" nor count towards the open-invite cap. False when it had
+ * already gone out, or isn't yours.
+ */
+export async function discardUnsentInvite(
+  token: string
+): Promise<{ discarded: boolean; error: Error | null }> {
+  const { data, error } = await supabase.rpc('discard_unsent_invite', { p_token: token });
+  return {
+    discarded: data === true,
+    error: error ? new Error(error.message, { cause: error }) : null,
+  };
+}
+
 export async function recordInviteSent(
   token: string,
   via: InviteVia,

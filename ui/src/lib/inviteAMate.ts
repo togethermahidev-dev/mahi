@@ -8,7 +8,7 @@
  */
 import { Linking, Platform, Share } from 'react-native';
 import { makeMateInvite, type MateInvite } from '@/api/tagSlots';
-import { recordInviteSent } from '@/api/invites';
+import { discardUnsentInvite, recordInviteSent } from '@/api/invites';
 import { isSlotRefusal, mateInviteErrorText, mateInviteMessage, shareAppUrl } from '@/lib/tagSlots';
 import { smsInviteUrl } from '@/lib/contactMatch';
 import type { InviteVia, ResendPlace } from '@/lib/myInvites';
@@ -91,13 +91,34 @@ export async function sendLinkTo(
   return shareMateLink(link, action);
 }
 
-/** Make a link for a mate and share it. True when a link was made (whether or not it was sent). */
+/**
+ * A link made on tap that never went anywhere (the share sheet or the messages app was closed or
+ * couldn't open) is taken back on the server, so no "Waiting" invite appears that nobody got
+ * (owner, 2026-10-07). Runs in the background; a failure is reported and nothing is shown.
+ * Android's share sheet always says it shared, so there the link stays.
+ */
+export function discardUnsentLink(token: string | null | undefined): void {
+  if (!token) return;
+  void discardUnsentInvite(token).then(({ error }) => {
+    if (error) {
+      reportError(error, {
+        flow: 'invites',
+        action: 'discardUnsentInvite',
+        level: 'warning',
+        extra: { rpc: 'discard_unsent_invite' },
+      });
+    }
+  });
+}
+
+/** Make a link for a mate and share it. True only when it went somewhere. */
 export async function inviteAMate(): Promise<boolean> {
   haptic('selection');
   const link = await makeMateLink();
   if (!link) return false;
-  await shareMateLink(link, 'shareMateInvite');
-  return true;
+  const sent = await shareMateLink(link, 'shareMateInvite');
+  if (!sent) discardUnsentLink(link.token);
+  return sent;
 }
 
 /** Make a link for a mate (no tag behind it). Null, with a toast saying why, when it couldn't. */

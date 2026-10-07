@@ -39,7 +39,7 @@ import {
   type MatchPhase,
   type MatchedAccount,
 } from '@/lib/contactMatch';
-import { inviteAMate, makeMateLink, noteInviteSent } from '@/lib/inviteAMate';
+import { discardUnsentLink, inviteAMate, makeMateLink, noteInviteSent } from '@/lib/inviteAMate';
 import { mateInviteMessage } from '@/lib/tagSlots';
 import { reportError } from '@/lib/sentry';
 import { track } from '@/lib/analytics';
@@ -323,6 +323,7 @@ function FindMates({
         if (live.current) setInvited((s) => new Set(s).add(contact.id));
       } catch (e) {
         reportError(e, { flow: 'invites', action: 'openMessagesInvite' });
+        discardUnsentLink(link.token);
         show('Couldn’t open your messages app. Try again.');
       }
     } finally {
