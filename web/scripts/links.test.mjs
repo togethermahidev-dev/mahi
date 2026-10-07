@@ -10,6 +10,7 @@ import {
   appPostLink,
   inviteFromPath,
   inviteHeadline,
+  inviteLine,
   invitePreviewRequest,
   pageOpenedEvent,
   postIdFromPath,
@@ -46,8 +47,14 @@ test('Netlify serves the Apple file as JSON and the link pages for every token',
     toml,
     /\[\[headers\]\]\s*for = "\/\.well-known\/apple-app-site-association"\s*\[headers\.values\]\s*Content-Type = "application\/json"/
   );
-  assert.match(toml, /\[\[redirects\]\]\s*from = "\/i\/\*"\s*to = "\/i\/index\.html"\s*status = 200/);
-  assert.match(toml, /\[\[redirects\]\]\s*from = "\/p\/\*"\s*to = "\/p\/index\.html"\s*status = 200/);
+  assert.match(
+    toml,
+    /\[\[redirects\]\]\s*from = "\/i\/\*"\s*to = "\/i\/index\.html"\s*status = 200/
+  );
+  assert.match(
+    toml,
+    /\[\[redirects\]\]\s*from = "\/p\/\*"\s*to = "\/p\/index\.html"\s*status = 200/
+  );
 });
 
 test('an invite link gives its token or code, like the app reads it', () => {
@@ -60,7 +67,10 @@ test('an invite link gives its token or code, like the app reads it', () => {
 });
 
 test('a post link gives its post id', () => {
-  assert.equal(postIdFromPath('/p/6f1c2d3e-0000-4000-8000-000000000001/'), '6f1c2d3e-0000-4000-8000-000000000001');
+  assert.equal(
+    postIdFromPath('/p/6f1c2d3e-0000-4000-8000-000000000001/'),
+    '6f1c2d3e-0000-4000-8000-000000000001'
+  );
   assert.equal(postIdFromPath('/p/'), null);
   assert.equal(postIdFromPath('/i/abc'), null);
 });
@@ -72,8 +82,32 @@ test('links back into the app and to share', () => {
 });
 
 test('who sent the invite, or a mate when that cannot be read', () => {
-  assert.equal(inviteHeadline({ username: 'sam', display_name: 'Sam', open: true }), '@sam invited you to Mahi');
+  assert.equal(
+    inviteHeadline({ username: 'sam', display_name: 'Sam', open: true }),
+    '@sam invited you to Mahi'
+  );
   assert.equal(inviteHeadline(null), 'A mate invited you to Mahi');
+});
+
+// Usability walkthrough 2026-10-07: a link with a tag behind it says so, and the 48 hours.
+test('a tag link says who tagged you and what to do; a mate link says you will follow each other', () => {
+  const tagged = { username: 'sam', display_name: 'Sam', open: true, tag: true };
+  assert.equal(inviteHeadline(tagged), '@sam tagged you on Mahi');
+  assert.equal(
+    inviteLine(tagged),
+    'Join and you’ll have 48 hours to post any workout back. You’ll follow each other and keep each other going.'
+  );
+  const mate = { username: 'sam', display_name: 'Sam', open: true, tag: false };
+  assert.equal(inviteHeadline(mate), '@sam invited you to Mahi');
+  assert.equal(inviteLine(mate), 'When you join, you’ll automatically follow each other.');
+  // An older server sends no tag: as before.
+  assert.equal(
+    inviteHeadline({ username: 'sam', display_name: null, open: true }),
+    '@sam invited you to Mahi'
+  );
+  assert.equal(inviteLine(null), 'When you join, you’ll automatically follow each other.');
+  // A used or ended link: no 48 hours to promise.
+  assert.equal(inviteHeadline({ ...tagged, open: false }), '@sam invited you to Mahi');
 });
 
 test('the invite preview is a signed-out read of get_invite_preview', () => {
@@ -87,12 +121,19 @@ test('the invite preview is a signed-out read of get_invite_preview', () => {
 
 test('the store button follows the phone', () => {
   assert.equal(storeFor('Mozilla/5.0 (Linux; Android 14)').name, 'Google Play');
-  assert.equal(storeFor('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)').name, 'the App Store');
+  assert.equal(
+    storeFor('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)').name,
+    'the App Store'
+  );
   assert.equal(storeFor('').name, 'the App Store');
 });
 
 test('an opened link page is counted in PostHog without a person or the token', () => {
-  const { url, init } = pageOpenedEvent('invite', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)', 'id-1');
+  const { url, init } = pageOpenedEvent(
+    'invite',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)',
+    'id-1'
+  );
   assert.equal(url, 'https://eu.i.posthog.com/i/v0/e/');
   assert.equal(init.method, 'POST');
   const body = JSON.parse(init.body);
@@ -101,5 +142,8 @@ test('an opened link page is counted in PostHog without a person or the token', 
   assert.equal(body.distinct_id, 'id-1');
   assert.deepEqual(body.properties, { platform: 'ios', $process_person_profile: false });
   assert.equal(init.body.includes(TOKEN), false);
-  assert.equal(JSON.parse(pageOpenedEvent('post', 'Android', 'x').init.body).event, 'post_page_opened');
+  assert.equal(
+    JSON.parse(pageOpenedEvent('post', 'Android', 'x').init.body).event,
+    'post_page_opened'
+  );
 });

@@ -72,11 +72,34 @@ export function webInviteLink(invite: string): string {
   return `${SITE}/i/${encodeURIComponent(invite)}`;
 }
 
-/** What get_invite_preview returns; null for a link it doesn't know. */
-export type InvitePreview = { username: string; display_name: string | null; open: boolean } | null;
+/**
+ * What get_invite_preview returns; null for a link it doesn't know. `tag`: a tag comes with the
+ * link (false: an invite for a mate; missing from an older server).
+ */
+export type InvitePreview = {
+  username: string;
+  display_name: string | null;
+  open: boolean;
+  tag?: boolean;
+} | null;
+
+/** A link that still works and has a tag behind it (usability walkthrough, 2026-10-07). */
+function isTagLink(preview: InvitePreview): boolean {
+  return !!preview && preview.open && preview.tag === true;
+}
 
 export function inviteHeadline(preview: InvitePreview): string {
-  return preview ? `@${preview.username} invited you to Mahi` : 'A mate invited you to Mahi';
+  if (!preview) return 'A mate invited you to Mahi';
+  return isTagLink(preview)
+    ? `@${preview.username} tagged you on Mahi`
+    : `@${preview.username} invited you to Mahi`;
+}
+
+/** The line under the headline: the 48 hours for a tag link, else that you'll follow each other. */
+export function inviteLine(preview: InvitePreview): string {
+  return isTagLink(preview)
+    ? 'Join and you’ll have 48 hours to post any workout back. You’ll follow each other and keep each other going.'
+    : 'When you join, you’ll automatically follow each other.';
 }
 
 /** Who sent the invite: a read anyone may make before signing in (the app's landing uses it too). */

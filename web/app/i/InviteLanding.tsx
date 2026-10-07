@@ -5,6 +5,7 @@ import {
   appInviteLink,
   inviteFromPath,
   inviteHeadline,
+  inviteLine,
   invitePreviewRequest,
   webInviteLink,
   type InvitePreview,
@@ -106,9 +107,7 @@ export function InviteLanding() {
   return (
     <LandingShell>
       <h1 className={heading}>{inviteHeadline(preview)}</h1>
-      <p className="text-f16 leading-l24 font-semi-bold text-ink-deep">
-        When you join, you&apos;ll automatically follow each other.
-      </p>
+      <p className="text-f16 leading-l24 font-semi-bold text-ink-deep">{inviteLine(preview)}</p>
 
       <ol className="mt-s8 flex flex-col gap-s24">
         <li className="flex gap-s12">
@@ -128,7 +127,7 @@ export function InviteLanding() {
             <h2 className={stepTitle}>Open this link again</h2>
             <p className={body}>
               Once Mahi is on your phone, tap this invite link again and it opens in Mahi. Or copy
-              it and paste it into &ldquo;Got an invite code?&rdquo; when you create your account.
+              it and paste it into &ldquo;Got an invite link?&rdquo; when you create your account.
             </p>
             <CopyLink link={webInviteLink(invite)} />
             <a href={appInviteLink(invite)} className={secondaryButton}>
