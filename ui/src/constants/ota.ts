@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 23 — the feed shows only your latest post among the people you follow, newest
+ *     first; older posts stay on your Profile (2026-10-07)
  *   build 12 · 22 — sideways swipes work on Profile again; Messages and Profile swap places
  *     (Messages, Feed, Camera, Profile); the crew strip over the feed is gone (2026-10-07)
  *   build 12 · 21 — tag requests and invite links say before acceptance that both people will
@@ -43,4 +45,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 22;
+export const OTA_NUMBER = 23;
