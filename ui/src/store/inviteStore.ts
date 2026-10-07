@@ -75,10 +75,9 @@ export const useInviteStore = create<InviteState>((set, get) => ({
         // Signing in again tries again too.
         useToastStore
           .getState()
-          .show(
-            `Couldn’t connect you with ${inviter ? `@${inviter}` : 'your friend'}. Try again.`,
-            { action: { label: 'Try again', onPress: () => void get().claimPending() } }
-          );
+          .show(`Couldn’t connect you with ${inviter ? `@${inviter}` : 'your mate'}. Try again.`, {
+            action: { label: 'Try again', onPress: () => void get().claimPending() },
+          });
         return false;
       }
       // The server said no (an older account, used, ended, a mistyped code): say why instead of

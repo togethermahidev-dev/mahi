@@ -46,7 +46,7 @@ export default function InviteShareSheet({
     const n = summary.unsent;
     Alert.alert(
       `Close without sending ${n === 1 ? '1 link' : `${n} links`}?`,
-      "You won't be able to get these links back later.",
+      'You can send them later from Your invites.',
       [
         { text: 'Keep sending', style: 'cancel' },
         { text: 'Close', style: 'destructive', onPress: onClose },

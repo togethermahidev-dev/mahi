@@ -15,8 +15,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { CameraIcon, FeedIcon, ProfileIcon } from '@/components/ScreenIcons';
+import { useInviteStore, useTagStore, useUserStore } from '@/store';
 import {
   WELCOME_CARDS,
+  welcomeCardsFor,
   cardButtonLabel,
   cardPositionLabel,
   isLastCard,
@@ -37,6 +39,18 @@ import {
 } from '@/constants/tokens';
 
 const COUNT = WELCOME_CARDS.length;
+
+/**
+ * Who tagged this newcomer, for the first card (usability walkthrough, 2026-10-07): the tag link
+ * Mahi was opened with, else the open tag a claimed link started. Only before a first post.
+ */
+function useTaggedBy(): string | null {
+  const preview = useInviteStore((s) => s.preview);
+  const firstTag = useTagStore((s) => s.openTags[0]?.username ?? null);
+  const neverPosted = useUserStore((s) => s.profile?.has_posted_before === false);
+  if (preview?.open && preview.tag !== false) return preview.username;
+  return neverPosted ? firstTag : null;
+}
 
 function CardIllustration({ icon, color }: { icon: WelcomeCard['icon']; color: string }) {
   if (icon === 'camera') return <CameraIcon size={ICON_SIZE.i80} color={color} />;
@@ -66,6 +80,14 @@ export default function WelcomeCards({
   const [visible, setVisible] = useState(false);
   // Whether "seen" has been read for this account yet.
   const [checked, setChecked] = useState(false);
+  // The cards wait for the first read of the tags, so card 1 never changes once shown; who
+  // tagged you is fixed when they open.
+  const tagsRead = useTagStore((s) => s.openTagsLoaded || s.openTagsError);
+  const taggedBy = useTaggedBy();
+  const [cards, setCards] = useState<readonly WelcomeCard[] | null>(null);
+  useEffect(() => {
+    if (visible && tagsRead && cards === null) setCards(welcomeCardsFor(taggedBy));
+  }, [visible, tagsRead, taggedBy, cards]);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,12 +116,22 @@ export default function WelcomeCards({
     AsyncStorage.setItem(welcomeSeenKey(userId), '1').catch(() => {});
   };
 
-  if (!visible) return null;
-  return <WelcomeCardsModal onClose={close} />;
+  if (!visible || !cards) return null;
+  return <WelcomeCardsModal cards={cards} onClose={close} />;
 }
 
 /** The cards themselves. A full-screen Modal keeps its swipes away from the page-swipe navigators. */
-export function WelcomeCardsModal({ onClose }: { onClose: () => void }): React.JSX.Element {
+export function WelcomeCardsModal({
+  onClose,
+  cards = WELCOME_CARDS,
+  replay = false,
+}: {
+  onClose: () => void;
+  /** The cards to show (someone a mate tagged gets their own first card). */
+  cards?: readonly WelcomeCard[];
+  /** Shown again from Settings → Help: the last button says Done. */
+  replay?: boolean;
+}): React.JSX.Element {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -121,7 +153,7 @@ export function WelcomeCardsModal({ onClose }: { onClose: () => void }): React.J
     setIndex(pageFromOffset(e.nativeEvent.contentOffset.x, width, COUNT));
   };
 
-  const label = cardButtonLabel(index, COUNT);
+  const label = cardButtonLabel(index, COUNT, replay);
 
   return (
     <Modal visible animationType="fade" onRequestClose={onClose} statusBarTranslucent>
@@ -145,7 +177,7 @@ export function WelcomeCardsModal({ onClose }: { onClose: () => void }): React.J
           accessibilityLabel={cardPositionLabel(index, COUNT)}
           style={styles.scroller}
         >
-          {WELCOME_CARDS.map((card, i) => (
+          {cards.map((card, i) => (
             // Each card scrolls up and down on its own, so long words at large text sizes are
             // never cut off; at normal sizes it fits and sits in the middle.
             <ScrollView
@@ -168,7 +200,7 @@ export function WelcomeCardsModal({ onClose }: { onClose: () => void }): React.J
         </ScrollView>
 
         <View style={styles.dots} accessible accessibilityLabel={cardPositionLabel(index, COUNT)}>
-          {WELCOME_CARDS.map((card, i) => (
+          {cards.map((card, i) => (
             <View
               key={card.title}
               style={[

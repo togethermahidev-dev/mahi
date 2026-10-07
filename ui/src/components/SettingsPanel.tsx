@@ -17,6 +17,7 @@ import CountBadge from '@/components/CountBadge';
 import { getMyInvites } from '@/api/invites';
 import { inviteBadgeCount, inviteSummary } from '@/lib/myInvites';
 import { WelcomeCardsModal } from '@/components/WelcomeCards';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import ThemeToggle from '@/components/ThemeToggle';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -96,6 +97,8 @@ function Sheet({
   const [findMatesOpen, setFindMatesOpen] = useState(false);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  // Mahi sends no notifications while push is off: no row that leads nowhere until it's on.
+  const pushOn = useFeatureFlag('push-core');
   const [deleting, setDeleting] = useState(false);
 
   const handleLogout = () => {
@@ -286,20 +289,22 @@ function Sheet({
             <View style={styles.spacer} />
             <Text style={[styles.sectionLabel, { color: muted }]}>Preferences</Text>
             <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
-              <Pressable
-                style={(state) => rowStyle(state, true)}
-                onPress={() => void Linking.openSettings()}
-                accessibilityRole="button"
-                accessibilityLabel="Notification settings"
-              >
-                <View style={styles.rowCopy}>
-                  <Text style={[styles.rowLabel, { color: text }]}>Notifications</Text>
-                  <Text style={[styles.rowDetail, { color: muted }]}>
-                    Manage alerts on this phone
-                  </Text>
-                </View>
-                <Text style={[styles.chevron, { color: muted }]}>›</Text>
-              </Pressable>
+              {pushOn ? (
+                <Pressable
+                  style={(state) => rowStyle(state, true)}
+                  onPress={() => void Linking.openSettings()}
+                  accessibilityRole="button"
+                  accessibilityLabel="Notification settings"
+                >
+                  <View style={styles.rowCopy}>
+                    <Text style={[styles.rowLabel, { color: text }]}>Notifications</Text>
+                    <Text style={[styles.rowDetail, { color: muted }]}>
+                      Manage alerts on this phone
+                    </Text>
+                  </View>
+                  <Text style={[styles.chevron, { color: muted }]}>›</Text>
+                </Pressable>
+              ) : null}
               <Pressable
                 style={(state) => rowStyle(state, false)}
                 onPress={() => setSecurityOpen(true)}
@@ -353,7 +358,7 @@ function Sheet({
 
       {helpOpen ? (
         <SafeAreaInsetsContext.Provider value={screenInsets}>
-          <WelcomeCardsModal onClose={() => setHelpOpen(false)} />
+          <WelcomeCardsModal replay onClose={() => setHelpOpen(false)} />
         </SafeAreaInsetsContext.Provider>
       ) : null}
     </View>

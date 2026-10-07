@@ -30,9 +30,12 @@ export function useCoachBlock(on: boolean): void {
 /**
  * The in-app nudge when Mahi opens with a tag waiting (push is off): a short toast, "@sam’s tag:
  * 05:12:33 left", at most once each time Mahi comes to the front, only away from the camera, and
- * never over a tip, a sheet or another toast. Rules: `openTagReminder`.
+ * never over a tip, a sheet or another toast. Rules: `openTagReminder`. With `onAnswer` the
+ * toast carries an "Answer" button that goes to the camera (usability walkthrough, 2026-10-07).
  */
-export function useOpenTagReminder(): void {
+export function useOpenTagReminder(onAnswer?: () => void): void {
+  const answer = useRef(onAnswer);
+  answer.current = onAnswer;
   const page = useCoachStore((s) => (s.composing ? 'compose' : s.page));
   const busy = useCoachStore((s) => s.blocks > 0 || s.current !== null);
   const toast = useToastStore((s) => s.message !== null);
@@ -60,6 +63,13 @@ export function useOpenTagReminder(): void {
     });
     if (!text) return;
     reminded.current = true;
-    useToastStore.getState().show(text);
+    useToastStore
+      .getState()
+      .show(
+        text,
+        answer.current
+          ? { action: { label: 'Answer', onPress: () => answer.current?.() } }
+          : undefined
+      );
   }, [openTags, serverOffsetMs, page, busy, toast, fresh]);
 }

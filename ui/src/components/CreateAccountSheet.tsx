@@ -509,7 +509,7 @@ export default function CreateAccountSheet({
                 </View>
               ) : pendingInvite && !codeInput && !inviteChecked ? null : (
                 <>
-                  <Text style={[styles.label, { color: muted }]}>Got an invite code?</Text>
+                  <Text style={[styles.label, { color: muted }]}>Got an invite link?</Text>
                   <TextInput
                     style={[
                       styles.input,
@@ -525,7 +525,7 @@ export default function CreateAccountSheet({
                     }}
                     onFocus={() => setFocusedField('inviteCode')}
                     onBlur={() => setFocusedField(null)}
-                    placeholder="6 characters or the link, optional"
+                    placeholder="Paste the link or code"
                     placeholderTextColor={muted}
                     autoCapitalize="characters"
                     autoCorrect={false}

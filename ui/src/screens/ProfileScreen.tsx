@@ -6,7 +6,7 @@ import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { useAuthStore, useUserStore } from '@/store';
 import { pointsStatsLabel } from '@/lib/mahiPoints';
-import { pointsHint } from '@/lib/pointsHint';
+import { POINTS_RULE, pointsHint } from '@/lib/pointsHint';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostViewer from '@/components/PostViewer';
 import SettingsPanel from '@/components/SettingsPanel';
@@ -82,7 +82,7 @@ interface ProfileScreenProps {
 function explainPoints() {
   Alert.alert(
     'Mahi points',
-    'You earn 1 point each time you post an answer to a tag. Miss a tag’s 48 hours and your points go back to 0. Your best always stays. If you’re ill or injured, rest comes first. Your best will be here when you’re back.'
+    `${POINTS_RULE} If you’re ill or injured, rest comes first. Your best will be here when you’re back.`
   );
 }
 

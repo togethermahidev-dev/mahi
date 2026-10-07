@@ -19,6 +19,7 @@ import { useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchIcon } from '@/components/ScreenIcons';
 import { searchProfiles, type ProfileSearchResult } from '@/api';
+import { inviteAMate } from '@/lib/inviteAMate';
 import PointsBadge from '@/components/PointsBadge';
 import { useAuthStore, useBlockStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
@@ -127,6 +128,8 @@ export default function GlobalSearchOverlay({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ProfileSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  // "Invite a mate" under a search that found no one: the link is being made.
+  const [inviting, setInviting] = useState(false);
   const [searched, setSearched] = useState(false);
   /** The last search failed: say so (never "no one called…"), with Try again. */
   const [failed, setFailed] = useState(false);
@@ -342,9 +345,25 @@ export default function GlobalSearchOverlay({
               <Text style={[styles.emptyText, { color: text }]}>
                 No one called “{query.trim()}” on Mahi yet.
               </Text>
-              <Text style={[styles.hintText, { color: muted }]}>
-                When you post, you can send them a link to join.
-              </Text>
+              <Text style={[styles.hintText, { color: muted }]}>Not on Mahi yet? Invite them.</Text>
+              <Pressable
+                style={({ pressed }) => [styles.retryBtn, pressed && styles.pressed]}
+                onPress={() => {
+                  if (inviting) return;
+                  setInviting(true);
+                  void inviteAMate().finally(() => setInviting(false));
+                }}
+                disabled={inviting}
+                accessibilityRole="button"
+                accessibilityHint="Makes a link to share. When they join, you’ll follow each other."
+                accessibilityState={{ busy: inviting }}
+              >
+                {inviting ? (
+                  <ActivityIndicator color={COLORS.offBlack} />
+                ) : (
+                  <Text style={styles.retryBtnText}>Invite a mate</Text>
+                )}
+              </Pressable>
             </View>
           ) : !searched ? (
             <View style={styles.centered}>

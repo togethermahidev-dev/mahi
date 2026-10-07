@@ -404,7 +404,7 @@ export default function NotificationsScreen({
                 kind="empty"
                 dark={dark}
                 title="Nothing here yet"
-                line="Tags, likes and comments from friends show up here."
+                line="Tags, likes and comments from your mates show up here."
               />
             }
           />

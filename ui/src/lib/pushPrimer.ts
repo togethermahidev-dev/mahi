@@ -15,10 +15,10 @@ export type PushPermission = 'granted' | 'denied' | 'undetermined';
  */
 export const PUSH_PRIMER = {
   headline: 'When do you post on Mahi?',
-  why: 'When a friend tags you. Turn on notifications so you know the moment your 48 hours start.',
+  why: 'When a mate tags you. Turn on notifications so you know the moment your 48 hours start.',
   cardTitle: 'Please turn on notifications',
   cardBody:
-    'Mahi only pings you when it matters: a friend tags you, your time is running out, or your feed is about to lock. Never between 10pm and 7am.',
+    'Mahi only pings you when it matters: a mate tags you, your time is running out, or your feed is about to lock. Never between 10pm and 7am.',
   continue: 'Continue',
 } as const;
 
