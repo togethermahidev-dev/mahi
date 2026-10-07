@@ -1,6 +1,7 @@
 import {
   INITIAL_TAB,
   NATIVE_TABS,
+  tabIcons,
   cameraLift,
   movesPages,
   nativeTabsAvailable,
@@ -123,5 +124,25 @@ describe('movesPages', () => {
   // A swipe already moved them; the bar is only catching up.
   it('a change the app asked for does not move them again', () => {
     expect(movesPages('programmatic-js')).toBe(false);
+  });
+});
+
+describe('tabIcons — a locked feed shows a padlock on its tab', () => {
+  const feed = NATIVE_TABS.find((t) => t.key === 'feed')!;
+  const camera = NATIVE_TABS.find((t) => t.key === 'camera')!;
+
+  it('the Feed tab is a padlock while the feed is locked, and keeps its title', () => {
+    expect(tabIcons(feed, true)).toEqual({ icon: 'lock', selectedIcon: 'lock.fill' });
+  });
+
+  it('back to its own icon when the feed opens', () => {
+    expect(tabIcons(feed, false)).toEqual({
+      icon: 'text.alignleft',
+      selectedIcon: 'text.alignleft',
+    });
+  });
+
+  it('other tabs never change', () => {
+    expect(tabIcons(camera, true)).toEqual({ icon: 'camera', selectedIcon: 'camera.fill' });
   });
 });

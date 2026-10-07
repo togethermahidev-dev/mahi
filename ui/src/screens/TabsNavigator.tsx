@@ -17,8 +17,10 @@ import {
   TAB_TITLE_APPEARANCE,
   movesPages,
   type TabKey,
+  tabIcons,
 } from '@/lib/nativeTabs';
 import { loadScreens } from '@/lib/screensModule';
+import { useFeedStore } from '@/store';
 import { loadExpoSymbols } from '@/lib/symbolModule';
 import { COLORS, ICON_SIZE, SIZE } from '@/constants/tokens';
 
@@ -50,6 +52,8 @@ export default function TabsNavigator(): React.JSX.Element | null {
   const androidIcons = useAndroidIcons();
 
   const [tab, setTab] = useState<TabKey>(INITIAL_TAB);
+  // A locked feed shows a padlock on its tab (only once the feed has been read: never a guess).
+  const feedLocked = useFeedStore((s) => s.loaded && s.locked);
   // The last selection the native bar confirmed: a change asked from here builds on it.
   const [provenance, setProvenance] = useState(0);
   // The post preview covers everything; the bar hides under it.
@@ -118,8 +122,8 @@ export default function TabsNavigator(): React.JSX.Element | null {
             title={t.title}
             style={{ backgroundColor: pageBg(t.key) }}
             ios={{
-              icon: { type: 'sfSymbol', name: t.icon },
-              selectedIcon: { type: 'sfSymbol', name: t.selectedIcon },
+              icon: { type: 'sfSymbol', name: tabIcons(t, feedLocked).icon },
+              selectedIcon: { type: 'sfSymbol', name: tabIcons(t, feedLocked).selectedIcon },
               standardAppearance: TAB_TITLE_APPEARANCE.ios,
             }}
             android={{

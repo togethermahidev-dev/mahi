@@ -57,6 +57,18 @@ export const NATIVE_TABS: readonly {
   },
 ];
 
+/**
+ * The icons a tab shows. While the feed is locked its tab is a padlock (owner, 2026-10-07), still
+ * titled Feed and still tappable: the feed explains the lock and how to open it.
+ */
+export function tabIcons(
+  tab: (typeof NATIVE_TABS)[number],
+  feedLocked: boolean
+): { icon: SFSymbolName; selectedIcon: SFSymbolName } {
+  if (tab.key === 'feed' && feedLocked) return { icon: 'lock', selectedIcon: 'lock.fill' };
+  return { icon: tab.icon, selectedIcon: tab.selectedIcon };
+}
+
 /** The tab titles in Inter, like every other word in the app (owner, 2026-10-05). */
 const TAB_TITLE = { tabBarItemTitleFontFamily: FONTS.semiBold };
 const TAB_TITLE_STATES = { normal: TAB_TITLE, selected: TAB_TITLE };
