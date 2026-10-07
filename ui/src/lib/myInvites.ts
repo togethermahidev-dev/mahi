@@ -163,3 +163,8 @@ export function inviteSummary(list: MyInvite[]): string {
   ];
   return parts.length > 0 ? parts.join(' · ') : 'None waiting';
 }
+
+/** The number on "See your invites" and the Settings row: invites still waiting or joined. */
+export function inviteBadgeCount(list: MyInvite[]): number {
+  return list.filter((i) => i.status === 'waiting' || i.status === 'joined').length;
+}

@@ -72,6 +72,9 @@ import InviteStep from '@/components/InviteStep';
 import InviteShareSheet from '@/components/InviteShareSheet';
 import TagSlotsSheet from '@/components/TagSlotsSheet';
 import MyInvitesSheet from '@/components/MyInvitesSheet';
+import CountBadge from '@/components/CountBadge';
+import { getMyInvites } from '@/api/invites';
+import { inviteBadgeCount } from '@/lib/myInvites';
 import { getTagSlots } from '@/api/tagSlots';
 import { inviteAMate } from '@/lib/inviteAMate';
 import { inviteBlockedReason, postButtonLabel, postRefusal, type ScreenSlot } from '@/lib/tagSlots';
@@ -1681,6 +1684,22 @@ export default function CameraScreen({
   // behind it, made on tap; joining from it makes you follow each other, and no tag starts.
   const [invitingMate, setInvitingMate] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
+  // The number on "See your invites": read fresh each time the waiting card shows (and after the
+  // list closes), never kept on the phone; no number until the server has answered.
+  const [myInviteCount, setMyInviteCount] = useState<number | null>(null);
+  const waitingCard = gate === 'closed' && !offline;
+  useEffect(() => {
+    if (!waitingCard || invitesOpen) return;
+    let live = true;
+    void getMyInvites().then(({ data }) => {
+      // A failed read shows no number (the list itself says what went wrong when opened).
+      if (live) setMyInviteCount(data ? inviteBadgeCount(data) : null);
+    });
+    return () => {
+      live = false;
+    };
+  }, [waitingCard, invitesOpen]);
+
   const inviteMate = async () => {
     if (invitingMate) return;
     setInvitingMate(true);
@@ -2693,10 +2712,13 @@ export default function CameraScreen({
                   style={({ pressed }) => [styles.seeInvites, pressed && { opacity: ALPHA.a70 }]}
                   onPress={() => setInvitesOpen(true)}
                   accessibilityRole="button"
-                  accessibilityLabel="See your invites"
+                  accessibilityLabel={
+                    myInviteCount ? `See your invites, ${myInviteCount}` : 'See your invites'
+                  }
                   accessibilityHint="Shows the links you’ve sent and who joined"
                 >
                   <Text style={styles.seeInvitesText}>See your invites</Text>
+                  <CountBadge count={myInviteCount ?? 0} />
                 </Pressable>
               ) : null}
             </View>
@@ -3065,6 +3087,9 @@ const styles = StyleSheet.create({
   // A quiet text link under the card's buttons, with a full-size tap area.
   seeInvites: {
     alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s8,
     justifyContent: 'center',
     minHeight: SIZE.z44,
     paddingHorizontal: SPACE.s12,

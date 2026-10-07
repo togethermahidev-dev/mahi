@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   SafeAreaInsetsContext,
@@ -10,6 +10,10 @@ import { DELETE_ACCOUNT_CONFIRM } from '@/lib/account';
 import { VERSION_LINE } from '@/lib/appBuild';
 import { reportError } from '@/lib/sentry';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
+import MyInvitesSheet from '@/components/MyInvitesSheet';
+import CountBadge from '@/components/CountBadge';
+import { getMyInvites } from '@/api/invites';
+import { inviteBadgeCount, inviteSummary } from '@/lib/myInvites';
 import { WelcomeCardsModal } from '@/components/WelcomeCards';
 import ThemeToggle from '@/components/ThemeToggle';
 import { FONTS } from '@/constants/fonts';
@@ -72,6 +76,19 @@ function Sheet({
   const danger = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
 
   const [blockedListOpen, setBlockedListOpen] = useState(false);
+  // Your invites: read fresh when Settings opens and after the list closes; never kept on the phone.
+  const [invitesOpen, setInvitesOpen] = useState(false);
+  const [invites, setInvites] = useState<{ line: string; count: number } | null>(null);
+  useEffect(() => {
+    if (invitesOpen) return;
+    let live = true;
+    void getMyInvites().then(({ data }) => {
+      if (live && data) setInvites({ line: inviteSummary(data), count: inviteBadgeCount(data) });
+    });
+    return () => {
+      live = false;
+    };
+  }, [invitesOpen]);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -224,6 +241,28 @@ function Sheet({
           </>
         ) : (
           <>
+            <Text style={[styles.sectionLabel, { color: muted }]}>Mates</Text>
+            <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
+              <Pressable
+                style={(state) => rowStyle(state, false)}
+                onPress={() => setInvitesOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  invites?.count ? `Your invites, ${invites.count}` : 'Your invites'
+                }
+              >
+                <View style={styles.rowCopy}>
+                  <Text style={[styles.rowLabel, { color: text }]}>Your invites</Text>
+                  <Text style={[styles.rowDetail, { color: muted }]}>
+                    {invites?.line ?? 'Who you invited and who joined'}
+                  </Text>
+                </View>
+                <CountBadge count={invites?.count ?? 0} />
+                <Text style={[styles.chevron, { color: muted }]}>›</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.spacer} />
             <Text style={[styles.sectionLabel, { color: muted }]}>Preferences</Text>
             <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
               <Pressable
@@ -283,6 +322,7 @@ function Sheet({
       </ScrollView>
 
       {/* Opened from inside this sheet so they present over it. */}
+      <MyInvitesSheet visible={invitesOpen} onClose={() => setInvitesOpen(false)} dark={dark} />
       <BlockedUsersSheet
         visible={blockedListOpen}
         onClose={() => setBlockedListOpen(false)}

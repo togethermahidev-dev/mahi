@@ -1,4 +1,5 @@
 import {
+  inviteBadgeCount,
   applyCancel,
   applyResend,
   canCancel,
@@ -200,5 +201,20 @@ describe('inviteSummary', () => {
   it('has words for none, and for only ended links', () => {
     expect(inviteSummary([])).toBe('No invites yet');
     expect(inviteSummary([invite({ status: 'expired' })])).toBe('None waiting');
+  });
+});
+
+describe('inviteBadgeCount — the number on "See your invites" and in Settings', () => {
+  it('counts invites still waiting or joined; expired and cancelled ones drop off', () => {
+    const joined = { id: 'u1', username: 'sam', display_name: null, avatar_url: null };
+    expect(
+      inviteBadgeCount([
+        invite(),
+        invite({ token: 't2', status: 'joined', joined }),
+        invite({ token: 't3', status: 'expired' }),
+        invite({ token: 't4', status: 'cancelled' }),
+      ])
+    ).toBe(2);
+    expect(inviteBadgeCount([])).toBe(0);
   });
 });
