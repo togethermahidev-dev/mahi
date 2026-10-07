@@ -671,7 +671,7 @@ function PersonRow({
         <Image source={{ uri: person.avatar_url, cache: 'force-cache' }} style={styles.rowAvatar} />
       ) : (
         <View style={[styles.rowAvatar, styles.rowAvatarFallback]}>
-          <Text style={styles.rowInitial}>{display[0].toUpperCase()}</Text>
+          <Text style={styles.rowInitial}>{(display[0] ?? '?').toUpperCase()}</Text>
         </View>
       )}
       <View style={styles.rowText}>

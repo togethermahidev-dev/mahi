@@ -1157,7 +1157,7 @@ function TagUserRow({
   onPress: () => void;
 }) {
   const display = item.display_name ?? item.username;
-  const initial = display[0].toUpperCase();
+  const initial = (display[0] ?? '?').toUpperCase();
   const nudgeDays = useTagStore((s) => s.nudgeDays);
   const { accent } = useAppTheme().colors;
   const nudge = nudgeLabel(item.last_tagged_at, item.has_open_tag, nudgeDays);

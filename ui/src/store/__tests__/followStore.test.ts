@@ -65,4 +65,42 @@ describe('followStore', () => {
     expect(useFollowStore.getState().followingByMe.target).toBe(true);
     expect(useFollowStore.getState().counts.target.follower_count).toBe(8);
   });
+
+  describe('live follow changes', () => {
+    const { supabase } = jest.requireMock('@/lib/supabase') as {
+      supabase: { channel: jest.Mock; removeChannel: jest.Mock };
+    };
+    type Spec = { event: string; table: string; filter?: string };
+    const made: { name: string; specs: Spec[] }[] = [];
+    beforeEach(() => {
+      made.length = 0;
+      supabase.channel.mockImplementation((name: string) => {
+        const entry = { name, specs: [] as Spec[] };
+        made.push(entry);
+        const ch = {
+          on: (_t: string, spec: Spec) => {
+            entry.specs.push(spec);
+            return ch;
+          },
+          subscribe: () => ch,
+        };
+        return ch;
+      });
+    });
+
+    // Supabase can't filter DELETE events, so an unfollow only arrives on an unfiltered listener.
+    it('listens for unfollows without a filter', () => {
+      useFollowStore.getState().subscribeToFollows('u1', 'me');
+      expect(made[0].specs).toContainEqual({ event: 'DELETE', schema: 'public', table: 'follows' });
+    });
+
+    it('an old screen closing after sign-out leaves the new listener open', () => {
+      const stale = useFollowStore.getState().subscribeToFollows('u1', 'me');
+      useFollowStore.getState().reset();
+      useFollowStore.getState().subscribeToFollows('u1', 'me');
+      supabase.removeChannel.mockClear();
+      stale();
+      expect(supabase.removeChannel).not.toHaveBeenCalled();
+    });
+  });
 });

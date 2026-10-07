@@ -151,6 +151,7 @@ export const useFollowStore = create<FollowState>((set, get) => ({
       existing.refCount++;
       if (onChange) existing.listeners.add(onChange);
       return () => {
+        if (followChannels.get(key) !== existing) return; // torn down by a sign-out
         if (onChange) existing.listeners.delete(onChange);
         existing.refCount--;
         if (existing.refCount <= 0) {
@@ -179,17 +180,17 @@ export const useFollowStore = create<FollowState>((set, get) => ({
         { event: '*', schema: 'public', table: 'follows', filter: `follower_id=eq.${userId}` },
         handler
       )
+      // Supabase can't filter DELETE events (they carry only the row id), so an unfollow arrives
+      // only here; any unfollow re-reads, which is cheap at this size.
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'follows' }, handler)
       .subscribe();
 
-    followChannels.set(key, {
-      channel,
-      refCount: 1,
-      listeners: new Set(onChange ? [onChange] : []),
-    });
+    const entry = { channel, refCount: 1, listeners: new Set(onChange ? [onChange] : []) };
+    followChannels.set(key, entry);
 
+    // Holds its own entry: after a sign-out, a new subscriber's entry under the same key is not ours.
     return () => {
-      const entry = followChannels.get(key);
-      if (!entry) return;
+      if (followChannels.get(key) !== entry) return; // torn down by a sign-out
       if (onChange) entry.listeners.delete(onChange);
       entry.refCount--;
       if (entry.refCount <= 0) {

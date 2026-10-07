@@ -15,6 +15,7 @@ import {
 import { useFeedStore } from './feedStore';
 import { useProfilePostsStore } from './profilePostsStore';
 import { useToastStore } from './toastStore';
+import { useAuthStore } from './authStore';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // Channel registry — outside store state so channel changes don't trigger renders
@@ -257,30 +258,39 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     refCounts.set(postId, count + 1);
     if (count > 0) return; // already subscribed
 
+    // Re-fetch the authoritative like count on any change.
+    const refetchLikes = () => {
+      supabase
+        .from('post_likes')
+        .select('id', { count: 'exact', head: true })
+        .eq('post_id', postId)
+        .then(({ count: c, error }) => {
+          if (error) {
+            reportError(error, {
+              flow: 'social',
+              action: 'refreshLikeCount',
+              level: 'warning',
+              extra: { postId, table: 'post_likes' },
+            });
+          }
+          if (c === null) return;
+          patchCounts(postId, { like_count: c });
+        });
+    };
+
     const channel = supabase
       .channel(`social:${postId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'post_likes', filter: `post_id=eq.${postId}` },
-        () => {
-          // Re-fetch authoritative like count on any change
-          supabase
-            .from('post_likes')
-            .select('id', { count: 'exact', head: true })
-            .eq('post_id', postId)
-            .then(({ count: c, error }) => {
-              if (error) {
-                reportError(error, {
-                  flow: 'social',
-                  action: 'refreshLikeCount',
-                  level: 'warning',
-                  extra: { postId, table: 'post_likes' },
-                });
-              }
-              if (c === null) return;
-              patchCounts(postId, { like_count: c });
-            });
-        }
+        refetchLikes
+      )
+      // Supabase can't filter DELETE events (they carry only the row id), so an unlike arrives
+      // only here; any unlike re-reads this post's count, which is cheap at this size.
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'post_likes' },
+        refetchLikes
       )
       .on(
         'postgres_changes',
@@ -290,8 +300,18 @@ export const useSocialStore = create<SocialState>((set, get) => ({
           table: 'post_comments',
           filter: `post_id=eq.${postId}`,
         },
-        (payload) => {
-          const incoming = payload.new as CommentWithProfile;
+        async (payload) => {
+          // The live row has no commenter attached; the comment sheet shows their name. Your own
+          // comment is already there from sending it.
+          const row = payload.new as Omit<CommentWithProfile, 'profiles'>;
+          if (row.user_id === useAuthStore.getState().user?.id) return;
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, username, display_name, avatar_url')
+            .eq('id', row.user_id)
+            .single();
+          if (!profiles) return;
+          const incoming: CommentWithProfile = { ...row, profiles };
           set((s) => {
             const existing = s.comments[postId];
             if (!existing) return s; // not loaded — skip

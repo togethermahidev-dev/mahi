@@ -219,7 +219,7 @@ export default function NotificationsScreen({
 
   const renderRow = (item: NotificationWithActor) => {
     const name = item.actor.display_name ?? item.actor.username;
-    const initials = name[0].toUpperCase();
+    const initials = (name[0] ?? '?').toUpperCase();
     const username = item.actor.username;
     const caption = notificationText(item.type, username);
     const time = relativeTime(item.created_at);
