@@ -44,6 +44,7 @@ import { useIdentityStore } from '@/store/identityStore';
 import { usePurchasesStore } from '@/store/purchasesStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useInviteLink } from '@/hooks/useInviteLink';
+import { useLiveTag } from '@/hooks/useLiveTag';
 import { getAppGate, getProfile, signOut, updateTimezone } from '@/api';
 import { gateVerdict, type AppGate } from '@/lib/versionGate';
 import { APP_BUILD, APP_VERSION } from '@/lib/appBuild';
@@ -146,6 +147,9 @@ export default function App(): React.JSX.Element {
   // Invite links: one that opened the app, one that arrives while it's running, and the
   // claim once there's an account to claim it for.
   useInviteLink();
+  // A mate's tag on the lock screen and the home-screen widget (build 13+, switch `live-tag`);
+  // ended and cleared on sign-out.
+  useLiveTag();
   const [blockingGate, setBlockingGate] = useState<AppGate | null>(null);
   const { colorScheme } = useAppTheme();
 

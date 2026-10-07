@@ -50,8 +50,8 @@ if (!videoOn) return null;
   found 2026-10-01, when seven new features stayed hidden on the test phones until their flags were created.
   This pure logic is unit-tested in [`ui/src/lib/__tests__/featureFlags.test.ts`](../ui/src/lib/__tests__/featureFlags.test.ts).
 - **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `push-core`, `video-posts`,
-  `ios-sf-symbols`, `context-menu-preview`, `camera-tap-focus`, `identity-verification`, `purchases` and
-  `tag-slots`): off
+  `ios-sf-symbols`, `context-menu-preview`, `camera-tap-focus`, `identity-verification`, `purchases`,
+  `tag-slots` and `live-tag`): off
   while flags load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns
   `true`. Use this for a feature that must never show, even for a moment on cold start (video posts would
   otherwise be able to ask for the microphone before flags load; the full-screen notifications page would
@@ -59,7 +59,7 @@ if (!videoOn) return null;
 
 ## The flags
 
-Nine keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone. Nor do the twelve switches removed on 2026-10-07 — see [Removed from code 2026-10-07](#removed-from-code-2026-10-07).)
+Ten keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone. Nor do the twelve switches removed on 2026-10-07 — see [Removed from code 2026-10-07](#removed-from-code-2026-10-07).)
 
 **Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
 are switched in the `app_config` table):
@@ -78,6 +78,18 @@ a friend gets an in-app invite ("@x wants to tag you", Accept / Not now in their
 row (WhatsApp, Messages, Copy or more) makes a personal link on tap and fills a slot. Friends first:
 invites wait until every friend you could tag is tagged. Live while open; nothing kept on the phone.
 Off = today's tag sheet (with the invite step). The caption's `@` still picks one friend either way.
+
+**Lock screen and widget:** `live-tag` (**default off**; added 2026-10-07; needs build 13, which carries
+`expo-widgets`; **not in PostHog yet** — create it switched off). On: while you have a tag to answer, a Live
+Activity on the lock screen and in the Dynamic Island says "@sam is waiting on you", "Answer with any
+workout" and counts down to the tag's deadline with Apple's own timer (ticks with Mahi closed); several tags
+show the soonest and "+2 more"; from the 6-hour mark the countdown turns to the warning colour. It starts when
+Mahi sees an open tag, updates when tags change, and ends when they're answered or over and on sign-out; one
+swiped away stays away until a different tag is the soonest. The Mahi home-screen widget (small and medium)
+shows the same, or "Waiting for a mate to tag you" with your Mahi points and best; it moves on by itself at
+each 6-hour mark and deadline. A tap on either opens the camera. Only the username and points leave the app.
+Logic in [`ui/src/lib/liveTag.ts`](../ui/src/lib/liveTag.ts). On builds 10–12 and Android it does nothing.
+Off = no Live Activity, and the widget says "Open Mahi to see your tags".
 
 **Camera:** `camera-tap-focus` (**default off**; needs build 11). On: one tap on the live camera focuses and sets the
 exposure there, with a small yellow square at the tap that settles and fades (Reduce Motion: it only

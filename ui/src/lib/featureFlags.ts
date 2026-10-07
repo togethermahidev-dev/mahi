@@ -19,6 +19,7 @@ export const FEATURE_FLAGS = [
   // Tag loop (see docs/tag-loop-plan.md)
   'push-core', // the "turn on notifications" page and the camera's reminder line (default OFF; server keeps queueing when off)
   'tag-slots', // one tag screen: tag friends, invite anyone on Mahi, share links on tap; each slot shows its state (default OFF)
+  'live-tag', // a mate's tag on the lock screen / Dynamic Island (Live Activity) and the home-screen widget; needs build 13 (default OFF)
 
   // Posts
   'video-posts', // each shot can be a photo or a video of up to 15 s; feed plays them (default OFF)
@@ -50,6 +51,8 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * `identity-verification` and `purchases`: dormant until the owner sets up Didit / RevenueCat.
  * `tag-slots`: needs migration 20261003120000_tag_slots on the server first; off, the tag sheet
  * stays exactly as today.
+ * `live-tag`: needs build 13 (expo-widgets); off, no Live Activity starts and the widget only
+ * says "Open Mahi to see your tags".
  */
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'push-core',
@@ -59,6 +62,7 @@ export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'identity-verification',
   'purchases',
   'tag-slots',
+  'live-tag',
 ];
 
 /** Whether a flag reads as on before PostHog has answered (true for all but DEFAULT_OFF_FLAGS). */
