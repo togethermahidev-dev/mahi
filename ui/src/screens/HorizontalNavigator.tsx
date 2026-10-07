@@ -32,6 +32,9 @@ import NavRail, { type RailTab } from '@/components/NavRail';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
+import { useSharedPhotos } from '@/hooks/useSharedPhotos';
+import { useAppActions } from '@/hooks/useAppActions';
+import { useCameraRequestStore, type CameraRequest } from '@/store/cameraRequestStore';
 import PostViewer from '@/components/PostViewer';
 import CoachMarkHost from '@/components/CoachMark';
 import { useCoachBlock, useOpenTagReminder } from '@/hooks/useCoachMarks';
@@ -273,6 +276,25 @@ export default function HorizontalNavigator({
       setProfileUserId(null);
       navigate(MESSAGES);
     },
+  });
+  // Photos shared from Photos land on the Camera page as the shots (switch `share-to-mahi`).
+  useSharedPhotos(() => {
+    setNotifOpen(false);
+    setProfileUserId(null);
+    navigate(CAMERA);
+  });
+  // The iPhone extras (Control Centre button, Spotlight): each opens its page if its switch is
+  // on. Your invites and Find your mates open over the Camera page, where they live.
+  const toCamera = (request?: CameraRequest) => {
+    setNotifOpen(false);
+    setProfileUserId(null);
+    navigate(CAMERA);
+    if (request) useCameraRequestStore.getState().ask(request);
+  };
+  useAppActions({
+    camera: () => toCamera(),
+    invites: () => toCamera({ kind: 'invites' }),
+    'find-mates': () => toCamera({ kind: 'find-mates' }),
   });
 
   // The lists' scrolling as gestures, so a sideways swipe on them still moves the pages: a

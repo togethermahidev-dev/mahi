@@ -34,6 +34,12 @@ const config = {
     // Sign in with Apple (build 13+; src/lib/appleAuthModule.ts). Adds the capability.
     'expo-apple-authentication',
     ['expo-notifications', { color: ACCENT, defaultChannel: 'default' }],
+    // Mahi's own Swift (build 13+): the Control Centre / lock screen button "Post a workout" (iOS
+    // 18+, switch `control-post-workout`), added to the widget extension below, and its intents,
+    // in the app too; the App Shortcuts "Post a workout in Mahi", "Open my invites in Mahi", "Find
+    // my mates in Mahi" (switch `siri-shortcuts`), in the app only. Must stay ABOVE expo-widgets
+    // (see the plugin's notes).
+    './modules/mahi-apple-extras/app.plugin.js',
     // A mate's tag on the lock screen and Dynamic Island (Live Activity) and a home-screen widget
     // (build 13+; src/widgets/liveTagWidgets.tsx). Adds the widget extension target, the App Group
     // both share, and NSSupportsLiveActivities. The widget's name must match createWidget's.
@@ -50,6 +56,22 @@ const config = {
             ios: { supportedFamilies: ['systemSmall', 'systemMedium'] },
           },
         ],
+      },
+    ],
+    // iOS wakes Mahi now and then (15 minutes at the least) to refresh the widget and the Live
+    // Activity (build 13+, switch `widget-background-refresh`; src/lib/widgetRefreshTask.ts).
+    // Adds the "processing" background mode and the task's identifier.
+    'expo-background-task',
+    // Share one or two photos from Photos to Mahi (build 13+, switch `share-to-mahi`;
+    // src/hooks/useSharedPhotos.ts). Adds the share extension com.mahi.app.share-extension,
+    // shown as "Post to Mahi", in the same App Group. Photos only, at most two; iPhone only.
+    [
+      'expo-share-intent',
+      {
+        iosActivationRules: { NSExtensionActivationSupportsImageWithMaxCount: 2 },
+        iosAppGroupIdentifier: 'group.com.mahi.app',
+        iosShareExtensionName: 'Post to Mahi',
+        disableAndroid: true,
       },
     ],
     [

@@ -46,6 +46,9 @@ import {
   useTagStore,
 } from '@/store';
 import { useToastStore } from '@/store/toastStore';
+import { useCameraRequestStore } from '@/store/cameraRequestStore';
+import { deleteSharedFiles } from '@/hooks/useSharedPhotos';
+import { sharedPhotoResize, type SharedPhoto } from '@/lib/sharedPhoto';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { randomUUID } from 'expo-crypto';
 import { track } from '@/lib/analytics';
@@ -129,9 +132,11 @@ import {
   focusPoint,
   focusSquareOrigin,
   nextFlash,
+  shutterSoundPlan,
   tapFocusAvailable,
   type FlashChoice,
 } from '@/lib/cameraCapture';
+import { loadAppleExtras } from '@/lib/appleExtrasModule';
 import { answersATag, hasPostedBefore, reactivePostingGate } from '@/lib/reactivePosting';
 import { nudgeLabel } from '@/lib/tagNudge';
 import { cantTagReason, postTagsRequired } from '@/lib/tagRules';
@@ -1914,6 +1919,21 @@ export default function CameraScreen({
   // Tap to focus (flag `camera-tap-focus`): switch on, an iPhone, and a build whose camera can
   // focus on a point (build 11+). OTA updates also reach build 10, which can't: there it's off.
   const tapFocusOn = useFeatureFlag('camera-tap-focus');
+  // Apple's shutter sound at the press (switch `shutter-sound`, build 13+); off = today's.
+  const shutterSoundOn = useFeatureFlag('shutter-sound');
+  const shutterSound = shutterSoundPlan({
+    flagOn: shutterSoundOn,
+    platform: Platform.OS,
+    hasModule: loadAppleExtras() != null,
+  });
+  const pressSound = () => {
+    if (!shutterSound.playAtPress) return;
+    try {
+      loadAppleExtras()?.playShutterSound();
+    } catch {
+      // No sound is no harm.
+    }
+  };
   const [nativeFocus, setNativeFocus] = useState(false);
   const focusOn = tapFocusAvailable({ flagOn: tapFocusOn, platform: Platform.OS, nativeFocus });
   const [cameraSize, setCameraSize] = useState({ width: 0, height: 0 });
@@ -2015,7 +2035,11 @@ export default function CameraScreen({
   // Helper: take a photo from whatever camera is currently active
   const takePhoto = async (): Promise<CapturedPhoto | null> => {
     if (!cameraRef.current) return null;
-    const photo = await cameraRef.current.takePictureAsync({ quality: PHOTO_CAPTURE.shotQuality });
+    const photo = await cameraRef.current.takePictureAsync({
+      quality: PHOTO_CAPTURE.shotQuality,
+      // Off while Mahi plays the shutter at the press, so there is only one.
+      ...(shutterSound.cameraShutterSound === false ? { shutterSound: false } : {}),
+    });
     if (!photo?.uri) return null;
     // Re-encode to bake EXIF orientation into pixel data. With
     // `responsiveOrientationWhenOrientationLocked` on (iOS), a sideways-held
@@ -2051,6 +2075,20 @@ export default function CameraScreen({
     const aspectRatio = h > 0 ? w / h : 0.75;
     console.log('[CameraScreen] captured', { w, h, aspectRatio });
     return { kind: 'photo', uri: normalizedUri, base64, aspectRatio };
+  };
+
+  // A photo shared from Photos, made into a shot the way takePhoto makes one: one JPEG encode,
+  // brought down to the camera's size when it's bigger.
+  const sharedShot = async (shared: SharedPhoto): Promise<CapturedPhoto> => {
+    const { uri, width, height } = await manipulateAsync(
+      shared.uri,
+      sharedPhotoResize(shared.width, shared.height),
+      { compress: PHOTO_CAPTURE.jpegQuality, format: SaveFormat.JPEG }
+    );
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return { kind: 'photo', uri, base64, aspectRatio: width && height ? width / height : 0.75 };
   };
 
   // ── Video (flag `video-posts`, and only on builds with the video module) ──────────────────
@@ -2219,9 +2257,11 @@ export default function CameraScreen({
   const handleShutterPress = () => {
     if (captureState === 'idle') {
       haptic('shutter');
+      pressSound();
       captureFirst();
     } else if (captureState === 'awaiting-second') {
       haptic('shutter');
+      pressSound();
       captureSecond();
     }
   };
@@ -2678,6 +2718,56 @@ export default function CameraScreen({
   useEffect(() => {
     onComposingRef.current?.(hasPreview);
   }, [hasPreview]);
+
+  // Photos shared from Photos (switch `share-to-mahi`, src/hooks/useSharedPhotos.ts) become the
+  // shots: two fill the preview; one is the first shot and the selfie side takes the second. Same
+  // posting rules as the shutter. The share extension's copies are deleted once read.
+  // Spotlight's Your invites / Find your mates (switch `spotlight`) open their sheets here.
+  const cameraRequest = useCameraRequestStore((s) => s.request);
+  useEffect(() => {
+    if (!cameraRequest) return;
+    if (cameraRequest.kind !== 'shared-photos') {
+      useCameraRequestStore.getState().take();
+      if (cameraRequest.kind === 'invites') setInvitesOpen(true);
+      else if (contactsFinder) setFindMatesOpen(true);
+      return;
+    }
+    if (gate === 'loading') return;
+    const request = useCameraRequestStore.getState().take();
+    if (request?.kind !== 'shared-photos') return;
+    const uris = request.photos.map((p) => p.uri);
+    if (gate !== 'open' || captureState !== 'idle' || hasPreview || isUploading) {
+      deleteSharedFiles(uris);
+      if (gate === 'open')
+        useToastStore.getState().show('Finish this post first, then share again.');
+      return;
+    }
+    setCaptureState('capturing-first');
+    Promise.all(request.photos.map(sharedShot))
+      .then((shots) => {
+        const [first, second] = shots;
+        if (second) {
+          setRearPhoto(first);
+          setFrontPhoto(second);
+          setCaptureState('idle');
+          return;
+        }
+        firstPhotoRef.current = first;
+        firstFacingRef.current = 'back';
+        setGuidePhotoUri(first.uri);
+        setGuideIsVideo(false);
+        setFacing('front');
+        setCaptureState('awaiting-second');
+      })
+      .catch((err) => {
+        reportError(err, { flow: 'camera', action: 'sharedPhoto' });
+        useToastStore.getState().show('Couldn’t open that photo. Try again.');
+        setCaptureState('idle');
+      })
+      .finally(() => deleteSharedFiles(uris));
+    // Runs when a request arrives or the posting gate settles; the rest is read as it is then.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraRequest, gate]);
 
   // One share sheet for one invite link; only a link that actually went somewhere counts as sent.
   const sendInvite = async (token: string) => {

@@ -204,6 +204,37 @@ removal rule applies as usual: take the switch out of the code, then delete it i
 | `widget-background-refresh` | The widget refreshing while Mahi is closed |
 | `auth-apple-signin` | Sign in with Apple (already existed) |
 
+**Build 13 native extras — kill switches, on for everyone** (owner, 2026-10-07). Default on in code; each
+must be **created in PostHog at 100% before build 13 ships** (a missing key reads as off). Builds 10–12
+don't have the native parts, so the switches do nothing there.
+- `share-to-mahi`: "Post to Mahi" in the Photos share sheet (1–2 photos). On: Mahi opens on the Camera
+  page with them as the shots (two fill the preview; one is the first shot and the selfie side takes the
+  second). Off: Mahi still appears in the share sheet (that can't change without a build), but the app
+  ignores the share — it deletes the copied photos and opens as it is.
+- `control-post-workout`: "Post a workout" in Control Centre, on the lock screen or on the Action button
+  (iOS 18+). On: a tap opens Mahi on the camera. Off: the app writes the switch to the App Group, the
+  button then reads "Open Mahi", and a tap just opens Mahi where it was.
+- `spotlight`: Spotlight offers "Post a workout", "Your invites" and "Find your mates" (the app's own
+  actions; nothing about the person is indexed). On: the app puts them in the phone's index at launch; a
+  tap opens the camera, or the invites list / Find your mates over the Camera page. Off: the app takes
+  them out of the index at its next launch; a tap on one still showing just opens Mahi.
+  `mahi://invites` and `mahi://find-mates` also work as plain links, with no switch.
+- `siri-shortcuts`: App Shortcuts, ready in Siri, the Shortcuts app and Spotlight with nothing to set
+  up — "Post a workout in Mahi", "Open my invites in Mahi", "Find my mates in Mahi". On: each opens
+  Mahi on the camera, the invites list or Find your mates. Off: they still show (Apple lists them from
+  the build), but each just opens Mahi; the app writes the switch to the App Group so the intent leaves
+  nothing to act on.
+- `shutter-sound`: Apple's own camera shutter sound (the Camera app's) at the press, in step with the
+  haptic. The phone's silent switch silences it. Today the camera already makes that sound itself, but
+  only once the photo is taken (after the 0.3 s settle on the first shot); with this on, the camera's
+  own sound is turned off so there's only one. Off: exactly today's.
+- `widget-background-refresh`: iOS wakes Mahi in the background now and then (15 minutes at the
+  least; iOS decides, and wakes rarely-used apps less) to read the open tags and the points again, so
+  the home-screen widget and the lock-screen tag stay right with Mahi closed (owner-approved exception
+  #113). On: the task is registered at launch. Off: it is unregistered at the next launch, and the
+  widget updates only when Mahi is opened, as before. A failed refresh is reported to Sentry and
+  leaves the widget as it was.
+
 ## Removed from code 2026-10-07
 
 These twelve were on at 100% for everyone since about 2026-10-01. The owner made them standard on

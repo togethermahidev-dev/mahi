@@ -3,6 +3,8 @@
  * Requiring @didit-protocol/sdk-react-native there throws at load (getEnforcing), so the loaders
  * must check for the native module first and never require the package when it's missing.
  */
+const taskManagerRequired = jest.fn();
+const backgroundTaskRequired = jest.fn();
 const turboGet = jest.fn();
 const nativeModules: Record<string, unknown> = {};
 const diditRequired = jest.fn();
@@ -58,6 +60,15 @@ jest.mock('react-native-purchases-ui', () => {
   return { __esModule: true, default: { presentPaywall: jest.fn() } };
 });
 
+jest.mock('expo-task-manager', () => {
+  taskManagerRequired();
+  return { defineTask: jest.fn(), isTaskRegisteredAsync: jest.fn() };
+});
+jest.mock('expo-background-task', () => {
+  backgroundTaskRequired();
+  return { registerTaskAsync: jest.fn(), unregisterTaskAsync: jest.fn() };
+});
+
 beforeEach(() => {
   jest.resetModules();
   turboGet.mockReset();
@@ -71,6 +82,8 @@ beforeEach(() => {
   contactsRequired.mockReset();
   nativeViewRequired.mockReset();
   appleAuthRequired.mockReset();
+  taskManagerRequired.mockReset();
+  backgroundTaskRequired.mockReset();
   for (const k of Object.keys(nativeModules)) delete nativeModules[k];
   for (const k of Object.keys(expoModules)) delete expoModules[k];
 });
@@ -395,5 +408,143 @@ describe('Sign in with Apple loader (expo-apple-authentication, build 13+)', () 
     expect(m.loadAppleAuth()).not.toBeNull();
     m.loadAppleAuth();
     expect(appleAuthRequired).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Apple extras loader (local module mahi-apple-extras, build 13+)', () => {
+  function loadExtrasModule(): typeof import('../appleExtrasModule') {
+    let mod!: typeof import('../appleExtrasModule');
+    jest.isolateModules(() => {
+      mod = jest.requireActual('../appleExtrasModule');
+    });
+    return mod;
+  }
+
+  it('looks for the module by its native name', () => {
+    optionalGet.mockReturnValue(null);
+    loadExtrasModule().loadAppleExtras();
+    expect(optionalGet).toHaveBeenCalledWith('MahiAppleExtras');
+  });
+
+  it('gives nothing on a build without the module (builds 10 to 12)', () => {
+    optionalGet.mockReturnValue(null);
+    expect(loadExtrasModule().loadAppleExtras()).toBeNull();
+  });
+
+  it('treats a lookup that throws as missing', () => {
+    optionalGet.mockImplementation(() => {
+      throw new Error('no');
+    });
+    expect(loadExtrasModule().loadAppleExtras()).toBeNull();
+  });
+
+  it('gives the module on iPhone, looked up once', () => {
+    const native = { takePendingLink: jest.fn() };
+    optionalGet.mockReturnValue(native);
+    const m = loadExtrasModule();
+    expect(m.loadAppleExtras()).toBe(native);
+    m.loadAppleExtras();
+    expect(optionalGet).toHaveBeenCalledTimes(1);
+  });
+
+  it('is iPhone only', () => {
+    platform.OS = 'android';
+    optionalGet.mockReturnValue({});
+    expect(loadExtrasModule().loadAppleExtras()).toBeNull();
+  });
+});
+
+describe('background task loader (expo-background-task + expo-task-manager, build 13+)', () => {
+  function loadBgModule(): typeof import('../backgroundTaskModule') {
+    let mod!: typeof import('../backgroundTaskModule');
+    jest.isolateModules(() => {
+      mod = jest.requireActual('../backgroundTaskModule');
+    });
+    return mod;
+  }
+
+  it('looks for both native modules by name', () => {
+    optionalGet.mockReturnValue({});
+    loadBgModule().loadBackgroundTask();
+    expect(optionalGet).toHaveBeenCalledWith('ExpoBackgroundTask');
+    expect(optionalGet).toHaveBeenCalledWith('ExpoTaskManager');
+  });
+
+  it('never requires either package on a build without them (builds 10 to 12)', () => {
+    optionalGet.mockReturnValue(null);
+    expect(loadBgModule().loadBackgroundTask()).toBeNull();
+    expect(taskManagerRequired).not.toHaveBeenCalled();
+    expect(backgroundTaskRequired).not.toHaveBeenCalled();
+  });
+
+  it('needs both: a build with only the task manager gets nothing', () => {
+    optionalGet.mockImplementation((name: string) => (name === 'ExpoTaskManager' ? {} : null));
+    expect(loadBgModule().loadBackgroundTask()).toBeNull();
+    expect(taskManagerRequired).not.toHaveBeenCalled();
+  });
+
+  it('treats a lookup that throws as missing', () => {
+    optionalGet.mockImplementation(() => {
+      throw new Error('no');
+    });
+    expect(loadBgModule().loadBackgroundTask()).toBeNull();
+  });
+
+  it('requires both packages once when the modules are there (iPhone)', () => {
+    optionalGet.mockReturnValue({});
+    const m = loadBgModule();
+    expect(m.loadBackgroundTask()).not.toBeNull();
+    m.loadBackgroundTask();
+    expect(taskManagerRequired).toHaveBeenCalledTimes(1);
+    expect(backgroundTaskRequired).toHaveBeenCalledTimes(1);
+  });
+
+  it('is iPhone only (the widget is)', () => {
+    platform.OS = 'android';
+    optionalGet.mockReturnValue({});
+    expect(loadBgModule().loadBackgroundTask()).toBeNull();
+  });
+});
+
+describe('share intent loader (expo-share-intent, build 13+)', () => {
+  function loadShareModule(): typeof import('../shareIntentModule') {
+    let mod!: typeof import('../shareIntentModule');
+    jest.isolateModules(() => {
+      mod = jest.requireActual('../shareIntentModule');
+    });
+    return mod;
+  }
+
+  it('looks for the module by its native name', () => {
+    optionalGet.mockReturnValue(null);
+    loadShareModule().loadShareIntent();
+    expect(optionalGet).toHaveBeenCalledWith('ExpoShareIntentModule');
+  });
+
+  it('gives nothing on a build without the module (builds 10 to 12)', () => {
+    optionalGet.mockReturnValue(null);
+    expect(loadShareModule().loadShareIntent()).toBeNull();
+  });
+
+  it('treats a lookup that throws as missing', () => {
+    optionalGet.mockImplementation(() => {
+      throw new Error('no');
+    });
+    expect(loadShareModule().loadShareIntent()).toBeNull();
+  });
+
+  it('gives the module on iPhone, looked up once', () => {
+    const native = { getShareIntent: jest.fn() };
+    optionalGet.mockReturnValue(native);
+    const m = loadShareModule();
+    expect(m.loadShareIntent()).toBe(native);
+    m.loadShareIntent();
+    expect(optionalGet).toHaveBeenCalledTimes(1);
+  });
+
+  it('is iPhone only (the Android share target is not set up)', () => {
+    platform.OS = 'android';
+    optionalGet.mockReturnValue({});
+    expect(loadShareModule().loadShareIntent()).toBeNull();
   });
 });

@@ -97,3 +97,25 @@ export function tapFocusAvailable({
 }): boolean {
   return flagOn && platform === 'ios' && nativeFocus;
 }
+
+// ─── Shutter sound ───────────────────────────────────────────────────────────
+
+/**
+ * The shutter sound (switch `shutter-sound`, build 13+). Today the iPhone camera makes Apple's
+ * shutter sound itself when the photo is taken (after the press, and after the 0.3 s settle on the
+ * first shot). On: the same Apple sound plays at the press, in step with the haptic, and the
+ * camera's own is turned off so there is only one. The phone's silent switch silences it either
+ * way. Off, on Android, or on builds 10–12 (no module): exactly today's.
+ */
+export function shutterSoundPlan({
+  flagOn,
+  platform,
+  hasModule,
+}: {
+  flagOn: boolean;
+  platform: string;
+  hasModule: boolean;
+}): { playAtPress: boolean; cameraShutterSound: false | undefined } {
+  const ours = flagOn && platform === 'ios' && hasModule;
+  return { playAtPress: ours, cameraShutterSound: ours ? false : undefined };
+}
