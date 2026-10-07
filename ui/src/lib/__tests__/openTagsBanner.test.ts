@@ -13,10 +13,10 @@ const at = (ms: number) => new Date(deviceNow + ms).toISOString();
 const tag = (username: string, expiresIn: number) => ({ username, expires_at: at(expiresIn) });
 
 describe('openTagsBanner — someone who downloaded Mahi themselves (Type B)', () => {
-  it('asks for the first Mahi, promises the first point and asks for 3 mates', () => {
+  it('asks for the first Mahi, promises the first point and asks for 3 friends', () => {
     const b = openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow, firstPost: true });
     expect(b && bannerText(b)).toBe(
-      'Post your first Mahi to get your first point and tag 3 mates.'
+      'Post your first Mahi to get your first point and tag 3 friends.'
     );
     expect(b?.firstPost).toBe(true);
     expect(b?.note).toBe('Any workout counts, even 10 minutes.');
@@ -27,8 +27,8 @@ describe('openTagsBanner — someone who downloaded Mahi themselves (Type B)', (
   });
 });
 
-describe('openTagsBanner — someone a mate tagged, before their first post (Type A)', () => {
-  it('names the mate and ticks down in hours, minutes and seconds', () => {
+describe('openTagsBanner — someone a friend tagged, before their first post (Type A)', () => {
+  it('names the friend and ticks down in hours, minutes and seconds', () => {
     const b = openTagsBanner({
       openTags: [tag('sam', 47 * HOUR + 59 * MIN + 59 * 1000)],
       serverOffsetMs: 0,
@@ -41,7 +41,7 @@ describe('openTagsBanner — someone a mate tagged, before their first post (Typ
     expect(b?.parts.find((p) => p.accent)?.text).toBe('47:59:59');
   });
 
-  it('several mates: one first post answers them all', () => {
+  it('several friends: one first post answers them all', () => {
     const b = openTagsBanner({
       openTags: [tag('sam', 47 * HOUR), tag('ali', 40 * HOUR)],
       serverOffsetMs: 0,
@@ -158,7 +158,7 @@ describe('openTagsBanner — under 6 hours left', () => {
     expect(b?.note).toBe('Answer to earn a point.');
   });
 
-  it('names the mate whose tag ends first', () => {
+  it('names the friend whose tag ends first', () => {
     const b = openTagsBanner({
       openTags: [tag('ali', 9 * HOUR), tag('sam', 2 * HOUR)],
       serverOffsetMs: 0,
@@ -239,7 +239,7 @@ describe('openTagReminder — the in-app nudge when Mahi opens', () => {
   });
 });
 
-describe('namesList — mates by name', () => {
+describe('namesList — friends by name', () => {
   it('joins one, two, three and more', () => {
     expect(namesList(['a'])).toBe('@a');
     expect(namesList(['a', 'b'])).toBe('@a and @b');
@@ -253,7 +253,7 @@ describe('namesList — mates by name', () => {
 describe('matesOnClock — the waiting card while your own tags are open', () => {
   const mate = (username: string, expiresIn: number) => ({ username, expires_at: at(expiresIn) });
 
-  it('names your mates and the soonest clock', () => {
+  it('names your friends and the soonest clock', () => {
     expect(
       matesOnClock({
         mates: [mate('b', 40 * HOUR), mate('a', 31 * HOUR + 12 * MIN), mate('c', 45 * HOUR)],
@@ -261,12 +261,12 @@ describe('matesOnClock — the waiting card while your own tags are open', () =>
         deviceNow,
       })
     ).toEqual({
-      title: 'Your mates are on the clock',
+      title: 'Your friends are on the clock',
       line: '@a, @b and @c have 31:12:00 to answer you.',
     });
   });
 
-  it('one mate: "has"', () => {
+  it('one friend: "has"', () => {
     expect(
       matesOnClock({ mates: [mate('sam', 2 * HOUR)], serverOffsetMs: 0, deviceNow })?.line
     ).toBe('@sam has 02:00:00 to answer you.');
@@ -281,7 +281,7 @@ describe('matesOnClock — the waiting card while your own tags are open', () =>
     );
   });
 
-  it('nothing when no mate is on the clock (the card keeps "Waiting for a mate to tag you")', () => {
+  it('nothing when no friend is on the clock (the card keeps "Waiting for a friend to tag you")', () => {
     expect(matesOnClock({ mates: [], serverOffsetMs: 0, deviceNow })).toBeNull();
   });
 });

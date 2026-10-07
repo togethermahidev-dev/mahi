@@ -119,7 +119,7 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
   const [refreshing, setRefreshing] = useState(false);
   const [inviting, setInviting] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
-  // "Find your mates" (build 13+, no switch): opened over this sheet.
+  // "Find friends in your contacts" (build 13+, no switch): opened over this sheet.
   const contactsFinder = useContactsFinder();
   const [findMatesOpen, setFindMatesOpen] = useState(false);
   // Server time minus phone time, so "Resend in 5h" counts on the server's clock.
@@ -428,7 +428,7 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
   const header = (
     <View style={[styles.intro, { borderBottomColor: border }]}>
       <Text style={[styles.introLine, { color: muted }]}>
-        When a mate joins from your link, you follow each other.
+        When a friend joins from your link, you follow each other.
       </Text>
       <Pressable
         style={({ pressed }) => [styles.inviteButton, pressed && styles.pressed]}
@@ -486,11 +486,11 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
             ]}
             onPress={() => setFindMatesOpen(true)}
             accessibilityRole="button"
-            accessibilityLabel="Find mates in your contacts"
+            accessibilityLabel="Find friends in your contacts"
             accessibilityHint="Shows who from your contacts is on Mahi, and lets you invite the rest"
           >
             <Text style={[styles.findMatesText, { color: accentText }]}>
-              Find mates in your contacts
+              Find friends in your contacts
             </Text>
             <Text style={[styles.findMatesText, { color: muted }]}>›</Text>
           </Pressable>
@@ -505,7 +505,7 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
             kind="empty"
             dark={dark}
             title="No invites yet"
-            line="Send a mate a link. When they join, you’ll follow each other."
+            line="Send a friend a link. When they join, you’ll follow each other."
             actionLabel={inviting ? undefined : INVITE_BUTTON}
             onAction={() => void inviteMate()}
             art={

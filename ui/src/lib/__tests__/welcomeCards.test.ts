@@ -13,7 +13,7 @@ describe('welcome cards', () => {
   it('has the three owner-approved cards, in order', () => {
     expect(WELCOME_CARDS.map((c) => c.title)).toEqual([
       'Your first post is free.',
-      'Every post tags 3 mates.',
+      'Every post tags 3 friends.',
       'Post to open your feed.',
     ]);
   });
@@ -23,7 +23,7 @@ describe('welcome cards', () => {
   // and says what a miss costs.
   it('card 1: the first post needs no tag, any workout counts, and a miss resets points', () => {
     expect(WELCOME_CARDS[0].body).toBe(
-      'Post your first Mahi to get your first point and tag 3 mates. After that, you post when a mate tags you: 48 hours to answer with a photo, back camera then selfie. Any workout counts. Each answer earns a Mahi point. Miss a tag and your points go back to 0, but your best stays. Open Mahi each day to see if you’ve been tagged.'
+      'Post your first Mahi to get your first point and tag 3 friends. After that, you post when a friend tags you: 48 hours to answer with a photo, back camera then selfie. Any workout counts. Each answer earns a Mahi point. Miss a tag and your points go back to 0, but your best stays. Open Mahi each day to see if you’ve been tagged.'
     );
   });
 
@@ -71,7 +71,7 @@ describe('welcome cards', () => {
 
   // Usability walkthrough 2026-10-07: someone a mate tagged by link starts with who and how long.
   describe('welcomeCardsFor', () => {
-    it('someone tagged by a mate: card 1 says who, and the 48 hours to answer', () => {
+    it('someone tagged by a friend: card 1 says who, and the 48 hours to answer', () => {
       const cards = welcomeCardsFor('sam');
       expect(cards[0]).toEqual({
         icon: 'camera',

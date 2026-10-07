@@ -107,7 +107,7 @@ describe('buildRows', () => {
     account({ id: 'u-c', username: 'cal', display_name: null, matched_hashes: ['h2'] }),
   ];
 
-  it('puts mates on Mahi first, then everyone else with a number, A to Z, no-name last', () => {
+  it('puts friends on Mahi first, then everyone else with a number, A to Z, no-name last', () => {
     const rows = buildRows({ contacts, matches, contactIdsByHash, query: '' });
     expect(
       rows.map((r) =>

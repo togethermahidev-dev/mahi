@@ -66,7 +66,7 @@ describe('Spotlight (switch spotlight)', () => {
     expect(SPOTLIGHT_ACTIONS.map((a) => a.title)).toEqual([
       'Post a workout',
       'Your invites',
-      'Find your mates',
+      'Find friends in your contacts',
     ]);
     for (const a of SPOTLIGHT_ACTIONS) {
       expect(a.link).toMatch(/^mahi:\/\/[a-z-]+\?from=spotlight$/);
@@ -89,7 +89,7 @@ describe('Spotlight (switch spotlight)', () => {
     }
   });
 
-  it('invites and find your mates are plain links too', () => {
+  it('invites and find your friends are plain links too', () => {
     expect(parseAppAction('mahi://invites')).toEqual({ action: 'invites', source: 'link' });
     expect(parseAppAction('mahi://find-mates')).toEqual({ action: 'find-mates', source: 'link' });
     expect(appActionToRun('mahi://find-mates', allOff)).toBe('find-mates');
@@ -154,10 +154,12 @@ describe('Siri and Shortcuts (switch siri-shortcuts)', () => {
     for (const phrase of [
       'Post a workout in \\(.applicationName)',
       'Open my invites in \\(.applicationName)',
-      'Find my mates in \\(.applicationName)',
+      'Find friends on \\(.applicationName)',
     ]) {
       expect(shortcuts).toContain(phrase);
     }
+    // Never "Find my …": that is Apple's own Find My.
+    expect(shortcuts).not.toContain('Find my');
     expect(read('modules/mahi-apple-extras/swift/MahiIntents.swift')).not.toContain(
       'AppShortcutsProvider'
     );

@@ -22,7 +22,7 @@ export function slotCount({
 }): { filled: number; remaining: number; total: number; text: string } {
   const filled = friends + invites;
   const parts = [
-    friends > 0 ? count(friends, 'mate', 'mates') : null,
+    friends > 0 ? count(friends, 'friend', 'friends') : null,
     invites > 0 ? count(invites, 'link', 'links') : null,
   ].filter(Boolean);
   return {
@@ -76,9 +76,9 @@ export function inviteStepCopy({
     'When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.';
   return {
     headline: tagsOptional
-      ? 'Invite mates to keep you going'
-      : `Invite ${count(toInvite, 'mate', 'mates')} to post`,
-    why: tagsOptional ? how : `Every post tags ${maxTags} mates. ${how}`,
+      ? 'Invite friends to keep you going'
+      : `Invite ${count(toInvite, 'friend', 'friends')} to post`,
+    why: tagsOptional ? how : `Every post tags ${maxTags} friends. ${how}`,
     button: canAdd ? INVITE_BUTTON : `All ${maxTags} tags used`,
     canAdd,
     count: slots.text,

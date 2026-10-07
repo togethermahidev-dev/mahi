@@ -121,7 +121,7 @@ function isTagLink(preview: InvitePreview): boolean {
 }
 
 export function inviteHeadline(preview: InvitePreview): string {
-  if (!preview) return 'A mate invited you to Mahi';
+  if (!preview) return 'A friend invited you to Mahi';
   return isTagLink(preview)
     ? `@${preview.username} tagged you on Mahi`
     : `@${preview.username} invited you to Mahi`;

@@ -161,7 +161,9 @@ function Circle({
       style={({ pressed }) => [styles.item, pressed && { opacity: ALPHA.a70 }]}
       accessibilityRole={onPress ? 'button' : 'image'}
       accessibilityLabel={circle.a11y}
-      accessibilityHint={!onPress ? undefined : filled ? 'Takes them off this post' : 'Adds a mate'}
+      accessibilityHint={
+        !onPress ? undefined : filled ? 'Takes them off this post' : 'Adds a friend'
+      }
     >
       <View style={styles.circle}>
         <Reanimated.View

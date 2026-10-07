@@ -34,7 +34,12 @@ export const COACH_TIPS = {
     page: 'camera',
     icon: 'plusOne',
   },
-  bell: { title: 'A mate tagged you', body: 'Tap to answer.', page: 'feed', icon: 'notifications' },
+  bell: {
+    title: 'A friend tagged you',
+    body: 'Tap to answer.',
+    page: 'feed',
+    icon: 'notifications',
+  },
   twoPhotos: {
     title: 'Two photos',
     body: 'What you see, then a selfie.',
@@ -42,7 +47,7 @@ export const COACH_TIPS = {
     icon: 'camera',
   },
   waiting: {
-    title: 'You’ll post again when a mate tags you',
+    title: 'You’ll post again when a friend tags you',
     body: 'Check back each day.',
     page: 'camera',
     icon: 'notifications',
@@ -63,7 +68,7 @@ export const COACH_TIPS = {
     icon: 'feed',
   },
   tagMates: {
-    title: 'Tag 3 mates',
+    title: 'Tag 3 friends',
     body: 'Each gets 48 hours to post back.',
     page: 'compose',
     icon: 'people',

@@ -6,7 +6,7 @@ import { useContactsFinder } from '@/hooks/useContactsFinder';
 import { findMatesSeenKey, showFindMatesStep } from '@/lib/contactMatch';
 
 /**
- * "Find your mates" right after sign-up: once the welcome cards are closed (`after`), before the
+ * "Find friends in your contacts" right after sign-up: once the welcome cards are closed (`after`), before the
  * notifications page and the tips, so no two full-screen pages ever stack. Once per account on
  * this device, for an account made in the last day, on builds and with the switch that have it.
  * The choice is made once, when the cards close; `onSettled(true)` lets the next page through.

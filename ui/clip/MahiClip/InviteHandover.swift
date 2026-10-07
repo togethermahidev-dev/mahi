@@ -55,7 +55,7 @@ struct InvitePreview: Equatable {
   }
 
   /// No preview (a link the server doesn't know, or no connection): the page's words for that.
-  static let unknownHeadline = "A mate invited you to Mahi"
+  static let unknownHeadline = "A friend invited you to Mahi"
   static let unknownLine = "When you join, you’ll automatically follow each other."
 }
 

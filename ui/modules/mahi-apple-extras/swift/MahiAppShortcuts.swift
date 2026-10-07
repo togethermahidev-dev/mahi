@@ -24,8 +24,8 @@ struct MahiAppShortcuts: AppShortcutsProvider {
     AppShortcut(
       intent: FindMatesIntent(),
       phrases: [
-        "Find my mates in \(.applicationName)",
-        "Find my mates on \(.applicationName)",
+        "Find friends on \(.applicationName)",
+        "Find friends in \(.applicationName)",
       ]
     )
   }

@@ -27,12 +27,12 @@ describe('coach tips — the words', () => {
     );
     expect(words).toEqual({
       points: ['Your Mahi points', 'Your first post and each answer earn 1.', 'camera'],
-      bell: ['A mate tagged you', 'Tap to answer.', 'feed'],
+      bell: ['A friend tagged you', 'Tap to answer.', 'feed'],
       twoPhotos: ['Two photos', 'What you see, then a selfie.', 'camera'],
-      waiting: ['You’ll post again when a mate tags you', 'Check back each day.', 'camera'],
+      waiting: ['You’ll post again when a friend tags you', 'Check back each day.', 'camera'],
       pullDown: ['Pull down to peek', 'The card shows who you’re waiting on.', 'camera'],
       feedLocked: ['Your feed opens when you post', 'Answer tags to keep it open.', 'feed'],
-      tagMates: ['Tag 3 mates', 'Each gets 48 hours to post back.', 'compose'],
+      tagMates: ['Tag 3 friends', 'Each gets 48 hours to post back.', 'compose'],
     });
   });
 

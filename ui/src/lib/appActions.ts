@@ -25,7 +25,7 @@ export function switchKey(flag: FeatureFlag): string {
   return `switch.${flag}`;
 }
 
-/** The camera, the invites list, or "Find your mates" (both open over the Camera page). */
+/** The camera, the invites list, or "Find friends in your contacts" (both open over the Camera page). */
 export type AppAction = 'camera' | 'invites' | 'find-mates';
 
 /** Who asked: an ordinary link, or one of the build 13 extras (each with its own switch). */
@@ -69,7 +69,7 @@ export const SPOTLIGHT_ACTIONS: readonly {
   },
   {
     link: 'mahi://find-mates?from=spotlight',
-    title: 'Find your mates',
+    title: 'Find friends in your contacts',
     detail: 'See who from your contacts is on Mahi',
     keywords: ['mates', 'friends', 'contacts', 'find', 'mahi'],
   },

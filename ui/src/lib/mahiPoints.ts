@@ -47,11 +47,11 @@ const ROUND_NUMBERS = [5, 10, 25, 50, 100];
 /** How close to your best (in points) before the toast counts down to beating it. */
 const NEAR_BEST = 3;
 
-/** "You tagged 3 mates", "You tagged 1 mate and 2 people by link"; null with no tags. */
+/** "You tagged 3 friends", "You tagged 1 friend and 2 people by link"; null with no tags. */
 function taggedLine({ friends, links }: { friends: number; links: number }): string | null {
   const byLink = `${links} ${links === 1 ? 'person' : 'people'} by link`;
   if (friends > 0) {
-    const named = `${friends} ${friends === 1 ? 'mate' : 'mates'}`;
+    const named = `${friends} ${friends === 1 ? 'friend' : 'friends'}`;
     return `You tagged ${links > 0 ? `${named} and ${byLink}` : named}.`;
   }
   return links > 0 ? `You tagged ${byLink}.` : null;
@@ -130,12 +130,12 @@ export function taggedClockLine({
     names.length > 0
       ? `${namesList(names)} now ${names.length === 1 ? 'has' : 'have'} 48 hours to answer you.`
       : friends > 0
-        ? `Your ${friends} ${friends === 1 ? 'mate has' : 'mates have'} 48 hours to answer you.`
+        ? `Your ${friends} ${friends === 1 ? 'friend has' : 'friends have'} 48 hours to answer you.`
         : null;
   const line = [
     onClock,
     links > 0
-      ? `Send your ${links} ${links === 1 ? 'link' : 'links'} next. Each mate gets 48 hours once they join.`
+      ? `Send your ${links} ${links === 1 ? 'link' : 'links'} next. Each friend gets 48 hours once they join.`
       : null,
   ]
     .filter(Boolean)
@@ -188,7 +188,7 @@ export function pointCelebration({
       total,
       lines: [
         ...(first ? [first] : []),
-        'From now on you post when a mate tags you. Answer each tag within 48 hours for another point.',
+        'From now on you post when a friend tags you. Answer each tag within 48 hours for another point.',
         'Miss a tag and your points go back to 0. Your best stays.',
       ],
     };
@@ -221,7 +221,7 @@ export function missMoment({ tagger, best }: { tagger: string; best: number | nu
   return {
     title: `You missed @${tagger}’s tag`,
     total: `Your points are back to 0. Your best${best && best > 0 ? ` of ${best}` : ''} stays.`,
-    lines: ['Post when a mate tags you to start again.'],
+    lines: ['Post when a friend tags you to start again.'],
     badge: '0',
     badgeLabel: 'Mahi points back to 0',
   };

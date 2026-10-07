@@ -92,7 +92,7 @@ function Sheet({
       live = false;
     };
   }, [invitesOpen]);
-  // "Find your mates" (build 13+, no switch).
+  // "Find friends in your contacts" (build 13+, no switch).
   const contactsFinder = useContactsFinder();
   const [findMatesOpen, setFindMatesOpen] = useState(false);
   const [securityOpen, setSecurityOpen] = useState(false);
@@ -249,17 +249,19 @@ function Sheet({
           </>
         ) : (
           <>
-            <Text style={[styles.sectionLabel, { color: muted }]}>Mates</Text>
+            <Text style={[styles.sectionLabel, { color: muted }]}>Friends</Text>
             <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
               {contactsFinder ? (
                 <Pressable
                   style={(state) => rowStyle(state, true)}
                   onPress={() => setFindMatesOpen(true)}
                   accessibilityRole="button"
-                  accessibilityLabel="Find your mates"
+                  accessibilityLabel="Find friends in your contacts"
                 >
                   <View style={styles.rowCopy}>
-                    <Text style={[styles.rowLabel, { color: text }]}>Find your mates</Text>
+                    <Text style={[styles.rowLabel, { color: text }]}>
+                      Find friends in your contacts
+                    </Text>
                     <Text style={[styles.rowDetail, { color: muted }]}>
                       See who from your contacts is on Mahi
                     </Text>

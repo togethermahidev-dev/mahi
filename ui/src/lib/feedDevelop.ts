@@ -61,5 +61,5 @@ export function developWords({
   viewerId: string;
 }): string | null {
   const tagger = answeredTagger(posts, viewerId);
-  return tagger ? `You answered @${tagger}. Here’s what your mates did.` : null;
+  return tagger ? `You answered @${tagger}. Here’s what your friends did.` : null;
 }

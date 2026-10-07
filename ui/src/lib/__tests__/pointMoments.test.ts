@@ -71,7 +71,7 @@ describe('the point earned moment (#116)', () => {
   });
 
   describe('flightCard: the small card under the counter', () => {
-    it('names the mate who kept you going', () => {
+    it('names the friend who kept you going', () => {
       expect(flightCard({ tagger: 'sam', points: 12, bestBefore: 20 })).toEqual({
         title: '@sam kept you going',
         line: 'You have 12 Mahi points.',
@@ -99,7 +99,7 @@ describe('the point earned moment (#116)', () => {
     });
     it('still works without a name', () => {
       expect(flightCard({ tagger: null, points: 2, bestBefore: 5 }).title).toBe(
-        'A mate kept you going'
+        'A friend kept you going'
       );
     });
   });

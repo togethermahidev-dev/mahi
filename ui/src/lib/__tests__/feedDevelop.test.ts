@@ -11,7 +11,7 @@ const post = (id: string, username: string, extra: Partial<Post> = {}): Post => 
   ...extra,
 });
 
-describe('feed develop (your mates’ posts clear one by one after you answer)', () => {
+describe('feed develop (your friends’ posts clear one by one after you answer)', () => {
   const viewerId = 'u-me';
   const mine = post('mine', 'me', {
     profiles: { id: viewerId, username: 'me' },
@@ -71,9 +71,9 @@ describe('feed develop (your mates’ posts clear one by one after you answer)',
   });
 
   describe('developWords: the words on the first post to clear', () => {
-    it('names the mate you answered', () => {
+    it('names the friend you answered', () => {
       expect(developWords({ posts: [mine, post('a', 'jo')], viewerId })).toBe(
-        'You answered @sam. Here’s what your mates did.'
+        'You answered @sam. Here’s what your friends did.'
       );
     });
     it('says nothing when your newest post answered no tag', () => {

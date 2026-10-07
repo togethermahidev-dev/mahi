@@ -105,16 +105,16 @@ test('links back into the app and to share', () => {
   assert.equal(appPostLink('a b'), 'mahi://p/a%20b');
 });
 
-test('who sent the invite, or a mate when that cannot be read', () => {
+test('who sent the invite, or a friend when that cannot be read', () => {
   assert.equal(
     inviteHeadline({ username: 'sam', display_name: 'Sam', open: true }),
     '@sam invited you to Mahi'
   );
-  assert.equal(inviteHeadline(null), 'A mate invited you to Mahi');
+  assert.equal(inviteHeadline(null), 'A friend invited you to Mahi');
 });
 
 // Usability walkthrough 2026-10-07: a link with a tag behind it says so, and the 48 hours.
-test('a tag link says who tagged you and what to do; a mate link says you will follow each other', () => {
+test('a tag link says who tagged you and what to do; a friend link says you will follow each other', () => {
   const tagged = { username: 'sam', display_name: 'Sam', open: true, tag: true };
   assert.equal(inviteHeadline(tagged), '@sam tagged you on Mahi');
   assert.equal(
@@ -180,7 +180,9 @@ test('the page keeps whether a tag comes with the link', () => {
     { username: 'sam', display_name: 'Sam', open: true, tag: true }
   );
   assert.equal(
-    inviteHeadline(parseInvitePreview({ username: 'sam', display_name: null, open: true, tag: true })),
+    inviteHeadline(
+      parseInvitePreview({ username: 'sam', display_name: null, open: true, tag: true })
+    ),
     '@sam tagged you on Mahi'
   );
   assert.equal(parseInvitePreview({ username: 'sam', open: true }).tag, undefined);

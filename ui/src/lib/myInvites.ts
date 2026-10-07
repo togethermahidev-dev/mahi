@@ -40,7 +40,7 @@ export type MyInvite = {
   /** How it last went out; null for a link from before this was recorded. Missing from an older
    * server, which reads the same as null. Server: 20261007290000_invite_sent_to. */
   sent_via?: InviteVia | null;
-  /** Who it went to, when the app knew (a contact texted from Find your mates). */
+  /** Who it went to, when the app knew (a contact texted from Find friends in your contacts). */
   sent_to_name?: string | null;
   /** Their number, +<country><number>. Only ever handed back to you, the sender. */
   sent_to_phone?: string | null;

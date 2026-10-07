@@ -64,7 +64,7 @@ export function openTagsBanner({
           parts: [
             { text: 'Post your first Mahi to get ' },
             { text: 'your first point', accent: true },
-            { text: ' and tag 3 mates.' },
+            { text: ' and tag 3 friends.' },
           ],
           note: ANY_WORKOUT,
           firstPost: true,
@@ -124,7 +124,7 @@ export function namesList(usernames: string[]): string {
  * The waiting camera while your own tags are running (usability walkthrough, 2026-10-07): "Your
  * mates are on the clock" / "@a, @b and @c have 31:12:00 to answer you." on the soonest clock.
  * `mates` comes from get_mates_on_clock (never kept on the phone). Null when nobody is on the
- * clock: the card keeps "Waiting for a mate to tag you".
+ * clock: the card keeps "Waiting for a friend to tag you".
  */
 export function matesOnClock({
   mates,
@@ -141,7 +141,7 @@ export function matesOnClock({
   const have = sorted.length === 1 ? 'has' : 'have';
   const ms = msLeft(sorted[0].expires_at, serverOffsetMs, deviceNow);
   return {
-    title: 'Your mates are on the clock',
+    title: 'Your friends are on the clock',
     line:
       ms > 0
         ? `${names} ${have} ${clockText(ms)} to answer you.`

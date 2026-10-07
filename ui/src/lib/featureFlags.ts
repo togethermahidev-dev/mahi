@@ -32,7 +32,7 @@ export const FEATURE_FLAGS = [
 
   // Build 13 native features — kill switches, on for everyone (owner, 2026-10-07). Off = the
   // feature hides and the app behaves as before it.
-  'contacts-finder', // Find your mates from the phone's contacts
+  'contacts-finder', // Find friends in your contacts
   'live-activity', // a mate's tag on the lock screen, Dynamic Island and home-screen widget
   'emoji-keyboard', // the emoji button and panel (search, suggestions) in a conversation
   'message-reactions', // hold a message to react, reaction badges, double tap for a heart
@@ -49,8 +49,8 @@ export const FEATURE_FLAGS = [
 
   'share-to-mahi', // share 1–2 photos from Photos to Mahi: they open as the post's shots (off: the share is ignored and deleted)
   'control-post-workout', // Control Centre / lock screen "Post a workout" opens the camera (off: the control reads "Open Mahi" and just opens Mahi)
-  'spotlight', // Spotlight offers Post a workout, Your invites, Find your mates (off: the items are removed from the phone's index)
-  'siri-shortcuts', // "Post a workout in Mahi", "Open my invites in Mahi", "Find my mates in Mahi" (off: they just open Mahi)
+  'spotlight', // Spotlight offers Post a workout, Your invites, Find friends in your contacts (off: the items are removed from the phone's index)
+  'siri-shortcuts', // "Post a workout in Mahi", "Open my invites in Mahi", "Find friends on Mahi" (off: they just open Mahi)
   'shutter-sound', // Apple's shutter sound at the press, in step with the haptic; silent switch respected (off: today's camera sound)
   'widget-background-refresh', // iOS wakes Mahi every 15 min or more to refresh the widget and Live Activity (off: the task is unregistered)
 

@@ -68,7 +68,7 @@ describe('lockExplainer', () => {
   it('never posted: asks for a first workout, and says any workout counts', () => {
     expect(lockExplainer({ ...base, unlockedUntil: null, openTags: [] })).toEqual({
       headline: 'Your feed is locked.',
-      body: 'Post your first Mahi to get your first point and see what your mates are doing. Any workout counts.',
+      body: 'Post your first Mahi to get your first point and see what your friends are doing. Any workout counts.',
       button: 'Post your first Mahi',
       target: 'camera',
     });
@@ -78,7 +78,7 @@ describe('lockExplainer', () => {
     const card = lockExplainer({ ...base, openTags: [] });
     expect(card).toEqual({
       headline: 'Your feed is locked.',
-      body: 'It opens when a mate tags you and you post your answer. More mates means more tags.',
+      body: 'It opens when a friend tags you and you post your answer. More friends means more tags.',
       button: 'Find friends',
       target: 'friends',
     });
@@ -126,9 +126,9 @@ describe('feedCountdown', () => {
 
   it('after the 24 hours but not locked: open until a tag, no clock', () => {
     expect(feedCountdown({ ...base, unlockedUntil: at(-MIN) })).toEqual({
-      label: 'Your feed is open. It will lock when a mate tags you.',
+      label: 'Your feed is open. It will lock when a friend tags you.',
       ms: null,
-      spoken: 'Your feed is open. It will lock when a mate tags you.',
+      spoken: 'Your feed is open. It will lock when a friend tags you.',
     });
   });
 
@@ -199,7 +199,7 @@ describe('lockedPostText', () => {
 
   it('posted before, no open tag: no button, since there is nothing to post yet', () => {
     const text = lockedPostText({ tagged: false, postedBefore: true });
-    expect(text).toEqual({ hint: 'Opens when a mate tags you' });
+    expect(text).toEqual({ hint: 'Opens when a friend tags you' });
     expect(text).not.toHaveProperty('button');
   });
 });

@@ -104,7 +104,7 @@ describe('personAction', () => {
 });
 
 describe('mateInviteMessage', () => {
-  it('invites a mate without promising a tag', () => {
+  it('invites a friend without promising a tag', () => {
     expect(mateInviteMessage('https://togethermahi.com/i/t1')).toBe(
       'Join me on Mahi so we hold each other accountable. We’ll follow each other when you join.\nhttps://togethermahi.com/i/t1'
     );
@@ -112,9 +112,9 @@ describe('mateInviteMessage', () => {
 });
 
 describe('mateInviteErrorText', () => {
-  it('too many waiting: wait for a mate to join (there is nothing to take back)', () => {
+  it('too many waiting: wait for a friend to join (there is nothing to take back)', () => {
     expect(mateInviteErrorText('too many open invites')).toBe(
-      'Too many invites waiting. Try again when a mate joins.'
+      'Too many invites waiting. Try again when someone joins.'
     );
   });
 
@@ -171,7 +171,7 @@ describe('slotErrorText', () => {
     expect(slotErrorText('already invited')).toBe('Tag request already sent.');
     expect(slotErrorText('cannot invite that person')).toBe('You can’t send them a tag request.');
     expect(slotErrorText('that invite is no longer open')).toBe('That link has ended.');
-    expect(slotErrorText('tag your friends first')).toBe('Tag your mates first.');
+    expect(slotErrorText('tag your friends first')).toBe('Tag your friends first.');
     expect(slotErrorText('network down')).toBe('Couldn’t do that. Try again.');
   });
 });
@@ -217,7 +217,7 @@ describe('tagInviteState (the invited person’s side)', () => {
 describe('postRefusal', () => {
   it('no tag to answer: nothing to keep, the post cannot happen', () => {
     expect(postRefusal('reactive posting: not tagged')).toEqual({
-      text: 'Your tag has ended, so this can’t be posted. You can post again when a mate tags you.',
+      text: 'Your tag has ended, so this can’t be posted. You can post again when a friend tags you.',
       keepPhotos: false,
       refused: true,
       report: false,
@@ -226,7 +226,7 @@ describe('postRefusal', () => {
 
   it('friends first: says so, and keeps the photos to post again', () => {
     expect(postRefusal('tag your friends first')).toEqual({
-      text: 'Tag your mates first. A link only fills a tag your mates can’t.',
+      text: 'Tag your friends first. A link only fills a tag your friends can’t.',
       keepPhotos: true,
       refused: true,
       report: false,
@@ -270,29 +270,29 @@ describe('postButtonLabel', () => {
   });
 
   it('says how many friends to tag when none are tagged yet', () => {
-    expect(postButtonLabel(3, false)).toBe('Tag 3 mates to post');
-    expect(postButtonLabel(1, false)).toBe('Tag 1 mate to post');
+    expect(postButtonLabel(3, false)).toBe('Tag 3 friends to post');
+    expect(postButtonLabel(1, false)).toBe('Tag 1 friend to post');
   });
 
   it('says how many more once some are tagged', () => {
-    expect(postButtonLabel(1, true)).toBe('Tag 1 more mate to post');
-    expect(postButtonLabel(2, true)).toBe('Tag 2 more mates to post');
+    expect(postButtonLabel(1, true)).toBe('Tag 1 more friend to post');
+    expect(postButtonLabel(2, true)).toBe('Tag 2 more friends to post');
   });
 });
 
 // Usability walkthrough 2026-10-07: the "are you sure" before posting says what posting does.
 describe('postConfirmText', () => {
-  it('a post that answers nothing: your mates get 48 hours, and the feed opens', () => {
+  it('a post that answers nothing: your friends get 48 hours, and the feed opens', () => {
     expect(postConfirmText({ answering: [], anyTagged: true })).toEqual({
       title: 'Happy with your post?',
-      body: 'Your mates get 48 hours to answer you. Posting opens your feed for 24 hours.',
+      body: 'Your friends get 48 hours to answer you. Posting opens your feed for 24 hours.',
     });
   });
 
   it('answering a tag: names whose, and says it earns a point', () => {
     expect(postConfirmText({ answering: ['sam'], anyTagged: true })).toEqual({
       title: 'Answer @sam?',
-      body: 'This earns a Mahi point. Your mates get 48 hours to answer you.',
+      body: 'This earns a Mahi point. Your friends get 48 hours to answer you.',
     });
     expect(postConfirmText({ answering: ['sam', 'ali'], anyTagged: true }).title).toBe(
       'Answer @sam and 1 more?'

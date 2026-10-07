@@ -72,7 +72,7 @@ interface FindMatesSheetProps {
 }
 
 /**
- * "Find your mates": who in your contacts is on Mahi (follow them), and everyone else (invite them
+ * "Find friends in your contacts": who in your contacts is on Mahi (follow them), and everyone else (invite them
  * by text). Shown only on builds with expo-contacts (build 13+; no switch)
  * (useContactsFinder). Contacts and matches can change, so nothing is kept on the phone: each open
  * asks the phone and the server again, with a loading state first.
@@ -500,7 +500,7 @@ function FindMates({
         numberOfLines={1}
         accessibilityRole="header"
       >
-        Find your mates
+        From your contacts
       </Text>
       {welcome ? (
         <Pressable
@@ -574,11 +574,11 @@ function FindMates({
     body = <ListState kind="loading" dark={dark} />;
   } else if (view === 'ask') {
     body = explainer(
-      'Find your mates',
+      'Find friends in your contacts',
       'See who in your contacts is already on Mahi, and invite the rest by text.',
       'Your contacts stay private. Only scrambled codes of their numbers and emails leave your phone, and Mahi saves nothing.',
       {
-        label: 'Find my mates',
+        label: 'Find friends in your contacts',
         hint: 'Your phone will ask whether Mahi can see your contacts',
         busy: asking,
         onPress: () => void ask(),
@@ -588,7 +588,7 @@ function FindMates({
   } else if (view === 'denied') {
     body = explainer(
       'No problem',
-      'Mahi won’t look at your contacts. You can still send a mate a link.',
+      'Mahi won’t look at your contacts. You can still send a friend a link.',
       null,
       {
         label: 'Invite by link instead',
@@ -631,7 +631,7 @@ function FindMates({
             kind="empty"
             dark={dark}
             title={query ? 'Nobody by that name' : 'No contacts to show'}
-            line={query ? 'Try another name or number.' : 'Send a mate a link instead.'}
+            line={query ? 'Try another name or number.' : 'Send a friend a link instead.'}
             actionLabel={query || linking ? undefined : INVITE_BUTTON}
             onAction={query ? undefined : () => void inviteByLink()}
           />

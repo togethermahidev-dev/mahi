@@ -79,14 +79,14 @@ export function lockExplainer({
   if (unlockedUntil) {
     return {
       headline: 'Your feed is locked.',
-      body: 'It opens when a mate tags you and you post your answer. More mates means more tags.',
+      body: 'It opens when a friend tags you and you post your answer. More friends means more tags.',
       button: 'Find friends',
       target: 'friends',
     };
   }
   return {
     headline: 'Your feed is locked.',
-    body: 'Post your first Mahi to get your first point and see what your mates are doing. Any workout counts.',
+    body: 'Post your first Mahi to get your first point and see what your friends are doing. Any workout counts.',
     button: 'Post your first Mahi',
     target: 'camera',
   };
@@ -104,7 +104,7 @@ export function lockedPostText({
   if (tagged) return { hint: 'Opens when you post your answer', button: 'Post your answer' };
   if (!postedBefore)
     return { hint: 'Post your first Mahi to see it', button: 'Post your first Mahi' };
-  return { hint: 'Opens when a mate tags you' };
+  return { hint: 'Opens when a friend tags you' };
 }
 
 /** A live countdown, "05:12:33": hours, minutes and seconds, two digits each; a part second
@@ -148,7 +148,7 @@ export function feedCountdown({
     };
   }
   if (!left) {
-    const line = 'Your feed is open. It will lock when a mate tags you.';
+    const line = 'Your feed is open. It will lock when a friend tags you.';
     return { label: line, ms: null, spoken: line };
   }
   return {
