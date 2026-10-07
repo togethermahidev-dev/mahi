@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 25 — the camera tells someone posting for the first time whose tag their post
+ *     answers (2026-10-07)
  *   build 12 · 24 — live follow/unfollow, likes and comments; blank names no longer crash; twelve
  *     always-on switches made standard; crash reports and founder analytics (Sentry, PostHog);
  *     a failed profile photo save keeps your photo; sign-up checks if a username is free on the
@@ -49,4 +51,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 24;
+export const OTA_NUMBER = 25;
