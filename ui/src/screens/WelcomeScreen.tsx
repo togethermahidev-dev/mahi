@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, Animated, Dimensions, ScrollView } f
 import { useReducedMotion } from 'react-native-reanimated';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { useAppleSignIn } from '@/hooks/useAppleSignIn';
 import LoginSheet from '@/components/LoginSheet';
 import CreateAccountSheet from '@/components/CreateAccountSheet';
 import { useInviteStore } from '@/store';
@@ -41,9 +42,12 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
 
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
-  // Placeholders until Apple / Google sign-in is built; each pill is hidden by its own flag.
-  const showApple = useFeatureFlag('auth-apple-signin');
+  // Sign in with Apple: Apple's own button, on iPhones with build 13+ while the switch
+  // `auth-apple-signin` is on. Google is still a placeholder pill behind its own switch.
+  const apple = useAppleSignIn();
+  const showApple = apple.shown && apple.sdk != null;
   const showGoogle = useFeatureFlag('auth-google-signin');
+  const red = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
   // Opened from an invite link: say who sent it, once the invite has loaded.
   const invite = welcomeInvite(useInviteStore((s) => s.preview));
 
@@ -147,19 +151,18 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
           ) : null}
           {showApple || showGoogle ? (
             <View style={styles.buttons}>
-              {showApple ? (
-                <Pressable
-                  accessibilityRole="button"
-                  style={({ pressed }) => [
-                    styles.button,
-                    styles.buttonOutline,
-                    { borderColor: sheetText },
-                    pressed && { opacity: ALPHA.a80 },
-                  ]}
-                  onPress={() => {}}
-                >
-                  <Text style={[styles.buttonText, { color: sheetText }]}>Continue with Apple</Text>
-                </Pressable>
+              {showApple && apple.sdk ? (
+                <apple.sdk.AppleAuthenticationButton
+                  buttonType={apple.sdk.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={
+                    dark
+                      ? apple.sdk.AppleAuthenticationButtonStyle.WHITE
+                      : apple.sdk.AppleAuthenticationButtonStyle.BLACK
+                  }
+                  cornerRadius={RADIUS.r28}
+                  style={[styles.appleButton, apple.busy && { opacity: ALPHA.a60 }]}
+                  onPress={() => void apple.signIn()}
+                />
               ) : null}
               {showGoogle ? (
                 <Pressable
@@ -176,6 +179,11 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
                     Continue with Google
                   </Text>
                 </Pressable>
+              ) : null}
+              {apple.error ? (
+                <Text style={[styles.error, { color: red }]} accessibilityLiveRegion="polite">
+                  {apple.error}
+                </Text>
               ) : null}
             </View>
           ) : null}
@@ -243,6 +251,9 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r50,
     alignItems: 'center',
   },
+  // Apple's own button: its size is set here, its colours and words by Apple.
+  appleButton: { width: '72%', height: SIZE.z56, alignSelf: 'center' },
+  error: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.semiBold, textAlign: 'center' },
   buttonOutline: { backgroundColor: 'transparent', borderWidth: BORDER_WIDTH.w1_5 },
   buttonText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
 });

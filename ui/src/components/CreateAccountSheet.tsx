@@ -21,6 +21,8 @@ import { completeSignup } from '@/api/auth';
 import { useFeedStore, useInviteStore, useSignUpStore, useTagStore, useUserStore } from '@/store';
 import { getProfile } from '@/api';
 import { invitePreviewLine, typedInvite } from '@/lib/inviteLink';
+import { appleName } from '@/lib/appleSignIn';
+import { useAuthStore } from '@/store/authStore';
 import {
   getPasswordStrength,
   MIN_PASSWORD_LENGTH,
@@ -65,6 +67,12 @@ interface Props {
   visible: boolean;
   onDismiss: () => void;
   onAuthComplete: () => void;
+  /**
+   * Set for a new Sign in with Apple account (already signed in, no profile yet): the sheet
+   * starts at the details step, skips email, password and code, and saves the profile for this
+   * account. Closing it signs out (the caller does that in onDismiss).
+   */
+  appleUserId?: string;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -72,7 +80,11 @@ export default function CreateAccountSheet({
   visible,
   onDismiss,
   onAuthComplete,
+  appleUserId,
 }: Props): React.JSX.Element {
+  const apple = appleUserId != null;
+  // Apple accounts skip email, password and code: their steps are 3 (details) and 4 (profile).
+  const firstStep = apple ? 3 : 1;
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.white : COLORS.inkDeep;
@@ -83,7 +95,7 @@ export default function CreateAccountSheet({
   const amber = dark ? COLORS.amber : COLORS.amberText;
 
   // ── UI state (local) ───────────────────────────────────────────────────────
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(firstStep);
   // An invite the app was opened with, or one typed in below. Claimed after sign-up.
   const invitePreview = useInviteStore((s) => s.preview);
   const pendingInvite = useInviteStore((s) => s.pendingToken);
@@ -140,6 +152,18 @@ export default function CreateAccountSheet({
     toggleGoal,
     reset: resetForm,
   } = useSignUpStore();
+
+  // Apple account: pre-fill the name Apple gave (kept in the form at sign-in, and on the account
+  // in case the app was closed since). Never overwrites what was typed.
+  const appleMeta = useAuthStore((st) => (apple ? st.user?.user_metadata : undefined));
+  useEffect(() => {
+    if (!apple || !visible) return;
+    const name = appleName(appleMeta);
+    const form = useSignUpStore.getState();
+    if (!form.firstName && name.firstName) form.setField('firstName', name.firstName);
+    if (!form.lastName && name.lastName) form.setField('lastName', name.lastName);
+    if (!form.displayName && name.displayName) form.setField('displayName', name.displayName);
+  }, [apple, visible, appleMeta]);
 
   // ── Step logging ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -223,7 +247,7 @@ export default function CreateAccountSheet({
 
   // ── Reset everything on close ──────────────────────────────────────────────
   const handleDismiss = useCallback(() => {
-    setStep(1);
+    setStep(firstStep);
     setError('');
     setLoading(false);
     setShowPassword(false);
@@ -234,7 +258,7 @@ export default function CreateAccountSheet({
     // The sent-code record is kept, so reopening with the same email goes back to that code.
     resetForm();
     onDismiss();
-  }, [onDismiss, resetForm]);
+  }, [onDismiss, resetForm, firstStep]);
 
   // ── Step handlers ──────────────────────────────────────────────────────────
 
@@ -362,31 +386,38 @@ export default function CreateAccountSheet({
       setError('Select at least one fitness goal.');
       return;
     }
-    if (enteredCode.length < OTP_LENGTH) {
+    if (!apple && enteredCode.length < OTP_LENGTH) {
       setError('Go back and enter the code from your email again.');
       return;
     }
     setError('');
     setLoading(true);
     try {
-      // 1. Create the confirmed auth user server-side. complete-signup only
-      //    does so for a code verify-otp accepted in the last 30 minutes; an
-      //    expired one surfaces here as the thrown error message.
-      await completeSignup(email.trim().toLowerCase(), password, enteredCode);
+      let userId: string;
+      if (appleUserId) {
+        // Signed in with Apple already: only the profile is left to save.
+        userId = appleUserId;
+      } else {
+        // 1. Create the confirmed auth user server-side. complete-signup only
+        //    does so for a code verify-otp accepted in the last 30 minutes; an
+        //    expired one surfaces here as the thrown error message.
+        await completeSignup(email.trim().toLowerCase(), password, enteredCode);
 
-      // 2. Sign in to obtain a session
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-      if (signInError || !signInData.session) {
-        throw new Error(signInError?.message ?? 'Sign in failed.');
+        // 2. Sign in to obtain a session
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+        if (signInError || !signInData.session) {
+          throw new Error(signInError?.message ?? 'Sign in failed.');
+        }
+        userId = signInData.session.user.id;
       }
 
       // 3. Insert profile row (auth.uid() is now set via RLS)
       const dob = `${dobYYYY}-${dobMM.padStart(2, '0')}-${dobDD.padStart(2, '0')}`;
       const { error: profileError } = await supabase.from('profiles').insert({
-        id: signInData.session.user.id,
+        id: userId,
         username: username.trim().toLowerCase(),
         display_name: displayName.trim() || null,
         first_name: firstName.trim(),
@@ -400,9 +431,7 @@ export default function CreateAccountSheet({
 
       // Signing in (step 2) already started loading the profile, before it existed. Load it again
       // now it's saved, so the camera and the invite claim (which waits for it) can go ahead.
-      const { data: savedProfile, error: reloadError } = await getProfile(
-        signInData.session.user.id
-      );
+      const { data: savedProfile, error: reloadError } = await getProfile(userId);
       if (reloadError) {
         reportError(reloadError, { flow: 'signup', action: 'reloadProfile' });
       } else if (savedProfile) {
@@ -418,10 +447,13 @@ export default function CreateAccountSheet({
         username: username.trim().toLowerCase(),
         fitness_goals: fitnessGoals,
         joined_via: joinedVia,
+        method: apple ? 'apple' : 'email',
         $set_once: { joined_via: joinedVia },
       });
       Sentry.addBreadcrumb({ category: 'signup', message: 'Account created', level: 'info' });
-      await clearOTP(); // the code is spent
+      // Email: the code is spent. Apple: the form held this account's details, so it's cleared.
+      if (apple) resetForm();
+      else await clearOTP();
 
       // 5. onAuthStateChange in App.tsx fires from signInWithPassword above,
       //    switching to CameraScreen. onAuthComplete triggers the exit animation.
@@ -477,7 +509,7 @@ export default function CreateAccountSheet({
       <SafeAreaView style={[styles.root, { backgroundColor: bg }]}>
         {/* Progress dots */}
         <View style={styles.dots}>
-          {[1, 2, 3, 4].map((n) => (
+          {(apple ? [3, 4] : [1, 2, 3, 4]).map((n) => (
             <View
               key={n}
               style={[styles.dot, { backgroundColor: text, opacity: step === n ? 1 : ALPHA.a20 }]}
@@ -738,6 +770,18 @@ export default function CreateAccountSheet({
             <View style={styles.step}>
               <Text style={[styles.title, { color: text }]}>Getting started</Text>
 
+              {/* Apple accounts skip step 1, so the invite is said here instead. */}
+              {apple && invitePreview ? (
+                <View style={[styles.inviteCard, { backgroundColor: inputBg }]}>
+                  <Text style={[styles.inviteWho, { color: text }]}>
+                    @{invitePreview.username} invited you
+                  </Text>
+                  <Text style={[styles.inviteWhat, { color: muted }]}>
+                    {invitePreviewLine(invitePreview)}
+                  </Text>
+                </View>
+              ) : null}
+
               <Text style={[styles.label, { color: muted }]}>First name</Text>
               <TextInput
                 style={[
@@ -938,7 +982,7 @@ export default function CreateAccountSheet({
 
           {/* Navigation */}
           <View style={styles.navRow}>
-            {step > 1 && (
+            {(step > firstStep || apple) && (
               <Pressable
                 style={({ pressed }) => [
                   styles.navBtn,
@@ -948,13 +992,17 @@ export default function CreateAccountSheet({
                 ]}
                 onPress={() => {
                   setError('');
-                  setStep((s) => s - 1);
+                  // An Apple account's first step has Cancel instead: it signs out.
+                  if (step === firstStep) handleDismiss();
+                  else setStep((s) => s - 1);
                 }}
                 disabled={loading}
                 accessibilityRole="button"
                 accessibilityState={{ disabled: loading }}
               >
-                <Text style={[styles.navBtnText, { color: text }]}>Back</Text>
+                <Text style={[styles.navBtnText, { color: text }]}>
+                  {step === firstStep ? 'Cancel' : 'Back'}
+                </Text>
               </Pressable>
             )}
             <Pressable

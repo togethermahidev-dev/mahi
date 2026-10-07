@@ -46,9 +46,9 @@ export const FEATURE_FLAGS = [
   'profile-points-card', // the profile's bar fills, numbers roll, and the last three mates answered
   'widget-tagger-photo', // the tagger's photo on the widget and Live Activity
 
-  // Sign-in placeholders — pills on the welcome screen with nothing behind them yet.
-  'auth-apple-signin',
-  'auth-google-signin',
+  // Sign-in
+  'auth-apple-signin', // Sign in with Apple on the welcome screen; build 13+ iPhones only (default ON, kill switch)
+  'auth-google-signin', // placeholder pill with nothing behind it yet
 ] as const;
 
 /** A known PostHog feature flag key. */

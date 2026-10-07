@@ -31,6 +31,8 @@ const config = {
       },
     ],
     '@react-native-community/datetimepicker',
+    // Sign in with Apple (build 13+; src/lib/appleAuthModule.ts). Adds the capability.
+    'expo-apple-authentication',
     ['expo-notifications', { color: ACCENT, defaultChannel: 'default' }],
     // A mate's tag on the lock screen and Dynamic Island (Live Activity) and a home-screen widget
     // (build 13+; src/widgets/liveTagWidgets.tsx). Adds the widget extension target, the App Group
@@ -106,6 +108,8 @@ const config = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.mahi.app',
+    // Sign in with Apple entitlement (EAS turns the capability on for com.mahi.app).
+    usesAppleSignIn: true,
     // One build number for every lane (eas.json appVersionSource "local"). Moved only by
     // `pnpm release:prepare`, never by hand or by EAS.
     buildNumber: '12',

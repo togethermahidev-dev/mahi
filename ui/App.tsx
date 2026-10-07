@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { AppState, LogBox, Platform } from 'react-native';
+import { ActivityIndicator, AppState, LogBox, Platform, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 // Suppress known harmless development warnings
@@ -51,6 +51,8 @@ import { APP_BUILD, APP_VERSION } from '@/lib/appBuild';
 import UpdateRequiredScreen from '@/components/UpdateRequiredScreen';
 import AccountStanding from '@/components/AccountStanding';
 import WelcomeCards from '@/components/WelcomeCards';
+import CreateAccountSheet from '@/components/CreateAccountSheet';
+import { isAppleUser, profileStep, type ProfileStatus } from '@/lib/appleSignIn';
 import FindMatesStep from '@/components/FindMatesStep';
 import MissMoment from '@/components/MissMoment';
 import PushPrimer from '@/components/PushPrimer';
@@ -99,10 +101,15 @@ function syncTimezone(userId: string, current: string): void {
  * guards against duplicate/concurrent work, so calling this twice on cold start
  * (getSession + INITIAL_SESSION event) is safe.
  */
-async function hydrateForUser(userId: string): Promise<void> {
+async function hydrateForUser(
+  userId: string,
+  onProfile: (status: ProfileStatus) => void
+): Promise<void> {
   try {
     const { data, error } = await getProfile(userId);
     if (error) reportError(error, { flow: 'auth', action: 'getProfile', extra: { userId } });
+    // A new Apple account has no profile row yet; App then shows the profile steps.
+    onProfile(error ? 'error' : data ? 'present' : 'missing');
     if (data) {
       if (data.is_banned) {
         signOut()
@@ -118,6 +125,7 @@ async function hydrateForUser(userId: string): Promise<void> {
   } catch (err) {
     // Never let the profile fetch reject silently (e.g. revoked/expired session).
     console.error('[App] hydrateForUser getProfile failed', err);
+    onProfile('error');
     reportError(err, { flow: 'auth', action: 'getProfile', extra: { userId } });
   }
 
@@ -148,6 +156,10 @@ export default function App(): React.JSX.Element {
   });
 
   const { session, isLoading, setSession, setIsLoading } = useAuthStore();
+  // What the first profile read found: a new Apple account (no profile yet) goes through the
+  // profile steps before the app.
+  const [profileStatus, setProfileStatus] = useState<ProfileStatus>('loading');
+  const profileId = useUserStore((s) => s.profile?.id);
 
   // Invite links: one that opened the app, one that arrives while it's running, and the
   // claim once there's an account to claim it for.
@@ -156,7 +168,7 @@ export default function App(): React.JSX.Element {
   // ended and cleared on sign-out.
   useLiveTag();
   const [blockingGate, setBlockingGate] = useState<AppGate | null>(null);
-  const { colorScheme } = useAppTheme();
+  const { colorScheme, colors } = useAppTheme();
 
   // Restore persisted session on cold start + handle all auth events (sign in,
   // sign out, token refresh). autoRefreshToken + persistSession are already
@@ -172,7 +184,7 @@ export default function App(): React.JSX.Element {
       setSession(s);
       setIsLoading(false);
       // Load the profile and hydrate stores on cold-start restore
-      if (s?.user) hydrateForUser(s.user.id);
+      if (s?.user) hydrateForUser(s.user.id, setProfileStatus);
     });
 
     const {
@@ -182,7 +194,7 @@ export default function App(): React.JSX.Element {
       setIsLoading(false);
 
       if (s?.user) {
-        hydrateForUser(s.user.id);
+        hydrateForUser(s.user.id, setProfileStatus);
         Sentry.setUser({ id: s.user.id, email: s.user.email });
         void syncAnalyticsIdentity(s.user);
         // Re-evaluate feature flags for the now-identified user.
@@ -192,6 +204,7 @@ export default function App(): React.JSX.Element {
             reportError(err, { flow: 'flags', action: 'reloadFeatureFlags', level: 'warning' })
           );
       } else {
+        setProfileStatus('loading');
         useUserStore.getState().reset();
         useFeedStore.getState().reset();
         useMessagesStore.getState().reset();
@@ -263,6 +276,14 @@ export default function App(): React.JSX.Element {
       .finally(() => setSplashDone(true));
   }, []);
 
+  const appleStep = session
+    ? profileStep({
+        apple: isAppleUser(session.user),
+        status: profileStatus,
+        hasProfile: profileId === session.user.id,
+      })
+    : 'app';
+
   let content: React.JSX.Element;
 
   // Keep the custom splash on screen while fonts load or session is restoring
@@ -280,6 +301,37 @@ export default function App(): React.JSX.Element {
           minimum={blockingGate.min_version}
           storeUrl={blockingGate.store_url}
           message={blockingGate.message}
+        />
+        <StatusBar style="auto" />
+      </>
+    );
+  } else if (session && appleStep === 'wait') {
+    // A signed-in Apple account while its profile loads: a plain wait, never the camera first.
+    content = (
+      <>
+        <View style={{ flex: 1, justifyContent: 'center', backgroundColor: colors.bg }}>
+          <ActivityIndicator color={colors.muted} />
+        </View>
+        <StatusBar style="auto" />
+      </>
+    );
+  } else if (session && appleStep === 'profile') {
+    // A new Apple account: the same profile steps as an email sign-up (details, then username
+    // and goals), pre-filled with Apple's name. Cancel signs out, back to the welcome screen.
+    content = (
+      <>
+        <View style={{ flex: 1, backgroundColor: colors.bg }} />
+        <CreateAccountSheet
+          visible
+          appleUserId={session.user.id}
+          onDismiss={() => {
+            signOut()
+              .then(({ error }) => {
+                if (error) reportError(error, { flow: 'signup', action: 'appleCancelSignOut' });
+              })
+              .catch((err) => reportError(err, { flow: 'signup', action: 'appleCancelSignOut' }));
+          }}
+          onAuthComplete={() => {}}
         />
         <StatusBar style="auto" />
       </>
