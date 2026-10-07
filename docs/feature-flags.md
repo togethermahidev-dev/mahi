@@ -166,6 +166,11 @@ don't have the native parts, so the switches do nothing there.
 - `control-post-workout`: "Post a workout" in Control Centre, on the lock screen or on the Action button
   (iOS 18+). On: a tap opens Mahi on the camera. Off: the app writes the switch to the App Group, the
   button then reads "Open Mahi", and a tap just opens Mahi where it was.
+- `spotlight`: Spotlight offers "Post a workout", "Your invites" and "Find your mates" (the app's own
+  actions; nothing about the person is indexed). On: the app puts them in the phone's index at launch; a
+  tap opens the camera, or the invites list / Find your mates over the Camera page. Off: the app takes
+  them out of the index at its next launch; a tap on one still showing just opens Mahi.
+  `mahi://invites` and `mahi://find-mates` also work as plain links, with no switch.
 
 ## Removed from code 2026-10-07
 

@@ -15,6 +15,12 @@ export interface AppleExtrasNative {
   setSwitches(values: Record<string, boolean>): void;
   /** The link an intent left in the App Group, once, or null. */
   takePendingLink(): string | null;
+  /** Puts Mahi's own actions in Spotlight (replacing any there before). */
+  setSpotlightActions(
+    actions: readonly { link: string; title: string; detail: string; keywords: string[] }[]
+  ): Promise<void>;
+  /** Takes Mahi's actions out of Spotlight. */
+  clearSpotlightActions(): Promise<void>;
   /** An intent just left a link. */
   addListener(event: 'onPendingLink', listener: () => void): { remove(): void };
 }

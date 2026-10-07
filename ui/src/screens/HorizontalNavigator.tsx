@@ -34,6 +34,7 @@ import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
 import { useSharedPhotos } from '@/hooks/useSharedPhotos';
 import { useAppActions } from '@/hooks/useAppActions';
+import { useCameraRequestStore, type CameraRequest } from '@/store/cameraRequestStore';
 import PostViewer from '@/components/PostViewer';
 import CoachMarkHost from '@/components/CoachMark';
 import { useCoachBlock, useOpenTagReminder } from '@/hooks/useCoachMarks';
@@ -282,13 +283,18 @@ export default function HorizontalNavigator({
     setProfileUserId(null);
     navigate(CAMERA);
   });
-  // The iPhone extras (Control Centre button): each opens its page if its switch is on.
+  // The iPhone extras (Control Centre button, Spotlight): each opens its page if its switch is
+  // on. Your invites and Find your mates open over the Camera page, where they live.
+  const toCamera = (request?: CameraRequest) => {
+    setNotifOpen(false);
+    setProfileUserId(null);
+    navigate(CAMERA);
+    if (request) useCameraRequestStore.getState().ask(request);
+  };
   useAppActions({
-    openCamera: () => {
-      setNotifOpen(false);
-      setProfileUserId(null);
-      navigate(CAMERA);
-    },
+    camera: () => toCamera(),
+    invites: () => toCamera({ kind: 'invites' }),
+    'find-mates': () => toCamera({ kind: 'find-mates' }),
   });
 
   // The lists' scrolling as gestures, so a sideways swipe on them still moves the pages: a

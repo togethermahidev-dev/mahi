@@ -1,6 +1,7 @@
 /**
  * Mahi's own actions from outside the app (build 13+): the Control Centre / lock screen button
- * "Post a workout" (switch `control-post-workout`).
+ * "Post a workout" (switch `control-post-workout`) and Spotlight's items (switch `spotlight`).
+ * `mahi://invites` and `mahi://find-mates` also work as plain links.
  *
  * The Swift side (ui/targets/controls/_shared/MahiIntents.swift) can't open a screen itself: it
  * leaves a link such as `mahi://camera?from=control` in the shared App Group and opens Mahi; the
@@ -23,20 +24,53 @@ export function switchKey(flag: FeatureFlag): string {
   return `switch.${flag}`;
 }
 
-export type AppAction = 'camera';
+/** The camera, the invites list, or "Find your mates" (both open over the Camera page). */
+export type AppAction = 'camera' | 'invites' | 'find-mates';
 
 /** Who asked: an ordinary link, or one of the build 13 extras (each with its own switch). */
-export type AppActionSource = 'link' | 'control';
+export type AppActionSource = 'link' | 'control' | 'spotlight';
 
 /** The switch each extra answers to. */
 const SOURCE_SWITCH: Record<Exclude<AppActionSource, 'link'>, FeatureFlag> = {
   control: 'control-post-workout',
+  spotlight: 'spotlight',
 };
 
-/** The switches the Swift side reads from the App Group. */
-export const APP_GROUP_SWITCHES: readonly FeatureFlag[] = Object.values(SOURCE_SWITCH);
+/** The switches the Swift side reads from the App Group (Spotlight's is acted on by the app). */
+export const APP_GROUP_SWITCHES: readonly FeatureFlag[] = ['control-post-workout'];
 
-const ACTION_LINK = /^mahi:\/\/\/?(camera)\/?(?:\?([^#]*))?(?:#.*)?$/i;
+/**
+ * What Spotlight offers when someone searches for Mahi (switch `spotlight`): the app's own
+ * actions only, nothing about the person. Indexed on the phone by src/hooks/useAppleExtras.ts,
+ * removed when the switch is off. A tap opens Mahi with the link (MahiSpotlightAppDelegateSubscriber).
+ */
+export const SPOTLIGHT_ACTIONS: readonly {
+  link: string;
+  title: string;
+  detail: string;
+  keywords: string[];
+}[] = [
+  {
+    link: 'mahi://camera?from=spotlight',
+    title: 'Post a workout',
+    detail: 'Open the camera in Mahi',
+    keywords: ['workout', 'post', 'camera', 'gym', 'mahi'],
+  },
+  {
+    link: 'mahi://invites?from=spotlight',
+    title: 'Your invites',
+    detail: 'See the links you sent and who joined',
+    keywords: ['invites', 'invite', 'links', 'mahi'],
+  },
+  {
+    link: 'mahi://find-mates?from=spotlight',
+    title: 'Find your mates',
+    detail: 'See who from your contacts is on Mahi',
+    keywords: ['mates', 'friends', 'contacts', 'find', 'mahi'],
+  },
+];
+
+const ACTION_LINK = /^mahi:\/\/\/?(camera|invites|find-mates)\/?(?:\?([^#]*))?(?:#.*)?$/i;
 
 /** The action a link asks for, and who asked; null for any other link. */
 export function parseAppAction(

@@ -3,9 +3,11 @@ import type { SharedPhoto } from '@/lib/sharedPhoto';
 
 /**
  * Something from outside the app for the Camera page to do once it shows: photos shared from
- * Photos (switch `share-to-mahi`). In memory only; the Camera page takes it (and so clears it).
+ * Photos (switch `share-to-mahi`), or Your invites / Find your mates from Spotlight (switch
+ * `spotlight`). In memory only; the Camera page takes it (and so clears it).
  */
-export type CameraRequest = { kind: 'shared-photos'; photos: SharedPhoto[] };
+export type CameraRequest =
+  { kind: 'shared-photos'; photos: SharedPhoto[] } | { kind: 'invites' } | { kind: 'find-mates' };
 
 interface CameraRequestState {
   request: CameraRequest | null;

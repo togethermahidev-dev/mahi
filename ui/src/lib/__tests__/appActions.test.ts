@@ -4,6 +4,7 @@ import {
   APP_GROUP,
   APP_GROUP_SWITCHES,
   PENDING_LINK_KEY,
+  SPOTLIGHT_ACTIONS,
   appActionToRun,
   appGroupSwitchValues,
   parseAppAction,
@@ -57,6 +58,47 @@ describe('appActionToRun', () => {
 
   it('never gates a plain link', () => {
     expect(appActionToRun('mahi://camera', allOff)).toBe('camera');
+  });
+});
+
+describe('Spotlight (switch spotlight)', () => {
+  it('offers the app’s own three actions, and nothing about the person', () => {
+    expect(SPOTLIGHT_ACTIONS.map((a) => a.title)).toEqual([
+      'Post a workout',
+      'Your invites',
+      'Find your mates',
+    ]);
+    for (const a of SPOTLIGHT_ACTIONS) {
+      expect(a.link).toMatch(/^mahi:\/\/[a-z-]+\?from=spotlight$/);
+      expect(a.title).not.toMatch(/@/);
+    }
+  });
+
+  it('each one opens what it says', () => {
+    expect(SPOTLIGHT_ACTIONS.map((a) => appActionToRun(a.link, allOn))).toEqual([
+      'camera',
+      'invites',
+      'find-mates',
+    ]);
+  });
+
+  it('with the switch off, a tapped item just opens Mahi', () => {
+    for (const a of SPOTLIGHT_ACTIONS) {
+      expect(appActionToRun(a.link, allOff)).toBeNull();
+      expect(appActionToRun(a.link, only('spotlight'))).not.toBeNull();
+    }
+  });
+
+  it('invites and find your mates are plain links too', () => {
+    expect(parseAppAction('mahi://invites')).toEqual({ action: 'invites', source: 'link' });
+    expect(parseAppAction('mahi://find-mates')).toEqual({ action: 'find-mates', source: 'link' });
+    expect(appActionToRun('mahi://find-mates', allOff)).toBe('find-mates');
+  });
+
+  it('the Spotlight handler in Swift keeps only Mahi’s own links', () => {
+    const swift = read('modules/mahi-apple-extras/ios/MahiSpotlightAppDelegateSubscriber.swift');
+    expect(swift).toContain('CSSearchableItemActionType');
+    expect(swift).toContain('"mahi://"');
   });
 });
 

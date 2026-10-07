@@ -1,6 +1,16 @@
+import CoreSpotlight
 import ExpoModulesCore
 import Foundation
+import UniformTypeIdentifiers
 import WidgetKit
+
+/// One of Mahi's own actions for Spotlight (ui/src/lib/appActions.ts SPOTLIGHT_ACTIONS).
+struct SpotlightAction: Record {
+  @Field var link: String = ""
+  @Field var title: String = ""
+  @Field var detail: String = ""
+  @Field var keywords: [String] = []
+}
 
 /// What Mahi's iPhone extras share with the app through the App Group `group.com.mahi.app`
 /// (build 13+). The names match ui/src/lib/appActions.ts (its test checks them).
@@ -16,7 +26,22 @@ public class MahiAppleExtrasModule: Module {
   static let switchPrefix = "switch."
   static let pendingLinkNotification = "com.mahi.app.pendingLink" as CFString
 
+  static let spotlightDomain = "com.mahi.app.actions"
+
   private var observing = false
+
+  /// Leaves a link for the app to take and tells it (the Spotlight handler uses this; the
+  /// intents in ui/targets/controls/_shared do the same in their own code).
+  static func leavePendingLink(_ link: String) {
+    UserDefaults(suiteName: appGroup)?.set(link, forKey: pendingLinkKey)
+    CFNotificationCenterPostNotification(
+      CFNotificationCenterGetDarwinNotifyCenter(),
+      CFNotificationName(pendingLinkNotification),
+      nil,
+      nil,
+      true
+    )
+  }
 
   public func definition() -> ModuleDefinition {
     Name("MahiAppleExtras")
@@ -41,6 +66,42 @@ public class MahiAppleExtrasModule: Module {
       else { return nil }
       defaults.removeObject(forKey: Self.pendingLinkKey)
       return link
+    }
+
+    // Spotlight (switch `spotlight`): Mahi's own actions, each found by its title and keywords.
+    // The identifier is the link a tap opens. Nothing about the person is indexed.
+    AsyncFunction("setSpotlightActions") { (actions: [SpotlightAction], promise: Promise) in
+      let items = actions.map { action -> CSSearchableItem in
+        let attributes = CSSearchableItemAttributeSet(contentType: .content)
+        attributes.title = action.title
+        attributes.contentDescription = action.detail
+        attributes.keywords = action.keywords
+        return CSSearchableItem(
+          uniqueIdentifier: action.link,
+          domainIdentifier: Self.spotlightDomain,
+          attributeSet: attributes
+        )
+      }
+      // Replace, so an item dropped from the list never lingers.
+      CSSearchableIndex.default().deleteSearchableItems(withDomainIdentifiers: [Self.spotlightDomain]) { _ in
+        CSSearchableIndex.default().indexSearchableItems(items) { error in
+          if let error {
+            promise.reject("ERR_SPOTLIGHT", error.localizedDescription)
+          } else {
+            promise.resolve(nil)
+          }
+        }
+      }
+    }
+
+    AsyncFunction("clearSpotlightActions") { (promise: Promise) in
+      CSSearchableIndex.default().deleteSearchableItems(withDomainIdentifiers: [Self.spotlightDomain]) { error in
+        if let error {
+          promise.reject("ERR_SPOTLIGHT", error.localizedDescription)
+        } else {
+          promise.resolve(nil)
+        }
+      }
     }
 
     OnStartObserving("onPendingLink") {

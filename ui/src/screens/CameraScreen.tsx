@@ -2602,11 +2602,19 @@ export default function CameraScreen({
   // Photos shared from Photos (switch `share-to-mahi`, src/hooks/useSharedPhotos.ts) become the
   // shots: two fill the preview; one is the first shot and the selfie side takes the second. Same
   // posting rules as the shutter. The share extension's copies are deleted once read.
+  // Spotlight's Your invites / Find your mates (switch `spotlight`) open their sheets here.
   const cameraRequest = useCameraRequestStore((s) => s.request);
   useEffect(() => {
-    if (!cameraRequest || gate === 'loading') return;
+    if (!cameraRequest) return;
+    if (cameraRequest.kind !== 'shared-photos') {
+      useCameraRequestStore.getState().take();
+      if (cameraRequest.kind === 'invites') setInvitesOpen(true);
+      else if (contactsFinder) setFindMatesOpen(true);
+      return;
+    }
+    if (gate === 'loading') return;
     const request = useCameraRequestStore.getState().take();
-    if (!request) return;
+    if (request?.kind !== 'shared-photos') return;
     const uris = request.photos.map((p) => p.uri);
     if (gate !== 'open' || captureState !== 'idle' || hasPreview || isUploading) {
       deleteSharedFiles(uris);

@@ -1,19 +1,18 @@
 import { useEffect, useRef } from 'react';
-import { AppState } from 'react-native';
-import { appActionToRun } from '@/lib/appActions';
+import { AppState, Linking } from 'react-native';
+import { appActionToRun, type AppAction } from '@/lib/appActions';
 import { loadAppleExtras } from '@/lib/appleExtrasModule';
 import { isFlagOn } from '@/hooks/useFeatureFlag';
 import { reportError } from '@/lib/sentry';
 
-export interface AppActionRoutes {
-  openCamera: () => void;
-}
+export type AppActionRoutes = Record<AppAction, () => void>;
 
 /**
- * Runs what Mahi's iPhone extras asked for (build 13+): the Control Centre / lock screen button
- * leaves a link in the App Group and opens Mahi; this takes it when Mahi opens or comes back, or
- * at once when the intent says so, and runs it if that extra's switch is on (src/lib/appActions.ts).
- * Does nothing on builds without the module. Mounted once, beside the push routing.
+ * Runs what Mahi's iPhone extras asked for (build 13+): the Control Centre button and Spotlight's
+ * items leave a link in the App Group and open Mahi; this takes it when Mahi opens or comes back,
+ * or at once when told, and runs it if that extra's switch is on (src/lib/appActions.ts). Also the
+ * plain links `mahi://invites` and `mahi://find-mates` (`mahi://camera` is usePushRouting's).
+ * Mounted once, beside the push routing.
  */
 export function useAppActions(routes: AppActionRoutes): void {
   const routesRef = useRef(routes);
@@ -22,8 +21,22 @@ export function useAppActions(routes: AppActionRoutes): void {
   });
 
   useEffect(() => {
+    const run = (link: string | null) => {
+      const action = appActionToRun(link, isFlagOn);
+      if (action) routesRef.current[action]();
+    };
+
+    // Plain links (not the camera: the push routing opens that one already).
+    const opened = (url: string | null) => {
+      if (appActionToRun(url, isFlagOn) !== 'camera') run(url);
+    };
+    Linking.getInitialURL()
+      .then(opened)
+      .catch(() => {});
+    const linked = Linking.addEventListener('url', ({ url }) => opened(url));
+
     const extras = loadAppleExtras();
-    if (!extras) return;
+    if (!extras) return () => linked.remove();
     const takePending = () => {
       let link: string | null = null;
       try {
@@ -31,8 +44,7 @@ export function useAppActions(routes: AppActionRoutes): void {
       } catch (err) {
         reportError(err, { flow: 'startup', action: 'takePendingLink', level: 'warning' });
       }
-      const action = appActionToRun(link, isFlagOn);
-      if (action === 'camera') routesRef.current.openCamera();
+      run(link);
     };
     takePending();
     const left = extras.addListener('onPendingLink', takePending);
@@ -40,6 +52,7 @@ export function useAppActions(routes: AppActionRoutes): void {
       if (state === 'active') takePending();
     });
     return () => {
+      linked.remove();
       left.remove();
       foreground.remove();
     };
