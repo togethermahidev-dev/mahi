@@ -78,7 +78,7 @@ type FeedItem = {
   liked_by_me: boolean;
   tagged_users: TaggedUser[];
   response: { tagger_username: string; seconds: number } | null;
-  /** Absent from servers before 20261007230000_answer_timing. */
+  /** Absent from servers before 20261007250000_answer_timing. */
   answered?: AnswerTiming | null;
   first_post?: boolean;
   profile: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;

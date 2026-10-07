@@ -1,7 +1,11 @@
--- Undo 20261007230000_answer_timing: feed and profile posts lose answered and first_post.
--- feed_item goes back to 20261006100000_moderation's body (production's before this change).
--- Apps that read the two fields treat them as missing and show no on-time line.
-begin;
+-- On-time markers (owner, 2026-10-07): a post that answered a tag says "Answered @sam in 2h" or
+-- "…with 20 min to spare", and a first ever post says "First Mahi". Every feed and profile post
+-- (get_feed and get_user_posts both build them with feed_item) gains two fields:
+--   answered   {tagger_username, seconds_taken, seconds_to_spare} for the oldest tag the post
+--              answered, else null;
+--   first_post true when no earlier post by the same person exists.
+-- Everything else in feed_item is unchanged from production (20261006100000_moderation's body,
+-- checked against prod 2026-10-07). Rollback: supabase/rollbacks/20261007250000_answer_timing.rollback.sql
 
 create or replace function public.feed_item(p public.posts, p_viewer uuid, p_hide boolean)
 returns jsonb
@@ -49,6 +53,24 @@ as $$
       order by c.created_at
       limit 1
     ),
+    'answered', (
+      select jsonb_build_object(
+               'tagger_username', t.username,
+               'seconds_taken',
+                 greatest(0, extract(epoch from coalesce(c.answered_at, p.created_at) - c.created_at))::int,
+               'seconds_to_spare',
+                 greatest(0, extract(epoch from c.expires_at - coalesce(c.answered_at, p.created_at)))::int)
+      from public.tag_challenges c
+      join public.profiles t on t.id = c.tagger_id
+      where c.answered_post_id = p.id
+      order by c.created_at
+      limit 1
+    ),
+    'first_post', not exists (
+      select 1 from public.posts e
+      where e.user_id = p.user_id
+        and (e.created_at, e.id) < (p.created_at, p.id)
+    ),
     'profile', (
       select jsonb_build_object(
                'id', pr.id, 'username', pr.username,
@@ -59,5 +81,3 @@ as $$
     )
   );
 $$;
-
-commit;

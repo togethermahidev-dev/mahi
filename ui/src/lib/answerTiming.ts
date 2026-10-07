@@ -2,7 +2,7 @@
  * The on-time line under a poster's name (owner, 2026-10-07: BeReal's "late", made positive):
  * "Answered @sam in 2h", "Answered @sam with 20 min to spare" in the last hour, and "First Mahi"
  * for a first ever post that answered no one. Read from the server's `answered` / `first_post`
- * (20261007230000_answer_timing); before that is live, the older `response` still names the mate
+ * (20261007250000_answer_timing); before that is live, the older `response` still names the mate
  * and the time taken.
  *
  * Pure and import-free so it runs under the node-only jest harness.
