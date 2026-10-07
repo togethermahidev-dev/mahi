@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getSuggestedFollows as apiGetSuggestedFollows, type SuggestedUser } from '@/api';
+import { reportError } from '@/lib/sentry';
 import { useFollowStore } from './followStore';
 
 interface SuggestState {
@@ -35,7 +36,14 @@ export const useSuggestStore = create<SuggestState>((set, get) => ({
     const { data, error } = await apiGetSuggestedFollows(currentUserId);
 
     if (error || !data) {
-      if (error) console.log('[suggestStore] loadSuggestions error |', error.message);
+      if (error) {
+        console.log('[suggestStore] loadSuggestions error |', error.message);
+        reportError(error, {
+          flow: 'follows',
+          action: 'loadSuggestions',
+          extra: { rpc: 'get_suggested_follows' },
+        });
+      }
       set({ isSyncing: false, loaded: true });
       return;
     }

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getUserPosts, type FeedPost, type ProfilePostCursor } from '@/api';
+import { reportError } from '@/lib/sentry';
 
 // A profile grid loads four workouts at a time: enough to complete two rows without over-fetching.
 const PAGE_SIZE = 4;
@@ -89,6 +90,11 @@ export const useProfilePostsStore = create<ProfilePostsState>((set, get) => ({
       set({ posts: data, cursor, hasMore, lastSyncedAt: Date.now() });
     } else if (error) {
       console.log(`[profilePostsStore] sync error userId=${userId}`, error);
+      reportError(error, {
+        flow: 'profile',
+        action: 'loadPosts',
+        extra: { userId, rpc: 'get_user_posts' },
+      });
     }
     set({ isSyncing: false });
   },
@@ -108,6 +114,12 @@ export const useProfilePostsStore = create<ProfilePostsState>((set, get) => ({
         posts: [...posts, ...data],
         cursor: data.length ? { ts: data.at(-1)!.created_at, id: data.at(-1)!.id } : cursor,
         hasMore: data.length === PAGE_SIZE,
+      });
+    } else if (error) {
+      reportError(error, {
+        flow: 'profile',
+        action: 'loadMorePosts',
+        extra: { userId, loaded: posts.length, rpc: 'get_user_posts' },
       });
     }
     set({ isSyncing: false });

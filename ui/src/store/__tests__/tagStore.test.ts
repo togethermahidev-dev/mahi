@@ -7,8 +7,10 @@ jest.mock('@/api', () => ({
   getTagRules: jest.fn(),
   getTaggableFriends: jest.fn(),
 }));
+jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 
 import { getOpenTags } from '@/api';
+import { reportError } from '@/lib/sentry';
 import { useTagStore } from '@/store/tagStore';
 
 const mockGetOpenTags = getOpenTags as jest.Mock;
@@ -16,6 +18,7 @@ const mockGetOpenTags = getOpenTags as jest.Mock;
 beforeEach(() => {
   useTagStore.getState().reset();
   mockGetOpenTags.mockReset();
+  (reportError as jest.Mock).mockClear();
 });
 
 describe('openTagsLoaded', () => {
@@ -45,6 +48,16 @@ describe('openTagsError', () => {
     mockGetOpenTags.mockResolvedValue({ data: null, error: new Error('offline') });
     await useTagStore.getState().syncOpenTags();
     expect(useTagStore.getState().openTagsError).toBe(true);
+  });
+
+  it('reports the failed read to Sentry', async () => {
+    const error = new Error('offline');
+    mockGetOpenTags.mockResolvedValue({ data: null, error });
+    await useTagStore.getState().syncOpenTags();
+    expect(reportError).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({ flow: 'tags', action: 'syncOpenTags' })
+    );
   });
 
   it('clears once a read lands', async () => {

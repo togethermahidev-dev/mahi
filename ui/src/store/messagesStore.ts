@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import { reportError } from '@/lib/sentry';
 import {
   getInbox,
   getRequests,
@@ -59,6 +60,11 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     set({ isSyncing: true });
 
     const [inboxResult, requestsResult] = await Promise.all([getInbox(0), getRequests()]);
+    if (inboxResult.error)
+      reportError(inboxResult.error, { flow: 'messages', action: 'loadInbox' });
+    if (requestsResult.error) {
+      reportError(requestsResult.error, { flow: 'messages', action: 'loadRequests' });
+    }
 
     if (inboxResult.data)
       set({
@@ -76,7 +82,14 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     const { inbox, hasMore, isSyncing, isLoadingMore } = get();
     if (!hasMore || isSyncing || isLoadingMore) return;
     set({ isLoadingMore: true });
-    const { data } = await getInbox(inbox.length);
+    const { data, error } = await getInbox(inbox.length);
+    if (error) {
+      reportError(error, {
+        flow: 'messages',
+        action: 'loadMoreInbox',
+        extra: { offset: inbox.length },
+      });
+    }
     if (data) {
       set((state) => {
         const seen = new Set(state.inbox.map((conversation) => conversation.id));
@@ -105,6 +118,13 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     }
 
     const { error } = await acceptRequest(conversationId);
+    if (error) {
+      reportError(error, {
+        flow: 'messages',
+        action: 'acceptRequest',
+        extra: { conversationId, rpc: 'accept_message_request' },
+      });
+    }
     if (error && accepted) {
       // Rollback on failure
       set((state) => ({
@@ -126,6 +146,13 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     }
 
     const { error } = await declineRequest(conversationId);
+    if (error) {
+      reportError(error, {
+        flow: 'messages',
+        action: 'declineRequest',
+        extra: { conversationId, rpc: 'decline_message_request' },
+      });
+    }
     if (error && denied) {
       // Rollback on failure
       set((state) => ({ requests: [...state.requests, denied] }));

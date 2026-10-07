@@ -2,6 +2,7 @@
  * A comment that fails to send: the comment comes back out of the list and a toast says so in the
  * button's own word, "send" ("post" is for workouts; design round 5 wording sweep).
  */
+jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 jest.mock('@/api', () => ({
   toggleLike: jest.fn(),
   addComment: jest.fn(),

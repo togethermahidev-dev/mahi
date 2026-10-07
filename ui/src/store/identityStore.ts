@@ -7,7 +7,7 @@ import {
   type IdentityHint,
   type IdentityStatus,
 } from '@/lib/identityVerification';
-import { Sentry } from '@/lib/sentry';
+import { reportError } from '@/lib/sentry';
 
 /**
  * Identity checks (Didit), flag `identity-verification`. Nothing here runs unless a screen calls
@@ -42,6 +42,11 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
     const { data, error } = await getMyIdentityVerifications(userId);
     if (error) {
       console.log('[identityStore] load failed', error.message);
+      reportError(error, {
+        flow: 'identity',
+        action: 'load',
+        extra: { table: 'identity_verifications' },
+      });
       set({ isLoading: false });
       return { error };
     }
@@ -71,7 +76,7 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
       await get().load(userId);
       return { hint, error: null };
     } catch (err) {
-      Sentry.captureException(err, { tags: { flow: 'identity', action: 'startIdentityCheck' } });
+      reportError(err, { flow: 'identity', action: 'startIdentityCheck' });
       return { hint: null, error: new Error('Something went wrong. Please try again.') };
     } finally {
       set({ isChecking: false });

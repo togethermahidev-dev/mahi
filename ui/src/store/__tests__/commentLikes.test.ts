@@ -4,6 +4,7 @@
  * read fresh each time a post's comments open, and shown only once they've arrived. Who liked a
  * comment is never kept: it's read fresh each time the list opens.
  */
+jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 jest.mock('@/api', () => ({
   toggleLike: jest.fn(),
   addComment: jest.fn(),

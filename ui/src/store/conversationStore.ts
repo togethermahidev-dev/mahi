@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { AppState, type NativeEventSubscription } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
+import { reportError } from '@/lib/sentry';
 import {
   getMessages,
   sendMessage,
@@ -76,7 +77,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   threads: {},
 
   refreshNewest: async (conversationId) => {
-    const { data } = await getMessages(conversationId);
+    const { data, error } = await getMessages(conversationId);
+    if (error) {
+      reportError(error, { flow: 'messages', action: 'loadMessages', extra: { conversationId } });
+    }
     if (!data) {
       set((s) => ({
         threads: {
@@ -195,10 +199,17 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       threads: { ...s.threads, [conversationId]: { ...thread, isLoadingOlder: true } },
     }));
 
-    const { data } = await getMessages(conversationId, {
+    const { data, error } = await getMessages(conversationId, {
       createdAt: oldest.created_at,
       id: oldest.id,
     });
+    if (error) {
+      reportError(error, {
+        flow: 'messages',
+        action: 'loadOlder',
+        extra: { conversationId, loaded: thread.messages.length },
+      });
+    }
 
     set((s) => {
       const prev = s.threads[conversationId] ?? EMPTY;
@@ -243,6 +254,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const { data, error } = await sendMessage(conversationId, clientId, text);
 
     if (error || !data) {
+      reportError(error ?? new Error('send_message returned no message'), {
+        flow: 'messages',
+        action: 'sendMessage',
+        extra: { conversationId, clientId, rpc: 'send_message' },
+      });
       set((s) => {
         const prev = s.threads[conversationId] ?? EMPTY;
         return {
@@ -290,6 +306,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       });
     put({ ...before, content: text, edited_at: new Date().toISOString() });
     const { data, error } = await editMessage(messageId, text);
+    if (error || !data) {
+      reportError(error ?? new Error('edit_message returned no message'), {
+        flow: 'messages',
+        action: 'editMessage',
+        extra: { conversationId, messageId, rpc: 'edit_message' },
+      });
+    }
     put(error || !data ? before : data);
     return !error && !!data;
   },
@@ -309,6 +332,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     }));
     const { error } = await unsendMessage(messageId);
     if (error) {
+      reportError(error, {
+        flow: 'messages',
+        action: 'unsendMessage',
+        extra: { conversationId, messageId, rpc: 'unsend_message' },
+      });
       set((s) => {
         const prev = s.threads[conversationId] ?? EMPTY;
         return {
@@ -328,7 +356,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const text = content.trim();
     if (!text) return null;
     const { data, error } = await startConversation(otherUserId, randomUUID(), text);
-    if (error || !data) return null;
+    if (error || !data) {
+      reportError(error ?? new Error('start_conversation returned no data'), {
+        flow: 'messages',
+        action: 'startConversation',
+        extra: { otherUserId, rpc: 'start_conversation' },
+      });
+      return null;
+    }
     set((s) => {
       const prev = s.threads[data.conversationId] ?? { ...EMPTY, isLoading: false };
       return {
@@ -344,7 +379,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   markRead: async (conversationId) => {
     useMessagesStore.getState().clearUnread(conversationId);
-    await markConversationRead(conversationId);
+    const { error } = await markConversationRead(conversationId);
+    if (error) {
+      reportError(error, { flow: 'messages', action: 'markRead', extra: { conversationId } });
+    }
   },
 
   reset: () => {

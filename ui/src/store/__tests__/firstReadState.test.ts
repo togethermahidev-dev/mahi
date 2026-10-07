@@ -3,6 +3,7 @@
  * (nothing read yet), a read that failed (say so, with Try again) and a read that worked and found
  * nothing. The stores keep `loaded` and `error` for that; what they fetch is unchanged.
  */
+jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 jest.mock('@/api', () => ({
   getNotifications: jest.fn(),
   getUnreadCount: jest.fn(),

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { getFollowData as apiGetFollowData, setFollowing as apiSetFollowing } from '@/api';
 import { supabase } from '@/lib/supabase';
+import { reportError } from '@/lib/sentry';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface FollowCounts {
@@ -48,7 +49,14 @@ export const useFollowStore = create<FollowState>((set, get) => ({
   loadFollowData: async (currentUserId, targetUserId) => {
     const { data, error } = await apiGetFollowData(currentUserId, targetUserId);
 
-    if (error || !data) return;
+    if (error || !data) {
+      reportError(error ?? new Error('get_follow_data returned no data'), {
+        flow: 'follows',
+        action: 'loadFollowData',
+        extra: { targetUserId, rpc: 'get_follow_data' },
+      });
+      return;
+    }
 
     set((s) => ({
       followingByMe: { ...s.followingByMe, [targetUserId]: data.is_following },

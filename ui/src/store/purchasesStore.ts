@@ -10,7 +10,7 @@ import {
   purchasesAvailability,
   type PurchasesAvailability,
 } from '@/lib/purchases';
-import { Sentry } from '@/lib/sentry';
+import { reportError } from '@/lib/sentry';
 
 /**
  * In-app purchases (RevenueCat), flag `purchases`. Nothing here touches RevenueCat unless
@@ -54,7 +54,7 @@ const initial = {
 
 function report(err: unknown, action: string): Error {
   console.log(`[purchasesStore] ${action} failed`, err instanceof Error ? err.message : err);
-  Sentry.captureException(err, { tags: { flow: 'purchases', action } });
+  reportError(err, { flow: 'purchases', action });
   return new Error('Something went wrong. Please try again.');
 }
 
@@ -171,7 +171,11 @@ export const usePurchasesStore = create<PurchasesState>((set, get) => ({
   reset: () => {
     const sdk = everConfigured ? loadPurchases() : null;
     if (sdk && get().currentUser) {
-      sdk.logOut().catch(() => {});
+      sdk
+        .logOut()
+        .catch((err) =>
+          reportError(err, { flow: 'purchases', action: 'logOut', level: 'warning' })
+        );
     }
     set(initial);
   },

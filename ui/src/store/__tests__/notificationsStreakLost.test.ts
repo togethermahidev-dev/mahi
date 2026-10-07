@@ -3,6 +3,7 @@
  * camera and your profile comes from the profile in userStore, so that must be re-read when the
  * notice arrives; nothing else about a notification touches the profile.
  */
+jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 jest.mock('@/api', () => ({
   getNotifications: jest.fn(),
   getUnreadCount: jest.fn(),

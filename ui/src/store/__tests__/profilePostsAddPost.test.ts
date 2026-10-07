@@ -2,6 +2,7 @@
  * A new post goes to the top of your profile grid. There's no daily limit any more, so two posts
  * on the same day both stay; only a retry of the same post (same id) replaces it.
  */
+jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 jest.mock('@/api', () => ({
   getUserPosts: jest.fn(),
 }));

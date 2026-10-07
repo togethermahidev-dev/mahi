@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import { reportError } from '@/lib/sentry';
 import {
   toggleLike as apiToggleLike,
   getComments as apiGetComments,
@@ -103,6 +104,11 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     const { data, error } = await apiToggleLike(postId, userId);
 
     if (error || !data) {
+      reportError(error ?? new Error('toggle_like returned no rows'), {
+        flow: 'social',
+        action: 'toggleLike',
+        extra: { postId, wasLiked: prevLiked, rpc: 'toggle_like' },
+      });
       // Rollback
       set((s) => ({ likedByMe: { ...s.likedByMe, [postId]: prevLiked } }));
       patchCounts(postId, { like_count: prevCount });
@@ -122,6 +128,13 @@ export const useSocialStore = create<SocialState>((set, get) => ({
   loadComments: async (postId) => {
     if (get().comments[postId] !== undefined) return; // already loaded
     const { data, error } = await apiGetComments(postId);
+    if (error) {
+      reportError(error, {
+        flow: 'social',
+        action: 'loadComments',
+        extra: { postId, table: 'post_comments' },
+      });
+    }
     if (!error && data) {
       set((s) => ({ comments: { ...s.comments, [postId]: data } }));
     }
@@ -151,6 +164,11 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     const { data, error } = await apiAddComment(postId, userId, content);
 
     if (error || !data) {
+      reportError(error ?? new Error('post_comments insert returned no row'), {
+        flow: 'social',
+        action: 'addComment',
+        extra: { postId, table: 'post_comments' },
+      });
       // Rollback
       set((s) => ({
         comments: {
@@ -179,6 +197,11 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     const { data, error } = await apiGetCommentLikes(postId);
     if (error || !data) {
       console.log('[socialStore] loadCommentLikes', error?.message);
+      reportError(error ?? new Error('get_comment_likes returned no data'), {
+        flow: 'social',
+        action: 'loadCommentLikes',
+        extra: { postId, rpc: 'get_comment_likes' },
+      });
       return;
     }
     set((s) => {
@@ -203,6 +226,11 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     const { data, error } = await apiToggleCommentLike(commentId);
     if (error || !data) {
       console.log('[socialStore] toggleCommentLike', error?.message);
+      reportError(error ?? new Error('toggle_comment_like returned no rows'), {
+        flow: 'social',
+        action: 'toggleCommentLike',
+        extra: { commentId, wasLiked: prev.liked, rpc: 'toggle_comment_like' },
+      });
       set((s) => ({ commentLikes: { ...s.commentLikes, [commentId]: prev } }));
       useToastStore
         .getState()
@@ -240,7 +268,15 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             .from('post_likes')
             .select('id', { count: 'exact', head: true })
             .eq('post_id', postId)
-            .then(({ count: c }) => {
+            .then(({ count: c, error }) => {
+              if (error) {
+                reportError(error, {
+                  flow: 'social',
+                  action: 'refreshLikeCount',
+                  level: 'warning',
+                  extra: { postId, table: 'post_likes' },
+                });
+              }
               if (c === null) return;
               patchCounts(postId, { like_count: c });
             });

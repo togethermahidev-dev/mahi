@@ -5,6 +5,7 @@
  * real posts API (and therefore not `@/lib/supabase`, which loads RN-only
  * native modules that can't run in this node test environment).
  */
+jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 jest.mock('@/api', () => ({
   getUserPosts: jest.fn(),
 }));

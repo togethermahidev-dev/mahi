@@ -6,6 +6,7 @@
  * that can't run in this node test environment). The actual follow is delegated
  * to followStore.toggleFollow, which we stub on the real store instance.
  */
+jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 jest.mock('@/api', () => ({
   getSuggestedFollows: jest.fn(),
 }));

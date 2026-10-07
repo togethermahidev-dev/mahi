@@ -11,8 +11,10 @@ jest.mock('@/api', () => ({
   getTaggableFriends: jest.fn(),
 }));
 jest.mock('@/lib/analytics', () => ({ track: jest.fn() }));
+jest.mock('@/lib/sentry', () => ({ reportError: jest.fn(), Sentry: { addBreadcrumb: jest.fn() } }));
 
 import { claimInvite, getInvitePreview } from '@/api';
+import { reportError } from '@/lib/sentry';
 import { useInviteStore } from '@/store/inviteStore';
 import { useToastStore } from '@/store/toastStore';
 
@@ -24,6 +26,7 @@ beforeEach(async () => {
   useToastStore.getState().reset();
   mockClaim.mockReset();
   mockPreview.mockReset();
+  (reportError as jest.Mock).mockClear();
   mockPreview.mockResolvedValue({ data: { username: 'sam' }, error: null });
   await useInviteStore.getState().setPending('ABC234');
 });
@@ -37,6 +40,22 @@ describe('claimPending', () => {
     const toast = useToastStore.getState();
     expect(toast.message).toBe('Couldn’t connect you with @sam. Try again.');
     expect(toast.action?.label).toBe('Try again');
+  });
+
+  it('a dropped connection is reported to Sentry', async () => {
+    const error = new Error('Network request failed');
+    mockClaim.mockResolvedValue({ data: null, error });
+    await useInviteStore.getState().claimPending();
+    expect(reportError).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({ flow: 'invites', action: 'claimInvite' })
+    );
+  });
+
+  it('a server refusal is expected, not reported', async () => {
+    mockClaim.mockResolvedValue({ data: null, error: new Error('that invite has expired') });
+    await useInviteStore.getState().claimPending();
+    expect(reportError).not.toHaveBeenCalled();
   });
 
   it('Try again claims the same invite', async () => {

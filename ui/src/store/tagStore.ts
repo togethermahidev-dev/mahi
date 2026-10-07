@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { getOpenTags, getTagRules, getTaggableFriends, type OpenTag } from '@/api';
 import { requiredTagCount } from '@/lib/tagRules';
+import { reportError } from '@/lib/sentry';
 
 interface TagState {
   /** Tags waiting for this user's post. In memory only — they expire. */
@@ -43,6 +44,7 @@ export const useTagStore = create<TagState>((set, get) => ({
     const { data, error } = await getOpenTags();
     if (error) {
       console.log('[tagStore] syncOpenTags failed', error.message);
+      reportError(error, { flow: 'tags', action: 'syncOpenTags', extra: { rpc: 'get_open_tags' } });
       set({ openTagsError: true });
     } else if (data) {
       // The server clock rides on each row, so a read with no tags keeps the last known offset.
@@ -65,6 +67,14 @@ export const useTagStore = create<TagState>((set, get) => ({
       console.log(
         '[tagStore] loadRequirement failed',
         rules.error?.message ?? friends.error?.message
+      );
+      reportError(
+        rules.error ?? friends.error ?? new Error('tag rules or friends came back empty'),
+        {
+          flow: 'tags',
+          action: 'loadRequirement',
+          extra: { failed: rules.error || !rules.data ? 'getTagRules' : 'getTaggableFriends' },
+        }
       );
       return;
     }

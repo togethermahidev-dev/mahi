@@ -2,6 +2,7 @@
  * The post viewer opens a profile's posts, most of which are not in the feed. Liking or commenting
  * on one there must move its numbers too, not only for posts the feed holds.
  */
+jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 jest.mock('@/api', () => ({
   toggleLike: jest.fn(),
   addComment: jest.fn(),

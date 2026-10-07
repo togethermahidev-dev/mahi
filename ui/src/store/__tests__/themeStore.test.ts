@@ -2,6 +2,7 @@
  * Mahi's light/dark setting is handed to the phone, so alerts, action sheets, keyboards, the
  * date picker and the share sheet follow Mahi's toggle instead of the phone's own setting.
  */
+jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 const setColorScheme = jest.fn();
 const stored: Record<string, string> = {};
 

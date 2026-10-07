@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { track } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
+import { reportError } from '@/lib/sentry';
 import {
   getNotifications,
   getUnreadCount,
@@ -49,6 +50,12 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       getUnreadCount(userId),
     ]);
 
+    if (itemsResult.error) {
+      reportError(itemsResult.error, { flow: 'notifications', action: 'loadNotifications' });
+    }
+    if (unreadResult.error) {
+      reportError(unreadResult.error, { flow: 'notifications', action: 'loadUnreadCount' });
+    }
     if (itemsResult.data) set({ items: itemsResult.data, loaded: true, error: false });
     else set({ error: true });
     if (unreadResult.data != null) set({ unreadCount: unreadResult.data });
@@ -71,6 +78,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
     const { error } = await markAsRead(notificationId);
     if (error) {
+      reportError(error, { flow: 'notifications', action: 'markRead', extra: { notificationId } });
       // Rollback on failure
       set((state) => ({
         items: state.items.map((n) =>
@@ -94,6 +102,11 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
     const { error } = await markAllAsRead(userId);
     if (error) {
+      reportError(error, {
+        flow: 'notifications',
+        action: 'markAllRead',
+        extra: { unread: prevUnreadCount },
+      });
       // Rollback on failure
       set({ items: prevItems, unreadCount: prevUnreadCount });
     }
@@ -121,11 +134,23 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       if (get().items.some((n) => n.id === payload.new.id)) return;
 
       // Fetch the actor profile separately — the realtime payload is the raw row
-      const { data: actor } = await supabase
+      const { data: actor, error: actorError } = await supabase
         .from('profiles')
         .select('id, username, display_name, avatar_url')
         .eq('id', payload.new.actor_id)
         .single();
+      if (actorError) {
+        reportError(actorError, {
+          flow: 'notifications',
+          action: 'loadLiveActor',
+          level: 'warning',
+          extra: {
+            notificationId: payload.new.id,
+            actorId: payload.new.actor_id,
+            table: 'profiles',
+          },
+        });
+      }
 
       // If actor lookup fails (deleted user, RLS, etc.), skip rather than fabricate
       if (!actor) return;

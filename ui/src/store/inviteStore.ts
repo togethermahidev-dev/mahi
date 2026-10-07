@@ -4,6 +4,7 @@ import { useTagStore } from './tagStore';
 import { useToastStore } from './toastStore';
 import { track } from '@/lib/analytics';
 import { claimedText, claimFailText } from '@/lib/inviteLink';
+import { reportError, Sentry } from '@/lib/sentry';
 
 interface InviteState {
   /**
@@ -42,7 +43,14 @@ export const useInviteStore = create<InviteState>((set, get) => ({
       return;
     }
     set({ pendingToken: token, preview: null, previewChecked: false });
-    const { data } = await getInvitePreview(token);
+    const { data, error } = await getInvitePreview(token);
+    if (error) {
+      reportError(error, {
+        flow: 'invites',
+        action: 'loadPreview',
+        extra: { rpc: 'get_invite_preview' },
+      });
+    }
     // A second link may have arrived while this was in flight.
     if (get().pendingToken === token) set({ preview: data, previewChecked: true });
   },
@@ -58,6 +66,11 @@ export const useInviteStore = create<InviteState>((set, get) => ({
     if (error || !data) {
       const message = error?.message ?? '';
       if (!SERVER_REFUSALS.some((r) => message.includes(r))) {
+        reportError(error ?? new Error('claim_invite returned no data'), {
+          flow: 'invites',
+          action: 'claimInvite',
+          extra: { rpc: 'claim_invite' },
+        });
         // No connection (or no answer): keep the invite, so Try again has something to try with.
         // Signing in again tries again too.
         useToastStore
@@ -70,6 +83,7 @@ export const useInviteStore = create<InviteState>((set, get) => ({
       }
       // The server said no (an older account, used, ended, a mistyped code): say why instead of
       // nothing at all, and let the invite go. Signing in carries on as normal.
+      Sentry.addBreadcrumb({ category: 'invites', message: `claim_invite refused: ${message}` });
       set({ pendingToken: null, preview: null, previewChecked: false });
       useToastStore.getState().show(claimFailText(message, inviter));
       return false;

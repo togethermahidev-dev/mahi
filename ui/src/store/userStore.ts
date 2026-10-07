@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getProfile } from '@/api';
+import { reportError } from '@/lib/sentry';
 
 interface UserProfile {
   id: string;
@@ -30,6 +31,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     const { data, error } = await getProfile(userId);
     if (error) {
       console.log('[userStore] refresh failed', error.message);
+      reportError(error, { flow: 'profile', action: 'refresh', extra: { userId } });
       return;
     }
     if (data && get().profile?.id === userId) set({ profile: data });

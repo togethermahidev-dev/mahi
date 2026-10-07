@@ -1,3 +1,4 @@
+jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 const getFollowData = jest.fn();
 const setFollowing = jest.fn();
 

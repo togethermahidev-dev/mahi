@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { track } from '@/lib/analytics';
+import { reportError } from '@/lib/sentry';
 import { getFeed, type FeedPost, type FeedCursor } from '@/api';
 
 const PAGE_SIZE = 20;
@@ -79,6 +80,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         loaded: true,
       });
     } else if (error) {
+      reportError(error, { flow: 'feed', action: 'loadFeed', extra: { rpc: 'get_feed', force } });
       set({ error });
     }
     set({ isSyncing: false });
@@ -101,6 +103,11 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         hasMore: data.posts.length === PAGE_SIZE,
       });
     } else if (error) {
+      reportError(error, {
+        flow: 'feed',
+        action: 'loadMore',
+        extra: { rpc: 'get_feed', loaded: get().posts.length },
+      });
       set({ error });
     }
     set({ isSyncing: false, isLoadingMore: false });

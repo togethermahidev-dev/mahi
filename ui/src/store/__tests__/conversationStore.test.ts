@@ -8,6 +8,7 @@
  * `@/api`, `@/lib/supabase`, `expo-crypto` and `react-native` are mocked: these are pure
  * logic tests in a plain node environment, with no native modules.
  */
+jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 jest.mock('@/api', () => ({
   getMessages: jest.fn(),
   sendMessage: jest.fn(),

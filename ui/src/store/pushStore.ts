@@ -10,7 +10,7 @@ import {
 } from '@/lib/push';
 import type { PushPermission } from '@/lib/pushPrimer';
 import { track } from '@/lib/analytics';
-import { Sentry } from '@/lib/sentry';
+import { reportError } from '@/lib/sentry';
 
 interface PushState {
   registered: boolean;
@@ -50,7 +50,7 @@ export const usePushStore = create<PushState>((set, get) => ({
       if (permission === 'granted' && !get().registered) await get().register();
     } catch (err) {
       // The page and the line simply don't show until the phone can be read.
-      Sentry.captureException(err, { tags: { flow: 'push', action: 'refresh' } });
+      reportError(err, { flow: 'push', action: 'refresh' });
     }
   },
 
@@ -58,7 +58,11 @@ export const usePushStore = create<PushState>((set, get) => ({
     const { error } = await registerPushToken();
     if (error) {
       console.log('[pushStore] register failed', error.message);
-      Sentry.captureException(error, { tags: { flow: 'push', action: 'register' } });
+      reportError(error, {
+        flow: 'push',
+        action: 'register',
+        extra: { rpc: 'register_push_token' },
+      });
       return;
     }
     set({ registered: true });
@@ -79,7 +83,7 @@ export const usePushStore = create<PushState>((set, get) => ({
       if (allow) granted = await requestPushPermission();
       set({ permission: await getPushPermission() });
     } catch (err) {
-      Sentry.captureException(err, { tags: { flow: 'push', action: 'answerPrimer' } });
+      reportError(err, { flow: 'push', action: 'answerPrimer', extra: { allow } });
     }
     // Whatever happened, the page has had its answer and closes.
     set({ primerAnswered: true });

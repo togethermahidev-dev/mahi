@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Appearance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { reportError } from '@/lib/sentry';
 
 const THEME_KEY = '@mahi/theme_mode';
 
@@ -32,7 +33,9 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   setMode: (mode) => {
     set({ mode });
     tellPhone(mode);
-    AsyncStorage.setItem(THEME_KEY, mode).catch(() => null);
+    AsyncStorage.setItem(THEME_KEY, mode).catch((err) =>
+      reportError(err, { flow: 'settings', action: 'saveTheme', level: 'warning' })
+    );
   },
 
   cycleMode: () => {
@@ -42,7 +45,9 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   reset: () => {
     set({ mode: 'light' });
     tellPhone('light');
-    AsyncStorage.removeItem(THEME_KEY).catch(() => null);
+    AsyncStorage.removeItem(THEME_KEY).catch((err) =>
+      reportError(err, { flow: 'settings', action: 'clearTheme', level: 'warning' })
+    );
   },
 }));
 

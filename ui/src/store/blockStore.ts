@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { blockUser as apiBlock, unblockUser as apiUnblock, getBlockedIds } from '@/api';
-import { Sentry } from '@/lib/sentry';
+import { reportError } from '@/lib/sentry';
 import { useFeedStore } from '@/store/feedStore';
 import { useMessagesStore } from '@/store/messagesStore';
 import { useFollowStore } from '@/store/followStore';
@@ -35,6 +35,7 @@ export const useBlockStore = create<BlockState>((set, get) => ({
     set({ isSyncing: true });
 
     const { data, error } = await getBlockedIds(userId);
+    if (error) reportError(error, { flow: 'moderation', action: 'syncBlocked' });
     if (!error && data) {
       const blockedByMe = new Set(data.blockedByMe);
       const blockedSet = new Set([...data.blockedByMe, ...data.blockedMe]);
@@ -58,11 +59,7 @@ export const useBlockStore = create<BlockState>((set, get) => ({
 
     if (error) {
       console.log('[blockStore] block error |', error.message);
-      Sentry.captureMessage(error.message, {
-        level: 'warning',
-        tags: { flow: 'moderation', step: 'block' },
-        extra: { targetUserId },
-      });
+      reportError(error, { flow: 'moderation', action: 'block', extra: { targetUserId } });
       // Rollback
       set({ blockedSet: prevBlockedSet, blockedByMe: prevBlockedByMe });
       return { error };
@@ -95,11 +92,7 @@ export const useBlockStore = create<BlockState>((set, get) => ({
 
     if (error) {
       console.log('[blockStore] unblock error |', error.message);
-      Sentry.captureMessage(error.message, {
-        level: 'warning',
-        tags: { flow: 'moderation', step: 'unblock' },
-        extra: { targetUserId },
-      });
+      reportError(error, { flow: 'moderation', action: 'unblock', extra: { targetUserId } });
       // Rollback
       set({ blockedSet: prevBlockedSet, blockedByMe: prevBlockedByMe });
       return { error };
