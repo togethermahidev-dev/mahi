@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -551,10 +551,11 @@ function DualPhotoPreview({
   const [primaryFacing, setPrimaryFacing] = useState<'rear' | 'front'>('rear');
   // Video posts: the big video's sound. Every preview starts muted.
   const [previewMuted, setPreviewMuted] = useState(true);
-  // "Answered @sam", pressed onto the photo as an answer posts; cleared for the next preview.
+  // "Answered @sam", pressed onto the photo as an answer posts; cleared for the next preview —
+  // before it is drawn, so photos handed back after a failed post never show "Answered".
   const [stamp, setStamp] = useState<string | null>(null);
   const stampOn = useFeatureFlag('answered-stamp');
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (frontPhoto) setStamp(null);
   }, [frontPhoto]);
 
