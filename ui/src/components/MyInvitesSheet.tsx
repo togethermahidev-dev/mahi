@@ -111,7 +111,7 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
   const [refreshing, setRefreshing] = useState(false);
   const [inviting, setInviting] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
-  // "Find your mates" (build 13+, switch contacts-finder): opened over this sheet.
+  // "Find your mates" (build 13+, no switch): opened over this sheet.
   const contactsFinder = useContactsFinder();
   const [findMatesOpen, setFindMatesOpen] = useState(false);
   // Server time minus phone time, so "Resend in 5h" counts on the server's clock.
