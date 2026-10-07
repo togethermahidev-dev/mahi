@@ -33,7 +33,7 @@ import { pinchOffset } from '@/lib/viewer';
 import { doubleTapLikes, feedLayout } from '@/lib/feedLayout';
 import { PressScale, usePop } from '@/components/Motion';
 import { ListGestureContext } from '@/components/GestureScrollView';
-import { HeartIcon, CommentIcon, MoreIcon } from '@/components/ScreenIcons';
+import { HeartIcon, CommentIcon, MoreIcon, ClockIcon } from '@/components/ScreenIcons';
 import { startReport } from '@/lib/reportFlow';
 import { showNativeMenu } from '@/lib/nativeMenu';
 import CaptionText from '@/components/CaptionText';
@@ -42,6 +42,7 @@ import PostVideo, { SoundButton } from '@/components/PostVideo';
 import PreviewMenu, { PostPreviewImage } from '@/components/PreviewMenu';
 import EditPostCaptionSheet from '@/components/EditPostCaptionSheet';
 import { relativeTime } from '@/lib/relativeTime';
+import { answerTimingLine } from '@/lib/answerTiming';
 import { pointsBadgeText } from '@/lib/mahiPoints';
 import { mediaTypeOrPhoto } from '@/lib/videoPosts';
 import {
@@ -128,6 +129,7 @@ export default function PostCard({
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
   // The poster's Mahi points after this post (one number per card, so none by the name).
   const points = pointsBadgeText(item.streak_day);
+  const onTime = answerTimingLine(item);
   const reduceMotion = useReducedMotion();
 
   const [rearIsPrimary, setRearIsPrimary] = useState(true);
@@ -548,10 +550,17 @@ export default function PostCard({
                       )}
                       <View style={styles.userInfo}>
                         <Text style={styles.usernameOverlay}>{name}</Text>
+                        {onTime ? (
+                          <View style={styles.onTimeRow}>
+                            <ClockIcon size={ICON_SIZE.i14} color={COLORS.accent} />
+                            <Text style={[styles.timeOverlay, styles.onTimeText]} numberOfLines={1}>
+                              {onTime}
+                            </Text>
+                          </View>
+                        ) : null}
                         <Text style={styles.timeOverlay} numberOfLines={1}>
                           {postingVideo ? 'Posting…' : relativeTime(item.created_at)}
                           {points ? ` · ${points}` : ''}
-                          {item.response ? ` · Answered @${item.response.tagger_username}` : ''}
                         </Text>
                       </View>
                     </PressScale>
@@ -779,6 +788,15 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.semiBold,
     color: COLORS.white,
+  },
+  /** The on-time line: "Answered @sam in 2h", a small accent clock in front. */
+  onTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s4,
+  },
+  onTimeText: {
+    flexShrink: 1,
   },
   timeOverlay: {
     fontSize: FONT_SIZE.f12,

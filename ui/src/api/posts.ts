@@ -17,6 +17,7 @@ import {
 } from '@/lib/videoPosts';
 import type { Database } from '@/types';
 import type { PostInvite } from './invites';
+import type { AnswerTiming } from '@/lib/answerTiming';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
@@ -36,6 +37,10 @@ export type FeedPost = PostRow & {
   tagged_users: TaggedUser[];
   /** Set when this post answered a tag: whose, and how fast (oldest tag). */
   response?: { tagger_username: string; seconds: number } | null;
+  /** The oldest tag this post answered, with time taken and time left (undefined: older server). */
+  answered?: AnswerTiming | null;
+  /** The poster's first ever post. */
+  first_post?: boolean;
   /** The server hid this post's photos and caption (viewer hasn't posted in 24 h). */
   locked: boolean;
 };
@@ -73,6 +78,9 @@ type FeedItem = {
   liked_by_me: boolean;
   tagged_users: TaggedUser[];
   response: { tagger_username: string; seconds: number } | null;
+  /** Absent from servers before 20261007230000_answer_timing. */
+  answered?: AnswerTiming | null;
+  first_post?: boolean;
   profile: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
 };
 
@@ -141,6 +149,8 @@ async function toPosts(items: FeedItem[]): Promise<FeedPost[]> {
     liked_by_me: i.liked_by_me,
     tagged_users: i.tagged_users,
     response: i.response,
+    answered: i.answered,
+    first_post: i.first_post,
     locked: i.locked,
     profiles: i.profile,
   }));
