@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import {
+  AccessibilityInfo,
   View,
   Text,
   Image,
@@ -267,11 +268,10 @@ export default function FeedScreen({
       });
       seenLocked.current.clear();
       if (plan.size > 0) {
-        setDevelop({
-          plan,
-          first: [...plan.keys()][0] ?? null,
-          words: developWords({ posts: fresh, viewerId }),
-        });
+        const words = developWords({ posts: fresh, viewerId });
+        setDevelop({ plan, first: [...plan.keys()][0] ?? null, words });
+        // The words sit on a cover VoiceOver skips: say them once instead.
+        if (words) AccessibilityInfo.announceForAccessibility(words);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
