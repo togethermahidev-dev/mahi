@@ -180,7 +180,7 @@ import PointFlight, { type Flight } from '@/components/PointFlight';
 import RollingNumber from '@/components/RollingNumber';
 import AnswerStamp from '@/components/AnswerStamp';
 import { answeredStamp } from '@/lib/answerStamp';
-import { flightCard, pointMoment, willFly } from '@/lib/pointMoments';
+import { flightCard, pointMoment, pointsRoll, willFly } from '@/lib/pointMoments';
 import { openTagsTop } from '@/lib/pip';
 
 /**
@@ -259,11 +259,14 @@ function PointsCounter({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [known]);
 
-  // A point earned: a small pop from the number (none with Reduce Motion).
+  // A point earned: a small pop from the number (none with Reduce Motion). After a miss the
+  // number rolls down instead, felt once as a soft warning, never in red.
   useEffect(() => {
     const before = lastCount.current;
     lastCount.current = count;
-    if (count === null || before === null || count <= before || reduceMotion) return;
+    const way = pointsRoll(before, count);
+    if (way === 'down') haptic('warning');
+    if (way !== 'up' || reduceMotion) return;
     scaleAnim.setValue(SCALE.s1_3);
     Animated.spring(scaleAnim, { toValue: 1, ...SPRING.land, useNativeDriver: true }).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps

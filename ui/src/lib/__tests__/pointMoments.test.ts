@@ -5,6 +5,8 @@ import {
   flyPoint,
   nativeDigits,
   pointMoment,
+  pointsRoll,
+  rollValue,
   willFly,
 } from '../pointMoments';
 
@@ -119,5 +121,27 @@ describe('the point earned moment (#116)', () => {
         false
       );
     });
+  });
+});
+
+describe('the counter rolling (#116, and down after a miss)', () => {
+  it('rolls up on a point and down after a miss, within this session only', () => {
+    expect(pointsRoll(4, 5)).toBe('up');
+    expect(pointsRoll(6, 0)).toBe('down');
+    expect(pointsRoll(null, 0)).toBeNull();
+    expect(pointsRoll(3, 3)).toBeNull();
+    expect(pointsRoll(3, null)).toBeNull();
+  });
+  it('eases from the old number to the new, either way', () => {
+    expect(rollValue(6, 0, 0)).toBe(6);
+    expect(rollValue(6, 0, 1)).toBe(0);
+    expect(rollValue(4, 5, 1)).toBe(5);
+    const mid = rollValue(6, 0, 0.5);
+    expect(mid).toBeGreaterThan(0);
+    expect(mid).toBeLessThan(6);
+  });
+  it('never passes the new number', () => {
+    expect(rollValue(6, 0, 1.4)).toBe(0);
+    expect(rollValue(0, 6, -1)).toBe(0);
   });
 });

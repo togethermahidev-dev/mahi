@@ -4,7 +4,7 @@
  * - PressScale: a button that shrinks a touch while pressed and springs back.
  * - FadeInItem: a list row or banner that fades and rises in, a beat after the one above it.
  * - CountdownRing: a ring that drains as time runs out.
- * - CountUp: a number that counts up to its new value.
+ * - useCountRoll: a number that rolls up (a point) or down (a miss) to its new value.
  * - Skeleton: a block that gently breathes while content loads.
  */
 import React, { useEffect, useRef, useState } from 'react';
@@ -25,6 +25,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { ALPHA, DURATION, MOTION } from '@/constants/tokens';
+import { pointsRoll, rollValue } from '@/lib/pointMoments';
 
 const AnimatedPressable = Reanimated.createAnimatedComponent(Pressable);
 const AnimatedCircle = Reanimated.createAnimatedComponent(Circle);
@@ -133,24 +134,29 @@ export function CountdownRing({
   );
 }
 
-/** Counts from the last value shown up to `value`; a fall or Reduce Motion jumps straight there. */
-export function useCountUp(value: number | null): number | null {
+/**
+ * Rolls from the last value shown to `value`: up over MOTION.countUpMs (a point), down over
+ * MOTION.countDownMs (after a miss). The first value, an unknown, or Reduce Motion jumps straight
+ * there.
+ */
+export function useCountRoll(value: number | null): number | null {
   const reduceMotion = useReducedMotion();
   const [shown, setShown] = useState(value);
   const from = useRef(value);
   useEffect(() => {
     const start = from.current;
     from.current = value;
-    if (value === null || start === null || value <= start || reduceMotion) {
+    const way = pointsRoll(start, value);
+    if (value === null || start === null || !way || reduceMotion) {
       setShown(value);
       return;
     }
+    const ms = way === 'up' ? MOTION.countUpMs : MOTION.countDownMs;
     const began = Date.now();
     let frame = 0;
     const step = () => {
-      const t = Math.min(1, (Date.now() - began) / MOTION.countUpMs);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setShown(Math.round(start + (value - start) * eased));
+      const t = (Date.now() - began) / ms;
+      setShown(rollValue(start, value, t));
       if (t < 1) frame = requestAnimationFrame(step);
     };
     frame = requestAnimationFrame(step);

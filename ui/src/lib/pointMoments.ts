@@ -121,3 +121,20 @@ export function nativeDigits({
 }): boolean {
   return platform === 'ios' && expoUiPresent && !reduceMotion;
 }
+
+/**
+ * Which way the counter rolls when its number changes within this session: up for a point, down
+ * after a miss (owner, 2026-10-07: once, not in red, before the miss moment). Nothing on the
+ * first number of a session: what was there before is never kept on the phone.
+ */
+export function pointsRoll(before: number | null, after: number | null): 'up' | 'down' | null {
+  if (before === null || after === null || before === after) return null;
+  return after > before ? 'up' : 'down';
+}
+
+/** The number shown at `t` (0 → 1) of a roll from `from` to `to`, eased out, whole. */
+export function rollValue(from: number, to: number, t: number): number {
+  const p = Math.min(1, Math.max(0, t));
+  const eased = 1 - Math.pow(1 - p, 3);
+  return Math.round(from + (to - from) * eased);
+}

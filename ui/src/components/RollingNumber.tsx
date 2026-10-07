@@ -1,12 +1,12 @@
 /**
- * A number that rolls to its new value. On an iPhone build with @expo/ui it is Apple's own
+ * A number that rolls to its new value, up for a point and down after a miss. On an iPhone build with @expo/ui it is Apple's own
  * rolling digits (SwiftUI's numericText content transition, in Inter); elsewhere, and with Reduce
- * Motion, our count (`useCountUp`). `null` shows a dash: never a 0 that then changes.
+ * Motion, our count (`useCountRoll`). `null` shows a dash: never a 0 that then changes.
  */
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Platform, Text, type StyleProp, type TextStyle } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
-import { useCountUp } from '@/components/Motion';
+import { useCountRoll } from '@/components/Motion';
 import { hasNativeExpoUI, loadSwiftUI } from '@/lib/expoUiModule';
 import { nativeDigits } from '@/lib/pointMoments';
 import { pointsValue } from '@/lib/mahiPoints';
@@ -26,7 +26,13 @@ export default function RollingNumber({
   maxFontSizeMultiplier?: number;
 }): React.JSX.Element {
   const reduceMotion = useReducedMotion();
-  const shown = useCountUp(value);
+  const shown = useCountRoll(value);
+  // Apple's digits roll downwards when the number falls (after a miss).
+  const last = useRef(value);
+  const down = last.current !== null && value !== null && value < last.current;
+  useEffect(() => {
+    last.current = value;
+  }, [value]);
   const native =
     value !== null &&
     nativeDigits({ platform: Platform.OS, expoUiPresent: hasNativeExpoUI(), reduceMotion });
@@ -46,8 +52,13 @@ export default function RollingNumber({
           modifiers={[
             sFont({ family: font.family, size: font.size }),
             foregroundStyle(font.color),
-            contentTransition('numericText', { countsDown: false }),
-            animation(Animation.spring({ duration: MOTION.countUpMs / 1000 }), value),
+            contentTransition('numericText', { countsDown: down }),
+            animation(
+              Animation.spring({
+                duration: (down ? MOTION.countDownMs : MOTION.countUpMs) / 1000,
+              }),
+              value
+            ),
           ]}
         >
           {String(value)}

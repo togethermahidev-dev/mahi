@@ -584,6 +584,10 @@ export const MOTION = {
   stampHoldMs: 600,
   /** iOS 26: Apple's glass morphing the tag pill into the tick (SwiftUI spring: seconds, 0–1). */
   glassMorph: { response: 0.45, dampingFraction: 0.75 },
+  /** After a miss, points rolling down to 0 (ms), not in red; the miss moment waits this long
+   *  (ms) so the roll is seen first. */
+  countDownMs: 900,
+  missAfterRollMs: 1300,
 } as const;
 
 // ─── One-time tips (coach marks): the bright cut-out, its ring, the bubble and its arrow ──────
