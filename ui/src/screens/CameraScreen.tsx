@@ -73,6 +73,8 @@ import {
 import { matesOnClock } from '@/lib/openTagsBanner';
 import { useSecondTick } from '@/hooks/useSecondTick';
 import KeyboardInset from '@/components/KeyboardInset';
+import { EmojiKeyboardButton, EmojiPanel, useEmojiKeyboard } from '@/components/EmojiKeyboard';
+import { FREE_TEXT_PREDICTION } from '@/lib/emojiKeyboard';
 import WorkoutIdeasSheet from '@/components/WorkoutIdeasSheet';
 import FlashButton from '@/components/FlashButton';
 import FocusSquare, { FOCUS_SQUARE_SIZE, type FocusTap } from '@/components/FocusSquare';
@@ -1174,6 +1176,8 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
   // "Need an idea?": what counts as a workout, over this sheet.
   const [ideasOpen, setIdeasOpen] = useState(false);
   const cursorRef = useRef(0);
+  const inputRef = useRef<TextInput>(null);
+  const emoji = useEmojiKeyboard(inputRef);
 
   // Reseed when the sheet re-opens (ignore initialValue changes while open).
   useEffect(() => {
@@ -1216,9 +1220,13 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
           <View style={styles.sheetHandle} />
           <View style={styles.sheetLabelRow}>
             <Text style={styles.sheetLabel}>Caption</Text>
-            <Text style={styles.sheetCounter}>{draft.length}/200</Text>
+            <View style={styles.sheetHeaderEnd}>
+              <Text style={styles.sheetCounter}>{draft.length}/200</Text>
+              <EmojiKeyboardButton emoji={emoji} color={COLORS.offWhite} />
+            </View>
           </View>
           <TextInput
+            ref={inputRef}
             style={styles.sheetInput}
             value={draft}
             onChangeText={handleChangeText}
@@ -1232,6 +1240,8 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
             autoFocus
             keyboardAppearance="dark"
             textAlignVertical="top"
+            onBlur={emoji.onBlur}
+            {...FREE_TEXT_PREDICTION}
           />
           <Pressable
             accessibilityRole="button"
@@ -1251,6 +1261,7 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
           >
             <Text style={styles.sheetDoneText}>Done</Text>
           </Pressable>
+          <EmojiPanel emoji={emoji} />
           <KeyboardInset />
         </View>
       </View>

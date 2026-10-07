@@ -24,6 +24,8 @@ export type ScreenIconKey =
   | 'soundOn'
   | 'soundOff'
   | 'more'
+  | 'emoji'
+  | 'keyboard'
   | 'like'
   | 'comment'
   | 'messages';
@@ -45,6 +47,8 @@ export const SF_SYMBOLS: Record<ScreenIconKey, SFSymbolName | null> = {
   soundOn: 'speaker.wave.2',
   soundOff: 'speaker.slash', // Apple's standard "muted" speaker
   more: 'ellipsis', // the '…' menu on posts and comments
+  emoji: 'face.smiling', // the composers' emoji button
+  keyboard: 'keyboard', // the same button while emoji is up: back to letters
   like: null,
   comment: null,
   messages: null,

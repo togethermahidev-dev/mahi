@@ -35,6 +35,9 @@ describe('SF_SYMBOLS — which Apple icon replaces each drawing', () => {
       soundOn: 'speaker.wave.2',
       soundOff: 'speaker.slash',
       more: 'ellipsis',
+      // The composers' emoji button and, while emoji is up, its way back to letters.
+      emoji: 'face.smiling',
+      keyboard: 'keyboard',
       // Brand "echo" drawings (blue offset layer, like the MAHI logo) have no Apple match.
       like: null,
       comment: null,

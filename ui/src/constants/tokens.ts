@@ -429,6 +429,14 @@ export const SWIPE = {
   velocity: 0.4,
 } as const;
 
+// ─── Android's emoji panel: it takes the keyboard's place under a composer ───
+export const EMOJI_PANEL = {
+  /** Its height before any keyboard has shown (a typical phone keyboard). */
+  fallbackHeight: 300,
+  /** Never shorter than this, so there are always rows to pick from. */
+  minHeight: 220,
+} as const;
+
 // ─── Counts and shares that shape a layout ───────────────────────────────────
 export const LAYOUT = {
   /** A complete progress bar, expressed as a percentage. */

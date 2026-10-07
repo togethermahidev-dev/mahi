@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import KeyboardInset from '@/components/KeyboardInset';
+import { EmojiKeyboardButton, EmojiPanel, useEmojiKeyboard } from '@/components/EmojiKeyboard';
+import { FREE_TEXT_PREDICTION } from '@/lib/emojiKeyboard';
 import { updatePostCaption } from '@/api';
 import { useFeedStore, useProfilePostsStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
@@ -21,6 +23,8 @@ export default function EditPostCaptionSheet({
   const { colors, dark } = useAppTheme();
   const [draft, setDraft] = useState(caption ?? '');
   const [saving, setSaving] = useState(false);
+  const inputRef = useRef<TextInput>(null);
+  const emoji = useEmojiKeyboard(inputRef);
 
   const save = async () => {
     if (saving) return;
@@ -56,6 +60,7 @@ export default function EditPostCaptionSheet({
             You can edit for one hour after posting.
           </Text>
           <TextInput
+            ref={inputRef}
             value={draft}
             onChangeText={setDraft}
             maxLength={200}
@@ -65,8 +70,13 @@ export default function EditPostCaptionSheet({
             placeholder="What did you do?"
             placeholderTextColor={colors.muted}
             style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+            onBlur={emoji.onBlur}
+            {...FREE_TEXT_PREDICTION}
           />
-          <Text style={[styles.count, { color: colors.muted }]}>{draft.length}/200</Text>
+          <View style={styles.countRow}>
+            <EmojiKeyboardButton emoji={emoji} color={colors.muted} />
+            <Text style={[styles.count, { color: colors.muted }]}>{draft.length}/200</Text>
+          </View>
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ disabled: saving }}
@@ -80,6 +90,7 @@ export default function EditPostCaptionSheet({
           >
             <Text style={styles.saveText}>{saving ? 'Saving…' : 'Save caption'}</Text>
           </Pressable>
+          <EmojiPanel emoji={emoji} />
           <KeyboardInset />
         </View>
       </View>
@@ -107,7 +118,8 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f16,
     textAlignVertical: 'top',
   },
-  count: { alignSelf: 'flex-end', fontFamily: FONTS.regular, fontSize: FONT_SIZE.f12 },
+  countRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  count: { marginLeft: 'auto', fontFamily: FONTS.regular, fontSize: FONT_SIZE.f12 },
   save: {
     minHeight: SIZE.z52,
     borderRadius: RADIUS.r50,

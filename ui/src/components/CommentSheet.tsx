@@ -17,6 +17,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { haptic } from '@/lib/haptics';
 import { useFeedStore, useProfilePostsStore, useSocialStore, useUserStore } from '@/store';
 import KeyboardInset from '@/components/KeyboardInset';
+import { EmojiKeyboardButton, EmojiPanel, useEmojiKeyboard } from '@/components/EmojiKeyboard';
+import { FREE_TEXT_PREDICTION } from '@/lib/emojiKeyboard';
 import CommentLikersSheet from '@/components/CommentLikersSheet';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { HeartIcon, MoreIcon } from '@/components/ScreenIcons';
@@ -244,6 +246,7 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
     fetchComments();
   };
   const inputRef = useRef<TextInput>(null);
+  const emoji = useEmojiKeyboard(inputRef);
 
   // Comment likes: read fresh each time the comments open; the hearts show once they've
   // arrived, so a count never jumps from an old number to a new one.
@@ -356,7 +359,9 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
           styles.commentInputRow,
           {
             borderTopColor: border,
-            paddingBottom: keyboardOpen ? SPACE.s10 : Math.max(insets.bottom, SPACE.s10),
+            // Android's emoji panel sits where the keyboard was: no home-indicator gap either.
+            paddingBottom:
+              keyboardOpen || emoji.on ? SPACE.s10 : Math.max(insets.bottom, SPACE.s10),
           },
         ]}
       >
@@ -369,9 +374,12 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
           onChangeText={setCommentText}
           returnKeyType="send"
           onSubmitEditing={() => void handleSubmitComment()}
+          onBlur={emoji.onBlur}
           autoCapitalize="sentences"
           enablesReturnKeyAutomatically
+          {...FREE_TEXT_PREDICTION}
         />
+        <EmojiKeyboardButton emoji={emoji} color={muted} />
         {/* Dimmed and off while the box is empty, as in messages. */}
         <Pressable
           style={({ pressed }) => [
@@ -389,6 +397,7 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
           <Text style={styles.commentSubmitText}>Send</Text>
         </Pressable>
       </View>
+      <EmojiPanel emoji={emoji} />
       <KeyboardInset />
 
       {/* Who liked a comment — a page sheet over this one */}

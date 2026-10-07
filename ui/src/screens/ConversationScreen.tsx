@@ -23,6 +23,8 @@ import Reanimated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import KeyboardInset from '@/components/KeyboardInset';
+import { EmojiKeyboardButton, EmojiPanel, useEmojiKeyboard } from '@/components/EmojiKeyboard';
+import { FREE_TEXT_PREDICTION } from '@/lib/emojiKeyboard';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useConversation } from '@/hooks/useConversation';
 import { useCoverRail } from '@/hooks/useChrome';
@@ -90,6 +92,8 @@ export default function ConversationScreen({
   const [editing, setEditing] = useState<Message | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
+  const inputRef = useRef<TextInput>(null);
+  const emoji = useEmojiKeyboard(inputRef);
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   // The conversation owns its dismissal value. It can run alongside the vertical message list,
@@ -459,11 +463,14 @@ export default function ConversationScreen({
                 styles.inputBar,
                 {
                   borderTopColor: border,
-                  paddingBottom: keyboardOpen ? SPACE.s10 : Math.max(insets.bottom, SPACE.s10),
+                  // Android's emoji panel sits where the keyboard was: no home-indicator gap.
+                  paddingBottom:
+                    keyboardOpen || emoji.on ? SPACE.s10 : Math.max(insets.bottom, SPACE.s10),
                 },
               ]}
             >
               <TextInput
+                ref={inputRef}
                 style={[styles.input, { color: text, borderColor: border }]}
                 placeholder="Message…"
                 placeholderTextColor={muted}
@@ -476,7 +483,10 @@ export default function ConversationScreen({
                 returnKeyType="send"
                 enablesReturnKeyAutomatically
                 onSubmitEditing={handleSend}
+                onBlur={emoji.onBlur}
+                {...FREE_TEXT_PREDICTION}
               />
+              <EmojiKeyboardButton emoji={emoji} color={muted} />
               <Pressable
                 style={({ pressed }) => [
                   styles.sendBtn,
@@ -492,6 +502,7 @@ export default function ConversationScreen({
                 <Text style={[styles.sendText, { color: text }]}>{editing ? 'Save' : 'Send'}</Text>
               </Pressable>
             </View>
+            <EmojiPanel emoji={emoji} />
             <KeyboardInset />
           </View>
         </Reanimated.View>

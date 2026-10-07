@@ -1,6 +1,6 @@
 import React from 'react';
 import { Platform } from 'react-native';
-import Svg, { Path, Circle, Line, G, Text as SvgText } from 'react-native-svg';
+import Svg, { Path, Circle, Line, G, Rect, Text as SvgText } from 'react-native-svg';
 import { FONTS } from '@/constants/fonts';
 import { COLORS, ALPHA, STROKE } from '@/constants/tokens';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
@@ -339,6 +339,37 @@ function MoreDrawing({ size, color }: IconProps) {
   );
 }
 
+function EmojiDrawing({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="9.5" stroke={color} strokeWidth={STROKE.s1_8} />
+      <Circle cx="9" cy="10" r="1.2" fill={color} />
+      <Circle cx="15" cy="10" r="1.2" fill={color} />
+      <Path
+        d="M8 14.5c1 1.4 2.4 2 4 2s3-.6 4-2"
+        stroke={color}
+        strokeWidth={STROKE.s1_8}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+function KeyboardDrawing({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x="2" y="5" width="20" height="14" rx="2.5" stroke={color} strokeWidth={STROKE.s1_8} />
+      <G fill={color}>
+        <Circle cx="6.5" cy="9.5" r="1" />
+        <Circle cx="10.2" cy="9.5" r="1" />
+        <Circle cx="13.8" cy="9.5" r="1" />
+        <Circle cx="17.5" cy="9.5" r="1" />
+      </G>
+      <Path d="M8 15h8" stroke={color} strokeWidth={STROKE.s1_8} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 // ── The icons the app uses ──
 
 export function SearchIcon(props: IconProps) {
@@ -430,6 +461,24 @@ export function MoreIcon(props: IconProps) {
   return (
     <SymbolOr icon="more" {...props}>
       <MoreDrawing {...props} />
+    </SymbolOr>
+  );
+}
+
+/** The composers' emoji button. */
+export function EmojiIcon(props: IconProps) {
+  return (
+    <SymbolOr icon="emoji" {...props}>
+      <EmojiDrawing {...props} />
+    </SymbolOr>
+  );
+}
+
+/** The same button while emoji is up: back to letters. */
+export function KeyboardIcon(props: IconProps) {
+  return (
+    <SymbolOr icon="keyboard" {...props}>
+      <KeyboardDrawing {...props} />
     </SymbolOr>
   );
 }
