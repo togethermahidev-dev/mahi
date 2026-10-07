@@ -35,7 +35,9 @@ export function useCoachBlock(on: boolean): void {
  */
 export function useOpenTagReminder(onAnswer?: () => void): void {
   const answer = useRef(onAnswer);
-  answer.current = onAnswer;
+  useEffect(() => {
+    answer.current = onAnswer;
+  });
   const page = useCoachStore((s) => (s.composing ? 'compose' : s.page));
   const busy = useCoachStore((s) => s.blocks > 0 || s.current !== null);
   const toast = useToastStore((s) => s.message !== null);

@@ -25,7 +25,6 @@ export default function MissMoment({ userId }: { userId: string }): React.JSX.El
 
   useEffect(() => {
     let live = true;
-    setSeen(null);
     AsyncStorage.getItem(missSeenKey(userId))
       .then((raw) => {
         if (live) setSeen(parseSeenMisses(raw));

@@ -141,11 +141,6 @@ export default function HorizontalNavigator({
     useCoachStore.getState().setPage(tab);
   }, [tab]);
   useCoachBlock(overlay || covered);
-  useOpenTagReminder(() => {
-    setNotifOpen(false);
-    setProfileUserId(null);
-    navigate(CAMERA);
-  });
 
   // Toasts sit above the phone's tab bar (the room it takes is what the pages leave below them),
   // or above the dock while it shows.
@@ -256,6 +251,12 @@ export default function HorizontalNavigator({
   };
 
   usePushRegistration();
+  // The tag reminder's Answer goes to the camera, as a tag's push does.
+  useOpenTagReminder(() => {
+    setNotifOpen(false);
+    setProfileUserId(null);
+    navigate(CAMERA);
+  });
   usePushRouting({
     openProfile: (uid) => {
       setNotifOpen(false);
