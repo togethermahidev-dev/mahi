@@ -134,7 +134,7 @@ export function PullHandle({
   anchorRef,
 }: {
   top: number;
-  /** Where the one-time "Pull down for your mates" tip points. */
+  /** Where the one-time "Pull down to peek" tip points. */
   anchorRef?: React.Ref<View>;
 }): React.JSX.Element {
   const reduceMotion = useReducedMotion();
@@ -155,8 +155,10 @@ export function PullHandle({
       collapsable={false}
       pointerEvents="none"
       style={[styles.handleSpot, { top }]}
-      accessible
-      accessibilityLabel="Pull down to see your mates behind the camera"
+      // Decoration only: pulling just nudges the card VoiceOver already reads, and VoiceOver
+      // can't pull, so it skips the handle rather than offer something it can't do.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
     >
       <Reanimated.View style={[styles.handleBar, breathStyle]} />
       {swift ? (

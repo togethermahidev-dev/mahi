@@ -102,6 +102,7 @@ import {
 } from '@/lib/tagSlots';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useCoachAnchor } from '@/hooks/useCoachMarks';
+import { useScreenReader } from '@/hooks/useScreenReader';
 import CoachMarkHost from '@/components/CoachMark';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useVideoPosts } from '@/hooks/useVideoPosts';
@@ -1909,7 +1910,9 @@ export default function CameraScreen({
   const { fontScale } = useWindowDimensions();
   const pullOn = useFeatureFlag('camera-pull-down') && cameraOn && waitingCard;
   const pull = useCameraPull(pullOn, safeTop);
-  const pullTip = useCoachAnchor('pullDown', pullOn);
+  // VoiceOver can't pull, so the pull tip waits for a sighted session.
+  const screenReader = useScreenReader();
+  const pullTip = useCoachAnchor('pullDown', pullOn && !screenReader);
 
   // Tap to focus (flag `camera-tap-focus`): switch on, an iPhone, and a build whose camera can
   // focus on a point (build 11+). OTA updates also reach build 10, which can't: there it's off.
