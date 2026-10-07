@@ -7,6 +7,10 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 37 — closing the share sheet no longer leaves an unsent invite; buttons say "Invite an
+ *     accountability mate"; the camera gives when pulled down; the +1 flies into the counter;
+ *     the feed clears post by post; last-6-hours ring; Answered stamp; Camera tab badge; miss
+ *     roll-down; profile points card (2026-10-07)
  *   build 12 · 36 — Your invites say who each link went to and how (WhatsApp, Messages, a contact),
  *     what it does and when; Resend goes back to the same place; Waiting, Joined, Older groups;
  *     off switches for the new native features (2026-10-07)
@@ -78,4 +82,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 36;
+export const OTA_NUMBER = 37;
