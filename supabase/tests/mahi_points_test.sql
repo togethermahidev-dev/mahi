@@ -51,22 +51,23 @@ create function pg_temp.best(p_who text) returns int language sql as $$
   select streak_highest from public.profiles where id = pg_temp.uid(p_who)
 $$;
 
--- 1. A's first post tags B and C. B and C answer: each earns 1, A (the tagger) earns nothing.
+-- 1. A's first post tags B and C and earns A's first point (20261007180000_first_post_point).
+-- B and C answer: each earns 1; A (the tagger) earns nothing more.
 select pg_temp.post('a', 1, array['b', 'c']);
 reset role;
-select is(pg_temp.pts('a'), 0, 'a first post earns nothing');
+select is(pg_temp.pts('a'), 1, 'a first post earns your first point');
 select is((pg_temp.post('b', 1) -> 'streak' ->> 'streak_current')::int, 1,
   'answering a tag earns the answerer 1 Mahi point');
 reset role;
 select pg_temp.post('c', 1);
 reset role;
 select is(pg_temp.pts('c'), 1, 'the second friend earns 1 for answering too');
-select is(pg_temp.pts('a'), 0, 'the tagger earns nothing when their tags are answered');
+select is(pg_temp.pts('a'), 1, 'the tagger earns nothing more when their tags are answered');
 
 -- 2. One post answering two tags still earns 1.
 select pg_temp.tag_a('b');
 select pg_temp.tag_a('c');
-select is((pg_temp.post('a', 2) -> 'streak' ->> 'streak_current')::int, 1,
+select is((pg_temp.post('a', 2) -> 'streak' ->> 'streak_current')::int, 2,
   'one post answering two tags earns 1, not 2');
 reset role;
 select is(pg_temp.pts('b') + pg_temp.pts('c'), 2, 'and its two taggers earn nothing');
@@ -79,34 +80,34 @@ select pg_temp.tag_a('c');
 select pg_temp.post('a', 4);
 reset role;
 select pg_temp.tag_a('d');
-select is((pg_temp.post('a', 5) -> 'streak' ->> 'streak_current')::int, 4,
+select is((pg_temp.post('a', 5) -> 'streak' ->> 'streak_current')::int, 5,
   'four answering posts in one day earn four points (no daily cap)');
 reset role;
-select is(pg_temp.best('a'), 4, 'the best follows the points up');
-select is((select streak_day from public.posts where image_path = pg_temp.uid('a') || '/5.jpg'), 4,
+select is(pg_temp.best('a'), 5, 'the best follows the points up');
+select is((select streak_day from public.posts where image_path = pg_temp.uid('a') || '/5.jpg'), 5,
   'the post carries its poster''s points after it');
 
 -- 4. Points travel where the app shows them, under the name `points` the apps on phones read.
-select is((select public.points(p) from public.profiles p where p.id = pg_temp.uid('a')), 4,
+select is((select public.points(p) from public.profiles p where p.id = pg_temp.uid('a')), 5,
   'the profile''s points are the Mahi points (for apps still on phones)');
 select set_config('role', 'authenticated', true),
        set_config('request.jwt.claims',
          json_build_object('sub', pg_temp.uid('b'), 'role', 'authenticated')::text, true);
-select is((select points from public.get_taggable_friends('', 10) where username = 'mp_a'), 4,
+select is((select points from public.get_taggable_friends('', 10) where username = 'mp_a'), 5,
   'the tag list shows the Mahi points');
 select is(
   (select (i -> 'profile' ->> 'points')::int
    from jsonb_array_elements(public.get_feed(20) -> 'items') i
    where i -> 'profile' ->> 'username' = 'mp_a'
    limit 1),
-  4, 'feed items show the poster''s Mahi points');
+  5, 'feed items show the poster''s Mahi points');
 reset role;
 
 -- 5. A misses C's tag: points back to 0, the best is kept, the push says points.
 select pg_temp.tag_a('c', '49 hours');
 select public.mark_missed_tags();
 select is(pg_temp.pts('a'), 0, 'a missed tag puts the points back to 0');
-select is(pg_temp.best('a'), 4, 'the best is never lowered');
+select is(pg_temp.best('a'), 5, 'the best is never lowered');
 select is((select public.points(p) from public.profiles p where p.id = pg_temp.uid('a')), 0,
   'and the profile''s points follow it to 0');
 select is((select body from public.push_outbox
@@ -118,7 +119,7 @@ select is(pg_temp.pts('c'), 1, 'the tagger whose tag was missed keeps their own 
 select pg_temp.tag_a('d');
 select is((pg_temp.post('a', 6) -> 'streak' ->> 'streak_current')::int, 1, 'points start again from 0');
 reset role;
-select is(pg_temp.best('a'), 4, 'the best stays at 4');
+select is(pg_temp.best('a'), 5, 'the best stays at 5');
 
 -- 7. The old points system is gone.
 select hasnt_table('public', 'point_events', 'the old points ledger is gone');

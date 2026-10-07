@@ -86,8 +86,8 @@ reset role;
 select is((select array[rear_media_type, front_media_type] from public.posts
            where client_id = '77777777-0000-0000-0000-0000000000a1'), array['video', 'photo'],
   'each shot keeps its own media type');
-select is((select streak_day from public.posts where client_id = '77777777-0000-0000-0000-0000000000a1'), 0,
-  'a video post follows the same posting rules (a first post, streak 0)');
+select is((select streak_day from public.posts where client_id = '77777777-0000-0000-0000-0000000000a1'), 1,
+  'a video post follows the same posting rules (a first post earns 1)');
 
 -- 5. Wrong media is refused.
 select pg_temp.as_user('e');
