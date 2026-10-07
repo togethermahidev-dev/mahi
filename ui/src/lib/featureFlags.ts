@@ -30,6 +30,9 @@ export const FEATURE_FLAGS = [
   'identity-verification', // Didit identity check (default OFF)
   'purchases', // RevenueCat in-app purchases and paywall (default OFF)
 
+  // Build 13 native features — kill switches, on for everyone
+  'share-to-mahi', // share 1–2 photos from Photos to Mahi: they open as the post's shots (off: the share is ignored and deleted)
+
   // Sign-in placeholders — pills on the welcome screen with nothing behind them yet.
   'auth-apple-signin',
   'auth-google-signin',
@@ -50,7 +53,7 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * `identity-verification` and `purchases`: dormant until the owner sets up Didit / RevenueCat.
  * `tag-slots`: needs migration 20261003120000_tag_slots on the server first; off, the tag sheet
  * stays exactly as today.
-*/
+ */
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'push-core',
   'video-posts',

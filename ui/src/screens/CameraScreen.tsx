@@ -46,6 +46,9 @@ import {
   useTagStore,
 } from '@/store';
 import { useToastStore } from '@/store/toastStore';
+import { useCameraRequestStore } from '@/store/cameraRequestStore';
+import { deleteSharedFiles } from '@/hooks/useSharedPhotos';
+import { sharedPhotoResize, type SharedPhoto } from '@/lib/sharedPhoto';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { randomUUID } from 'expo-crypto';
 import { track } from '@/lib/analytics';
@@ -2009,6 +2012,20 @@ export default function CameraScreen({
     return { kind: 'photo', uri: normalizedUri, base64, aspectRatio };
   };
 
+  // A photo shared from Photos, made into a shot the way takePhoto makes one: one JPEG encode,
+  // brought down to the camera's size when it's bigger.
+  const sharedShot = async (shared: SharedPhoto): Promise<CapturedPhoto> => {
+    const { uri, width, height } = await manipulateAsync(
+      shared.uri,
+      sharedPhotoResize(shared.width, shared.height),
+      { compress: PHOTO_CAPTURE.jpegQuality, format: SaveFormat.JPEG }
+    );
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return { kind: 'photo', uri, base64, aspectRatio: width && height ? width / height : 0.75 };
+  };
+
   // ── Video (flag `video-posts`, and only on builds with the video module) ──────────────────
   // The camera stays in photo mode unless the switch says Video or a held shutter asks for a
   // video; it is muted until the microphone is granted, so turning to video never prompts.
@@ -2581,6 +2598,48 @@ export default function CameraScreen({
   useEffect(() => {
     onComposingRef.current?.(hasPreview);
   }, [hasPreview]);
+
+  // Photos shared from Photos (switch `share-to-mahi`, src/hooks/useSharedPhotos.ts) become the
+  // shots: two fill the preview; one is the first shot and the selfie side takes the second. Same
+  // posting rules as the shutter. The share extension's copies are deleted once read.
+  const cameraRequest = useCameraRequestStore((s) => s.request);
+  useEffect(() => {
+    if (!cameraRequest || gate === 'loading') return;
+    const request = useCameraRequestStore.getState().take();
+    if (!request) return;
+    const uris = request.photos.map((p) => p.uri);
+    if (gate !== 'open' || captureState !== 'idle' || hasPreview || isUploading) {
+      deleteSharedFiles(uris);
+      if (gate === 'open')
+        useToastStore.getState().show('Finish this post first, then share again.');
+      return;
+    }
+    setCaptureState('capturing-first');
+    Promise.all(request.photos.map(sharedShot))
+      .then((shots) => {
+        const [first, second] = shots;
+        if (second) {
+          setRearPhoto(first);
+          setFrontPhoto(second);
+          setCaptureState('idle');
+          return;
+        }
+        firstPhotoRef.current = first;
+        firstFacingRef.current = 'back';
+        setGuidePhotoUri(first.uri);
+        setGuideIsVideo(false);
+        setFacing('front');
+        setCaptureState('awaiting-second');
+      })
+      .catch((err) => {
+        reportError(err, { flow: 'camera', action: 'sharedPhoto' });
+        useToastStore.getState().show('Couldn’t open that photo. Try again.');
+        setCaptureState('idle');
+      })
+      .finally(() => deleteSharedFiles(uris));
+    // Runs when a request arrives or the posting gate settles; the rest is read as it is then.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraRequest, gate]);
 
   // One share sheet for one invite link; only a link that actually went somewhere counts as sent.
   const sendInvite = async (token: string) => {

@@ -41,6 +41,7 @@ import {
 } from '@/store';
 import { rehydrateTheme } from '@/store/themeStore';
 import { useIdentityStore } from '@/store/identityStore';
+import { useCameraRequestStore } from '@/store/cameraRequestStore';
 import { usePurchasesStore } from '@/store/purchasesStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useInviteLink } from '@/hooks/useInviteLink';
@@ -206,6 +207,7 @@ export default function App(): React.JSX.Element {
         useTagStore.getState().reset();
         useInviteStore.getState().reset();
         useChromeStore.getState().reset();
+        useCameraRequestStore.getState().reset();
         useIdentityStore.getState().reset();
         // Logs RevenueCat out only if it was configured (flag `purchases`); otherwise a no-op.
         usePurchasesStore.getState().reset();

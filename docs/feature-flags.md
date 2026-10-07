@@ -156,6 +156,14 @@ and RevenueCat is never started.)
 `auth-apple-signin` · `auth-google-signin`. **Currently on at 100%** — the owner's choice on 2026-09-23 to
 preview the look; tapping them does nothing. Set both to 0% before real users see the welcome screen.
 
+**Build 13 native extras — kill switches, on for everyone** (owner, 2026-10-07). Default on in code; each
+must be **created in PostHog at 100% before build 13 ships** (a missing key reads as off). Builds 10–12
+don't have the native parts, so the switches do nothing there.
+- `share-to-mahi`: "Post to Mahi" in the Photos share sheet (1–2 photos). On: Mahi opens on the Camera
+  page with them as the shots (two fill the preview; one is the first shot and the selfie side takes the
+  second). Off: Mahi still appears in the share sheet (that can't change without a build), but the app
+  ignores the share — it deletes the copied photos and opens as it is.
+
 ## Removed from code 2026-10-07
 
 These twelve were on at 100% for everyone since about 2026-10-01. The owner made them standard on

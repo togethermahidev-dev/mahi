@@ -341,3 +341,46 @@ describe('emoji keyboard loader (local module mahi-emoji-keyboard, build 13+)', 
     expect(loadEmojiModule().hasNativeEmojiKeyboard()).toBe(false);
   });
 });
+
+describe('share intent loader (expo-share-intent, build 13+)', () => {
+  function loadShareModule(): typeof import('../shareIntentModule') {
+    let mod!: typeof import('../shareIntentModule');
+    jest.isolateModules(() => {
+      mod = jest.requireActual('../shareIntentModule');
+    });
+    return mod;
+  }
+
+  it('looks for the module by its native name', () => {
+    optionalGet.mockReturnValue(null);
+    loadShareModule().loadShareIntent();
+    expect(optionalGet).toHaveBeenCalledWith('ExpoShareIntentModule');
+  });
+
+  it('gives nothing on a build without the module (builds 10 to 12)', () => {
+    optionalGet.mockReturnValue(null);
+    expect(loadShareModule().loadShareIntent()).toBeNull();
+  });
+
+  it('treats a lookup that throws as missing', () => {
+    optionalGet.mockImplementation(() => {
+      throw new Error('no');
+    });
+    expect(loadShareModule().loadShareIntent()).toBeNull();
+  });
+
+  it('gives the module on iPhone, looked up once', () => {
+    const native = { getShareIntent: jest.fn() };
+    optionalGet.mockReturnValue(native);
+    const m = loadShareModule();
+    expect(m.loadShareIntent()).toBe(native);
+    m.loadShareIntent();
+    expect(optionalGet).toHaveBeenCalledTimes(1);
+  });
+
+  it('is iPhone only (the Android share target is not set up)', () => {
+    platform.OS = 'android';
+    optionalGet.mockReturnValue({});
+    expect(loadShareModule().loadShareIntent()).toBeNull();
+  });
+});

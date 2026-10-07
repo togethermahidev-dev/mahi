@@ -50,6 +50,18 @@ const config = {
         ],
       },
     ],
+    // Share one or two photos from Photos to Mahi (build 13+, switch `share-to-mahi`;
+    // src/hooks/useSharedPhotos.ts). Adds the share extension com.mahi.app.share-extension,
+    // shown as "Post to Mahi", in the same App Group. Photos only, at most two; iPhone only.
+    [
+      'expo-share-intent',
+      {
+        iosActivationRules: { NSExtensionActivationSupportsImageWithMaxCount: 2 },
+        iosAppGroupIdentifier: 'group.com.mahi.app',
+        iosShareExtensionName: 'Post to Mahi',
+        disableAndroid: true,
+      },
+    ],
     [
       'expo-image-picker',
       {

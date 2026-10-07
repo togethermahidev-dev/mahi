@@ -32,6 +32,7 @@ import NavRail, { type RailTab } from '@/components/NavRail';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
+import { useSharedPhotos } from '@/hooks/useSharedPhotos';
 import PostViewer from '@/components/PostViewer';
 import CoachMarkHost from '@/components/CoachMark';
 import { useCoachBlock, useOpenTagReminder } from '@/hooks/useCoachMarks';
@@ -273,6 +274,12 @@ export default function HorizontalNavigator({
       setProfileUserId(null);
       navigate(MESSAGES);
     },
+  });
+  // Photos shared from Photos land on the Camera page as the shots (switch `share-to-mahi`).
+  useSharedPhotos(() => {
+    setNotifOpen(false);
+    setProfileUserId(null);
+    navigate(CAMERA);
   });
 
   // The lists' scrolling as gestures, so a sideways swipe on them still moves the pages: a
