@@ -14,6 +14,8 @@ interface UserProfile {
   streak_current: number;
   /** Best Mahi points, never lowered. */
   streak_highest: number;
+  /** Your free first post is used; permanent, even after deleting every post. */
+  has_posted_before?: boolean;
 }
 
 interface UserState {

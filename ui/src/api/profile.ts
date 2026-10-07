@@ -16,7 +16,7 @@ type ProfileRow = Database['public']['Tables']['profiles']['Row'];
  * (server: profile_private, read back only by their owner) and are never asked for here.
  */
 const PROFILE_COLUMNS =
-  'id, username, display_name, first_name, last_name, fitness_goals, avatar_url, streak_current, streak_highest, is_banned, timezone, created_at, updated_at' as const;
+  'id, username, display_name, first_name, last_name, fitness_goals, avatar_url, streak_current, streak_highest, has_posted_before, is_banned, timezone, created_at, updated_at' as const;
 
 export type PublicProfile = Omit<ProfileRow, 'date_of_birth' | 'contact_number'>;
 

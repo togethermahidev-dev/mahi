@@ -161,8 +161,10 @@ export default function PostCard({
     }
     useFeedStore.getState().removePost(item.id);
     useProfilePostsStore.getState().removePost(item.id);
+    // Re-read your profile: points may change, and the camera reads its "has posted before" mark.
+    if (item.user_id) void useUserStore.getState().refresh(item.user_id);
     useToastStore.getState().show('Post deleted.');
-  }, [deleting, item.id]);
+  }, [deleting, item.id, item.user_id]);
   const likedByMe = useSocialStore((s) => s.likedByMe[item.id] ?? item.liked_by_me);
   // Counts move in the feed's copy of the post and the profile grid's (see socialStore).
   const feedCounts = useFeedStore((s) => s.posts.find((p) => p.id === item.id));

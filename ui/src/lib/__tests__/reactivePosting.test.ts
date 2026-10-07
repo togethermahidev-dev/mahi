@@ -1,4 +1,4 @@
-import { answersATag, reactivePostingGate } from '../reactivePosting';
+import { answersATag, hasPostedBefore, reactivePostingGate } from '../reactivePosting';
 
 const HOUR = 3600 * 1000;
 const deviceNow = Date.parse('2026-10-01T12:00:00.000Z');
@@ -38,5 +38,38 @@ describe('reactivePostingGate — whether the camera lets you post', () => {
   it('loading until both answers are in — never a guess', () => {
     expect(reactivePostingGate({ ...base, hasPosted: null })).toBe('loading');
     expect(reactivePostingGate({ ...base, hasPosted: true, tagsLoaded: false })).toBe('loading');
+  });
+});
+
+describe('hasPostedBefore — whether your free first post is used', () => {
+  it('stays used after you delete every post (the server’s permanent mark wins)', () => {
+    expect(hasPostedBefore({ profileMark: true, feedLoaded: true, unlockedUntil: null })).toBe(
+      true
+    );
+  });
+
+  it('is used as soon as a post of yours exists, before the profile catches up', () => {
+    expect(
+      hasPostedBefore({
+        profileMark: false,
+        feedLoaded: true,
+        unlockedUntil: '2026-10-08T12:00:00Z',
+      })
+    ).toBe(true);
+  });
+
+  it('is free only when both say you never posted', () => {
+    expect(hasPostedBefore({ profileMark: false, feedLoaded: true, unlockedUntil: null })).toBe(
+      false
+    );
+  });
+
+  it('is unknown until both the profile and the feed are read', () => {
+    expect(hasPostedBefore({ profileMark: null, feedLoaded: true, unlockedUntil: null })).toBe(
+      null
+    );
+    expect(hasPostedBefore({ profileMark: false, feedLoaded: false, unlockedUntil: null })).toBe(
+      null
+    );
   });
 });

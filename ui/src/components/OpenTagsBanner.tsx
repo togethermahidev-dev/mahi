@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -16,7 +16,7 @@ import Reanimated, {
 import Svg, { Path } from 'react-native-svg';
 import { msLeft } from '@/lib/countdown';
 import { openTagsBanner } from '@/lib/openTagsBanner';
-import { appHeaderHeight } from '@/lib/pip';
+import { openTagsTop } from '@/lib/pip';
 import type { OpenTag } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -26,7 +26,6 @@ import {
   FONT_SIZE,
   ICON_SIZE,
   MOTION,
-  OFFSET,
   RADIUS,
   SIZE,
   SPACE,
@@ -50,7 +49,8 @@ export default function OpenTagsBanner({
 }): React.JSX.Element | null {
   const { colors } = useAppTheme();
   // Just under the app header, whose height follows the status bar / notch.
-  const top = appHeaderHeight(useSafeAreaInsets().top) + OFFSET.o12;
+  // Under the points counter (top right), so the two never overlap.
+  const top = openTagsTop(useSafeAreaInsets().top, useWindowDimensions().fontScale);
   // Hours and minutes only, so a refresh every minute keeps it right.
   const deviceNow = useMinuteTick();
 
@@ -156,10 +156,9 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   pillRoom: {
-    // Keeps the pill clear of the points counter (top right) on small phones and at large text.
     alignSelf: 'stretch',
     alignItems: 'center',
-    paddingHorizontal: SPACE.s80,
+    paddingHorizontal: SPACE.s24,
   },
   pill: {
     // Grows with the text size instead of clipping it.

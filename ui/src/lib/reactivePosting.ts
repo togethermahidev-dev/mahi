@@ -25,3 +25,21 @@ export function reactivePostingGate(input: {
   if (input.hasPosted === null || !input.tagsLoaded) return 'loading';
   return answersATag(input.openTags, input.serverOffsetMs, input.deviceNow) ? 'open' : 'closed';
 }
+
+/**
+ * Whether your free first post is used. The server's permanent `profiles.has_posted_before` mark
+ * decides (deleting every post never gives it back); a post of yours in the feed counts too, so
+ * the camera knows straight after your first post. null until both are read.
+ */
+export function hasPostedBefore(input: {
+  /** `profiles.has_posted_before`; null while the profile loads. */
+  profileMark: boolean | null;
+  feedLoaded: boolean;
+  /** The feed's `unlockedUntil`: set while any post of yours exists. */
+  unlockedUntil: string | null;
+}): boolean | null {
+  if (input.profileMark === true) return true;
+  if (input.feedLoaded && input.unlockedUntil !== null) return true;
+  if (input.profileMark === null || !input.feedLoaded) return null;
+  return false;
+}

@@ -507,6 +507,7 @@ export type Database = {
           display_name: string | null;
           first_name: string | null;
           fitness_goals: string[] | null;
+          has_posted_before: boolean;
           id: string;
           is_banned: boolean;
           last_name: string | null;
@@ -524,6 +525,7 @@ export type Database = {
           display_name?: string | null;
           first_name?: string | null;
           fitness_goals?: string[] | null;
+          has_posted_before?: boolean;
           id: string;
           is_banned?: boolean;
           last_name?: string | null;
@@ -541,6 +543,7 @@ export type Database = {
           display_name?: string | null;
           first_name?: string | null;
           fitness_goals?: string[] | null;
+          has_posted_before?: boolean;
           id?: string;
           is_banned?: boolean;
           last_name?: string | null;

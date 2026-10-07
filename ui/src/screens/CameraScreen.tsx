@@ -103,7 +103,7 @@ import {
   tapFocusAvailable,
   type FlashChoice,
 } from '@/lib/cameraCapture';
-import { answersATag, reactivePostingGate } from '@/lib/reactivePosting';
+import { answersATag, hasPostedBefore, reactivePostingGate } from '@/lib/reactivePosting';
 import { nudgeLabel } from '@/lib/tagNudge';
 import { cantTagReason } from '@/lib/tagRules';
 import { inviteList, inviteShareMessage, markInvite, type InviteItem } from '@/lib/inviteShare';
@@ -144,6 +144,7 @@ import {
   withAlpha,
 } from '@/constants/tokens';
 import { themeColors } from '@/lib/themeColors';
+import { cameraCornerTop } from '@/lib/pip';
 
 /** The camera when there's no open tag to answer (the refusal toast's words live in postRefusal). */
 const NO_TAGS_TITLE = 'You’re all caught up';
@@ -168,7 +169,7 @@ let flashThisSession: FlashChoice = 'off';
 
 /** Top of the top-right corner items (points counter, discard ✕): just below the status bar. */
 function topRightY(insetTop: number): number {
-  return insetTop + OFFSET.o48;
+  return cameraCornerTop(insetTop);
 }
 
 /**
@@ -1588,14 +1589,19 @@ export default function CameraScreen({
   // Null until the profile has loaded: the counter shows a dash, never a 0 that then changes.
   const pointsCountNow = profile ? profile.streak_current : null;
 
-  // Reactive posting: your first post, then only while a friend's tag is open. The feed already
-  // knows whether you've posted: its `unlockedUntil` is null until your first post (and the feed
-  // is re-read after every post). Nothing here is kept on the device.
+  // Reactive posting: your first post, then only while a friend's tag is open. The server's
+  // permanent "has posted before" mark decides (deleting every post never gives the free post
+  // back); a post of yours in the feed counts straight away. Nothing here is kept on the device.
   const feedLoaded = useFeedStore((s) => s.loaded);
   const unlockedUntil = useFeedStore((s) => s.unlockedUntil);
   const feedOpen = useFeedStore((s) => s.loaded && !s.locked);
+  const hasPosted = hasPostedBefore({
+    profileMark: profile ? (profile.has_posted_before ?? false) : null,
+    feedLoaded,
+    unlockedUntil,
+  });
   const gate = reactivePostingGate({
-    hasPosted: feedLoaded ? unlockedUntil !== null : null,
+    hasPosted,
     tagsLoaded,
     openTags,
     serverOffsetMs,
@@ -2526,8 +2532,8 @@ export default function CameraScreen({
           <OpenTagsBanner
             openTags={openTags}
             serverOffsetMs={serverOffsetMs}
-            // Never posted (the feed has no open window yet): "First post · no tag needed".
-            firstPost={feedLoaded && unlockedUntil === null && tagsLoaded}
+            // Never posted (not even a deleted post): "First post · no tag needed".
+            firstPost={hasPosted === false && tagsLoaded}
           />
         )}
 
