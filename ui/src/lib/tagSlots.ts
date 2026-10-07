@@ -92,12 +92,12 @@ export function personAction(
   selected: boolean
 ): { action: 'tag' | 'untag' | 'invite' | 'none'; note: string | null } {
   if (selected) return { action: 'untag', note: null };
-  if (person.tagged_you) return { action: 'none', note: 'tagged you, can’t tag back' };
   if (person.has_open_tag) {
     return person.is_friend
       ? { action: 'none', note: 'you tagged them, open until they answer' }
       : { action: 'none', note: 'request sent' };
   }
+  if (person.tagged_you) return { action: 'tag', note: 'tagged you · tag them back' };
   return person.is_friend
     ? { action: 'tag', note: null }
     : { action: 'invite', note: 'accepting means you’ll follow each other' };

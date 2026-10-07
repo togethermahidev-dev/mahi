@@ -2,7 +2,7 @@
 -- Every check reads only this test's own invites and tags, so it also runs on a database with
 -- history.
 begin;
-select plan(30);
+select plan(29);
 
 -- Invite links off unless a section turns them on: fewer friends excuses the difference.
 update public.app_config set invite_links_enabled = false;
@@ -184,22 +184,16 @@ select is(
 );
 
 -- 6. Once invite links are switched on, every slot must be filled. N's only friend is A, whose
---    tag N is answering, so A can't be tagged back: all three slots are invites.
+--    tag N is answering: since 20261007240000_tag_back N may tag A back in that answer.
 update public.app_config set invite_links_enabled = true;
 -- N had a post before (since deleted): only a first post that answers a tag may leave slots
 -- empty (20261007190000_first_answer_no_tags, tested in first_answer_no_tags_test).
 update public.profiles set has_posted_before = true where id = '00000000-0000-0000-0000-00000000d00c';
 select pg_temp.as_user('00000000-0000-0000-0000-00000000d00c');
 select is(
-  (select has_open_tag and tagged_you from public.get_taggable_friends()
+  (select not has_open_tag and tagged_you from public.get_taggable_friends()
    where id = '00000000-0000-0000-0000-00000000d00a'),
-  true, 'the picker shows the person who tagged you as unavailable, and why'
-);
-select throws_ok(
-  $$select public.create_post('22222222-0000-0000-0000-0000000000c1',
-    '00000000-0000-0000-0000-00000000d00c/n1.jpg', null, null,
-    array['00000000-0000-0000-0000-00000000d00a']::uuid[], null, null, 2)$$,
-  '22023', null, 'you cannot tag back someone whose tag you are answering'
+  true, 'the picker shows who tagged you, and they can be tagged back'
 );
 select throws_ok(
   $$select public.create_post('22222222-0000-0000-0000-0000000000c1',
@@ -208,12 +202,13 @@ select throws_ok(
 );
 select lives_ok(
   $$select public.create_post('22222222-0000-0000-0000-0000000000c1',
-    '00000000-0000-0000-0000-00000000d00c/n1.jpg', null, null, '{}'::uuid[], null, null, 3)$$,
-  'invites fill every slot'
+    '00000000-0000-0000-0000-00000000d00c/n1.jpg', null, null,
+    array['00000000-0000-0000-0000-00000000d00a']::uuid[], null, null, 2)$$,
+  'you can tag back the person whose tag you are answering'
 );
 select is(
   (select has_open_tag from public.get_taggable_friends() where id = '00000000-0000-0000-0000-00000000d00a'),
-  false, 'once answered, they can be tagged again next time'
+  true, 'then your own tag on them is open until they answer'
 );
 
 select * from finish();

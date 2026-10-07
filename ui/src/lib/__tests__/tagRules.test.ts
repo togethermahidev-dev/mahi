@@ -43,10 +43,8 @@ describe('cantTagReason — why a friend is greyed out in the tag list', () => {
     expect(cantTagReason({ has_open_tag: false, tagged_you: false })).toBeNull();
   });
 
-  it('they tagged you: you cannot tag back', () => {
-    expect(cantTagReason({ has_open_tag: true, tagged_you: true })).toBe(
-      'tagged you, can’t tag back'
-    );
+  it('they tagged you: you can tag them back (Maximus, 2026-10-07)', () => {
+    expect(cantTagReason({ has_open_tag: false, tagged_you: true })).toBeNull();
   });
 
   it('you tagged them: says when you can tag them again', () => {

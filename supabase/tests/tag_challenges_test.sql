@@ -132,15 +132,11 @@ select is((select body from public.push_outbox
 select is((public.answered_by_post((pg_temp.challenge('tag_a', 'tag_b')).answered_post_id) -> 0 ->> 'seconds')::int,
   10800, 'the post records the response time');
 
--- 3. C can't tag back A, whose tag C's post would answer.
-select pg_temp.as_user('00000000-0000-0000-0000-00000000c00c');
-select throws_ok(
-  $$select public.create_post('11111111-0000-0000-0000-0000000000c1',
-    '00000000-0000-0000-0000-00000000c00c/c1.jpg', null, null,
-    array['00000000-0000-0000-0000-00000000c00a']::uuid[])$$,
-  '22023', null, 'you cannot tag back someone whose tag you are answering'
-);
-reset role;
+-- 3. C may tag back A, whose tag C's post would answer (20261007240000_tag_back; the posting
+--    side is tested in tag_back_test). Checked without posting: A's tag on C must stay open below.
+select is((select has_open_tag from public.taggable_friends('00000000-0000-0000-0000-00000000c00c')
+           where id = '00000000-0000-0000-0000-00000000c00a'), false,
+  'you can tag back someone whose tag you are answering');
 
 -- 4. D blocks A: A's open tag on D is cancelled with its pushes.
 insert into public.user_blocks (blocker_id, blocked_id)

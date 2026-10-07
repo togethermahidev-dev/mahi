@@ -25,14 +25,14 @@ export function postTagsRequired(
 }
 
 /**
- * Why a friend is greyed out in the tag list; null when they can be tagged. Your own tag on them
- * ends when they post or its 48 hours run out (the server's taggable_friends rule).
+ * Why a friend is greyed out in the tag list; null when they can be tagged. Only your own open tag
+ * on them blocks it: someone who tagged you can be tagged back (Maximus, 2026-10-07; the server's
+ * taggable_friends rule, 20261007240000_tag_back).
  */
 export function cantTagReason(friend: {
   has_open_tag: boolean;
   tagged_you?: boolean;
 }): string | null {
-  if (friend.tagged_you) return 'tagged you, can’t tag back';
   if (friend.has_open_tag) return 'you tagged them, open until they answer';
   return null;
 }

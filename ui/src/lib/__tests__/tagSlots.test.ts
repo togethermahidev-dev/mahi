@@ -86,9 +86,10 @@ describe('personAction', () => {
   });
 
   it('says why someone cannot be picked', () => {
-    expect(personAction({ ...p, tagged_you: true, has_open_tag: true }, false)).toEqual({
-      action: 'none',
-      note: 'tagged you, can’t tag back',
+    // Someone who tagged you can be tagged back (Maximus, 2026-10-07).
+    expect(personAction({ ...p, tagged_you: true, has_open_tag: false }, false)).toEqual({
+      action: 'tag',
+      note: 'tagged you · tag them back',
     });
     expect(personAction({ ...p, has_open_tag: true }, false)).toEqual({
       action: 'none',
