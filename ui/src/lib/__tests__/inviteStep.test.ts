@@ -6,7 +6,7 @@ describe('slotCount', () => {
       filled: 2,
       remaining: 1,
       total: 3,
-      text: '2 of 3 tags · 1 friend, 1 link',
+      text: '2 of 3 tags · 1 mate, 1 link',
     });
   });
 
@@ -16,7 +16,7 @@ describe('slotCount', () => {
 
   it('names only what is there, with plurals', () => {
     expect(slotCount({ maxTags: 3, friends: 0, invites: 3 }).text).toBe('3 of 3 tags · 3 links');
-    expect(slotCount({ maxTags: 3, friends: 2, invites: 0 }).text).toBe('2 of 3 tags · 2 friends');
+    expect(slotCount({ maxTags: 3, friends: 2, invites: 0 }).text).toBe('2 of 3 tags · 2 mates');
   });
 
   it('never goes below zero remaining', () => {
@@ -56,7 +56,7 @@ describe('inviteStepCopy', () => {
     expect(inviteStepCopy({ maxTags: 3, availableFriends: 0, friends: 0, invites: 0 })).toEqual({
       headline: 'Invite 3 mates to post',
       why: 'Every post tags 3 mates. When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.',
-      button: 'Invite a friend',
+      button: 'Invite a mate',
       canAdd: true,
       count: '0 of 3 tags',
     });
@@ -65,7 +65,7 @@ describe('inviteStepCopy', () => {
   it('asks only for the slots friends cannot fill', () => {
     const copy = inviteStepCopy({ maxTags: 3, availableFriends: 2, friends: 2, invites: 0 });
     expect(copy.headline).toBe('Invite 1 mate to post');
-    expect(copy.count).toBe('2 of 3 tags · 2 friends');
+    expect(copy.count).toBe('2 of 3 tags · 2 mates');
   });
 
   it('stops offering more invites once every slot is filled', () => {
@@ -73,5 +73,24 @@ describe('inviteStepCopy', () => {
     expect(copy.canAdd).toBe(false);
     expect(copy.button).toBe('All 3 tags used');
     expect(copy.count).toBe('3 of 3 tags · 3 links');
+  });
+});
+
+// Usability walkthrough 2026-10-07: a first post that answers a tag needs no tags, so the step
+// asks for mates to keep you going instead of slots to fill.
+describe('inviteStepCopy — when this post needs no tags', () => {
+  it('invites mates to keep you going', () => {
+    const copy = inviteStepCopy({
+      maxTags: 3,
+      availableFriends: 0,
+      friends: 0,
+      invites: 0,
+      tagsOptional: true,
+    });
+    expect(copy.headline).toBe('Invite mates to keep you going');
+    expect(copy.button).toBe('Invite a mate');
+    expect(copy.why).toBe(
+      'When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.'
+    );
   });
 });

@@ -105,12 +105,12 @@ export function personAction(
 
 /** The low-pressure message that goes with an invite link. */
 export function slotShareMessage(url: string, _code: string): string {
-  return `I tagged you on Mahi. Join me for a workout — we’ll automatically follow each other when you join.\n${url}`;
+  return `I tagged you on Mahi. Join, then post any workout within 48 hours. We’ll keep each other going.\n${url}`;
 }
 
 /** The message with an invite for a mate (no tag behind it: nothing to answer). */
 export function mateInviteMessage(url: string): string {
-  return `Join me on Mahi. We’ll automatically follow each other when you join.\n${url}`;
+  return `Join me on Mahi so we keep each other going. We’ll follow each other when you join.\n${url}`;
 }
 
 /** A link that opens WhatsApp or Messages with the message already written. */
@@ -151,7 +151,7 @@ export function slotErrorText(message: string): string {
   if (message.includes('already invited')) return 'Tag request already sent.';
   if (message.includes('cannot invite that person')) return 'You can’t send them a tag request.';
   if (message.includes('no longer open')) return 'That link has ended.';
-  if (message.includes('friends first')) return 'Tag your friends first.';
+  if (message.includes('friends first')) return 'Tag your mates first.';
   if (message.includes('invite links are off')) return 'Links are off right now.';
   return SLOT_FALLBACK;
 }
@@ -204,7 +204,7 @@ export function postRefusal(message: string): {
 } {
   if (message.includes('reactive posting')) {
     return {
-      text: 'Your tag has ended, so this can’t be posted. You can post again when a friend tags you.',
+      text: 'Your tag has ended, so this can’t be posted. You can post again when a mate tags you.',
       keepPhotos: false,
       refused: true,
       report: false,
@@ -212,7 +212,7 @@ export function postRefusal(message: string): {
   }
   if (message.includes('friends first')) {
     return {
-      text: 'Tag your friends first. A link only fills a tag your friends can’t.',
+      text: 'Tag your mates first. A link only fills a tag your mates can’t.',
       keepPhotos: true,
       refused: true,
       report: false,

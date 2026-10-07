@@ -78,7 +78,7 @@ describe('lockExplainer', () => {
     const card = lockExplainer({ ...base, openTags: [] });
     expect(card).toEqual({
       headline: 'Your feed is locked.',
-      body: 'It opens when a friend tags you and you post your answer. More friends means more tags.',
+      body: 'It opens when a mate tags you and you post your answer. More mates means more tags.',
       button: 'Find friends',
       target: 'friends',
     });
@@ -105,15 +105,15 @@ describe('feedCountdown', () => {
 
   it('within the 24 hours: a clock, and the hours in words for VoiceOver', () => {
     expect(feedCountdown({ ...base, unlockedUntil: at(18 * HOUR + 20 * MIN) })).toEqual({
-      label: 'Feed stays open for at least',
+      label: 'Feed open · next tag locks it after',
       ms: 18 * HOUR + 20 * MIN,
-      spoken: 'Feed stays open for at least 18 hours.',
+      spoken: 'Feed open. The next tag locks it after 18 hours.',
     });
   });
 
   it('under an hour: minutes in words', () => {
     expect(feedCountdown({ ...base, unlockedUntil: at(12 * MIN) })?.spoken).toBe(
-      'Feed stays open for at least 12 minutes.'
+      'Feed open. The next tag locks it after 12 minutes.'
     );
   });
 
@@ -126,9 +126,9 @@ describe('feedCountdown', () => {
 
   it('after the 24 hours but not locked: open until a tag, no clock', () => {
     expect(feedCountdown({ ...base, unlockedUntil: at(-MIN) })).toEqual({
-      label: 'Your feed is open. It will lock when a friend tags you.',
+      label: 'Your feed is open. It will lock when a mate tags you.',
       ms: null,
-      spoken: 'Your feed is open. It will lock when a friend tags you.',
+      spoken: 'Your feed is open. It will lock when a mate tags you.',
     });
   });
 
@@ -199,7 +199,7 @@ describe('lockedPostText', () => {
 
   it('posted before, no open tag: no button, since there is nothing to post yet', () => {
     const text = lockedPostText({ tagged: false, postedBefore: true });
-    expect(text).toEqual({ hint: 'Opens when a friend tags you' });
+    expect(text).toEqual({ hint: 'Opens when a mate tags you' });
     expect(text).not.toHaveProperty('button');
   });
 });

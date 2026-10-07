@@ -4,7 +4,9 @@
  *   tag 3 mates."
  * - A mate tagged them, never posted: "You were tagged by @sam. You have 47:59:59 to post your
  *   Mahi and get your first point."
- * - Tagged after that: "@sam tagged you · 41:20:00 left", and that answering earns a point.
+ * - Tagged after that: "@sam is waiting on you · 41:20:00 left", and what answering earns and a
+ *   miss costs: "Answer to earn a point. Miss it and your 4 points go back to 0." (usability
+ *   walkthrough, 2026-10-07; at 0 points only the first sentence).
  * Every countdown ticks in hours, minutes and seconds (owner, 2026-10-07), on the server's clock
  * (`serverOffsetMs` = server − device). `note` is one line under the message.
  * Under 6 hours left the banner turns urgent (owner, 2026-10-07): the clock takes the warning
@@ -46,12 +48,15 @@ export function openTagsBanner({
   serverOffsetMs,
   deviceNow = Date.now(),
   firstPost = false,
+  points = null,
 }: {
   openTags: { username: string; expires_at: string }[];
   serverOffsetMs: number;
   deviceNow?: number;
   /** Never posted (not even a deleted post). */
   firstPost?: boolean;
+  /** Your Mahi points now (null until loaded): what a miss would cost. */
+  points?: number | null;
 }): OpenTagsBannerContent | null {
   if (openTags.length === 0) {
     return firstPost
@@ -87,17 +92,60 @@ export function openTagsBanner({
       ...(urgent ? { urgent: true as const } : {}),
     };
   }
+  const p = points ?? 0;
+  const lose =
+    p > 0
+      ? ` Miss ${others > 0 ? 'one' : 'it'} and your ${p === 1 ? '1 point goes' : `${p} points go`} back to 0.`
+      : '';
   return {
     parts: [
-      { text: `${who} tagged you · ` },
+      { text: `${who} ${others > 0 ? 'are' : 'is'} waiting on you · ` },
       { text: clock ? `${clock} left` : 'last minutes', accent: true },
     ],
     note: urgent
       ? `Only ${clock ?? 'minutes'} left to answer @${first.username}.`
       : others > 0
-        ? `One workout answers ${tags} tags and earns 1 point.`
-        : 'Post your answer to earn a Mahi point.',
+        ? `One workout answers ${tags} tags and earns a point.${lose}`
+        : `Answer to earn a point.${lose}`,
     ...(urgent ? { urgent: true as const } : {}),
+  };
+}
+
+/** "@a", "@a and @b", "@a, @b and @c", "@a, @b, @c and 2 more". */
+export function namesList(usernames: string[]): string {
+  const names = usernames.slice(0, 3).map((u) => `@${u}`);
+  const more = usernames.length - names.length;
+  if (more > 0) return `${names.join(', ')} and ${more} more`;
+  if (names.length <= 1) return names.join('');
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+/**
+ * The waiting camera while your own tags are running (usability walkthrough, 2026-10-07): "Your
+ * mates are on the clock" / "@a, @b and @c have 31:12:00 to answer you." on the soonest clock.
+ * `mates` comes from get_mates_on_clock (never kept on the phone). Null when nobody is on the
+ * clock: the card keeps "Waiting for a mate to tag you".
+ */
+export function matesOnClock({
+  mates,
+  serverOffsetMs,
+  deviceNow = Date.now(),
+}: {
+  mates: { username: string; expires_at: string }[];
+  serverOffsetMs: number;
+  deviceNow?: number;
+}): { title: string; line: string } | null {
+  if (mates.length === 0) return null;
+  const sorted = [...mates].sort((a, b) => Date.parse(a.expires_at) - Date.parse(b.expires_at));
+  const names = namesList(sorted.map((m) => m.username));
+  const have = sorted.length === 1 ? 'has' : 'have';
+  const ms = msLeft(sorted[0].expires_at, serverOffsetMs, deviceNow);
+  return {
+    title: 'Your mates are on the clock',
+    line:
+      ms > 0
+        ? `${names} ${have} ${clockText(ms)} to answer you.`
+        : `${names} ${have} only minutes left to answer you.`,
   };
 }
 

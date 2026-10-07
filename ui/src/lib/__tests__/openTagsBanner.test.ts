@@ -1,4 +1,10 @@
-import { bannerText, openTagReminder, openTagsBanner } from '../openTagsBanner';
+import {
+  bannerText,
+  matesOnClock,
+  namesList,
+  openTagReminder,
+  openTagsBanner,
+} from '../openTagsBanner';
 
 const HOUR = 3600 * 1000;
 const MIN = 60 * 1000;
@@ -50,14 +56,42 @@ describe('openTagsBanner — someone a mate tagged, before their first post (Typ
 });
 
 describe('openTagsBanner — tagged after that', () => {
-  it('says who, with a ticking clock, and that answering earns a point', () => {
+  // Usability walkthrough 2026-10-07: say who is on the clock, and what a miss would cost.
+  it('says who is waiting, with a ticking clock, and what answering and missing mean', () => {
     const b = openTagsBanner({
       openTags: [tag('sam', 41 * HOUR + 20 * MIN)],
       serverOffsetMs: 0,
       deviceNow,
+      points: 4,
     });
-    expect(b && bannerText(b)).toBe('@sam tagged you · 41:20:00 left');
-    expect(b?.note).toBe('Post your answer to earn a Mahi point.');
+    expect(b && bannerText(b)).toBe('@sam is waiting on you · 41:20:00 left');
+    expect(b?.note).toBe('Answer to earn a point. Miss it and your 4 points go back to 0.');
+  });
+
+  it('one point: "your 1 point goes back to 0"', () => {
+    const b = openTagsBanner({
+      openTags: [tag('sam', 20 * HOUR)],
+      serverOffsetMs: 0,
+      deviceNow,
+      points: 1,
+    });
+    expect(b?.note).toBe('Answer to earn a point. Miss it and your 1 point goes back to 0.');
+  });
+
+  it('at 0 points (or not loaded yet) there is nothing to lose: just the point', () => {
+    const zero = openTagsBanner({
+      openTags: [tag('sam', 20 * HOUR)],
+      serverOffsetMs: 0,
+      deviceNow,
+      points: 0,
+    });
+    expect(zero?.note).toBe('Answer to earn a point.');
+    const unknown = openTagsBanner({
+      openTags: [tag('sam', 20 * HOUR)],
+      serverOffsetMs: 0,
+      deviceNow,
+    });
+    expect(unknown?.note).toBe('Answer to earn a point.');
   });
 
   it('one workout answers several tags for one point', () => {
@@ -67,8 +101,17 @@ describe('openTagsBanner — tagged after that', () => {
       serverOffsetMs: 0,
       deviceNow,
     });
-    expect(b && bannerText(b)).toBe('@sam +2 tagged you · 07:00:00 left');
-    expect(b?.note).toBe('One workout answers all 3 tags and earns 1 point.');
+    expect(b && bannerText(b)).toBe('@sam +2 are waiting on you · 07:00:00 left');
+    expect(b?.note).toBe('One workout answers all 3 tags and earns a point.');
+    const withPoints = openTagsBanner({
+      openTags: [tag('sam', 7 * HOUR), tag('ali', 8 * HOUR)],
+      serverOffsetMs: 0,
+      deviceNow,
+      points: 6,
+    });
+    expect(withPoints?.note).toBe(
+      'One workout answers both tags and earns a point. Miss one and your 6 points go back to 0.'
+    );
   });
 
   it('reads the time on the server clock', () => {
@@ -77,12 +120,12 @@ describe('openTagsBanner — tagged after that', () => {
       serverOffsetMs: 2 * HOUR,
       deviceNow,
     });
-    expect(b && bannerText(b)).toBe('@sam tagged you · 01:00:00 left');
+    expect(b && bannerText(b)).toBe('@sam is waiting on you · 01:00:00 left');
   });
 
   it('says last minutes in the grace time, never missed before the server does', () => {
     const tagged = openTagsBanner({ openTags: [tag('sam', -MIN)], serverOffsetMs: 0, deviceNow });
-    expect(tagged && bannerText(tagged)).toBe('@sam tagged you · last minutes');
+    expect(tagged && bannerText(tagged)).toBe('@sam is waiting on you · last minutes');
     const first = openTagsBanner({
       openTags: [tag('sam', -MIN)],
       serverOffsetMs: 0,
@@ -104,7 +147,7 @@ describe('openTagsBanner — under 6 hours left', () => {
       serverOffsetMs: 0,
       deviceNow,
     });
-    expect(b && bannerText(b)).toBe('@sam tagged you · 05:59:59 left');
+    expect(b && bannerText(b)).toBe('@sam is waiting on you · 05:59:59 left');
     expect(b?.urgent).toBe(true);
     expect(b?.note).toBe('Only 05:59:59 left to answer @sam.');
   });
@@ -112,7 +155,7 @@ describe('openTagsBanner — under 6 hours left', () => {
   it('is not urgent at 6 hours or more', () => {
     const b = openTagsBanner({ openTags: [tag('sam', 6 * HOUR)], serverOffsetMs: 0, deviceNow });
     expect(b?.urgent).toBeUndefined();
-    expect(b?.note).toBe('Post your answer to earn a Mahi point.');
+    expect(b?.note).toBe('Answer to earn a point.');
   });
 
   it('names the mate whose tag ends first', () => {
@@ -193,5 +236,52 @@ describe('openTagReminder — the in-app nudge when Mahi opens', () => {
   it('waits while something else is on screen', () => {
     const openTags = [tag('sam', 2 * HOUR)];
     expect(openTagReminder({ ...base, openTags, quiet: true })).toBeNull();
+  });
+});
+
+describe('namesList — mates by name', () => {
+  it('joins one, two, three and more', () => {
+    expect(namesList(['a'])).toBe('@a');
+    expect(namesList(['a', 'b'])).toBe('@a and @b');
+    expect(namesList(['a', 'b', 'c'])).toBe('@a, @b and @c');
+    expect(namesList(['a', 'b', 'c', 'd', 'e'])).toBe('@a, @b, @c and 2 more');
+    expect(namesList(['a', 'b', 'c', 'd'])).toBe('@a, @b, @c and 1 more');
+  });
+});
+
+// Usability walkthrough 2026-10-07: the waiting camera says whose 48 hours are running.
+describe('matesOnClock — the waiting card while your own tags are open', () => {
+  const mate = (username: string, expiresIn: number) => ({ username, expires_at: at(expiresIn) });
+
+  it('names your mates and the soonest clock', () => {
+    expect(
+      matesOnClock({
+        mates: [mate('b', 40 * HOUR), mate('a', 31 * HOUR + 12 * MIN), mate('c', 45 * HOUR)],
+        serverOffsetMs: 0,
+        deviceNow,
+      })
+    ).toEqual({
+      title: 'Your mates are on the clock',
+      line: '@a, @b and @c have 31:12:00 to answer you.',
+    });
+  });
+
+  it('one mate: "has"', () => {
+    expect(
+      matesOnClock({ mates: [mate('sam', 2 * HOUR)], serverOffsetMs: 0, deviceNow })?.line
+    ).toBe('@sam has 02:00:00 to answer you.');
+  });
+
+  it('reads the server clock, and says only minutes in the grace time', () => {
+    expect(
+      matesOnClock({ mates: [mate('sam', 3 * HOUR)], serverOffsetMs: HOUR, deviceNow })?.line
+    ).toBe('@sam has 02:00:00 to answer you.');
+    expect(matesOnClock({ mates: [mate('sam', -MIN)], serverOffsetMs: 0, deviceNow })?.line).toBe(
+      '@sam has only minutes left to answer you.'
+    );
+  });
+
+  it('nothing when no mate is on the clock (the card keeps "Waiting for a mate to tag you")', () => {
+    expect(matesOnClock({ mates: [], serverOffsetMs: 0, deviceNow })).toBeNull();
   });
 });

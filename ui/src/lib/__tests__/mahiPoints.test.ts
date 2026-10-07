@@ -1,6 +1,8 @@
 import {
   mahiPointsCount,
+  missMoment,
   pointCelebration,
+  pointsRowText,
   pointsBadgeText,
   pointsCount,
   pointsStatsLabel,
@@ -124,10 +126,10 @@ describe('postedToast', () => {
   it('the first post says who it tagged', () => {
     expect(
       postedToast({ answered: [], points: 0, bestBefore: 0, tagged: { friends: 3, links: 0 } })
-    ).toBe('Posted. You tagged 3 friends. Your feed is open for 24 hours.');
+    ).toBe('Posted. You tagged 3 mates. Your feed is open for 24 hours.');
     expect(
       postedToast({ answered: [], points: 0, bestBefore: 0, tagged: { friends: 1, links: 2 } })
-    ).toBe('Posted. You tagged 1 friend and 2 people by link. Your feed is open for 24 hours.');
+    ).toBe('Posted. You tagged 1 mate and 2 people by link. Your feed is open for 24 hours.');
     expect(
       postedToast({ answered: [], points: 0, bestBefore: 0, tagged: { friends: 0, links: 1 } })
     ).toBe('Posted. You tagged 1 person by link. Your feed is open for 24 hours.');
@@ -243,6 +245,49 @@ describe('pointCelebration — the moment a post earns a point', () => {
     );
   });
 
+  // Usability walkthrough 2026-10-07: name who is now on the clock.
+  it('names the mates it tagged, who now have 48 hours', () => {
+    const c = pointCelebration({
+      answered: [],
+      points: 1,
+      bestBefore: 0,
+      firstPost: true,
+      tagged: { friends: 3, links: 0, names: ['a', 'b', 'c'] },
+    });
+    expect(c?.lines[0]).toBe(
+      '@a, @b and @c now have 48 hours to answer you. Your feed is open for 24 hours.'
+    );
+  });
+
+  it('names and links together keep the links line', () => {
+    const c = pointCelebration({
+      answered: [],
+      points: 1,
+      bestBefore: 0,
+      firstPost: true,
+      tagged: { friends: 1, links: 2, names: ['a'] },
+    });
+    expect(c?.lines[0]).toBe(
+      '@a now has 48 hours to answer you. Send your 2 links next. Each mate gets 48 hours once they join. Your feed is open for 24 hours.'
+    );
+  });
+
+  it('a later answer that tagged mates names them too', () => {
+    expect(
+      pointCelebration({
+        answered: ['sam'],
+        points: 3,
+        bestBefore: 5,
+        firstPost: false,
+        tagged: { friends: 3, links: 0, names: ['a', 'b', 'c'] },
+      })?.lines
+    ).toEqual([
+      'You answered @sam.',
+      '@a, @b and @c now have 48 hours to answer you.',
+      'Keep answering every tag to grow your points.',
+    ]);
+  });
+
   it('a later answer: +1, the total, and a nudge to keep going', () => {
     expect(
       pointCelebration({
@@ -293,5 +338,35 @@ describe('pointCelebration — the moment a post earns a point', () => {
         tagged: { friends: 3, links: 0 },
       })
     ).toBeNull();
+  });
+});
+
+// Usability walkthrough 2026-10-07: the next open after a miss says so, once.
+describe('missMoment — the moment after a miss', () => {
+  it('names whose tag, the reset and the best that stays', () => {
+    expect(missMoment({ tagger: 'sam', best: 5 })).toEqual({
+      title: 'You missed @sam’s tag',
+      total: 'Your points are back to 0. Your best of 5 stays.',
+      lines: ['Post when a mate tags you to start again.'],
+      badge: '0',
+      badgeLabel: 'Mahi points back to 0',
+    });
+  });
+
+  it('best not known: the best still stays', () => {
+    expect(missMoment({ tagger: 'sam', best: null }).total).toBe(
+      'Your points are back to 0. Your best stays.'
+    );
+  });
+});
+
+describe('pointsRowText — the points row on the waiting card', () => {
+  it('points and best', () => {
+    expect(pointsRowText(4, 6)).toBe('4 Mahi points · Best 6');
+    expect(pointsRowText(1, 1)).toBe('1 Mahi point · Best 1');
+  });
+
+  it('nothing until the profile has loaded (never a 0 that then changes)', () => {
+    expect(pointsRowText(null, null)).toBeNull();
   });
 });

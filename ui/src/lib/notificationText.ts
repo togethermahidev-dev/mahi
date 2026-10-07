@@ -2,7 +2,8 @@
  * The words of one row in the notifications list. They match the push the server sends for the
  * same thing (`push_on_notification`, latest in 20261006120000_push_deadline_wording.sql) — minus what goes
  * out of date in a list: a push says "just" and how long is left when it is sent; a row is read
- * later. Reminders, feed-lock pushes and messages are pushes only; they have no row here.
+ * later (so a tag's row has no "48 hours"; usability walkthrough, 2026-10-07). Reminders, feed-lock
+ * pushes and messages are pushes only; they have no row here.
  */
 export function notificationText(type: string, username: string): string {
   const who = `@${username}`;
@@ -14,11 +15,11 @@ export function notificationText(type: string, username: string): string {
     case 'follow':
       return `${who} started following you`;
     case 'tag':
-      return `You've been tagged by ${who}. 48 hours to post your Mahi!`;
+      return `${who} tagged you. Post your answer.`;
     case 'tag_answered':
       return `${who} answered your tag`;
     case 'tag_missed':
-      return `${who} missed your tag. A quick message could get them back to it.`;
+      return `${who} missed your tag. Tag them in your next post to get them going again.`;
     case 'streak_lost':
       return `You missed ${who}'s tag. Your points are back to 0.`;
     case 'invite_joined':

@@ -30,7 +30,7 @@ export interface CoachTip {
 export const COACH_TIPS = {
   points: {
     title: 'Your Mahi points',
-    body: 'Answer a mate’s tag to earn one.',
+    body: 'Your first post and each answer earn 1.',
     page: 'camera',
     icon: 'plusOne',
   },

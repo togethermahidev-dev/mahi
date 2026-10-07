@@ -4,6 +4,7 @@
  * ("streaks are a daily thing") — the word streak is never shown. The server keeps the number in
  * profiles.streak_current / streak_highest and posts.streak_day (names kept for older apps).
  */
+import { namesList } from './openTagsBanner';
 
 /** "1 point", "12 points" (unknown reads as 0). */
 export function pointsCount(points: number | null | undefined): string {
@@ -46,11 +47,11 @@ const ROUND_NUMBERS = [5, 10, 25, 50, 100];
 /** How close to your best (in points) before the toast counts down to beating it. */
 const NEAR_BEST = 3;
 
-/** "You tagged 3 friends", "You tagged 1 friend and 2 people by link"; null with no tags. */
+/** "You tagged 3 mates", "You tagged 1 mate and 2 people by link"; null with no tags. */
 function taggedLine({ friends, links }: { friends: number; links: number }): string | null {
   const byLink = `${links} ${links === 1 ? 'person' : 'people'} by link`;
   if (friends > 0) {
-    const named = `${friends} ${friends === 1 ? 'friend' : 'friends'}`;
+    const named = `${friends} ${friends === 1 ? 'mate' : 'mates'}`;
     return `You tagged ${links > 0 ? `${named} and ${byLink}` : named}.`;
   }
   return links > 0 ? `You tagged ${byLink}.` : null;
@@ -131,19 +132,26 @@ export function pointCelebration({
   bestBefore: number;
   /** This was the person's first ever post. */
   firstPost: boolean;
-  /** What this post tagged: mates on Mahi, and invite links still to send. */
-  tagged: { friends: number; links: number };
+  /**
+   * What this post tagged: mates on Mahi, and invite links still to send. `names`: the mates whose
+   * 48 hours start now, named in the line (usability walkthrough, 2026-10-07).
+   */
+  tagged: { friends: number; links: number; names?: string[] };
 }): { title: string; total: string; lines: string[] } | null {
   if (!firstPost && answered.length === 0) return null;
   const total = `You have ${mahiPointsCount(points)}.`;
   const others = answered.length - 1;
   const more = others > 0 ? ` and ${others} ${others === 1 ? 'other' : 'others'}` : '';
   // A link's 48 hours only start once that mate joins, so links get their own line.
-  const { friends, links } = tagged;
+  const { friends, links, names = [] } = tagged;
+  const onClock =
+    names.length > 0
+      ? `${namesList(names)} now ${names.length === 1 ? 'has' : 'have'} 48 hours to answer you.`
+      : friends > 0
+        ? `Your ${friends} ${friends === 1 ? 'mate has' : 'mates have'} 48 hours to answer you.`
+        : null;
   const mates = [
-    friends > 0
-      ? `Your ${friends} ${friends === 1 ? 'mate has' : 'mates have'} 48 hours to answer you.`
-      : null,
+    onClock,
     links > 0
       ? `Send your ${links} ${links === 1 ? 'link' : 'links'} next. Each mate gets 48 hours once they join.`
       : null,
@@ -173,7 +181,36 @@ export function pointCelebration({
     total,
     lines: [
       `You answered @${answered[0]}${more}.`,
+      ...(names.length > 0 && mates ? [mates] : []),
       points === 1 && bestBefore > 0 ? `Welcome back. ${keepGoing}` : keepGoing,
     ],
   };
+}
+
+/**
+ * The full-screen moment on the next open after a miss (usability walkthrough, 2026-10-07), in
+ * PointCelebration's style: whose tag, that the points are back to 0 and the best stays, and how
+ * to start again. Shown once per miss (the `streak_lost` notification); the server only sends one
+ * when there were points to lose.
+ */
+export function missMoment({ tagger, best }: { tagger: string; best: number | null }): {
+  title: string;
+  total: string;
+  lines: string[];
+  badge: string;
+  badgeLabel: string;
+} {
+  return {
+    title: `You missed @${tagger}’s tag`,
+    total: `Your points are back to 0. Your best${best && best > 0 ? ` of ${best}` : ''} stays.`,
+    lines: ['Post when a mate tags you to start again.'],
+    badge: '0',
+    badgeLabel: 'Mahi points back to 0',
+  };
+}
+
+/** The points row on the camera's waiting card: "4 Mahi points · Best 6"; null until loaded. */
+export function pointsRowText(points: number | null, best: number | null): string | null {
+  if (points === null) return null;
+  return `${mahiPointsCount(points)} · Best ${best ?? 0}`;
 }

@@ -14,7 +14,7 @@ export const WELCOME_CARDS: readonly WelcomeCard[] = [
   {
     icon: 'camera',
     title: 'Your first post is free.',
-    body: 'Post your first Mahi to get your first point and tag 3 mates. After that, you post when a friend tags you: 48 hours to answer with a photo, back camera then selfie. Any workout counts. Each answer earns a Mahi point. Miss a tag and your points go back to 0, but your best stays. Open Mahi each day to see if you’ve been tagged.',
+    body: 'Post your first Mahi to get your first point and tag 3 mates. After that, you post when a mate tags you: 48 hours to answer with a photo, back camera then selfie. Any workout counts. Each answer earns a Mahi point. Miss a tag and your points go back to 0, but your best stays. Open Mahi each day to see if you’ve been tagged.',
   },
   {
     icon: 'people',
@@ -37,8 +37,27 @@ export function isLastCard(index: number, count: number): boolean {
   return index >= count - 1;
 }
 
-export function cardButtonLabel(index: number, count: number): string {
-  return isLastCard(index, count) ? 'Get started' : 'Next';
+/** "Next", then "Get started" on the last card; the replay from Settings → Help ends on "Done". */
+export function cardButtonLabel(index: number, count: number, replay = false): string {
+  if (!isLastCard(index, count)) return 'Next';
+  return replay ? 'Done' : 'Get started';
+}
+
+/**
+ * The cards for this person (usability walkthrough, 2026-10-07). Someone a mate tagged (by a tag
+ * link, before their first post) starts with who and how long: "@sam tagged you." / "Post any
+ * workout in the next 48 hours to answer and earn your first point." Everyone else: WELCOME_CARDS.
+ */
+export function welcomeCardsFor(taggedBy: string | null): readonly WelcomeCard[] {
+  if (!taggedBy) return WELCOME_CARDS;
+  return [
+    {
+      icon: 'camera',
+      title: `@${taggedBy} tagged you.`,
+      body: 'Post any workout in the next 48 hours to answer and earn your first point.',
+    },
+    ...WELCOME_CARDS.slice(1),
+  ];
 }
 
 export function cardPositionLabel(index: number, count: number): string {

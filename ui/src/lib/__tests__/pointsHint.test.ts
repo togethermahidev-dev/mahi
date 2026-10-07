@@ -1,9 +1,20 @@
-import { pointsHint } from '../pointsHint';
+import { POINTS_RULE, pointsHint } from '../pointsHint';
 
 describe('the line under your Points · Best', () => {
-  it('a newcomer at 0 · 0 is told how to earn the first point', () => {
-    expect(pointsHint(0, 0)).toBe('Answer your first tag to earn your first point.');
-    expect(pointsHint(null, null)).toBe('Answer your first tag to earn your first point.');
+  // Usability walkthrough 2026-10-07: one rule everywhere — the first post earns the first point.
+  it('a newcomer at 0 · 0 is told how points are earned', () => {
+    expect(pointsHint(0, 0)).toBe(
+      'Your first post earns 1 point. Each answer to a mate’s tag earns 1 more.'
+    );
+    expect(pointsHint(null, null)).toBe(
+      'Your first post earns 1 point. Each answer to a mate’s tag earns 1 more.'
+    );
+  });
+
+  it('the whole rule, as the profile explains it', () => {
+    expect(POINTS_RULE).toBe(
+      'Your first post earns 1 point. Each answer to a mate’s tag earns 1 more. Miss one and your points go back to 0 — your best stays.'
+    );
   });
 
   // Design round 5 (gap 6): after a miss, "0 · Best 12" alone reads as a loss with no way back.

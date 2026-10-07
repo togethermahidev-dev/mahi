@@ -79,7 +79,7 @@ export function lockExplainer({
   if (unlockedUntil) {
     return {
       headline: 'Your feed is locked.',
-      body: 'It opens when a friend tags you and you post your answer. More friends means more tags.',
+      body: 'It opens when a mate tags you and you post your answer. More mates means more tags.',
       button: 'Find friends',
       target: 'friends',
     };
@@ -104,7 +104,7 @@ export function lockedPostText({
   if (tagged) return { hint: 'Opens when you post your answer', button: 'Post your answer' };
   if (!postedBefore)
     return { hint: 'Post your first Mahi to see it', button: 'Post your first Mahi' };
-  return { hint: 'Opens when a friend tags you' };
+  return { hint: 'Opens when a mate tags you' };
 }
 
 /** A live countdown, "05:12:33": hours, minutes and seconds, two digits each; a part second
@@ -148,14 +148,14 @@ export function feedCountdown({
     };
   }
   if (!left) {
-    const line = 'Your feed is open. It will lock when a friend tags you.';
+    const line = 'Your feed is open. It will lock when a mate tags you.';
     return { label: line, ms: null, spoken: line };
   }
   return {
     // With no tag waiting, the server guarantees this much open time but does not lock at zero:
     // after the window ends, the next incoming tag locks it. Never promise a lock that may not fire.
-    label: 'Feed stays open for at least',
+    label: 'Feed open · next tag locks it after',
     ms,
-    spoken: `Feed stays open for at least ${left}.`,
+    spoken: `Feed open. The next tag locks it after ${left}.`,
   };
 }

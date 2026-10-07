@@ -21,7 +21,7 @@ export function slotCount({
 }): { filled: number; remaining: number; total: number; text: string } {
   const filled = friends + invites;
   const parts = [
-    friends > 0 ? count(friends, 'friend', 'friends') : null,
+    friends > 0 ? count(friends, 'mate', 'mates') : null,
     invites > 0 ? count(invites, 'link', 'links') : null,
   ].filter(Boolean);
   return {
@@ -56,19 +56,29 @@ export function inviteStepCopy({
   availableFriends,
   friends,
   invites,
+  tagsOptional = false,
 }: {
   maxTags: number;
   availableFriends: number;
   friends: number;
   invites: number;
+  /**
+   * This post needs no tags (a first post that answers a tag): ask for mates to keep you going,
+   * not for slots to fill (usability walkthrough, 2026-10-07).
+   */
+  tagsOptional?: boolean;
 }): { headline: string; why: string; button: string; canAdd: boolean; count: string } {
   const toInvite = Math.max(1, maxTags - Math.min(availableFriends, maxTags));
   const slots = slotCount({ maxTags, friends, invites });
   const canAdd = slots.remaining > 0;
+  const how =
+    'When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.';
   return {
-    headline: `Invite ${count(toInvite, 'mate', 'mates')} to post`,
-    why: `Every post tags ${maxTags} mates. When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.`,
-    button: canAdd ? 'Invite a friend' : `All ${maxTags} tags used`,
+    headline: tagsOptional
+      ? 'Invite mates to keep you going'
+      : `Invite ${count(toInvite, 'mate', 'mates')} to post`,
+    why: tagsOptional ? how : `Every post tags ${maxTags} mates. ${how}`,
+    button: canAdd ? 'Invite a mate' : `All ${maxTags} tags used`,
     canAdd,
     count: slots.text,
   };

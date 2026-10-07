@@ -27,16 +27,15 @@ describe('notification list wording', () => {
     );
   });
 
-  it('a tag says who tagged you and the 48 hours', () => {
-    expect(notificationText('tag', 'sam')).toBe(
-      "You've been tagged by @sam. 48 hours to post your Mahi!"
-    );
+  // Usability walkthrough 2026-10-07: a row is read later, so no "48 hours" that is out of date.
+  it('a tag says who tagged you and what to do', () => {
+    expect(notificationText('tag', 'sam')).toBe('@sam tagged you. Post your answer.');
   });
 
   it('an answered and a missed tag', () => {
     expect(notificationText('tag_answered', 'sam')).toBe('@sam answered your tag');
     expect(notificationText('tag_missed', 'sam')).toBe(
-      '@sam missed your tag. A quick message could get them back to it.'
+      '@sam missed your tag. Tag them in your next post to get them going again.'
     );
   });
 

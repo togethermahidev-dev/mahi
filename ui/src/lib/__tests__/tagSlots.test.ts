@@ -105,7 +105,7 @@ describe('personAction', () => {
 describe('mateInviteMessage', () => {
   it('invites a mate without promising a tag', () => {
     expect(mateInviteMessage('https://togethermahi.com/i/t1')).toBe(
-      'Join me on Mahi. We’ll automatically follow each other when you join.\nhttps://togethermahi.com/i/t1'
+      'Join me on Mahi so we keep each other going. We’ll follow each other when you join.\nhttps://togethermahi.com/i/t1'
     );
   });
 });
@@ -126,7 +126,7 @@ describe('mateInviteErrorText', () => {
 describe('slotShareMessage', () => {
   it('keeps the invitation low-pressure and leaves out the signup code', () => {
     expect(slotShareMessage('https://togethermahi.com/i/t1', 'ABC234')).toBe(
-      'I tagged you on Mahi. Join me for a workout — we’ll automatically follow each other when you join.\nhttps://togethermahi.com/i/t1'
+      'I tagged you on Mahi. Join, then post any workout within 48 hours. We’ll keep each other going.\nhttps://togethermahi.com/i/t1'
     );
   });
 });
@@ -170,7 +170,7 @@ describe('slotErrorText', () => {
     expect(slotErrorText('already invited')).toBe('Tag request already sent.');
     expect(slotErrorText('cannot invite that person')).toBe('You can’t send them a tag request.');
     expect(slotErrorText('that invite is no longer open')).toBe('That link has ended.');
-    expect(slotErrorText('tag your friends first')).toBe('Tag your friends first.');
+    expect(slotErrorText('tag your friends first')).toBe('Tag your mates first.');
     expect(slotErrorText('network down')).toBe('Couldn’t do that. Try again.');
   });
 });
@@ -216,7 +216,7 @@ describe('tagInviteState (the invited person’s side)', () => {
 describe('postRefusal', () => {
   it('no tag to answer: nothing to keep, the post cannot happen', () => {
     expect(postRefusal('reactive posting: not tagged')).toEqual({
-      text: 'Your tag has ended, so this can’t be posted. You can post again when a friend tags you.',
+      text: 'Your tag has ended, so this can’t be posted. You can post again when a mate tags you.',
       keepPhotos: false,
       refused: true,
       report: false,
@@ -225,7 +225,7 @@ describe('postRefusal', () => {
 
   it('friends first: says so, and keeps the photos to post again', () => {
     expect(postRefusal('tag your friends first')).toEqual({
-      text: 'Tag your friends first. A link only fills a tag your friends can’t.',
+      text: 'Tag your mates first. A link only fills a tag your mates can’t.',
       keepPhotos: true,
       refused: true,
       report: false,
