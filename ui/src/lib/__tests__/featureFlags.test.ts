@@ -85,7 +85,15 @@ describe('default-off flags (video-posts)', () => {
       'identity-verification',
       'purchases',
       'tag-slots',
+      'auth-google-signin',
     ]);
+  });
+
+  // Google sign-in is a placeholder button that does nothing yet: it must never show on the
+  // first screen while flags load, nor on a build with no PostHog key.
+  it('keeps auth-google-signin off until switched on', () => {
+    expect(FEATURE_FLAGS).toContain('auth-google-signin');
+    expect(flagDefaultOn('auth-google-signin')).toBe(false);
   });
 
   // Finding mates from contacts needs build 13 and migration 20261007270000_contact_match, and the

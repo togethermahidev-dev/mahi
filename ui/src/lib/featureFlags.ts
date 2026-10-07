@@ -66,6 +66,8 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * `identity-verification` and `purchases`: dormant until the owner sets up Didit / RevenueCat.
  * `tag-slots`: needs migration 20261003120000_tag_slots on the server first; off, the tag sheet
  * stays exactly as today.
+ * `auth-google-signin`: the Google button is a placeholder that does nothing yet, so it must
+ * never show on the first screen while flags load, nor on a build with no PostHog key.
  */
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'push-core',
@@ -75,6 +77,7 @@ export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'identity-verification',
   'purchases',
   'tag-slots',
+  'auth-google-signin',
 ];
 
 /** Whether a flag reads as on before PostHog has answered (true for all but DEFAULT_OFF_FLAGS). */

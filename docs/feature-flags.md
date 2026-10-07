@@ -51,7 +51,7 @@ if (!videoOn) return null;
   This pure logic is unit-tested in [`ui/src/lib/__tests__/featureFlags.test.ts`](../ui/src/lib/__tests__/featureFlags.test.ts).
 - **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `push-core`, `video-posts`,
   `ios-sf-symbols`, `context-menu-preview`, `camera-tap-focus`, `identity-verification`, `purchases`,
-  and `tag-slots`): off
+  `tag-slots` and `auth-google-signin`): off
   while flags load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns
   `true`. Use this for a feature that must never show, even for a moment on cold start (video posts would
   otherwise be able to ask for the microphone before flags load; the full-screen notifications page would
@@ -169,7 +169,7 @@ own button on the welcome screen on iPhones with build 13+ (the `expo-apple-auth
 where Apple says sign-in works; off hides it. Builds 10–12, Android and the web never show it. In PostHog
 it is at 0% (checked 2026-10-07): set it to 100% when build 13 ships.
 
-**Sign-in placeholder**: `auth-google-signin` — a pill on the welcome screen with no sign-in behind it
+**Sign-in placeholder**: `auth-google-signin` (**default off** since 2026-10-07, so it never flashes up while flags load) — a pill on the welcome screen with no sign-in behind it
 yet; tapping it does nothing. At 0% in PostHog (checked 2026-10-07).
 
 ## Build 13 native features: off switches (owner, 2026-10-07)
