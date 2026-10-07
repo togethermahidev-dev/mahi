@@ -51,7 +51,7 @@ if (!videoOn) return null;
   This pure logic is unit-tested in [`ui/src/lib/__tests__/featureFlags.test.ts`](../ui/src/lib/__tests__/featureFlags.test.ts).
 - **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `push-core`, `video-posts`,
   `ios-sf-symbols`, `context-menu-preview`, `camera-tap-focus`, `identity-verification`, `purchases`,
-  `tag-slots` and `live-tag`): off
+  and `tag-slots`): off
   while flags load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns
   `true`. Use this for a feature that must never show, even for a moment on cold start (video posts would
   otherwise be able to ask for the microphone before flags load; the full-screen notifications page would

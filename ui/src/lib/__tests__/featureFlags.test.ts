@@ -85,14 +85,7 @@ describe('default-off flags (video-posts)', () => {
       'identity-verification',
       'purchases',
       'tag-slots',
-      'live-tag',
     ]);
-  });
-
-  // The Live Activity and widget need build 13 and must never start while flags load.
-  it('keeps live-tag off until switched on', () => {
-    expect(FEATURE_FLAGS).toContain('live-tag');
-    expect(flagDefaultOn('live-tag')).toBe(false);
   });
 
   // The new tag screen needs its server change applied first, and must never swap in front of

@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import {
   LIVE_TAG_URL,
   liveActivityAction,
@@ -129,14 +128,15 @@ function syncLiveTag(enabled: boolean): number | null {
 }
 
 /**
- * Keeps a mate's tag in view without opening Mahi (switch `live-tag`, build 13+): the Live
+ * Keeps a mate's tag in view without opening Mahi (build 13+, no switch — owner, 2026-10-07): the Live
  * Activity on the lock screen and Dynamic Island, and the home-screen widget. Watches the open
  * tags, the points and sign-in; while Mahi is open it also looks again at each 6-hour mark and
  * deadline. With Mahi closed the widget's timeline and the activity's own timer carry on. Does
  * nothing on builds without expo-widgets. Mounted once, in App.tsx.
  */
 export function useLiveTag(): void {
-  const enabled = useFeatureFlag('live-tag');
+  // On for everyone on a build that has it: no switch (owner, 2026-10-07).
+  const enabled = true;
 
   useEffect(() => {
     if (!loadLiveTagWidgets()) return;
