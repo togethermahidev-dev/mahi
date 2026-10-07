@@ -5,6 +5,7 @@ import {
   focusPoint,
   focusSquareOrigin,
   nextFlash,
+  shutterSoundPlan,
   tapFocusAvailable,
   type FlashChoice,
 } from '../cameraCapture';
@@ -91,5 +92,27 @@ describe('tapFocusAvailable — only with the switch on and a build that can foc
 
   it('off on Android', () => {
     expect(tapFocusAvailable({ flagOn: true, platform: 'android', nativeFocus: true })).toBe(false);
+  });
+});
+
+describe('shutter sound (switch shutter-sound, build 13)', () => {
+  it('on an iPhone with the module: Apple’s shutter at the press, and the camera’s own one off', () => {
+    expect(shutterSoundPlan({ flagOn: true, platform: 'ios', hasModule: true })).toEqual({
+      playAtPress: true,
+      cameraShutterSound: false,
+    });
+  });
+
+  it('switch off: today’s sound, left to the camera', () => {
+    expect(shutterSoundPlan({ flagOn: false, platform: 'ios', hasModule: true })).toEqual({
+      playAtPress: false,
+      cameraShutterSound: undefined,
+    });
+  });
+
+  it('builds 10 to 12 (no module) and Android: today’s sound', () => {
+    const today = { playAtPress: false, cameraShutterSound: undefined };
+    expect(shutterSoundPlan({ flagOn: true, platform: 'ios', hasModule: false })).toEqual(today);
+    expect(shutterSoundPlan({ flagOn: true, platform: 'android', hasModule: true })).toEqual(today);
   });
 });

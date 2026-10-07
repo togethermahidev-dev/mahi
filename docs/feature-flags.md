@@ -176,6 +176,10 @@ don't have the native parts, so the switches do nothing there.
   Mahi on the camera, the invites list or Find your mates. Off: they still show (Apple lists them from
   the build), but each just opens Mahi; the app writes the switch to the App Group so the intent leaves
   nothing to act on.
+- `shutter-sound`: Apple's own camera shutter sound (the Camera app's) at the press, in step with the
+  haptic. The phone's silent switch silences it. Today the camera already makes that sound itself, but
+  only once the photo is taken (after the 0.3 s settle on the first shot); with this on, the camera's
+  own sound is turned off so there's only one. Off: exactly today's.
 
 ## Removed from code 2026-10-07
 

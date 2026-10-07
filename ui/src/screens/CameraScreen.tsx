@@ -131,9 +131,11 @@ import {
   focusPoint,
   focusSquareOrigin,
   nextFlash,
+  shutterSoundPlan,
   tapFocusAvailable,
   type FlashChoice,
 } from '@/lib/cameraCapture';
+import { loadAppleExtras } from '@/lib/appleExtrasModule';
 import { answersATag, hasPostedBefore, reactivePostingGate } from '@/lib/reactivePosting';
 import { nudgeLabel } from '@/lib/tagNudge';
 import { cantTagReason, postTagsRequired } from '@/lib/tagRules';
@@ -1873,6 +1875,21 @@ export default function CameraScreen({
   // Tap to focus (flag `camera-tap-focus`): switch on, an iPhone, and a build whose camera can
   // focus on a point (build 11+). OTA updates also reach build 10, which can't: there it's off.
   const tapFocusOn = useFeatureFlag('camera-tap-focus');
+  // Apple's shutter sound at the press (switch `shutter-sound`, build 13+); off = today's.
+  const shutterSoundOn = useFeatureFlag('shutter-sound');
+  const shutterSound = shutterSoundPlan({
+    flagOn: shutterSoundOn,
+    platform: Platform.OS,
+    hasModule: loadAppleExtras() != null,
+  });
+  const pressSound = () => {
+    if (!shutterSound.playAtPress) return;
+    try {
+      loadAppleExtras()?.playShutterSound();
+    } catch {
+      // No sound is no harm.
+    }
+  };
   const [nativeFocus, setNativeFocus] = useState(false);
   const focusOn = tapFocusAvailable({ flagOn: tapFocusOn, platform: Platform.OS, nativeFocus });
   const [cameraSize, setCameraSize] = useState({ width: 0, height: 0 });
@@ -1974,7 +1991,11 @@ export default function CameraScreen({
   // Helper: take a photo from whatever camera is currently active
   const takePhoto = async (): Promise<CapturedPhoto | null> => {
     if (!cameraRef.current) return null;
-    const photo = await cameraRef.current.takePictureAsync({ quality: PHOTO_CAPTURE.shotQuality });
+    const photo = await cameraRef.current.takePictureAsync({
+      quality: PHOTO_CAPTURE.shotQuality,
+      // Off while Mahi plays the shutter at the press, so there is only one.
+      ...(shutterSound.cameraShutterSound === false ? { shutterSound: false } : {}),
+    });
     if (!photo?.uri) return null;
     // Re-encode to bake EXIF orientation into pixel data. With
     // `responsiveOrientationWhenOrientationLocked` on (iOS), a sideways-held
@@ -2192,9 +2213,11 @@ export default function CameraScreen({
   const handleShutterPress = () => {
     if (captureState === 'idle') {
       haptic('shutter');
+      pressSound();
       captureFirst();
     } else if (captureState === 'awaiting-second') {
       haptic('shutter');
+      pressSound();
       captureSecond();
     }
   };

@@ -35,6 +35,7 @@ export const FEATURE_FLAGS = [
   'control-post-workout', // Control Centre / lock screen "Post a workout" opens the camera (off: the control reads "Open Mahi" and just opens Mahi)
   'spotlight', // Spotlight offers Post a workout, Your invites, Find your mates (off: the items are removed from the phone's index)
   'siri-shortcuts', // "Post a workout in Mahi", "Open my invites in Mahi", "Find my mates in Mahi" (off: they just open Mahi)
+  'shutter-sound', // Apple's shutter sound at the press, in step with the haptic; silent switch respected (off: today's camera sound)
 
   // Sign-in placeholders — pills on the welcome screen with nothing behind them yet.
   'auth-apple-signin',

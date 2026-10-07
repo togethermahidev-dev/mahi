@@ -1,3 +1,4 @@
+import AudioToolbox
 import CoreSpotlight
 import ExpoModulesCore
 import Foundation
@@ -27,6 +28,15 @@ public class MahiAppleExtrasModule: Module {
   static let pendingLinkNotification = "com.mahi.app.pendingLink" as CFString
 
   static let spotlightDomain = "com.mahi.app.actions"
+
+  /// Apple's own camera shutter (the Camera app's photoShutter sound), as a sound of our own: the
+  /// camera turns off its built-in one (system sound 1108) as it shoots, which mustn't cut ours.
+  /// Falls back to 1108 itself if the file can't be read.
+  static let shutterSound: SystemSoundID = {
+    var id: SystemSoundID = 0
+    let url = URL(fileURLWithPath: "/System/Library/Audio/UISounds/photoShutter.caf") as CFURL
+    return AudioServicesCreateSystemSoundID(url, &id) == noErr ? id : 1108
+  }()
 
   private var observing = false
 
@@ -66,6 +76,12 @@ public class MahiAppleExtrasModule: Module {
       else { return nil }
       defaults.removeObject(forKey: Self.pendingLinkKey)
       return link
+    }
+
+    // The shutter sound at the press (switch `shutter-sound`). A system sound: the phone's silent
+    // switch silences it, as it does the Camera app's.
+    Function("playShutterSound") {
+      AudioServicesPlaySystemSound(Self.shutterSound)
     }
 
     // Spotlight (switch `spotlight`): Mahi's own actions, each found by its title and keywords.

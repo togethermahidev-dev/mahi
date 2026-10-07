@@ -15,6 +15,8 @@ export interface AppleExtrasNative {
   setSwitches(values: Record<string, boolean>): void;
   /** The link an intent left in the App Group, once, or null. */
   takePendingLink(): string | null;
+  /** Apple's camera shutter sound, now (the silent switch silences it). */
+  playShutterSound(): void;
   /** Puts Mahi's own actions in Spotlight (replacing any there before). */
   setSpotlightActions(
     actions: readonly { link: string; title: string; detail: string; keywords: string[] }[]

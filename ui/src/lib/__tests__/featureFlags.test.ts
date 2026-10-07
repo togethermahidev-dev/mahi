@@ -138,7 +138,13 @@ describe('default-off flags (video-posts)', () => {
 // Build 13's native extras each have a kill switch, on for everyone (owner, 2026-10-07): they read
 // as on while flags load, and only an explicit false in PostHog turns one off.
 describe('build 13 native kill switches', () => {
-  const BUILD_13 = ['share-to-mahi', 'control-post-workout', 'spotlight', 'siri-shortcuts'];
+  const BUILD_13 = [
+    'share-to-mahi',
+    'control-post-workout',
+    'spotlight',
+    'siri-shortcuts',
+    'shutter-sound',
+  ];
 
   it('are in the registry and on by default', () => {
     for (const key of BUILD_13) {
