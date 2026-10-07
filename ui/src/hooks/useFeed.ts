@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
-import { useFeedStore } from '@/store';
+import { useAuthStore, useFeedStore } from '@/store';
 import { msLeft } from '@/lib/countdown';
+import { latestOwnPostOnly } from '@/lib/feedPosts';
 import type { FeedPost } from '@/api';
 
 export interface UseFeedResult {
@@ -35,6 +36,7 @@ export function useFeed(): UseFeedResult {
   const locked = useFeedStore((s) => s.locked);
   const unlockedUntil = useFeedStore((s) => s.unlockedUntil);
   const serverOffsetMs = useFeedStore((s) => s.serverOffsetMs);
+  const myId = useAuthStore((s) => s.user?.id);
 
   useEffect(() => {
     useFeedStore.getState().sync();
@@ -48,7 +50,11 @@ export function useFeed(): UseFeedResult {
     return () => clearTimeout(id);
   }, [locked, unlockedUntil, serverOffsetMs]);
 
-  const allPosts = useMemo(() => [...pending, ...posts] as FeedPost[], [pending, posts]);
+  // Of your own posts, only your latest shows here (the rest are on your Profile).
+  const allPosts = useMemo(
+    () => latestOwnPostOnly([...pending, ...posts] as FeedPost[], myId),
+    [pending, posts, myId]
+  );
 
   return {
     posts: allPosts,
