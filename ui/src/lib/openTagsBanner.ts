@@ -4,9 +4,9 @@
  * Measured on the server's clock (`serverOffsetMs` = server − device). Someone who has never
  * posted sees "First post · no tag needed" in the same pill instead of a bare camera.
  *
- * `note` is one line under the pill: a newcomer answering their first tag hears that any workout
- * counts; someone tagged by several friends hears that one post answers them all (the server marks
- * every open tag answered by one post).
+ * `note` is one line under the pill: a newcomer answering their first tag hears whose tag it
+ * answers and that any workout counts; someone tagged by several friends hears that one post
+ * answers them all (the server marks every open tag answered by one post).
  */
 import { msLeft } from './countdown';
 import { timeLeftText } from './feedLock';
@@ -38,10 +38,11 @@ export function openTagsBanner({
   )[0];
   const others = openTags.length - 1;
   const time = timeLeftText(msLeft(first.expires_at, serverOffsetMs, deviceNow));
+  const tags = others === 1 ? 'both' : `all ${others + 1}`;
   const note = firstPost
-    ? 'Your first post. Any workout counts, even 10 minutes.'
+    ? `Your first post answers ${others > 0 ? `${tags} tags` : `@${first.username}’s tag`}. Any workout counts, even 10 minutes.`
     : others > 0
-      ? `One workout answers ${others === 1 ? 'both' : `all ${others + 1}`} tags.`
+      ? `One workout answers ${tags} tags.`
       : undefined;
   return {
     who: `@${first.username}${others > 0 ? ` +${others}` : ''}`,

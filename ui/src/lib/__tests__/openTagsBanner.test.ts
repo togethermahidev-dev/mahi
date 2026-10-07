@@ -94,7 +94,7 @@ describe('openTagsBanner', () => {
     ).toBe('One workout answers both tags.');
   });
 
-  it('a newcomer answering their first tag: any workout counts, even 10 minutes', () => {
+  it('a newcomer answering their first tag hears whose tag it answers, and that any workout counts', () => {
     expect(
       openTagsBanner({
         openTags: [tag('sam', 47 * HOUR)],
@@ -102,8 +102,8 @@ describe('openTagsBanner', () => {
         deviceNow,
         firstPost: true,
       })?.note
-    ).toBe('Your first post. Any workout counts, even 10 minutes.');
-    // The newcomer line wins over the several-tags line.
+    ).toBe('Your first post answers @sam’s tag. Any workout counts, even 10 minutes.');
+    // Several tags: one first post answers them all.
     expect(
       openTagsBanner({
         openTags: [tag('sam', 47 * HOUR), tag('ali', 40 * HOUR)],
@@ -111,6 +111,6 @@ describe('openTagsBanner', () => {
         deviceNow,
         firstPost: true,
       })?.note
-    ).toBe('Your first post. Any workout counts, even 10 minutes.');
+    ).toBe('Your first post answers both tags. Any workout counts, even 10 minutes.');
   });
 });
