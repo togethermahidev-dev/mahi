@@ -1,4 +1,4 @@
-import { bannerText, openTagsBanner } from '../openTagsBanner';
+import { bannerText, openTagReminder, openTagsBanner } from '../openTagsBanner';
 
 const HOUR = 3600 * 1000;
 const MIN = 60 * 1000;
@@ -62,11 +62,12 @@ describe('openTagsBanner — tagged after that', () => {
 
   it('one workout answers several tags for one point', () => {
     const b = openTagsBanner({
-      openTags: [tag('sam', 2 * HOUR), tag('ali', 3 * HOUR), tag('kim', 4 * HOUR)],
+      // More than 6 hours left (under 6 the note turns into the reminder, below).
+      openTags: [tag('sam', 7 * HOUR), tag('ali', 8 * HOUR), tag('kim', 9 * HOUR)],
       serverOffsetMs: 0,
       deviceNow,
     });
-    expect(b && bannerText(b)).toBe('@sam +2 tagged you · 02:00:00 left');
+    expect(b && bannerText(b)).toBe('@sam +2 tagged you · 07:00:00 left');
     expect(b?.note).toBe('One workout answers all 3 tags and earns 1 point.');
   });
 
@@ -91,5 +92,106 @@ describe('openTagsBanner — tagged after that', () => {
     expect(first && bannerText(first)).toBe(
       'You were tagged by @sam. You have only minutes to post your Mahi and get your first point.'
     );
+  });
+});
+
+// Owner, 2026-10-07: a quiet reminder when time is short — under 6 hours the clock turns the
+// warning colour and the note names who's waiting.
+describe('openTagsBanner — under 6 hours left', () => {
+  it('turns urgent and says how long is left to answer whom', () => {
+    const b = openTagsBanner({
+      openTags: [tag('sam', 5 * HOUR + 59 * MIN + 59 * 1000)],
+      serverOffsetMs: 0,
+      deviceNow,
+    });
+    expect(b && bannerText(b)).toBe('@sam tagged you · 05:59:59 left');
+    expect(b?.urgent).toBe(true);
+    expect(b?.note).toBe('Only 05:59:59 left to answer @sam.');
+  });
+
+  it('is not urgent at 6 hours or more', () => {
+    const b = openTagsBanner({ openTags: [tag('sam', 6 * HOUR)], serverOffsetMs: 0, deviceNow });
+    expect(b?.urgent).toBeUndefined();
+    expect(b?.note).toBe('Post your answer to earn a Mahi point.');
+  });
+
+  it('names the mate whose tag ends first', () => {
+    const b = openTagsBanner({
+      openTags: [tag('ali', 9 * HOUR), tag('sam', 2 * HOUR)],
+      serverOffsetMs: 0,
+      deviceNow,
+    });
+    expect(b?.urgent).toBe(true);
+    expect(b?.note).toBe('Only 02:00:00 left to answer @sam.');
+  });
+
+  it('in the grace time: only minutes left', () => {
+    const b = openTagsBanner({ openTags: [tag('sam', -MIN)], serverOffsetMs: 0, deviceNow });
+    expect(b?.urgent).toBe(true);
+    expect(b?.note).toBe('Only minutes left to answer @sam.');
+  });
+
+  it('a first post: the clock turns urgent, the note stays the welcome one', () => {
+    const b = openTagsBanner({
+      openTags: [tag('sam', 3 * HOUR)],
+      serverOffsetMs: 0,
+      deviceNow,
+      firstPost: true,
+    });
+    expect(b?.urgent).toBe(true);
+    expect(b?.note).toBe('Any workout counts, even 10 minutes.');
+  });
+
+  it('a first post with no tag is never urgent', () => {
+    const b = openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow, firstPost: true });
+    expect(b?.urgent).toBeUndefined();
+  });
+});
+
+describe('openTagReminder — the in-app nudge when Mahi opens', () => {
+  const base = {
+    serverOffsetMs: 0,
+    deviceNow,
+    page: 'feed' as const,
+    quiet: false,
+    reminded: false,
+  };
+
+  it('says whose tag and the time left', () => {
+    expect(
+      openTagReminder({ ...base, openTags: [tag('sam', 5 * HOUR + 12 * MIN + 33 * 1000)] })
+    ).toBe('@sam’s tag: 05:12:33 left');
+  });
+
+  it('names the tag that ends first', () => {
+    expect(
+      openTagReminder({ ...base, openTags: [tag('ali', 30 * HOUR), tag('sam', 20 * HOUR)] })
+    ).toBe('@sam’s tag: 20:00:00 left');
+  });
+
+  it('in the grace time: last minutes', () => {
+    expect(openTagReminder({ ...base, openTags: [tag('sam', -MIN)] })).toBe(
+      '@sam’s tag: last minutes'
+    );
+  });
+
+  it('nothing without an open tag', () => {
+    expect(openTagReminder({ ...base, openTags: [] })).toBeNull();
+  });
+
+  it('nothing on the camera or while posting, which already show the tag', () => {
+    const openTags = [tag('sam', 2 * HOUR)];
+    expect(openTagReminder({ ...base, openTags, page: 'camera' })).toBeNull();
+    expect(openTagReminder({ ...base, openTags, page: 'compose' })).toBeNull();
+  });
+
+  it('at most once per app open', () => {
+    const openTags = [tag('sam', 2 * HOUR)];
+    expect(openTagReminder({ ...base, openTags, reminded: true })).toBeNull();
+  });
+
+  it('waits while something else is on screen', () => {
+    const openTags = [tag('sam', 2 * HOUR)];
+    expect(openTagReminder({ ...base, openTags, quiet: true })).toBeNull();
   });
 });
