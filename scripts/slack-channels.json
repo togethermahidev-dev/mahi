@@ -211,5 +211,10 @@
     "name": "staff-portal",
     "purpose": "The staff website for reviewing reports and taking moderation actions",
     "summary": "A private website for Mahi staff. Staff sign in with their Mahi account and land on an overview: new reports, reports being looked at, today's reports, who is suspended or banned, and the latest actions. Reports can be filtered and searched; each report shows what was reported, who reported it and the person's history. Actions sit in a Safe box (dismiss, show again, restore) and a Serious box (hide a post, remove a comment or message, warn, suspend, ban); each needs a note and a confirm step, and goes in the audit log. Admins alone can ban.\n• Works on a computer today; putting it on its own web address is the next step. Counts and search cover the newest 200 reports."
+  },
+  {
+    "name": "openai-moderation-setup",
+    "purpose": "Setting up the OpenAI key and automated content moderation",
+    "summary": "The automated check for concerning posts and comments, flagging them for staff review.\n• Needs the OpenAI API key stored in Supabase Vault, the `moderate-content` function deployed, and the moderation secret in place.\n• Once live, new reports trigger an automatic check. Staff still decide on any action. See docs/moderation.md for the full owner steps."
   }
 ]
