@@ -165,4 +165,15 @@ const config = {
   },
 };
 
+// ─── App Clip (build 13+) — begin ─────────────────────────────────────────────────────────────
+// Invite links (togethermahi.com/i/<token>) on an iPhone without Mahi open a tiny native App Clip
+// (clip/MahiClip, SwiftUI, bundle id com.mahi.app.Clip) with "Get Mahi". Its own
+// '@bacons/apple-targets' entry reads only ./clip, so it never picks up (or doubles) targets in
+// ./targets read by any other entry. The app gets `appclips:` too, as Apple asks for both.
+// Off: remove the App Clip experience in App Store Connect (switch `app-clip` only stops the app
+// taking the clip's hand-over).
+config.plugins.push(['@bacons/apple-targets', { root: './clip', appleTeamId: '733RLXDJNY' }]);
+config.ios.associatedDomains.push('appclips:togethermahi.com');
+// ─── App Clip — end ───────────────────────────────────────────────────────────────────────────
+
 module.exports = config;
