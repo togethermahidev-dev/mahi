@@ -121,6 +121,32 @@ describe('liveTagView — what the Live Activity and widget show', () => {
     ).toMatchObject({ points: '1 Mahi point', best: 'Best: 1' });
   });
 
+  // Walkthrough 2026-10-07: a first post needs no tag, so a brand-new person isn't told to wait.
+  it('with no open tag and no post yet, says the first workout earns the first point', () => {
+    const v = liveTagView({
+      tags: [],
+      serverOffsetMs: 0,
+      deviceNow,
+      points: 0,
+      best: 0,
+      postedBefore: false,
+    });
+    expect(v).toMatchObject({
+      kind: 'waiting',
+      title: 'Post your first workout to get your first point',
+    });
+    expect(
+      liveTagView({
+        tags: [],
+        serverOffsetMs: 0,
+        deviceNow,
+        points: 0,
+        best: 0,
+        postedBefore: true,
+      })
+    ).toMatchObject({ title: 'Waiting for a mate to tag you' });
+  });
+
   it('carries only the username and points, never names, photos or ids', () => {
     const t = { ...tag('secret-id', 'sam', 30 * HOUR), display_name: 'Sam Smith', avatar_url: 'x' };
     const json = JSON.stringify(

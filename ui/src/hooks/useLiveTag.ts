@@ -103,6 +103,7 @@ function syncLiveTag(enabled: boolean, photosOn: boolean, again: () => void): nu
     points: profile.streak_current,
     best: profile.streak_highest,
     photos: photosOn ? photos : {},
+    postedBefore: profile.has_posted_before !== false,
   };
   if (enabled && signedIn && photosOn && loaded) savePhotos(widgets, openTags, again);
 
@@ -118,6 +119,7 @@ function syncLiveTag(enabled: boolean, photosOn: boolean, again: () => void): nu
         input.points,
         input.best,
         input.photos,
+        input.postedBefore,
       ]);
       setWidget(widgets, key, () => widgetTimeline(input));
     }

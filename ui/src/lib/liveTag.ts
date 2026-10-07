@@ -142,6 +142,8 @@ export interface LiveTagInput {
   best: number;
   /** Taggers' photos saved for the widget, by username (none when the switch is off). */
   photos?: Record<string, string>;
+  /** False for someone who has never posted: their first post needs no tag. */
+  postedBefore?: boolean;
 }
 
 /** What the Live Activity and widget show at `deviceNow`. */
@@ -152,13 +154,16 @@ export function liveTagView({
   points,
   best,
   photos = {},
+  postedBefore = true,
 }: LiveTagInput): TagView | WaitingView {
   const open = openTagsAt(tags, serverOffsetMs, deviceNow);
   const first = open[0];
   if (!first) {
     return {
       kind: 'waiting',
-      title: 'Waiting for a mate to tag you',
+      title: postedBefore
+        ? 'Waiting for a mate to tag you'
+        : 'Post your first workout to get your first point',
       points: mahiPointsCount(points),
       best: `Best: ${best}`,
       look: LIVE_TAG_LOOK,
