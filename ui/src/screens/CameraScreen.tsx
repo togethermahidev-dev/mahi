@@ -69,6 +69,7 @@ import FocusSquare, { FOCUS_SQUARE_SIZE, type FocusTap } from '@/components/Focu
 import CapturePipGuide from '@/components/CapturePipGuide';
 import PostVideo, { SoundButton } from '@/components/PostVideo';
 import InviteStep from '@/components/InviteStep';
+import MateCircles from '@/components/MateCircles';
 import InviteShareSheet from '@/components/InviteShareSheet';
 import TagSlotsSheet from '@/components/TagSlotsSheet';
 import MyInvitesSheet from '@/components/MyInvitesSheet';
@@ -1274,7 +1275,7 @@ function TagSheet({
       useToastStore.getState().show(inviteBlocked);
       return;
     }
-    haptic('selection');
+    // The mate circles feel each one filling.
     setInvites((n) => n + 1);
   };
   const step = tagSheetStep({
@@ -1388,6 +1389,23 @@ function TagSheet({
             </Pressable>
           </View>
         </View>
+
+        {singleShot ? null : (
+          <View style={styles.tagCircles}>
+            <MateCircles
+              total={maxTags}
+              friends={selected}
+              links={invites}
+              dark
+              onAdd={step === 'invite' ? addInvite : () => searchRef.current?.focus()}
+              onRemove={(circle) =>
+                circle.kind === 'friend'
+                  ? setSelected((prev) => prev.filter((u) => u.user_id !== circle.userId))
+                  : setInvites((n) => Math.max(0, n - 1))
+              }
+            />
+          </View>
+        )}
 
         {step === 'invite' && availableFriends !== null ? (
           <InviteStep
@@ -3357,6 +3375,10 @@ const styles = StyleSheet.create({
     paddingTop: SPACE.s20,
     paddingBottom: SPACE.s12,
     gap: SPACE.s12,
+  },
+  /** The mate circles at the top of the tag sheet. */
+  tagCircles: {
+    paddingVertical: SPACE.s8,
   },
   sheetHeaderEnd: {
     flexDirection: 'row',

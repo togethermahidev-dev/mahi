@@ -32,6 +32,8 @@ interface ListStateProps {
   onAction?: () => void;
   /** Optional visual for a specific empty state; decorative because the text explains the state. */
   icon?: React.ReactNode;
+  /** Optional bigger picture in place of the small marker (the invites list's mate circles). */
+  art?: React.ReactNode;
 }
 
 /**
@@ -46,6 +48,7 @@ export default function ListState({
   actionLabel,
   onAction,
   icon,
+  art,
 }: ListStateProps): React.JSX.Element {
   const { text, muted, border, accentText } = themeColors(dark);
   const surface = dark ? COLORS.surfaceDark : COLORS.white;
@@ -69,9 +72,13 @@ export default function ListState({
   return (
     <View style={styles.wrap}>
       <View style={[styles.card, { backgroundColor: surface, borderColor: border }]}>
-        <View style={[styles.marker, { backgroundColor: softSurface }]}>
-          {icon ?? <View style={[styles.markerDot, { backgroundColor: accentText }]} />}
-        </View>
+        {art ? (
+          <View style={styles.art}>{art}</View>
+        ) : (
+          <View style={[styles.marker, { backgroundColor: softSurface }]}>
+            {icon ?? <View style={[styles.markerDot, { backgroundColor: accentText }]} />}
+          </View>
+        )}
         {title ? (
           <Text style={[styles.title, { color: text }]} accessibilityRole="header">
             {title}
@@ -125,6 +132,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACE.s12,
+  },
+  art: {
+    marginBottom: SPACE.s16,
   },
   markerDot: {
     width: SIZE.z10,

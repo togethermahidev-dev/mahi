@@ -42,6 +42,8 @@ export type TagLoopEvents = {
   invite_resent: { kind: 'mate' | 'tag' };
   /** A link was cancelled from "Your invites", once the server took it. */
   invite_cancelled: { kind: 'mate' | 'tag' };
+  /** A mate circle on the tag step filled (`index` from 0): a friend tagged or a link added. */
+  mate_circle_filled: { kind: 'friend' | 'link'; index: number };
   /** Someone joined from a link: you follow each other, and a tag starts if one came with it. */
   invite_claimed: { inviter_id: string };
   /** The feed went from locked to open for this user. */

@@ -15,7 +15,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FlashList } from '@shopify/flash-list';
 import { cancelInvite, getMyInvites, resendInvite } from '@/api/invites';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useTagStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { supabase } from '@/lib/supabase';
 import { reportError } from '@/lib/sentry';
@@ -41,6 +41,7 @@ import { useMinuteTick } from '@/hooks/useMinuteTick';
 import { themeColors } from '@/hooks/useAppTheme';
 import { refreshTint } from '@/lib/themeColors';
 import ListState from '@/components/ListState';
+import MateCircles from '@/components/MateCircles';
 import { ProfileIcon } from '@/components/ScreenIcons';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
@@ -96,6 +97,7 @@ export default function MyInvitesSheet({
 function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
   const insets = useSafeAreaInsets();
   const userId = useAuthStore((s) => s.user?.id);
+  const maxTags = useTagStore((s) => s.maxTags);
   const show = useToastStore((s) => s.show);
 
   const bg = dark ? COLORS.bgDark : COLORS.white;
@@ -430,6 +432,16 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
             line="Send a mate a link. When they join, you’ll follow each other."
             actionLabel={inviting ? undefined : 'Invite a mate'}
             onAction={() => void inviteMate()}
+            art={
+              <MateCircles
+                total={maxTags}
+                friends={[]}
+                links={0}
+                dark={dark}
+                compact
+                onAdd={inviting ? undefined : () => void inviteMate()}
+              />
+            }
           />
         ) : (
           <FlashList

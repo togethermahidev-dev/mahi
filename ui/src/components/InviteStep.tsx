@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { inviteStepCopy, slotCount } from '@/lib/inviteStep';
+import { inviteStepCopy } from '@/lib/inviteStep';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -16,7 +16,8 @@ import { themeColors } from '@/lib/themeColors';
 
 /**
  * The tag sheet's lead when friends can't fill the post's slots:
- * why, a big button to invite, and how many slots are filled. The tag sheet is always dark.
+ * why, a big button to invite, and how many slots are filled (the mate circles above show which).
+ * The tag sheet is always dark.
  */
 export default function InviteStep({
   maxTags,
@@ -34,7 +35,6 @@ export default function InviteStep({
   onRemove: () => void;
 }): React.JSX.Element {
   const copy = inviteStepCopy({ maxTags, availableFriends, friends, invites });
-  const { filled } = slotCount({ maxTags, friends, invites });
 
   return (
     <View style={styles.card}>
@@ -49,11 +49,6 @@ export default function InviteStep({
         accessibilityLabel={copy.count}
         accessibilityLiveRegion="polite"
       >
-        <View style={styles.dots}>
-          {Array.from({ length: maxTags }, (_, i) => (
-            <View key={i} style={[styles.dot, i < filled && styles.dotFilled]} />
-          ))}
-        </View>
         <Text style={styles.count}>{copy.count}</Text>
       </View>
 
@@ -113,19 +108,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.s10,
-  },
-  dots: {
-    flexDirection: 'row',
-    gap: SPACE.s6,
-  },
-  dot: {
-    width: SIZE.z10,
-    height: SIZE.z10,
-    borderRadius: RADIUS.pill,
-    backgroundColor: withAlpha(COLORS.offWhite, ALPHA.a20),
-  },
-  dotFilled: {
-    backgroundColor: COLORS.accent,
   },
   count: {
     color: COLORS.offWhite,
