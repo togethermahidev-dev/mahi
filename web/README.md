@@ -76,6 +76,17 @@ directly (sign in to Mahi's Netlify account and link the project first with `net
 netlify deploy --prod --dir web/out
 ```
 
+## To-do: the App Clip (build 13)
+
+- `public/.well-known/apple-app-site-association` names the App Clip (`appclips`). Deploy it
+  (above) before the App Clip experience is set up in App Store Connect, which checks the file.
+- **TODO — App Store id:** the invite page's Safari banner for the App Clip
+  (`<meta name="apple-itunes-app" content="app-id=…, app-clip-bundle-id=com.mahi.app.Clip, app-clip-display=card">`)
+  needs Mahi's real App Store id, which doesn't exist until the App Store listing does. Put the
+  number in `APP_STORE_ID` in `app/_lib/links.ts` (it's `null` now, so no banner shows), run
+  `pnpm --filter ./web test`, then deploy. Never a made-up id.
+- This note is here, not in `DEPLOY.md`, because any change to `DEPLOY.md` deploys the site.
+
 ## What's in here
 
 | File | What it does |

@@ -20,6 +20,25 @@ const PLAY_STORE_URL = 'https://play.google.com/store/search?q=Mahi%20fitness&c=
 const SITE = 'https://togethermahi.com';
 
 /**
+ * Mahi's App Store id (the number in its apps.apple.com link). Null until the app has a listing:
+ * Apple's banner needs a real one, so until then the invite page shows no App Clip banner (the
+ * App Clip card still comes from the App Store Connect experience). To-do in web/DEPLOY.md.
+ */
+export const APP_STORE_ID: string | null = null;
+
+/** The App Clip (ui/clip/MahiClip). */
+const APP_CLIP_BUNDLE_ID = 'com.mahi.app.Clip';
+
+/**
+ * The `apple-itunes-app` meta tag on the invite page: Safari's banner that opens the App Clip
+ * card. Null without an App Store id.
+ */
+export function appClipBanner(appStoreId: string | null): string | null {
+  if (!appStoreId) return null;
+  return `app-id=${appStoreId}, app-clip-bundle-id=${APP_CLIP_BUNDLE_ID}, app-clip-display=card`;
+}
+
+/**
  * The project's public address and publishable key: the same public values the app ships with.
  * They only allow what a signed-out person may do.
  */

@@ -6,6 +6,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
+  APP_STORE_ID,
+  appClipBanner,
   appInviteLink,
   appPostLink,
   inviteFromPath,
@@ -40,6 +42,26 @@ test('the Apple file lets invite and post links open the app', () => {
     ['/i/*', '/p/*']
   );
   assert.deepEqual(detail.paths, ['/i/*', '/p/*']);
+});
+
+test('the Apple file names the App Clip, so invite links can open it', () => {
+  const aasa = JSON.parse(read('../public/.well-known/apple-app-site-association'));
+  const team = JSON.parse(read('../../ui/eas.json')).submit.production.ios.appleTeamId;
+  const clip = /bundleIdentifier:\s*'([^']+)'/.exec(
+    read('../../ui/clip/MahiClip/expo-target.config.js')
+  )[1];
+  assert.equal(clip, 'com.mahi.app.Clip');
+  assert.deepEqual(aasa.appclips, { apps: [`${team}.${clip}`] });
+});
+
+test('the App Clip banner waits for a real App Store id, never a made-up one', () => {
+  assert.equal(appClipBanner(null), null);
+  assert.equal(
+    appClipBanner('1234567890'),
+    'app-id=1234567890, app-clip-bundle-id=com.mahi.app.Clip, app-clip-display=card'
+  );
+  // No listing yet (web/DEPLOY.md has the to-do): no banner.
+  assert.equal(APP_STORE_ID, null);
 });
 
 test('Netlify serves the Apple file as JSON and the link pages for every token', () => {

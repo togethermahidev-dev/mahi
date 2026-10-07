@@ -12,5 +12,8 @@
         "paths": ["/i/*", "/p/*"]
       }
     ]
+  },
+  "appclips": {
+    "apps": ["733RLXDJNY.com.mahi.app.Clip"]
   }
 }
