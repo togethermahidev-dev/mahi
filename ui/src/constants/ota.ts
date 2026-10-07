@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 31 — Your invites: see who you invited and who joined; resend once a day (3 times)
+ *     or cancel a link (Profile, and the camera's waiting card) (2026-10-07)
  *   build 12 · 30 — a padlock on the Feed tab while the feed is locked; invite link opens and the
  *     app update are counted in PostHog (2026-10-07)
  *   build 12 · 29 — Invite a mate any time; a first post that answers a mate needs no tags;
@@ -62,4 +64,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 30;
+export const OTA_NUMBER = 31;
