@@ -63,10 +63,10 @@ struct OpenInvitesIntent: AppIntent {
   }
 }
 
-/// "Find my mates in Mahi": who from your contacts is on Mahi.
+/// "Find friends on Mahi": who from your contacts is on Mahi.
 @available(iOS 16.0, *)
 struct FindMatesIntent: AppIntent {
-  static let title: LocalizedStringResource = "Find my mates"
+  static let title: LocalizedStringResource = "Find friends in your contacts"
   static let description = IntentDescription("Shows who from your contacts is on Mahi.")
   static let openAppWhenRun: Bool = true
 
