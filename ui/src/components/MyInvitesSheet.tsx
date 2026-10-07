@@ -66,6 +66,7 @@ import {
   SIZE,
   SPACE,
 } from '@/constants/tokens';
+import { INVITE_BUTTON } from '@/lib/tagSlots';
 
 interface MyInvitesSheetProps {
   visible: boolean;
@@ -434,14 +435,14 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
         onPress={() => void inviteMate()}
         disabled={inviting}
         accessibilityRole="button"
-        accessibilityLabel="Invite a mate"
+        accessibilityLabel={INVITE_BUTTON}
         accessibilityHint="Makes a link to share. When they join, you’ll follow each other."
         accessibilityState={{ busy: inviting }}
       >
         {inviting ? (
           <ActivityIndicator color={COLORS.offBlack} />
         ) : (
-          <Text style={styles.inviteButtonText}>Invite a mate</Text>
+          <Text style={styles.inviteButtonText}>{INVITE_BUTTON}</Text>
         )}
       </Pressable>
     </View>
@@ -505,7 +506,7 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
             dark={dark}
             title="No invites yet"
             line="Send a mate a link. When they join, you’ll follow each other."
-            actionLabel={inviting ? undefined : 'Invite a mate'}
+            actionLabel={inviting ? undefined : INVITE_BUTTON}
             onAction={() => void inviteMate()}
             art={
               <MateCircles

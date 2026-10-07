@@ -134,9 +134,15 @@ export function slotShareMessage(url: string, _code: string): string {
   return `I tagged you on Mahi. Join, then post any workout within 48 hours. We’ll keep each other going.\n${url}`;
 }
 
+/**
+ * The words on every button that invites someone to Mahi (owner, 2026-10-07: not "Invite a mate";
+ * say why, in Mahi's accountability words). One place, so it can be changed once.
+ */
+export const INVITE_BUTTON = 'Invite an accountability mate';
+
 /** The message with an invite for a mate (no tag behind it: nothing to answer). */
 export function mateInviteMessage(url: string): string {
-  return `Join me on Mahi so we keep each other going. We’ll follow each other when you join.\n${url}`;
+  return `Join me on Mahi so we hold each other accountable. We’ll follow each other when you join.\n${url}`;
 }
 
 /** A link that opens WhatsApp or Messages with the message already written. */

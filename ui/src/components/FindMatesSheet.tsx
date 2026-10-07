@@ -40,7 +40,7 @@ import {
   type MatchedAccount,
 } from '@/lib/contactMatch';
 import { discardUnsentLink, inviteAMate, makeMateLink, noteInviteSent } from '@/lib/inviteAMate';
-import { mateInviteMessage } from '@/lib/tagSlots';
+import { INVITE_BUTTON, mateInviteMessage } from '@/lib/tagSlots';
 import { reportError } from '@/lib/sentry';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
@@ -621,7 +621,7 @@ function FindMates({
             dark={dark}
             title={query ? 'Nobody by that name' : 'No contacts to show'}
             line={query ? 'Try another name or number.' : 'Send a mate a link instead.'}
-            actionLabel={query || linking ? undefined : 'Invite a mate'}
+            actionLabel={query || linking ? undefined : INVITE_BUTTON}
             onAction={query ? undefined : () => void inviteByLink()}
           />
         ) : (

@@ -46,6 +46,7 @@ import {
 } from '@/constants/tokens';
 import { useCoverRail } from '@/hooks/useChrome';
 import { themeColors } from '@/hooks/useAppTheme';
+import { INVITE_BUTTON } from '@/lib/tagSlots';
 
 function UserRow({
   item,
@@ -361,7 +362,7 @@ export default function GlobalSearchOverlay({
                 {inviting ? (
                   <ActivityIndicator color={COLORS.offBlack} />
                 ) : (
-                  <Text style={styles.retryBtnText}>Invite a mate</Text>
+                  <Text style={styles.retryBtnText}>{INVITE_BUTTON}</Text>
                 )}
               </Pressable>
             </View>

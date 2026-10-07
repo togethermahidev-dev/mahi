@@ -98,6 +98,7 @@ import {
   postConfirmText,
   postRefusal,
   type ScreenSlot,
+  INVITE_BUTTON,
 } from '@/lib/tagSlots';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useCoachAnchor } from '@/hooks/useCoachMarks';
@@ -2968,14 +2969,14 @@ export default function CameraScreen({
                       onPress={() => void inviteMate()}
                       disabled={invitingMate}
                       accessibilityRole="button"
-                      accessibilityLabel="Invite a mate"
+                      accessibilityLabel={INVITE_BUTTON}
                       accessibilityHint="Makes a link to share. When they join, you’ll follow each other."
                       accessibilityState={{ busy: invitingMate }}
                     >
                       {invitingMate ? (
                         <ActivityIndicator color={COLORS.accent} />
                       ) : (
-                        <Text style={styles.inviteMateText}>Invite a mate</Text>
+                        <Text style={styles.inviteMateText}>{INVITE_BUTTON}</Text>
                       )}
                     </Pressable>
                   ) : null}

@@ -4,8 +4,9 @@
  * tagRules.ts). A newcomer invited by a friend can't tag that friend back, so they start with no
  * one to tag — the sheet then leads with a plain invite step instead of an empty list.
  *
- * Pure and import-free so it runs under the node-only jest harness.
+ * Pure (it imports only the pure tagSlots words) so it runs under the node-only jest harness.
  */
+import { INVITE_BUTTON } from '@/lib/tagSlots';
 
 const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -78,7 +79,7 @@ export function inviteStepCopy({
       ? 'Invite mates to keep you going'
       : `Invite ${count(toInvite, 'mate', 'mates')} to post`,
     why: tagsOptional ? how : `Every post tags ${maxTags} mates. ${how}`,
-    button: canAdd ? 'Invite a mate' : `All ${maxTags} tags used`,
+    button: canAdd ? INVITE_BUTTON : `All ${maxTags} tags used`,
     canAdd,
     count: slots.text,
   };

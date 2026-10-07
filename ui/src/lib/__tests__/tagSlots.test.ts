@@ -106,7 +106,7 @@ describe('personAction', () => {
 describe('mateInviteMessage', () => {
   it('invites a mate without promising a tag', () => {
     expect(mateInviteMessage('https://togethermahi.com/i/t1')).toBe(
-      'Join me on Mahi so we keep each other going. We’ll follow each other when you join.\nhttps://togethermahi.com/i/t1'
+      'Join me on Mahi so we hold each other accountable. We’ll follow each other when you join.\nhttps://togethermahi.com/i/t1'
     );
   });
 });
