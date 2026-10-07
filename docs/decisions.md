@@ -173,6 +173,9 @@ points and feed-lock rules are unchanged.
 | 109 | First answer needs no tags | A first post that answers a mate's tag can go with 0 tags; tagging 3 mates is encouraged | 3 tags required | Decided, building | 2026-10-07 | `create_post` |
 | 110 | Invites any time | Someone who has posted can send invite links without a post, from the waiting card ("Invite a mate") | Only while posting | Decided, building | 2026-10-07 | `make_invite_link` |
 | 111 | Invite links open the app | togethermahi.com/i/… opens Mahi when installed (Universal Links), with a fallback page | Code only | Decided, building (needs a web deploy) | 2026-10-07 | `web/` |
+| 112 | Tagging back | An answer can tag back the mate it answers; only your own open tag on someone blocks tagging them again (Maximus, option A) | No tag-back · first post tags the inviter · both | Built, DB live (`20261007240000_tag_back`), OTA 12.33 | 2026-10-07 | `taggable_friends`, `tagRules.ts` |
+| 113 | Widget may keep the soonest tag | The home-screen widget keeps the soonest open tag and its deadline on the phone (it can't ask the server); never shows an expired one, clears on sign-out, corrected each time Mahi opens. The one exception to "no expiring data on the phone" | Widget shows points only | Decided by owner | 2026-10-07 | `liveTagWidgets.tsx`, `useLiveTag.ts` |
+| 114 | Live Activity and widget without a switch | On for everyone on build 13+ (the build decides) | Behind `live-tag` | Decided by owner | 2026-10-07 | `useLiveTag.ts` |
 
 The owner's design-system rules (2026-10-05), enforced by tests so they can't drift back.
 
