@@ -61,7 +61,7 @@ interface NotificationsScreenProps {
 type InviteState = 'loading' | 'open' | 'accepted' | 'declined' | 'ended';
 
 const INVITE_STATE_TEXT: Record<Exclude<InviteState, 'loading' | 'open'>, string> = {
-  accepted: 'Accepted. You’re friends now.',
+  accepted: 'Accepted. You follow each other now.',
   declined: 'Not now',
   ended: 'That invite has ended.',
 };
@@ -70,7 +70,8 @@ const INVITE_STATE_TEXT: Record<Exclude<InviteState, 'loading' | 'open'>, string
  * What Accept does, under an open tag request. True whether or not their post exists yet: the
  * 48 hours start once it does (respond_tag_invite → start_tag).
  */
-const ACCEPT_LINE = 'Accept and you’re friends. You’ll have 48 hours to answer their tag.';
+const ACCEPT_LINE =
+  'Accept and you’ll automatically follow each other. You’ll have 48 hours to answer their tag.';
 
 /** Read out with each row: where a tap goes. */
 function targetHint(target: NotificationTarget, username: string): string {

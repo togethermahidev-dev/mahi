@@ -77,7 +77,9 @@ for iPhone (build 10 has `expo-notifications` and the push entitlement).
   | You missed a tag | You missed @sam's tag. Your points are back to 0. | Notifications list |
   | Like / comment | @sam liked your post · @sam commented on your post | Notifications list |
   | Follow | @sam started following you | Their profile |
-  | Joined from your invite | @sam joined Mahi from your invite | Their profile |
+  | Tag request | @sam wants to tag you. Accept to follow each other. | Their profile |
+  | Tag request accepted | @sam accepted your tag request. You follow each other now. | Their profile |
+  | Joined from your invite | @sam joined Mahi from your invite. You follow each other now. | Their profile |
   | Message (one per sender per chat per minute) | Sam sent you a message | Messages |
 
   A push can't tick, so each states the time left at the moment it is sent. The hours in the tag push
@@ -387,7 +389,7 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | `public.app_config` | One row of numeric rules (tag window, unlock window, caps, `min_app_version`, `invite_links_enabled`) |
 | `public.otp_codes` / `public.auth_rate_limits` | Hashed sign-up and reset codes (`purpose` = `signup` / `reset`) and send limits |
 
-All tables use Row Level Security (RLS). Writes for posting and messaging go through one `SECURITY DEFINER` function each: `create_post` (checks reactive posting with `reactive_posting_open`, dates the post, adds the Mahi point, saves tags and deadlines, queues pushes, answers waiting tags) and `send_message`. The feed reads through `get_feed` (server-side lock), profiles through `get_user_posts`. Every migration is in `supabase/migrations/`; all through `20261002130000_comment_likes` are live (checked against prod 2026-10-02) — see `supabase/README.md` for the ones waiting; the old paths (`get_feed_posts`, the public photo bucket, direct message inserts) are retired later by the files in `supabase/deferred/`.
+All tables use Row Level Security (RLS). Writes for posting and messaging go through one `SECURITY DEFINER` function each: `create_post` (checks reactive posting with `reactive_posting_open`, dates the post, adds the Mahi point, saves tags and deadlines, queues pushes, answers waiting tags) and `send_message`. Follow/unfollow goes through `set_following`, which returns the committed follow state and counts; accepting an in-app tag request or claiming an invite link creates both directional follow rows in the same server transaction, while declining creates neither. The feed reads through `get_feed` (server-side lock), profiles through `get_user_posts`. Every migration through `20261007105647_explicit_mutual_follow_wording` is live on production (checked 2026-10-07); see `supabase/README.md`. The old paths (`get_feed_posts`, the public photo bucket, direct message inserts) are retired later by the files in `supabase/deferred/`.
 
 ---
 
@@ -553,7 +555,7 @@ Defined in `CameraScreen.tsx`; a native page sheet (`presentationStyle="pageShee
 
 - **Who can be tagged:** friends who follow back, from `getTaggableFriends` (`get_taggable_friends`), listed on open and filtered as you type (`WAIT.search`, 350 ms). Friends with an open tag on you can't be tagged back (founder's no-tag-back rule).
 - **Counter** `filled/maxTags`, where filled = friends picked + invite slots. Adding past `maxTags` fires a warning haptic and no-ops.
-- **Invite step** (flags `tags-invite-step` + `invite-links`; rules in `ui/src/lib/inviteStep.ts`): when friends can't fill the slots, the sheet leads with `InviteStep` — "Invite N friends to post", a big invite button and a count of slots filled — instead of the search field. After posting, `InviteShareSheet` lists each invite link as sent / not sent with send again (`ui/src/lib/inviteShare.ts`).
+- **Invite step** (flags `tags-invite-step` + `invite-links`; rules in `ui/src/lib/inviteStep.ts`): when friends can't fill the slots, the sheet leads with `InviteStep` — "Invite N friends to post", a big invite button and a count of slots filled — instead of the search field. Before an in-app tag request is sent, a native confirmation says accepting will make both people follow each other. Link/share copy says joining does the same. After posting, `InviteShareSheet` lists each invite link as sent / not sent with send again (`ui/src/lib/inviteShare.ts`) and repeats the mutual-follow consequence.
 - **`singleShot`** (set by the caption `@` bridge): no counter; tapping a friend commits just that one.
 
 ### `TaggedBubbleStack` (on-photo overlay)

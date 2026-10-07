@@ -31,6 +31,16 @@
 - The preview's Post tap always asks for confirmation: captions are editable for one hour, and
   posting opens the feed and can notify tagged friends. Never bypass this alert.
 
+## Follows, tag requests and invite links (2026-10-07)
+- A normal profile Follow is one-way. Friends means both follow rows exist.
+- Accepting an in-app tag request or claiming an invite link atomically creates both follow rows;
+  declining a tag request creates neither. Preserve this server invariant in every future flow.
+- Before a tag request is sent or an invite link is shared/accepted, the UI must plainly say that
+  acceptance or joining makes both people follow each other. The accepted/joined state confirms it.
+- Profile follow/unfollow writes go only through `set_following`; the store may update optimistically,
+  but must reconcile from the RPC's committed state. Friends/follow lists always load fresh server data
+  and subscribe to follow changes while open; never cache them on-device.
+
 ## Database tools
 - Mahi doesn't use Docker: no `supabase start`, no local stack. Database types come from the Supabase MCP
   generator (`generate_typescript_types`), not `supabase gen types --local`.

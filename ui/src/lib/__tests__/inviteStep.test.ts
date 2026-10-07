@@ -59,7 +59,7 @@ describe('inviteStepCopy', () => {
   it('asks a newcomer with no friends to invite all 3', () => {
     expect(inviteStepCopy({ maxTags: 3, availableFriends: 0, friends: 0, invites: 0 })).toEqual({
       headline: 'Invite 3 friends to post',
-      why: 'Every post tags 3 friends. Invite people you’d like to train with. They’ll get 48 hours to answer with any workout. A walk counts.',
+      why: 'Every post tags 3 friends. When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.',
       button: 'Invite a friend',
       canAdd: true,
       count: '0 of 3 tags',

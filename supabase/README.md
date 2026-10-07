@@ -12,8 +12,9 @@ The files are production's own migration history, downloaded from
 policies that had been created in the dashboard. Every live table, column, function, trigger, policy,
 index and bucket was checked against these files; nothing else was missing.
 
-Every later migration, through `20261002130000_comment_likes`, has been pushed by the owner and is
-live (checked against prod 2026-10-02: video posts and comment likes went in that morning).
+Every later migration through `20261007105647_explicit_mutual_follow_wording` is live on production
+(checked 2026-10-07). The historical "not pushed" paragraphs below describe rollout dependencies
+that have since landed unless they are explicitly listed under `supabase/deferred/`.
 **Not pushed yet:** `20261002150000_identity_verifications` (identity checks with Didit: the
 `identity_verifications` table — people read only their own rows — and `record_identity_verification`,
 service role only; test `tests/identity_verifications_test.sql`, undo
@@ -52,9 +53,13 @@ profile's `points` column once every phone has the Mahi points update.
 
 Rules (enforced by `.claude/hooks/guard.cjs`):
 
-Latest production migration: `20261007104406_authoritative_follow_mutations` (live 2026-10-07).
-It adds `set_following`, the atomic follow/unfollow path used by OTA 12.20. The production social
-graph was audited before and after the push; no accepted invite was missing either follow direction.
+Latest production migration: `20261007105647_explicit_mutual_follow_wording` (live 2026-10-07).
+It makes push wording explicit: accepting a tag request or joining through an invite makes both
+people follow each other. `20261007104406_authoritative_follow_mutations` immediately before it adds
+`set_following`, the atomic follow/unfollow path used by OTA 12.20. The production social graph was
+audited before and after that push: 48 rows, 16 mutual pairs, and no claimed invite missing either
+follow direction. Tag-request acceptance and invite claims create both rows transactionally;
+declining creates neither.
 
 - Create migrations with `supabase migration new <name>` (14-digit timestamp prefix, newest last).
   Never edit a migration once it has been pushed; add a new one.

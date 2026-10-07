@@ -22,7 +22,7 @@ file, `RULES.md` and `CLAUDE.md` are the rulebook; the guard hook (`.claude/hook
 applies to every tool call. Work on branch `updates`; commit by name, no AI attribution, never push
 without the owner's go in the same session.
 
-**State on 2026-10-06, late (branch `updates`; `main` is behind):**
+**State on 2026-10-07 (branch `updates`; `main` is behind):**
 - **OTA 12.20 is live on the preview channel (iOS and Android)** (EAS group
   `2eba344a-907a-45be-9366-cd573ddc888a`): right-swipe dismissal works again on another person's
   profile and now dismisses a friends list too. Follow/unfollow stays optimistic, then reconciles
@@ -33,6 +33,11 @@ without the owner's go in the same session.
   directional follow. An accepted link or in-app tag invite continues to make both people follow
   each other; declining creates neither row. A normal profile Follow remains one-way until it is
   followed back, which is when the pair appears in Friends.
+- **OTA 12.21 is prepared for preview:** every tag-request and invite-link path explains before
+  acceptance/joining that both people will automatically follow each other, then confirms it after.
+  Declining still creates no follows. Production migration
+  `20261007105647_explicit_mutual_follow_wording` is live and gives the same explicit wording to
+  `tag_invite`, `tag_invite_accepted` and `invite_joined` pushes when push delivery is enabled.
 - **Production OTA 12.16 is live on iOS and Android** (EAS group
   `cc174c9d-c47c-42a0-b4c7-cf37a2777ec2`). It applies Maximus's Q1–Q10 answers: one-day
   re-invite cooldown, no daily invite cap, blocking cancels without a miss, owners may delete posts
@@ -48,8 +53,8 @@ without the owner's go in the same session.
   messages (requests, edit, unsend) and the design pass (no "Mahi" above screen titles, double tap only
   likes, post sizes follow the phone and text size, the crew strip, the countdown ring, the answer
   celebration, motion tokens with Reduce Motion fades).
-- **Production database:** every migration through `20261006201000_optional_non_user_tags` is
-  applied. `20261006200000_maximus_answers` adds the invite cooldown, permanent
+- **Production database:** every migration through `20261007105647_explicit_mutual_follow_wording`
+  is applied. `20261006200000_maximus_answers` adds the invite cooldown, permanent
   `has_posted_before` marker and owner-only `delete_post`; `20261006201000_optional_non_user_tags`
   removes friends-first. `20261006190000_message_requests` makes the first message from a non-friend a request;
   accept, decline or block; edit for 15 minutes; unsend; the server checks blocks, bans and removed

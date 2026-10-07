@@ -69,8 +69,8 @@ export function claimedText({
   expiresAt: string | null;
 }): string {
   return expiresAt
-    ? `@${inviter} tagged you — you have 48 hours to post`
-    : `You're friends with @${inviter}. Their tag starts when they post.`;
+    ? `You and @${inviter} follow each other now. You have 48 hours to answer their tag.`
+    : `You and @${inviter} follow each other now. Their tag starts when they post.`;
 }
 
 /** Why an invite couldn't be used, in plain words (the server's refusal in `message`). */

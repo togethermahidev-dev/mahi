@@ -84,13 +84,13 @@ describe('typedInvite', () => {
 describe('claimedText', () => {
   it('a tag that started: the 48 hours', () => {
     expect(claimedText({ inviter: 'sam', expiresAt: '2026-10-07T12:00:00Z' })).toBe(
-      '@sam tagged you — you have 48 hours to post'
+      'You and @sam follow each other now. You have 48 hours to answer their tag.'
     );
   });
 
   it('no post yet: friends now, the tag starts when they post', () => {
     expect(claimedText({ inviter: 'sam', expiresAt: null })).toBe(
-      "You're friends with @sam. Their tag starts when they post."
+      'You and @sam follow each other now. Their tag starts when they post.'
     );
   });
 });

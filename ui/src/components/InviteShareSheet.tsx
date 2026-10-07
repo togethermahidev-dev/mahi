@@ -76,7 +76,9 @@ export default function InviteShareSheet({
               {summary.count}
             </Text>
           </View>
-          <Text style={styles.sub}>Each link is for one person. Send them one at a time.</Text>
+          <Text style={styles.sub}>
+            Each link is for one person. When they join, you’ll automatically follow each other.
+          </Text>
 
           {invites.map((item, index) => {
             const row = inviteRow(item, index);

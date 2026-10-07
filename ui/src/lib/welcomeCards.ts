@@ -71,7 +71,7 @@ export function welcomeInvite(
   return {
     who: `@${inviter.username} invited you to Mahi`,
     line: inviter.open
-      ? 'Train together. Any workout counts.'
+      ? 'Accept and you’ll automatically follow each other. Any workout counts.'
       : 'That invite has ended, but you can still join.',
   };
 }

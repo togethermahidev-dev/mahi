@@ -22,11 +22,11 @@ export function notificationText(type: string, username: string): string {
     case 'streak_lost':
       return `You missed ${who}'s tag. Your points are back to 0.`;
     case 'invite_joined':
-      return `${who} joined Mahi from your invite`;
+      return `${who} joined Mahi from your invite. You follow each other now.`;
     case 'tag_invite':
-      return `${who} wants to tag you`;
+      return `${who} wants to tag you. Accept to follow each other.`;
     case 'tag_invite_accepted':
-      return `${who} accepted your tag request`;
+      return `${who} accepted your tag request. You follow each other now.`;
     default:
       return who;
   }

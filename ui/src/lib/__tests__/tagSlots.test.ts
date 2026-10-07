@@ -34,9 +34,9 @@ describe('slotStateText', () => {
   it('says where each slot is at, in plain words', () => {
     expect(slotStateText('link_ready')).toBe('Link ready');
     expect(slotStateText('shared')).toBe('Sent');
-    expect(slotStateText('joined')).toBe('Joined');
     expect(slotStateText('invite_sent')).toBe('Request sent');
-    expect(slotStateText('accepted')).toBe('Accepted');
+    expect(slotStateText('accepted')).toBe('Accepted · following');
+    expect(slotStateText('joined')).toBe('Joined · following');
     expect(slotStateText('tagged')).toBe('Tagged');
     expect(slotStateText('answered')).toBe('Answered');
     expect(slotStateText('missed')).toBe('Missed');
@@ -78,7 +78,7 @@ describe('personAction', () => {
   it('invites someone on Mahi who is not a friend', () => {
     expect(personAction({ ...p, is_friend: false }, false)).toEqual({
       action: 'invite',
-      note: 'not your friend yet',
+      note: 'accepting means you’ll follow each other',
     });
   });
 
@@ -101,7 +101,7 @@ describe('personAction', () => {
 describe('slotShareMessage', () => {
   it('keeps the invitation low-pressure and leaves out the signup code', () => {
     expect(slotShareMessage('https://togethermahi.com/i/t1', 'ABC234')).toBe(
-      'I tagged you on Mahi. Join me for a workout.\nhttps://togethermahi.com/i/t1'
+      'I tagged you on Mahi. Join me for a workout — we’ll automatically follow each other when you join.\nhttps://togethermahi.com/i/t1'
     );
   });
 });

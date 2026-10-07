@@ -13,12 +13,18 @@ describe('notification list wording', () => {
     expect(notificationText('like', 'sam')).toBe('@sam liked your post');
     expect(notificationText('comment', 'sam')).toBe('@sam commented on your post');
     expect(notificationText('follow', 'sam')).toBe('@sam started following you');
-    expect(notificationText('invite_joined', 'sam')).toBe('@sam joined Mahi from your invite');
+    expect(notificationText('invite_joined', 'sam')).toBe(
+      '@sam joined Mahi from your invite. You follow each other now.'
+    );
   });
 
   it('an in-app invite and its yes match their pushes', () => {
-    expect(notificationText('tag_invite', 'sam')).toBe('@sam wants to tag you');
-    expect(notificationText('tag_invite_accepted', 'sam')).toBe('@sam accepted your tag request');
+    expect(notificationText('tag_invite', 'sam')).toBe(
+      '@sam wants to tag you. Accept to follow each other.'
+    );
+    expect(notificationText('tag_invite_accepted', 'sam')).toBe(
+      '@sam accepted your tag request. You follow each other now.'
+    );
   });
 
   it('a tag says who tagged you and the 48 hours', () => {

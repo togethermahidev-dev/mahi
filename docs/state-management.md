@@ -191,10 +191,15 @@ Manages follow relationships between users. Owns follow status booleans and foll
 | Action | Description |
 |---|---|
 | `loadFollowData(currentUserId, targetUserId)` | Fetch follow status + counts via single `get_follow_data` RPC. Called when a profile overlay opens or own profile mounts. |
-| `toggleFollow(currentUserId, targetUserId)` | Optimistic toggle — flips `followingByMe`, adjusts target's `follower_count` and current user's `following_count`. Uses idempotent upsert for follow, delete for unfollow. Rolls back on error. Returns `{ error }` for caller logging. |
+| `toggleFollow(currentUserId, targetUserId)` | Optimistic toggle — flips `followingByMe` and adjusts both loaded counts, then calls the atomic `set_following` RPC and reconciles from its committed booleans/counts. Rolls back on error. Returns `{ error }` for caller logging. |
 | `reset()` | Clear all state on sign-out. |
 
-**Cross-store pattern:** Unlike `socialStore` which writes counts to `feedStore`, `followStore` owns its own counts — they are independent of feed data. When toggling follow, the store optimistically updates both the target user's `follower_count` and the current user's `following_count` (if loaded).
+**Cross-store pattern:** Unlike `socialStore` which writes counts to `feedStore`, `followStore` owns its own counts — they are independent of feed data. When toggling follow, the store optimistically updates both the target user's `follower_count` and the current user's `following_count` (if loaded), then replaces the prediction with the server's committed answer. Its realtime channel registry fans one database event out to every mounted subscriber, so a profile and an open friends list cannot hide each other's refresh.
+
+Friends/follow lists are expiring social data: `FollowListModal` fetches them from the server on open,
+shows loading first, and listens for follow changes while visible. Do not persist these rows locally.
+An accepted tag request or claimed invite creates both directional rows on the server; a declined
+request creates neither. Those flows refresh through realtime rather than fabricating list rows.
 
 **Usage:**
 ```ts

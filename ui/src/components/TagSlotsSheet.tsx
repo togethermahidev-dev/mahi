@@ -246,7 +246,7 @@ export default function TagSlotsSheet({
     ]);
   };
 
-  const invitePerson = async (p: TagPerson) => {
+  const sendTagInvite = async (p: TagPerson) => {
     if (blocked) return say(blocked);
     haptic('selection');
     setNotice(null);
@@ -265,6 +265,17 @@ export default function TagSlotsSheet({
     }
     replaceSlot(tempId, { challenge_id: data.challenge_id, pending: false });
     track('tag_invite_sent', {});
+  };
+
+  const invitePerson = (p: TagPerson) => {
+    Alert.alert(
+      `Send a tag request to @${p.username}?`,
+      `If they accept, you’ll automatically follow each other and they’ll have 48 hours to answer your tag.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Send request', onPress: () => void sendTagInvite(p) },
+      ]
+    );
   };
 
   // One share; only a share sheet that closed with the link sent somewhere counts as shared.
@@ -421,7 +432,8 @@ export default function TagSlotsSheet({
 
             <View style={styles.shareBlock}>
               <Text style={styles.shareLabel}>
-                {blocked ?? 'Not on Mahi? Send them a link. A link fills a tag.'}
+                {blocked ??
+                  'Not on Mahi? Send a link. When they join, you’ll automatically follow each other.'}
               </Text>
               <View style={styles.shareRow}>
                 {SHARE_TARGETS.map(({ target, label }) => (
@@ -502,7 +514,7 @@ export default function TagSlotsSheet({
                     action={action}
                     onPress={() => {
                       if (action === 'tag' || action === 'untag') tagFriend(item);
-                      else if (action === 'invite') void invitePerson(item);
+                      else if (action === 'invite') invitePerson(item);
                     }}
                   />
                 );

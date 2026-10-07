@@ -96,7 +96,7 @@ describe('welcome cards', () => {
     it('says who invited you, and that any workout counts', () => {
       expect(welcomeInvite({ username: 'sam', open: true })).toEqual({
         who: '@sam invited you to Mahi',
-        line: 'Train together. Any workout counts.',
+        line: 'Accept and you’ll automatically follow each other. Any workout counts.',
       });
     });
 

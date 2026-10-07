@@ -45,9 +45,9 @@ export type ScreenSlot = TagSlot & { pending?: boolean };
 const STATE_TEXT: Record<SlotState, string> = {
   link_ready: 'Link ready',
   shared: 'Sent',
-  joined: 'Joined',
+  joined: 'Joined · following',
   invite_sent: 'Request sent',
-  accepted: 'Accepted',
+  accepted: 'Accepted · following',
   tagged: 'Tagged',
   answered: 'Answered',
   missed: 'Missed',
@@ -100,12 +100,12 @@ export function personAction(
   }
   return person.is_friend
     ? { action: 'tag', note: null }
-    : { action: 'invite', note: 'not your friend yet' };
+    : { action: 'invite', note: 'accepting means you’ll follow each other' };
 }
 
 /** The low-pressure message that goes with an invite link. */
 export function slotShareMessage(url: string, _code: string): string {
-  return `I tagged you on Mahi. Join me for a workout.\n${url}`;
+  return `I tagged you on Mahi. Join me for a workout — we’ll automatically follow each other when you join.\n${url}`;
 }
 
 /** A link that opens WhatsApp or Messages with the message already written. */
