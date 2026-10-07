@@ -15,6 +15,14 @@ index and bucket was checked against these files; nothing else was missing.
 Every later migration through `20261007105647_explicit_mutual_follow_wording` is live on production
 (checked 2026-10-07). The historical "not pushed" paragraphs below describe rollout dependencies
 that have since landed unless they are explicitly listed under `supabase/deferred/`.
+**Not pushed yet (2026-10-07, after `20261007270000_contact_match`):** `20261007280000_message_reactions`
+— reactions on messages: the `message_reactions` table (one per person per message; the same emoji
+again takes it off, a different one replaces it), `react_to_message` and `get_message_reactions`
+(only the two people in the chat, and the same closed doors as sending: a waiting request, a block,
+a ban, a gone message), `get_messages` carrying each message's `reactions` as
+`[{emoji, count, mine}]`, and the table in the realtime publication. Safe for every app on phones:
+`message_json` and every other field are unchanged. Test `tests/message_reactions_test.sql`, undo
+`rollbacks/20261007280000_message_reactions.rollback.sql`.
 **Not pushed yet (2026-10-07):** `20261007160000_founder_stats` — founder numbers of record in
 `stats` (daily actions, DAU/WAU/MAU and stickiness, weekly and day 1/7/30 retention, activation,
 weekly churn) and `posthog_reader`, a no-login role that can read only those totals, for PostHog's
