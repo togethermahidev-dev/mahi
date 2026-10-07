@@ -10,6 +10,7 @@ import {
   type InvitePreview,
 } from '../_lib/links';
 import {
+  useCountPageOpen,
   GetMahiButton,
   LandingShell,
   secondaryButton,
@@ -59,6 +60,7 @@ function useInvitePreview(invite: string | null): { preview: InvitePreview } | n
 }
 
 export function InviteLanding() {
+  useCountPageOpen('invite');
   const path = usePathname();
   const invite = path === null ? null : inviteFromPath(path);
   const loaded = useInvitePreview(invite);

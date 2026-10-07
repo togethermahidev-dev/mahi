@@ -1,12 +1,20 @@
 'use client';
 
-import { useSyncExternalStore, type ReactNode } from 'react';
-import { storeFor } from '../_lib/links';
+import { useEffect, useSyncExternalStore, type ReactNode } from 'react';
+import { pageOpenedEvent, storeFor } from '../_lib/links';
 import { Wordmark } from './Wordmark';
 
 // Shared parts of the pages an invite or post link falls back to when Mahi isn't installed.
 
 const noSubscribe = () => () => {};
+
+/** Counts this page being opened, once per load (the invite funnel's first step). Never blocks. */
+export function useCountPageOpen(kind: 'invite' | 'post'): void {
+  useEffect(() => {
+    const { url, init } = pageOpenedEvent(kind, navigator.userAgent, crypto.randomUUID());
+    fetch(url, { ...init, keepalive: true }).catch(() => {});
+  }, [kind]);
+}
 
 /** The page's own path, read in the browser; null while the static page is being built. */
 export function usePathname(): string | null {

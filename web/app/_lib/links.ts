@@ -26,6 +26,10 @@ const SITE = 'https://togethermahi.com';
 const SUPABASE_URL = 'https://pzepodsppqtvptzmwxzs.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_2sNfUHdGuL1NQ_E5lC76XQ__pduUTG3';
 
+/** PostHog's public project key (EU), the same one the app sends events with. */
+const POSTHOG_HOST = 'https://eu.i.posthog.com';
+const POSTHOG_PROJECT_KEY = 'phc_h8QH8xZj7AfoNBLR0gOOZZowY9bHePWxzF4FIaLbz8m';
+
 const TOKEN = /^[0-9a-f]{32}$/i;
 /** The code alphabet has no 0, O, 1 or I. */
 const CODE = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}$/;
@@ -95,4 +99,34 @@ export function storeFor(userAgent: string): { name: string; url: string } {
   return /android/i.test(userAgent)
     ? { name: 'Google Play', url: PLAY_STORE_URL }
     : { name: 'the App Store', url: APP_STORE_URL };
+}
+
+/**
+ * Counts an opened link page in PostHog (`invite_page_opened` / `post_page_opened`): the first
+ * step of the invite funnel. No person is made (`$process_person_profile: false`) and the token
+ * is never sent, so visitors don't inflate the people counts. `id` is new for each page load.
+ */
+export function pageOpenedEvent(
+  kind: 'invite' | 'post',
+  userAgent: string,
+  id: string
+): { url: string; init: { method: 'POST'; headers: Record<string, string>; body: string } } {
+  const platform = /android/i.test(userAgent)
+    ? 'android'
+    : /iphone|ipad|ipod/i.test(userAgent)
+      ? 'ios'
+      : 'other';
+  return {
+    url: `${POSTHOG_HOST}/i/v0/e/`,
+    init: {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: POSTHOG_PROJECT_KEY,
+        event: `${kind}_page_opened`,
+        distinct_id: id,
+        properties: { platform, $process_person_profile: false },
+      }),
+    },
+  };
 }

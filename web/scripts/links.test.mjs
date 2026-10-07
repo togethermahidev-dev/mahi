@@ -11,6 +11,7 @@ import {
   inviteFromPath,
   inviteHeadline,
   invitePreviewRequest,
+  pageOpenedEvent,
   postIdFromPath,
   storeFor,
   webInviteLink,
@@ -88,4 +89,17 @@ test('the store button follows the phone', () => {
   assert.equal(storeFor('Mozilla/5.0 (Linux; Android 14)').name, 'Google Play');
   assert.equal(storeFor('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)').name, 'the App Store');
   assert.equal(storeFor('').name, 'the App Store');
+});
+
+test('an opened link page is counted in PostHog without a person or the token', () => {
+  const { url, init } = pageOpenedEvent('invite', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)', 'id-1');
+  assert.equal(url, 'https://eu.i.posthog.com/i/v0/e/');
+  assert.equal(init.method, 'POST');
+  const body = JSON.parse(init.body);
+  assert.equal(body.api_key.startsWith('phc_'), true);
+  assert.equal(body.event, 'invite_page_opened');
+  assert.equal(body.distinct_id, 'id-1');
+  assert.deepEqual(body.properties, { platform: 'ios', $process_person_profile: false });
+  assert.equal(init.body.includes(TOKEN), false);
+  assert.equal(JSON.parse(pageOpenedEvent('post', 'Android', 'x').init.body).event, 'post_page_opened');
 });

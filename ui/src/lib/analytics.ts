@@ -34,7 +34,9 @@ export type TagLoopEvents = {
   tag_invite_sent: { challenge_id: string };
   /** Someone answered an in-app invite. */
   tag_invite_answered: { challenge_id: string; accepted: boolean };
-  /** Someone joined from a link and their 48 hours started. */
+  /** Mahi opened from an invite link (`cold`: the link started the app). Counts link opens. */
+  invite_link_opened: { cold: boolean; signed_in: boolean };
+  /** Someone joined from a link: you follow each other, and a tag starts if one came with it. */
   invite_claimed: { inviter_id: string };
   /** The feed went from locked to open for this user. */
   feed_unlocked: Record<string, never>;

@@ -5,10 +5,12 @@ import {
   GetMahiButton,
   LandingShell,
   secondaryButton,
+  useCountPageOpen,
   usePathname,
 } from '../_components/LinkLanding';
 
 export function PostLanding() {
+  useCountPageOpen('post');
   const path = usePathname();
   const postId = path === null ? null : postIdFromPath(path);
 

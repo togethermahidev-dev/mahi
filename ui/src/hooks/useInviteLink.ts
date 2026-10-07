@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { AppState, Linking } from 'react-native';
 import { claimOnReturn, parseInviteLink } from '@/lib/inviteLink';
+import { track } from '@/lib/analytics';
 import { reportError } from '@/lib/sentry';
 import { useAuthStore, useInviteStore } from '@/store';
 
@@ -12,15 +13,17 @@ export function useInviteLink(): void {
   const userId = useAuthStore((s) => s.user?.id);
 
   useEffect(() => {
-    const take = (url: string | null) => {
+    const take = (url: string | null, cold: boolean) => {
       const token = parseInviteLink(url);
-      if (token) useInviteStore.getState().setPending(token);
+      if (!token) return;
+      useInviteStore.getState().setPending(token);
+      track('invite_link_opened', { cold, signed_in: !!useAuthStore.getState().user });
     };
 
     Linking.getInitialURL()
-      .then(take)
+      .then((url) => take(url, true))
       .catch((err) => reportError(err, { flow: 'invites', action: 'readOpeningLink' }));
-    const sub = Linking.addEventListener('url', ({ url }) => take(url));
+    const sub = Linking.addEventListener('url', ({ url }) => take(url, false));
     return () => sub.remove();
   }, []);
 
