@@ -180,6 +180,24 @@ describe('liveActivityStaleAt — when the Live Activity turns to the warning co
     expect(liveActivityStaleAt(deviceNow + 30 * HOUR, deviceNow)).toBe(deviceNow + 24 * HOUR);
     expect(liveActivityStaleAt(deviceNow + 2 * HOUR, deviceNow)).toBe(deviceNow + 2 * HOUR);
   });
+
+  // Walkthrough 2026-10-07: at 0:00 the activity must stop saying "@sam is waiting on you". The
+  // layout swaps to `timeUp` when it is stale and `warning` is set, because a warning view is
+  // always given the deadline as its stale date.
+  it('carries the time-up words, and a warning view always goes stale at the deadline', () => {
+    for (const left of [30 * HOUR, 6 * HOUR + 1000, 6 * HOUR, 2 * HOUR, MIN]) {
+      const v = liveTagView({
+        tags: [tag('a', 'sam', left)],
+        serverOffsetMs: 0,
+        deviceNow,
+        points: 0,
+        best: 0,
+      });
+      if (v.kind !== 'tag') throw new Error('expected a tag view');
+      expect(v.timeUp).toBe('Time’s up · open Mahi');
+      expect(liveActivityStaleAt(v.deadline, deviceNow) === v.deadline).toBe(v.warning);
+    }
+  });
 });
 
 describe('widgetTimeline — the widget changes on time without the app', () => {

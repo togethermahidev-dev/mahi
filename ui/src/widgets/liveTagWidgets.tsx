@@ -186,10 +186,16 @@ function MahiTagWidget(props: LiveTagView, environment: WidgetEnvironment) {
  * Apple's own timer, so it ticks with Mahi closed. From the 6-hour mark it takes the warning
  * colour: the app sets it when it's open, and the activity goes stale at that mark (see
  * `liveActivityStaleAt`), which iOS redraws by itself. A tap opens the camera.
+ *
+ * Once a warning view goes stale its time has run out (its stale date is then the deadline), so it
+ * says "Time’s up · open Mahi" instead of "@sam is waiting on you", and drops "Answer with any
+ * workout". expo-widgets can't end an activity at a future time (`end` ends it now; a dismissal
+ * date only sets how long the ended one stays), so this is how the words change without the app.
  */
 function MahiTagActivity(props: TagView, environment: LiveActivityEnvironment) {
   'widget';
   const look = props.look;
+  const over = !!environment.isStale && props.warning;
   const colour = props.warning || environment.isStale ? look.warning : look.accent;
   const timer = { lower: new Date(props.start), upper: new Date(props.deadline) };
   const runner = <Image systemName="figure.run" color={colour} />;
@@ -224,10 +230,10 @@ function MahiTagActivity(props: TagView, environment: LiveActivityEnvironment) {
         lineLimit(1),
       ]}
     >
-      {props.title}
+      {over ? props.timeUp : props.title}
     </Text>
   );
-  const line = (
+  const line = over ? null : (
     <HStack spacing={look.gap}>
       <Text
         modifiers={[font({ textStyle: 'subheadline' }), foregroundStyle(look.muted), lineLimit(1)]}

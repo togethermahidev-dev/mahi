@@ -83,6 +83,9 @@ export interface TagView {
   deadline: number;
   /** 6 hours or less left: drawn in the warning colour (from the 6-hour mark on). */
   warning: boolean;
+  /** What the Live Activity says once its time has run out (stale with `warning` set: its stale
+   *  date is then the deadline), instead of the title. */
+  timeUp: string;
   /** The tagger's photo, saved where the widget can read it (a file URL), or null. */
   photo: string | null;
   look: LiveTagLook;
@@ -180,6 +183,7 @@ export function liveTagView({
     start: Math.min(Date.parse(first.created_at) - serverOffsetMs, deviceNow),
     deadline,
     warning: deadline - deviceNow <= URGENT_TAG_MS,
+    timeUp: 'Time’s up · open Mahi',
     photo: photos[first.username] ?? null,
     look: LIVE_TAG_LOOK,
   };
