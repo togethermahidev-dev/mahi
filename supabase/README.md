@@ -15,6 +15,11 @@ index and bucket was checked against these files; nothing else was missing.
 Every later migration through `20261007105647_explicit_mutual_follow_wording` is live on production
 (checked 2026-10-07). The historical "not pushed" paragraphs below describe rollout dependencies
 that have since landed unless they are explicitly listed under `supabase/deferred/`.
+**Not pushed yet (2026-10-07):** `20261007160000_founder_stats` — founder numbers of record in
+`stats` (daily actions, DAU/WAU/MAU and stickiness, weekly and day 1/7/30 retention, activation,
+weekly churn) and `posthog_reader`, a no-login role that can read only those totals, for PostHog's
+data warehouse. Reading only; nothing in the app changes. Test `tests/founder_stats_test.sql`, undo
+`rollbacks/20261007160000_founder_stats.rollback.sql`.
 **Not pushed yet:** `20261002150000_identity_verifications` (identity checks with Didit: the
 `identity_verifications` table — people read only their own rows — and `record_identity_verification`,
 service role only; test `tests/identity_verifications_test.sql`, undo
