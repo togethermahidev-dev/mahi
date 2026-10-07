@@ -567,6 +567,9 @@ export const MOTION = {
   burstDotSize: 6,
   burstSpread: 56,
   burstMs: 900,
+  /** Feed develop: after you post, each mate's post clears from this blur to sharp over this
+   *  long (ms), each this much (ms) after the one before, up to this many; the rest clear together. */
+  develop: { fromBlur: 60, ms: 900, staggerMs: 120, staggerMax: 6 },
 } as const;
 
 // ─── One-time tips (coach marks): the bright cut-out, its ring, the bubble and its arrow ──────

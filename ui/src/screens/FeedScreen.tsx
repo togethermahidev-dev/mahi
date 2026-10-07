@@ -29,6 +29,17 @@ import { relativeTime } from '@/lib/relativeTime';
 import { pointsBadgeText } from '@/lib/mahiPoints';
 import { lockExplainer as lockCardFor, lockedPostText } from '@/lib/feedLock';
 import { feedLockMoment, haptic } from '@/lib/haptics';
+import { developPlan, developWords } from '@/lib/feedDevelop';
+import { BlurView } from 'expo-blur';
+import Reanimated, {
+  ReduceMotion,
+  useAnimatedProps,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
 import { shouldPlay } from '@/lib/videoPosts';
 import { appHeaderHeight } from '@/lib/pip';
 import { atListTop } from '@/lib/swipeRules';
@@ -40,11 +51,52 @@ import {
   BORDER_WIDTH,
   DURATION,
   FONT_SIZE,
+  MOTION,
   RADIUS,
   SIZE,
   SPACE,
   withAlpha,
 } from '@/constants/tokens';
+
+const AnimatedBlur = Reanimated.createAnimatedComponent(BlurView);
+
+// ─── DevelopCover ────────────────────────────────────────────────────────────
+
+/**
+ * A mate's post "developing" after you post: frosted, then sharper, then clear, `delay` ms after
+ * the feed opened (order and words: src/lib/feedDevelop.ts). Reduce Motion: every post clears
+ * together, as a plain fade.
+ */
+function DevelopCover({ delay, words }: { delay: number; words: string | null }) {
+  const reduceMotion = useReducedMotion();
+  const level = useSharedValue(1);
+  useEffect(() => {
+    level.value = withDelay(
+      delay,
+      withTiming(0, {
+        duration: reduceMotion ? DURATION.d300 : MOTION.develop.ms,
+        reduceMotion: ReduceMotion.Never,
+      })
+    );
+  }, [delay, reduceMotion, level]);
+  const blurProps = useAnimatedProps(() => ({ intensity: level.value * MOTION.develop.fromBlur }));
+  const fade = useAnimatedStyle(() => ({ opacity: Math.min(1, level.value * 2) }));
+  return (
+    <Reanimated.View
+      style={[StyleSheet.absoluteFill, fade]}
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      <AnimatedBlur tint="dark" animatedProps={blurProps} style={StyleSheet.absoluteFill} />
+      {words ? (
+        <View style={styles.developWordsSpot}>
+          <Text style={styles.developWords}>{words}</Text>
+        </View>
+      ) : null}
+    </Reanimated.View>
+  );
+}
 
 // ─── LockedPostItem ──────────────────────────────────────────────────────────
 
@@ -185,11 +237,50 @@ export default function FeedScreen({
   // The feed locking or opening is felt once, by someone looking at it (on arrival if it changed
   // while they were on another screen).
   const lockSeen = useRef<boolean | null>(null);
+  // Posts seen locked this session: when the feed opens, they "develop" one by one.
+  const reduceMotion = useReducedMotion();
+  const seenLocked = useRef(new Set<string>());
+  const postsNow = useRef(posts);
+  postsNow.current = posts;
+  useEffect(() => {
+    for (const p of posts) if (p.locked) seenLocked.current.add(p.id);
+  }, [posts]);
+  const [develop, setDevelop] = useState<{
+    plan: Map<string, number>;
+    first: string | null;
+    words: string | null;
+  } | null>(null);
   useEffect(() => {
     const felt = feedLockMoment({ seen: lockSeen.current, locked, loaded, onScreen: isActive });
     lockSeen.current = felt.seen;
     if (felt.moment) haptic(felt.moment);
+    const viewerId = useAuthStore.getState().user?.id;
+    if (felt.moment === 'feedUnlocked' && viewerId) {
+      const fresh = postsNow.current;
+      const plan = developPlan({
+        posts: fresh,
+        previouslyLocked: [...seenLocked.current],
+        viewerId,
+        reduceMotion,
+      });
+      seenLocked.current.clear();
+      if (plan.size > 0) {
+        setDevelop({
+          plan,
+          first: [...plan.keys()][0] ?? null,
+          words: developWords({ posts: fresh, viewerId }),
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locked, loaded, isActive]);
+  // Once every post has cleared, the covers go.
+  useEffect(() => {
+    if (!develop) return;
+    const last = Math.max(...develop.plan.values());
+    const id = setTimeout(() => setDevelop(null), last + MOTION.develop.ms + DURATION.d300);
+    return () => clearTimeout(id);
+  }, [develop]);
 
   // Lock card / feed timer under the header. It floats over the first post (a list header would
   // knock the full-screen snapping out of step), so the first post keeps room for it.
@@ -228,8 +319,8 @@ export default function FeedScreen({
   const toggleFeedMuted = useCallback(() => setFeedMuted((m) => !m), []);
   const feedOnScreen = isActive && !profileUserId;
   const listExtra = useMemo(
-    () => ({ topSpace, lockedText, inViewId, feedMuted, feedOnScreen }),
-    [topSpace, lockedText, inViewId, feedMuted, feedOnScreen]
+    () => ({ topSpace, lockedText, inViewId, feedMuted, feedOnScreen, develop }),
+    [topSpace, lockedText, inViewId, feedMuted, feedOnScreen, develop]
   );
 
   // Notify parent when a fullscreen overlay (profile) opens/closes
@@ -312,18 +403,26 @@ export default function FeedScreen({
                 topSpace={index === 0 ? topSpace : 0}
               />
             ) : (
-              <PostCard
-                item={item}
-                dark={dark}
-                width={screenWidth}
-                height={cardHeight}
-                onAvatarPress={handleAvatarPress}
-                onCommentPress={setCommentPostId}
-                topSpace={index === 0 ? topSpace : 0}
-                playing={shouldPlay({ screenActive: feedOnScreen, inView: inViewId === item.id })}
-                soundOff={feedMuted}
-                onToggleMuted={toggleFeedMuted}
-              />
+              <>
+                <PostCard
+                  item={item}
+                  dark={dark}
+                  width={screenWidth}
+                  height={cardHeight}
+                  onAvatarPress={handleAvatarPress}
+                  onCommentPress={setCommentPostId}
+                  topSpace={index === 0 ? topSpace : 0}
+                  playing={shouldPlay({ screenActive: feedOnScreen, inView: inViewId === item.id })}
+                  soundOff={feedMuted}
+                  onToggleMuted={toggleFeedMuted}
+                />
+                {develop?.plan.has(item.id) ? (
+                  <DevelopCover
+                    delay={develop.plan.get(item.id) ?? 0}
+                    words={develop.first === item.id ? develop.words : null}
+                  />
+                ) : null}
+              </>
             )
           }
           getItemType={(item) => (item.locked ? 'locked' : 'post')}
@@ -482,6 +581,18 @@ export default function FeedScreen({
 }
 
 const styles = StyleSheet.create({
+  developWordsSpot: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACE.s32,
+  },
+  developWords: {
+    color: COLORS.white,
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZE.f17,
+    textAlign: 'center',
+  },
   root: {
     flex: 1,
   },
