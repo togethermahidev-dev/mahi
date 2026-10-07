@@ -393,6 +393,8 @@ export const SPRING = {
   railTrail: { damping: 22, stiffness: 260, mass: 0.6 },
   /** The pulled-down camera springing back up. */
   pullBack: { damping: 20, stiffness: 240, mass: 0.8 },
+  /** "+1" flying into the points counter: it lands, it doesn't bounce past. */
+  fly: { damping: 20, stiffness: 220, mass: 0.8, overshootClamping: true },
 } as const;
 
 // ─── Motion: how big things grow or shrink (transform scale) ──────────────────
@@ -552,6 +554,19 @@ export const MOTION = {
   pullHandleMs: 700,
   /** Reduce Motion: the pulled frost thins to this, instead of moving. */
   pullFrostLow: 0.85,
+  /** "+1" holds this long (ms) near the shutter before it flies into the points counter… */
+  holdBeatMs: 400,
+  /** …along a curve that rises this far (pt) above the straight line… */
+  flyArc: 64,
+  /** …shrinking to this scale as it lands. */
+  flyToScale: 0.5,
+  /** The "@sam kept you going" card under the counter stays this long (ms). */
+  flightCardMs: 3600,
+  /** A milestone: this many accent dots of this size (pt) burst this far (pt) over this long (ms). */
+  burstDots: 14,
+  burstDotSize: 6,
+  burstSpread: 56,
+  burstMs: 900,
 } as const;
 
 // ─── One-time tips (coach marks): the bright cut-out, its ring, the bubble and its arrow ──────

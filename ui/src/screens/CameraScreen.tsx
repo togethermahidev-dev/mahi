@@ -29,7 +29,6 @@ import Reanimated, {
   runOnJS,
   useReducedMotion,
 } from 'react-native-reanimated';
-import { useCountUp } from '@/components/Motion';
 import { haptic, hapticSequence, postedMoments } from '@/lib/haptics';
 import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
 import { BlurView } from 'expo-blur';
@@ -176,6 +175,9 @@ import { themeColors } from '@/lib/themeColors';
 import { cameraCornerTop } from '@/lib/pip';
 import PointCelebration, { type PointCelebrationContent } from '@/components/PointCelebration';
 import { PullHandle, useCameraPull } from '@/components/CameraPull';
+import PointFlight, { type Flight } from '@/components/PointFlight';
+import RollingNumber from '@/components/RollingNumber';
+import { flightCard, pointMoment, willFly } from '@/lib/pointMoments';
 import { openTagsTop } from '@/lib/pip';
 
 /**
@@ -227,8 +229,6 @@ function PointsCounter({
   const scaleAnim = useRef(new Animated.Value(reduceMotion ? 1 : SCALE.s4)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const lastCount = useRef<number | null>(null);
-  // A point earned counts up to the new total (jumps there with Reduce Motion).
-  const shownCount = useCountUp(count);
   const known = count !== null;
 
   // The landing: once, when the number is first known (the dash just fades in before that).
@@ -282,12 +282,12 @@ function PointsCounter({
       >
         {/* This compact status chip grows only up to large text, so it stays clear of the header
           and the open-tag pill at the largest settings. */}
-        <Text
+        <RollingNumber
+          value={count}
           style={[styles.pointsNumber, !known && { color: themeColors(true).muted }]}
+          font={{ family: FONTS.bold, size: FONT_SIZE.f20, color: COLORS.white }}
           maxFontSizeMultiplier={LAYOUT.largeTextScale}
-        >
-          {pointsValue(shownCount)}
-        </Text>
+        />
         <Text style={styles.pointsLabel}>Mahi points</Text>
       </Animated.View>
     </View>
@@ -1697,6 +1697,11 @@ export default function CameraScreen({
   // The point-earned moment after a post, and the invite links waiting until it closes.
   const [celebration, setCelebration] = useState<PointCelebrationContent | null>(null);
   const invitesAfterCelebration = useRef<InviteItem[]>([]);
+  // A later answer's point flies into the counter (#116); until it lands the counter keeps the
+  // number it had when Post was pressed.
+  const [flight, setFlight] = useState<Flight | null>(null);
+  const [heldPoints, setHeldPoints] = useState<number | null>(null);
+  const rootRef = useRef<View>(null);
   // The first photo, shown in the small window on the live camera until the second is taken.
   const [guidePhotoUri, setGuidePhotoUri] = useState<string | null>(null);
   const [guideIsVideo, setGuideIsVideo] = useState(false);
@@ -2270,6 +2275,30 @@ export default function CameraScreen({
     if (retry) void uploadRef.current(retry.front, retry.rear);
   };
 
+  // The "+1" springs up above the shutter and lands in the middle of the points counter.
+  const launchFlight = (card: Omit<Flight, 'id' | 'from' | 'to' | 'cardTop'>) => {
+    const root = rootRef.current;
+    const counter = pointsTip.current;
+    const fallback = () => {
+      setHeldPoints(null);
+      hapticSequence(card.milestone ? ['pointsUp', 'milestone'] : ['pointsUp']);
+      useToastStore.getState().show(`${card.title}. ${card.line}`, WAIT.toastLong);
+    };
+    if (!root || !counter) return fallback();
+    root.measureInWindow((rx, ry, rw, rh) => {
+      counter.measureInWindow((cx, cy, cw, ch) => {
+        if (!rw || !cw) return fallback();
+        setFlight({
+          ...card,
+          id: String(Date.now()),
+          from: { x: rw / 2, y: rh - (OFFSET.o32 + lift) - SIZE.z120 },
+          to: { x: cx - rx + cw / 2, y: cy - ry + ch / 2 },
+          cardTop: openTagsTop(safeTop, fontScale) + SIZE.z44 + SPACE.s12,
+        });
+      });
+    });
+  };
+
   // Upload both photos, create post
   const uploadPhotos = async (front: CapturedPhoto, rear: CapturedPhoto) => {
     if (!userId || !profile) return;
@@ -2283,6 +2312,9 @@ export default function CameraScreen({
     const firstPostNow = hasPosted === false;
     const optimisticPoints =
       profile.streak_current + (firstPostNow || answersATag(openTags, serverOffsetMs) ? 1 : 0);
+    if (willFly({ firstPost: firstPostNow, answersTag: answersATag(openTags, serverOffsetMs) })) {
+      setHeldPoints(profile.streak_current);
+    }
     const captionValue = caption || null;
     const taggedUsersSnapshot = taggedUsers;
     const inviteCountSnapshot = inviteCount;
@@ -2417,12 +2449,18 @@ export default function CameraScreen({
         locked: false,
       } satisfies FeedPost;
       useFeedStore.getState().confirmPending(tempId, posted);
-      // Tags reached friends, then (when the server says so) a Mahi point was earned.
+      // Tags reached friends, then (when the server says so) a Mahi point was earned. A point
+      // that flies into the counter is felt when it lands instead.
+      const moment = pointMoment({
+        firstPost: firstPostNow,
+        answered: result.answered.length,
+        replayed: result.replayed === true,
+      });
       hapticSequence(
         postedMoments({
           tags: taggedUsersSnapshot.length + inviteCountSnapshot + slotsSnapshot.length,
           pointsBefore: profile.streak_current,
-          pointsAfter: result.streak.streak_current,
+          pointsAfter: moment === 'fly' ? profile.streak_current : result.streak.streak_current,
           // A milestone line in the toast below gets a small success buzz too.
           bestBefore: profile.streak_highest,
         })
@@ -2491,6 +2529,20 @@ export default function CameraScreen({
           });
       const invitesToSend = tagSlotsOn ? [] : inviteList(result.invites);
       useTagStore.getState().syncOpenTags();
+      if (moment === 'fly') {
+        // The invite list waits until the card has gone: one thing at a time.
+        invitesAfterCelebration.current = invitesToSend;
+        launchFlight({
+          ...flightCard({
+            tagger: tagger?.username ?? null,
+            points: result.streak.streak_current,
+            bestBefore: profile.streak_highest,
+          }),
+          cheer,
+        });
+        return;
+      }
+      setHeldPoints(null);
       if (celebrate) {
         // The invite list waits until the celebration is closed: one sheet at a time.
         invitesAfterCelebration.current = invitesToSend;
@@ -2514,6 +2566,7 @@ export default function CameraScreen({
       setPostInvites(invitesToSend);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      setHeldPoints(null);
       haptic('error');
       useFeedStore.getState().removePending(tempId);
       const current = useUserStore.getState().profile;
@@ -2724,7 +2777,7 @@ export default function CameraScreen({
 
   return (
     <GestureDetector gesture={doubleTapToFlip}>
-      <View style={styles.root}>
+      <View ref={rootRef} collapsable={false} style={styles.root}>
         {/* The camera layer: pulled down a little while waiting (see CameraPull). */}
         <Reanimated.View style={[StyleSheet.absoluteFill, pull.cameraStyle]}>
           <CameraView
@@ -2786,7 +2839,7 @@ export default function CameraScreen({
           </GestureDetector>
         )}
 
-        <PointsCounter count={pointsCountNow} anchorRef={pointsTip} />
+        <PointsCounter count={heldPoints ?? pointsCountNow} anchorRef={pointsTip} />
 
         {!blocked && (
           <OpenTagsBanner
@@ -2826,7 +2879,8 @@ export default function CameraScreen({
         )}
 
         {/* Reactive posting: nothing to answer (or no connection to find out), so no shutter. */}
-        {gate === 'closed' || offline ? (
+        {/* While a point flies into the counter the frost waits, so the counter stays clear. */}
+        {(gate === 'closed' || offline) && !flight && heldPoints === null ? (
           <GestureDetector gesture={pull.gesture}>
             <View style={StyleSheet.absoluteFill}>
               {/* The frost moves with the camera; the card sits behind the glass. */}
@@ -3167,6 +3221,20 @@ export default function CameraScreen({
           visible={findMatesOpen}
           onClose={() => setFindMatesOpen(false)}
           dark={dark}
+        />
+
+        <PointFlight
+          flight={flight}
+          onLanded={() => {
+            setHeldPoints(null);
+            hapticSequence(flight?.milestone ? ['pointsUp', 'milestone'] : ['pointsUp']);
+          }}
+          onDone={() => {
+            setFlight(null);
+            const waiting = invitesAfterCelebration.current;
+            invitesAfterCelebration.current = [];
+            if (waiting.length > 0) setPostInvites(waiting);
+          }}
         />
 
         <PointCelebration
