@@ -7,6 +7,9 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 12 · 36 — Your invites say who each link went to and how (WhatsApp, Messages, a contact),
+ *     what it does and when; Resend goes back to the same place; Waiting, Joined, Older groups;
+ *     off switches for the new native features (2026-10-07)
  *   build 12 · 35 — hold a message for Apple's menu with a quick emoji row; reaction badges;
  *     double-tap to heart; the light/dark toggle is felt (2026-10-07)
  *   build 12 · 34 — the camera names the mates on your clock; "@sam is waiting on you"; a miss
@@ -75,4 +78,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 35;
+export const OTA_NUMBER = 36;
