@@ -164,6 +164,7 @@ points and feed-lock rules are unchanged.
 | 100 | Crew strip | Removed (owner, 2026-10-07): it floated over the top of the feed, on other people's posts, and added nothing the lock card and tags don't already say | Up to three friends you're tied to, for everyone (OTA 12.12) | Removed | 2026-10-07 | — |
 | 101 | No "Mahi" in screen titles | The small "Mahi" label above each screen title is gone | Keep the label | Built (OTA 12.12) | 2026-10-06 | screen headers |
 | 102 | Invites and tag requests create mutual follows | Accepting an in-app tag request or claiming an invite link automatically makes both people follow each other; declining creates no follows. Say this before the request/link is accepted or joined and confirm it afterward in the request, notification and slot/link states | Make it optional · leave the consequence implicit | Built, DB live (`20261007105647_explicit_mutual_follow_wording`), OTA 12.21 | 2026-10-07 | `TagSlotsSheet`, `InviteShareSheet`, `NotificationsScreen`, `notificationText.ts`, `inviteLink.ts`, `welcomeCards.ts`, `push_on_notification` |
+| 103 | What the feed shows | The people you follow, newest first; of your own posts only your latest, in its place by time. Older posts stay on your Profile | Every one of your posts mixed into the feed | Decided by owner | 2026-10-07 | `latestOwnPostOnly` (`ui/src/lib/feedPosts.ts`), `useFeed` |
 
 The owner's design-system rules (2026-10-05), enforced by tests so they can't drift back.
 

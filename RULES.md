@@ -138,6 +138,11 @@
   rows or expired links on the device.
 - When writing back to profile after async work, always read from `useUserStore.getState().profile` — never spread a closure snapshot
 
+## What the feed shows (2026-10-07)
+- The feed is the people you follow, newest first (`get_feed`). Of your own posts it shows only your
+  latest, in its place by time (`latestOwnPostOnly` in `useFeed`); the rest stay on your Profile.
+  Never reorder the feed in the app; the server's newest-first order is the order.
+
 ## Reactive posting and Mahi points
 - You can post only while you have an open tag you can still answer (48 hours + 10 minutes grace); your very
   first post is free. No daily limit — the one-a-day unique index is dropped (`20261001120000_reactive_posting`)
