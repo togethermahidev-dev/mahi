@@ -13,6 +13,7 @@
 import { HStack, Image, Spacer, Text, VStack } from '@expo/ui/swift-ui';
 import {
   activityBackgroundTint,
+  clipShape,
   containerBackground,
   font,
   foregroundStyle,
@@ -21,6 +22,7 @@ import {
   monospacedDigit,
   multilineTextAlignment,
   padding,
+  resizable,
   widgetURL,
 } from '@expo/ui/swift-ui/modifiers';
 import {
@@ -30,6 +32,9 @@ import {
   type WidgetEnvironment,
 } from 'expo-widgets';
 import type { LiveTagView, TagView } from '@/lib/liveTag';
+
+/** expo-widgets' shared folder (the App Group): where the app saves taggers' photos. */
+export { widgetsDirectory } from 'expo-widgets';
 
 /**
  * The home-screen widget, small and medium. A tag: who's waiting, the countdown (warning colour
@@ -77,6 +82,16 @@ function MahiTagWidget(props: LiveTagView, environment: WidgetEnvironment) {
 
   if (props.kind === 'tag') {
     const colour = props.warning ? look.warning : look.accent;
+    const face = props.photo ? (
+      <Image
+        uiImage={props.photo}
+        modifiers={[
+          resizable(),
+          frame({ width: look.photo, height: look.photo }),
+          clipShape('circle'),
+        ]}
+      />
+    ) : null;
     const timer = { lower: new Date(props.start), upper: new Date(props.deadline) };
     const clock = (
       <Text
@@ -94,6 +109,7 @@ function MahiTagWidget(props: LiveTagView, environment: WidgetEnvironment) {
       return (
         <HStack modifiers={root}>
           <VStack alignment="leading" spacing={look.gap}>
+            {face}
             {titleText}
             <Spacer />
             {clock}
@@ -105,6 +121,7 @@ function MahiTagWidget(props: LiveTagView, environment: WidgetEnvironment) {
     }
     return (
       <HStack spacing={look.pad} modifiers={root}>
+        {face}
         <VStack alignment="leading" spacing={look.gap}>
           {titleText}
           {quiet(props.line)}
@@ -175,7 +192,17 @@ function MahiTagActivity(props: TagView, environment: LiveActivityEnvironment) {
   const look = props.look;
   const colour = props.warning || environment.isStale ? look.warning : look.accent;
   const timer = { lower: new Date(props.start), upper: new Date(props.deadline) };
-  const icon = <Image systemName="figure.run" color={colour} />;
+  const runner = <Image systemName="figure.run" color={colour} />;
+  const face = (size: number) =>
+    props.photo ? (
+      <Image
+        uiImage={props.photo}
+        modifiers={[resizable(), frame({ width: size, height: size }), clipShape('circle')]}
+      />
+    ) : (
+      runner
+    );
+  const icon = face(look.photoSmall);
   const clock = (big: boolean) => (
     <Text
       timerInterval={timer}
@@ -226,7 +253,7 @@ function MahiTagActivity(props: TagView, environment: LiveActivityEnvironment) {
         spacing={look.pad}
         modifiers={[padding({ all: look.pad }), activityBackgroundTint(look.bg)]}
       >
-        {icon}
+        {face(look.photo)}
         <VStack alignment="leading" spacing={look.gap}>
           {title}
           {line}
@@ -243,7 +270,7 @@ function MahiTagActivity(props: TagView, environment: LiveActivityEnvironment) {
     compactLeading: icon,
     compactTrailing: clock(false),
     minimal: icon,
-    expandedLeading: icon,
+    expandedLeading: face(look.photo),
     expandedTrailing: clock(true),
     expandedCenter: title,
     expandedBottom: line,

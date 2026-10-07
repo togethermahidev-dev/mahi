@@ -8,6 +8,7 @@ import {
   offView,
   openTagsAt,
   soonestTagId,
+  taggerPhotoFile,
   widgetTimeline,
 } from '../liveTag';
 import { COLORS } from '@/constants/tokens';
@@ -266,5 +267,38 @@ describe('isCameraLink — a tap on the Live Activity or widget opens the camera
     expect(isCameraLink('mahi://i/abc')).toBe(false);
     expect(isCameraLink('https://togethermahi.com/camera')).toBe(false);
     expect(isCameraLink(null)).toBe(false);
+  });
+});
+
+describe('the tagger’s photo on the Live Activity and widget (owner, 2026-10-07, #117)', () => {
+  it('shows the soonest tagger’s saved photo', () => {
+    const v = liveTagView({
+      tags: [tag('a', 'amy', 40 * HOUR), tag('b', 'sam', 20 * HOUR)],
+      serverOffsetMs: 0,
+      deviceNow,
+      points: 0,
+      best: 0,
+      photos: { sam: 'file:///group/ExpoWidgets/tagger-sam.jpg', amy: 'file:///x/amy.jpg' },
+    });
+    expect(v).toMatchObject({ kind: 'tag', photo: 'file:///group/ExpoWidgets/tagger-sam.jpg' });
+  });
+  it('shows no photo when none is saved, or the switch is off (no photos passed)', () => {
+    const v = liveTagView({
+      tags: [tag('b', 'sam', 20 * HOUR)],
+      serverOffsetMs: 0,
+      deviceNow,
+      points: 0,
+      best: 0,
+    });
+    expect(v).toMatchObject({ kind: 'tag', photo: null });
+  });
+  it('names the saved file after the mate, in the shared folder', () => {
+    expect(taggerPhotoFile('file:///group/ExpoWidgets/', 'sam_1')).toBe(
+      'file:///group/ExpoWidgets/tagger-sam_1.jpg'
+    );
+    expect(taggerPhotoFile('file:///group/ExpoWidgets', 'Sam.B')).toBe(
+      'file:///group/ExpoWidgets/tagger-sam.b.jpg'
+    );
+    expect(taggerPhotoFile('file:///g/', '../x')).toBe('file:///g/tagger-x.jpg');
   });
 });

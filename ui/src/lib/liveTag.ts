@@ -50,6 +50,9 @@ export interface LiveTagLook {
   pad: number;
   /** Width of the timer in the Dynamic Island, so it doesn't take the whole island. */
   timerWidth: number;
+  /** The tagger's round photo: on the lock screen and widget, and in the Dynamic Island. */
+  photo: number;
+  photoSmall: number;
 }
 
 export const LIVE_TAG_LOOK: LiveTagLook = {
@@ -61,6 +64,8 @@ export const LIVE_TAG_LOOK: LiveTagLook = {
   gap: SPACE.s4,
   pad: SPACE.s16,
   timerWidth: SIZE.z64,
+  photo: SIZE.z36,
+  photoSmall: SIZE.z24,
 };
 
 /** A tag waiting for an answer: the Live Activity and the widget. */
@@ -78,6 +83,8 @@ export interface TagView {
   deadline: number;
   /** 6 hours or less left: drawn in the warning colour (from the 6-hour mark on). */
   warning: boolean;
+  /** The tagger's photo, saved where the widget can read it (a file URL), or null. */
+  photo: string | null;
   look: LiveTagLook;
 }
 
@@ -133,6 +140,8 @@ export interface LiveTagInput {
   /** Mahi points and best, as the profile has them. */
   points: number;
   best: number;
+  /** Taggers' photos saved for the widget, by username (none when the switch is off). */
+  photos?: Record<string, string>;
 }
 
 /** What the Live Activity and widget show at `deviceNow`. */
@@ -142,6 +151,7 @@ export function liveTagView({
   deviceNow,
   points,
   best,
+  photos = {},
 }: LiveTagInput): TagView | WaitingView {
   const open = openTagsAt(tags, serverOffsetMs, deviceNow);
   const first = open[0];
@@ -165,8 +175,26 @@ export function liveTagView({
     start: Math.min(Date.parse(first.created_at) - serverOffsetMs, deviceNow),
     deadline,
     warning: deadline - deviceNow <= URGENT_TAG_MS,
+    photo: photos[first.username] ?? null,
     look: LIVE_TAG_LOOK,
   };
+}
+
+/**
+ * Where a tagger's photo is saved for the widget and Live Activity: in expo-widgets' shared
+ * folder (`dir`, the App Group), one small file per mate. Widgets can't fetch from the internet,
+ * so the app saves it there first (owner, 2026-10-07, #117).
+ */
+/** The saved photo's size (px, square) and JPEG quality: small, as widgets and Live Activities
+ *  must be. */
+export const TAGGER_PHOTO = { px: SIZE.z96, quality: 0.8 };
+
+export function taggerPhotoFile(dir: string, username: string): string {
+  const safe = username
+    .toLowerCase()
+    .replace(/[^a-z0-9._]/g, '')
+    .replace(/^\.+/, '');
+  return `${dir.replace(/\/$/, '')}/tagger-${safe}.jpg`;
 }
 
 /** Signed out or switched off: the widget shows this, with nothing personal in it. */

@@ -1,6 +1,10 @@
 import { useEffect } from 'react';
+import * as FileSystem from 'expo-file-system/legacy';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import {
   LIVE_TAG_URL,
+  TAGGER_PHOTO,
+  taggerPhotoFile,
   liveActivityAction,
   liveActivityStaleAt,
   liveTagView,
@@ -11,8 +15,8 @@ import {
 } from '@/lib/liveTag';
 import { loadLiveTagWidgets, type LiveTagWidgetsModule } from '@/lib/widgetsModule';
 import { reportError } from '@/lib/sentry';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAuthStore, useTagStore, useUserStore } from '@/store';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 
 /** The tag a Live Activity was last started for this session (see `liveActivityAction`). */
 let shownFor: string | null = null;
@@ -22,6 +26,49 @@ let lastActivity = '';
 
 /** The server offset to the second: a new read moves it by milliseconds, which isn't news. */
 const ONE_SECOND = 1000;
+
+/**
+ * Taggers' photos saved for the widget and Live Activity this session, by username (owner,
+ * 2026-10-07, #117). Widgets can't fetch, so the app saves a small copy in expo-widgets' shared
+ * folder first; the files are overwritten on each save, so a changed photo is picked up.
+ */
+let photos: Record<string, string> = {};
+const saving = new Set<string>();
+
+/** Saves the photos of the open tags' mates that aren't saved yet; `done` runs after each. */
+function savePhotos(
+  widgets: LiveTagWidgetsModule,
+  tags: { username: string; avatar_url: string | null }[],
+  done: () => void
+) {
+  const dir = widgets.widgetsDirectory;
+  if (!dir) return;
+  for (const t of tags) {
+    if (!t.avatar_url || photos[t.username] || saving.has(t.username)) continue;
+    saving.add(t.username);
+    const name = t.username;
+    const target = taggerPhotoFile(dir, name);
+    const temp = `${FileSystem.cacheDirectory ?? ''}tagger-download-${Date.now()}.img`;
+    FileSystem.downloadAsync(t.avatar_url, temp)
+      .then(({ uri }) =>
+        manipulateAsync(uri, [{ resize: { width: TAGGER_PHOTO.px, height: TAGGER_PHOTO.px } }], {
+          compress: TAGGER_PHOTO.quality,
+          format: SaveFormat.JPEG,
+        })
+      )
+      .then(async (small) => {
+        await FileSystem.deleteAsync(target, { idempotent: true });
+        await FileSystem.copyAsync({ from: small.uri, to: target });
+        photos = { ...photos, [name]: target };
+        done();
+      })
+      .catch((err) => reportError(err, { flow: 'tags', action: 'liveTagPhoto', level: 'warning' }))
+      .finally(() => {
+        saving.delete(name);
+        FileSystem.deleteAsync(temp, { idempotent: true }).catch(() => {});
+      });
+  }
+}
 
 function setWidget(
   widgets: LiveTagWidgetsModule,
@@ -40,7 +87,7 @@ function setWidget(
  * signed in. Safe to call often: nothing is sent when nothing changed. Returns when it next needs
  * to look again by itself (a 6-hour mark or a deadline), or null.
  */
-function syncLiveTag(enabled: boolean): number | null {
+function syncLiveTag(enabled: boolean, photosOn: boolean, again: () => void): number | null {
   const widgets = loadLiveTagWidgets();
   if (!widgets) return null;
   const signedIn = !!useAuthStore.getState().user;
@@ -55,7 +102,9 @@ function syncLiveTag(enabled: boolean): number | null {
     deviceNow: now,
     points: profile.streak_current,
     best: profile.streak_highest,
+    photos: photosOn ? photos : {},
   };
+  if (enabled && signedIn && photosOn && loaded) savePhotos(widgets, openTags, again);
 
   // The widget: nothing personal when signed out or switched off; nothing until this session's
   // first read, so it never shows a guess.
@@ -68,6 +117,7 @@ function syncLiveTag(enabled: boolean): number | null {
         serverOffsetMs,
         input.points,
         input.best,
+        input.photos,
       ]);
       setWidget(widgets, key, () => widgetTimeline(input));
     }
@@ -138,6 +188,8 @@ function syncLiveTag(enabled: boolean): number | null {
 export function useLiveTag(): void {
   // On for everyone on a build that has it; `live-activity` is the owner's off switch (2026-10-07).
   const enabled = useFeatureFlag('live-activity');
+  // The tagger's photo on the widget and Live Activity (kill switch, on for everyone).
+  const photosOn = useFeatureFlag('widget-tagger-photo');
 
   useEffect(() => {
     if (!loadLiveTagWidgets()) return;
@@ -145,7 +197,7 @@ export function useLiveTag(): void {
     const run = () => {
       if (timer) clearTimeout(timer);
       timer = undefined;
-      const next = syncLiveTag(enabled);
+      const next = syncLiveTag(enabled, photosOn, run);
       if (next !== null) timer = setTimeout(run, Math.max(0, next - Date.now()));
     };
     run();
@@ -158,5 +210,5 @@ export function useLiveTag(): void {
       if (timer) clearTimeout(timer);
       unsubscribe.forEach((u) => u());
     };
-  }, [enabled]);
+  }, [enabled, photosOn]);
 }
