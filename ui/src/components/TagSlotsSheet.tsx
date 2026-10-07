@@ -280,7 +280,7 @@ export default function TagSlotsSheet({
       return say(slotErrorText(error?.message ?? ''));
     }
     replaceSlot(tempId, { challenge_id: data.challenge_id, pending: false });
-    track('tag_invite_sent', {});
+    track('tag_invite_sent', { challenge_id: data.challenge_id });
   };
 
   const invitePerson = (p: TagPerson) => {
@@ -333,7 +333,7 @@ export default function TagSlotsSheet({
         });
       }
     });
-    track('invite_shared', { via: target });
+    track('invite_shared', { via: target, challenge_id: slot.challenge_id });
   };
 
   const shareNewLink = async (target: ShareTarget) => {

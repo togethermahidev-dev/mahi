@@ -198,7 +198,7 @@ export default function NotificationsScreen({
       useToastStore.getState().show(slotErrorText(error.message));
       return;
     }
-    track('tag_invite_answered', { accepted: accept });
+    track('tag_invite_answered', { challenge_id: challengeId, accepted: accept });
     // A yes can land a tag at once: the camera shows it.
     if (accept) void useTagStore.getState().syncOpenTags();
   };

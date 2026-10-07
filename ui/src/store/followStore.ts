@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { getFollowData as apiGetFollowData, setFollowing as apiSetFollowing } from '@/api';
 import { supabase } from '@/lib/supabase';
 import { reportError } from '@/lib/sentry';
+import { track } from '@/lib/analytics';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface FollowCounts {
@@ -118,6 +119,13 @@ export const useFollowStore = create<FollowState>((set, get) => ({
         }));
       }
       return { error: mutationError };
+    }
+
+    // Counted only when the server's answer is a real change, so a repeat tap is not a new follow.
+    if (data.is_following && !wasFollowing) {
+      track('user_followed', { target_id: targetUserId, friends: data.follows_you });
+    } else if (!data.is_following && wasFollowing) {
+      track('user_unfollowed', { target_id: targetUserId });
     }
 
     // The tap felt immediate above; now replace estimates with the database's committed answer.

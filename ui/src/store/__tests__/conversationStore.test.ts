@@ -34,6 +34,8 @@ const fakeChannel = {
     return fakeChannel;
   },
 };
+// Stores send analytics events; PostHog's SDK is not loaded in these node tests.
+jest.mock('@/lib/analytics', () => ({ track: jest.fn() }));
 jest.mock('@/lib/supabase', () => ({
   supabase: { channel: jest.fn(() => fakeChannel), removeChannel: jest.fn() },
 }));

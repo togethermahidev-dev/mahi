@@ -13,10 +13,14 @@ import { posthog } from '@/lib/posthog';
 import { identityStep } from '@/lib/analyticsIdentity';
 
 export type TagLoopEvents = {
-  /** A post went out with its slots filled. One per post, not one per tag. */
-  tag_sent: { post_id: string; tag_count: number; invite_count: number };
-  /** A post answered someone's tag. One per tag answered. */
-  tag_answered: { tagger_id: string; seconds: number };
+  /**
+   * A post was saved, with its slots filled: the "post created" event. One per post, not one
+   * per tag. `replayed` when the server handed back a post this phone had already made (a retry
+   * after a dropped answer) — count unique `post_id`s and it can never be counted twice.
+   */
+  tag_sent: { post_id: string; tag_count: number; invite_count: number; replayed: boolean };
+  /** A post answered someone's tag. One per tag answered; `post_id` is the answering post. */
+  tag_answered: { tagger_id: string; seconds: number; post_id: string; replayed: boolean };
   /**
    * A deadline ran out — read off the notification the server sends to the tagger, as it
    * arrives, so once per missed tag; `stats.tags_daily` has the number of record.
@@ -25,11 +29,11 @@ export type TagLoopEvents = {
   /** The person who missed the tag lost their Mahi points — their side of the same miss. */
   streak_lost: { challenge_id: string | null };
   /** An invite link actually reached the share sheet and was sent (`via`: where, on the tag screen). */
-  invite_shared: { via?: 'whatsapp' | 'messages' | 'more' };
+  invite_shared: { via?: 'whatsapp' | 'messages' | 'more'; challenge_id?: string };
   /** An in-app invite went to someone on Mahi who isn't a friend yet (flag `tag-slots`). */
-  tag_invite_sent: Record<string, never>;
+  tag_invite_sent: { challenge_id: string };
   /** Someone answered an in-app invite. */
-  tag_invite_answered: { accepted: boolean };
+  tag_invite_answered: { challenge_id: string; accepted: boolean };
   /** Someone joined from a link and their 48 hours started. */
   invite_claimed: { inviter_id: string };
   /** The feed went from locked to open for this user. */
@@ -40,6 +44,19 @@ export type TagLoopEvents = {
   push_primer_answered: { choice: 'allow' | 'not_now'; granted: boolean };
   /** The camera's "turn on notifications" line was tapped ('settings' or 'ask') or dismissed. */
   push_nudge: { action: 'settings' | 'ask' | 'dismiss' };
+
+  // Core actions (founder metrics). Sent from the store, once the server has the row; the row's
+  // id rides along so a duplicate can be spotted. Supabase stays the number of record.
+  /** I now follow `target_id`; `friends` when they already followed me (a friendship formed). */
+  user_followed: { target_id: string; friends: boolean };
+  /** I stopped following `target_id`. */
+  user_unfollowed: { target_id: string };
+  /** A post went from not liked to liked by me. */
+  post_liked: { post_id: string };
+  /** A comment was saved. */
+  comment_added: { comment_id: string; post_id: string };
+  /** A message was saved; `first` when it started the conversation. */
+  message_sent: { message_id: string; conversation_id: string; first: boolean };
 };
 
 /** Send one tag-loop event. Never throws: analytics must not break what the user just did. */

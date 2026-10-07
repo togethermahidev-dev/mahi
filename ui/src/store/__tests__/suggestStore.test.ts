@@ -13,6 +13,8 @@ jest.mock('@/api', () => ({
 
 // followStore imports the real supabase client (RN-only native modules). Stub it
 // so importing the store graph stays in a plain node environment.
+// Stores send analytics events; PostHog's SDK is not loaded in these node tests.
+jest.mock('@/lib/analytics', () => ({ track: jest.fn() }));
 jest.mock('@/lib/supabase', () => ({ supabase: { channel: jest.fn(), removeChannel: jest.fn() } }));
 
 import { useSuggestStore } from '@/store/suggestStore';

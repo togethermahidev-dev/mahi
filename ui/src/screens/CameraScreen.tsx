@@ -2237,9 +2237,15 @@ export default function CameraScreen({
         post_id: result.post.id,
         tag_count: taggedUsersSnapshot.length,
         invite_count: inviteCountSnapshot + slotsSnapshot.length,
+        replayed: result.replayed === true,
       });
       for (const answered of result.answered) {
-        track('tag_answered', { tagger_id: answered.tagger_id, seconds: answered.seconds });
+        track('tag_answered', {
+          tagger_id: answered.tagger_id,
+          seconds: answered.seconds,
+          post_id: result.post.id,
+          replayed: result.replayed === true,
+        });
       }
 
       if (result.answered.length > 0) useUserStore.getState().refresh(userId);

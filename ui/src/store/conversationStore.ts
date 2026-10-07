@@ -3,6 +3,7 @@ import { AppState, type NativeEventSubscription } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import { reportError } from '@/lib/sentry';
+import { track } from '@/lib/analytics';
 import {
   getMessages,
   sendMessage,
@@ -283,6 +284,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         },
       };
     });
+    track('message_sent', { message_id: data.id, conversation_id: conversationId, first: false });
     useMessagesStore.getState().patchConversationLastMessage(conversationId, data);
     return true;
   },
@@ -364,6 +366,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       });
       return null;
     }
+    track('message_sent', {
+      message_id: data.message.id,
+      conversation_id: data.conversationId,
+      first: true,
+    });
     set((s) => {
       const prev = s.threads[data.conversationId] ?? { ...EMPTY, isLoading: false };
       return {

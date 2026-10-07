@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import { reportError } from '@/lib/sentry';
+import { track } from '@/lib/analytics';
 import {
   toggleLike as apiToggleLike,
   getComments as apiGetComments,
@@ -121,6 +122,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         });
     } else {
       // Write authoritative values
+      if (data.liked && !prevLiked) track('post_liked', { post_id: postId });
       set((s) => ({ likedByMe: { ...s.likedByMe, [postId]: data.liked } }));
       patchCounts(postId, { like_count: data.like_count });
     }
@@ -181,6 +183,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
       // The sheet puts the words back in the box (CommentSheet).
       useToastStore.getState().show('Couldn’t send your comment. Your words are still in the box.');
     } else {
+      track('comment_added', { comment_id: data.id, post_id: postId });
       // Replace temp with confirmed row
       set((s) => ({
         comments: {
