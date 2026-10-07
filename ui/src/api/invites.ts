@@ -8,7 +8,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
-import type { MyInvite } from '@/lib/myInvites';
+import type { InviteVia, MyInvite } from '@/lib/myInvites';
 
 /** Who sent an invite — shown on the sign-up screen before anyone is signed in. */
 export type InvitePreview = {
@@ -89,4 +89,24 @@ export async function cancelInvite(
   const { data, error } = await supabase.rpc('cancel_invite', { p_token: token });
   if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: data as unknown as CancelResult, error: null };
+}
+
+/**
+ * Say a link went out, and where: how, and to whom when known (server:
+ * 20261007290000_invite_sent_to). Your own links only; the same call twice changes nothing more,
+ * and it never counts as a resend.
+ */
+export async function recordInviteSent(
+  token: string,
+  via: InviteVia,
+  toName: string | null = null,
+  toPhone: string | null = null
+): Promise<{ error: Error | null }> {
+  const { error } = await supabase.rpc('record_invite_sent', {
+    p_token: token,
+    p_via: via,
+    p_to_name: toName,
+    p_to_phone: toPhone,
+  });
+  return { error: error ? new Error(error.message, { cause: error }) : null };
 }

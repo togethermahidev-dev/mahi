@@ -39,7 +39,7 @@ import {
   type MatchPhase,
   type MatchedAccount,
 } from '@/lib/contactMatch';
-import { inviteAMate, makeMateLink } from '@/lib/inviteAMate';
+import { inviteAMate, makeMateLink, noteInviteSent } from '@/lib/inviteAMate';
 import { mateInviteMessage } from '@/lib/tagSlots';
 import { reportError } from '@/lib/sentry';
 import { track } from '@/lib/analytics';
@@ -309,16 +309,17 @@ function FindMates({
     setInvitingId(contact.id);
     haptic('selection');
     try {
-      const url = await makeMateLink();
-      if (!url) return;
+      const link = await makeMateLink();
+      if (!link) return;
       const sms = smsInviteUrl(
         contact.phone,
-        mateInviteMessage(url),
+        mateInviteMessage(link.url),
         Platform.OS === 'ios' ? 'ios' : 'android'
       );
       try {
         await Linking.openURL(sms);
         track('invite_shared', { via: 'messages' });
+        noteInviteSent(link.token, 'contact', contact.name, contact.phone);
         if (live.current) setInvited((s) => new Set(s).add(contact.id));
       } catch (e) {
         reportError(e, { flow: 'invites', action: 'openMessagesInvite' });

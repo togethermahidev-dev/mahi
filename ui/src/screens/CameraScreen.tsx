@@ -91,7 +91,7 @@ import CountBadge from '@/components/CountBadge';
 import { getMyInvites } from '@/api/invites';
 import { inviteBadgeCount } from '@/lib/myInvites';
 import { getTagSlots } from '@/api/tagSlots';
-import { inviteAMate } from '@/lib/inviteAMate';
+import { inviteAMate, noteInviteSent } from '@/lib/inviteAMate';
 import {
   inviteBlockedReason,
   postButtonLabel,
@@ -2589,7 +2589,10 @@ export default function CameraScreen({
     try {
       const result = await Share.share({ message: inviteShareMessage(invite.url, invite.code) });
       const shared = result.action === Share.sharedAction;
-      if (shared) track('invite_shared', {});
+      if (shared) {
+        track('invite_shared', {});
+        noteInviteSent(token, 'share');
+      }
       setPostInvites((list) => markInvite(list, token, shared));
     } catch (e) {
       reportError(e, { flow: 'invites', action: 'sendInvite' });

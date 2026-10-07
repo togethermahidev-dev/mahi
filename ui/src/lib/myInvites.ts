@@ -7,9 +7,12 @@
  *
  * Pure (no app or SDK imports) so it runs under the node-only jest harness.
  */
-import { relativeTime, plural } from './relativeTime';
+import { plural } from './relativeTime';
 
 export type InviteStatus = 'waiting' | 'joined' | 'expired' | 'cancelled';
+
+/** How a link last went out (`record_invite_sent`). */
+export type InviteVia = 'whatsapp' | 'messages' | 'share' | 'contact' | 'copy';
 
 /** One row of `get_my_invites`. */
 export type MyInvite = {
@@ -34,6 +37,16 @@ export type MyInvite = {
   /** When it can next be sent again; null once it can't be sent again at all. */
   resend_at: string | null;
   server_now: string;
+  /** How it last went out; null for a link from before this was recorded. Missing from an older
+   * server, which reads the same as null. Server: 20261007290000_invite_sent_to. */
+  sent_via?: InviteVia | null;
+  /** Who it went to, when the app knew (a contact texted from Find your mates). */
+  sent_to_name?: string | null;
+  /** Their number, +<country><number>. Only ever handed back to you, the sender. */
+  sent_to_phone?: string | null;
+  /** The post a tag link went with, and when that post went up. */
+  post_id?: string | null;
+  post_created_at?: string | null;
 };
 
 /** A row on screen: from the server, or with your own tap still on its way. */
@@ -46,27 +59,117 @@ export const CANCEL_CONFIRM = {
   keep: 'Keep it',
 } as const;
 
-/** The row's name: who joined, or what kind of link it is. */
+/** "+44 7700 900123": a number spaced the way people read it (UK and North American ones). */
+export function formatPhone(phone: string): string {
+  const uk = /^\+44(\d{4})(\d+)$/.exec(phone);
+  if (uk) return `+44 ${uk[1]} ${uk[2]}`;
+  const na = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(phone);
+  if (na) return `+1 ${na[1]} ${na[2]} ${na[3]}`;
+  return phone;
+}
+
+const SHARED_TITLE: Record<Exclude<InviteVia, 'contact'>, string> = {
+  whatsapp: 'Shared on WhatsApp',
+  messages: 'Shared by Messages',
+  share: 'Shared by link',
+  copy: 'Link copied',
+};
+
+/** The row's name: who joined, who it was sent to, or how it was shared. */
 export function inviteTitle(invite: ScreenInvite): string {
   if (invite.status === 'joined' && invite.joined) {
     return invite.joined.display_name || `@${invite.joined.username}`;
   }
-  return invite.kind === 'tag' ? 'Tag invite' : 'Invite for a mate';
+  if (invite.sent_to_name) return `Sent to ${invite.sent_to_name}`;
+  if (invite.sent_to_phone) return `Sent to ${formatPhone(invite.sent_to_phone)}`;
+  if (invite.sent_via && invite.sent_via !== 'contact') return SHARED_TITLE[invite.sent_via];
+  return 'Invite link';
 }
 
-/** The line under the name. `now`: the device time moved onto the server's clock. */
-export function inviteStatusText(invite: ScreenInvite, now: number): string {
+/** The second line: what the link does. */
+export function inviteWhatText(invite: ScreenInvite): string {
+  if (invite.status === 'joined') return 'Joined · follows you';
+  return invite.kind === 'tag'
+    ? 'They’ll have 48 hours to post back once they join.'
+    : 'You’ll follow each other when they join.';
+}
+
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** "Tue 7 Oct", on the phone's own calendar. */
+export function dayText(iso: string): string {
+  const d = new Date(iso);
+  return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+
+const STATUS_WORD: Record<Exclude<InviteStatus, 'joined'>, string> = {
+  waiting: 'Waiting',
+  expired: 'Expired',
+  cancelled: 'Cancelled',
+};
+
+/** The third line: where it's at, and when it last went out ("with your post" for a tag link). */
+export function inviteWhenText(invite: ScreenInvite): string {
   if (invite.pending === 'resending') return 'Sending…';
-  switch (invite.status) {
-    case 'joined':
-      return invite.joined ? `Joined · @${invite.joined.username}` : 'Joined';
-    case 'cancelled':
-      return 'Cancelled';
-    case 'expired':
-      return 'Expired';
-    default:
-      return `Waiting · sent ${relativeTime(invite.last_sent_at, now)}`;
+  const withPost = invite.kind === 'tag' && !!invite.post_id;
+  const sent = `${withPost ? 'Sent with your post · ' : 'Sent '}${dayText(invite.last_sent_at)}`;
+  return invite.status === 'joined' ? sent : `${STATUS_WORD[invite.status]} · ${sent}`;
+}
+
+/** The picture when nobody has joined yet: how it went out ("link" for an older one). */
+export type InviteChannel = 'joined' | InviteVia | 'link';
+
+export function inviteChannel(invite: ScreenInvite): InviteChannel {
+  if (invite.status === 'joined' && invite.joined) return 'joined';
+  return invite.sent_via ?? 'link';
+}
+
+/** Where Resend opens, and how that send is recorded: the same place as before. */
+export type ResendPlace = {
+  open: 'whatsapp' | 'sms' | 'share';
+  via: InviteVia;
+  toName: string | null;
+  toPhone: string | null;
+};
+
+export function resendPlace(invite: ScreenInvite): ResendPlace {
+  const toName = invite.sent_to_name ?? null;
+  const toPhone = invite.sent_to_phone ?? null;
+  if (invite.sent_via === 'whatsapp') return { open: 'whatsapp', via: 'whatsapp', toName, toPhone };
+  if (invite.sent_via === 'contact' && toPhone) {
+    return { open: 'sms', via: 'contact', toName, toPhone };
   }
+  if (invite.sent_via === 'messages') return { open: 'sms', via: 'messages', toName, toPhone };
+  return { open: 'share', via: 'share', toName: null, toPhone: null };
+}
+
+/** The list: "Waiting", "Joined", then "Older" (ran out or cancelled). An empty group is left out. */
+export type InviteListItem =
+  | { type: 'header'; key: string; title: string }
+  | { type: 'invite'; key: string; invite: ScreenInvite };
+
+export function inviteSections(list: ScreenInvite[]): InviteListItem[] {
+  const groups: [string, ScreenInvite[]][] = [
+    ['Waiting', list.filter((i) => i.status === 'waiting')],
+    ['Joined', list.filter((i) => i.status === 'joined')],
+    ['Older', list.filter((i) => i.status === 'expired' || i.status === 'cancelled')],
+  ];
+  return groups.flatMap(([title, rows]): InviteListItem[] =>
+    rows.length === 0
+      ? []
+      : [
+          { type: 'header', key: `h-${title}`, title },
+          ...rows.map((invite): InviteListItem => ({ type: 'invite', key: invite.token, invite })),
+        ]
+  );
+}
+
+/** The code sits behind this, for someone the link didn't reach. */
+export const CODE_HINT = 'Didn’t get the link?';
+
+export function codeText(invite: ScreenInvite): string {
+  return `Code ${invite.code}`;
 }
 
 /** "5h", "15m": how long until it can be sent again, rounded up. */

@@ -18,6 +18,8 @@ import { supabase } from '@/lib/supabase';
 import { haptic } from '@/lib/haptics';
 import { reportError } from '@/lib/sentry';
 import { track } from '@/lib/analytics';
+import { noteInviteSent } from '@/lib/inviteAMate';
+import type { InviteVia } from '@/lib/myInvites';
 import { useAuthStore } from '@/store';
 import KeyboardInset from '@/components/KeyboardInset';
 import {
@@ -299,6 +301,8 @@ export default function TagSlotsSheet({
     if (!slot.url || !slot.code) return;
     const message = slotShareMessage(slot.url, slot.code);
     let shared = false;
+    // How it really went: the share sheet when the app asked for isn't on this phone.
+    let via: InviteVia = target === 'more' ? 'share' : target;
     try {
       if (target === 'more') {
         shared = (await Share.share({ message })).action === Share.sharedAction;
@@ -310,6 +314,7 @@ export default function TagSlotsSheet({
       }
     } catch {
       // The app isn't on this phone: the phone's own sheet instead.
+      via = 'share';
       try {
         shared = (await Share.share({ message })).action === Share.sharedAction;
       } catch (e) {
@@ -323,6 +328,7 @@ export default function TagSlotsSheet({
     }
     if (!shared) return;
     replaceSlot(slot.challenge_id, { state: 'shared' });
+    noteInviteSent(slot.token, via);
     void markInviteShared(slot.challenge_id).then(({ error }) => {
       if (error) {
         reportError(error, {

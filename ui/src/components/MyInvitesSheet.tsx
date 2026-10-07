@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -21,28 +21,35 @@ import { supabase } from '@/lib/supabase';
 import { reportError } from '@/lib/sentry';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
-import { inviteAMate, shareMateLink } from '@/lib/inviteAMate';
+import { inviteAMate, sendLinkTo } from '@/lib/inviteAMate';
 import {
   CANCEL_CONFIRM,
+  CODE_HINT,
   applyCancel,
   applyResend,
   canCancel,
+  codeText,
+  inviteChannel,
   inviteErrorText,
-  inviteStatusText,
+  inviteSections,
   inviteTitle,
+  inviteWhatText,
+  inviteWhenText,
   isInviteRefusal,
   reconcileInvite,
   resendButton,
+  resendPlace,
   restoreInvite,
+  type InviteListItem,
   type MyInvite,
   type ScreenInvite,
 } from '@/lib/myInvites';
+import InviteChannelIcon from '@/components/InviteChannelIcon';
 import { useMinuteTick } from '@/hooks/useMinuteTick';
 import { themeColors } from '@/hooks/useAppTheme';
 import { refreshTint } from '@/lib/themeColors';
 import ListState from '@/components/ListState';
 import MateCircles from '@/components/MateCircles';
-import { ProfileIcon } from '@/components/ScreenIcons';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import FindMatesSheet from '@/components/FindMatesSheet';
 import { useContactsFinder } from '@/hooks/useContactsFinder';
@@ -119,6 +126,9 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
   const now = useMinuteTick() + offset;
   // Links with a tap of yours on its way: a read that lands meanwhile keeps your tap on screen.
   const inFlight = useRef(new Set<string>());
+  // Rows whose "Didn't get the link?" is open, showing the code. This open only.
+  const [codesShown, setCodesShown] = useState<ReadonlySet<string>>(new Set());
+  const sections = useMemo(() => inviteSections(invites), [invites]);
 
   const load = useCallback(async (): Promise<boolean> => {
     const { data, error } = await getMyInvites();
@@ -233,9 +243,10 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
       return;
     }
     track('invite_resent', { kind: item.kind });
-    // The same link again, now open for longer. Joining makes you follow each other, whether or
-    // not a tag still comes with it, so the message for a mate is true for both kinds.
-    await shareMateLink(data.invite.url, 'shareResentInvite');
+    // The same link again, now open for longer, to the same place it went before (the same
+    // WhatsApp, the same number). Joining makes you follow each other, whether or not a tag still
+    // comes with it, so the message for a mate is true for both kinds.
+    await sendLinkTo(data.invite, resendPlace(item), 'shareResentInvite');
   };
 
   const runCancel = async (item: ScreenInvite) => {
@@ -263,24 +274,45 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
     ]);
   };
 
-  const renderRow = ({ item }: { item: ScreenInvite }) => {
+  const toggleCode = (token: string) =>
+    setCodesShown((shown) => {
+      const next = new Set(shown);
+      if (!next.delete(token)) next.add(token);
+      return next;
+    });
+
+  const renderItem = ({ item }: { item: InviteListItem }) =>
+    item.type === 'header' ? (
+      <Text style={[styles.groupTitle, { color: muted }]} accessibilityRole="header">
+        {item.title}
+      </Text>
+    ) : (
+      renderRow(item.invite)
+    );
+
+  const renderRow = (item: ScreenInvite) => {
     const title = inviteTitle(item);
-    const status = inviteStatusText(item, now);
+    const what = inviteWhatText(item);
+    const when = inviteWhenText(item);
     const button = resendButton(item, now);
     const cancellable = canCancel(item);
     const joined: MyInvite['joined'] = item.status === 'joined' ? item.joined : null;
     const ended = item.status === 'expired' || item.status === 'cancelled';
+    const channel = inviteChannel(item);
+    // The code is for someone the link didn't reach, so only while it can still be used.
+    const showCodeHint = !joined && item.status === 'waiting';
+    const codeShown = codesShown.has(item.token);
 
     const avatar = joined?.avatar_url ? (
       <Image source={{ uri: joined.avatar_url, cache: 'force-cache' }} style={styles.avatar} />
     ) : (
       <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}>
-        {joined ? (
+        {joined || channel === 'joined' ? (
           <Text style={[styles.avatarInitial, { color: text }]}>
             {title[0]?.toUpperCase() ?? '?'}
           </Text>
         ) : (
-          <ProfileIcon size={ICON_SIZE.i20} color={muted} />
+          <InviteChannelIcon channel={channel} size={ICON_SIZE.i20} color={muted} />
         )}
       </View>
     );
@@ -292,7 +324,7 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
           onPress={joined ? () => setProfileUserId(joined.id) : undefined}
           disabled={!joined}
           accessibilityRole={joined ? 'button' : 'text'}
-          accessibilityLabel={`${title}. ${status}. Code ${item.code}`}
+          accessibilityLabel={`${title}. ${what} ${when}.`}
           accessibilityHint={joined ? 'Opens their profile' : undefined}
         >
           {avatar}
@@ -301,18 +333,37 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
               {title}
             </Text>
             <Text
-              style={[styles.status, { color: item.status === 'joined' ? accentText : muted }]}
-              numberOfLines={1}
+              style={[styles.status, { color: joined ? accentText : ended ? muted : text }]}
+              numberOfLines={2}
             >
-              {status}
+              {what}
             </Text>
-            {joined ? null : (
-              <Text style={[styles.code, { color: muted }]} numberOfLines={1}>
-                Code {item.code}
-              </Text>
-            )}
+            <Text style={[styles.when, { color: muted }]} numberOfLines={1}>
+              {when}
+            </Text>
           </View>
         </Pressable>
+
+        {showCodeHint ? (
+          <Pressable
+            style={({ pressed }) => [styles.codeHint, pressed && styles.pressed]}
+            onPress={() => toggleCode(item.token)}
+            hitSlop={OFFSET.o8}
+            accessibilityRole="button"
+            accessibilityLabel={codeShown ? `${CODE_HINT} ${codeText(item)}` : CODE_HINT}
+            accessibilityHint={codeShown ? undefined : 'Shows a code they can type in instead'}
+            accessibilityState={{ expanded: codeShown }}
+          >
+            <Text style={[styles.code, { color: muted }]} numberOfLines={1}>
+              {CODE_HINT}
+              {codeShown ? (
+                <Text style={[styles.codeValue, { color: text }]} selectable>
+                  {` ${codeText(item)}`}
+                </Text>
+              ) : null}
+            </Text>
+          </Pressable>
+        ) : null}
 
         {button.kind !== 'none' || cancellable ? (
           <View style={styles.actions}>
@@ -469,10 +520,11 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
           />
         ) : (
           <FlashList
-            data={invites}
-            keyExtractor={(item) => item.token}
-            extraData={now}
-            renderItem={renderRow}
+            data={sections}
+            keyExtractor={(item) => item.key}
+            getItemType={(item) => item.type}
+            extraData={[now, codesShown]}
+            renderItem={renderItem}
             ListHeaderComponent={header}
             contentContainerStyle={{ ...styles.listContent, paddingBottom: insets.bottom }}
             showsVerticalScrollIndicator={false}
@@ -483,9 +535,17 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
                 {...refreshTint(dark)}
               />
             }
-            ItemSeparatorComponent={() => (
-              <View style={[styles.separator, { backgroundColor: border }]} />
-            )}
+            ItemSeparatorComponent={({
+              leadingItem,
+              trailingItem,
+            }: {
+              leadingItem?: InviteListItem;
+              trailingItem?: InviteListItem;
+            }) =>
+              leadingItem?.type === 'invite' && trailingItem?.type === 'invite' ? (
+                <View style={[styles.separator, { backgroundColor: border }]} />
+              ) : null
+            }
           />
         )}
       </View>
@@ -602,9 +662,28 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f13,
   },
+  when: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZE.f12,
+  },
+  // "Waiting", "Joined", "Older": small words above each group.
+  groupTitle: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZE.f13,
+    paddingTop: SPACE.s20,
+    paddingBottom: SPACE.s4,
+  },
+  // Under the words, lined up with them (past the avatar).
+  codeHint: {
+    alignSelf: 'flex-start',
+    marginLeft: SIZE.z44 + SPACE.s12,
+  },
   code: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f12,
+  },
+  codeValue: {
+    fontFamily: FONTS.semiBold,
   },
   // Under the words, lined up with them (past the avatar).
   actions: {
