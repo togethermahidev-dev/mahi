@@ -71,16 +71,10 @@ import PostVideo, { SoundButton } from '@/components/PostVideo';
 import InviteStep from '@/components/InviteStep';
 import InviteShareSheet from '@/components/InviteShareSheet';
 import TagSlotsSheet from '@/components/TagSlotsSheet';
-import { getTagSlots, makeMateInvite } from '@/api/tagSlots';
-import {
-  inviteBlockedReason,
-  isSlotRefusal,
-  mateInviteErrorText,
-  mateInviteMessage,
-  postButtonLabel,
-  postRefusal,
-  type ScreenSlot,
-} from '@/lib/tagSlots';
+import MyInvitesSheet from '@/components/MyInvitesSheet';
+import { getTagSlots } from '@/api/tagSlots';
+import { inviteAMate } from '@/lib/inviteAMate';
+import { inviteBlockedReason, postButtonLabel, postRefusal, type ScreenSlot } from '@/lib/tagSlots';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useCoachAnchor } from '@/hooks/useCoachMarks';
 import CoachMarkHost from '@/components/CoachMark';
@@ -1686,31 +1680,12 @@ export default function CameraScreen({
   // Nothing to answer: you can still bring a mate in (owner, 2026-10-07). A link with no tag
   // behind it, made on tap; joining from it makes you follow each other, and no tag starts.
   const [invitingMate, setInvitingMate] = useState(false);
+  const [invitesOpen, setInvitesOpen] = useState(false);
   const inviteMate = async () => {
     if (invitingMate) return;
-    haptic('selection');
     setInvitingMate(true);
     try {
-      const { data, error } = await makeMateInvite();
-      if (error || !data) {
-        const message = error?.message ?? '';
-        if (!isSlotRefusal(message)) {
-          reportError(error ?? new Error('make_mate_invite returned no data'), {
-            flow: 'invites',
-            action: 'makeMateInvite',
-            extra: { rpc: 'make_mate_invite' },
-          });
-        }
-        useToastStore.getState().show(mateInviteErrorText(message));
-        return;
-      }
-      try {
-        const result = await Share.share({ message: mateInviteMessage(data.url) });
-        if (result.action === Share.sharedAction) track('invite_shared', {});
-      } catch (e) {
-        reportError(e, { flow: 'invites', action: 'shareMateInvite' });
-        useToastStore.getState().show('Couldn’t open sharing. Try again.');
-      }
+      await inviteAMate();
     } finally {
       setInvitingMate(false);
     }
@@ -2713,6 +2688,17 @@ export default function CameraScreen({
                   )}
                 </Pressable>
               ) : null}
+              {gate === 'closed' && !offline ? (
+                <Pressable
+                  style={({ pressed }) => [styles.seeInvites, pressed && { opacity: ALPHA.a70 }]}
+                  onPress={() => setInvitesOpen(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="See your invites"
+                  accessibilityHint="Shows the links you’ve sent and who joined"
+                >
+                  <Text style={styles.seeInvitesText}>See your invites</Text>
+                </Pressable>
+              ) : null}
             </View>
           </BlurView>
         ) : null}
@@ -2943,6 +2929,8 @@ export default function CameraScreen({
           onClose={() => setPostInvites([])}
         />
 
+        <MyInvitesSheet visible={invitesOpen} onClose={() => setInvitesOpen(false)} dark={dark} />
+
         <PointCelebration
           content={celebration}
           onClose={() => {
@@ -3073,6 +3061,18 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.bold,
+  },
+  // A quiet text link under the card's buttons, with a full-size tap area.
+  seeInvites: {
+    alignSelf: 'center',
+    justifyContent: 'center',
+    minHeight: SIZE.z44,
+    paddingHorizontal: SPACE.s12,
+  },
+  seeInvitesText: {
+    color: withAlpha(COLORS.offWhite, ALPHA.a80),
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.semiBold,
   },
   noTagsIcon: {
     width: SIZE.z56,

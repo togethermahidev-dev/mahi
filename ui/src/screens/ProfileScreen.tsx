@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import type { NativeGesture } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,9 +10,12 @@ import { pointsHint } from '@/lib/pointsHint';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostViewer from '@/components/PostViewer';
 import SettingsPanel from '@/components/SettingsPanel';
-import { ProfileIcon, SearchIcon, SettingsIcon } from '@/components/ScreenIcons';
+import { MessagesIcon, ProfileIcon, SearchIcon, SettingsIcon } from '@/components/ScreenIcons';
 import AvatarPicker from '@/components/AvatarPicker';
 import FollowListModal from '@/components/FollowListModal';
+import MyInvitesSheet from '@/components/MyInvitesSheet';
+import { getMyInvites } from '@/api/invites';
+import { inviteSummary } from '@/lib/myInvites';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import TouchCarousel from '@/components/TouchCarousel';
 import ProfileIdentityCard from '@/components/ProfileIdentityCard';
@@ -38,7 +41,7 @@ import { TAP_AREA, tapSlop } from '@/lib/tapArea';
 // The settings and search icons are drawn 22 across; each taps as 44.
 const ICON_SLOP = tapSlop(ICON_SIZE.i22, TAP_AREA.ios);
 
-type ProfileShortcut = 'friends' | 'find';
+type ProfileShortcut = 'friends' | 'invites' | 'find';
 
 const PROFILE_SHORTCUT_COPY: Record<
   ProfileShortcut,
@@ -48,6 +51,11 @@ const PROFILE_SHORTCUT_COPY: Record<
     title: 'Friends',
     subtitle: 'See your list',
     accessibilityHint: 'Opens your friends list',
+  },
+  invites: {
+    title: 'Your invites',
+    subtitle: 'See who joined',
+    accessibilityHint: 'Shows the links you’ve sent and who joined',
   },
   find: {
     title: 'Find friends',
@@ -90,6 +98,11 @@ export default function ProfileScreen({
   const { width } = useWindowDimensions();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
+  const [invitesOpen, setInvitesOpen] = useState(false);
+  // "3 waiting · 1 joined", read fresh each time the profile shows (invites expire, so never
+  // kept on the phone). Null while reading or after a failed read: the row says so instead.
+  const [invitesLine, setInvitesLine] = useState<string | null>(null);
+  const [invitesRead, setInvitesRead] = useState(false);
   const [viewerPostId, setViewerPostId] = useState<string | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const bg = dark ? COLORS.bgDark : COLORS.white;
@@ -114,6 +127,19 @@ export default function ProfileScreen({
   // The grid (ProfileMediaMap) reads the same singleton store, so it re-renders.
   useProfilePosts(userId ?? '', isActive && !!userId);
 
+  useEffect(() => {
+    if (!isActive || !userId || invitesOpen) return;
+    let stale = false;
+    void getMyInvites().then(({ data }) => {
+      if (stale) return;
+      setInvitesLine(data ? inviteSummary(data) : null);
+      setInvitesRead(true);
+    });
+    return () => {
+      stale = true;
+    };
+  }, [isActive, userId, invitesOpen]);
+
   const hint = profile ? pointsHint(profile.streak_current, profile.streak_highest) : null;
 
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
@@ -127,7 +153,14 @@ export default function ProfileScreen({
         : 0
     : 0;
   const carouselItemWidth = Math.min(SIZE.z400, width - SPACE.s40 - SIZE.z48);
-  const shortcuts: readonly ProfileShortcut[] = onSearch ? ['friends', 'find'] : ['friends'];
+  const shortcuts: readonly ProfileShortcut[] = onSearch
+    ? ['friends', 'invites', 'find']
+    : ['friends', 'invites'];
+  const shortcutPress: Record<ProfileShortcut, (() => void) | undefined> = {
+    friends: () => setFriendsOpen(true),
+    invites: () => setInvitesOpen(true),
+    find: onSearch,
+  };
 
   // Everything above the grid. The page is one list, so this scrolls away and the grid can
   // fill the screen.
@@ -249,7 +282,12 @@ export default function ProfileScreen({
         onTouchStateChange={onCarouselTouchChange}
         renderItem={(shortcut) => {
           const copy = PROFILE_SHORTCUT_COPY[shortcut];
-          const isFriends = shortcut === 'friends';
+          const subtitle =
+            shortcut === 'invites'
+              ? invitesRead
+                ? (invitesLine ?? copy.subtitle)
+                : 'Checking…'
+              : copy.subtitle;
           return (
             <Pressable
               style={({ pressed }) => [
@@ -257,21 +295,23 @@ export default function ProfileScreen({
                 { backgroundColor: surface, borderColor: border },
                 pressed && { opacity: ALPHA.a75 },
               ]}
-              onPress={isFriends ? () => setFriendsOpen(true) : onSearch}
+              onPress={shortcutPress[shortcut]}
               accessibilityRole="button"
               accessibilityLabel={copy.title}
               accessibilityHint={copy.accessibilityHint}
             >
               <View style={[styles.quickIcon, { backgroundColor: iconSurface }]}>
-                {isFriends ? (
+                {shortcut === 'friends' ? (
                   <ProfileIcon size={ICON_SIZE.i20} color={toggleColor} />
+                ) : shortcut === 'invites' ? (
+                  <MessagesIcon size={ICON_SIZE.i20} color={toggleColor} />
                 ) : (
                   <SearchIcon size={ICON_SIZE.i20} color={toggleColor} />
                 )}
               </View>
               <View style={styles.quickCopy}>
                 <Text style={[styles.quickTitle, { color: text }]}>{copy.title}</Text>
-                <Text style={[styles.quickSubtitle, { color: muted }]}>{copy.subtitle}</Text>
+                <Text style={[styles.quickSubtitle, { color: muted }]}>{subtitle}</Text>
               </View>
               <Text style={[styles.quickChevron, { color: muted }]}>›</Text>
             </Pressable>
@@ -318,6 +358,9 @@ export default function ProfileScreen({
         type="friends"
         dark={dark}
       />
+
+      {/* The links you've sent and who joined */}
+      <MyInvitesSheet visible={invitesOpen} onClose={() => setInvitesOpen(false)} dark={dark} />
 
       {/* Your posts, full screen from the tapped one: up/down browses, sideways closes */}
       {profile ? (

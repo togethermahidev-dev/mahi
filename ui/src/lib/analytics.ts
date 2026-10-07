@@ -38,6 +38,10 @@ export type TagLoopEvents = {
   tag_invite_answered: { challenge_id: string; accepted: boolean };
   /** Mahi opened from an invite link (`cold`: the link started the app). Counts link opens. */
   invite_link_opened: { cold: boolean; signed_in: boolean };
+  /** A link was sent again from "Your invites", once the server took it (`kind`: mate or tag link). */
+  invite_resent: { kind: 'mate' | 'tag' };
+  /** A link was cancelled from "Your invites", once the server took it. */
+  invite_cancelled: { kind: 'mate' | 'tag' };
   /** Someone joined from a link: you follow each other, and a tag starts if one came with it. */
   invite_claimed: { inviter_id: string };
   /** The feed went from locked to open for this user. */

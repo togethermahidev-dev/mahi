@@ -8,6 +8,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import type { MyInvite } from '@/lib/myInvites';
 
 /** Who sent an invite — shown on the sign-up screen before anyone is signed in. */
 export type InvitePreview = {
@@ -59,4 +60,33 @@ export async function claimInvite(
   const { data, error } = await supabase.rpc('claim_invite', { p_token: token });
   if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: data as unknown as InviteClaim, error: null };
+}
+
+/** What `resend_invite` and `cancel_invite` hand back: the link as the list now shows it. */
+export type ResendResult = { resent: boolean; reason: string | null; invite: MyInvite };
+export type CancelResult = { cancelled: boolean; invite: MyInvite };
+
+/** Your invite links from the last 30 days, newest first (server: 20261007210000_my_invites). */
+export async function getMyInvites(): Promise<{ data: MyInvite[] | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('get_my_invites');
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
+  return { data: (data ?? []) as unknown as MyInvite[], error: null };
+}
+
+/** Send a link again: once a day, at most 3 times. Too soon is not an error: `resent` is false. */
+export async function resendInvite(
+  token: string
+): Promise<{ data: ResendResult | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('resend_invite', { p_token: token });
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
+  return { data: data as unknown as ResendResult, error: null };
+}
+
+/** Stop a link nobody has used from working. Cancelling twice gives the same answer. */
+export async function cancelInvite(
+  token: string
+): Promise<{ data: CancelResult | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('cancel_invite', { p_token: token });
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
+  return { data: data as unknown as CancelResult, error: null };
 }
