@@ -38,6 +38,7 @@ export const COLORS = {
   amber: "#D4963A",
   amberDeep: "#B07020",
   amberText: "#A5691E",
+  warning: "#FFC93B",
 } as const;
 
 export const FONT_SIZE = {
@@ -134,6 +135,7 @@ export const SIZE = {
   z170: 170,
   z180: 180,
   z200: 200,
+  z280: 280,
   z360: 360,
   z400: 400,
   z420: 420,
