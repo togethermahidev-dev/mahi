@@ -45,12 +45,32 @@ No secrets in code; native sign-in needs only the bundle ID.
    `com.mahi.app`. Leave Secret Key empty (that is only for web sign-in, and it expires every 6 months).
 3. PostHog switch `auth-apple-signin`: set to 100% (it is at 0% now, checked 2026-10-07). It is the
    kill switch: off hides the button. Builds 10–12 never show it.
-4. Account deletion: Apple asks apps to revoke an Apple account's tokens when the account is
-   deleted. Supabase has no route that does this, and doing it ourselves needs Apple's private key
-   (.p8) on the server plus Apple's authorisation code, which the app doesn't keep. Not built.
-   Decide before App Review: either add a server function holding the key (needs your go and the
-   key), or rely on deletion removing all Mahi data; a person can also stop using Apple ID with
-   Mahi in iPhone Settings → Apple Account → Sign in with Apple.
+4. Account deletion revokes Apple's access (App Store guideline 5.1.1(v); owner, 2026-10-07).
+   Built: at sign-in the app sends Apple's one-time code to the new `apple-token` function, which
+   keeps Apple's refresh token in `apple_tokens` (server-only table); `delete-account` revokes it
+   at Apple before deleting the account. A failed revoke never stops a deletion (reported in
+   Sentry as `account.appleRevoke`); a failed save never stops a sign-in (`auth.appleSaveToken`).
+   Accounts that signed in with Apple before these steps are live have no kept token, so their
+   deletion skips Apple (they sign in again → token kept). Owner steps, in this order:
+   a. Apple Developer → Certificates, IDs & Profiles → Keys → "+": name it "Mahi Sign in with
+      Apple", tick Sign in with Apple → Configure → primary App ID `com.mahi.app` → Save →
+      Continue → Register. Download the `.p8` file (Apple lets you download it once; keep it
+      somewhere safe, never in the repo). Note the Key ID (on the key's page) and the Team ID
+      (top right of the developer site, or Membership details).
+   b. Database: migration `20261007300000_apple_tokens` (with whatever else is pending), the usual
+      way from the repo root: `scripts/db.sh backup`, then
+      `scripts/db.sh try supabase/migrations/20261007300000_apple_tokens.sql supabase/tests/apple_tokens_test.sql`,
+      then `scripts/db.sh push --dry-run`, then `scripts/db.sh push`.
+   c. Secrets (type the real values yourself; the key file path is wherever you saved it):
+      `supabase secrets set --project-ref pzepodsppqtvptzmwxzs APPLE_TEAM_ID=<team id> APPLE_KEY_ID=<key id> APPLE_CLIENT_ID=com.mahi.app`
+      then `supabase secrets set --project-ref pzepodsppqtvptzmwxzs APPLE_PRIVATE_KEY="$(cat <path to AuthKey_XXXX.p8>)"`.
+   d. Functions (both keep JWT verification on, the default):
+      `supabase functions deploy apple-token delete-account --project-ref pzepodsppqtvptzmwxzs`.
+   e. Then step 3 (switch to 100%). Check on a phone: sign in with Apple, then in Supabase →
+      Table editor → `apple_tokens` one row for that account; delete that account in the app, the
+      row is gone and iPhone Settings → Apple Account → Sign in with Apple no longer lists Mahi.
+   Missing secrets: `apple-token` answers 503 (sign-in carries on, a warning in Sentry) and
+   `delete-account` deletes without revoking (warning in Sentry).
 
 ## 1. Where things stand
 
