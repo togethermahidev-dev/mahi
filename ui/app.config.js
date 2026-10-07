@@ -32,6 +32,24 @@ const config = {
     ],
     '@react-native-community/datetimepicker',
     ['expo-notifications', { color: ACCENT, defaultChannel: 'default' }],
+    // A mate's tag on the lock screen and Dynamic Island (Live Activity) and a home-screen widget
+    // (build 13+; src/widgets/liveTagWidgets.tsx). Adds the widget extension target, the App Group
+    // both share, and NSSupportsLiveActivities. The widget's name must match createWidget's.
+    [
+      'expo-widgets',
+      {
+        bundleIdentifier: 'com.mahi.app.widgets',
+        groupIdentifier: 'group.com.mahi.app',
+        widgets: [
+          {
+            name: 'MahiTag',
+            displayName: 'Mahi',
+            description: 'A mate’s tag and how long you have left, or your Mahi points.',
+            ios: { supportedFamilies: ['systemSmall', 'systemMedium'] },
+          },
+        ],
+      },
+    ],
     [
       'expo-image-picker',
       {
