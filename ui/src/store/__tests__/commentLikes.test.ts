@@ -1,5 +1,5 @@
 /**
- * Comment likes (flag comment-likes): a heart and a count on each comment. A tap moves the heart
+ * Comment likes: a heart and a count on each comment. A tap moves the heart
  * and the count at once, then takes the server's answer; a failed tap goes back. The counts are
  * read fresh each time a post's comments open, and shown only once they've arrived. Who liked a
  * comment is never kept: it's read fresh each time the list opens.

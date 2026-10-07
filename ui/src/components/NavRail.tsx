@@ -66,7 +66,7 @@ const ICONS: Record<RailTab, React.ComponentType<IconProps>> = {
 // In the swipe order (Messages, Feed, Camera, Profile), like the pages and the phone's tab bar.
 const TABS = NATIVE_TABS.map((t) => ({ key: t.key, label: t.title, Icon: ICONS[t.key] }));
 
-// ─── Selector motion (nav-rail-morph) ─────────────────────────────────────────
+// ─── Selector motion (the rail's morph) ───────────────────────────────────────
 /** The leading edge reaching the new icon while the trailing edge holds: the stretch. */
 const STRETCH = {
   duration: DURATION.d140,
@@ -93,8 +93,8 @@ interface NavRailProps {
   /** Android blurs this view's content (expo-blur needs a BlurTargetView ref there). */
   blurTarget?: React.RefObject<View | null>;
   /**
-   * nav-rail-morph: one floating pill with an outline and shadow, a single selector that slides
-   * and stretches between icons, and hold-and-drag to switch. Off = the rail as it was.
+   * The rail: one floating pill with an outline and shadow, a single selector that slides
+   * and stretches between icons, and hold-and-drag to switch. The dock never morphs.
    */
   morph?: boolean;
   /** Where the rail is on screen (window coordinates), so the page swipe can leave it alone. */

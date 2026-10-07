@@ -16,7 +16,6 @@ import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { refreshTint } from '@/lib/themeColors';
 import { usePageSize } from '@/hooks/useChrome';
 import { useFeed } from '@/hooks/useFeed';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { answersATag } from '@/lib/reactivePosting';
 import FeedLockBanner from '@/components/FeedLockBanner';
@@ -194,9 +193,8 @@ export default function FeedScreen({
 
   // Lock card / feed timer under the header. It floats over the first post (a list header would
   // knock the full-screen snapping out of step), so the first post keeps room for it.
-  const lockExplainer = useFeatureFlag('feed-lock-explainer');
   const [bannerH, setBannerH] = useState(0);
-  const topSpace = lockExplainer && bannerH > 0 ? bannerH + SPACE.s8 : 0;
+  const topSpace = bannerH > 0 ? bannerH + SPACE.s8 : 0;
 
   // Friends' posts while locked: a button only when reactive posting lets you post (a tag still
   // open on the server clock, or your first post).
@@ -210,7 +208,7 @@ export default function FeedScreen({
 
   // A locked feed shows one main button: the lock card's. When that card already offers Find
   // friends, the empty state drops its own; otherwise its Find friends is a plain text link.
-  const lockCardShown = lockExplainer && loaded && locked && tagsLoaded;
+  const lockCardShown = loaded && locked && tagsLoaded;
   const lockCardTarget = lockCardShown
     ? lockCardFor({ locked, unlockedUntil, openTags, serverOffsetMs })?.target
     : undefined;
@@ -436,7 +434,7 @@ export default function FeedScreen({
         />
       </ListGestureContext.Provider>
 
-      {lockExplainer && loaded ? (
+      {loaded ? (
         <Animated.View
           pointerEvents="box-none"
           onLayout={(e) => setBannerH(e.nativeEvent.layout.height)}

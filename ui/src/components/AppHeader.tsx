@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { ProfileIcon, MessagesIcon, NotificationsIcon } from '@/components/ScreenIcons';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -46,10 +45,6 @@ export default function AppHeader({
 }: AppHeaderProps): React.JSX.Element {
   const { dark: systemDark } = useAppTheme();
   const insets = useSafeAreaInsets();
-  // Reference pattern: gate a feature in one line with useFeatureFlag. The
-  // 'notifications-core' flag is at 100% (default-on), so the bell shows
-  // normally; flip it off in PostHog to hide the entry point.
-  const showNotifications = useFeatureFlag('notifications-core');
   // isDark = camera screen (always dark bg); systemDark = OS-level dark mode
   const onDark = isDark || systemDark;
   const mahiColor = onDark ? COLORS.white : COLORS.offBlack;
@@ -102,30 +97,27 @@ export default function AppHeader({
           <Text style={[styles.title, { color: mahiColor }]}>MAHI</Text>
         </View>
 
-        {/* Notifications bell pill — opens NotificationsScreen overlay.
-            Gated by the 'notifications-core' flag (absolutely positioned, so
-            hiding it leaves the other pills undisturbed). */}
-        {showNotifications && (
-          <Pressable
-            style={({ pressed }) => [
-              styles.bellPill,
-              { backgroundColor: pillBg },
-              !showNavPills && { right: 0 },
-              pressed && styles.pressed,
-            ]}
-            onPress={onNotificationsPress}
-            hitSlop={PILL_SLOP}
-            accessibilityRole="button"
-            accessibilityLabel={
-              unreadNotifications > 0
-                ? `Notifications, ${unreadNotifications} unread`
-                : 'Notifications'
-            }
-          >
-            <NotificationsIcon size={ICON_SIZE.i16} color={pillIcon} />
-            {unreadNotifications > 0 && <View style={styles.bellDot} />}
-          </Pressable>
-        )}
+        {/* Notifications bell pill — opens NotificationsScreen overlay (absolutely positioned,
+            so it leaves the other pills undisturbed). */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.bellPill,
+            { backgroundColor: pillBg },
+            !showNavPills && { right: 0 },
+            pressed && styles.pressed,
+          ]}
+          onPress={onNotificationsPress}
+          hitSlop={PILL_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel={
+            unreadNotifications > 0
+              ? `Notifications, ${unreadNotifications} unread`
+              : 'Notifications'
+          }
+        >
+          <NotificationsIcon size={ICON_SIZE.i16} color={pillIcon} />
+          {unreadNotifications > 0 && <View style={styles.bellDot} />}
+        </Pressable>
 
         {/* Messages pill — navigates to Messages screen (horizontal right) */}
         {showNavPills && (

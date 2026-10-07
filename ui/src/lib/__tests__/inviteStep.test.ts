@@ -26,8 +26,6 @@ describe('slotCount', () => {
 
 describe('tagSheetStep', () => {
   const base = {
-    flagOn: true,
-    canInvite: true,
     singleShot: false,
     availableFriends: 0 as number | null,
     maxTags: 3,
@@ -47,11 +45,9 @@ describe('tagSheetStep', () => {
     expect(tagSheetStep({ ...base, availableFriends: null })).toBe('loading');
   });
 
-  it('is today exactly when the flag is off, invites are off, or picking from a caption @', () => {
-    expect(tagSheetStep({ ...base, flagOn: false })).toBe('friends');
-    expect(tagSheetStep({ ...base, canInvite: false })).toBe('friends');
+  it('shows the friends list when picking from a caption @', () => {
     expect(tagSheetStep({ ...base, singleShot: true })).toBe('friends');
-    expect(tagSheetStep({ ...base, flagOn: false, availableFriends: null })).toBe('friends');
+    expect(tagSheetStep({ ...base, singleShot: true, availableFriends: null })).toBe('friends');
   });
 });
 

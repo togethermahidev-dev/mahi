@@ -13,8 +13,8 @@ import { flagDefaultOn, resolveFlag, type FeatureFlag } from '@/lib/featureFlags
  * (e.g. after `reloadFeatureFlagsAsync()` on sign-in). See `resolveFlag` for the
  * default-on semantics. Gate any feature in one line:
  *
- *   const showBell = useFeatureFlag('notifications-core');
- *   if (!showBell) return null;
+ *   const videoOn = useFeatureFlag('video-posts');
+ *   if (!videoOn) return null;
  */
 export function useFeatureFlag(flag: FeatureFlag): boolean {
   const analyticsEnabled = env.posthogKey != null;

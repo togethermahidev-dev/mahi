@@ -48,7 +48,7 @@ const NO_LIKES: CommentLike = { liked: false, count: 0 };
 interface SocialState {
   likedByMe: Record<string, boolean>;
   comments: Record<string, CommentWithProfile[]>;
-  /** Comment likes (flag comment-likes), by comment id. */
+  /** Comment likes, by comment id. */
   commentLikes: Record<string, CommentLike>;
   /** By post id: this opening's comment likes have arrived (hearts show only then). */
   commentLikesReady: Record<string, boolean>;

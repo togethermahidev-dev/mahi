@@ -9,7 +9,6 @@ import { deleteAccount, signOut } from '@/api/auth';
 import { DELETE_ACCOUNT_CONFIRM } from '@/lib/account';
 import { VERSION_LINE } from '@/lib/appBuild';
 import { reportError } from '@/lib/sentry';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
 import { WelcomeCardsModal } from '@/components/WelcomeCards';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -74,9 +73,6 @@ function Sheet({
 
   const [blockedListOpen, setBlockedListOpen] = useState(false);
   const [securityOpen, setSecurityOpen] = useState(false);
-  const deleteEnabled = useFeatureFlag('account-delete');
-  // Help shows the welcome cards again, so it follows their switch.
-  const helpEnabled = useFeatureFlag('onboarding-welcome-cards');
   const [helpOpen, setHelpOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -203,7 +199,7 @@ function Sheet({
             <Text style={[styles.sectionLabel, { color: muted }]}>Account access</Text>
             <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
               <Pressable
-                style={(state) => rowStyle(state, deleteEnabled)}
+                style={(state) => rowStyle(state, true)}
                 onPress={handleLogout}
                 accessibilityRole="button"
                 accessibilityLabel="Log out"
@@ -211,21 +207,19 @@ function Sheet({
                 <Text style={[styles.rowLabel, { color: text }]}>Log out</Text>
                 <Text style={[styles.chevron, { color: muted }]}>›</Text>
               </Pressable>
-              {deleteEnabled ? (
-                <Pressable
-                  style={(state) => rowStyle(state, false)}
-                  onPress={handleDeleteAccount}
-                  disabled={deleting}
-                  accessibilityRole="button"
-                  accessibilityLabel="Delete account"
-                  accessibilityState={{ disabled: deleting, busy: deleting }}
-                >
-                  <Text style={[styles.rowLabel, { color: danger }]}>
-                    {deleting ? 'Deleting your account…' : 'Delete account'}
-                  </Text>
-                  <Text style={[styles.chevron, { color: danger }]}>›</Text>
-                </Pressable>
-              ) : null}
+              <Pressable
+                style={(state) => rowStyle(state, false)}
+                onPress={handleDeleteAccount}
+                disabled={deleting}
+                accessibilityRole="button"
+                accessibilityLabel="Delete account"
+                accessibilityState={{ disabled: deleting, busy: deleting }}
+              >
+                <Text style={[styles.rowLabel, { color: danger }]}>
+                  {deleting ? 'Deleting your account…' : 'Delete account'}
+                </Text>
+                <Text style={[styles.chevron, { color: danger }]}>›</Text>
+              </Pressable>
             </View>
           </>
         ) : (
@@ -262,29 +256,25 @@ function Sheet({
               </Pressable>
             </View>
 
-            {helpEnabled ? (
-              <>
-                <View style={styles.spacer} />
-                <Text style={[styles.sectionLabel, { color: muted }]}>Support</Text>
-                <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
-                  <Pressable
-                    style={(state) => rowStyle(state, false)}
-                    onPress={() => setHelpOpen(true)}
-                    accessibilityRole="button"
-                    accessibilityLabel="Help"
-                    accessibilityHint="Shows how Mahi works"
-                  >
-                    <View style={styles.rowCopy}>
-                      <Text style={[styles.rowLabel, { color: text }]}>Help</Text>
-                      <Text style={[styles.rowDetail, { color: muted }]}>
-                        See how tags and points work
-                      </Text>
-                    </View>
-                    <Text style={[styles.chevron, { color: muted }]}>›</Text>
-                  </Pressable>
+            <View style={styles.spacer} />
+            <Text style={[styles.sectionLabel, { color: muted }]}>Support</Text>
+            <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
+              <Pressable
+                style={(state) => rowStyle(state, false)}
+                onPress={() => setHelpOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Help"
+                accessibilityHint="Shows how Mahi works"
+              >
+                <View style={styles.rowCopy}>
+                  <Text style={[styles.rowLabel, { color: text }]}>Help</Text>
+                  <Text style={[styles.rowDetail, { color: muted }]}>
+                    See how tags and points work
+                  </Text>
                 </View>
-              </>
-            ) : null}
+                <Text style={[styles.chevron, { color: muted }]}>›</Text>
+              </Pressable>
+            </View>
           </>
         )}
 

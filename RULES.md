@@ -86,7 +86,7 @@
   - `complete-signup` `{ email, password, code }` → creates the account only for a code verified in the last 30 minutes
   - Auth hook `hook_require_verified_signup` (Before User Created) refuses email accounts without that stamp
   - These three read only `purpose = 'signup'` codes in `otp_codes`
-- Password reset (flag `auth-password-reset`) uses the same table with `purpose = 'reset'`:
+- Password reset uses the same table with `purpose = 'reset'`:
   - `send-reset-code` `{ email }` → same answer and same work whether or not the email has an account
   - `reset-password` `{ email, code, password }` → 5 tries, then sets the password with the admin API
 - Codes are emailed via Resend from `noreply@mahitechnology.com`. Test with real inboxes (Gmail works;
@@ -127,7 +127,7 @@
 - Profile data is inserted into `public.profiles` after successful `signInWithPassword`
 - Sign-up keeps date of birth and phone number as required fields (founder, 2026-10-01)
 - Log in → "Forgot password?" (`ForgotPasswordSheet`, `OtpCodeInput`) emails a code; code + new password log you in
-- Settings → Security and privacy → "Delete account" (flag `account-delete`; Apple requires in-app deletion) asks once, then calls
+- Settings → Security and privacy → "Delete account" (Apple requires in-app deletion) asks once, then calls
   `delete-account`: photos removed, auth user deleted, every table cascades
   (`20261001100100_account_delete_cascade`)
 

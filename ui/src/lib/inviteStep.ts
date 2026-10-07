@@ -1,5 +1,5 @@
 /**
- * The "Invite 3 friends" step in the tag sheet (flag `tags-invite-step`, owner's call 2026-10-01).
+ * The "Invite 3 friends" step in the tag sheet (owner's call 2026-10-01; standard since 2026-10-07).
  * Every post fills its tag slots; an invite link fills any slot friends can't (the server rule in
  * tagRules.ts). A newcomer invited by a friend can't tag that friend back, so they start with no
  * one to tag — the sheet then leads with a plain invite step instead of an empty list.
@@ -34,22 +34,18 @@ export function slotCount({
 
 /**
  * What the tag sheet leads with. `availableFriends` is how many friends can be tagged right now
- * (null until the list has loaded). Off flag, invites off, or picking from a caption `@` = today.
+ * (null until the list has loaded). Picking from a caption `@` always shows the friends list.
  */
 export function tagSheetStep({
-  flagOn,
-  canInvite,
   singleShot,
   availableFriends,
   maxTags,
 }: {
-  flagOn: boolean;
-  canInvite: boolean;
   singleShot: boolean;
   availableFriends: number | null;
   maxTags: number;
 }): 'invite' | 'friends' | 'loading' {
-  if (!flagOn || !canInvite || singleShot) return 'friends';
+  if (singleShot) return 'friends';
   if (availableFriends === null) return 'loading';
   return availableFriends < maxTags ? 'invite' : 'friends';
 }

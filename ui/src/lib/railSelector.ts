@@ -24,7 +24,7 @@ export type RailTab = 'camera' | 'feed' | 'messages' | 'profile';
  * and Messages get the dock instead (`dockShows`). Neither shows under a pop-up or a full-screen view.
  */
 export function railShows(s: {
-  /** The `nav-glass-rail` switch. */
+  /** Whether the glass rail is used at all (false with the phone's own tab bar). */
   on: boolean;
   /** The screen showing. */
   tab: RailTab;
@@ -37,7 +37,7 @@ export function railShows(s: {
 /**
  * Whether the glass bar shows along the bottom of the page (the dock): on Feed, Profile and
  * Messages, so every page has a tap to every other (owner, 2026-10-06, re-deciding #51). Same
- * switch and the same hiding rules as the rail.
+ * `on` and the same hiding rules as the rail.
  */
 export function dockShows(s: Parameters<typeof railShows>[0]): boolean {
   return s.on && s.tab !== 'camera' && !s.overlay && !s.covered;

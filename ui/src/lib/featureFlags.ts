@@ -14,30 +14,14 @@
 
 export const FEATURE_FLAGS = [
   // Kill-switches
-  'camera-pip-guide', // live camera shows a small window: what comes second, then the first photo
   'camera-tap-focus', // tap the live camera to focus and expose there (build 11+, default OFF)
-  'notifications-core', // notifications activity feed
-  'auth-password-reset', // "Forgot password?" emails a code, then sets a new password
-  'account-delete', // Settings -> Delete account (Apple requires in-app deletion)
 
   // Tag loop (see docs/tag-loop-plan.md)
   'push-core', // the "turn on notifications" page and the camera's reminder line (default OFF; server keeps queueing when off)
-  'tag-challenges', // P2 open-tags banner (the 3-tag rule is switched in app_config)
-  'invite-links', // P7 invite a slot from the tag sheet, share links after posting
-  'feed-lock-explainer', // locked feed says why (who tagged you); open feed says how long it stays open
-  'tags-invite-step', // tag sheet leads with "Invite 3 friends" when friends can't fill the slots; invite list after posting
   'tag-slots', // one tag screen: tag friends, invite anyone on Mahi, share links on tap; each slot shows its state (default OFF)
-
-  // Navigation
-  'nav-glass-rail', // glass rail on the Camera's left, glass dock along the bottom of the other pages
-  'nav-rail-morph', // rail as one floating pill with a sliding selector; hold and drag to switch
-
-  // Onboarding
-  'onboarding-welcome-cards', // one-time 3-card carousel teaching the post / tag / feed loop
 
   // Posts
   'video-posts', // each shot can be a photo or a video of up to 15 s; feed plays them (default OFF)
-  'comment-likes', // a heart and count on each comment; tap the count to see who liked it
 
   // Look
   'ios-sf-symbols', // iPhone shows Apple's own icons in place of the drawn ones; needs build 11 (default OFF)

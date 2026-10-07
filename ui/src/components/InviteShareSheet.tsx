@@ -17,7 +17,7 @@ import {
 import { themeColors } from '@/lib/themeColors';
 
 /**
- * After posting (flag `tags-invite-step`): the post's invite links, one row each, showing which
+ * After posting: the post's invite links, one row each, showing which
  * are sent. Each "Send" opens one share sheet for one link; a sent one can be sent again.
  * Closing with links unsent asks first, since the app can't get them back later.
  * The camera is always dark, so this sheet is too.

@@ -16,7 +16,6 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { haptic } from '@/lib/haptics';
 import { useFeedStore, useProfilePostsStore, useSocialStore, useUserStore } from '@/store';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import KeyboardInset from '@/components/KeyboardInset';
 import CommentLikersSheet from '@/components/CommentLikersSheet';
 import UserProfileScreen from '@/screens/UserProfileScreen';
@@ -51,7 +50,7 @@ function CommentRow({
 }: {
   comment: CommentWithProfile;
   dark: boolean;
-  /** Comment likes (flag comment-likes), once this opening's numbers have arrived. */
+  /** Comment likes, once this opening's numbers have arrived. */
   showLikes: boolean;
   /** Tap on the count: who liked it. */
   onShowLikers: (commentId: string) => void;
@@ -246,15 +245,14 @@ function CommentThread({ postId, dark }: { postId: string; dark: boolean }) {
   };
   const inputRef = useRef<TextInput>(null);
 
-  // Comment likes (flag comment-likes): read fresh each time the comments open; the hearts show
-  // once they've arrived, so a count never jumps from an old number to a new one.
-  const likesOn = useFeatureFlag('comment-likes');
+  // Comment likes: read fresh each time the comments open; the hearts show once they've
+  // arrived, so a count never jumps from an old number to a new one.
   const reportsOn = true; // reports are standard for everyone (owner, 2026-10-06)
   const likesReady = useSocialStore((s) => s.commentLikesReady[postId] === true);
-  const showLikes = likesOn && likesReady;
+  const showLikes = likesReady;
   useEffect(() => {
-    if (likesOn) useSocialStore.getState().loadCommentLikes(postId);
-  }, [likesOn, postId]);
+    useSocialStore.getState().loadCommentLikes(postId);
+  }, [postId]);
   const [likersFor, setLikersFor] = useState<string | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const openProfile = useCallback((userId: string) => {

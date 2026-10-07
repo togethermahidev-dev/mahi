@@ -4,7 +4,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useChromeStore } from '@/store';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { POST_CARD, SPACE } from '@/constants/tokens';
 
 /**
@@ -38,7 +37,7 @@ export function usePageSize(): { width: number; height: number } {
  */
 export function useRailRoom(): number {
   const inTabs = useContext(TabBarRoomContext) !== null;
-  const shown = useFeatureFlag('nav-glass-rail') && !inTabs;
+  const shown = !inTabs;
   const { navRail } = useAppTheme();
   const { left } = useSafeAreaInsets();
   return shown ? left + navRail.edgeGap + navRail.width + SPACE.s8 : 0;

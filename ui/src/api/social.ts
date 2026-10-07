@@ -92,7 +92,7 @@ export async function addComment(
   return { data: data as unknown as CommentWithProfile, error: null };
 }
 
-// ─── Comment likes (flag comment-likes) ──────────────────────────────────────
+// ─── Comment likes ───────────────────────────────────────────────────────────
 
 /** One comment's like count and whether the signed-in person liked it. */
 export type CommentLikes = { comment_id: string; like_count: number; liked_by_me: boolean };

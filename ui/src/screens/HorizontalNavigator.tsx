@@ -29,7 +29,6 @@ import UserProfileScreen from '@/screens/UserProfileScreen';
 import AppHeader from '@/components/AppHeader';
 import GlobalSearchOverlay from '@/components/GlobalSearchOverlay';
 import NavRail, { type RailTab } from '@/components/NavRail';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
@@ -74,8 +73,7 @@ export type TabBarLink = {
 export default function HorizontalNavigator({
   tabBar,
 }: { tabBar?: TabBarLink } = {}): React.JSX.Element {
-  const showRail = useFeatureFlag('nav-glass-rail') && !tabBar;
-  const railMorph = useFeatureFlag('nav-rail-morph');
+  const showRail = !tabBar;
   const { dark, navRail } = useAppTheme();
   const insets = useSafeAreaInsets();
   // Each page is one page wide: the window, or with the tab bar the space above it.
@@ -171,9 +169,9 @@ export default function HorizontalNavigator({
   const startY = useSharedValue(0);
   const decided = useSharedValue(false);
   const base = useSharedValue(0);
-  // nav-rail-morph: where the rail is on screen. A touch that starts there belongs to the rail.
+  // Where the rail is on screen. A touch that starts there belongs to the rail.
   const railRectSV = useSharedValue<Rect | null>(null);
-  const railOwnsTouches = railShown && railMorph;
+  const railOwnsTouches = railShown;
   useEffect(() => {
     if (!railOwnsTouches) railRectSV.value = null;
   }, [railOwnsTouches, railRectSV]);
@@ -485,14 +483,10 @@ export default function HorizontalNavigator({
             onSelect={selectTab}
             onDark
             blurTarget={Platform.OS === 'android' ? blurTargetRef : undefined}
-            morph={railMorph}
-            onRect={
-              railMorph
-                ? (rect) => {
-                    railRectSV.value = rect;
-                  }
-                : undefined
-            }
+            morph
+            onRect={(rect) => {
+              railRectSV.value = rect;
+            }}
           />
         ) : null}
         {dockShown ? <NavRail dock active={tab} onSelect={selectTab} onDark={dark} /> : null}

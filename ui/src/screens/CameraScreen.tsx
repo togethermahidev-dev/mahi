@@ -57,7 +57,6 @@ import {
   type TaggedUser,
   type FeedPost,
   type TaggableFriend,
-  type PostInvite,
 } from '@/api';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import OpenTagsBanner from '@/components/OpenTagsBanner';
@@ -1226,8 +1225,6 @@ function TagSheet({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<TaggableFriend[]>([]);
   const maxTags = useTagStore((s) => s.maxTags);
-  const canInvite = useFeatureFlag('invite-links');
-  const inviteStepOn = useFeatureFlag('tags-invite-step');
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchRef = useRef<TextInput>(null);
@@ -1248,8 +1245,6 @@ function TagSheet({
     setInvites((n) => n + 1);
   };
   const step = tagSheetStep({
-    flagOn: inviteStepOn,
-    canInvite,
     singleShot: !!singleShot,
     availableFriends,
     maxTags,
@@ -1267,12 +1262,11 @@ function TagSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  // With the invite step on, the keyboard waits until we know friends can fill the slots, so it
-  // never covers the step. Off: the search field takes focus on open, as before.
+  // The keyboard waits until we know friends can fill the slots, so it never covers the step.
   const stepIsFriends = step === 'friends';
   useEffect(() => {
-    if (visible && inviteStepOn && stepIsFriends) searchRef.current?.focus();
-  }, [visible, inviteStepOn, stepIsFriends]);
+    if (visible && stepIsFriends) searchRef.current?.focus();
+  }, [visible, stepIsFriends]);
 
   // Friends who follow back, filtered as you type (350ms debounce). An empty
   // query lists them all, so the sheet opens with the people you can tag.
@@ -1380,7 +1374,6 @@ function TagSheet({
           onChangeText={setQuery}
           placeholder="Search your friends"
           placeholderTextColor={themeColors(true).muted}
-          autoFocus={!inviteStepOn}
           autoCapitalize="none"
           autoCorrect={false}
           autoComplete="off"
@@ -1414,7 +1407,7 @@ function TagSheet({
           )}
         />
 
-        {singleShot || !canInvite || step !== 'friends' ? null : (
+        {singleShot || step !== 'friends' ? null : (
           <View style={styles.inviteRow}>
             <Text style={styles.inviteLabel}>
               {invites > 0
@@ -1472,25 +1465,6 @@ function TagSheet({
       </View>
     </Modal>
   );
-}
-
-/**
- * Hand over one invite link at a time: each is for one person and works once, so they can't
- * go out in a single message. The share sheet resolves when it closes, so the next one waits
- * its turn. A link the user skips stays on the server but the app has no way back to it.
- */
-async function shareInvites(invites: PostInvite[]): Promise<void> {
-  for (const invite of invites) {
-    try {
-      const result = await Share.share({ message: inviteShareMessage(invite.url, invite.code) });
-      // Only a link that actually went somewhere counts as shared.
-      if (result.action === Share.sharedAction) track('invite_shared', {});
-    } catch (e) {
-      reportError(e, { flow: 'invites', action: 'shareInvites', extra: { count: invites.length } });
-      // A share sheet that won't open shouldn't undo a post that already landed.
-      return;
-    }
-  }
 }
 
 // ─── CameraScreen ─────────────────────────────────────────────────────────────
@@ -1563,9 +1537,6 @@ export default function CameraScreen({
   const setProfile = useUserStore((s) => s.setProfile);
   const requiredTags = useTagStore((s) => s.requiredTags);
   const { openTags, serverOffsetMs, loaded: tagsLoaded } = useOpenTags();
-  const showTagBanner = useFeatureFlag('tag-challenges');
-  const pipGuideOn = useFeatureFlag('camera-pip-guide');
-  const inviteStepOn = useFeatureFlag('tags-invite-step');
   // Flag `tag-slots`: slots filled on the tag screen before posting. Read fresh from the server
   // whenever a preview opens — never kept on the phone (they expire).
   const tagSlotsOn = useFeatureFlag('tag-slots');
@@ -2277,11 +2248,9 @@ export default function CameraScreen({
       useTagStore.getState().syncOpenTags();
       if (tagSlotsOn) {
         // Links were shared on the tag screen; nothing is left to send.
-      } else if (inviteStepOn) {
+      } else {
         // A list to send them from, one share sheet each, so none is silently lost.
         setPostInvites(inviteList(result.invites));
-      } else {
-        await shareInvites(result.invites);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -2483,7 +2452,6 @@ export default function CameraScreen({
 
   // The small window in the preview's photo-in-photo spot: what comes second, then the first photo.
   const guide = pipGuide({
-    guideOn: pipGuideOn,
     state: captureState,
     facing,
     hasFirstPhoto: guidePhotoUri !== null,
@@ -2554,7 +2522,7 @@ export default function CameraScreen({
 
         <PointsCounter count={pointsCountNow} />
 
-        {showTagBanner && !blocked && (
+        {!blocked && (
           <OpenTagsBanner
             openTags={openTags}
             serverOffsetMs={serverOffsetMs}

@@ -9,6 +9,8 @@ flag is simply on.
 The seven added 2026-10-01 (`onboarding-welcome-cards`, `feed-lock-explainer`, `nav-rail-morph`,
 `camera-pip-guide`, `tags-invite-step`, `auth-password-reset`, `account-delete`) and four that had never
 been created (`nav-glass-rail`, `invite-links`, `tag-challenges`, `mahi-points`) were created that day.
+Since 2026-10-07 the code no longer reads twelve of these (see
+[Removed from code 2026-10-07](#removed-from-code-2026-10-07)).
 **`push-core` is deliberately not created** (checked 2026-10-02), and since 2026-10-02 it is a
 default-off flag, so it reads as off — even while flags load — until push notifications are set up on
 the server and the owner creates it (steps in
@@ -32,8 +34,8 @@ PostHog project: **EU region, `project_id=130791`**.
 ```ts
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 
-const showBell = useFeatureFlag('notifications-core');
-if (!showBell) return null;
+const videoOn = useFeatureFlag('video-posts');
+if (!videoOn) return null;
 ```
 
 - Keys are the typed `FeatureFlag` union in [`ui/src/lib/featureFlags.ts`](../ui/src/lib/featureFlags.ts) — the single
@@ -54,14 +56,10 @@ if (!showBell) return null;
   `true`. Use this for a feature that must never show, even for a moment on cold start (video posts would
   otherwise be able to ask for the microphone before flags load; the full-screen notifications page would
   flash up on a first launch).
-- Reference gate: the notifications bell in [`ui/src/components/AppHeader.tsx`](../ui/src/components/AppHeader.tsx) is
-  gated by `notifications-core`.
 
 ## The flags
 
-Twenty-one keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone.)
-
-**Notifications:** `notifications-core` (the bell in the header and the notifications list)
+Nine keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone. Nor do the twelve switches removed on 2026-10-07 — see [Removed from code 2026-10-07](#removed-from-code-2026-10-07).)
 
 **Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
 are switched in the `app_config` table):
@@ -72,27 +70,16 @@ welcome cards and the phone's camera question — "When do you post on Mahi?", o
 camera's open-tags pill, "Turn on notifications so you never miss a tag", which opens Mahi in the
 phone's Settings (or the phone's question if it was never asked). Works on build 10; needs `send-push`
 live to be worth switching on. The server queues pushes whether it is on or off. Off = nobody is asked;
-phones that already allowed still register.) · `tag-challenges` (P2, the open-tags banner) ·
-`invite-links` (P7, invite a slot from the tag sheet and share the links after posting; the 6-character
-code works, but links point at `togethermahi.com`, which doesn't resolve yet — see [tag-loop-plan.md](./tag-loop-plan.md) Phase 7)
-`feed-lock-explainer` (the locked feed names who tagged you and how long you have to answer, or, with
-no open tag, says you can post again when a friend tags you; the open feed shows a live countdown
-(hh:mm:ss, in the camera tag pill's style, since 2026-10-05) to when it would lock, or, if you're
-tagged, to when it locks. Off = the plain locked post cards.)
-`tags-invite-step` (when friends can't fill a post's tag slots, the tag sheet leads with "Invite N friends to post", a big invite button and a count of slots filled; after posting, a list of the invite links shows which are sent and lets each be sent again. Off = the small + stepper and share sheets one after another.)
+phones that already allowed still register.)
 `tag-slots` (**default off**; added 2026-10-03; needs migration `20261003120000_tag_slots` applied first). On:
 one "Tag 3 friends" screen. Three slots at the top, each showing where it's at (tagged, invite sent,
 accepted, link ready, shared, joined). Search finds anyone on Mahi: a friend is tagged; someone who isn't
 a friend gets an in-app invite ("@x wants to tag you", Accept / Not now in their notifications). A share
 row (WhatsApp, Messages, Copy or more) makes a personal link on tap and fills a slot. Friends first:
 invites wait until every friend you could tag is tagged. Live while open; nothing kept on the phone.
-Off = today's tag sheet (with `tags-invite-step`). The caption's `@` still picks one friend either way.
+Off = today's tag sheet (with the invite step). The caption's `@` still picks one friend either way.
 
-**Camera:** `camera-pip-guide` (before the first photo, a small window in the preview's photo-in-photo
-spot says what comes second — "Selfie next" / "Your view next"; after it, the window shows the photo just
-taken while the screen switches to the other camera. Status reads "Taking photo…", "Switching…", "Tap for
-your selfie" / "Tap for your view". Off = no window and the old capture labels.)
-`camera-tap-focus` (**default off**; needs build 11). On: one tap on the live camera focuses and sets the
+**Camera:** `camera-tap-focus` (**default off**; needs build 11). On: one tap on the live camera focuses and sets the
 exposure there, with a small yellow square at the tap that settles and fades (Reduce Motion: it only
 appears and fades). Two taps still switch camera; with this on, a single tap waits 0.28 s to tell them
 apart. Moving the phone (a new scene) goes back to normal autofocus. iPhone only; Android and build 10
@@ -129,13 +116,6 @@ View profile; a double tap still likes, the small photo still drags, and holding
 column does nothing new. VoiceOver: the same choices are actions on the square, row or post. On build
 10 or Android it reads as off. Off = today's grid, Messages list and hold to view exactly.
 
-**Comments:** `comment-likes` (a heart and a count on each comment in the comments sheet — in the feed
-and the post viewer; a tap likes or unlikes at once and rolls back if the server says no; tap the count
-to open "Likes", who liked it, newest first, with a tap on a name opening their profile. People blocked
-either way can't like each other's comments and don't show in the list. Counts and the list are read
-fresh from the server each time; nothing is kept on the device. Needs migration
-`20261002130000_comment_likes`. Off = comments exactly as before, no hearts.)
-
 **Look:** `ios-sf-symbols` (**ON at 100% since 2026-10-06**; default off in code; needs build 11+). On an iPhone, the app's plain drawn icons
 become Apple's own (SF Symbols) at the same size and colour: search → magnifying glass, camera, feed →
 three left-aligned lines, profile → person, settings → gear, notifications → bell, heart (red filled heart
@@ -154,26 +134,34 @@ restore and RevenueCat's paywall. No screen uses it yet. Needs the RevenueCat na
 `EXPO_PUBLIC_REVENUECAT_IOS_KEY` in the lane. On a build without RevenueCat, or with no key, it reads as off
 and RevenueCat is never started.)
 
-**Navigation:** `nav-glass-rail` (floating glass rail on the left of the Camera, with Camera, Feed,
-Profile and Messages, and the same bar along the bottom of Feed, Profile and Messages; replaces the header's Profile/Messages pills. Off = the pills. Builds without the
-phone's tab bar only: on build 12+ the tab bar takes its place, no switch.)
-`nav-rail-morph` (the rail reads as one floating pill with an outline and shadow; one selector slides
-and stretches between icons; press and hold or drag along the rail to switch screens live. A touch that
-starts on the rail never moves the pages. Off = today's rail.)
-
-**Onboarding:** `onboarding-welcome-cards` (one-time 3-card welcome carousel after sign-in that
-teaches post when a friend tags you → every post tags 3 friends → feed opens/locks; shown once per account
-per device, and again from Settings → Help. Off = never shown, and the Help row is hidden.)
-
-**Account:** `auth-password-reset` ("Forgot password?" on the log-in sheet emails a 6-digit code, then
-the code and a new password set it and log you in. Needs the `send-reset-code` and `reset-password`
-functions and migration `20261001100000_password_reset_codes`. Off = no "Forgot password?" link.) ·
-`account-delete` (Settings → Security and privacy → "Delete account" asks once, plainly, then deletes the profile, posts,
-photos, messages and points and logs out. Needs the `delete-account` function. Off = no row.)
-
 **Sign-in placeholders** (pills on the welcome screen with no sign-in behind them yet):
 `auth-apple-signin` · `auth-google-signin`. **Currently on at 100%** — the owner's choice on 2026-09-23 to
 preview the look; tapping them does nothing. Set both to 0% before real users see the welcome screen.
+
+## Removed from code 2026-10-07
+
+These twelve were on at 100% for everyone since about 2026-10-01. The owner made them standard on
+2026-10-07: the code no longer reads them and always behaves as they did when on. **They still exist in
+PostHog. The owner deletes each one there only after every phone has the update that removed them** (an
+older update still reads them, and a key missing from PostHog reads as off).
+
+- `notifications-core` — the bell in the header and the notifications list.
+- `tag-challenges` — the camera's open-tags banner.
+- `invite-links` — invite a slot from the tag sheet and share the links after posting.
+- `feed-lock-explainer` — the locked feed says who tagged you and how long you have to answer; the open
+  feed shows a live countdown to when it locks.
+- `tags-invite-step` — when friends can't fill a post's tag slots, the tag sheet leads with "Invite N
+  friends to post"; after posting, a list of the invite links shows which are sent and lets each be sent
+  again.
+- `camera-pip-guide` — the small window on the live camera says what comes second, then shows the first
+  photo while the camera switches.
+- `comment-likes` — a heart and a count on each comment; tap the count to see who liked it.
+- `nav-glass-rail` — the glass rail on the Camera's left and the glass bar along the bottom of the other
+  pages, on builds without the phone's own tab bar (the tab bar takes its place where there is one).
+- `nav-rail-morph` — the rail as one floating pill with a sliding selector; hold and drag to switch.
+- `onboarding-welcome-cards` — the one-time three-card welcome, and Settings → Help to see it again.
+- `auth-password-reset` — "Forgot password?" on the log-in sheet.
+- `account-delete` — Settings → Security and privacy → "Delete account".
 
 ## Creating / managing flags
 

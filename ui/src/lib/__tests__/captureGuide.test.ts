@@ -78,7 +78,6 @@ describe('captureStepLabel — the persistent two-shot guide by the shutter', ()
 
 describe('pipGuide — what the small window on the live camera shows', () => {
   const base = {
-    guideOn: true,
     state: 'idle' as CaptureState,
     facing: 'back' as const,
     hasFirstPhoto: false,
@@ -128,13 +127,6 @@ describe('pipGuide — what the small window on the live camera shows', () => {
 
   it('is hidden without camera permission', () => {
     expect(pipGuide({ ...base, cameraGranted: false })).toBeNull();
-  });
-
-  it('is hidden when the flag is off', () => {
-    expect(pipGuide({ ...base, guideOn: false })).toBeNull();
-    expect(
-      pipGuide({ ...base, guideOn: false, state: 'awaiting-second', hasFirstPhoto: true })
-    ).toBeNull();
   });
 });
 

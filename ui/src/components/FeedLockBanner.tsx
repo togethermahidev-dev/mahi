@@ -1,5 +1,5 @@
 /**
- * Top of the feed, under the app header (flag 'feed-lock-explainer'):
+ * Top of the feed, under the app header:
  * - locked → one card saying why (who tagged you, or that you haven't posted) and one button: to
  *   the camera when there's something to post, or to people search when there isn't;
  * - open → a live countdown to when the feed would lock (or, if you're tagged, to when it locks),

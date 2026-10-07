@@ -7,7 +7,7 @@ export type CommentLikersState =
   { status: 'loading' } | { status: 'ready'; likers: CommentLiker[] } | { status: 'error' };
 
 /**
- * Who liked a comment (flag comment-likes). Live server data: every opening shows a loading state,
+ * Who liked a comment. Live server data: every opening shows a loading state,
  * then the fresh list. Nothing is kept on the device or between openings.
  */
 export function useCommentLikers(commentId: string | null): CommentLikersState {

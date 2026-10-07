@@ -15,7 +15,7 @@ import {
 import { themeColors } from '@/lib/themeColors';
 
 /**
- * The tag sheet's lead when friends can't fill the post's slots (flag `tags-invite-step`):
+ * The tag sheet's lead when friends can't fill the post's slots:
  * why, a big button to invite, and how many slots are filled. The tag sheet is always dark.
  */
 export default function InviteStep({

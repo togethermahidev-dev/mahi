@@ -14,7 +14,6 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { CameraIcon, FeedIcon, ProfileIcon } from '@/components/ScreenIcons';
 import {
   WELCOME_CARDS,
@@ -54,7 +53,7 @@ function CardIllustration({ icon, color }: { icon: WelcomeCard['icon']; color: s
 /**
  * One-time welcome carousel, shown over the signed-in app until this account has closed it
  * on this device. Settings → Help shows the same cards again (WelcomeCardsModal).
- * `onSettled` says whether the cards are out of the way (seen before, switched off, or just
+ * `onSettled` says whether the cards are out of the way (seen before, or just
  * closed), so the notifications page never opens on top of them.
  */
 export default function WelcomeCards({
@@ -64,13 +63,11 @@ export default function WelcomeCards({
   userId: string;
   onSettled?: (settled: boolean) => void;
 }): React.JSX.Element | null {
-  const enabled = useFeatureFlag('onboarding-welcome-cards');
   const [visible, setVisible] = useState(false);
   // Whether "seen" has been read for this account yet.
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    if (!enabled) return;
     let cancelled = false;
     AsyncStorage.getItem(welcomeSeenKey(userId))
       .then((seen) => {
@@ -84,9 +81,9 @@ export default function WelcomeCards({
     return () => {
       cancelled = true;
     };
-  }, [userId, enabled]);
+  }, [userId]);
 
-  const settled = !enabled || (checked && !visible);
+  const settled = checked && !visible;
   useEffect(() => {
     onSettled?.(settled);
   }, [settled, onSettled]);
@@ -97,7 +94,7 @@ export default function WelcomeCards({
     AsyncStorage.setItem(welcomeSeenKey(userId), '1').catch(() => {});
   };
 
-  if (!enabled || !visible) return null;
+  if (!visible) return null;
   return <WelcomeCardsModal onClose={close} />;
 }
 

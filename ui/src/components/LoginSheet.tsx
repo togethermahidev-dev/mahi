@@ -12,7 +12,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { posthog } from '@/lib/posthog';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import ForgotPasswordSheet from '@/components/ForgotPasswordSheet';
 import { authErrorText } from '@/lib/account';
 import { reportAuthError } from '@/lib/authReport';
@@ -54,7 +53,6 @@ export default function LoginSheet({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const passwordRef = useRef<TextInput>(null);
-  const resetEnabled = useFeatureFlag('auth-password-reset');
   const [resetOpen, setResetOpen] = useState(false);
   const [resetKey, setResetKey] = useState(0); // a fresh reset sheet on every open
 
@@ -75,7 +73,7 @@ export default function LoginSheet({
       reportAuthError(signInError, 'login', 'signIn');
       posthog.capture('login_failed', { error: signInError.message });
       // Plain words, never the server's own text.
-      setError(authErrorText(signInError.message, 'login', { canReset: resetEnabled }));
+      setError(authErrorText(signInError.message, 'login', { canReset: true }));
       return;
     }
     posthog.capture('login_success', { user_id: data.user?.id });
@@ -204,19 +202,17 @@ export default function LoginSheet({
           </Pressable>
 
           {/* Forgot password */}
-          {resetEnabled && (
-            <Pressable
-              onPress={() => {
-                setError('');
-                setResetKey((k) => k + 1);
-                setResetOpen(true);
-              }}
-              style={({ pressed }) => pressed && styles.pressed}
-              accessibilityRole="button"
-            >
-              <Text style={[styles.forgot, { color: muted }]}>Forgot password?</Text>
-            </Pressable>
-          )}
+          <Pressable
+            onPress={() => {
+              setError('');
+              setResetKey((k) => k + 1);
+              setResetOpen(true);
+            }}
+            style={({ pressed }) => pressed && styles.pressed}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.forgot, { color: muted }]}>Forgot password?</Text>
+          </Pressable>
         </ScrollView>
       </SafeAreaView>
 

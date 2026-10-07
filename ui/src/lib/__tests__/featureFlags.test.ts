@@ -42,17 +42,33 @@ describe('FEATURE_FLAGS registry', () => {
       expect(key).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
     }
   });
-
-  it('includes the demo-gate flag wired into AppHeader', () => {
-    const demoGate: FeatureFlag = 'notifications-core';
-    expect(FEATURE_FLAGS).toContain(demoGate);
-  });
 });
 
 // Owner, 2026-10-06: reports and hold to preview are standard for everyone, no switch.
 it('reports and hold to preview have no switch', () => {
   expect(FEATURE_FLAGS).not.toContain('content-reports');
   expect(FEATURE_FLAGS).not.toContain('context-menu-preview');
+});
+
+// Owner, 2026-10-07: these were on at 100% since about 2026-10-01 and are now standard, no switch.
+it('the twelve switches made standard on 2026-10-07 are gone', () => {
+  const removed = [
+    'account-delete',
+    'auth-password-reset',
+    'camera-pip-guide',
+    'comment-likes',
+    'feed-lock-explainer',
+    'invite-links',
+    'nav-glass-rail',
+    'nav-rail-morph',
+    'notifications-core',
+    'onboarding-welcome-cards',
+    'tag-challenges',
+    'tags-invite-step',
+  ];
+  for (const key of removed) {
+    expect(FEATURE_FLAGS as readonly string[]).not.toContain(key);
+  }
 });
 
 describe('default-off flags (video-posts)', () => {
@@ -112,7 +128,7 @@ describe('default-off flags (video-posts)', () => {
 
   it('flagDefaultOn tells the two kinds apart', () => {
     expect(flagDefaultOn('video-posts')).toBe(false);
-    expect(flagDefaultOn('notifications-core')).toBe(true);
+    expect(flagDefaultOn('auth-apple-signin')).toBe(true);
   });
 });
 

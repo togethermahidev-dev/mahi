@@ -1,5 +1,5 @@
-// Words and checks for the account screens: password reset (flag auth-password-reset) and
-// account deletion (flag account-delete). Pure, so it is unit-tested.
+// Words and checks for the account screens: password reset and account deletion. Pure, so it
+// is unit-tested.
 import { getPasswordStrength } from './password';
 
 /** Digits in an emailed code. Same as OTP_LENGTH in ./otp (kept apart: that file is not pure). */

@@ -33,7 +33,7 @@ interface Props {
 }
 
 /**
- * "Forgot password?" (flag auth-password-reset): email → 6-digit code emailed → code + new
+ * "Forgot password?": email → 6-digit code emailed → code + new
  * password → password changed → logged in. The server never says whether the email has an account.
  */
 export default function ForgotPasswordSheet({

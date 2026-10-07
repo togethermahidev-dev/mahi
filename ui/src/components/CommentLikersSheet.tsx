@@ -22,7 +22,7 @@ import {
 import { themeColors } from '@/hooks/useAppTheme';
 
 /**
- * Who liked a comment (flag comment-likes), in a native page sheet over the comments: names and
+ * Who liked a comment, in a native page sheet over the comments: names and
  * pictures, newest first; a tap opens their profile in the sheet (as Blocked users does). Live
  * server data: a loading state each time it opens, then the fresh list; nothing is kept.
  */

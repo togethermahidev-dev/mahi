@@ -1,6 +1,6 @@
 import { slotShareMessage } from './tagSlots';
 /**
- * Sending the invite links a post hands back (flag `tags-invite-step`). Each link is for one
+ * Sending the invite links a post hands back. Each link is for one
  * person and works once, so each goes out in its own share sheet. The list shows which are sent
  * and lets any be sent again, so a skipped link isn't silently lost.
  *

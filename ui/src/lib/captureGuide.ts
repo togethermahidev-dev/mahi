@@ -1,7 +1,7 @@
 /**
  * The two-photo capture on the Camera screen: what the status line says, and what the small
  * photo-in-photo window on the live camera shows. Pure so it can be unit-tested; CameraScreen
- * reads these. `guideOn` is the `camera-pip-guide` flag — off hides the window.
+ * reads these.
  */
 
 export type CaptureState =
@@ -52,7 +52,6 @@ export type PipGuide =
 
 /** What the small window shows, or null when it's hidden. */
 export function pipGuide(input: {
-  guideOn: boolean;
   state: CaptureState;
   facing: CameraSide;
   hasFirstPhoto: boolean;
@@ -60,8 +59,8 @@ export function pipGuide(input: {
   blocked: boolean;
   cameraGranted: boolean;
 }): PipGuide | null {
-  const { guideOn, state, facing, hasFirstPhoto, blocked, cameraGranted } = input;
-  if (!guideOn || blocked || !cameraGranted) return null;
+  const { state, facing, hasFirstPhoto, blocked, cameraGranted } = input;
+  if (blocked || !cameraGranted) return null;
 
   const beforeFirst = state === 'idle' || state === 'capturing-first';
   if (!beforeFirst && hasFirstPhoto) return { kind: 'photo' };
