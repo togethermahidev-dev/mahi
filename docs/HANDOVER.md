@@ -34,6 +34,11 @@ plus everything after are also unchecked on a phone. Check, in this order, on a 
   the name filled in, then "Your profile", then the camera; Cancel there goes back to the welcome
   screen; an invite link still says who invited you and is claimed; signing out and in again with
   Apple goes straight to the camera; a build-12 phone on the same OTA shows no Apple button.
+- App Clip (after the owner steps below; from TestFlight first): on an iPhone without Mahi, tap an
+  invite link → the App Clip card → Open → "@sam tagged you on Mahi" (or "invited you"), the
+  48-hours / follow-each-other line, sam's name and photo; light and dark; Get Mahi opens the App
+  Store sheet. Install Mahi, open it, Create account: "@sam invited you" is already there and the
+  invite is claimed after sign-up. A used or run-out link says so and saves nothing.
 
 ### Sign in with Apple — owner steps before build 13 ships
 
@@ -71,6 +76,33 @@ No secrets in code; native sign-in needs only the bundle ID.
       row is gone and iPhone Settings → Apple Account → Sign in with Apple no longer lists Mahi.
    Missing secrets: `apple-token` answers 503 (sign-in carries on, a warning in Sentry) and
    `delete-account` deletes without revoking (warning in Sentry).
+
+### App Clip — owner steps before build 13 ships
+
+How it works: invite link → App Clip card → the clip (`ui/clip/MahiClip`, SwiftUI, no React Native,
+about 1 MB of fonts) reads `get_invite_preview` like the web page → Get Mahi saves the invite link
+in the App Group `group.com.mahi.app` and opens the App Store sheet → iOS keeps the App Group when
+Mahi is installed → Mahi reads it once, deletes it, and the sign-up screen says who invited you
+(`ui/src/lib/clipHandover.ts`). If that ever fails, copying the link into "Got an invite link?"
+still works. Switch `app-clip` (default on) only stops the app taking the hand-over; to turn the
+clip itself off, remove its App Clip experience in App Store Connect.
+1. PostHog: create `app-clip` at 100% (the app waits for PostHog's answer before taking a
+   hand-over, and a switch missing from PostHog reads off, so without it nothing is taken).
+2. Deploy the website once (web/README.md "How to deploy") so
+   `togethermahi.com/.well-known/apple-app-site-association` lists the App Clip.
+3. The interactive EAS build creates the clip's App ID `com.mahi.app.Clip` (App Groups and
+   Associated Domains on it, parent app `com.mahi.app`) and its profile; answer yes when it asks.
+   The plugin's author notes App Clip signing isn't fully automated: if EAS stops on the clip,
+   create `com.mahi.app.Clip` in Apple Developer → Identifiers by hand (App Clip of `com.mahi.app`,
+   App Groups `group.com.mahi.app`, Associated Domains), then run the build again.
+4. App Store Connect → Mahi → the build 13 version → App Clip: the default experience (header image
+   1800×1200 PNG/JPEG, a subtitle up to 56 characters, action Open). Then Advanced App Clip
+   Experiences → add `https://togethermahi.com/i/` (prefix, so every invite link opens it).
+   Apple checks the website's file (step 2) before it goes live.
+5. Once Mahi has an App Store id: put it in `APP_STORE_ID` in `web/app/_lib/links.ts` for
+   Safari's App Clip banner on the invite page, then deploy the site. Until then no banner.
+6. Not checked here: the Swift was type-checked against the iOS 16.4 SDK but never built or run;
+   App Clips can only really be tried from TestFlight (App Clips section) or the live store.
 
 ## 1. Where things stand
 

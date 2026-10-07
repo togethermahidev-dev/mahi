@@ -195,6 +195,7 @@ removal rule applies as usual: take the switch out of the code, then delete it i
 | `miss-roll-down` | The counter rolling down before the miss moment |
 | `profile-points-card` | The profile points card with the last three mates |
 | `widget-tagger-photo` | The tagger's photo on the lock screen and widget |
+| `app-clip` | The app taking the invite the App Clip handed over (create in PostHog at 100%; the clip itself is turned off in App Store Connect) |
 | `share-to-mahi` | Sharing a photo from Photos into Mahi |
 | `control-post-workout` | The Control Centre and lock screen "Post a workout" control |
 | `spotlight` | Mahi's actions in Spotlight |
