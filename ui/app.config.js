@@ -39,6 +39,13 @@ const config = {
       },
     ],
     [
+      'expo-contacts',
+      {
+        contactsPermission:
+          'Mahi uses your contacts to find mates already on Mahi and to invite the ones who aren’t. Nothing is saved or shared.',
+      },
+    ],
+    [
       'expo-camera',
       {
         cameraPermission: 'Mahi uses your camera to take your workout photos and videos.',
