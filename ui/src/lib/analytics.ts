@@ -10,6 +10,8 @@
  * `FEATURE_FLAGS` does for flags. See docs/tag-loop-plan.md, Phase 8.
  */
 import { posthog } from '@/lib/posthog';
+import { APP_BUILD } from '@/lib/appBuild';
+import { OTA_NUMBER } from '@/constants/ota';
 import { identityStep } from '@/lib/analyticsIdentity';
 
 export type TagLoopEvents = {
@@ -85,7 +87,25 @@ export async function syncAnalyticsIdentity(
     if (user && (step === 'identify' || step === 'reset_then_identify')) {
       posthog.identify(user.id, { email: user.email ?? null });
     }
+    // Every event says which app update sent it (a reset clears this, so it's set each time).
+    await posthog.register(appUpdateProperties());
   } catch {
     // Same as `track`: analytics never breaks signing in or out.
   }
+}
+
+/**
+ * Sent with every event (owner, 2026-10-07): which build and OTA update the phone runs, as
+ * `app_update` "12.30", so numbers can be checked per update and old updates told apart.
+ */
+export function appUpdateProperties(): {
+  app_build: number | null;
+  ota: number;
+  app_update: string;
+} {
+  return {
+    app_build: APP_BUILD,
+    ota: OTA_NUMBER,
+    app_update: `${APP_BUILD ?? '?'}.${String(OTA_NUMBER).padStart(2, '0')}`,
+  };
 }
