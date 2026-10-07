@@ -64,7 +64,9 @@ export function lockExplainer({
 
   if (openTags.length > 0) {
     const { who, first } = whoTagged(openTags);
-    const left = timeLeftText(msLeft(first.expires_at, serverOffsetMs, deviceNow));
+    // A ticking clock, like every tag countdown (owner, 2026-10-07).
+    const ms = msLeft(first.expires_at, serverOffsetMs, deviceNow);
+    const left = ms > 0 ? clockText(ms) : null;
     return {
       headline: `${who} tagged you.`,
       body: `Your feed is locked until you post your answer.${left ? ` ${left} left.` : ''}`,
@@ -84,8 +86,8 @@ export function lockExplainer({
   }
   return {
     headline: 'Your feed is locked.',
-    body: 'Post your first workout to see what your friends are doing. Any workout counts.',
-    button: 'Post a workout',
+    body: 'Post your first Mahi to get your first point and see what your mates are doing. Any workout counts.',
+    button: 'Post your first Mahi',
     target: 'camera',
   };
 }
@@ -100,7 +102,8 @@ export function lockedPostText({
   postedBefore: boolean;
 }): { hint: string; button?: string } {
   if (tagged) return { hint: 'Opens when you post your answer', button: 'Post your answer' };
-  if (!postedBefore) return { hint: 'Post your first workout to see it', button: 'Post a workout' };
+  if (!postedBefore)
+    return { hint: 'Post your first Mahi to see it', button: 'Post your first Mahi' };
   return { hint: 'Opens when a friend tags you' };
 }
 

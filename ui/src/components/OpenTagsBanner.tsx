@@ -3,7 +3,7 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useMinuteTick } from '@/hooks/useMinuteTick';
+import { useSecondTick } from '@/hooks/useSecondTick';
 import PushNudge from '@/components/PushNudge';
 import { FadeInItem } from '@/components/Motion';
 import Reanimated, {
@@ -15,7 +15,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { msLeft } from '@/lib/countdown';
-import { openTagsBanner } from '@/lib/openTagsBanner';
+import { bannerText, openTagsBanner } from '@/lib/openTagsBanner';
 import { openTagsTop } from '@/lib/pip';
 import type { OpenTag } from '@/api';
 import { FONTS } from '@/constants/fonts';
@@ -33,10 +33,9 @@ import {
 } from '@/constants/tokens';
 
 /**
- * Camera overlay: who tagged you and how long is left on the soonest deadline, and under it the
- * "turn on notifications" line for someone who has them off. A second line in the pill says when
- * one workout answers several tags, or that any workout counts for a newcomer's first post. With no open tags it says "First
- * post · no tag needed" to someone who has never posted (`firstPost`), else renders nothing.
+ * Camera overlay: what to do next (see `openTagsBanner` for the words). A first post, either kind,
+ * promises the first point; a tag shows who and a ticking clock. Under it, the "turn on
+ * notifications" line for someone tagged with them off. Nothing when there's nothing to do.
  */
 export default function OpenTagsBanner({
   openTags,
@@ -51,8 +50,8 @@ export default function OpenTagsBanner({
   // Just under the app header, whose height follows the status bar / notch.
   // Under the points counter (top right), so the two never overlap.
   const top = openTagsTop(useSafeAreaInsets().top, useWindowDimensions().fontScale);
-  // Hours and minutes only, so a refresh every minute keeps it right.
-  const deviceNow = useMinuteTick();
+  // Every tag countdown ticks in hours, minutes and seconds (owner, 2026-10-07).
+  const deviceNow = useSecondTick(openTags.length > 0);
 
   // The moment you answer: the tag pill morphs into a check for a beat. Only when the tags
   // left while still open (answered), never when they ran out.
@@ -115,20 +114,23 @@ export default function OpenTagsBanner({
           pointerEvents="none"
           accessible
           accessibilityRole="text"
-          accessibilityLabel={
-            isFirstPost
-              ? `Your first post needs no tag. ${banner.note ?? ''}`.trim()
-              : `${banner.who} tagged you. ${banner.left}.${banner.note ? ` ${banner.note}` : ''}`
-          }
+          accessibilityLabel={`${bannerText(banner)}${banner.note ? ` ${banner.note}` : ''}`}
         >
           <BlurView
             intensity={BLUR_INTENSITY.i40}
             tint="dark"
             style={[styles.pill, { borderColor: colors.accent }]}
           >
-            <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={2}>
-              {isFirstPost ? banner.who : `${banner.who} tagged you`} ·{' '}
-              <Text style={[styles.time, { color: colors.accent }]}>{banner.left}</Text>
+            <Text style={[styles.text, { color: colors.offWhite }]} numberOfLines={3}>
+              {banner.parts.map((part, i) =>
+                part.accent ? (
+                  <Text key={i} style={[styles.time, { color: colors.accent }]}>
+                    {part.text}
+                  </Text>
+                ) : (
+                  part.text
+                )
+              )}
             </Text>
             {/* One post answers every open tag; a newcomer hears that any workout counts. */}
             {banner.note ? (
@@ -183,6 +185,8 @@ const styles = StyleSheet.create({
   },
   time: {
     fontFamily: FONTS.bold,
+    // Same-width digits, so the ticking clock doesn't jitter.
+    fontVariant: ['tabular-nums'],
   },
   note: {
     fontFamily: FONTS.regular,

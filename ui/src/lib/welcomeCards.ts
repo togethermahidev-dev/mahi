@@ -14,7 +14,7 @@ export const WELCOME_CARDS: readonly WelcomeCard[] = [
   {
     icon: 'camera',
     title: 'Post when a friend tags you.',
-    body: 'Your first post needs no tag. After that, you post when a friend tags you: 48 hours to answer with a photo, back camera then selfie. Any workout counts. Each answer earns a Mahi point. Miss a tag and your points go back to 0, but your best stays.',
+    body: 'Post your first Mahi to get your first point and tag 3 mates. After that, you post when a friend tags you: 48 hours to answer with a photo, back camera then selfie. Any workout counts. Each answer earns a Mahi point. Miss a tag and your points go back to 0, but your best stays.',
   },
   {
     icon: 'people',

@@ -61,7 +61,7 @@ import {
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import OpenTagsBanner from '@/components/OpenTagsBanner';
 import { CameraIcon } from '@/components/ScreenIcons';
-import { pointsCount, pointsValue, postedToast } from '@/lib/mahiPoints';
+import { pointCelebration, pointsCount, pointsValue, postedToast } from '@/lib/mahiPoints';
 import KeyboardInset from '@/components/KeyboardInset';
 import WorkoutIdeasSheet from '@/components/WorkoutIdeasSheet';
 import FlashButton from '@/components/FlashButton';
@@ -145,12 +145,17 @@ import {
 } from '@/constants/tokens';
 import { themeColors } from '@/lib/themeColors';
 import { cameraCornerTop } from '@/lib/pip';
+import PointCelebration, { type PointCelebrationContent } from '@/components/PointCelebration';
 
-/** The camera when there's no open tag to answer (the refusal toast's words live in postRefusal). */
-const NO_TAGS_TITLE = 'You’re all caught up';
-const NO_TAGS_LINE = 'When a friend tags you, you’ll have 48 hours to answer.';
-/** The locked caught-up camera, with Find friends under it. */
-const QUIET_LINE = 'Quiet week? More friends means more tags.';
+/**
+ * The camera when there's no open tag to answer: says how Mahi works (reactive posting) and what
+ * comes next, never a dead end (the refusal toast's words live in postRefusal).
+ */
+const NO_TAGS_TITLE = 'Waiting for a mate to tag you';
+const NO_TAGS_LINE =
+  'On Mahi you post when a mate tags you. Answer within 48 hours to earn a Mahi point.';
+/** The locked camera with no tag, with Find friends under it. */
+const QUIET_LINE = 'On Mahi you post when a mate tags you. More mates means more tags.';
 /** The tags or the feed couldn't be read (no connection). */
 const OFFLINE_TITLE = 'Couldn’t reach Mahi';
 const OFFLINE_LINE = 'Check your connection. Your tags will show here.';
@@ -1544,6 +1549,9 @@ export default function CameraScreen({
   const [slots, setSlots] = useState<ScreenSlot[]>([]);
   // The last post's invite links and which are sent. In memory only — links expire.
   const [postInvites, setPostInvites] = useState<InviteItem[]>([]);
+  // The point-earned moment after a post, and the invite links waiting until it closes.
+  const [celebration, setCelebration] = useState<PointCelebrationContent | null>(null);
+  const invitesAfterCelebration = useRef<InviteItem[]>([]);
   // The first photo, shown in the small window on the live camera until the second is taken.
   const [guidePhotoUri, setGuidePhotoUri] = useState<string | null>(null);
   const [guideIsVideo, setGuideIsVideo] = useState(false);
@@ -2050,9 +2058,10 @@ export default function CameraScreen({
     haptic('postSent');
 
     const tempId = `pending_${Date.now()}`;
-    // Reactive posting: only a post that answers a tag earns a Mahi point.
+    // A Mahi point for your first ever post, or for a post that answers a tag (one either way).
+    const firstPostNow = hasPosted === false;
     const optimisticPoints =
-      profile.streak_current + (answersATag(openTags, serverOffsetMs) ? 1 : 0);
+      profile.streak_current + (firstPostNow || answersATag(openTags, serverOffsetMs) ? 1 : 0);
     const captionValue = caption || null;
     const taggedUsersSnapshot = taggedUsers;
     const inviteCountSnapshot = inviteCount;
@@ -2207,6 +2216,7 @@ export default function CameraScreen({
           ...current,
           streak_current: result.streak.streak_current,
           streak_highest: result.streak.streak_highest,
+          has_posted_before: true,
         });
       }
 
@@ -2225,7 +2235,7 @@ export default function CameraScreen({
         });
       }
 
-      if (result.answered.length > 0) useUserStore.getState().refresh(userId);
+      if (result.answered.length > 0 || firstPostNow) useUserStore.getState().refresh(userId);
       // An answer's toast offers a way to the friend whose tag it answered (the oldest one).
       const tagger = result.answered[0];
       const cheer =
@@ -2235,29 +2245,43 @@ export default function CameraScreen({
               onPress: () => onOpenProfileRef.current?.(tagger.tagger_id),
             }
           : undefined;
-      // Every post says it worked: the first post opens the feed; an answer earns the point.
+      const taggedCounts = {
+        friends: taggedUsersSnapshot.length + slotsSnapshot.filter((x) => x.kind !== 'link').length,
+        links: inviteCountSnapshot + slotsSnapshot.filter((x) => x.kind === 'link').length,
+      };
+      // A post that earns a point gets its full-screen moment; any other post, the toast.
+      const celebrate = result.replayed
+        ? null
+        : pointCelebration({
+            answered: result.answered.map((a) => a.username),
+            points: result.streak.streak_current,
+            bestBefore: profile.streak_highest,
+            firstPost: firstPostNow,
+            tagged: taggedCounts.friends + taggedCounts.links,
+          });
+      const invitesToSend = tagSlotsOn ? [] : inviteList(result.invites);
+      useTagStore.getState().syncOpenTags();
+      if (celebrate) {
+        // The invite list waits until the celebration is closed: one sheet at a time.
+        invitesAfterCelebration.current = invitesToSend;
+        setCelebration({ ...celebrate, cheer });
+        return;
+      }
+      // Every other post says it worked: it opens the feed and says who it tagged.
       useToastStore.getState().show(
         postedToast({
           answered: result.answered.map((a) => a.username),
           points: result.streak.streak_current,
           // The best before this post (`profile` was read before posting).
           bestBefore: profile.streak_highest,
-          tagged: {
-            friends:
-              taggedUsersSnapshot.length + slotsSnapshot.filter((x) => x.kind !== 'link').length,
-            links: inviteCountSnapshot + slotsSnapshot.filter((x) => x.kind === 'link').length,
-          },
+          tagged: taggedCounts,
         }),
         // A toast with a button stays long enough to reach it (at least as long as toastLong).
         cheer ? { action: cheer } : WAIT.toastLong
       );
-      useTagStore.getState().syncOpenTags();
-      if (tagSlotsOn) {
-        // Links were shared on the tag screen; nothing is left to send.
-      } else {
-        // A list to send them from, one share sheet each, so none is silently lost.
-        setPostInvites(inviteList(result.invites));
-      }
+      // A list to send any invite links from, one share sheet each, so none is silently lost.
+      // (With tag slots on, links were shared on the tag screen; nothing is left to send.)
+      setPostInvites(invitesToSend);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       haptic('error');
@@ -2826,6 +2850,17 @@ export default function CameraScreen({
           invites={postInvites}
           onSend={sendInvite}
           onClose={() => setPostInvites([])}
+        />
+
+        <PointCelebration
+          content={celebration}
+          onClose={() => {
+            setCelebration(null);
+            const waiting = invitesAfterCelebration.current;
+            invitesAfterCelebration.current = [];
+            // iOS shows one sheet at a time: let the celebration finish closing first.
+            if (waiting.length > 0) setTimeout(() => setPostInvites(waiting), DURATION.d300);
+          }}
         />
       </View>
     </GestureDetector>

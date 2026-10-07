@@ -397,10 +397,14 @@ export default function CreateAccountSheet({
       if (profileError)
         throw new Error('Profile save failed: ' + profileError.message, { cause: profileError });
 
-      // 4. Track completed sign-up — fitness_goals is used in PostHog dashboards.
+      // 4. Track completed sign-up — fitness_goals is used in PostHog dashboards. `joined_via`
+      //    splits the two paths (Maximus, 2026-10-07): an invite from a mate, or downloaded alone.
+      const joinedVia = useInviteStore.getState().pendingToken ? 'invite' : 'self';
       posthog.capture('signup_completed', {
         username: username.trim().toLowerCase(),
         fitness_goals: fitnessGoals,
+        joined_via: joinedVia,
+        $set_once: { joined_via: joinedVia },
       });
       Sentry.addBreadcrumb({ category: 'signup', message: 'Account created', level: 'info' });
       await clearOTP(); // the code is spent

@@ -1,4 +1,4 @@
-import { openTagsBanner } from '../openTagsBanner';
+import { bannerText, openTagsBanner } from '../openTagsBanner';
 
 const HOUR = 3600 * 1000;
 const MIN = 60 * 1000;
@@ -6,111 +6,90 @@ const deviceNow = Date.parse('2026-10-01T12:00:00.000Z');
 const at = (ms: number) => new Date(deviceNow + ms).toISOString();
 const tag = (username: string, expiresIn: number) => ({ username, expires_at: at(expiresIn) });
 
-describe('openTagsBanner', () => {
-  it('says who and the time left the way the feed does, in hours', () => {
-    expect(
-      openTagsBanner({ openTags: [tag('sam', 41 * HOUR + 20 * MIN)], serverOffsetMs: 0, deviceNow })
-    ).toEqual({ who: '@sam', left: '41 hours left' });
+describe('openTagsBanner — someone who downloaded Mahi themselves (Type B)', () => {
+  it('asks for the first Mahi, promises the first point and asks for 3 mates', () => {
+    const b = openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow, firstPost: true });
+    expect(b && bannerText(b)).toBe(
+      'Post your first Mahi to get your first point and tag 3 mates.'
+    );
+    expect(b?.firstPost).toBe(true);
+    expect(b?.note).toBe('Any workout counts, even 10 minutes.');
   });
 
-  it('counts down in minutes in the last hour', () => {
-    expect(
-      openTagsBanner({ openTags: [tag('sam', 25 * MIN)], serverOffsetMs: 0, deviceNow })?.left
-    ).toBe('25 minutes left');
+  it('shows nothing to someone who has posted and has no tag', () => {
+    expect(openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow })).toBeNull();
+  });
+});
+
+describe('openTagsBanner — someone a mate tagged, before their first post (Type A)', () => {
+  it('names the mate and ticks down in hours, minutes and seconds', () => {
+    const b = openTagsBanner({
+      openTags: [tag('sam', 47 * HOUR + 59 * MIN + 59 * 1000)],
+      serverOffsetMs: 0,
+      deviceNow,
+      firstPost: true,
+    });
+    expect(b && bannerText(b)).toBe(
+      'You were tagged by @sam. You have 47:59:59 to post your Mahi and get your first point.'
+    );
+    expect(b?.parts.find((p) => p.accent)?.text).toBe('47:59:59');
   });
 
-  it('adds how many others tagged you', () => {
-    expect(
-      openTagsBanner({
-        openTags: [tag('sam', 2 * HOUR), tag('ali', 3 * HOUR)],
-        serverOffsetMs: 0,
-        deviceNow,
-      })?.who
-    ).toBe('@sam +1');
+  it('several mates: one first post answers them all', () => {
+    const b = openTagsBanner({
+      openTags: [tag('sam', 47 * HOUR), tag('ali', 40 * HOUR)],
+      serverOffsetMs: 0,
+      deviceNow,
+      firstPost: true,
+    });
+    expect(b && bannerText(b)).toBe(
+      'You were tagged by @ali +1. You have 40:00:00 to post your Mahi and get your first point.'
+    );
+    expect(b?.note).toBe('One post answers both tags. Any workout counts, even 10 minutes.');
+  });
+});
+
+describe('openTagsBanner — tagged after that', () => {
+  it('says who, with a ticking clock, and that answering earns a point', () => {
+    const b = openTagsBanner({
+      openTags: [tag('sam', 41 * HOUR + 20 * MIN)],
+      serverOffsetMs: 0,
+      deviceNow,
+    });
+    expect(b && bannerText(b)).toBe('@sam tagged you · 41:20:00 left');
+    expect(b?.note).toBe('Post your answer to earn a Mahi point.');
+  });
+
+  it('one workout answers several tags for one point', () => {
+    const b = openTagsBanner({
+      openTags: [tag('sam', 2 * HOUR), tag('ali', 3 * HOUR), tag('kim', 4 * HOUR)],
+      serverOffsetMs: 0,
+      deviceNow,
+    });
+    expect(b && bannerText(b)).toBe('@sam +2 tagged you · 02:00:00 left');
+    expect(b?.note).toBe('One workout answers all 3 tags and earns 1 point.');
   });
 
   it('reads the time on the server clock', () => {
-    expect(
-      openTagsBanner({ openTags: [tag('sam', 3 * HOUR)], serverOffsetMs: 2 * HOUR, deviceNow })
-        ?.left
-    ).toBe('1 hour left');
+    const b = openTagsBanner({
+      openTags: [tag('sam', 3 * HOUR)],
+      serverOffsetMs: 2 * HOUR,
+      deviceNow,
+    });
+    expect(b && bannerText(b)).toBe('@sam tagged you · 01:00:00 left');
   });
 
   it('says last minutes in the grace time, never missed before the server does', () => {
-    expect(
-      openTagsBanner({ openTags: [tag('sam', -MIN)], serverOffsetMs: 0, deviceNow })?.left
-    ).toBe('last minutes');
-  });
-
-  it('shows nothing without open tags', () => {
-    expect(openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow })).toBeNull();
-  });
-
-  it('a first post needs no tag: says so when nothing is open', () => {
-    expect(openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow, firstPost: true })).toEqual(
-      {
-        who: 'First post',
-        left: 'no tag needed',
-        firstPost: true,
-        note: 'Any workout counts, even 10 minutes.',
-      }
+    const tagged = openTagsBanner({ openTags: [tag('sam', -MIN)], serverOffsetMs: 0, deviceNow });
+    expect(tagged && bannerText(tagged)).toBe('@sam tagged you · last minutes');
+    const first = openTagsBanner({
+      openTags: [tag('sam', -MIN)],
+      serverOffsetMs: 0,
+      deviceNow,
+      firstPost: true,
+    });
+    expect(first && bannerText(first)).toBe(
+      'You were tagged by @sam. You have only minutes to post your Mahi and get your first point.'
     );
-    expect(
-      openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow, firstPost: false })
-    ).toBeNull();
-  });
-
-  it('open tags win over the first-post pill', () => {
-    expect(
-      openTagsBanner({
-        openTags: [tag('sam', 41 * HOUR)],
-        serverOffsetMs: 0,
-        deviceNow,
-        firstPost: true,
-      })?.who
-    ).toBe('@sam');
-  });
-
-  it('one friend: no extra line', () => {
-    expect(
-      openTagsBanner({ openTags: [tag('sam', 2 * HOUR)], serverOffsetMs: 0, deviceNow })?.note
-    ).toBeUndefined();
-  });
-
-  it('tagged by several friends: one workout answers them all', () => {
-    expect(
-      openTagsBanner({
-        openTags: [tag('sam', 2 * HOUR), tag('ali', 3 * HOUR), tag('jo', 4 * HOUR)],
-        serverOffsetMs: 0,
-        deviceNow,
-      })?.note
-    ).toBe('One workout answers all 3 tags.');
-    expect(
-      openTagsBanner({
-        openTags: [tag('sam', 2 * HOUR), tag('ali', 3 * HOUR)],
-        serverOffsetMs: 0,
-        deviceNow,
-      })?.note
-    ).toBe('One workout answers both tags.');
-  });
-
-  it('a newcomer answering their first tag hears whose tag it answers, and that any workout counts', () => {
-    expect(
-      openTagsBanner({
-        openTags: [tag('sam', 47 * HOUR)],
-        serverOffsetMs: 0,
-        deviceNow,
-        firstPost: true,
-      })?.note
-    ).toBe('Your first post answers @sam’s tag. Any workout counts, even 10 minutes.');
-    // Several tags: one first post answers them all.
-    expect(
-      openTagsBanner({
-        openTags: [tag('sam', 47 * HOUR), tag('ali', 40 * HOUR)],
-        serverOffsetMs: 0,
-        deviceNow,
-        firstPost: true,
-      })?.note
-    ).toBe('Your first post answers both tags. Any workout counts, even 10 minutes.');
   });
 });

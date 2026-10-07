@@ -40,7 +40,7 @@ describe('lockExplainer', () => {
     });
     expect(card).toEqual({
       headline: '@sam and 1 other tagged you.',
-      body: 'Your feed is locked until you post your answer. 41 hours left.',
+      body: 'Your feed is locked until you post your answer. 41:30:00 left.',
       button: 'Post your answer',
       target: 'camera',
     });
@@ -68,8 +68,8 @@ describe('lockExplainer', () => {
   it('never posted: asks for a first workout, and says any workout counts', () => {
     expect(lockExplainer({ ...base, unlockedUntil: null, openTags: [] })).toEqual({
       headline: 'Your feed is locked.',
-      body: 'Post your first workout to see what your friends are doing. Any workout counts.',
-      button: 'Post a workout',
+      body: 'Post your first Mahi to get your first point and see what your mates are doing. Any workout counts.',
+      button: 'Post your first Mahi',
       target: 'camera',
     });
   });
@@ -182,8 +182,8 @@ describe('lockedPostText', () => {
 
   it('never posted: the first post is always allowed', () => {
     expect(lockedPostText({ tagged: false, postedBefore: false })).toEqual({
-      hint: 'Post your first workout to see it',
-      button: 'Post a workout',
+      hint: 'Post your first Mahi to see it',
+      button: 'Post your first Mahi',
     });
   });
 

@@ -1,5 +1,6 @@
 import {
   mahiPointsCount,
+  pointCelebration,
   pointsBadgeText,
   pointsCount,
   pointsStatsLabel,
@@ -204,5 +205,69 @@ describe('pointsMilestone (the post toast lines worth a small celebration)', () 
       expect(plain(points, best)).toBe(false);
     }
     expect(plain(7, 20)).toBe(true);
+  });
+});
+
+describe('pointCelebration — the moment a post earns a point', () => {
+  it('a free first post: the first point, how Mahi works, and that the mates have 48 hours', () => {
+    expect(
+      pointCelebration({ answered: [], points: 1, bestBefore: 0, firstPost: true, tagged: 3 })
+    ).toEqual({
+      title: 'Your first Mahi point!',
+      total: 'You have 1 Mahi point.',
+      lines: [
+        'Your 3 mates have 48 hours to answer you.',
+        'From now on you post when a mate tags you. Answer each tag within 48 hours for another point.',
+        'Miss a tag and your points go back to 0. Your best stays.',
+      ],
+    });
+  });
+
+  it('a first post that answers a mate: names them', () => {
+    const c = pointCelebration({
+      answered: ['sam'],
+      points: 1,
+      bestBefore: 0,
+      firstPost: true,
+      tagged: 3,
+    });
+    expect(c?.title).toBe('Your first Mahi point!');
+    expect(c?.lines[0]).toBe('You answered @sam’s tag. Your 3 mates have 48 hours to answer you.');
+  });
+
+  it('a later answer: +1, the total, and a nudge to keep going', () => {
+    expect(
+      pointCelebration({
+        answered: ['sam', 'ali'],
+        points: 3,
+        bestBefore: 5,
+        firstPost: false,
+        tagged: 0,
+      })
+    ).toEqual({
+      title: '+1 Mahi point',
+      total: 'You have 3 Mahi points.',
+      lines: ['You answered @sam and 1 other.', 'Keep answering every tag to grow your points.'],
+    });
+  });
+
+  it('a new best is called out', () => {
+    expect(
+      pointCelebration({ answered: ['sam'], points: 6, bestBefore: 5, firstPost: false, tagged: 0 })
+        ?.title
+    ).toBe('New best: 6 Mahi points!');
+  });
+
+  it('back from a miss: a fresh start, no reminder of what was lost', () => {
+    expect(
+      pointCelebration({ answered: ['sam'], points: 1, bestBefore: 5, firstPost: false, tagged: 0 })
+        ?.lines[1]
+    ).toBe('Welcome back. Keep answering every tag to grow your points.');
+  });
+
+  it('nothing to celebrate when no point was earned', () => {
+    expect(
+      pointCelebration({ answered: [], points: 2, bestBefore: 5, firstPost: false, tagged: 3 })
+    ).toBeNull();
   });
 });

@@ -12,7 +12,6 @@ import { View, Text, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useOpenTags } from '@/hooks/useOpenTags';
-import { useMinuteTick } from '@/hooks/useMinuteTick';
 import { useSecondTick } from '@/hooks/useSecondTick';
 import { clockText, feedCountdown, lockExplainer } from '@/lib/feedLock';
 import { FEED_WINDOW_MS, ringProgress } from '@/lib/feedLayout';
@@ -68,7 +67,8 @@ function LockedCard({
 }): React.JSX.Element | null {
   const { dark, colors } = useAppTheme();
   const { openTags, loaded } = useOpenTags();
-  const deviceNow = useMinuteTick();
+  // The tag clock ticks every second, like every tag countdown.
+  const deviceNow = useSecondTick(openTags.length > 0);
   if (!loaded) return null;
 
   const card = lockExplainer({ locked: true, unlockedUntil, openTags, serverOffsetMs, deviceNow });

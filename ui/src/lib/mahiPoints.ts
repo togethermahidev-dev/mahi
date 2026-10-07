@@ -109,3 +109,60 @@ export function postedToast({
   }
   return `${who} +1 Mahi point. You have ${points}.`;
 }
+
+/**
+ * The full-screen moment after a post that earns a Mahi point (owner, 2026-10-07: "gamified, and
+ * say what it means"). Every first post earns the first point (`20261007180000_first_post_point`),
+ * and it teaches reactive posting; a later answer shows +1 and the total. null when no point was
+ * earned (a post that answered nothing after the first).
+ */
+export function pointCelebration({
+  answered,
+  points,
+  bestBefore,
+  firstPost,
+  tagged,
+}: {
+  /** Usernames whose tags this post answered. */
+  answered: string[];
+  /** Points after the post. */
+  points: number;
+  /** The best before the post. */
+  bestBefore: number;
+  /** This was the person's first ever post. */
+  firstPost: boolean;
+  /** Mates this post tagged (friends and links). */
+  tagged: number;
+}): { title: string; total: string; lines: string[] } | null {
+  if (!firstPost && answered.length === 0) return null;
+  const total = `You have ${mahiPointsCount(points)}.`;
+  const others = answered.length - 1;
+  const more = others > 0 ? ` and ${others} ${others === 1 ? 'other' : 'others'}` : '';
+  const mates =
+    tagged > 0
+      ? `Your ${tagged} ${tagged === 1 ? 'mate has' : 'mates have'} 48 hours to answer you.`
+      : null;
+
+  if (firstPost) {
+    const answeredLine = answered.length > 0 ? `You answered @${answered[0]}’s tag${more}.` : null;
+    const first = [answeredLine, mates].filter(Boolean).join(' ');
+    return {
+      title: 'Your first Mahi point!',
+      total,
+      lines: [
+        ...(first ? [first] : []),
+        'From now on you post when a mate tags you. Answer each tag within 48 hours for another point.',
+        'Miss a tag and your points go back to 0. Your best stays.',
+      ],
+    };
+  }
+  const keepGoing = 'Keep answering every tag to grow your points.';
+  return {
+    title: points > bestBefore ? `New best: ${points} Mahi points!` : '+1 Mahi point',
+    total,
+    lines: [
+      `You answered @${answered[0]}${more}.`,
+      points === 1 && bestBefore > 0 ? `Welcome back. ${keepGoing}` : keepGoing,
+    ],
+  };
+}
