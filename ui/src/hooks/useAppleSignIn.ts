@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { CryptoDigestAlgorithm, digestStringAsync, getRandomBytes } from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
+import { saveAppleToken } from '@/api/auth';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { hasNativeAppleAuth, loadAppleAuth, type AppleAuthSdk } from '@/lib/appleAuthModule';
 import { appleName, appleNonce, appleSignInError, appleSignInShown } from '@/lib/appleSignIn';
@@ -80,6 +81,10 @@ export function useAppleSignIn(): {
       if (signInError) throw signInError;
       Sentry.addBreadcrumb({ category: 'auth', message: 'Signed in with Apple', level: 'info' });
       posthog.capture('apple_signin_completed');
+
+      // So deleting the account can later revoke Apple's access: the server swaps this one-time
+      // code for Apple's refresh token. Not awaited; a failure is reported, sign-in carries on.
+      void saveAppleToken(credential.authorizationCode);
 
       // Also kept on the account, so a closed app still has it (Supabase's own advice).
       if (name.firstName || name.lastName) {

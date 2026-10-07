@@ -28,12 +28,15 @@ export async function signOut() {
   return supabase.auth.signOut();
 }
 
-/** POST to an Edge Function; `{ error }` carries the server's own message when it refuses. */
+/**
+ * POST to an Edge Function; `{ error }` carries the server's own message when it refuses, `data`
+ * the reply on success.
+ */
 async function callFunction(
   name: string,
   body: Record<string, string>,
   accessToken?: string
-): Promise<{ error: Error | null }> {
+): Promise<{ error: Error | null; data?: Record<string, unknown> }> {
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
       method: 'POST',
@@ -44,7 +47,10 @@ async function callFunction(
       },
       body: JSON.stringify(body),
     });
-    if (res.ok) return { error: null };
+    if (res.ok) {
+      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      return { error: null, data };
+    }
     const json = (await res.json().catch(() => ({}))) as { error?: string };
     return { error: new Error(json.error ?? 'Something went wrong. Please try again.') };
   } catch {
@@ -69,18 +75,45 @@ export async function resetPassword(email: string, code: string, password: strin
 }
 
 /**
- * Delete the signed-in account for good (photos, then the account; every row cascades), then
- * sign out on this phone only — the server session is already gone. App.tsx's onAuthStateChange
- * resets every store and shows the welcome screen.
+ * Delete the signed-in account for good (photos, then Apple's access is revoked for an Apple
+ * account, then the account; every row cascades), then sign out on this phone only — the server
+ * session is already gone. App.tsx's onAuthStateChange resets every store and shows the welcome
+ * screen. A failed Apple revoke never stops the deletion; it is reported as a warning.
  */
 export async function deleteAccount(): Promise<{ error: Error | null }> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) return { error: new Error('Log in again, then try again.') };
-  const { error } = await callFunction('delete-account', {}, token);
+  const { error, data: reply } = await callFunction('delete-account', {}, token);
   if (error) return { error };
+  const apple = reply?.apple;
+  if (apple === 'failed' || apple === 'not_configured') {
+    reportError(new Error(`Apple revoke on account deletion: ${apple}`), {
+      flow: 'account',
+      action: 'appleRevoke',
+      level: 'warning',
+    });
+  }
   await supabase.auth.signOut({ scope: 'local' });
   return { error: null };
+}
+
+/**
+ * After Sign in with Apple: hand Apple's one-time authorization code to the server, which keeps
+ * Apple's refresh token so deleting the account can revoke Apple's access (App Store guideline
+ * 5.1.1(v)). Never throws and never blocks sign-in: a failure is reported as a warning.
+ */
+export async function saveAppleToken(code: string | null | undefined): Promise<void> {
+  if (!code) return;
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return;
+    const { error } = await callFunction('apple-token', { code }, token);
+    if (error) reportError(error, { flow: 'auth', action: 'appleSaveToken', level: 'warning' });
+  } catch (err) {
+    reportError(err, { flow: 'auth', action: 'appleSaveToken', level: 'warning' });
+  }
 }
 
 /**
