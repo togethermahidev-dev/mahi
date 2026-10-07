@@ -32,6 +32,51 @@ enum MahiLinks {
   }
 }
 
+// Siri, Shortcuts and Spotlight (switch `siri-shortcuts`): the App Shortcuts that offer these are
+// in the app only (MahiAppShortcuts.swift).
+
+/// "Post a workout in Mahi": opens Mahi on the camera.
+@available(iOS 16.0, *)
+struct PostWorkoutIntent: AppIntent {
+  static let title: LocalizedStringResource = "Post a workout"
+  static let description = IntentDescription("Opens the camera in Mahi.")
+  static let openAppWhenRun: Bool = true
+
+  @MainActor
+  func perform() async throws -> some IntentResult {
+    MahiLinks.leave("mahi://camera?from=siri", switchKey: "switch.siri-shortcuts")
+    return .result()
+  }
+}
+
+/// "Open my invites in Mahi": the links you sent and who joined.
+@available(iOS 16.0, *)
+struct OpenInvitesIntent: AppIntent {
+  static let title: LocalizedStringResource = "Open my invites"
+  static let description = IntentDescription("Shows the links you sent and who joined.")
+  static let openAppWhenRun: Bool = true
+
+  @MainActor
+  func perform() async throws -> some IntentResult {
+    MahiLinks.leave("mahi://invites?from=siri", switchKey: "switch.siri-shortcuts")
+    return .result()
+  }
+}
+
+/// "Find my mates in Mahi": who from your contacts is on Mahi.
+@available(iOS 16.0, *)
+struct FindMatesIntent: AppIntent {
+  static let title: LocalizedStringResource = "Find my mates"
+  static let description = IntentDescription("Shows who from your contacts is on Mahi.")
+  static let openAppWhenRun: Bool = true
+
+  @MainActor
+  func perform() async throws -> some IntentResult {
+    MahiLinks.leave("mahi://find-mates?from=siri", switchKey: "switch.siri-shortcuts")
+    return .result()
+  }
+}
+
 /// The Control Centre / lock screen button: opens Mahi on the camera.
 @available(iOS 16.0, *)
 struct PostWorkoutControlIntent: AppIntent {

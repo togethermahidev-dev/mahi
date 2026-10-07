@@ -171,6 +171,11 @@ don't have the native parts, so the switches do nothing there.
   tap opens the camera, or the invites list / Find your mates over the Camera page. Off: the app takes
   them out of the index at its next launch; a tap on one still showing just opens Mahi.
   `mahi://invites` and `mahi://find-mates` also work as plain links, with no switch.
+- `siri-shortcuts`: App Shortcuts, ready in Siri, the Shortcuts app and Spotlight with nothing to set
+  up — "Post a workout in Mahi", "Open my invites in Mahi", "Find my mates in Mahi". On: each opens
+  Mahi on the camera, the invites list or Find your mates. Off: they still show (Apple lists them from
+  the build), but each just opens Mahi; the app writes the switch to the App Group so the intent leaves
+  nothing to act on.
 
 ## Removed from code 2026-10-07
 

@@ -117,6 +117,49 @@ describe('where the control is built', () => {
   });
 });
 
+describe('Siri and Shortcuts (switch siri-shortcuts)', () => {
+  const SIRI = {
+    'mahi://camera?from=siri': 'camera',
+    'mahi://invites?from=siri': 'invites',
+    'mahi://find-mates?from=siri': 'find-mates',
+  } as const;
+
+  it('each App Shortcut opens what it says', () => {
+    for (const [link, action] of Object.entries(SIRI)) {
+      expect(parseAppAction(link)).toEqual({ action, source: 'siri' });
+      expect(appActionToRun(link, only('siri-shortcuts'))).toBe(action);
+    }
+  });
+
+  it('with the switch off, Mahi just opens', () => {
+    for (const link of Object.keys(SIRI)) {
+      expect(appActionToRun(link, allOff)).toBeNull();
+    }
+  });
+
+  it('the intents leave exactly these links, behind the switch', () => {
+    const intents = read('modules/mahi-apple-extras/swift/MahiIntents.swift');
+    for (const link of Object.keys(SIRI)) expect(intents).toContain(`"${link}"`);
+    expect(intents).toContain(`"${switchKey('siri-shortcuts')}"`);
+    expect(APP_GROUP_SWITCHES).toContain('siri-shortcuts');
+  });
+
+  it('the App Shortcuts say the phrases with the app’s name, in the app only', () => {
+    const shortcuts = read('modules/mahi-apple-extras/swift/MahiAppShortcuts.swift');
+    expect(shortcuts).toContain('AppShortcutsProvider');
+    for (const phrase of [
+      'Post a workout in \\(.applicationName)',
+      'Open my invites in \\(.applicationName)',
+      'Find my mates in \\(.applicationName)',
+    ]) {
+      expect(shortcuts).toContain(phrase);
+    }
+    expect(read('modules/mahi-apple-extras/swift/MahiIntents.swift')).not.toContain(
+      'AppShortcutsProvider'
+    );
+  });
+});
+
 describe('the App Group the extensions read', () => {
   it('is the one App Group the app and its extensions share', () => {
     expect(APP_GROUP).toBe('group.com.mahi.app');

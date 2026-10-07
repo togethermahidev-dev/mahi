@@ -1,6 +1,7 @@
 /**
  * Mahi's own actions from outside the app (build 13+): the Control Centre / lock screen button
- * "Post a workout" (switch `control-post-workout`) and Spotlight's items (switch `spotlight`).
+ * "Post a workout" (switch `control-post-workout`), Spotlight's items (switch `spotlight`), and
+ * the App Shortcuts for Siri, Shortcuts and Spotlight (switch `siri-shortcuts`).
  * `mahi://invites` and `mahi://find-mates` also work as plain links.
  *
  * The Swift side (ui/modules/mahi-apple-extras/swift/MahiIntents.swift) can't open a screen itself: it
@@ -28,16 +29,20 @@ export function switchKey(flag: FeatureFlag): string {
 export type AppAction = 'camera' | 'invites' | 'find-mates';
 
 /** Who asked: an ordinary link, or one of the build 13 extras (each with its own switch). */
-export type AppActionSource = 'link' | 'control' | 'spotlight';
+export type AppActionSource = 'link' | 'control' | 'spotlight' | 'siri';
 
 /** The switch each extra answers to. */
 const SOURCE_SWITCH: Record<Exclude<AppActionSource, 'link'>, FeatureFlag> = {
   control: 'control-post-workout',
   spotlight: 'spotlight',
+  siri: 'siri-shortcuts',
 };
 
 /** The switches the Swift side reads from the App Group (Spotlight's is acted on by the app). */
-export const APP_GROUP_SWITCHES: readonly FeatureFlag[] = ['control-post-workout'];
+export const APP_GROUP_SWITCHES: readonly FeatureFlag[] = [
+  'control-post-workout',
+  'siri-shortcuts',
+];
 
 /**
  * What Spotlight offers when someone searches for Mahi (switch `spotlight`): the app's own

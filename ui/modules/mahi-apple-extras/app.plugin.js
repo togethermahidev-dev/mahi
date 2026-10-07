@@ -1,6 +1,7 @@
 // Mahi's own Swift for the app and the Mahi widget extension (build 13+), from ./swift:
-// - MahiIntents.swift: the intents (the Control Centre button). In the app AND the widget
-//   extension: an intent that opens the app must be in both.
+// - MahiIntents.swift: the intents (the Control Centre button; Siri and Shortcuts). In the app
+//   AND the widget extension: an intent that opens the app must be in both.
+// - MahiAppShortcuts.swift: "Post a workout in Mahi" and the rest, in the app only.
 // - MahiControls.swift: the "Post a workout" control (iOS 18+), in the widget extension, added to
 //   its WidgetBundle.
 //
@@ -15,7 +16,11 @@ const { IOSConfig, withDangerousMod, withXcodeProject } = require('expo/config-p
 
 const WIDGET_TARGET = 'ExpoWidgetsTarget';
 /** Source file in ./swift → name in the app's folder. */
-const APP_FILES = { 'MahiIntents.swift': 'MahiIntents.swift' };
+const APP_FILES = {
+  'MahiIntents.swift': 'MahiIntents.swift',
+  // Siri, Shortcuts and Spotlight (switch `siri-shortcuts`). App only: one provider per app.
+  'MahiAppShortcuts.swift': 'MahiAppShortcuts.swift',
+};
 /** Source file in ./swift → name in the widget extension's folder. */
 const WIDGET_FILES = {
   'MahiIntents.swift': 'MahiControlIntents.swift',

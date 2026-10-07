@@ -34,7 +34,9 @@ const config = {
     ['expo-notifications', { color: ACCENT, defaultChannel: 'default' }],
     // Mahi's own Swift (build 13+): the Control Centre / lock screen button "Post a workout" (iOS
     // 18+, switch `control-post-workout`), added to the widget extension below, and its intents,
-    // in the app too. Must stay ABOVE expo-widgets (see the plugin's notes).
+    // in the app too; the App Shortcuts "Post a workout in Mahi", "Open my invites in Mahi", "Find
+    // my mates in Mahi" (switch `siri-shortcuts`), in the app only. Must stay ABOVE expo-widgets
+    // (see the plugin's notes).
     './modules/mahi-apple-extras/app.plugin.js',
     // A mate's tag on the lock screen and Dynamic Island (Live Activity) and a home-screen widget
     // (build 13+; src/widgets/liveTagWidgets.tsx). Adds the widget extension target, the App Group
