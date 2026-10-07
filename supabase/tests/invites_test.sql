@@ -186,6 +186,9 @@ select is(
 -- 6. Once invite links are switched on, every slot must be filled. N's only friend is A, whose
 --    tag N is answering, so A can't be tagged back: all three slots are invites.
 update public.app_config set invite_links_enabled = true;
+-- N had a post before (since deleted): only a first post that answers a tag may leave slots
+-- empty (20261007190000_first_answer_no_tags, tested in first_answer_no_tags_test).
+update public.profiles set has_posted_before = true where id = '00000000-0000-0000-0000-00000000d00c';
 select pg_temp.as_user('00000000-0000-0000-0000-00000000d00c');
 select is(
   (select has_open_tag and tagged_you from public.get_taggable_friends()
