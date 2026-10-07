@@ -67,12 +67,12 @@ export function slotLabel(slot: ScreenSlot, index: number): string {
 
 /**
  * The preview's Post button: "Post" when every tag is filled, else what's still missing ("Tag 3
- * friends to post", "Tag 1 more friend to post"). `anyTagged`: a friend, invite or slot is in.
+ * mates to post", "Tag 1 more mate to post"). `anyTagged`: a friend, invite or slot is in.
  */
 export function postButtonLabel(missing: number, anyTagged: boolean): string {
   if (missing <= 0) return 'Post';
-  const friends = missing === 1 ? 'friend' : 'friends';
-  return anyTagged ? `Tag ${missing} more ${friends} to post` : `Tag ${missing} ${friends} to post`;
+  const mates = missing === 1 ? 'mate' : 'mates';
+  return anyTagged ? `Tag ${missing} more ${mates} to post` : `Tag ${missing} ${mates} to post`;
 }
 
 export function inviteBlockedReason({

@@ -54,8 +54,8 @@ describe('tagSheetStep', () => {
 describe('inviteStepCopy', () => {
   it('asks a newcomer with no friends to invite all 3', () => {
     expect(inviteStepCopy({ maxTags: 3, availableFriends: 0, friends: 0, invites: 0 })).toEqual({
-      headline: 'Invite 3 friends to post',
-      why: 'Every post tags 3 friends. When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.',
+      headline: 'Invite 3 mates to post',
+      why: 'Every post tags 3 mates. When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.',
       button: 'Invite a friend',
       canAdd: true,
       count: '0 of 3 tags',
@@ -64,7 +64,7 @@ describe('inviteStepCopy', () => {
 
   it('asks only for the slots friends cannot fill', () => {
     const copy = inviteStepCopy({ maxTags: 3, availableFriends: 2, friends: 2, invites: 0 });
-    expect(copy.headline).toBe('Invite 1 friend to post');
+    expect(copy.headline).toBe('Invite 1 mate to post');
     expect(copy.count).toBe('2 of 3 tags · 2 friends');
   });
 

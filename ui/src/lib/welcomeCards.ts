@@ -13,12 +13,12 @@ export interface WelcomeCard {
 export const WELCOME_CARDS: readonly WelcomeCard[] = [
   {
     icon: 'camera',
-    title: 'Post when a friend tags you.',
-    body: 'Post your first Mahi to get your first point and tag 3 mates. After that, you post when a friend tags you: 48 hours to answer with a photo, back camera then selfie. Any workout counts. Each answer earns a Mahi point. Miss a tag and your points go back to 0, but your best stays.',
+    title: 'Your first post is free.',
+    body: 'Post your first Mahi to get your first point and tag 3 mates. After that, you post when a friend tags you: 48 hours to answer with a photo, back camera then selfie. Any workout counts. Each answer earns a Mahi point. Miss a tag and your points go back to 0, but your best stays. Open Mahi each day to see if you’ve been tagged.',
   },
   {
     icon: 'people',
-    title: 'Every post tags 3 friends.',
+    title: 'Every post tags 3 mates.',
     body: 'They have 48 hours to answer with a workout of their own. Follow each other and you can tag each other.',
   },
   {
@@ -71,7 +71,7 @@ export function welcomeInvite(
   return {
     who: `@${inviter.username} invited you to Mahi`,
     line: inviter.open
-      ? 'Accept and you’ll automatically follow each other. Any workout counts.'
+      ? 'Join and you’ll automatically follow each other. Any workout counts.'
       : 'That invite has ended, but you can still join.',
   };
 }

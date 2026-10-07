@@ -11,8 +11,8 @@ import {
 describe('welcome cards', () => {
   it('has the three owner-approved cards, in order', () => {
     expect(WELCOME_CARDS.map((c) => c.title)).toEqual([
-      'Post when a friend tags you.',
-      'Every post tags 3 friends.',
+      'Your first post is free.',
+      'Every post tags 3 mates.',
       'Post to open your feed.',
     ]);
   });
@@ -22,7 +22,7 @@ describe('welcome cards', () => {
   // and says what a miss costs.
   it('card 1: the first post needs no tag, any workout counts, and a miss resets points', () => {
     expect(WELCOME_CARDS[0].body).toBe(
-      'Post your first Mahi to get your first point and tag 3 mates. After that, you post when a friend tags you: 48 hours to answer with a photo, back camera then selfie. Any workout counts. Each answer earns a Mahi point. Miss a tag and your points go back to 0, but your best stays.'
+      'Post your first Mahi to get your first point and tag 3 mates. After that, you post when a friend tags you: 48 hours to answer with a photo, back camera then selfie. Any workout counts. Each answer earns a Mahi point. Miss a tag and your points go back to 0, but your best stays. Open Mahi each day to see if you’ve been tagged.'
     );
   });
 
@@ -96,7 +96,7 @@ describe('welcome cards', () => {
     it('says who invited you, and that any workout counts', () => {
       expect(welcomeInvite({ username: 'sam', open: true })).toEqual({
         who: '@sam invited you to Mahi',
-        line: 'Accept and you’ll automatically follow each other. Any workout counts.',
+        line: 'Join and you’ll automatically follow each other. Any workout counts.',
       });
     });
 

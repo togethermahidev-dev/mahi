@@ -131,21 +131,32 @@ export function pointCelebration({
   bestBefore: number;
   /** This was the person's first ever post. */
   firstPost: boolean;
-  /** Mates this post tagged (friends and links). */
-  tagged: number;
+  /** What this post tagged: mates on Mahi, and invite links still to send. */
+  tagged: { friends: number; links: number };
 }): { title: string; total: string; lines: string[] } | null {
   if (!firstPost && answered.length === 0) return null;
   const total = `You have ${mahiPointsCount(points)}.`;
   const others = answered.length - 1;
   const more = others > 0 ? ` and ${others} ${others === 1 ? 'other' : 'others'}` : '';
-  const mates =
-    tagged > 0
-      ? `Your ${tagged} ${tagged === 1 ? 'mate has' : 'mates have'} 48 hours to answer you.`
-      : null;
+  // A link's 48 hours only start once that mate joins, so links get their own line.
+  const { friends, links } = tagged;
+  const mates = [
+    friends > 0
+      ? `Your ${friends} ${friends === 1 ? 'mate has' : 'mates have'} 48 hours to answer you.`
+      : null,
+    links > 0
+      ? `Send your ${links} ${links === 1 ? 'link' : 'links'} next. Each mate gets 48 hours once they join.`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   if (firstPost) {
     const answeredLine = answered.length > 0 ? `You answered @${answered[0]}’s tag${more}.` : null;
-    const first = [answeredLine, mates].filter(Boolean).join(' ');
+    // The first post also opens the feed (the toast that used to say so is replaced by this).
+    const first = [answeredLine, mates, 'Your feed is open for 24 hours.']
+      .filter(Boolean)
+      .join(' ');
     return {
       title: 'Your first Mahi point!',
       total,

@@ -2257,7 +2257,7 @@ export default function CameraScreen({
             points: result.streak.streak_current,
             bestBefore: profile.streak_highest,
             firstPost: firstPostNow,
-            tagged: taggedCounts.friends + taggedCounts.links,
+            tagged: taggedCounts,
           });
       const invitesToSend = tagSlotsOn ? [] : inviteList(result.invites);
       useTagStore.getState().syncOpenTags();
