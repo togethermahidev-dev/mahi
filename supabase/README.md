@@ -79,7 +79,8 @@ padlock squares); `notify_on_follow` / `notify_on_like` send one notice per reci
 a day (block, ban and approval skips stay); invite codes: 20 unknown codes an hour per caller (the
 account, or the address when signed out) in `auth_rate_limits` (action `invite_code_miss`), then
 `get_invite_preview` / `claim_invite` refuse code lookups with 22023 'too many tries, try again
-later' (32-character link tokens are never limited; `claim_invite` now answers null for an unknown
+later'; signed out with no usable address everyone shares `ip:unknown`, capped at 1000 an hour
+(32-character link tokens are never limited; `claim_invite` now answers null for an unknown
 code, because an error would roll the count back — the app only claims invites its preview found);
 `file_report` answers 'that does not exist' for a post or comment the reporter can't see
 (`can_view_post_id`; staff exempt). New internal helper `invite_code_limit`. Test

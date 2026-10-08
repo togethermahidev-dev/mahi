@@ -10,7 +10,9 @@
 --    signed in, else the address (Cloudflare's, else the last x-forwarded-for entry, the one the
 --    proxy appends; the first is whatever the caller sent), counted in auth_rate_limits
 --    (action 'invite_code_miss'). After that every code lookup is refused (22023 'too many tries,
---    try again later') until the hour is up. Full 32-character link tokens are not limited.
+--    try again later') until the hour is up. Signed out with no usable address, everyone shares
+--    the key 'ip:unknown', which gets 1000 misses an hour instead, so one guesser can't lock
+--    everyone out. Full 32-character link tokens are not limited.
 --    claim_invite answers null for an unknown code instead of an error, because an error would
 --    roll the count back; the app only claims an invite its preview found.
 -- 4. file_report: reporting a post or comment you can't see (can_view_post_id) answers
@@ -192,8 +194,11 @@ begin
   perform pg_advisory_xact_lock(hashtextextended('invite_code_miss:' || v_key, 0));
   delete from public.auth_rate_limits
   where ip = v_key and action = 'invite_code_miss' and created_at <= now() - interval '1 hour';
+  -- No usable address: every signed-out caller shares 'ip:unknown', so a much higher cap there,
+  -- or one guesser could stop everyone typing a code.
   if (select count(*) from public.auth_rate_limits
-      where ip = v_key and action = 'invite_code_miss') >= 20 then
+      where ip = v_key and action = 'invite_code_miss')
+     >= (case when v_key = 'ip:unknown' then 1000 else 20 end) then
     raise exception 'too many tries, try again later' using errcode = '22023';
   end if;
   return v_key;

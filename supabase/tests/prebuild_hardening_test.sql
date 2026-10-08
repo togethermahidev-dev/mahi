@@ -7,7 +7,7 @@
 -- 4. reporting a post or comment you can't see answers the same as an id that doesn't exist
 -- Every check reads only this test's own people.
 begin;
-select plan(34);
+select plan(37);
 
 update public.app_config set feed_lock_enabled = false, tags_required = false;
 
@@ -146,6 +146,19 @@ reset role;
 select is((select count(*)::int from public.auth_rate_limits
            where ip = 'ip:203.0.113.7' and action = 'invite_code_miss'), 20,
   'only the 20 misses were counted, under the address');
+
+-- No usable address: everyone signed out shares one key, so it gets a much higher cap (1000 an
+-- hour) and one guesser can't lock everyone out of typing a code.
+select set_config('role', 'anon', true), set_config('request.jwt.claims', '{}', true),
+       set_config('request.headers', '{}', true);
+select is(pg_temp.misses(21, 'ZZD'), 21,
+  'with no address, the 21st unknown code still answers (shared cap, not 20)');
+select is(public.get_invite_preview('PBHAAA') ->> 'username', 'pbh_i',
+  'and a real code still works');
+reset role;
+select is((select count(*)::int from public.auth_rate_limits
+           where ip = 'ip:unknown' and action = 'invite_code_miss'), 21,
+  'those misses are counted under the shared unknown key');
 
 -- Signed in: counted under the account, so the same address signed out is unaffected.
 select pg_temp.as_user('n');
