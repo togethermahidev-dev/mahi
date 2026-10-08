@@ -1888,7 +1888,9 @@ export default function CameraScreen({
   );
   const shutterTip = useCoachAnchor(
     'twoPhotos',
-    cameraOn && !blocked && captureState === 'idle' && guidePhotoUri === null
+    // Shown while waiting too (owner, 2026-10-08): the camera always looks like the camera.
+    // Only the shutter waits for a tag.
+    cameraOn && captureState === 'idle' && guidePhotoUri === null
   );
   // The waiting camera is the front drawer; pulling it down reveals the card behind it (#115).
   const safeTop = useSafeAreaInsets().top;
