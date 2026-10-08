@@ -48,11 +48,14 @@ alter table public.profiles
 alter table public.profiles alter column privacy_chosen_at drop default;
 
 -- 2. Requests.
+-- The key is a random id: a live (realtime) delete carries only the key to every listener, so it
+-- must not name who asked whom.
 create table public.follow_requests (
+  id uuid primary key default gen_random_uuid(),
   requester_id uuid not null references public.profiles (id) on delete cascade,
   target_id uuid not null references public.profiles (id) on delete cascade,
   created_at timestamptz not null default now(),
-  primary key (requester_id, target_id),
+  constraint follow_requests_pair unique (requester_id, target_id),
   constraint follow_requests_not_self check (requester_id <> target_id)
 );
 create index follow_requests_target_idx on public.follow_requests (target_id, created_at desc);
@@ -578,7 +581,7 @@ begin
         end if;
         insert into public.follow_requests (requester_id, target_id)
         values (v_uid, p_target_user_id)
-        on conflict do nothing;
+        on conflict on constraint follow_requests_pair do nothing;
         get diagnostics v_rows = row_count;
         if v_rows > 0 then
           -- One "wants to follow you" per pair a day.
@@ -669,7 +672,8 @@ begin
     v_status := 'accepted';
   end if;
 
-  if coalesce(p_follow_back, false) then
+  -- Follow back only goes with an accepted request.
+  if coalesce(p_follow_back, false) and v_status = 'accepted' then
     v_back := 'none';
     if v_ok and p_requester <> v_uid then
       begin
@@ -865,12 +869,21 @@ begin
 end;
 $$;
 
-create or replace function public.get_suggested_follows(
+drop function public.get_suggested_follows(uuid, integer, integer);
+create function public.get_suggested_follows(
   p_current_user_id uuid,
   p_limit integer default 20,
   p_offset integer default 0
 )
-returns table (id uuid, username text, display_name text, avatar_url text, mutual_count bigint)
+returns table (
+  id uuid,
+  username text,
+  display_name text,
+  avatar_url text,
+  mutual_count bigint,
+  is_private boolean,
+  requested boolean
+)
 language plpgsql
 stable
 security definer
@@ -897,7 +910,9 @@ begin
       pr.username,
       pr.display_name,
       pr.avatar_url,
-      count(distinct f1.following_id)::bigint as mutual_count
+      count(distinct f1.following_id)::bigint as mutual_count,
+      pr.is_private,
+      false
     from public.follows f1
     join public.follows f2
       on f2.follower_id = f1.following_id
@@ -926,7 +941,7 @@ begin
         where ub.blocker_id = f2.following_id
           and ub.blocked_id = p_current_user_id
       )
-    group by pr.id, pr.username, pr.display_name, pr.avatar_url
+    group by pr.id, pr.username, pr.display_name, pr.avatar_url, pr.is_private
     order by mutual_count desc, pr.id asc
     limit p_limit offset p_offset;
 
@@ -937,7 +952,9 @@ begin
       pr.username,
       pr.display_name,
       pr.avatar_url,
-      count(fol.follower_id)::bigint as mutual_count
+      count(fol.follower_id)::bigint as mutual_count,
+      pr.is_private,
+      false
     from public.profiles pr
     left join public.follows fol
       on fol.following_id = pr.id
@@ -963,12 +980,14 @@ begin
         where ub.blocker_id = pr.id
           and ub.blocked_id = p_current_user_id
       )
-    group by pr.id, pr.username, pr.display_name, pr.avatar_url
+    group by pr.id, pr.username, pr.display_name, pr.avatar_url, pr.is_private
     order by mutual_count desc, pr.id asc
     limit p_limit offset p_offset;
   end if;
 end;
 $$;
+revoke execute on function public.get_suggested_follows(uuid, integer, integer) from public, anon;
+grant execute on function public.get_suggested_follows(uuid, integer, integer) to authenticated, service_role;
 
 -- 6. Tags.
 drop function public.search_tag_people(text, integer);
@@ -1462,7 +1481,7 @@ begin
     on conflict do nothing;
     insert into public.follow_requests (requester_id, target_id)
     values (v_uid, v_inv.inviter_id)
-    on conflict do nothing;
+    on conflict on constraint follow_requests_pair do nothing;
     v_follow := 'requested';
   else
     -- Friends both ways, so they can tag each other from here on.
@@ -1657,7 +1676,9 @@ begin
     -- Sign them out everywhere.
     delete from auth.refresh_tokens where user_id = p_user_id::text;
     delete from auth.sessions where user_id = p_user_id;
-    -- Their follow requests go, with the notices.
+    -- Their follow requests go, with the notices and the pushes not yet sent.
+    perform public.clear_follow_request_notice(p_user_id, r.target_id)
+    from public.follow_requests r where r.requester_id = p_user_id;
     delete from public.follow_requests where requester_id = p_user_id;
     delete from public.notifications where actor_id = p_user_id and type = 'follow_request';
   end if;

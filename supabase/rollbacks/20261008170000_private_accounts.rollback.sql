@@ -14,6 +14,7 @@ drop function public.set_following(uuid, boolean);
 drop function public.get_follow_data(uuid, uuid);
 drop function public.search_tag_people(text, integer);
 drop function public.match_contacts(text[]);
+drop function public.get_suggested_follows(uuid, integer, integer);
 
 CREATE OR REPLACE FUNCTION public.get_follow_data(p_current_user_id uuid, p_target_user_id uuid)
  RETURNS TABLE(is_following boolean, follower_count bigint, following_count bigint, follows_you boolean)
@@ -1046,6 +1047,9 @@ AS $function$
       );
 $function$
 ;
+
+revoke execute on function public.get_suggested_follows(uuid, integer, integer) from public, anon;
+grant execute on function public.get_suggested_follows(uuid, integer, integer) to authenticated, service_role;
 
 -- 4. New functions.
 drop function public.can_view_post_for(uuid, uuid, uuid);

@@ -10,7 +10,7 @@
 -- * races: asking twice, accepting after a cancel, going public with requests waiting; daily cap
 -- Every check reads only this test's own people.
 begin;
-select plan(88);
+select plan(94);
 
 update public.app_config set feed_lock_enabled = false, tags_required = false;
 
@@ -72,6 +72,11 @@ select throws_ok($$insert into public.follow_requests (requester_id, target_id)
 reset role;
 select ok(not has_table_privilege('anon', 'public.follow_requests', 'select'),
   'signed-out callers cannot read requests');
+select is((select array_agg(a.attname::text order by a.attname)
+           from pg_index i
+           join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any(i.indkey)
+           where i.indrelid = 'public.follow_requests'::regclass and i.indisprimary),
+  array['id'], 'the key is a random id, so a live delete names no pair');
 
 -- 2. Controls.
 select pg_temp.as_user('p');
@@ -211,6 +216,17 @@ select is(public.respond_follow_request(pg_temp.uid('c'), true) ->> 'status', 'g
 reset role;
 select ok(pg_temp.requested('c', 'p') and not pg_temp.follows('c', 'p'), 'p''s request is untouched');
 
+-- 9b. Follow back only when the request is accepted.
+select pg_temp.as_user('m');
+select is((select status from public.set_following(pg_temp.uid('p'), true)), 'requested', 'm asks');
+select pg_temp.as_user('p');
+select is(public.respond_follow_request(pg_temp.uid('m'), false, true),
+  '{"status": "declined", "follow_back": null}'::jsonb, 'deleting with follow back ticked follows nobody');
+select is(public.respond_follow_request(pg_temp.uid('m'), true, true),
+  '{"status": "gone", "follow_back": null}'::jsonb, 'nor does answering a request that is gone');
+reset role;
+select ok(not pg_temp.follows('p', 'm') and not pg_temp.follows('m', 'p'), 'no follow either way');
+
 -- 10. Banned requesters.
 insert into public.follow_requests (requester_id, target_id) values (pg_temp.uid('e'), pg_temp.uid('p'));
 select pg_temp.as_user('p');
@@ -232,6 +248,10 @@ select is((select status from public.set_following(pg_temp.uid('p'), true)), 're
 reset role;
 select public.sanction_user('ban', pg_temp.uid('h'), 'spam', null, null);
 select ok(not pg_temp.requested('h', 'p'), 'a ban removes the person''s requests');
+select is((select count(*)::int from public.push_outbox
+           where user_id = pg_temp.uid('p') and kind = 'follow_request'
+             and data ->> 'user_id' = pg_temp.uid('h')::text and sent_at is null), 0,
+  'and the request push not yet sent');
 
 -- 12. Going public accepts every pending request (c and i), in one go.
 select pg_temp.as_user('i');

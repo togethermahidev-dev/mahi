@@ -10,7 +10,7 @@
 -- * push words for the new notices and the missed tag
 -- Every check reads only this test's own people.
 begin;
-select plan(64);
+select plan(65);
 
 update public.app_config set feed_lock_enabled = false, tags_required = false,
   invite_links_enabled = true, max_open_invites = 10;
@@ -271,6 +271,8 @@ select pg_temp.as_user('y');
 select ok(not exists (select 1 from public.get_suggested_follows(null, 100, 0) where id = pg_temp.uid('r'))
           and exists (select 1 from public.get_suggested_follows(null, 100, 0) where id = pg_temp.uid('o')),
   'suggestions leave out people you already asked');
+select is((select row(is_private, requested)::text from public.get_suggested_follows(null, 100, 0)
+           where id = pg_temp.uid('o')), '(f,f)', 'and say whether each is private');
 reset role;
 insert into public.notifications (user_id, actor_id, type) values (pg_temp.uid('t'), pg_temp.uid('q'), 'tag_missed');
 select is(pg_temp.push('t', 'tag_missed'),
