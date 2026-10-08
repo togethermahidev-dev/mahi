@@ -3425,6 +3425,36 @@ export default function CameraScreen({
           </View>
         )}
 
+        {/* Can't post yet: the shutter stays, greyed with a padlock (owner, 2026-10-08). A tap
+            says no and opens what to do; it fades with the notice as the drawer opens. */}
+        {blocked && pullOn && (gate === 'closed' || offline) ? (
+          <Reanimated.View
+            style={[styles.controlsRow, lift > 0 && { bottom: OFFSET.o32 + lift }, noticeStyle]}
+            pointerEvents={pull.expanded ? 'none' : 'box-none'}
+          >
+            <View style={styles.lockedShutterRow}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.shutterOuter,
+                  styles.lockedShutter,
+                  pressed && { opacity: ALPHA.a70 },
+                ]}
+                onPress={() => {
+                  haptic('tick');
+                  pull.toggle();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Shutter locked. ${card.title}`}
+                accessibilityHint="Shows what you can do"
+              >
+                <View style={[styles.shutterInner, styles.lockedShutterInner]}>
+                  <LockIcon size={ICON_SIZE.i24} color={COLORS.offWhite} />
+                </View>
+              </Pressable>
+            </View>
+          </Reanimated.View>
+        ) : null}
+
         {!blocked ? (
           <View style={[styles.controlsRow, lift > 0 && { bottom: OFFSET.o32 + lift }]}>
             <Pressable
@@ -3865,6 +3895,19 @@ const styles = StyleSheet.create({
     width: SIZE.z58,
     height: SIZE.z58,
     borderRadius: RADIUS.r29,
+  },
+  // The locked shutter: the same ring, see-through inside, a padlock in the middle.
+  lockedShutterRow: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  lockedShutter: {
+    borderColor: withAlpha(COLORS.offWhite, ALPHA.a60),
+  },
+  lockedShutterInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: withAlpha(COLORS.offWhite, ALPHA.a20),
   },
   // Recording: the round button turns into a small red square (tap or let go to stop).
   shutterRecording: {
