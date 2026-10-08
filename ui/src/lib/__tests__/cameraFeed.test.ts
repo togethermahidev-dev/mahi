@@ -9,16 +9,17 @@ import { SWIPE } from '@/constants/tokens';
 
 const page = { width: 400, height: 800 };
 
+// Owner, 2026-10-08: fully open, the feed goes all the way up — the camera slides off the top
+// and the feed fills the page under its own header.
 describe('cameraStrip — the camera slid up while the feed is showing', () => {
-  it('leaves a strip a fifth of the page tall under the header; the rest slides up', () => {
-    // 100 header + 160 strip = the camera's bottom edge at 260, so it slides up 540.
-    expect(cameraStrip(page, 100)).toEqual({ bottom: 260, lift: 540 });
+  it('slides the whole camera off the top; the feed starts under the header', () => {
+    expect(cameraStrip(page, 100)).toEqual({ bottom: 100, lift: 800 });
   });
 });
 
 describe('feedTop — where the feed’s rows start', () => {
-  it('is just under the camera strip', () => {
-    expect(feedTop(cameraStrip(page, 100))).toBe(260 + 8);
+  it('is just under the header', () => {
+    expect(feedTop(cameraStrip(page, 100))).toBe(100 + 8);
   });
 });
 

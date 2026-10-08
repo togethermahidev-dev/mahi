@@ -544,8 +544,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
+  // A full point, not a hairline: a hairline (a third of a pixel) rounded away on some rows.
   rowGap: {
-    height: StyleSheet.hairlineWidth,
+    height: BORDER_WIDTH.w1,
     marginHorizontal: SPACE.s16,
   },
   lockedButton: {

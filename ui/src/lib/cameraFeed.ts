@@ -10,13 +10,12 @@ import type { SwipeDecision } from './swipeRules';
 export type CameraStrip = { bottom: number; lift: number };
 
 /**
- * The camera slid up while the feed is showing (owner, 2026-10-08: the mirror of the pull down):
- * a strip of it stays under the header, `bottom` is that strip's lower edge, `lift` how far the
- * camera has slid up to get there.
+ * The camera slid up while the feed is fully showing (owner, 2026-10-08: "all the way up"): the
+ * whole camera slides off the top (`lift` = the page height) and the feed fills the page under its
+ * own header (`bottom` = the header's lower edge, where the rows begin).
  */
 export function cameraStrip(page: { width: number; height: number }, headerH: number): CameraStrip {
-  const bottom = headerH + Math.round(page.height * MOTION.cameraFeed.stripShare);
-  return { bottom, lift: page.height - bottom };
+  return { bottom: headerH, lift: page.height };
 }
 
 /** Where the feed's rows start: just under the camera strip. */
