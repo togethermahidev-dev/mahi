@@ -59,8 +59,10 @@ follow lists closed by the owner's setting (`follows_select`, `can_see_follow_li
 `create_post` / `invite_to_tag` / `search_tag_people` / `match_contacts` (`tag_mode`); accepting a
 tag request no longer makes follows; `claim_invite` general invite from a private account = request;
 `follow_request` / `follow_accepted` notices and pushes (`notifications.follow_request` marks an
-`invite_joined` whose claimer's follow is a request); someone tagged on a post always sees that post
-(`can_view_post_for`; blocks, bans and the feed lock still win); blocks and bans clear requests. Tests
+`invite_joined` whose claimer's follow is a request; the app may update only `is_read` on
+notifications); someone tagged on a post, and the tagger of the tag a post answers, always see that
+post (`tag_shows_post`, `can_view_post_for`; blocks, bans and the feed lock still win); blocks and
+bans clear requests. Tests
 `tests/private_accounts_test.sql`, `tests/controls_test.sql`, `tests/tagged_post_visibility_test.sql` (also updated:
 `tests/comment_like_visibility_test.sql`, `tests/feed_lock_test.sql`, `tests/follow_back_test.sql`,
 `tests/mutual_follow_wording_test.sql`, `tests/push_deadline_wording_test.sql`,

@@ -63,7 +63,8 @@
 - Who sees your workouts (`posts_visibility`: everyone / followers / friends; everyone is not allowed
   while private) and who can tag you (`tag_permission`: everyone / approve first / friends only) are
   enforced on the server (`can_view_post`, `create_post`, `invite_to_tag`). The feed lock stays on top.
-  Someone tagged on a post always sees that one post (not the poster's others), unless blocked or banned.
+  Someone tagged on a post always sees that one post (not the poster's others), and the tagger always
+  sees the post that answers their tag, unless blocked or banned (the feed lock still applies).
 - Accepting an in-app tag request starts the tag but NO LONGER creates follows (owner, 2026-10-08).
   `respond_tag_invite` answers who follows whom and whether the tagger asked to follow, and the app
   offers Follow back / Accept their follow (optional). Declining creates nothing.
