@@ -36,7 +36,6 @@ export const FEATURE_FLAGS = [
   'live-activity', // (default OFF, not released yet) a mate's tag on the lock screen, Dynamic Island and home-screen widget
   'emoji-keyboard', // the emoji button and panel (search, suggestions) in a conversation
   'message-reactions', // hold a message to react, reaction badges, double tap for a heart
-  'camera-pull-down', // the waiting camera gives a little when pulled down, with its handle and tip
   'point-fly-in', // a later answer's +1 flies into the points counter (off: the full-screen moment)
   'feed-develop', // after you post, your mates' locked posts clear one by one
   'tag-drain-ring', // last 6 hours: the tagger's face in a draining ring on the camera pill

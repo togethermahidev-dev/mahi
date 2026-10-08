@@ -107,7 +107,6 @@ focus, and the double tap to switch camera is exactly as before.)
 
 **Build 13 native features — kill switches, on for everyone** (owner, 2026-10-07; default on, so
 create each in PostHog at 100%). Off = today's behaviour, no new motion:
-`camera-pull-down` (the waiting camera gives when pulled down, its handle and one-time tip),
 `point-fly-in` (a later answer's +1 flies into the counter, Apple's rolling digits; off = the full-screen
 moment for every point), `feed-develop` (locked posts clear one by one after you post),
 `tag-drain-ring` (last 6 hours: the tagger's face in a draining ring, one tap at the last hour),
@@ -203,7 +202,6 @@ removal rule applies as usual: take the switch out of the code, then delete it i
 | `live-activity` | A mate's tag on the lock screen, Dynamic Island and home-screen widget |
 | `emoji-keyboard` | The emoji button and panel in a conversation |
 | `message-reactions` | Hold a message to react, reaction badges, double tap for a heart |
-| `camera-pull-down` | Pulling the locked camera down to see what's behind it |
 | `point-fly-in` | The +1 flying into the points counter |
 | `feed-develop` | Locked posts clearing one by one after you post |
 | `tag-drain-ring` | The ring draining around the tagger in the last 6 hours |

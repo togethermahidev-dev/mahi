@@ -1944,15 +1944,18 @@ export default function CameraScreen({
     'twoPhotos',
     cameraOn && !blocked && captureState === 'idle' && guidePhotoUri === null
   );
-  const waitingTip = useCoachAnchor('waiting', cameraOn && gate === 'closed' && !offline);
-  // The waiting camera gives a little when pulled down, showing the card "behind" it (#115).
+  // The waiting camera is the front drawer; pulling it down reveals the card behind it (#115).
   const safeTop = useSafeAreaInsets().top;
   const { fontScale } = useWindowDimensions();
-  const pullOn = useFeatureFlag('camera-pull-down') && cameraOn && waitingCard;
-  const pull = useCameraPull(pullOn, safeTop);
-  // VoiceOver can't pull, so the pull tip waits for a sighted session.
+  // Standard interaction: this must never depend on a remote flag. If the flag is absent or was
+  // switched off, the screen becomes the fixed dead-end card shown in the reported build.
+  const pullOn = cameraOn && waitingCard;
+  const pull = useCameraPull(pullOn, safeTop, pageHeight);
+  // The waiting-card tip only points at the card once the drawer has actually revealed it.
+  const waitingTip = useCoachAnchor('waiting', pullOn && pull.expanded);
+  // VoiceOver uses the arrow as a button; the visual coach bubble stays for sighted sessions.
   const screenReader = useScreenReader();
-  const pullTip = useCoachAnchor('pullDown', pullOn && !screenReader);
+  const pullTip = useCoachAnchor('pullDown', pullOn && !pull.expanded && !screenReader);
 
   // Tap to focus (flag `camera-tap-focus`): switch on, an iPhone, and a build whose camera can
   // focus on a point (build 11+). OTA updates also reach build 10, which can't: there it's off.
@@ -3057,15 +3060,15 @@ export default function CameraScreen({
         {(gate === 'closed' || offline) && !flight && heldPoints === null ? (
           <GestureDetector gesture={pull.gesture}>
             <View style={StyleSheet.absoluteFill}>
-              {/* The frost moves with the camera; the card sits behind the glass. */}
-              <Reanimated.View style={[StyleSheet.absoluteFill, pull.frostStyle]}>
-                <BlurView
-                  intensity={BLUR_INTENSITY.i60}
-                  tint="dark"
-                  style={StyleSheet.absoluteFill}
-                />
-              </Reanimated.View>
-              <Reanimated.View style={[styles.postedOverlay, pull.behindStyle]}>
+              {/* The actions are physically behind the camera cover and only appear as it opens. */}
+              <Reanimated.View
+                style={[
+                  styles.revealOverlay,
+                  { paddingTop: safeTop + SPACE.s16, paddingBottom: pageHeight - pull.openOffset },
+                  pull.behindStyle,
+                ]}
+                pointerEvents={pull.expanded ? 'box-none' : 'none'}
+              >
                 <View ref={waitingTip} style={styles.noTagsCard}>
                   {/* The words read as one; the button is its own element. */}
                   <WaitingCardWords
@@ -3150,13 +3153,31 @@ export default function CameraScreen({
                     </Pressable>
                   ) : null}
                 </View>
+                {pull.expanded ? (
+                  <PullHandle
+                    top={pull.openOffset - SIZE.z48}
+                    direction="up"
+                    onPress={pull.toggle}
+                  />
+                ) : null}
               </Reanimated.View>
+              {/* This is the front camera sheet. Pulling its arrow uncovers the card above it. */}
               {pullOn ? (
                 <Reanimated.View
-                  style={[StyleSheet.absoluteFill, pull.cameraStyle]}
-                  pointerEvents="none"
+                  style={[StyleSheet.absoluteFill, styles.cameraPullCover, pull.frostStyle]}
+                  pointerEvents={pull.expanded ? 'none' : 'auto'}
                 >
-                  <PullHandle top={openTagsTop(safeTop, fontScale)} anchorRef={pullTip} />
+                  <BlurView
+                    intensity={BLUR_INTENSITY.i60}
+                    tint="dark"
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                  <PullHandle
+                    top={pageHeight * MOTION.pull.handleTopShare}
+                    anchorRef={pullTip}
+                    onPress={pull.toggle}
+                  />
                 </Reanimated.View>
               ) : null}
             </View>
@@ -3485,11 +3506,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: SPACE.s32,
   },
-  postedOverlay: {
+  revealOverlay: {
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: SPACE.s32,
+  },
+  cameraPullCover: {
+    backgroundColor: withAlpha(COLORS.ink, ALPHA.a35),
   },
   // Reactive posting closed: one card in the middle, in the app's card style (the locked feed's
   // card, and the camera's open-tags pill: frosted, an accent outline, the accent for the icon).

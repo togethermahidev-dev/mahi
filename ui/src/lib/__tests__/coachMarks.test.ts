@@ -30,16 +30,18 @@ describe('coach tips — the words', () => {
       bell: ['A friend tagged you', 'Tap to answer.', 'feed'],
       twoPhotos: ['Two photos', 'What you see, then a selfie.', 'camera'],
       waiting: ['You’ll post again when a friend tags you', 'Check back each day.', 'camera'],
-      pullDown: ['Pull down to peek', 'The card shows who you’re waiting on.', 'camera'],
+      pullDown: [
+        'Pull down to open',
+        'Your actions are behind the camera.',
+        'camera',
+      ],
       feedLocked: ['Your feed opens when you post', 'Answer tags to keep it open.', 'feed'],
       tagMates: ['Tag 3 friends', 'Each gets 48 hours to post back.', 'compose'],
     });
   });
 
   it('reads as one sentence pair for VoiceOver', () => {
-    expect(coachTipText('points')).toBe(
-      'Your Mahi points. First workout and each answer earn 1.'
-    );
+    expect(coachTipText('points')).toBe('Your Mahi points. First workout and each answer earn 1.');
     expect(coachTipText('twoPhotos')).toBe('Two photos. What you see, then a selfie.');
   });
 

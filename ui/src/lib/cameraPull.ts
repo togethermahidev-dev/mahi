@@ -1,13 +1,13 @@
 /**
- * The waiting camera gives a little when pulled down (owner, 2026-10-07, #115: "it nudges down
- * only a bit and what's there displays as though it's behind it"). Pure geometry, unit-tested;
+ * The waiting camera is the front of a physical drawer (owner, 2026-10-08): pulling it down
+ * uncovers the accountability card built behind it. Pure geometry, unit-tested;
  * the gesture and the views are in src/screens/CameraScreen.tsx.
  *
  * - `verticalPull`: when a drag counts as a pull (clearly downward past SWIPE.slop) and when it
  *   is left to the sideways page swipe (swipeRules.ts), so the two never fight. A drag from the
  *   status bar is the phone's.
- * - `pullOffset`: the rubber band — the camera follows the finger less and less, never past
- *   MOTION.pull.limit.
+ * - `drawerOffset`: the full-screen rubber band used by the actual camera drawer.
+ * - `pullOffset`: the original small rubber-band helper, retained for its pure geometry contract.
  * - `pullParallax`: the layer behind (the waiting card) moves a share of the pull and grows from
  *   MOTION.pull.fromScale to full size, so it reads as sitting behind the glass.
  *
@@ -42,6 +42,29 @@ export function pullOffset(dy: number): number {
   if (dy <= 0) return 0;
   const limit = MOTION.pull.limit;
   return (limit * dy) / (dy + limit);
+}
+
+/** A full drawer pull: follows the finger, with increasing resistance near the open position. */
+export function drawerOffset(dy: number, openOffset: number): number {
+  'worklet';
+  if (dy <= 0 || openOffset <= 0) return 0;
+  return Math.min(openOffset, dy / (1 + dy / (openOffset * 2)));
+}
+
+export function drawerShouldOpen(offset: number, openOffset: number): boolean {
+  'worklet';
+  return openOffset > 0 && offset >= openOffset * MOTION.pull.openAt;
+}
+
+/** Hysteresis: a short committed pull opens or closes without making the drawer feel twitchy. */
+export function drawerShouldSettleOpen(
+  offset: number,
+  openOffset: number,
+  startedOpen: boolean
+): boolean {
+  'worklet';
+  if (!startedOpen) return drawerShouldOpen(offset, openOffset);
+  return offset > openOffset * (1 - MOTION.pull.openAt);
 }
 
 /** Where the layer behind the camera sits for a camera `offset` down. */

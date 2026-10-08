@@ -7,6 +7,13 @@ The single entry point for continuing work on Mahi. Read this first. It encodes 
 
 ## State on 2026-10-08 (newest; overrides older notes below)
 
+**Camera waiting drawer fixed:** The locked/waiting camera is now the front layer, with a down arrow
+centred around its upper third. Pulling it down uncovers the accountability card physically behind
+it and settles open so its actions work; pull upward or tap the centred up arrow to close. Reduce
+Motion crossfades the layers. This is standard UI, not a PostHog-gated experiment: the remote
+`camera-pull-down` value caused the fixed oversized card/no gesture seen on the phone. Remove that
+obsolete flag from PostHog when convenient; no server change is needed.
+
 **Native continuity motion (front end; no server work):** Profile workout tiles now expand from the
 exact tapped tile into `PostViewer` and reverse into it on close; a downward dismissal scrubs the
 same geometry. Profile photos do the same into the circular avatar viewer. The camera's captured

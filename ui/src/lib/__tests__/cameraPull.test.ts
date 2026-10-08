@@ -1,5 +1,13 @@
 import { MOTION, SWIPE } from '@/constants/tokens';
-import { pullFelt, pullOffset, pullParallax, verticalPull } from '../cameraPull';
+import {
+  drawerOffset,
+  drawerShouldOpen,
+  drawerShouldSettleOpen,
+  pullFelt,
+  pullOffset,
+  pullParallax,
+  verticalPull,
+} from '../cameraPull';
 
 const touch = (dx: number, dy: number, startY = 300) => ({ startY, dx, dy, insetTop: 47 });
 
@@ -67,6 +75,27 @@ describe('camera pull-down (the waiting camera gives a little)', () => {
       expect(pullFelt(mark - 1, false)).toBe(false);
       expect(pullFelt(mark + 1, false)).toBe(true);
       expect(pullFelt(mark + 1, true)).toBe(false);
+    });
+  });
+
+  describe('full camera drawer', () => {
+    const open = 600;
+
+    it('follows a downward finger with resistance and never passes the open position', () => {
+      expect(drawerOffset(-20, open)).toBe(0);
+      expect(drawerOffset(120, open)).toBeGreaterThan(0);
+      expect(drawerOffset(120, open)).toBeLessThan(120);
+      expect(drawerOffset(10000, open)).toBeLessThanOrEqual(open);
+    });
+
+    it('opens only after the commitment threshold', () => {
+      expect(drawerShouldOpen(open * MOTION.pull.openAt - 1, open)).toBe(false);
+      expect(drawerShouldOpen(open * MOTION.pull.openAt, open)).toBe(true);
+    });
+
+    it('closes an open drawer after the same committed distance upwards', () => {
+      expect(drawerShouldSettleOpen(open * (1 - MOTION.pull.openAt) + 1, open, true)).toBe(true);
+      expect(drawerShouldSettleOpen(open * (1 - MOTION.pull.openAt) - 1, open, true)).toBe(false);
     });
   });
 });

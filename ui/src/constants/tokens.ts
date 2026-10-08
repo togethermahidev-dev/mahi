@@ -568,7 +568,17 @@ export const MOTION = {
   // ─── Moments that make the clock feel alive (design research, 2026-10-07) ───
   /** The waiting camera, pulled down: how far it gives at most (pt, a rubber band), the share of
    *  that the layer behind it moves, and the scale that layer grows from as it shows. */
-  pull: { limit: 48, parallax: 0.3, fromScale: 0.96 },
+  pull: {
+    limit: 48,
+    parallax: 0.3,
+    fromScale: 0.96,
+    /** The camera settles here, leaving the accountability card visibly behind it. */
+    openScreenShare: 0.78,
+    /** Release after this share of the reveal and the camera completes opening. */
+    openAt: 0.24,
+    /** The arrow sits roughly a third of the way down the camera. */
+    handleTopShare: 0.32,
+  },
   /** A pull past this share of its limit is felt once (a tick). */
   pullFeltAt: 0.6,
   /** The pull handle breathes out to this scale once, this fast (ms) each way, when it shows. */

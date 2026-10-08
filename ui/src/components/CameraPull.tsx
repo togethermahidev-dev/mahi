@@ -1,15 +1,15 @@
 /**
- * The waiting camera gives a little when pulled down (owner, 2026-10-07, #115): the live camera
- * and its frost slide down at most MOTION.pull.limit (a rubber band), and the waiting card, which
- * sits "behind" the glass, moves a share of that and grows to full size. Letting go springs it
- * back. One tick as it passes its mark. A small handle with a chevron says it can be pulled; it
+ * The waiting camera opens like a physical front layer (owner, 2026-10-08): the live camera and
+ * its frost follow a downward pull, then settle low enough to uncover the accountability card
+ * built behind them. Pulling up or tapping the up arrow closes it. One tick as it passes its mark.
+ * A centered handle with a chevron says it can be pulled; it
  * breathes once when it shows (Apple's own symbol effect on an iPhone build with @expo/ui, ours
  * elsewhere). Rules and geometry: src/lib/cameraPull.ts.
  *
- * Reduce Motion: nothing slides or grows — the frost thins a little as you pull, and comes back.
+ * Reduce Motion: the camera crossfades away instead of sliding.
  */
-import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import Reanimated, {
   interpolate,
@@ -23,7 +23,13 @@ import Reanimated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Path } from 'react-native-svg';
 import { haptic } from '@/lib/haptics';
-import { pullFelt, pullOffset, pullParallax, verticalPull } from '@/lib/cameraPull';
+import {
+  drawerOffset,
+  drawerShouldOpen,
+  drawerShouldSettleOpen,
+  pullParallax,
+  verticalPull,
+} from '@/lib/cameraPull';
 import { loadSwiftUI } from '@/lib/expoUiModule';
 import {
   ALPHA,
@@ -35,6 +41,7 @@ import {
   SPACE,
   SPRING,
   STROKE,
+  SWIPE,
   withAlpha,
 } from '@/constants/tokens';
 
@@ -42,18 +49,34 @@ import {
  * The pull gesture and the styles it drives. `enabled`: only while the waiting card shows.
  * `insetTop`: a drag from the status bar is left to the phone.
  */
-export function useCameraPull(enabled: boolean, insetTop: number) {
+export function useCameraPull(enabled: boolean, insetTop: number, viewportHeight: number) {
   const reduceMotion = useReducedMotion();
+  const openOffset = viewportHeight * MOTION.pull.openScreenShare;
   const offset = useSharedValue(0);
+  const startOffset = useSharedValue(0);
   const startY = useSharedValue(0);
   const startX = useSharedValue(0);
   const decided = useSharedValue(false);
   const felt = useSharedValue(false);
+  const [expanded, setExpanded] = useState(false);
 
   // Leaving the waiting state mid-pull puts everything back.
   useEffect(() => {
-    if (!enabled) offset.value = 0;
+    if (!enabled) {
+      offset.value = 0;
+      // The drawer may disappear because a tag arrived while it was open.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setExpanded(false);
+    }
   }, [enabled, offset]);
+
+  const toggle = useCallback(() => {
+    const next = !expanded;
+    setExpanded(next);
+    // SharedValues are deliberately mutable on the UI thread.
+    // eslint-disable-next-line react-hooks/immutability
+    offset.value = withSpring(next ? openOffset : 0, SPRING.pullBack);
+  }, [expanded, offset, openOffset]);
 
   const gesture = Gesture.Pan()
     .enabled(enabled)
@@ -79,12 +102,12 @@ export function useCameraPull(enabled: boolean, insetTop: number) {
         manager.fail();
         return;
       }
-      const decision = verticalPull({
-        startY: startY.value,
-        dx: t.absoluteX - startX.value,
-        dy: t.absoluteY - startY.value,
-        insetTop,
-      });
+      const dx = t.absoluteX - startX.value;
+      const dy = t.absoluteY - startY.value;
+      const decision =
+        expanded && dy < -SWIPE.slop && Math.abs(dy) > Math.abs(dx)
+          ? 'activate'
+          : verticalPull({ startY: startY.value, dx, dy, insetTop });
       if (decision === 'wait') return;
       decided.value = true;
       if (decision === 'activate') manager.activate();
@@ -93,49 +116,69 @@ export function useCameraPull(enabled: boolean, insetTop: number) {
     .onStart(() => {
       'worklet';
       felt.value = false;
+      startOffset.value = offset.value;
     })
     .onUpdate((e) => {
       'worklet';
-      offset.value = pullOffset(e.absoluteY - startY.value);
-      if (pullFelt(offset.value, felt.value)) {
+      // eslint-disable-next-line react-hooks/immutability
+      offset.value =
+        startOffset.value > 0
+          ? Math.max(0, Math.min(openOffset, startOffset.value + e.translationY))
+          : drawerOffset(e.translationY, openOffset);
+      if (!felt.value && drawerShouldOpen(offset.value, openOffset)) {
         felt.value = true;
         scheduleOnRN(haptic, 'tick');
       }
     })
-    .onFinalize(() => {
+    .onEnd(() => {
       'worklet';
-      offset.value = withSpring(0, SPRING.pullBack);
+      const open = drawerShouldSettleOpen(offset.value, openOffset, startOffset.value > 0);
+      // eslint-disable-next-line react-hooks/immutability
+      offset.value = withSpring(open ? openOffset : 0, SPRING.pullBack, (finished) => {
+        if (finished) scheduleOnRN(setExpanded, open);
+      });
     });
 
   // The live camera and its frost move together.
-  const cameraStyle = useAnimatedStyle(() =>
-    reduceMotion ? {} : { transform: [{ translateY: offset.value }] }
-  );
+  const cameraStyle = useAnimatedStyle(() => {
+    const progress = openOffset > 0 ? offset.value / openOffset : 0;
+    return reduceMotion
+      ? { opacity: interpolate(progress, [0, 1], [1, 0]) }
+      : { transform: [{ translateY: offset.value }] };
+  });
   // Reduce Motion: the frost thins instead.
   const frostStyle = useAnimatedStyle(() =>
     reduceMotion
       ? {
-          opacity: interpolate(offset.value, [0, MOTION.pull.limit], [1, MOTION.pullFrostLow]),
+          opacity: interpolate(offset.value, [0, openOffset], [1, 0]),
         }
       : { transform: [{ translateY: offset.value }] }
   );
   // The card behind the glass.
   const behindStyle = useAnimatedStyle(() => {
     if (reduceMotion) return {};
-    const p = pullParallax(offset.value);
-    return { transform: [{ translateY: p.translateY }, { scale: p.scale }] };
+    const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
+    const p = pullParallax(progress * MOTION.pull.limit);
+    return {
+      opacity: progress,
+      transform: [{ translateY: p.translateY }, { scale: p.scale }],
+    };
   });
-  return { gesture, cameraStyle, frostStyle, behindStyle };
+  return { gesture, cameraStyle, frostStyle, behindStyle, expanded, toggle, openOffset };
 }
 
 /** The handle at the top of the waiting camera: a short bar and a chevron pointing down. */
 export function PullHandle({
   top,
   anchorRef,
+  direction = 'down',
+  onPress,
 }: {
   top: number;
   /** Where the one-time "Pull down to peek" tip points. */
   anchorRef?: React.Ref<View>;
+  direction?: 'down' | 'up';
+  onPress?: () => void;
 }): React.JSX.Element {
   const reduceMotion = useReducedMotion();
   const swift = loadSwiftUI();
@@ -150,24 +193,23 @@ export function PullHandle({
   const breathStyle = useAnimatedStyle(() => ({ transform: [{ scale: breath.value }] }));
 
   return (
-    <View
+    <Pressable
       ref={anchorRef}
-      collapsable={false}
-      pointerEvents="none"
       style={[styles.handleSpot, { top }]}
-      // Decoration only: pulling just nudges the card VoiceOver already reads, and VoiceOver
-      // can't pull, so it skips the handle rather than offer something it can't do.
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={direction === 'down' ? 'Show accountability actions' : 'Close actions'}
+      accessibilityHint={direction === 'down' ? 'Pull down or double tap' : undefined}
     >
       <Reanimated.View style={[styles.handleBar, breathStyle]} />
       {swift ? (
-        <NativeChevron swift={swift} breathe={!reduceMotion} />
+        <NativeChevron swift={swift} breathe={!reduceMotion} direction={direction} />
       ) : (
         <Reanimated.View style={breathStyle}>
           <Svg width={ICON_SIZE.i20} height={ICON_SIZE.i14} viewBox="0 0 24 14">
             <Path
-              d="M3 3l9 8 9-8"
+              d={direction === 'down' ? 'M3 3l9 8 9-8' : 'M3 11l9-8 9 8'}
               stroke={withAlpha(COLORS.white, ALPHA.a75)}
               strokeWidth={STROKE.s2}
               fill="none"
@@ -177,7 +219,7 @@ export function PullHandle({
           </Svg>
         </Reanimated.View>
       )}
-    </View>
+    </Pressable>
   );
 }
 
@@ -185,16 +227,18 @@ export function PullHandle({
 function NativeChevron({
   swift,
   breathe,
+  direction,
 }: {
   swift: NonNullable<ReturnType<typeof loadSwiftUI>>;
   breathe: boolean;
+  direction: 'down' | 'up';
 }): React.JSX.Element {
   const { Host, Image } = swift.ui;
   const { symbolEffect } = swift.modifiers;
   return (
     <Host matchContents>
       <Image
-        systemName="chevron.compact.down"
+        systemName={direction === 'down' ? 'chevron.compact.down' : 'chevron.compact.up'}
         size={ICON_SIZE.i20}
         color={withAlpha(COLORS.white, ALPHA.a75)}
         modifiers={
@@ -212,7 +256,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
+    minHeight: SIZE.z44,
     alignItems: 'center',
+    justifyContent: 'center',
     gap: SPACE.s4,
   },
   handleBar: {

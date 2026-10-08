@@ -56,6 +56,7 @@ it('the twelve switches made standard on 2026-10-07 are gone', () => {
     'account-delete',
     'auth-password-reset',
     'camera-pip-guide',
+    'camera-pull-down',
     'comment-likes',
     'feed-lock-explainer',
     'invite-links',
@@ -186,7 +187,6 @@ describe('pinch-zoom', () => {
 // Owner, 2026-10-07: every build 13 native moment has a kill switch, on for everyone.
 describe('build 13 kill switches', () => {
   const KILL_SWITCHES = [
-    'camera-pull-down',
     'point-fly-in',
     'feed-develop',
     'tag-drain-ring',

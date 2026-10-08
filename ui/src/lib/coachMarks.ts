@@ -52,12 +52,10 @@ export const COACH_TIPS = {
     page: 'camera',
     icon: 'notifications',
   },
-  // The waiting camera gives when pulled down (owner, 2026-10-07, #115): the handle says so, and
-  // this says it once in words. Pulling only nudges the card that is already showing, so the words
-  // promise no hidden list (walkthrough 2026-10-07). Not shown with VoiceOver, which can't pull.
+  // The handle says this once in words. VoiceOver can activate the arrow as a button.
   pullDown: {
-    title: 'Pull down to peek',
-    body: 'The card shows who you’re waiting on.',
+    title: 'Pull down to open',
+    body: 'Your actions are behind the camera.',
     page: 'camera',
     icon: 'people',
   },
