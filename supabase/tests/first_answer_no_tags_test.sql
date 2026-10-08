@@ -1,6 +1,6 @@
--- A first post that answers a mate's tag needs no tags (owner, 2026-10-07): tagging is
--- encouraged, not required. Every other post keeps the rule: a free first post with no tag to
--- answer, and every post after the first, still tag 3. Migration: 20261007190000_first_answer_no_tags.
+-- A first post that answers a mate's tag needs no tags (owner, 2026-10-07); since
+-- 20261008140000_first_workout_no_tags every first workout needs none, tagged or not. Every post
+-- after the first still tags 3. Migration: 20261007190000_first_answer_no_tags.
 begin;
 select plan(7);
 
@@ -56,15 +56,13 @@ select throws_ok($$select pg_temp.post(1, 2)$$, '22023', 'tag or invite 3 people
   'a later answer with no tags is refused');
 reset role;
 
--- 3. B came alone: the free first post still tags 3.
-select throws_ok($$select pg_temp.post(2, 1)$$, '22023', 'tag or invite 3 people',
-  'a free first post with no tag to answer still needs 3 tags');
+-- 3. B came alone: the first workout needs no tags either (20261008140000).
+select lives_ok($$select pg_temp.post(2, 1)$$, 'a first workout with no tag to answer needs no tags');
 reset role;
 
--- 4. C's only tag ran out (past the grace): nothing to answer, so 3 tags.
+-- 4. C's only tag ran out (past the grace): still a first workout, so no tags.
 select pg_temp.tag(3, interval '49 hours');
-select throws_ok($$select pg_temp.post(3, 1)$$, '22023', 'tag or invite 3 people',
-  'a first post whose tag ran out still needs 3 tags');
+select lives_ok($$select pg_temp.post(3, 1)$$, 'a first workout whose tag ran out needs no tags');
 reset role;
 
 select * from finish();
