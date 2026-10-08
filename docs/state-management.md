@@ -58,6 +58,7 @@ Manages the authenticated user's profile including the Mahi points counters (sto
 | Action | Description |
 |---|---|
 | `setProfile(profile)` | Sets profile after DB fetch or optimistic update |
+| `saveControls(patch)` | Settings → Controls: shows the change at once, calls `set_account_controls`, keeps the server's saved answer (private + Everyone is stored as Followers) and marks `privacy_chosen_at`; a refusal puts the old choice back. Sends `account_controls_changed`. |
 | `reset()` | Clears profile on sign-out |
 
 **UserProfile shape** (matches `profiles` table row):
@@ -74,6 +75,10 @@ Manages the authenticated user's profile including the Mahi points counters (sto
   avatar_url: string | null;
   streak_current: number;           // Mahi points: +1 per answering post; back to 0 after a missed tag
   streak_highest: number;           // Best points, never lowered
+  is_private?: boolean;             // Settings → Controls (missing from a server without them)
+  posts_visibility?: 'everyone' | 'followers' | 'friends';
+  tag_permission?: 'everyone' | 'approve' | 'friends';
+  privacy_chosen_at?: string | null; // null until the public / private choice after sign-up
 }
 ```
 
@@ -186,20 +191,30 @@ Manages follow relationships between users. Owns follow status booleans and foll
 | Field | Type | Description |
 |---|---|---|
 | `followingByMe` | `Record<string, boolean>` | Whether the current user follows each target user (keyed by target userId) |
+| `followsMe` | `Record<string, boolean>` | Whether each user follows the current user ("Follow back") |
+| `requestedByMe` | `Record<string, boolean>` | My follow request to a private account is waiting ("Requested") |
+| `privateById` | `Record<string, boolean>` | The account is private, as the server last said |
 | `counts` | `Record<string, { follower_count, following_count }>` | Follower and following counts per user |
 
 | Action | Description |
 |---|---|
-| `loadFollowData(currentUserId, targetUserId)` | Fetch follow status + counts via single `get_follow_data` RPC. Called when a profile overlay opens or own profile mounts. |
-| `toggleFollow(currentUserId, targetUserId)` | Optimistic toggle — flips `followingByMe` and adjusts both loaded counts, then calls the atomic `set_following` RPC and reconciles from its committed booleans/counts. Rolls back on error. Returns `{ error }` for caller logging. |
+| `loadFollowData(currentUserId, targetUserId)` | Fetch follow status, `requested`, `is_private` and counts via single `get_follow_data` RPC (the server ignores the first id and uses the signed-in account). Called when a profile overlay opens or own profile mounts. |
+| `toggleFollow(currentUserId, targetUserId)` | The follow button: Follow / Follow back follows, Following unfollows, Requested takes the request back (`setFollow` underneath). |
+| `setFollow(currentUserId, targetUserId, follow)` | Optimistic: a known private target shows Requested at once and moves no count; otherwise Following and both loaded counts move. Calls the atomic `set_following` RPC and reconciles from its committed `status` (`following` \| `requested` \| `none`), `is_private` and counts. Rolls back on error. Returns `{ error, status }`. Sends `user_followed` / `follow_requested` / `user_unfollowed` / `follow_request_cancelled` only for a real change. |
+| `removeFollower(currentUserId, followerId)` | Optimistic: drops `followsMe` and my follower count, calls `remove_follower`, puts them back on error. Sends `follower_removed`. |
 | `reset()` | Clear all state on sign-out. |
+
+The Requested state ships with no switch: from 20261008170000_private_accounts the server may
+answer `requested` to any follow.
 
 **Cross-store pattern:** Unlike `socialStore` which writes counts to `feedStore`, `followStore` owns its own counts — they are independent of feed data. When toggling follow, the store optimistically updates both the target user's `follower_count` and the current user's `following_count` (if loaded), then replaces the prediction with the server's committed answer. Its realtime channel registry fans one database event out to every mounted subscriber, so a profile and an open friends list cannot hide each other's refresh.
 
 Friends/follow lists are expiring social data: `FollowListModal` fetches them from the server on open,
 shows loading first, and listens for follow changes while visible. Do not persist these rows locally.
-An accepted tag request or claimed invite creates both directional rows on the server; a declined
-request creates neither. Those flows refresh through realtime rather than fabricating list rows.
+A claimed tag invite on a post creates both directional rows on the server; a mate invite from a
+private account creates the inviter's row and a follow request for the claimer. Accepting a tag
+request no longer creates follows (owner, 2026-10-08): the app then offers Follow back / Accept their
+follow. Those flows refresh through realtime rather than fabricating list rows.
 
 **Usage:**
 ```ts
@@ -216,6 +231,29 @@ const { error } = await useFollowStore.getState().toggleFollow(currentUserId, ta
 
 ---
 
+### `useFollowRequestStore` — `ui/src/store/followRequestStore.ts`
+
+Follow requests to my private account (switch `private-accounts`). Requests can be taken back, so
+the list is memory only and never kept on the phone.
+
+| Field | Type | Description |
+|---|---|---|
+| `requests` | `FollowRequest[] \| null` | Incoming requests, newest first; `null` = not read since the last `clear` (show a loading state) |
+| `failed` | `boolean` | The last read failed |
+
+| Action | Description |
+|---|---|
+| `load()` | Fresh read through `get_follow_requests` |
+| `clear()` | Forget the list, so an opening screen shows a loading state, never old rows |
+| `respond(currentUserId, requesterId, accept, followBack?)` | Optimistic: the row goes at once, comes back in place on error. Calls `respond_follow_request`; a Confirm marks them as my follower in `followStore` (documented cross-store effect), a follow back shows the server's answer on their button. Sends `follow_request_answered`. |
+| `subscribe(userId)` | Live while open: INSERT filtered to `target_id`, DELETE unfiltered (Supabase can't filter deletes), each re-reads. Module-level ref-counted registry, like `subscribeToFollows`. |
+| `reset()` | Close channels and forget the list on sign-out (wired in `App.tsx`). |
+
+`useFollowRequests(active)` is the thin hook: clear, load and subscribe while a screen showing the
+list is open.
+
+---
+
 ### `useProfilePostsStore` — `ui/src/store/profilePostsStore.ts`
 
 Manages the post grid shown on `ProfileScreen`. Separate from `useFeedStore` — scoped to the currently viewed profile.
@@ -225,6 +263,7 @@ Manages the post grid shown on `ProfileScreen`. Separate from `useFeedStore` —
 | `posts` | `PostRow[]` | Posts for the viewed profile, newest first |
 | `hasMore` | `boolean` | Pagination state |
 | `isSyncing` | `boolean` | `true` during fetch |
+| `restricted` | `'private' \| 'followers' \| 'friends' \| null` | Their Controls hide their workouts from you (`get_user_posts`' `restricted`); the profile shows why instead of a grid |
 
 | Action | Description |
 |---|---|

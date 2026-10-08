@@ -51,8 +51,8 @@ if (!videoOn) return null;
   This pure logic is unit-tested in [`ui/src/lib/__tests__/featureFlags.test.ts`](../ui/src/lib/__tests__/featureFlags.test.ts).
 - **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `push-core`, `video-posts`,
   `ios-sf-symbols`, `camera-tap-focus`, `identity-verification`, `purchases`, `tag-slots`,
-  `auth-google-signin`, `auth-apple-signin`, `live-activity`, `control-post-workout`, `siri-shortcuts`
-  and `spotlight`): off
+  `auth-google-signin`, `auth-apple-signin`, `live-activity`, `control-post-workout`, `siri-shortcuts`,
+  `spotlight` and `private-accounts`): off
   while flags load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns
   `true`. Use this for a feature that must never show, even for a moment on cold start (video posts would
   otherwise be able to ask for the microphone before flags load; the full-screen notifications page would
@@ -60,7 +60,7 @@ if (!videoOn) return null;
 
 ## The flags
 
-29 keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone. Nor do the twelve switches removed on 2026-10-07 — see [Removed from code 2026-10-07](#removed-from-code-2026-10-07).)
+30 keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone. Nor do the twelve switches removed on 2026-10-07 — see [Removed from code 2026-10-07](#removed-from-code-2026-10-07).)
 
 **Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
 are switched in the `app_config` table):
@@ -163,6 +163,23 @@ their secrets and migration `20261002150000_identity_verifications`. On a build 
 restore and RevenueCat's paywall. No screen uses it yet. Needs the RevenueCat native modules (build 11) and
 `EXPO_PUBLIC_REVENUECAT_IOS_KEY` in the lane. On a build without RevenueCat, or with no key, it reads as off
 and RevenueCat is never started.)
+
+**Public and private accounts**: `private-accounts` (**default off**, added 2026-10-08; not in PostHog
+yet — create it switched off). Needs migration `20261008170000_private_accounts`. On: Settings →
+Controls between Friends and Preferences — Account (Public | Private: "Anyone on Mahi can see your
+profile and workouts and follow you." / "Only people you approve can follow you and see your
+workouts. Your name and photo still show.", each switch asked about first; going public also sets
+workouts back to Everyone), Who can see your workouts (Everyone | Followers | Friends; Everyone can't
+be picked while private), Who can tag you (Everyone | Everyone, I approve first | Friends only),
+Followers (with Remove, asked about first: "They won't be told", and a friend's open tags end) and
+Follow requests (private only, Confirm / Delete). A "Follow requests" row at the top of Notifications
+opens the same list. A new account chooses public or private on one screen after sign-up (only while
+the server says nothing was chosen; existing accounts were marked chosen and stay public). Lists load
+fresh, update live while open and are never kept on the phone. **No switch** (the server may answer it
+any time): the Requested follow button, the restricted profile ("This account is private", "Only @x's
+followers see their workouts", "Only @x's friends see their workouts"), per-person tag modes on the tag
+screen, the Follow back / Accept their follow pop-up after accepting a tag request, and the new
+notification words. Off = no Controls, no sign-up screen, no requests list, no Remove.
 
 **Sign in with Apple**: `auth-apple-signin` (**default off** since 2026-10-08; not released yet, see below). Shows Apple's
 own button on the welcome screen on iPhones with build 13+ (the `expo-apple-authentication` native module)

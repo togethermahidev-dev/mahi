@@ -264,6 +264,7 @@ Product analytics via `posthog-react-native`. Singleton client created with `EXP
 | Tag-loop events (`tag_sent`, `tag_answered`, `tag_missed`, `streak_lost`, `invite_shared`, `invite_claimed`, `feed_unlocked`, …) | `ui/src/lib/analytics.ts` (one typed map) | Sent after the server confirms |
 
 | Core actions: `user_followed` (`became_friends`), `user_unfollowed`, `post_liked`, `comment_added`, `message_sent` | the stores that make them | After the server saves the row; each carries the row id |
+| Private accounts: `follow_requested`, `follow_request_cancelled` (`target_id`), `follow_request_answered` (`accepted`), `account_controls_changed` (`is_private`, `posts_visibility`, `tag_permission` as saved), `follower_removed` (`tags_ended`) | `followStore`, `followRequestStore`, `userStore` | After the server confirms; nothing for a refusal or a repeat |
 
 Feature flags are read through the same client — see [feature-flags.md](./feature-flags.md).
 
