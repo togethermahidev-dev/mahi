@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 30 — the swipe up to the feed uses the camera's own gesture (as reliable as the
+ *     pull down) and reacts sooner (2026-10-08)
  *   build 13 · 29 — two-stage camera swipes: the first pull down or swipe up nudges to a peek; a
  *     second swipe or a tap goes the rest (2026-10-08)
  *   build 13 · 28 — a frosted camera says why (padlock, reason, live clock) and keeps a locked
@@ -145,4 +147,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 29;
+export const OTA_NUMBER = 30;
