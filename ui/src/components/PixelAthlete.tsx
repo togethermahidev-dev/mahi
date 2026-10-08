@@ -1,44 +1,17 @@
 /**
- * A tiny pixel person doing jumping jacks (owner, 2026-10-08: "something cool" on the locked
- * feed's button). Two pixel frames drawn in the app and swapped on a timer: no image files, no
- * native code. Still on the first frame with Reduce Motion. Decorative: VoiceOver skips it.
+ * A tiny pixel athlete (owner, 2026-10-08: "something cool" on the locked feed's button): a
+ * runner, a weightlifter, jumping jacks and push-ups, two frames each, cycling on a timer. Drawn
+ * in the app: no image files, no native code. Still (the runner's first frame) with Reduce
+ * Motion. Decorative: VoiceOver skips it. Frames and the cycle: src/lib/pixelAthlete.ts.
  */
 import React, { useEffect, useState } from 'react';
 import { useReducedMotion } from 'react-native-reanimated';
 import Svg, { Rect } from 'react-native-svg';
 import { MOTION } from '@/constants/tokens';
+import { EXERCISES, GRID, athleteFrame } from '@/lib/pixelAthlete';
 
-// 9 wide × 10 tall. '#' is a pixel.
-const FRAMES = [
-  [
-    '....###..',
-    '....###..',
-    '.....#...',
-    '..#####..',
-    '.#..#..#.',
-    '....#....',
-    '....#....',
-    '...#.#...',
-    '...#.#...',
-    '..#...#..',
-  ],
-  [
-    '#...###.#',
-    '.#..###.#',
-    '..#..#.#.',
-    '...####..',
-    '....#....',
-    '....#....',
-    '...#.#...',
-    '..#...#..',
-    '.#.....#.',
-    '#.......#',
-  ],
-] as const;
 /** One pixel on the grid; the Svg's viewBox is in pixels, so a pixel is one unit. */
 const PIXEL = 1;
-const COLS = FRAMES[0][0].length;
-const ROWS = FRAMES[0].length;
 
 export default function PixelAthlete({
   size,
@@ -49,18 +22,19 @@ export default function PixelAthlete({
   color: string;
 }): React.JSX.Element {
   const reduceMotion = useReducedMotion();
-  const [frame, setFrame] = useState(0);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     if (reduceMotion) return;
-    const id = setInterval(() => setFrame((f) => (f + 1) % FRAMES.length), MOTION.pixelFrameMs);
+    const id = setInterval(() => setTick((t) => t + 1), MOTION.pixelFrameMs);
     return () => clearInterval(id);
   }, [reduceMotion]);
-  const pixels = FRAMES[frame];
+  const { exercise, frame } = athleteFrame(tick, MOTION.pixelBeatsPerExercise);
+  const pixels = EXERCISES.find((e) => e.name === exercise)!.frames[frame];
   return (
     <Svg
-      width={(size * COLS) / ROWS}
+      width={(size * GRID.cols) / GRID.rows}
       height={size}
-      viewBox={`0 0 ${COLS} ${ROWS}`}
+      viewBox={`0 0 ${GRID.cols} ${GRID.rows}`}
       accessible={false}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
