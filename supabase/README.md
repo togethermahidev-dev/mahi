@@ -12,10 +12,13 @@ The files are production's own migration history, downloaded from
 policies that had been created in the dashboard. Every live table, column, function, trigger, policy,
 index and bucket was checked against these files; nothing else was missing.
 
-Every later migration through `20261008130000_security_followups` is live on production
-(checked 2026-10-08). The historical "not pushed" paragraphs below describe rollout dependencies
+Every later migration through `20261008150000_security_hardening_live` is live on production
+(checked against prod 2026-10-08, backup `20261008093204`). The historical "not pushed" paragraphs below describe rollout dependencies
 that have since landed unless they are explicitly listed under `supabase/deferred/`.
-**Not pushed yet (2026-10-08, live Supabase check):** `20261008150000_security_hardening_live` —
+**Pushed 2026-10-08:** `20261008140000_first_workout_no_tags` — the first workout needs no tags,
+whether or not it answers a tag (`create_post`: `when v_first_post then 0`); later posts still need
+a live tag and 3 friends. Test `tests/first_workout_no_tags_test.sql`.
+**Pushed 2026-10-08 (live Supabase check):** `20261008150000_security_hardening_live` —
 follows change only through `set_following` (direct insert/delete rules and grants gone;
 `notify_on_follow` skips blocked pairs and banned followers); `profiles.avatar_url` must be this
 project's public avatars address in the person's own folder; avatar files listable only by their
@@ -23,7 +26,7 @@ owner (bucket stays public); `get_message_reactions` / `react_to_message` signed
 no table rights in `public` and authenticated no truncate/references/trigger (also for new
 tables); reports only through `report_*` (direct insert rule and grant gone); `answered_by_post` /
 `post_invites` internal. Phones on an app older than OTA 12.20 follow by writing the table, so
-their Follow button stops working once this is live: publish a newer production OTA first. Test
+their Follow button stopped working when this went live (no store users before launch). Test
 `tests/security_hardening_live_test.sql`, undo `rollbacks/20261008150000_security_hardening_live.rollback.sql`.
 **Pushed 2026-10-08 (security review):** `20261008100000_security_hardening` — posts
 and their photos follow the feed rule (own, staff, or `can_view_post`), the `posts` bucket is
@@ -89,7 +92,7 @@ every phone has the Mahi points update. (`deferred/contract_messages.sql` is alr
 
 Rules (enforced by `.claude/hooks/guard.cjs`):
 
-Latest production migration: `20261008130000_security_followups` (live 2026-10-08).
+Latest production migration: `20261008150000_security_hardening_live` (live 2026-10-08).
 It makes push wording explicit: accepting a tag request or joining through an invite makes both
 people follow each other. `20261007104406_authoritative_follow_mutations` immediately before it adds
 `set_following`, the atomic follow/unfollow path used by OTA 12.20. The production social graph was

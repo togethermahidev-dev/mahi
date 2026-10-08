@@ -92,6 +92,30 @@ means "trusted": always ask what a stranger with a fresh account could read or w
 - Each finding is checked by a second agent before it counts. Fixes follow the TDD and migration
   rules, and get a line in the log below.
 
+## Owner settings checklist (outside the code; from the 2026-10-08 checks)
+
+Each is a setting only the owner can change. Tick it here when done.
+- [ ] GitHub: make the repo private (Settings → General → Danger Zone). Pushing as a collaborator still
+  works; deploy the website by editing `web/DEPLOY.md` as togethermahidev-dev.
+- [ ] DNS: `_dmarc.mahitechnology.com` TXT `v=DMARC1; p=none; rua=mailto:<inbox>` (later `quarantine`, then
+  `reject`); togethermahi.com TXT `v=spf1 -all` and `_dmarc` TXT `v=DMARC1; p=reject;`.
+- [ ] Sentry: Settings → Security & Privacy → "Prevent Storing of IP Addresses".
+- [ ] PostHog: delete the `email` property from existing persons (the app no longer sends it).
+- [ ] Supabase Auth → Hooks: "Before User Created" = `hook_require_verified_signup`, on.
+- [ ] Supabase Auth → Email: minimum password 8 with letters and digits; email code expiry 900 s;
+  "Confirm email" on.
+- [ ] Supabase Auth → Settings: "Secure email change" and "Require reauthentication to change password" on;
+  JWT expiry ≤ 3600 s, refresh token rotation on.
+- [ ] Supabase Auth → URL Configuration: Site URL `https://togethermahi.com`; redirect list only `mahi://…`
+  and the real domains.
+- [ ] Supabase Auth → MFA (TOTP) on before the staff portal is hosted; anonymous sign-ins and manual
+  linking off; keep "Allow new users to sign up" on (Sign in with Apple needs it).
+- [ ] Supabase Database: SSL enforced; strong password for `posthog_reader`; no Storage S3 access keys.
+- [ ] Push go-live: set `EXPO_ACCESS_TOKEN` (`supabase secrets set`), redeploy `send-push`, then turn on
+  Expo "Enhanced push security" — in that order.
+- [ ] Later (owner decisions): code-signed OTA updates; raise the update gate to build 13 once it's out
+  (older builds keep the session in plain storage); a minimum age.
+
 ## Known and accepted
 
 - `check-email` says whether an email has an account. Sign-up needs it.
@@ -117,4 +141,4 @@ means "trusted": always ask what a stranger with a fresh account could read or w
 | The sign-in session sat in plain app storage (AsyncStorage) | Low | Kept in the keychain (expo-secure-store, readable after first unlock, this device only); an old session moves over on first read | Committed; needs build 13 (builds 10–12 keep AsyncStorage) |
 | Staff sign-in return path accepted a tab or newline (browsers drop them, turning it into another site's address) | Low | `safeNext` refuses control characters | Committed; live when the staff portal is hosted |
 | Second review: reporting a post or comment you can't see showed you its copy; comment-like lists ignored the post's rule; comments and likes were readable on any post | Medium | Report copies staff-only; `get_comment_likes` / `get_comment_likers` and the comment and like read rules follow the post | Live 2026-10-08 (20261008120000, 20261008130000) |
-| Live Supabase check 2026-10-08: the app could still write `follows` directly (follow across a block, follow-spam pushes); `avatar_url` could point anywhere (tracking image, someone else's photo); anyone could list every avatar file; signed-out callers could call the message reaction functions; anon kept table rights in `public` and authenticated kept truncate/references/trigger; the old direct report insert rule was still there; `answered_by_post` / `post_invites` (invite links) were callable by anyone | Medium | Follows only through `set_following` and no follow notice across a block or from a banned person; `avatar_url` must be this project's avatars address in your own folder; avatar files listable only by their owner (bucket stays public for image links); reaction functions signed-in only; anon has no table rights, authenticated no truncate/references/trigger (also for new tables); reports only through `report_*`; the two helpers internal; the unused direct follow and report calls removed from the app | Built; not pushed (20261008150000). Phones older than OTA 12.20 lose Follow once live |
+| Live Supabase check 2026-10-08: the app could still write `follows` directly (follow across a block, follow-spam pushes); `avatar_url` could point anywhere (tracking image, someone else's photo); anyone could list every avatar file; signed-out callers could call the message reaction functions; anon kept table rights in `public` and authenticated kept truncate/references/trigger; the old direct report insert rule was still there; `answered_by_post` / `post_invites` (invite links) were callable by anyone | Medium | Follows only through `set_following` and no follow notice across a block or from a banned person; `avatar_url` must be this project's avatars address in your own folder; avatar files listable only by their owner (bucket stays public for image links); reaction functions signed-in only; anon has no table rights, authenticated no truncate/references/trigger (also for new tables); reports only through `report_*`; the two helpers internal; the unused direct follow and report calls removed from the app | Live 2026-10-08 (20261008150000). Phones older than OTA 12.20 lost Follow (none before launch) |

@@ -5,32 +5,34 @@ The single entry point for continuing work on Mahi. Read this first. It encodes 
 
 ---
 
-## Immediate Claude handover — server rule for the show-up workflow (2026-10-08)
+## State on 2026-10-08 (newest; overrides older notes below)
 
-The front end now treats Mahi as a show-up accountability app:
+**Show-up accountability (product):** Mahi is a show-up fitness accountability app (RULES.md
+"Product identity and core loop"). The front end says "Start by showing up", the first workout has
+no tagging step, and every later post answers a live tag and picks 3 friends ("Who are you holding
+accountable?"). Committed on `updates` (49f9da2); reaches phones with the next OTA. Server side is
+live: `20261008140000_first_workout_no_tags` (the first workout needs no tags, answering a tag or
+not; later posts still need a live tag and 3 friends).
 
-- Welcome and locked-feed copy starts with “Start by showing up,” never “free post” or “opening
-  check-in.”
-- The first workout preview has no tagging step and posts with zero outgoing tags.
-- Every later post is an answer to a live incoming tag. The challenge sheet asks “Who are you
-  holding accountable?” and “Pick 3 friends you want to see show up on Mahi.”
-- Answering the incoming tag is the workout post; do not model or word it as a second action.
+**Security review (docs/security.md has the rules and the full log).** Live on production
+2026-10-08 (checked against prod): posts, photos, comments, likes and comment-like lists follow the
+post's visibility (`can_view_post`), the posts bucket is private; posting, tagging, following and
+reporting only through server functions; email sign-ups only through `complete-signup` (claim stamp
+on the checked code); a password reset signs out every session; report copies staff-only; staff
+need a confirmed email; avatars only in your own folder; no signed-out table rights
+(`20261008100000`–`20261008150000`; functions `complete-signup`, `reset-password`, `check-email`
+deployed). Next OTA: invite confirm sheet (Accept / Not now), no email to Sentry/PostHog, no
+city/postcode in PostHog, widget photo clean-up, no search text in crash reports. Build 13: the
+sign-in session in the keychain (`expo-secure-store`), Android backup off and links narrowed.
+Website deploy: security headers. Owner to-dos: make the GitHub repo private; DMARC/SPF records;
+Sentry "Prevent storing IP addresses"; delete `email` from PostHog persons; Supabase Auth settings
+(hook on, password rules, secure email change, Site URL) — listed in docs/security.md.
 
-**Claude's remaining server task:** add a new migration after `20261008130000_security_followups.sql`
-that updates `public.create_post`. In its `v_required` case, the first-workout rule must be
-`when v_first_post then 0` (not `when v_first_post and v_answers then 0`). Keep reactive posting
-unchanged: after `profiles.has_posted_before` becomes true, `reactive_posting_open` still requires a
-live incoming tag. Keep the 3-outgoing-tag requirement for every later answer. Write the matching
-rollback and pgTAP coverage for: first workout with no incoming tag and zero outgoing tags succeeds;
-first workout answering a tag succeeds; later answer with zero outgoing tags is refused; later
-answer with 3 valid friends succeeds; direct writes remain refused. Follow `docs/security.md` and do
-not apply or push the migration without the owner's same-session permission.
+**Held back (owner, 2026-10-08):** Sign in with Apple, the lock-screen tracker and widget, the Control
+Centre button, Siri and Spotlight are off in PostHog and default-off in code (`DEFAULT_OFF_FLAGS`).
 
-Until that migration is applied, a brand-new untagged account's new front-end flow will reach the
-old server refusal (`tag or invite 3 people`). This mismatch is deliberate for this handoff and is
-the first thing Claude should close.
-
----
+**Planned, not built:** public and private accounts (Instagram-style follow requests), waiting for
+the owner's six answers (plan kept locally in `.claude/plan-private-accounts.md`).
 
 ## 0. Build 13 phone checks (2026-10-07; nothing below is phone-checked yet)
 
@@ -143,7 +145,7 @@ screens/components → hooks → stores (Zustand, optimistic) → api ({data,err
 
 Full data flow + the per-layer import contract: [architecture.md](./architecture.md#layering-contract).
 
-**Codex takes over (2026-10-06).** From here Codex works on Mahi instead of Claude. Same rules: this
+**Who works on Mahi (2026-10-08):** Claude and Codex both do, often side by side. Same rules: this
 file, `RULES.md` and `CLAUDE.md` are the rulebook; the guard hook (`.claude/hooks/guard.cjs`) still
 applies to every tool call. Work on branch `updates`; commit by name, no AI attribution, never push
 without the owner's go in the same session.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Mahi Fitness is a React Native **show-up fitness accountability app**, not a social-media app. Everyone gets one free two-photo workout check-in; after that, posting is only possible as the answer to a friend's live tag. The answer is the post. Later answers tag 3 friends, who have 48 hours to show up in turn. Each answer earns one Mahi point; the friends-only Feed opens after accountable check-ins (the tag loop — [tag-loop-plan.md](./tag-loop-plan.md), [decisions.md](./decisions.md)). Messaging, profiles, follows, likes and comments support accountability rather than define the product loop.
+Mahi Fitness is a React Native **show-up fitness accountability app**, not a social-media app. Everyone starts with one two-photo first workout, with or without a tag to answer and with no tags of its own; after that, posting is only possible as the answer to a friend's live tag. The answer is the post. Later answers tag 3 friends, who have 48 hours to show up in turn. Each answer earns one Mahi point; the friends-only Feed opens after accountable check-ins (the tag loop — [tag-loop-plan.md](./tag-loop-plan.md), [decisions.md](./decisions.md)). Messaging, profiles, follows, likes and comments support accountability rather than define the product loop.
 
 ## Reactive posting
 
@@ -216,7 +216,7 @@ Rebuilt like PingMee-v2 (migration `20261006190000_message_requests`, live 2026-
 
 Migrations `20261006180000_post_caption_edits` and `20261006200000_maximus_answers` are live. The
 owner can change the caption for one hour through `update_post_caption` and may delete the post
-through `delete_post`. Deletion removes its media and never restores the free first post:
+through `delete_post`. Deletion removes its media and never restores the first workout:
 `profiles.has_posted_before` stays true. Changed captions are checked again.
 
 ## Shared post links
