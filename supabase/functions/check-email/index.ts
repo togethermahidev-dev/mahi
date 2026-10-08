@@ -1,46 +1,25 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from 'jsr:@supabase/supabase-js@2';
-
-// Admin client — needed to query auth.users
-const supabaseAdmin = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-);
+// check-email — does this email already have an account? A hint on the sign-up form only.
+//
+// Body: { email }. Answers { exists } from the server-only SQL function auth_user_id_by_email
+// (one lookup, whatever the number of users; listUsers only ever read the first 50). Never blocks
+// sign-up: bad input or any error answers { exists: false }.
+import { admin, isValidEmail, json, normalizeEmail } from "../_shared/otp.ts";
 
 Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
-    const { email } = await req.json();
+    const { email } = await req.json().catch(() => ({}));
+    if (!isValidEmail(email)) return json({ exists: false });
 
-    if (!email || typeof email !== 'string') {
-      // Never block sign-up — return exists: false on bad input
-      return new Response(JSON.stringify({ exists: false }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    const { data: userId, error } = await admin().rpc("auth_user_id_by_email", { p_email: normalizeEmail(email) });
+    if (error) {
+      console.error("check-email lookup failed:", error);
+      return json({ exists: false });
     }
-
-    const { data } = await supabaseAdmin.auth.admin.listUsers();
-    const exists = data?.users?.some(
-      (u) => u.email?.toLowerCase() === email.toLowerCase(),
-    ) ?? false;
-
-    return new Response(JSON.stringify({ exists }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return json({ exists: !!userId });
   } catch (err) {
-    // Never block sign-up on any error
-    console.error('check-email error:', err);
-    return new Response(JSON.stringify({ exists: false }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    console.error("check-email error:", err);
+    return json({ exists: false });
   }
 });
