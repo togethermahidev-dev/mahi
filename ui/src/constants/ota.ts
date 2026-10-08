@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 11 — locked feed rows show real blur: the poster's photo, enlarged and blurred,
+ *     behind the frost and in both previews; the flat blue tint is gone (2026-10-08)
  *   build 13 · 10 — locked feed rows are the real row under full frost (like the camera's cover);
  *     the camera's selfie-next window shows while waiting too (2026-10-08)
  *   build 13 · 09 — fixes the crash on opening Mahi in 13.08 (the tab-grow motion) (2026-10-08)
@@ -109,4 +111,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 10;
+export const OTA_NUMBER = 11;
