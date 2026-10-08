@@ -290,14 +290,7 @@ export default function ProfileMediaMap({
 
   const empty = isLoading ? (
     <ListState kind="loading" dark={dark} />
-  ) : restricted && !isSelf ? (
-    <ListState
-      kind="empty"
-      dark={dark}
-      title={restrictedText(restricted, username ?? '')}
-      icon={<LockIcon color={muted} />}
-    />
-  ) : failed ? (
+  ) : restricted && !isSelf ? null : failed ? (
     <ListState
       kind="error"
       dark={dark}
@@ -337,7 +330,23 @@ export default function ProfileMediaMap({
         data={posts}
         keyExtractor={(post) => post.id}
         numColumns={LAYOUT.profileColumns}
-        ListHeaderComponent={header}
+        ListHeaderComponent={
+          restricted && !isSelf ? (
+            <>
+              {header}
+              {/* Always on top when their Controls hide their workouts: any posts below are
+                  ones you're tagged on (owner, 2026-10-08). */}
+              <ListState
+                kind="empty"
+                dark={dark}
+                title={restrictedText(restricted, username ?? '')}
+                icon={<LockIcon color={muted} />}
+              />
+            </>
+          ) : (
+            header
+          )
+        }
         ListEmptyComponent={empty}
         renderItem={({ item }) => (
           <View style={styles.gridCell}>

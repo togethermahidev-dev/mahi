@@ -211,6 +211,8 @@ export interface SuggestedUser {
   avatar_url: string | null;
   /** Number of mutual connections (follow-of-follows). Absent for popularity fallback. */
   mutual_count?: number;
+  /** Their account is private (a follow is a request); missing from an older server. */
+  is_private?: boolean;
 }
 
 /** Fetch follow suggestions (follow-of-follows, block-filtered) via a single RPC. */

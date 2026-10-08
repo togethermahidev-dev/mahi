@@ -97,8 +97,9 @@ export const useProfilePostsStore = create<ProfilePostsState>((set, get) => ({
         : undefined;
       // An empty result keeps hasMore=true so a later focus can re-sync and
       // recover; a full page means more may exist; a short page means done.
-      // A hidden grid has nothing more to load.
-      const hasMore = restricted ? false : data.length === 0 ? true : data.length === PAGE_SIZE;
+      // A restricted answer can still carry posts (ones you're tagged on); with none, there is
+      // nothing more to load.
+      const hasMore = data.length === 0 ? !restricted : data.length === PAGE_SIZE;
       set({ posts: data, cursor, hasMore, lastSyncedAt: Date.now(), restricted });
     } else if (error) {
       console.log(`[profilePostsStore] sync error userId=${userId}`, error);

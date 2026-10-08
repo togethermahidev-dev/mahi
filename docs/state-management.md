@@ -263,7 +263,7 @@ Manages the post grid shown on `ProfileScreen`. Separate from `useFeedStore` —
 | `posts` | `PostRow[]` | Posts for the viewed profile, newest first |
 | `hasMore` | `boolean` | Pagination state |
 | `isSyncing` | `boolean` | `true` during fetch |
-| `restricted` | `'private' \| 'followers' \| 'friends' \| null` | Their Controls hide their workouts from you (`get_user_posts`' `restricted`); the profile shows why instead of a grid |
+| `restricted` | `'private' \| 'followers' \| 'friends' \| null` | Their Controls hide their workouts from you (`get_user_posts`' `restricted`); the profile shows why at the top, above any posts it still carries (ones you're tagged on) |
 
 | Action | Description |
 |---|---|

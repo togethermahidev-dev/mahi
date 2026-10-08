@@ -28,6 +28,38 @@ beforeEach(() => {
   useSuggestStore.setState({ suggestions: [userA, userB] });
 });
 
+// Private accounts: get_suggested_follows says is_private (when the server has it).
+describe('followSuggested and private accounts', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('a private suggestion is known as private, so it shows Requested at once', async () => {
+    useSuggestStore.setState({ suggestions: [{ ...userA, is_private: true }] });
+    const toggle = jest
+      .spyOn(useFollowStore.getState(), 'toggleFollow')
+      .mockResolvedValue({ error: null, status: 'requested' });
+    await useSuggestStore.getState().followSuggested('me', 'a');
+    expect(useFollowStore.getState().privateById.a).toBe(true);
+    expect(toggle).toHaveBeenCalledWith('me', 'a', { holdCounts: false });
+  });
+
+  it('privacy not known (older server): counts wait for the server', async () => {
+    const toggle = jest
+      .spyOn(useFollowStore.getState(), 'toggleFollow')
+      .mockResolvedValue({ error: null, status: 'following' });
+    await useSuggestStore.getState().followSuggested('me', 'b');
+    expect(toggle).toHaveBeenCalledWith('me', 'b', { holdCounts: true });
+  });
+
+  it('a public suggestion moves counts at once as usual', async () => {
+    useSuggestStore.setState({ suggestions: [{ ...userA, is_private: false }] });
+    const toggle = jest
+      .spyOn(useFollowStore.getState(), 'toggleFollow')
+      .mockResolvedValue({ error: null, status: 'following' });
+    await useSuggestStore.getState().followSuggested('me', 'a');
+    expect(toggle).toHaveBeenCalledWith('me', 'a', { holdCounts: false });
+  });
+});
+
 describe('followSuggested (optimistic remove)', () => {
   it('removes the followed user from the strip on success', async () => {
     jest.spyOn(useFollowStore.getState(), 'toggleFollow').mockResolvedValue({ error: null });

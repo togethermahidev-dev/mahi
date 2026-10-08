@@ -1,4 +1,19 @@
 /**
+ * The question before unfollowing (tagging no longer needs a mutual follow, so it doesn't say
+ * you can't tag each other): a friend stops being one; a private account needs asking again.
+ */
+export function unfollowConfirm(
+  handle: string,
+  them: { followsYou: boolean; isPrivate: boolean }
+): { title: string; message: string | undefined } {
+  const lines = [
+    them.followsYou ? 'You’ll stop being friends.' : null,
+    them.isPrivate ? 'You’ll need to ask again to see their workouts.' : null,
+  ].filter(Boolean);
+  return { title: `Unfollow ${handle}?`, message: lines.length ? lines.join(' ') : undefined };
+}
+
+/**
  * A follow that failed, in plain words: the server's daily cap on new follow requests (100 a
  * day), or the screen's own `fallback` for anything else.
  */

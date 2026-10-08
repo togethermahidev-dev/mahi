@@ -280,10 +280,8 @@ export default function NotificationsScreen({
     const name = item.actor.display_name ?? item.actor.username;
     const initials = (name[0] ?? '?').toUpperCase();
     const username = item.actor.username;
-    // A mate who joined from your invite and whose follow still waits for your yes.
-    const caption = notificationText(item.type, username, {
-      followRequest: requests?.some((r) => r.requester_id === item.actor_id) ?? false,
-    });
+    // A mate who joined from your invite and whose follow waits as a request (the row says so).
+    const caption = notificationText(item.type, username, { followRequest: item.follow_request });
     const time = relativeTime(item.created_at);
     const target = notificationTarget(item, myId ?? '', tagOpen(item));
     const action = notificationAction(target);
@@ -460,7 +458,7 @@ export default function NotificationsScreen({
             data={listItems}
             keyExtractor={(entry) => (entry.kind === 'row' ? entry.item.id : entry.title)}
             getItemType={(entry) => entry.kind}
-            extraData={{ inviteStates, requests }}
+            extraData={inviteStates}
             contentContainerStyle={[
               styles.listContent,
               { paddingBottom: insets.bottom + SPACE.s12 },

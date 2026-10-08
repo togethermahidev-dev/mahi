@@ -15,6 +15,12 @@ interface FollowCounts {
   following_count: number;
 }
 
+/**
+ * `holdCounts`: whether they are private isn't known yet (a suggestion from an older server), so
+ * no count moves until the server answers — a request never counts.
+ */
+type FollowOptions = { holdCounts?: boolean };
+
 /** Callback invoked when the follows table changes for a subscribed user. */
 type FollowChangeListener = () => void;
 
@@ -38,13 +44,15 @@ interface FollowState {
    */
   toggleFollow: (
     currentUserId: string,
-    targetUserId: string
+    targetUserId: string,
+    opts?: FollowOptions
   ) => Promise<{ error: Error | null; status?: FollowStatus }>;
   /** Follow (true) or unfollow / take back a request (false), whatever the button shows. */
   setFollow: (
     currentUserId: string,
     targetUserId: string,
-    follow: boolean
+    follow: boolean,
+    opts?: FollowOptions
   ) => Promise<{ error: Error | null; status?: FollowStatus }>;
   /** Remove someone who follows me (they aren't told). Optimistic with rollback. */
   removeFollower: (
@@ -105,14 +113,14 @@ export const useFollowStore = create<FollowState>((set, get) => ({
     }));
   },
 
-  toggleFollow: (currentUserId, targetUserId) => {
+  toggleFollow: (currentUserId, targetUserId, opts) => {
     const s = get();
     const engaged =
       (s.followingByMe[targetUserId] ?? false) || (s.requestedByMe[targetUserId] ?? false);
-    return get().setFollow(currentUserId, targetUserId, !engaged);
+    return get().setFollow(currentUserId, targetUserId, !engaged, opts);
   },
 
-  setFollow: async (currentUserId, targetUserId, follow) => {
+  setFollow: async (currentUserId, targetUserId, follow, opts) => {
     const wasFollowing = get().followingByMe[targetUserId] ?? false;
     const wasRequested = get().requestedByMe[targetUserId] ?? false;
     const prevCounts = get().counts[targetUserId] ?? { follower_count: 0, following_count: 0 };
@@ -120,7 +128,15 @@ export const useFollowStore = create<FollowState>((set, get) => ({
     // A private account's follow is a request: Requested at once, and no count moves.
     const asRequest = follow && !wasFollowing && (get().privateById[targetUserId] ?? false);
     // Following → not following (or the reverse) moves the counts; a request never does.
-    const countStep = follow ? (wasFollowing || asRequest ? 0 : 1) : wasFollowing ? -1 : 0;
+    const countStep = opts?.holdCounts
+      ? 0
+      : follow
+        ? wasFollowing || asRequest
+          ? 0
+          : 1
+        : wasFollowing
+          ? -1
+          : 0;
 
     set((st) => ({
       followingByMe: { ...st.followingByMe, [targetUserId]: follow && !asRequest },

@@ -32,6 +32,10 @@ describe('notification list wording', () => {
     expect(notificationText('invite_joined', 'sam', { followRequest: false })).toBe(
       '@sam joined Mahi from your invite. You follow each other now.'
     );
+    // The row's `follow_request` is null on a row from before the field.
+    expect(notificationText('invite_joined', 'sam', { followRequest: null })).toBe(
+      '@sam joined Mahi from your invite. You follow each other now.'
+    );
   });
 
   it('a follow request and its yes match their pushes', () => {

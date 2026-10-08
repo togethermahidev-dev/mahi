@@ -26,7 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getProfile, createOrGetConversation } from '@/api';
 import { startReport } from '@/lib/reportFlow';
 import { showNativeMenu } from '@/lib/nativeMenu';
-import { followButtonLabel, followErrorText } from '@/lib/followBack';
+import { followButtonLabel, followErrorText, unfollowConfirm } from '@/lib/followBack';
 import { useAuthStore, useFollowStore, useBlockStore, useProfilePostsStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { pointsCount } from '@/lib/mahiPoints';
@@ -102,6 +102,11 @@ export default function UserProfileScreen({
   const follow = followButtonLabel(isFollowing, followsMe, isRequested);
   // Their Controls hide their workouts from you (get_user_posts says why): no grid, no friends.
   const restricted = useProfilePostsStore((s) => (s.userId === userId ? s.restricted : null));
+  // A restricted answer can still carry posts you're tagged on; those open as usual.
+  const restrictedPosts = useProfilePostsStore((s) =>
+    s.userId === userId && s.restricted ? s.posts.length : 0
+  );
+  const isPrivate = useFollowStore((s) => s.privateById[userId] ?? false);
   const loadFollowData = useFollowStore((s) => s.loadFollowData);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
 
@@ -318,7 +323,8 @@ export default function UserProfileScreen({
       void runFollow();
       return;
     }
-    Alert.alert(`Unfollow ${handle}?`, 'You won’t be able to tag each other.', [
+    const ask = unfollowConfirm(handle, { followsYou: followsMe, isPrivate });
+    Alert.alert(ask.title, ask.message, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Unfollow', style: 'destructive', onPress: () => void runFollow() },
     ]);
@@ -580,7 +586,7 @@ export default function UserProfileScreen({
 
       <View style={styles.workoutsHeading}>
         <Text style={[styles.workoutsTitle, { color: text }]}>Workouts</Text>
-        {!restricted ? (
+        {!restricted || restrictedPosts > 0 ? (
           <Text style={[styles.workoutsSubtitle, { color: muted }]}>
             Tap a post to see it full screen.
           </Text>

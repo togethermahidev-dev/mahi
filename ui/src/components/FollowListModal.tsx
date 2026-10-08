@@ -24,6 +24,7 @@ import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { reportError } from '@/lib/sentry';
 import { removeFollowerConfirm } from '@/lib/accountControls';
+import { unfollowConfirm } from '@/lib/followBack';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import ListState from '@/components/ListState';
 import UserProfileScreen from '@/screens/UserProfileScreen';
@@ -167,9 +168,14 @@ export default function FollowListModal({
     [currentUserId, toggleFollow, fetchList]
   );
 
-  // Ask first: an unfollow can end tagging each other.
+  // Ask first, saying what an unfollow ends (friends, a private account's workouts).
   const handleUnfollow = (targetUserId: string, handle: string) => {
-    Alert.alert(`Unfollow ${handle}?`, 'You won’t be able to tag each other.', [
+    const { followsMe, privateById } = useFollowStore.getState();
+    const ask = unfollowConfirm(handle, {
+      followsYou: followsMe[targetUserId] ?? false,
+      isPrivate: privateById[targetUserId] ?? false,
+    });
+    Alert.alert(ask.title, ask.message, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Unfollow',

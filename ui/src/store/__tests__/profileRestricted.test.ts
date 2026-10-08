@@ -21,6 +21,17 @@ it('keeps why the workouts are hidden', async () => {
   expect(useProfilePostsStore.getState().hasMore).toBe(false);
 });
 
+// Tagged people see the post (owner, 2026-10-08): a restricted answer can still carry posts.
+it('keeps the posts a restricted answer carries, and pages them as usual', async () => {
+  const posts = [1, 2, 3, 4].map((n) => ({ id: `p${n}`, created_at: `2026-10-0${n}T00:00:00Z` }));
+  getUserPosts.mockResolvedValue({ data: posts, error: null, restricted: 'private' });
+  await useProfilePostsStore.getState().sync('sam');
+  const s = useProfilePostsStore.getState();
+  expect(s.restricted).toBe('private');
+  expect(s.posts.map((p) => p.id)).toEqual(['p1', 'p2', 'p3', 'p4']);
+  expect(s.hasMore).toBe(true);
+});
+
 it('a profile you can see has no restriction', async () => {
   getUserPosts.mockResolvedValue({ data: [], error: null, restricted: null });
   await useProfilePostsStore.getState().sync('sam');

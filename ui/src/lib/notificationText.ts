@@ -9,7 +9,7 @@ export function notificationText(
   type: string,
   username: string,
   /** `followRequest`: their follow to you is a request still waiting (a private account). */
-  opts: { followRequest?: boolean } = {}
+  opts: { followRequest?: boolean | null } = {}
 ): string {
   const who = `@${username}`;
   switch (type) {

@@ -168,6 +168,27 @@ describe('followStore', () => {
       expect(s.privateById.target).toBe(true);
     });
 
+    // A suggestion whose privacy isn't known yet: no count moves until the server answers.
+    it('holdCounts leaves counts alone until the server answers', async () => {
+      useFollowStore.setState({
+        counts: {
+          me: { follower_count: 2, following_count: 5 },
+          target: { follower_count: 8, following_count: 4 },
+        },
+      });
+      let finish!: (value: unknown) => void;
+      setFollowing.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+
+      const pending = useFollowStore.getState().toggleFollow('me', 'target', { holdCounts: true });
+      expect(useFollowStore.getState().counts.target.follower_count).toBe(8);
+      expect(useFollowStore.getState().counts.me.following_count).toBe(5);
+
+      finish(row('requested'));
+      await pending;
+      expect(useFollowStore.getState().requestedByMe.target).toBe(true);
+      expect(useFollowStore.getState().counts.me.following_count).toBe(5);
+    });
+
     it('setFollow never unfollows when asked to follow', async () => {
       useFollowStore.setState({ followingByMe: { target: true } });
       setFollowing.mockResolvedValue(row('following', { is_private: false }));

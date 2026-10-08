@@ -68,7 +68,14 @@ export const useSuggestStore = create<SuggestState>((set, get) => ({
     set({ suggestions: prev.filter((u) => u.id !== targetId) });
 
     // Delegate the actual follow to followStore (only legal sideways import)
-    const { error, status } = await useFollowStore.getState().toggleFollow(currentUserId, targetId);
+    // A private suggestion shows Requested at once; one whose privacy an older server didn't
+    // say moves no count until the server answers.
+    if (target.is_private) {
+      useFollowStore.setState((s) => ({ privateById: { ...s.privateById, [targetId]: true } }));
+    }
+    const { error, status } = await useFollowStore
+      .getState()
+      .toggleFollow(currentUserId, targetId, { holdCounts: target.is_private === undefined });
 
     if (error) {
       console.log('[suggestStore] followSuggested error |', error.message);

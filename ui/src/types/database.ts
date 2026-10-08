@@ -249,6 +249,8 @@ export type Database = {
           id: string;
           is_read: boolean;
           post_id: string | null;
+          /** invite_joined: true = the joiner's follow waits as a request (private accounts). */
+          follow_request: boolean | null;
           type: string;
           user_id: string;
         };

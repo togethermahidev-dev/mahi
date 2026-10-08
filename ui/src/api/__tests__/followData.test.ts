@@ -9,7 +9,7 @@ import {
   setAccountControls,
   setFollowing,
 } from '@/api/follows';
-import { followButtonLabel, followErrorText } from '@/lib/followBack';
+import { followButtonLabel, followErrorText, unfollowConfirm } from '@/lib/followBack';
 
 describe('getFollowData', () => {
   it('reads follows_you, and false from a server without it', async () => {
@@ -178,6 +178,30 @@ describe('follow requests and controls (server: 20261008170000_private_accounts)
     const { data, error } = await removeFollower('f1');
     expect(data).toBeNull();
     expect(error?.message).toBe('not allowed');
+  });
+});
+
+// Tagging no longer needs a mutual follow, so the old "You won't be able to tag each other" was
+// not always true (supervisor review, 2026-10-08).
+describe('unfollowConfirm', () => {
+  it('a friend: you stop being friends', () => {
+    expect(unfollowConfirm('@sam', { followsYou: true, isPrivate: false })).toEqual({
+      title: 'Unfollow @sam?',
+      message: 'You’ll stop being friends.',
+    });
+  });
+  it('a private account: you would have to ask again', () => {
+    expect(unfollowConfirm('@sam', { followsYou: false, isPrivate: true }).message).toBe(
+      'You’ll need to ask again to see their workouts.'
+    );
+    expect(unfollowConfirm('@sam', { followsYou: true, isPrivate: true }).message).toBe(
+      'You’ll stop being friends. You’ll need to ask again to see their workouts.'
+    );
+  });
+  it('anyone else: nothing more to say', () => {
+    expect(
+      unfollowConfirm('@sam', { followsYou: false, isPrivate: false }).message
+    ).toBeUndefined();
   });
 });
 
