@@ -9,7 +9,7 @@
  * Reduce Motion: the camera crossfades away instead of sliding.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import Reanimated, {
   interpolate,
@@ -35,22 +35,16 @@ import {
 } from '@/lib/cameraPull';
 import { loadSwiftUI } from '@/lib/expoUiModule';
 import { useCardMorphStyle } from '@/components/MorphTransition';
-import { FONTS } from '@/constants/fonts';
 import {
   ALPHA,
-  BORDER_WIDTH,
   COLORS,
-  FONT_SIZE,
   ICON_SIZE,
-  LINE_HEIGHT,
   MOTION,
   RADIUS,
   SIZE,
-  SPACE,
   SPRING,
   STROKE,
   SWIPE,
-  withAlpha,
 } from '@/constants/tokens';
 
 /**
@@ -249,7 +243,7 @@ export function useCameraPull(
   };
 }
 
-/** The handle at the top of the waiting camera: a short bar and a chevron pointing down. */
+/** One large arrow: it jumps once to teach the physical pull, then travels with the camera. */
 export function PullHandle({
   top,
   openTop,
@@ -270,15 +264,17 @@ export function PullHandle({
 }): React.JSX.Element {
   const reduceMotion = useReducedMotion();
   const swift = loadSwiftUI();
-  const breath = useSharedValue(1);
+  const jump = useSharedValue(0);
   useEffect(() => {
-    if (reduceMotion || swift) return;
-    breath.value = withSequence(
-      withTiming(MOTION.pullHandleScale, { duration: MOTION.pullHandleMs }),
-      withTiming(1, { duration: MOTION.pullHandleMs })
+    if (reduceMotion) return;
+    jump.value = withSequence(
+      withTiming(MOTION.pull.arrowJumpY, { duration: MOTION.pullHandleMs }),
+      withSpring(0, SPRING.pullBack),
+      withTiming(MOTION.pull.arrowJumpY, { duration: MOTION.pullHandleMs }),
+      withSpring(0, SPRING.pullBack)
     );
-  }, [reduceMotion, swift, breath]);
-  const breathStyle = useAnimatedStyle(() => ({ transform: [{ scale: breath.value }] }));
+  }, [reduceMotion, jump]);
+  const jumpStyle = useAnimatedStyle(() => ({ transform: [{ translateY: jump.value }] }));
   const positionStyle = useAnimatedStyle(() => {
     const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
     return {
@@ -298,7 +294,7 @@ export function PullHandle({
     >
       <Pressable
         style={({ pressed }) => [
-          styles.handleCapsule,
+          styles.arrowTarget,
           pressed && Platform.OS !== 'android' && styles.handlePressed,
         ]}
         onPress={onPress}
@@ -311,28 +307,22 @@ export function PullHandle({
         accessibilityHint={expanded ? undefined : 'Pull down or double tap'}
         accessibilityState={{ expanded }}
       >
-        <Reanimated.View style={[styles.handleBar, breathStyle]} />
-        <View style={styles.handleLine}>
-          <Text style={styles.handleLabel}>
-            {expanded ? 'Close' : 'Pull down for accountability'}
-          </Text>
-          <Reanimated.View style={[breathStyle, chevronStyle]}>
-            {swift ? (
-              <NativeChevron swift={swift} breathe={!reduceMotion} />
-            ) : (
-              <Svg width={ICON_SIZE.i20} height={ICON_SIZE.i14} viewBox="0 0 24 14">
-                <Path
-                  d="M3 3l9 8 9-8"
-                  stroke={COLORS.accent}
-                  strokeWidth={STROKE.s2}
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            )}
-          </Reanimated.View>
-        </View>
+        <Reanimated.View style={[jumpStyle, chevronStyle]}>
+          {swift ? (
+            <NativeChevron swift={swift} breathe={!reduceMotion} />
+          ) : (
+            <Svg width={SIZE.z36} height={ICON_SIZE.i24} viewBox="0 0 24 14">
+              <Path
+                d="M3 3l9 8 9-8"
+                stroke={COLORS.offWhite}
+                strokeWidth={STROKE.s2}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+          )}
+        </Reanimated.View>
       </Pressable>
     </Reanimated.View>
   );
@@ -352,8 +342,8 @@ function NativeChevron({
     <Host matchContents>
       <Image
         systemName="chevron.compact.down"
-        size={ICON_SIZE.i20}
-        color={COLORS.accent}
+        size={SIZE.z36}
+        color={COLORS.offWhite}
         modifiers={
           breathe
             ? [symbolEffect({ effect: 'breathe' }, { options: { repeat: 'nonRepeating' } })]
@@ -373,39 +363,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  handleCapsule: {
-    minHeight: SIZE.z48,
-    minWidth: SIZE.z200,
-    paddingVertical: SPACE.s6,
-    paddingHorizontal: SPACE.s16,
-    borderRadius: RADIUS.pill,
-    borderWidth: BORDER_WIDTH.w1,
-    borderColor: withAlpha(COLORS.accent, ALPHA.a40),
-    backgroundColor: withAlpha(COLORS.black, ALPHA.a72),
+  arrowTarget: {
+    width: SIZE.z64,
+    height: SIZE.z64,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACE.s4,
+    borderRadius: SIZE.z32,
     overflow: 'hidden',
   },
   handlePressed: {
     opacity: ALPHA.a80,
-  },
-  handleLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACE.s8,
-  },
-  handleLabel: {
-    color: COLORS.white,
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l16,
-    fontFamily: FONTS.semiBold,
-  },
-  handleBar: {
-    width: SIZE.z36,
-    height: SIZE.z4,
-    borderRadius: RADIUS.pill,
-    backgroundColor: withAlpha(COLORS.accent, ALPHA.a70),
   },
 });

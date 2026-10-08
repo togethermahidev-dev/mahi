@@ -15,6 +15,13 @@ which two photos come next, and locked-feed actions say “first workout” / �
 instead of generic social language. Entry actions use interactive Liquid Glass on supported iOS,
 bounded ripple on Android and shared spring compression everywhere else.
 
+**Camera/picker visual correction:** The random labelled pull capsule is gone. One large white
+chevron jumps twice, follows the camera and rotates to close. The behind-camera accountability card
+is smaller, borderless and neutral; its hierarchy is black/white with blue reserved for a small
+active cue. The camera settles into a shorter card. The accountability picker is now a four-column
+avatar/name grid with tap-to-check, theme-aware black/white selection and no numbered empty circles;
+only real pending invite/link states appear above the grid.
+
 **Camera waiting drawer fixed:** The locked/waiting camera is the front layer. A compact labelled
 handle sits around its upper third; the camera gives a short two-beat vertical tug to teach the
 depth, then stays still. Pulling uncovers a deliberately compact accountability card behind it and

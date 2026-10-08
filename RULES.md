@@ -25,6 +25,10 @@
   current stage gets one restrained pulse, and connecting motion shows accountability passing on.
   Use native Liquid Glass interaction on supported iOS, bounded ripple on Android, and a still,
   fully readable version with Reduce Motion.
+- Visual hierarchy is black/white/neutral first in both themes. Mahi blue is an accent for one
+  active cue, time or brand moment—not a border around every card and control. Friend selection is
+  a familiar avatar grid with names and tap-to-check; never show abstract numbered empty slots when
+  the user is choosing people.
 
 ## Repo layout
 

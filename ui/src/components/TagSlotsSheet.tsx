@@ -58,6 +58,7 @@ import {
   withAlpha,
 } from '@/constants/tokens';
 import { themeColors } from '@/lib/themeColors';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 type ShareTarget = 'whatsapp' | 'messages' | 'more';
 
@@ -106,6 +107,7 @@ export default function TagSlotsSheet({
   initialFriends: TaggedUser[];
   onClose: (friends: TaggedUser[], slots: ScreenSlot[]) => void;
 }): React.JSX.Element {
+  const { dark, colors } = useAppTheme();
   const userId = useAuthStore((s) => s.user?.id);
   const [friends, setFriends] = useState<TaggedUser[]>(initialFriends);
   const [slots, setSlots] = useState<ScreenSlot[]>([]);
@@ -404,13 +406,13 @@ export default function TagSlotsSheet({
       presentationStyle="pageSheet"
       onRequestClose={close}
     >
-      <View style={styles.panel}>
+      <View style={[styles.panel, { backgroundColor: colors.bg }]}>
         <View style={styles.headerRow}>
-          <Text style={styles.title} accessibilityRole="header">
+          <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
             Who are you holding accountable?
           </Text>
           <View style={styles.headerEnd}>
-            <Text style={styles.counter}>
+            <Text style={[styles.counter, { color: colors.muted }]}>
               {filled} of {maxTags}
             </Text>
             <Pressable
@@ -420,67 +422,57 @@ export default function TagSlotsSheet({
               style={({ pressed }) => [styles.closeX, pressed && styles.pressed]}
               onPress={close}
             >
-              <Text style={styles.closeXText}>×</Text>
+              <Text style={[styles.closeXText, { color: colors.muted }]}>×</Text>
             </Pressable>
           </View>
         </View>
 
-        <Text style={styles.prompt}>Pick {maxTags} friends you want to see show up on Mahi.</Text>
+        <Text style={[styles.prompt, { color: colors.muted }]}>
+          Pick {maxTags} friends you want to see show up on Mahi.
+        </Text>
 
         {!loaded ? (
           <View style={styles.loading}>
-            <ActivityIndicator color={COLORS.offWhite} />
+            <ActivityIndicator color={colors.text} />
           </View>
         ) : (
           <>
-            <View style={styles.slotRow}>
-              {Array.from({ length: maxTags }, (_, i) => {
-                const friend = friends[i];
-                const slot = friend ? null : slots[i - friends.length];
-                if (friend) {
-                  return (
-                    <SlotCircle
-                      key={`f:${friend.user_id}`}
-                      name={`@${friend.username}`}
-                      state="Tagged"
-                      avatarUrl={friend.avatar_url}
-                      initial={(friend.display_name ?? friend.username)[0]}
-                      onRemove={() =>
-                        setFriends((l) => l.filter((f) => f.user_id !== friend.user_id))
-                      }
-                    />
-                  );
-                }
-                if (slot) {
-                  const linkIndex = slots
-                    .filter((s) => s.kind === 'link')
-                    .findIndex((s) => s.challenge_id === slot.challenge_id);
-                  const canReshare =
-                    slot.kind === 'link' &&
-                    (slot.state === 'link_ready' || slot.state === 'shared');
-                  return (
-                    <SlotCircle
-                      key={slot.challenge_id}
-                      name={slotLabel(slot, Math.max(linkIndex, 0))}
-                      state={
-                        slot.pending && slot.kind === 'link'
-                          ? 'Making link…'
-                          : slotStateText(slot.state)
-                      }
-                      avatarUrl={slot.avatar_url}
-                      initial={slot.username ? (slot.display_name ?? slot.username)[0] : '↗'}
-                      busy={slot.pending}
-                      onPress={canReshare && !slot.pending ? () => share(slot, 'more') : undefined}
-                      onRemove={slot.pending ? undefined : () => confirmRemove(slot)}
-                    />
-                  );
-                }
-                return <SlotCircle key={`empty:${i}`} name="Add" state="" empty />;
-              })}
-            </View>
+            {slots.length > 0 ? (
+              <View style={styles.slotRow}>
+                {slots.map((slot) => {
+                  if (slot) {
+                    const linkIndex = slots
+                      .filter((s) => s.kind === 'link')
+                      .findIndex((s) => s.challenge_id === slot.challenge_id);
+                    const canReshare =
+                      slot.kind === 'link' &&
+                      (slot.state === 'link_ready' || slot.state === 'shared');
+                    return (
+                      <SlotCircle
+                        key={slot.challenge_id}
+                        name={slotLabel(slot, Math.max(linkIndex, 0))}
+                        state={
+                          slot.pending && slot.kind === 'link'
+                            ? 'Making link…'
+                            : slotStateText(slot.state)
+                        }
+                        avatarUrl={slot.avatar_url}
+                        initial={slot.username ? (slot.display_name ?? slot.username)[0] : '↗'}
+                        busy={slot.pending}
+                        onPress={
+                          canReshare && !slot.pending ? () => share(slot, 'more') : undefined
+                        }
+                        onRemove={slot.pending ? undefined : () => confirmRemove(slot)}
+                      />
+                    );
+                  }
+                  return null;
+                })}
+              </View>
+            ) : null}
 
             <View style={styles.shareBlock}>
-              <Text style={styles.shareLabel}>
+              <Text style={[styles.shareLabel, { color: colors.muted }]}>
                 {blocked ??
                   'Want to see someone else show up? Send a link. When they join, you’ll automatically follow each other.'}
               </Text>
@@ -520,11 +512,17 @@ export default function TagSlotsSheet({
             ) : null}
 
             <TextInput
-              style={styles.search}
+              style={[
+                styles.search,
+                {
+                  color: colors.text,
+                  backgroundColor: dark ? COLORS.surfaceDark2 : COLORS.surfaceLight,
+                },
+              ]}
               value={query}
               onChangeText={setQuery}
               placeholder="Search friends or anyone on Mahi"
-              placeholderTextColor={themeColors(true).muted}
+              placeholderTextColor={colors.muted}
               autoCapitalize="none"
               autoCorrect={false}
               autoComplete="off"
@@ -535,13 +533,16 @@ export default function TagSlotsSheet({
 
             <FlatList
               data={listed}
+              numColumns={4}
               keyExtractor={(p) => p.id}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
               style={styles.list}
+              contentContainerStyle={styles.peopleGrid}
+              columnWrapperStyle={styles.peopleRow}
               ListEmptyComponent={
                 searching ? null : (
-                  <Text style={styles.empty}>
+                  <Text style={[styles.empty, { color: colors.muted }]}>
                     {query.trim()
                       ? 'No one found.'
                       : 'No accountability partners yet. Follow each other, or send a link.'}
@@ -574,10 +575,14 @@ export default function TagSlotsSheet({
 
         <Pressable
           accessibilityRole="button"
-          style={({ pressed }) => [styles.done, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.done,
+            { backgroundColor: colors.text },
+            pressed && styles.pressed,
+          ]}
           onPress={close}
         >
-          <Text style={styles.doneText}>Done</Text>
+          <Text style={[styles.doneText, { color: colors.bg }]}>Done</Text>
         </Pressable>
         <KeyboardInset />
       </View>
@@ -604,6 +609,7 @@ function SlotCircle({
   onPress?: () => void;
   onRemove?: () => void;
 }) {
+  const { dark, colors } = useAppTheme();
   return (
     <View style={styles.slot}>
       <Pressable
@@ -613,16 +619,19 @@ function SlotCircle({
         onPress={onPress}
         style={({ pressed }) => [
           styles.slotCircle,
+          { backgroundColor: dark ? COLORS.surfaceDark2 : COLORS.surfaceLight },
           empty ? styles.slotCircleEmpty : null,
           pressed && styles.pressed,
         ]}
       >
         {busy ? (
-          <ActivityIndicator color={COLORS.offWhite} />
+          <ActivityIndicator color={colors.text} />
         ) : avatarUrl ? (
           <Image source={{ uri: avatarUrl, cache: 'force-cache' }} style={styles.slotAvatar} />
         ) : empty ? null : (
-          <Text style={styles.slotInitial}>{(initial ?? '').toUpperCase()}</Text>
+          <Text style={[styles.slotInitial, { color: colors.text }]}>
+            {(initial ?? '').toUpperCase()}
+          </Text>
         )}
       </Pressable>
       {onRemove ? (
@@ -636,11 +645,11 @@ function SlotCircle({
           <Text style={styles.slotRemoveText}>×</Text>
         </Pressable>
       ) : null}
-      <Text style={styles.slotName} numberOfLines={1}>
+      <Text style={[styles.slotName, { color: colors.text }]} numberOfLines={1}>
         {name}
       </Text>
       {state ? (
-        <Text style={styles.slotState} numberOfLines={1}>
+        <Text style={[styles.slotState, { color: colors.accentText }]} numberOfLines={1}>
           {state}
         </Text>
       ) : null}
@@ -661,6 +670,7 @@ function PersonRow({
   action: 'tag' | 'untag' | 'invite' | 'none';
   onPress: () => void;
 }) {
+  const { dark, colors } = useAppTheme();
   const display = person.display_name ?? person.username;
   const inactive = action === 'none';
   return (
@@ -676,25 +686,39 @@ function PersonRow({
       accessibilityRole="button"
       accessibilityLabel={`${display}${note ? `, ${note}` : ''}`}
     >
-      {person.avatar_url ? (
-        <Image source={{ uri: person.avatar_url, cache: 'force-cache' }} style={styles.rowAvatar} />
-      ) : (
-        <View style={[styles.rowAvatar, styles.rowAvatarFallback]}>
-          <Text style={styles.rowInitial}>{(display[0] ?? '?').toUpperCase()}</Text>
-        </View>
-      )}
-      <View style={styles.rowText}>
-        <Text style={styles.rowName}>{display}</Text>
-        <Text style={styles.rowHandle}>
-          @{person.username}
-          {note ? ` · ${note}` : ''}
-        </Text>
+      <View style={styles.personAvatarWrap}>
+        {person.avatar_url ? (
+          <Image
+            source={{ uri: person.avatar_url, cache: 'force-cache' }}
+            style={styles.rowAvatar}
+          />
+        ) : (
+          <View
+            style={[
+              styles.rowAvatar,
+              styles.rowAvatarFallback,
+              { backgroundColor: dark ? COLORS.surfaceDark2 : COLORS.surfaceLight },
+            ]}
+          >
+            <Text style={[styles.rowInitial, { color: colors.text }]}>
+              {(display[0] ?? '?').toUpperCase()}
+            </Text>
+          </View>
+        )}
+        {action === 'untag' ? (
+          <View
+            style={[styles.gridCheck, { backgroundColor: colors.text, borderColor: colors.bg }]}
+          >
+            <Text style={[styles.gridCheckText, { color: colors.bg }]}>✓</Text>
+          </View>
+        ) : null}
       </View>
-      {action === 'untag' ? (
-        <Text style={styles.rowCheck}>✓</Text>
-      ) : action === 'invite' ? (
-        <Text style={styles.rowInvite}>Invite</Text>
-      ) : null}
+      <Text style={[styles.rowName, { color: colors.text }]} numberOfLines={1}>
+        {display}
+      </Text>
+      <Text style={[styles.rowHandle, { color: colors.muted }]} numberOfLines={1}>
+        {action === 'invite' ? 'Invite' : (note ?? `@${person.username}`)}
+      </Text>
     </Pressable>
   );
 }
@@ -784,14 +808,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: SPACE.s10,
     borderRadius: RADIUS.r50,
-    backgroundColor: withAlpha(COLORS.accent, ALPHA.a16),
+    backgroundColor: withAlpha(COLORS.offWhite, ALPHA.a10),
     alignItems: 'center',
   },
   shareButtonOff: { opacity: ALPHA.a35 },
   shareButtonText: { color: COLORS.offWhite, fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
   notice: { color: COLORS.amber, fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular },
   retry: { alignSelf: 'flex-start', minHeight: SIZE.z44, justifyContent: 'center' },
-  retryText: { color: COLORS.accent, fontSize: FONT_SIZE.f15, fontFamily: FONTS.semiBold },
+  retryText: { color: COLORS.offWhite, fontSize: FONT_SIZE.f15, fontFamily: FONTS.semiBold },
   search: {
     height: SIZE.z44,
     color: COLORS.offWhite,
@@ -802,6 +826,8 @@ const styles = StyleSheet.create({
     backgroundColor: withAlpha(COLORS.white, ALPHA.a08),
   },
   list: { flex: 1 },
+  peopleGrid: { paddingVertical: SPACE.s8 },
+  peopleRow: { justifyContent: 'flex-start' },
   empty: {
     color: themeColors(true).muted,
     fontSize: FONT_SIZE.f13,
@@ -810,15 +836,16 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s16,
   },
   row: {
-    flexDirection: 'row',
+    flex: 1,
     alignItems: 'center',
-    paddingHorizontal: SPACE.s4,
-    paddingVertical: SPACE.s10,
-    gap: SPACE.s12,
+    paddingHorizontal: SPACE.s2,
+    paddingVertical: SPACE.s8,
+    gap: SPACE.s4,
   },
-  rowPicked: { backgroundColor: withAlpha(COLORS.accent, ALPHA.a08), borderRadius: RADIUS.r8 },
+  rowPicked: { opacity: 1 },
   rowOff: { opacity: ALPHA.a40 },
-  rowAvatar: { width: SIZE.z38, height: SIZE.z38, borderRadius: RADIUS.r19 },
+  personAvatarWrap: { position: 'relative' },
+  rowAvatar: { width: SIZE.z64, height: SIZE.z64, borderRadius: RADIUS.pill },
   rowAvatarFallback: {
     backgroundColor: COLORS.surfaceDark,
     alignItems: 'center',
@@ -826,17 +853,36 @@ const styles = StyleSheet.create({
   },
   rowInitial: { color: COLORS.offWhite, fontSize: FONT_SIZE.f15, fontFamily: FONTS.semiBold },
   rowText: { flex: 1 },
-  rowName: { color: COLORS.offWhite, fontSize: FONT_SIZE.f14, fontFamily: FONTS.semiBold },
-  rowHandle: {
-    color: themeColors(true).muted,
+  rowName: {
+    maxWidth: SIZE.z80,
+    color: COLORS.offWhite,
     fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
-    marginTop: SPACE.s1,
+    fontFamily: FONTS.semiBold,
+    textAlign: 'center',
   },
-  rowCheck: { color: COLORS.accent, fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
-  rowInvite: { color: COLORS.accent, fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
+  rowHandle: {
+    maxWidth: SIZE.z80,
+    color: themeColors(true).muted,
+    fontSize: FONT_SIZE.f11,
+    fontFamily: FONTS.regular,
+    textAlign: 'center',
+  },
+  gridCheck: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: SIZE.z24,
+    height: SIZE.z24,
+    borderRadius: RADIUS.r12,
+    backgroundColor: COLORS.offWhite,
+    borderWidth: BORDER_WIDTH.w2,
+    borderColor: COLORS.bgDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridCheckText: { color: COLORS.offBlack, fontSize: FONT_SIZE.f12, fontFamily: FONTS.bold },
   done: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.offWhite,
     borderRadius: RADIUS.r50,
     paddingVertical: SPACE.s16,
     alignItems: 'center',

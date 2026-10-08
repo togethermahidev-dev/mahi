@@ -229,6 +229,7 @@ export const SIZE = {
   z170: 170,
   z180: 180,
   z200: 200,
+  z320: 320,
   z360: 360,
   z400: 400,
   z420: 420,
@@ -577,7 +578,7 @@ export const MOTION = {
     /** The camera settles here, leaving the accountability card visibly behind it. */
     openScreenShare: 0.72,
     /** At the open detent the camera itself has become a compact card near the bottom. */
-    collapsedHeightShare: 0.22,
+    collapsedHeightShare: 0.16,
     collapsedInset: 16,
     /** Release after this share of the reveal and the camera completes opening. */
     openAt: 0.24,
@@ -594,6 +595,8 @@ export const MOTION = {
     peekDelayMs: 600,
     peekOutMs: 180,
     peekBackMs: 220,
+    /** The standalone arrow gives two short downward jumps instead of showing an instruction pill. */
+    arrowJumpY: 8,
   },
   /** A pull past this share of its limit is felt once (a tick). */
   pullFeltAt: 0.6,

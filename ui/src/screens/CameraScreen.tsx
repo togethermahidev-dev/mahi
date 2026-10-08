@@ -359,9 +359,6 @@ function WaitingCardWords({
       accessibilityRole="text"
       accessibilityLabel={`${t}. ${l}${points ? ` ${points}.` : ''}`}
     >
-      <View style={styles.noTagsIcon}>
-        <CameraIcon size={ICON_SIZE.i24} color={COLORS.accent} />
-      </View>
       <Text style={styles.postedTitle}>{t}</Text>
       <Text style={styles.postedSub}>{l}</Text>
       {points ? <Text style={styles.waitingPoints}>{points}</Text> : null}
@@ -3561,15 +3558,13 @@ const styles = StyleSheet.create({
   // card, and the camera's open-tags pill: frosted, an accent outline, the accent for the icon).
   noTagsCard: {
     width: '100%',
-    maxWidth: SIZE.z360,
+    maxWidth: SIZE.z320,
     alignItems: 'center',
     gap: SPACE.s8,
-    paddingVertical: SPACE.s16,
-    paddingHorizontal: SPACE.s16,
-    borderRadius: RADIUS.r20,
-    borderWidth: BORDER_WIDTH.w1,
-    borderColor: withAlpha(COLORS.accent, ALPHA.a50),
-    backgroundColor: withAlpha(COLORS.black, ALPHA.a35),
+    paddingVertical: SPACE.s12,
+    paddingHorizontal: SPACE.s12,
+    borderRadius: RADIUS.r16,
+    backgroundColor: COLORS.surfaceDark2,
     shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: SIZE.z4 },
     shadowOpacity: ALPHA.a25,
@@ -3596,7 +3591,7 @@ const styles = StyleSheet.create({
   seeFeedButton: {
     alignSelf: 'stretch',
     alignItems: 'center',
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.offWhite,
     borderRadius: RADIUS.pill,
     paddingVertical: SPACE.s12,
     paddingHorizontal: SPACE.s24,
@@ -3614,16 +3609,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: RADIUS.pill,
-    borderWidth: BORDER_WIDTH.w1_5,
-    borderColor: COLORS.accent,
-    paddingVertical: SPACE.s12,
+    paddingVertical: SPACE.s8,
     paddingHorizontal: SPACE.s24,
-    minHeight: SIZE.z44,
+    minHeight: SIZE.z36,
   },
   inviteMateText: {
-    color: COLORS.accent,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
+    color: themeColors(true).muted,
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.semiBold,
   },
   // A quiet text link under the card's buttons, with a full-size tap area.
   seeInvites: {
@@ -3639,16 +3632,6 @@ const styles = StyleSheet.create({
     color: withAlpha(COLORS.offWhite, ALPHA.a80),
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-  },
-  noTagsIcon: {
-    width: SIZE.z44,
-    height: SIZE.z44,
-    borderRadius: RADIUS.r22,
-    borderWidth: BORDER_WIDTH.w1_5,
-    borderColor: COLORS.accent,
-    backgroundColor: withAlpha(COLORS.accent, ALPHA.a12),
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   postedTitle: {
     color: COLORS.white,
