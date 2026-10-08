@@ -11,6 +11,11 @@ insert into public.profiles (id, username)
 select ('00000000-0000-0000-0000-00000000e00' || c)::uuid, 'fr_' || c
 from unnest(array['a', 'b', 'c', 'd', 'e', 'f']) c;
 update public.profiles set is_banned = true where id = '00000000-0000-0000-0000-00000000e00e';
+-- Everyone here shows workouts to everyone, so the lists are open (since 20261008170000 a list row
+-- shows only when both people's lists are open to the viewer, and workouts start at followers).
+update public.profiles set posts_visibility = 'everyone'
+where id in (select ('00000000-0000-0000-0000-00000000e00' || c)::uuid
+             from unnest(array['a', 'b', 'c', 'd', 'e', 'f']) c);
 insert into public.follows (follower_id, following_id)
 select ('00000000-0000-0000-0000-00000000e00' || x)::uuid, ('00000000-0000-0000-0000-00000000e00' || y)::uuid
 from (values ('a', 'b'), ('b', 'a'), ('a', 'c'), ('a', 'd'), ('d', 'a'), ('a', 'e'), ('e', 'a'),

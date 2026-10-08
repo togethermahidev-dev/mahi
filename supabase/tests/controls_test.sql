@@ -10,7 +10,7 @@
 -- * push words for the new notices and the missed tag
 -- Every check reads only this test's own people.
 begin;
-select plan(65);
+select plan(68);
 
 update public.app_config set feed_lock_enabled = false, tags_required = false,
   invite_links_enabled = true, max_open_invites = 10;
@@ -45,6 +45,8 @@ from unnest(array['o','v','w','s','t','q','r','u','x','y','n','m','k']) c;
 insert into public.profiles (id, username)
 select pg_temp.uid(c), 'ctl_' || c
 from unnest(array['o','v','w','s','t','q','r','u','x','y','n','m','k']) c;
+-- v shows workouts to everyone, so o's friend can see v in o's lists.
+update public.profiles set posts_visibility = 'everyone' where id = pg_temp.uid('v');
 insert into public.follows (follower_id, following_id) values
   (pg_temp.uid('v'), pg_temp.uid('o')),
   (pg_temp.uid('w'), pg_temp.uid('o')), (pg_temp.uid('o'), pg_temp.uid('w')),
@@ -59,6 +61,16 @@ insert into public.post_comments (post_id, user_id, content)
 values ('00000000-0000-0000-0000-0000009a0391', pg_temp.uid('o'), 'leg day');
 insert into public.post_likes (post_id, user_id)
 values ('00000000-0000-0000-0000-0000009a0391', pg_temp.uid('v'));
+
+-- 0. A profile starts with workouts for followers (owner, D1: the push opens nobody up).
+select pg_temp.as_user('s');
+select is((select count(*)::int from public.posts where user_id = pg_temp.uid('o')), 0,
+  'a profile that hasn''t chosen shows its workouts to followers only');
+select is(public.get_user_posts(pg_temp.uid('o')) ->> 'restricted', 'followers',
+  'and its profile says so');
+select pg_temp.as_user('o');
+select is(public.set_account_controls(null, 'everyone') ->> 'posts_visibility', 'everyone',
+  'o chooses everyone');
 
 -- 1. Public, workouts to everyone: anyone signed in.
 select pg_temp.as_user('s');

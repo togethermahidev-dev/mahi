@@ -1,8 +1,10 @@
 -- Public and private accounts, and Controls (owner, 2026-10-08; plan .claude/plan-private-accounts.md).
 -- 1. profiles: is_private, posts_visibility ('everyone' | 'followers' | 'friends'), tag_permission
 --    ('everyone' | 'approve' | 'friends'), privacy_chosen_at (null until chosen on onboarding; every
---    existing profile is stamped now, stays public and skips that screen). No update grant: they
---    change only through set_account_controls. Private + 'everyone' counts as 'followers'.
+--    existing profile is stamped now, stays public and skips that screen). Workouts start at
+--    'followers' for every existing and new profile (owner, D1: this push opens nobody up; only
+--    followers saw workouts before it); choosing Public with everyone sends 'everyone'. No update
+--    grant: they change only through set_account_controls. Private + 'everyone' counts as 'followers'.
 -- 2. follow_requests: a follow to a private account waits here until the owner confirms or deletes
 --    it. Read by the two people only; written only by the functions below. follow_request_notices
 --    remembers the last new request per pair (one push per pair a day; 100 new requests a day).
@@ -37,7 +39,8 @@
 -- 1. Profile columns.
 alter table public.profiles
   add column is_private boolean not null default false,
-  add column posts_visibility text not null default 'everyone'
+  -- Every existing row gets 'followers' from the default (owner, D1).
+  add column posts_visibility text not null default 'followers'
     constraint profiles_posts_visibility_check
     check (posts_visibility in ('everyone', 'followers', 'friends')),
   add column tag_permission text not null default 'approve'

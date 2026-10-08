@@ -47,16 +47,19 @@ from unnest(array['p','a','b','c','d','e','f','g','h','i','j','k','m']) c;
 insert into public.profiles (id, username, is_banned)
 select pg_temp.uid(c), 'pa_' || c, c = 'e'
 from unnest(array['p','a','b','c','d','e','f','g','h','i','j','k','m']) c;
+-- Everyone but a shows workouts to everyone (a keeps the starting setting for the first check).
+update public.profiles set posts_visibility = 'everyone'
+where id in (select pg_temp.uid(c) from unnest(array['p','b','c','d','e','f','g','h','i','j','k','m']) c);
 insert into public.follows (follower_id, following_id) values
   (pg_temp.uid('f'), pg_temp.uid('p')),
   (pg_temp.uid('g'), pg_temp.uid('p')),
   (pg_temp.uid('p'), pg_temp.uid('g'));
 
 -- 1. The columns and the table.
-select ok((select not is_private and posts_visibility = 'everyone' and tag_permission = 'approve'
+select ok((select not is_private and posts_visibility = 'followers' and tag_permission = 'approve'
                   and privacy_chosen_at is null
            from public.profiles where id = pg_temp.uid('a')),
-  'a new profile starts public, workouts to everyone, tags approve-first, not chosen yet');
+  'a new profile starts public, workouts to followers (owner, D1), tags approve-first, not chosen yet');
 select pg_temp.as_user('a');
 select throws_ok($$update public.profiles set is_private = true where id = auth.uid()$$,
   '42501', null, 'is_private cannot be written directly');
