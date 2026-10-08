@@ -9,7 +9,7 @@ import {
   setAccountControls,
   setFollowing,
 } from '@/api/follows';
-import { followButtonLabel } from '@/lib/followBack';
+import { followButtonLabel, followErrorText } from '@/lib/followBack';
 
 describe('getFollowData', () => {
   it('reads follows_you, and false from a server without it', async () => {
@@ -178,6 +178,19 @@ describe('follow requests and controls (server: 20261008170000_private_accounts)
     const { data, error } = await removeFollower('f1');
     expect(data).toBeNull();
     expect(error?.message).toBe('not allowed');
+  });
+});
+
+describe('followErrorText', () => {
+  it('the daily cap on follow requests, in plain words', () => {
+    expect(
+      followErrorText('too many follow requests today', 'Couldn’t follow @sam. Try again.')
+    ).toBe('You’ve sent a lot of follow requests today. Try again tomorrow.');
+  });
+  it('anything else keeps the screen’s own words', () => {
+    expect(followErrorText('offline', 'Couldn’t follow @sam. Try again.')).toBe(
+      'Couldn’t follow @sam. Try again.'
+    );
   });
 });
 

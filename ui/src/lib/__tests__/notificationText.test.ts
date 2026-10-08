@@ -24,6 +24,16 @@ describe('notification list wording', () => {
     expect(notificationText('tag_invite_accepted', 'sam')).toBe('@sam accepted your tag request.');
   });
 
+  // A mate invite from a private account: they joined, and their follow waits for your yes.
+  it('an invite joined whose follow is a request', () => {
+    expect(notificationText('invite_joined', 'sam', { followRequest: true })).toBe(
+      '@sam joined Mahi from your invite and wants to follow you.'
+    );
+    expect(notificationText('invite_joined', 'sam', { followRequest: false })).toBe(
+      '@sam joined Mahi from your invite. You follow each other now.'
+    );
+  });
+
   it('a follow request and its yes match their pushes', () => {
     expect(notificationText('follow_request', 'sam')).toBe('@sam wants to follow you');
     expect(notificationText('follow_accepted', 'sam')).toBe('@sam accepted your follow request');

@@ -5,7 +5,12 @@
  * later (so a tag's row has no "48 hours"; usability walkthrough, 2026-10-07). Reminders, feed-lock
  * pushes and messages are pushes only; they have no row here.
  */
-export function notificationText(type: string, username: string): string {
+export function notificationText(
+  type: string,
+  username: string,
+  /** `followRequest`: their follow to you is a request still waiting (a private account). */
+  opts: { followRequest?: boolean } = {}
+): string {
   const who = `@${username}`;
   switch (type) {
     case 'like':
@@ -23,7 +28,9 @@ export function notificationText(type: string, username: string): string {
     case 'streak_lost':
       return `You missed ${who}'s tag. Your points are back to 0.`;
     case 'invite_joined':
-      return `${who} joined Mahi from your invite. You follow each other now.`;
+      return opts.followRequest
+        ? `${who} joined Mahi from your invite and wants to follow you.`
+        : `${who} joined Mahi from your invite. You follow each other now.`;
     // Accepting a tag request no longer makes you follow each other (owner, 2026-10-08).
     case 'tag_invite':
       return `${who} wants to tag you.`;

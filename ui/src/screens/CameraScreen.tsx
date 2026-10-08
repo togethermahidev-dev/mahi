@@ -486,7 +486,7 @@ function GlassPill({ active, children }: { active?: boolean; children: React.Rea
 
 /** `others`: slots filled by an invite or a link (flag `tag-slots`). */
 function tagPillLabel(tagged: TaggedUser[], others = 0): string {
-  if (tagged.length === 0 && others === 0) return '+ Challenge friends';
+  if (tagged.length === 0 && others === 0) return '+ Hold friends accountable';
   if (tagged.length === 0) return others === 1 ? '1 link' : `${others} links`;
   const more = tagged.length - 1 + others;
   return more > 0 ? `@${tagged[0].username} +${more}` : `@${tagged[0].username}`;

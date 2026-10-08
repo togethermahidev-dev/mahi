@@ -81,7 +81,7 @@ export default function InviteConfirmSheet({ userId }: { userId: string }): Reac
             {inviteAcceptLine({
               tag: preview?.tag,
               inviter: preview?.username,
-              inviterPrivate: preview?.is_private,
+              followRequest: preview?.follow_request,
             })}
           </Text>
 

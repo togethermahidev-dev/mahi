@@ -133,7 +133,7 @@ export const useInviteStore = create<InviteState>((set, get) => ({
         inviter: data.inviter.username,
         expiresAt: data.expires_at,
         tag: data.tag,
-        followStatus: data.follow_status,
+        followStatus: data.follow_status === 'requested' ? 'requested' : undefined,
       })
     );
     return true;

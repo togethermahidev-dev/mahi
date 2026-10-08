@@ -288,7 +288,8 @@ export default function TagSlotsSheet({
   const invitePerson = (p: TagPerson) => {
     Alert.alert(
       `Send a tag request to @${p.username}?`,
-      `If they accept, you’ll automatically follow each other and they’ll have 48 hours to answer your tag.`,
+      // Accepting no longer makes you follow each other (owner, 2026-10-08).
+      'If they accept, they’ll have 48 hours to answer your tag.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Send request', onPress: () => void sendTagInvite(p) },

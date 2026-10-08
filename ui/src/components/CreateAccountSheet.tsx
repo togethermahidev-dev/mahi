@@ -551,7 +551,7 @@ export default function CreateAccountSheet({
                     {invitePreviewLine({
                       ...invitePreview,
                       inviter: invitePreview.username,
-                      inviterPrivate: invitePreview.is_private,
+                      followRequest: invitePreview.follow_request,
                     })}
                   </Text>
                 </View>
@@ -796,7 +796,7 @@ export default function CreateAccountSheet({
                     {invitePreviewLine({
                       ...invitePreview,
                       inviter: invitePreview.username,
-                      inviterPrivate: invitePreview.is_private,
+                      followRequest: invitePreview.follow_request,
                     })}
                   </Text>
                 </View>

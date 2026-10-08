@@ -1,5 +1,6 @@
 import {
   ACCOUNT_OPTIONS,
+  accountSwitchPatch,
   TAG_OPTIONS,
   WORKOUT_OPTIONS,
   accountDescription,
@@ -74,6 +75,17 @@ describe('privacyConfirm', () => {
       message: 'Anyone can see your workouts and follow you. Pending requests will be accepted.',
       confirm: 'Switch to public',
     });
+  });
+});
+
+// The server keeps private + Everyone as Followers, and going public doesn't change it back:
+// "Anyone can see your workouts" only holds if Everyone is sent with it.
+describe('accountSwitchPatch', () => {
+  it('going public also opens workouts to everyone', () => {
+    expect(accountSwitchPatch(false)).toEqual({ is_private: false, posts_visibility: 'everyone' });
+  });
+  it('going private leaves the workouts setting to the server', () => {
+    expect(accountSwitchPatch(true)).toEqual({ is_private: true });
   });
 });
 

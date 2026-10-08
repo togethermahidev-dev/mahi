@@ -39,7 +39,8 @@ describe('slotStateText', () => {
     expect(slotStateText('link_ready')).toBe('Link ready');
     expect(slotStateText('shared')).toBe('Sent');
     expect(slotStateText('invite_sent')).toBe('Request sent');
-    expect(slotStateText('accepted')).toBe('Accepted · following');
+    // A tag request accepted no longer means following (owner, 2026-10-08); a joined link still does.
+    expect(slotStateText('accepted')).toBe('Accepted');
     expect(slotStateText('joined')).toBe('Joined · following');
     expect(slotStateText('tagged')).toBe('Tagged');
     expect(slotStateText('answered')).toBe('Answered');
@@ -191,6 +192,8 @@ describe('slotErrorText', () => {
       'Too many links and tag requests waiting. Take one back first.'
     );
     expect(slotErrorText('already friends')).toBe('You’re friends already. Tag them instead.');
+    // Their "Who can tag you" is Friends only (private accounts).
+    expect(slotErrorText('only takes tags from friends')).toBe('They only take tags from friends.');
     expect(slotErrorText('invite links are off')).toBe('Links are off right now.');
     expect(slotErrorText('already invited')).toBe('Tag request already sent.');
     expect(slotErrorText('cannot invite that person')).toBe('You can’t send them a tag request.');

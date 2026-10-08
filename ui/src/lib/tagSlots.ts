@@ -47,7 +47,7 @@ const STATE_TEXT: Record<SlotState, string> = {
   shared: 'Sent',
   joined: 'Joined · following',
   invite_sent: 'Request sent',
-  accepted: 'Accepted · following',
+  accepted: 'Accepted',
   tagged: 'Tagged',
   answered: 'Answered',
   missed: 'Missed',
@@ -193,6 +193,7 @@ export function slotErrorText(message: string): string {
   if (message.includes('too many open invites'))
     return 'Too many links and tag requests waiting. Take one back first.';
   if (message.includes('already friends')) return 'You’re friends already. Tag them instead.';
+  if (message.includes('only takes tags from friends')) return 'They only take tags from friends.';
   if (message.includes('already invited')) return 'Tag request already sent.';
   if (message.includes('cannot invite that person')) return 'You can’t send them a tag request.';
   if (message.includes('no longer open')) return 'That link has ended.';

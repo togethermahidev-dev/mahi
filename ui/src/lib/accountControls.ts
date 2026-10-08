@@ -68,6 +68,16 @@ export function effectiveVisibility(isPrivate: boolean, v: PostsVisibility): Pos
   return workoutOptionDisabled(isPrivate, v) ? 'followers' : v;
 }
 
+/**
+ * What switching sends. The server keeps private + Everyone as Followers and going public doesn't
+ * change it back, so going public sends Everyone too: the confirm says anyone can see them.
+ */
+export function accountSwitchPatch(
+  toPrivate: boolean
+): Pick<AccountControls, 'is_private'> & Partial<Pick<AccountControls, 'posts_visibility'>> {
+  return toPrivate ? { is_private: true } : { is_private: false, posts_visibility: 'everyone' };
+}
+
 /** The question before switching between public and private. */
 export function privacyConfirm(toPrivate: boolean): {
   title: string;

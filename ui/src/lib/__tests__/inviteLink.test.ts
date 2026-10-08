@@ -130,12 +130,12 @@ describe('invitePreviewLine (said before joining)', () => {
   });
 
   it('an invite for a friend from a private account: your follow will be a request', () => {
-    expect(
-      invitePreviewLine({ open: true, tag: false, inviter: 'sam', inviterPrivate: true })
-    ).toBe('@sam approves followers — your follow will be a request.');
+    expect(invitePreviewLine({ open: true, tag: false, inviter: 'sam', followRequest: true })).toBe(
+      '@sam approves followers — your follow will be a request.'
+    );
     // A tag invite on a post: you follow each other straight away, private or not.
     expect(
-      invitePreviewLine({ open: true, tag: true, inviter: 'sam', inviterPrivate: true })
+      invitePreviewLine({ open: true, tag: true, inviter: 'sam', followRequest: true })
     ).toMatch(/^Join and you’ll automatically follow each other\./);
   });
 
@@ -205,11 +205,11 @@ describe('inviteAcceptLine (said on the sheet before a signed-in person accepts)
       'Accept and you’ll automatically follow each other. Their tag starts when you accept — you’ll have 48 hours to post back.';
     expect(inviteAcceptLine({ tag: true })).toBe(line);
     expect(inviteAcceptLine({})).toBe(line);
-    expect(inviteAcceptLine({ tag: true, inviter: 'sam', inviterPrivate: true })).toBe(line);
+    expect(inviteAcceptLine({ tag: true, inviter: 'sam', followRequest: true })).toBe(line);
   });
 
   it('an invite for a friend from a private account: your follow will be a request', () => {
-    expect(inviteAcceptLine({ tag: false, inviter: 'sam', inviterPrivate: true })).toBe(
+    expect(inviteAcceptLine({ tag: false, inviter: 'sam', followRequest: true })).toBe(
       '@sam approves followers — your follow will be a request.'
     );
   });

@@ -91,15 +91,16 @@ export function invitePreviewLine({
   open,
   tag,
   inviter,
-  inviterPrivate,
+  followRequest,
 }: {
   open: boolean;
   tag?: boolean;
   inviter?: string;
-  inviterPrivate?: boolean;
+  /** The server's `follow_request`: a mate invite from a private account. */
+  followRequest?: boolean;
 }): string {
   if (!open) return 'That invite has already been used, but you can still sign up.';
-  if (tag === false && inviterPrivate && inviter) return privateInviteLine(inviter);
+  if (tag === false && followRequest && inviter) return privateInviteLine(inviter);
   const follow = 'Join and you’ll automatically follow each other.';
   return tag === false
     ? follow
@@ -122,13 +123,14 @@ function privateInviteLine(inviter: string): string {
 export function inviteAcceptLine({
   tag,
   inviter,
-  inviterPrivate,
+  followRequest,
 }: {
   tag?: boolean;
   inviter?: string;
-  inviterPrivate?: boolean;
+  /** The server's `follow_request`: a mate invite from a private account. */
+  followRequest?: boolean;
 }): string {
-  if (tag === false && inviterPrivate && inviter) return privateInviteLine(inviter);
+  if (tag === false && followRequest && inviter) return privateInviteLine(inviter);
   const follow = 'Accept and you’ll automatically follow each other.';
   return tag === false
     ? follow

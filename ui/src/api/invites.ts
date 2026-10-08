@@ -20,11 +20,10 @@ export type InvitePreview = {
   /** A tag comes with it (false: an invite for a mate). Missing from an older server. */
   tag?: boolean;
   /**
-   * The inviter's account is private, so a mate invite's follow will be a request. Not sent by
-   * the server yet (get_invite_preview is outside 20261008170000_private_accounts): missing → the
-   * usual line.
+   * A mate invite from a private account: your follow will be a request they approve
+   * (20261008170000_private_accounts). Missing from an older server → the usual line.
    */
-  is_private?: boolean;
+  follow_request?: boolean;
 };
 
 export type InviteClaim = {
@@ -40,7 +39,7 @@ export type InviteClaim = {
   /** A tag came with it (false: an invite for a mate). Missing from an older server. */
   tag?: boolean;
   /** `requested`: a mate invite from a private account — your follow waits for their yes. */
-  follow_status?: 'following' | 'requested';
+  follow_status?: 'following' | 'requested' | 'none';
   server_now: string;
 };
 
