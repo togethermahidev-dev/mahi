@@ -1,5 +1,9 @@
 import { create } from 'zustand';
-import { getSuggestedFollows as apiGetSuggestedFollows, type SuggestedUser } from '@/api';
+import {
+  getSuggestedFollows as apiGetSuggestedFollows,
+  type FollowStatus,
+  type SuggestedUser,
+} from '@/api';
 import { reportError } from '@/lib/sentry';
 import { useFollowStore } from './followStore';
 
@@ -16,9 +20,13 @@ interface SuggestState {
   /**
    * Optimistically follow a suggested user: remove them from the strip and
    * delegate the actual follow to followStore (legal store->store). Rolls the
-   * removal back on error. Returns the error for caller logging.
+   * removal back on error. Returns the error for caller logging, and the server's answer
+   * (`requested` when they are private).
    */
-  followSuggested: (currentUserId: string, targetId: string) => Promise<{ error: Error | null }>;
+  followSuggested: (
+    currentUserId: string,
+    targetId: string
+  ) => Promise<{ error: Error | null; status?: FollowStatus }>;
 
   reset: () => void;
 }
@@ -60,7 +68,7 @@ export const useSuggestStore = create<SuggestState>((set, get) => ({
     set({ suggestions: prev.filter((u) => u.id !== targetId) });
 
     // Delegate the actual follow to followStore (only legal sideways import)
-    const { error } = await useFollowStore.getState().toggleFollow(currentUserId, targetId);
+    const { error, status } = await useFollowStore.getState().toggleFollow(currentUserId, targetId);
 
     if (error) {
       console.log('[suggestStore] followSuggested error |', error.message);
@@ -69,7 +77,7 @@ export const useSuggestStore = create<SuggestState>((set, get) => ({
       return { error };
     }
 
-    return { error: null };
+    return { error: null, status };
   },
 
   reset: () => set({ suggestions: [], isSyncing: false, loaded: false }),

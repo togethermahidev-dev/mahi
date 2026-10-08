@@ -1,14 +1,14 @@
 import { useEffect } from 'react';
 import { useAuthStore, useSuggestStore } from '@/store';
-import type { SuggestedUser } from '@/api';
+import type { FollowStatus, SuggestedUser } from '@/api';
 
 export interface UseSuggestedFollowsResult {
   suggestions: SuggestedUser[];
   isLoading: boolean;
   /** Re-fetch suggestions from the server (e.g. on pull-to-refresh). */
   refresh: () => void;
-  /** Optimistically follow a suggested user (removes them from the strip). */
-  follow: (targetId: string) => void;
+  /** Optimistically follow a suggested user (removes them from the strip); the server's answer. */
+  follow: (targetId: string) => Promise<{ error: Error | null; status?: FollowStatus }>;
 }
 
 export function useSuggestedFollows(): UseSuggestedFollowsResult {
@@ -32,8 +32,9 @@ export function useSuggestedFollows(): UseSuggestedFollowsResult {
     refresh: () => {
       if (userId) useSuggestStore.getState().loadSuggestions(userId);
     },
-    follow: (targetId: string) => {
-      if (userId) useSuggestStore.getState().followSuggested(userId, targetId);
+    follow: async (targetId: string) => {
+      if (!userId) return { error: null };
+      return useSuggestStore.getState().followSuggested(userId, targetId);
     },
   };
 }

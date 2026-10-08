@@ -21,6 +21,7 @@ import { matchContacts } from '@/api/contacts';
 import type { MateInvite } from '@/api/tagSlots';
 import { useAuthStore } from '@/store';
 import { useFollowStore } from '@/store/followStore';
+import { followErrorText } from '@/lib/followBack';
 import { useToastStore } from '@/store/toastStore';
 import { loadContacts, readDeviceContacts } from '@/lib/contactsModule';
 import {
@@ -118,6 +119,7 @@ function FindMates({
   const show = useToastStore((s) => s.show);
   const followingByMe = useFollowStore((s) => s.followingByMe);
   const followsMe = useFollowStore((s) => s.followsMe);
+  const requestedByMe = useFollowStore((s) => s.requestedByMe);
 
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const { text, muted, border, accentText } = themeColors(dark);
@@ -202,6 +204,14 @@ function FindMates({
         followsMe: {
           ...s.followsMe,
           ...Object.fromEntries(found.map((m) => [m.id, m.follows_you])),
+        },
+        requestedByMe: {
+          ...s.requestedByMe,
+          ...Object.fromEntries(found.map((m) => [m.id, m.requested === true])),
+        },
+        privateById: {
+          ...s.privateById,
+          ...Object.fromEntries(found.map((m) => [m.id, m.is_private === true])),
         },
       }));
       track('contacts_matched', { count_on_mahi: found.length, count_total: list.length });
@@ -305,7 +315,7 @@ function FindMates({
         action: 'followFromContacts',
         extra: { rpc: 'set_following' },
       });
-      show('Couldn’t update that follow. Try again.');
+      show(followErrorText(error.message, 'Couldn’t update that follow. Try again.'));
     }
   };
 
@@ -389,7 +399,9 @@ function FindMates({
       const name = account.display_name || account.username;
       const following = followingByMe[account.id] ?? account.is_following;
       const followsYou = followsMe[account.id] ?? account.follows_you;
-      const label = followLabel(following, followsYou);
+      const requested = requestedByMe[account.id] ?? account.requested === true;
+      const label = followLabel(following, followsYou, requested);
+      const engaged = following || requested;
       return (
         <View style={styles.row}>
           <Pressable
@@ -413,7 +425,7 @@ function FindMates({
           <Pressable
             style={({ pressed }) => [
               styles.pill,
-              following
+              engaged
                 ? { borderColor: border }
                 : { borderColor: COLORS.accent, backgroundColor: COLORS.accent },
               pressed && styles.pressed,
@@ -422,9 +434,15 @@ function FindMates({
             hitSlop={OFFSET.o8}
             accessibilityRole="button"
             accessibilityLabel={`${label}, @${account.username}`}
-            accessibilityHint={following ? 'Stops following them' : 'Follows them'}
+            accessibilityHint={
+              following
+                ? 'Stops following them'
+                : requested
+                  ? 'Takes back your follow request'
+                  : 'Follows them'
+            }
           >
-            <Text style={[styles.pillText, { color: following ? text : COLORS.offBlack }]}>
+            <Text style={[styles.pillText, { color: engaged ? text : COLORS.offBlack }]}>
               {label}
             </Text>
           </Pressable>
@@ -640,7 +658,7 @@ function FindMates({
             data={rows}
             keyExtractor={(row) => row.key}
             getItemType={(row) => row.kind}
-            extraData={{ followingByMe, followsMe, invited, invitingId }}
+            extraData={{ followingByMe, followsMe, requestedByMe, invited, invitingId }}
             renderItem={renderRow}
             contentContainerStyle={{ ...styles.listContent, paddingBottom: insets.bottom }}
             showsVerticalScrollIndicator={false}

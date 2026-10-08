@@ -33,6 +33,7 @@ import { VideoIcon } from '@/components/ScreenIcons';
 import PreviewMenu, { PostPreviewImage } from '@/components/PreviewMenu';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import ListState from '@/components/ListState';
+import { restrictedText } from '@/lib/accountControls';
 import type { FeedPost } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -266,6 +267,8 @@ export default function ProfileMediaMap({
   const storeUserId = useProfilePostsStore((s) => s.userId);
   const isSyncing = useProfilePostsStore((s) => s.isSyncing);
   const lastSyncedAt = useProfilePostsStore((s) => s.lastSyncedAt);
+  // Someone's Controls hide their workouts from you: say why, no grid (private accounts).
+  const restricted = useProfilePostsStore((s) => (s.userId === userId ? s.restricted : null));
   // Until this screen's first read has started, a leftover failed read isn't shown as an error.
   const [started, setStarted] = useState(false);
   if (isSyncing && !started) setStarted(true);
@@ -287,6 +290,13 @@ export default function ProfileMediaMap({
 
   const empty = isLoading ? (
     <ListState kind="loading" dark={dark} />
+  ) : restricted && !isSelf ? (
+    <ListState
+      kind="empty"
+      dark={dark}
+      title={restrictedText(restricted, username ?? '')}
+      icon={<LockIcon color={muted} />}
+    />
   ) : failed ? (
     <ListState
       kind="error"

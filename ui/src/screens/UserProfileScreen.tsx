@@ -26,8 +26,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getProfile, createOrGetConversation } from '@/api';
 import { startReport } from '@/lib/reportFlow';
 import { showNativeMenu } from '@/lib/nativeMenu';
-import { followButtonLabel } from '@/lib/followBack';
-import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
+import { followButtonLabel, followErrorText } from '@/lib/followBack';
+import { useAuthStore, useFollowStore, useBlockStore, useProfilePostsStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { pointsCount } from '@/lib/mahiPoints';
 import { useCoverRail } from '@/hooks/useChrome';
@@ -96,8 +96,12 @@ export default function UserProfileScreen({
 
   const isFollowing = useFollowStore((s) => s.followingByMe[userId] ?? false);
   const followsMe = useFollowStore((s) => s.followsMe[userId] ?? false);
+  // Your follow request to their private account is waiting: "Requested", a tap takes it back.
+  const isRequested = useFollowStore((s) => s.requestedByMe[userId] ?? false);
   // "Follow back", with "Follows you" above it, when they follow you and you don't follow them.
-  const follow = followButtonLabel(isFollowing, followsMe);
+  const follow = followButtonLabel(isFollowing, followsMe, isRequested);
+  // Their Controls hide their workouts from you (get_user_posts says why): no grid, no friends.
+  const restricted = useProfilePostsStore((s) => (s.userId === userId ? s.restricted : null));
   const loadFollowData = useFollowStore((s) => s.loadFollowData);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
 
@@ -191,6 +195,18 @@ export default function UserProfileScreen({
     if (currentUserId) loadFollowData(currentUserId, userId);
   }, [userId, currentUserId, loadFollowData]);
 
+  // A follow that lets you in (or an unfollow that shuts you out) reads their workouts again.
+  const followState = isFollowing ? 'following' : isRequested ? 'requested' : 'none';
+  const lastFollowState = useRef(followState);
+  useEffect(() => {
+    const before = lastFollowState.current;
+    lastFollowState.current = followState;
+    if (before === followState) return;
+    if (restricted || before === 'following') {
+      void useProfilePostsStore.getState().sync(userId, true);
+    }
+  }, [followState, restricted, userId]);
+
   useEffect(() => {
     Sentry.addBreadcrumb({
       category: 'profile',
@@ -268,6 +284,7 @@ export default function UserProfileScreen({
   const runFollow = async () => {
     if (!currentUserId) return;
     const wasFollowing = isFollowing;
+    const wasRequested = isRequested;
     Sentry.addBreadcrumb({
       category: 'profile',
       message: `Follow toggled: ${userId}`,
@@ -279,18 +296,23 @@ export default function UserProfileScreen({
         flow: 'profile',
         action: 'follow',
         level: 'warning',
-        extra: { userId, direction: wasFollowing ? 'unfollow' : 'follow' },
+        extra: {
+          userId,
+          direction: wasFollowing ? 'unfollow' : wasRequested ? 'cancelRequest' : 'follow',
+        },
       });
       // The button has already gone back; say why.
       toast(
         wasFollowing
           ? `Couldn’t unfollow ${handle}. Try again.`
-          : `Couldn’t follow ${handle}. Try again.`
+          : wasRequested
+            ? 'Couldn’t take back your follow request. Try again.'
+            : followErrorText(error.message, `Couldn’t follow ${handle}. Try again.`)
       );
     }
   };
 
-  // Following → ask first: an unfollow can end tagging each other.
+  // Following → ask first: an unfollow can end tagging each other. Requested → taken back at once.
   const handleFollow = () => {
     if (!isFollowing) {
       void runFollow();
@@ -452,21 +474,26 @@ export default function UserProfileScreen({
       />
 
       <View style={[styles.profileDetails, { backgroundColor: surface, borderColor: border }]}>
-        <Pressable
-          style={({ pressed }) => [styles.friendsLink, pressed && { opacity: ALPHA.a70 }]}
-          onPress={() => setFriendsOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Friends"
-          accessibilityHint={`Shows ${handle}'s friends`}
-        >
-          <View>
-            <Text style={[styles.detailLabel, { color: muted }]}>Community</Text>
-            <Text style={[styles.detailTitle, { color: text }]}>Friends</Text>
-          </View>
-          <Text style={[styles.detailChevron, { color: muted }]}>›</Text>
-        </Pressable>
+        {/* Hidden with their workouts: someone you can't see doesn't show you their friends. */}
+        {!restricted ? (
+          <>
+            <Pressable
+              style={({ pressed }) => [styles.friendsLink, pressed && { opacity: ALPHA.a70 }]}
+              onPress={() => setFriendsOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Friends"
+              accessibilityHint={`Shows ${handle}'s friends`}
+            >
+              <View>
+                <Text style={[styles.detailLabel, { color: muted }]}>Community</Text>
+                <Text style={[styles.detailTitle, { color: text }]}>Friends</Text>
+              </View>
+              <Text style={[styles.detailChevron, { color: muted }]}>›</Text>
+            </Pressable>
 
-        <View style={[styles.detailDivider, { backgroundColor: border }]} />
+            <View style={[styles.detailDivider, { backgroundColor: border }]} />
+          </>
+        ) : null}
 
         <View
           style={styles.bestMetric}
@@ -490,7 +517,7 @@ export default function UserProfileScreen({
           <Pressable
             style={({ pressed }) => [
               styles.followBtn,
-              isFollowing
+              isFollowing || isRequested
                 ? { backgroundColor: softSurface, borderColor: border }
                 : { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
               pressed && { opacity: ALPHA.a75 },
@@ -498,10 +525,21 @@ export default function UserProfileScreen({
             onPress={handleFollow}
             accessibilityRole="button"
             accessibilityLabel={`${follow.label} ${handle}`}
-            accessibilityHint={isFollowing ? 'Asks before unfollowing' : undefined}
-            accessibilityState={{ selected: isFollowing }}
+            accessibilityHint={
+              isFollowing
+                ? 'Asks before unfollowing'
+                : isRequested
+                  ? 'Takes back your follow request'
+                  : undefined
+            }
+            accessibilityState={{ selected: isFollowing || isRequested }}
           >
-            <Text style={[styles.followBtnText, { color: isFollowing ? text : COLORS.offBlack }]}>
+            <Text
+              style={[
+                styles.followBtnText,
+                { color: isFollowing || isRequested ? text : COLORS.offBlack },
+              ]}
+            >
               {follow.label}
             </Text>
           </Pressable>
@@ -542,9 +580,11 @@ export default function UserProfileScreen({
 
       <View style={styles.workoutsHeading}>
         <Text style={[styles.workoutsTitle, { color: text }]}>Workouts</Text>
-        <Text style={[styles.workoutsSubtitle, { color: muted }]}>
-          Tap a post to see it full screen.
-        </Text>
+        {!restricted ? (
+          <Text style={[styles.workoutsSubtitle, { color: muted }]}>
+            Tap a post to see it full screen.
+          </Text>
+        ) : null}
       </View>
     </View>
   );

@@ -3,6 +3,8 @@ import { View, Text, Image, StyleSheet, Pressable, LayoutAnimation } from 'react
 import { FlashList } from '@shopify/flash-list';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useSuggestedFollows } from '@/hooks/useSuggestedFollows';
+import { useToastStore } from '@/store/toastStore';
+import { followErrorText } from '@/lib/followBack';
 import type { SuggestedUser } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -139,7 +141,21 @@ export default function SuggestedFollowsStrip({
                     { backgroundColor: ACCENT },
                     pressed && { opacity: ALPHA.a75 },
                   ]}
-                  onPress={() => follow(item.id)}
+                  onPress={() =>
+                    // A private account: the follow is a request, so say so as the card leaves.
+                    void follow(item.id).then(({ error, status }) => {
+                      const handle = `@${item.username ?? displayName}`;
+                      if (error) {
+                        useToastStore
+                          .getState()
+                          .show(
+                            followErrorText(error.message, `Couldn’t follow ${handle}. Try again.`)
+                          );
+                      } else if (status === 'requested') {
+                        useToastStore.getState().show(`Follow request sent to ${handle}.`);
+                      }
+                    })
+                  }
                   // About 30 points tall; the slop makes it 46 without reaching the name above.
                   hitSlop={{ top: SPACE.s8, bottom: SPACE.s8 }}
                   accessibilityRole="button"
