@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 03 — pulling the waiting camera down shrinks it into a small card and shows a
+ *     compact accountability card with two actions; camera pills press like glass (2026-10-08)
  *   build 13 · 02 — the waiting camera pulls down to open the card behind it (tap the arrow to
  *     close); profile line "Only you are accountable for showing up." (2026-10-08)
  *   build 13 · 01 — post photos download once per phone instead of on every open; profile photos
@@ -90,4 +92,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 2;
+export const OTA_NUMBER = 3;
