@@ -47,6 +47,25 @@ LOGIN (checked 2026-10-08).
 `format_duration`); nothing calls either. Test `tests/drop_dead_functions_test.sql` (also updated:
 `tests/signed_in_reads_test.sql`, `tests/security_hardening_test.sql`), undo
 `rollbacks/20261008160000_drop_dead_functions.rollback.sql`.
+**Not pushed yet (2026-10-08):** `20261008170000_private_accounts` — public and private accounts
+and Controls (decisions #119–#124): `profiles.is_private` / `posts_visibility` / `tag_permission` /
+`privacy_chosen_at` (existing profiles stamped, stay public; changed only through
+`set_account_controls`); `follow_requests` (+ internal `follow_request_notices`); `set_following`
+answers `status` and `is_private` (drop + create); new `respond_follow_request`, `remove_follower`,
+`get_follow_requests`, `set_account_controls`; `get_follow_data` answers only for the caller and adds
+`requested` / `is_private`; `can_view_post` follows the workouts setting (feed lock on top), so
+posts, files, likes, comments and comment likes follow; `get_feed` / `get_user_posts` (`restricted`);
+follow lists closed by the owner's setting (`follows_select`, `can_see_follow_lists`, `get_friends`);
+`create_post` / `invite_to_tag` / `search_tag_people` / `match_contacts` (`tag_mode`); accepting a
+tag request no longer makes follows; `claim_invite` general invite from a private account = request;
+`follow_request` / `follow_accepted` notices and pushes; blocks and bans clear requests. Tests
+`tests/private_accounts_test.sql`, `tests/controls_test.sql` (also updated:
+`tests/comment_like_visibility_test.sql`, `tests/feed_lock_test.sql`, `tests/follow_back_test.sql`,
+`tests/mutual_follow_wording_test.sql`, `tests/push_deadline_wording_test.sql`,
+`tests/security_followups_test.sql`, `tests/security_hardening_test.sql`,
+`tests/tag_challenges_test.sql`, `tests/tag_feed_pushes_test.sql`, `tests/tag_slots_test.sql`), undo
+`rollbacks/20261008170000_private_accounts.rollback.sql`. Phones without the app update read
+`requested` as not following until the OTA.
 Still held back: `deferred/contract_points.sql`, which drops the profile's `points` column once
 every phone has the Mahi points update. (`contract_messages` is live as migration
 `20261007111029_contract_messages`; `contract_posting` and `private_bucket` became

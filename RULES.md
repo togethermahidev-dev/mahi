@@ -53,18 +53,33 @@
 - The preview's Post tap always asks for confirmation: captions are editable for one hour, and
   posting opens the feed and starts the clock for any challenged friends. Never bypass this alert.
 
-## Follows, tag requests and invite links (2026-10-07)
+## Follows, tag requests and invite links (2026-10-07; public/private accounts 2026-10-08)
 - A normal profile Follow is one-way. Friends means both follow rows exist.
-- Accepting an in-app tag request or claiming an invite link atomically creates both follow rows;
-  declining a tag request creates neither. Preserve this server invariant in every future flow.
-- Before a tag request is sent or an invite link is shared/accepted, the UI must plainly say that
-  acceptance or joining makes both people follow each other. The accepted/joined state confirms it.
+- Accounts are public or private (`profiles.is_private`, changed only through `set_account_controls`).
+  A Follow to a public account is a follow straight away. A Follow to a private account is a request
+  (`follow_requests`): `set_following` answers `status: 'requested'`; the owner confirms or deletes it
+  (`respond_follow_request`); the requester is told only on acceptance; tapping Requested cancels.
+  Going private keeps existing followers; going public accepts every pending request.
+- Who sees your workouts (`posts_visibility`: everyone / followers / friends; everyone is not allowed
+  while private) and who can tag you (`tag_permission`: everyone / approve first / friends only) are
+  enforced on the server (`can_view_post`, `create_post`, `invite_to_tag`). The feed lock stays on top.
+- Accepting an in-app tag request starts the tag but NO LONGER creates follows (owner, 2026-10-08).
+  `respond_tag_invite` answers who follows whom and whether the tagger asked to follow, and the app
+  offers Follow back / Accept their follow (optional). Declining creates nothing.
+- Invite links: a tag invite tied to a post (a slot) makes both follow rows when claimed. A general
+  invite ("invite a mate") from a private account: the inviter follows the claimer, and the
+  claimer's follow is a request the inviter approves (`claim_invite` answers `follow_status`;
+  `get_invite_preview` says `follow_request`). Before sharing or accepting, the UI says plainly which
+  of the two happens; the accepted/joined state confirms it.
 - An invite link opened by someone already signed in never claims by itself: a confirm sheet (Accept /
   Not now) comes first; Not now writes nothing (2026-10-08, `docs/security.md`).
 - Profile follow/unfollow writes go only through `set_following` (the app has no write rights on `follows`
   from `20261008150000_security_hardening_live`); the store may update optimistically,
-  but must reconcile from the RPC's committed state. Friends/follow lists always load fresh server data
-  and subscribe to follow changes while open; never cache them on-device.
+  but must reconcile from the RPC's committed state (following / requested / none). Friends/follow lists
+  and follow requests always load fresh server data and subscribe to changes while open; never cache
+  them on-device.
+- Removing a follower (`remove_follower`) is silent; removing a Friend also ends the open tags between
+  you, after a clear confirm sheet.
 
 ## Swipe pages and tab bar (2026-10-07)
 - Order, left to right, everywhere (tab bar, swipe pages, glass rail, screen-reader actions):
@@ -132,7 +147,7 @@
 - The consent decision (`granted` / `denied`) is **cached locally in AsyncStorage** (`@mahi:location_consent`, via `ui/src/lib/location.ts`) so the user is asked **once** — the OS remembers too, but the cache prevents re-prompt churn.
 - Coordinates are **rounded to ~city-block precision** (3 decimal places ≈ 110m) via `roundCoord` before they ever leave `location.ts`, to avoid exact-home exposure. Low-quality fixes (accuracy worse than ~100m) are **dropped** (`null`).
 - A one-shot `getCurrentPositionAsync` (Balanced accuracy) is used — **not** a watch — for battery. Denials/errors degrade to `null`/`false` and never throw to the caller; a post without location stays valid.
-- Coordinates follow the post's visibility: only people allowed to see the post (`can_view_post`: follower, not blocked, not banned, feed lock) get them, and a locked viewer gets them nulled. The `posts` table applies the same rule row by row (`20261008100000_security_hardening`, live 2026-10-08; see `docs/security.md`). Never loosen this.
+- Coordinates follow the post's visibility: only people allowed to see the post (`can_view_post`: the owner's workouts setting, not blocked, not banned, feed lock) get them, and a locked viewer gets them nulled. The `posts` table applies the same rule row by row (`20261008100000_security_hardening`, live 2026-10-08; see `docs/security.md`). Never loosen this.
 
 ## Camera / Upload Flow
 - Two taps, two photos (the second tap stays; no auto timer). Shutter captures only — no upload until

@@ -23,8 +23,21 @@ means "trusted": always ask what a stranger with a fresh account could read or w
   whole-table grant. The profile insert at sign-up is the model.
 - **Private reads apply the visibility rule.** Posts, photos, locations, messages, contact matches
   and tokens are read through server functions, or through a policy that applies the same rule
-  (`can_view_post`: follower, not blocked, not banned, feed lock). A policy that only checks
-  `hidden_at`, or `using (true)`, is never enough for someone's content.
+  (`can_view_post`: the owner's workouts setting — everyone / followers / friends, private counts as
+  followers — not blocked, not banned, feed lock). A policy that only checks `hidden_at`, or
+  `using (true)`, is never enough for someone's content.
+- **Follows, requests and Controls (20261008170000).**
+  - Privacy settings (`is_private`, `posts_visibility`, `tag_permission`, `privacy_chosen_at`) have no
+    column update grant; they change only through `set_account_controls`, which validates them.
+  - `follow_requests` is read by its two people only and written only by `set_following`,
+    `respond_follow_request`, `set_account_controls`, `claim_invite`, blocks and bans. Accepting
+    re-checks bans and blocks; answers are idempotent (`delete … returning`); one "wants to follow
+    you" per pair a day and 100 new requests a day per person.
+  - Follower and following lists: a `follows` row shows to someone outside it only when both people's
+    lists are open to them (`can_see_follow_lists`: the owner, or someone the owner's workouts setting
+    lets in, with no block). The policy calls that definer function and never reads `follows` itself
+    (no recursion). Counts come from `get_follow_data`, which answers only for `auth.uid()`.
+  - The server is the only judge of who may see or tag whom; the app's switch only shows the screens.
 - **`security definer` functions:**
   - `set search_path = public`.
   - The caller comes from `auth.uid()`. Never trust a user id passed in.
@@ -143,3 +156,4 @@ Each is a setting only the owner can change. Tick it here when done.
 | Staff sign-in return path accepted a tab or newline (browsers drop them, turning it into another site's address) | Low | `safeNext` refuses control characters | Committed; live when the staff portal is hosted |
 | Second review: reporting a post or comment you can't see showed you its copy; comment-like lists ignored the post's rule; comments and likes were readable on any post | Medium | Report copies staff-only; `get_comment_likes` / `get_comment_likers` and the comment and like read rules follow the post | Live 2026-10-08 (20261008120000, 20261008130000) |
 | Live Supabase check 2026-10-08: the app could still write `follows` directly (follow across a block, follow-spam pushes); `avatar_url` could point anywhere (tracking image, someone else's photo); anyone could list every avatar file; signed-out callers could call the message reaction functions; anon kept table rights in `public` and authenticated kept truncate/references/trigger; the old direct report insert rule was still there; `answered_by_post` / `post_invites` (invite links) were callable by anyone | Medium | Follows only through `set_following` and no follow notice across a block or from a banned person; `avatar_url` must be this project's avatars address in your own folder; avatar files listable only by their owner (bucket stays public for image links); reaction functions signed-in only; anon has no table rights, authenticated no truncate/references/trigger (also for new tables); reports only through `report_*`; the two helpers internal; the unused direct follow and report calls removed from the app | Live 2026-10-08 (20261008150000). Phones older than OTA 12.20 lost Follow (none before launch) |
+| Public and private accounts (owner feature, 2026-10-08): every follow list was readable by anyone signed in, and `get_follow_data` trusted the id it was given | Medium | Follow lists follow the owner's workouts setting (a row shows only when both people's lists are open to you); `get_follow_data` answers only for the caller and is not callable signed out; requests readable by their two people only; privacy settings change only through `set_account_controls`; blocks and bans clear requests; tests prove a stranger is refused posts, files, comments, likes, comment likes and lists of a private account | Committed (20261008170000), not pushed |
