@@ -3280,7 +3280,7 @@ export default function CameraScreen({
                 </Reanimated.View>
               ) : null}
               {/* Why it's frosted, and the live clock, on the front (fades as the drawer opens). */}
-              {pullOn && (gate === 'closed' || offline) ? (
+              {pullOn && !feedShown && (gate === 'closed' || offline) ? (
                 <Reanimated.View
                   style={[styles.waitingNoticeSpot, noticeStyle]}
                   pointerEvents={pull.expanded ? 'none' : 'box-none'}
@@ -3437,7 +3437,7 @@ export default function CameraScreen({
 
         {/* Can't post yet: the shutter stays, greyed with a padlock (owner, 2026-10-08). A tap
             says no and opens what to do; it fades with the notice as the drawer opens. */}
-        {blocked && pullOn && (gate === 'closed' || offline) ? (
+        {blocked && pullOn && !feedShown && (gate === 'closed' || offline) ? (
           <Reanimated.View
             style={[styles.controlsRow, lift > 0 && { bottom: OFFSET.o32 + lift }, noticeStyle]}
             pointerEvents={pull.expanded ? 'none' : 'box-none'}

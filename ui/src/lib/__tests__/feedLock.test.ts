@@ -244,3 +244,21 @@ describe('lockPill', () => {
     });
   });
 });
+
+// Owner, 2026-10-08: someone who has posted before (the server's mark) is never told to post a
+// first workout, even when none of their posts is in the feed any more (unlockedUntil null).
+describe('lockPill — posted before, no post in the feed now', () => {
+  const base = { locked: true, unlockedUntil: null, serverOffsetMs: 0, deviceNow };
+  it('says it opens with a friend’s tag, not "first workout"', () => {
+    expect(lockPill({ ...base, openTags: [], postedBefore: true })).toEqual({
+      line: 'Locked until a friend tags you.',
+      button: 'Find friends',
+      target: 'friends',
+    });
+  });
+  it('never posted still asks for a first workout', () => {
+    expect(lockPill({ ...base, openTags: [], postedBefore: false })?.button).toBe(
+      'Start first workout'
+    );
+  });
+});

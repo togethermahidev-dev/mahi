@@ -28,7 +28,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { cameraStrip, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
 import { detentProgress, releaseDetent, type Detent } from '@/lib/detent';
 import { lockPill } from '@/lib/feedLock';
-import { useFeedStore } from '@/store';
+import { useFeedStore, useUserStore } from '@/store';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useSecondTick } from '@/hooks/useSecondTick';
 import PixelAthlete from '@/components/PixelAthlete';
@@ -297,11 +297,13 @@ export default function CameraFeedPage({
             onFindFriends={onFindFriends}
             onOpenProfile={onOpenProfile}
           />
-          <Reanimated.View pointerEvents="box-none" style={[styles.header, cameraHeaderStyle]}>
-            {header(true)}
-          </Reanimated.View>
         </Reanimated.View>
       </GestureDetector>
+
+      {/* The camera's header stays put over the camera (locked: while it lifts too). */}
+      <Reanimated.View pointerEvents="box-none" style={[styles.header, cameraHeaderStyle]}>
+        {header(true)}
+      </Reanimated.View>
 
       {/* The feed's header sits over the camera strip once the feed is up. */}
       <RNAnimated.View
@@ -410,8 +412,10 @@ function LockedGap({
   const serverOffsetMs = useFeedStore((s) => s.serverOffsetMs);
   // The tag clock ticks every second, like every tag countdown.
   const deviceNow = useSecondTick(openTags.length > 0);
+  // The server's mark: someone who has posted is never asked for a first workout.
+  const postedBefore = useUserStore((st) => st.profile?.has_posted_before ?? false);
   const pill = loaded
-    ? lockPill({ locked: true, unlockedUntil, openTags, serverOffsetMs, deviceNow })
+    ? lockPill({ locked: true, unlockedUntil, openTags, serverOffsetMs, deviceNow, postedBefore })
     : null;
   if (!pill) return null;
   const toFriends = pill.target === 'friends';

@@ -15,6 +15,7 @@ import { BlurView } from 'expo-blur';
 import { LockIcon } from '@/components/ScreenIcons';
 import PixelAthlete from '@/components/PixelAthlete';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useUserStore } from '@/store';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useCoachAnchor } from '@/hooks/useCoachMarks';
 import { useSecondTick } from '@/hooks/useSecondTick';
@@ -107,8 +108,10 @@ function LockedCard({
   const { openTags, loaded } = useOpenTags();
   // The tag clock ticks every second, like every tag countdown.
   const deviceNow = useSecondTick(openTags.length > 0);
+  // The server's mark: someone who has posted is never asked for a first workout.
+  const postedBefore = useUserStore((st) => st.profile?.has_posted_before ?? false);
   const pill = loaded
-    ? lockPill({ locked: true, unlockedUntil, openTags, serverOffsetMs, deviceNow })
+    ? lockPill({ locked: true, unlockedUntil, openTags, serverOffsetMs, deviceNow, postedBefore })
     : null;
   // The first locked feed: a one-time tip on this pill.
   const lockTip = useCoachAnchor('feedLocked', pill !== null);

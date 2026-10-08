@@ -97,7 +97,11 @@ export function lockExplainer({
  * saying why and what to do; no big card). Null while the feed is open.
  */
 export function lockPill(
-  input: Parameters<typeof lockExplainer>[0]
+  input: Parameters<typeof lockExplainer>[0] & {
+    /** The server's "has posted before" mark: when true, never ask for a first workout, even if
+     *  none of your posts is in the feed any more (owner, 2026-10-08). */
+    postedBefore?: boolean;
+  }
 ): { line: string; button: string; target: LockCard['target'] } | null {
   const card = lockExplainer(input);
   if (!card) return null;
@@ -107,7 +111,7 @@ export function lockPill(
     const left = ms > 0 ? ` ${clockText(ms)} left.` : '';
     return { line: `Locked. Answer ${who} to open it.${left}`, button: card.button, target: 'camera' };
   }
-  if (input.unlockedUntil) {
+  if (input.unlockedUntil || input.postedBefore) {
     return { line: 'Locked until a friend tags you.', button: 'Find friends', target: 'friends' };
   }
   return {
