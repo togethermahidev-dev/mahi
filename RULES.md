@@ -108,9 +108,9 @@
   `NATIVE_TABS` (`ui/src/lib/nativeTabs.ts`) and the page strip in `HorizontalNavigator`, which must match.
 - The camera is the front sheet both ways, two-stage (decisions #147–#150): pull it down and it slides
   down to a portrait card with the roadmap behind it; swipe it up and it slides all the way up, the feed
-  filling the page (a locked feed: a one-stage small lift (about a sixth of the page) with the reason and one button). The first
-  swipe stops at a peek (`MOTION.pull.peekShare` / `MOTION.cameraFeed.peekShare`); a second swipe or a
-  tap goes the rest; back returns to the camera. Where it settles: `releaseDetent` (`ui/src/lib/detent.ts`).
+  filling the page (a locked feed: a one-stage small lift (about a sixth of the page) with the reason and one button). The swipe up
+  stops at a peek first (`MOTION.cameraFeed.peekShare`); a second swipe or a tap goes the rest; the pull
+  down goes all the way in one swipe (a drawer peek has nothing to show); back returns to the camera. Where it settles: `releaseDetent` (`ui/src/lib/detent.ts`).
 - One gesture on the camera decides both directions (`cameraDrag` in `ui/src/lib/cameraPull.ts`), so the
   swipe up is as reliable as the pull down. Never add a second vertical pan beside it: nested pans
   compete and the outer one loses (13.23–13.29).

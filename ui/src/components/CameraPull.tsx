@@ -194,7 +194,9 @@ export function useCameraPull(
         // Towards open is down: a positive vertical velocity.
         velocity: e.velocityY / 1000,
         peek,
-        twoStage: true,
+        // One swipe, all the way: a drawer peek shows nothing (the roadmap needs almost all of the
+        // drawer's room), so it looked stuck (owner, 2026-10-08, 13.33). The feed keeps its peek.
+        twoStage: false,
       });
       // eslint-disable-next-line react-hooks/immutability
       offset.value = withSpring(detentProgress(target, peek) * openOffset, SPRING.pullBack);

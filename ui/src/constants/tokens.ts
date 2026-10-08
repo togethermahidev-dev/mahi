@@ -605,7 +605,8 @@ export const MOTION = {
     /** The lit leading edge is strongest early, then settles to this quieter strength. */
     edgePeak: 0.62,
     edgeRest: 0.24,
-    /** The first pull stops at this share of the way (a peek); the next goes the rest. */
+    /** The camera only slides (no shrinking) for this share of the pull, and the pill's icon and
+     *  the notice finish changing by it. The pull itself goes all the way in one swipe. */
     peekShare: 0.3,
     /** The pill's "?", arrow and camera icon grow in from this scale as they morph. */
     glyphFromScale: 0.6,
