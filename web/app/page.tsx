@@ -5,11 +5,11 @@ import { Wordmark } from './_components/Wordmark';
 const STEPS = [
   {
     title: 'Post',
-    body: 'Take a photo of your view with the back camera, then a selfie. Your first post needs no tag. After that, you post when a friend tags you, within 48 hours.',
+    body: 'Take a photo of your view with the back camera, then a selfie. Your first workout needs no tags. After that, you post when a friend tags you, within 48 hours.',
   },
   {
     title: 'Tag',
-    body: "Every post tags 3 friends. They've got 48 hours to post a workout back, and posting is what keeps their feed open.",
+    body: "When you answer a tag, you pick 3 friends you're holding accountable. They've got 48 hours to post a workout back, and posting is what keeps their feed open.",
   },
   {
     title: 'Keep each other going',
@@ -28,9 +28,10 @@ export default function Home() {
               Work out with your friends, one tag at a time.
             </h1>
             <p className="text-f17 leading-l28 text-ios-grey-dark">
-              Mahi is a fitness accountability app. Post your first workout and tag 3 friends.
-              They&apos;ve got 48 hours to post one back. Any workout counts: the gym, a run, a walk, a
-              class or stretching at home. Coming to iPhone and Android.
+              Mahi is a fitness accountability app. Start by showing up: your first workout needs no
+              tags. After that, friends tag you and you&apos;ve got 48 hours to answer with any workout.
+              Any workout counts: the gym, a run, a walk, a class or stretching at home. Coming to
+              iPhone and Android.
             </p>
           </div>
 

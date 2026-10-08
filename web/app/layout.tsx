@@ -16,7 +16,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Mahi — join the waitlist',
   description:
-    'Mahi is the fitness accountability app: post any workout, tag 3 friends, and answer their tags within 48 hours to earn Mahi points. Coming to iPhone and Android.',
+    "Mahi is the fitness accountability app: your first workout needs no tags. After that, answer a friend's tag within 48 hours with any workout, pick 3 friends to hold accountable and earn Mahi points. Coming to iPhone and Android.",
 };
 
 export const viewport: Viewport = {

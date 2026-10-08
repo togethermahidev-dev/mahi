@@ -76,7 +76,7 @@ describe('welcome cards', () => {
       expect(cards[0]).toEqual({
         icon: 'camera',
         title: '@sam tagged you.',
-        body: 'Show up with any workout in the next 48 hours. Your answer is your first post and earns your first point.',
+        body: 'Show up with any workout in the next 48 hours. Your answer is your first workout and earns your first point.',
       });
       expect(cards.slice(1)).toEqual(WELCOME_CARDS.slice(1));
     });

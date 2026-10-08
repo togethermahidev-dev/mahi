@@ -54,7 +54,7 @@ export function welcomeCardsFor(taggedBy: string | null): readonly WelcomeCard[]
     {
       icon: 'camera',
       title: `@${taggedBy} tagged you.`,
-      body: 'Show up with any workout in the next 48 hours. Your answer is your first post and earns your first point.',
+      body: 'Show up with any workout in the next 48 hours. Your answer is your first workout and earns your first point.',
     },
     ...WELCOME_CARDS.slice(1),
   ];

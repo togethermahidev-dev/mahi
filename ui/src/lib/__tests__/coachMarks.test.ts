@@ -26,7 +26,7 @@ describe('coach tips — the words', () => {
       Object.entries(COACH_TIPS).map(([id, t]) => [id, [t.title, t.body, t.page]])
     );
     expect(words).toEqual({
-      points: ['Your Mahi points', 'Your first post and each answer earn 1.', 'camera'],
+      points: ['Your Mahi points', 'First workout and each answer earn 1.', 'camera'],
       bell: ['A friend tagged you', 'Tap to answer.', 'feed'],
       twoPhotos: ['Two photos', 'What you see, then a selfie.', 'camera'],
       waiting: ['You’ll post again when a friend tags you', 'Check back each day.', 'camera'],
@@ -38,7 +38,7 @@ describe('coach tips — the words', () => {
 
   it('reads as one sentence pair for VoiceOver', () => {
     expect(coachTipText('points')).toBe(
-      'Your Mahi points. Your first post and each answer earn 1.'
+      'Your Mahi points. First workout and each answer earn 1.'
     );
     expect(coachTipText('twoPhotos')).toBe('Two photos. What you see, then a selfie.');
   });
