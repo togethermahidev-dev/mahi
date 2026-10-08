@@ -201,6 +201,17 @@ export default function CameraFeedPage({
     ]
   );
   const upSwipe = useMemo(() => makeSwipe(true), [makeSwipe]);
+  // The camera's own gesture (the one the pull down uses) also takes an upward drag and moves the
+  // feed with it, so the swipe up is as reliable as the pull down (owner, 2026-10-08).
+  const feedDrag = useMemo(
+    () => ({
+      progress,
+      travel,
+      onRelease: (p: number, velocity: number) =>
+        settle(releaseDetent({ start: 'closed', progress: p, velocity, peek, twoStage })),
+    }),
+    [progress, travel, settle, peek, twoStage]
+  );
   const cardSwipe = useMemo(() => makeSwipe(false), [makeSwipe]);
 
   // One move for both: the camera slides up by `lift` (a quarter when locked, to the strip when
@@ -282,6 +293,7 @@ export default function CameraFeedPage({
             onSeeFeed={openFeed}
             onPosted={openFeed}
             feedShown={feedShown}
+            feedDrag={feedDrag}
             onFindFriends={onFindFriends}
             onOpenProfile={onOpenProfile}
           />

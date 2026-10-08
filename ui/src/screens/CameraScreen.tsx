@@ -30,6 +30,7 @@ import Reanimated, {
   withSpring,
   runOnJS,
   useReducedMotion,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { haptic, hapticSequence, postedMoments } from '@/lib/haptics';
 import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
@@ -1677,6 +1678,12 @@ interface CameraScreenProps {
   onPosted?: () => void;
   /** The feed is up over this camera: its pill becomes the feed page's camera pill. */
   feedShown?: boolean;
+  /** The feed behind this camera: an upward drag on the camera moves it (one gesture, both ways). */
+  feedDrag?: {
+    progress: SharedValue<number>;
+    travel: number;
+    onRelease: (progress: number, velocity: number) => void;
+  };
   /** Open people search (the caught-up card's "Find friends", shown while the feed is locked). */
   onFindFriends?: () => void;
   /** Open someone's profile (the answer toast's "Cheer @sam on", for the friend whose tag it answered). */
@@ -1688,6 +1695,7 @@ export default function CameraScreen({
   onSeeFeed,
   onPosted,
   feedShown = false,
+  feedDrag,
   onFindFriends,
   onOpenProfile,
 }: CameraScreenProps = {}): React.JSX.Element {
@@ -1960,7 +1968,7 @@ export default function CameraScreen({
   // Standard interaction: this must never depend on a remote flag. If the flag is absent or was
   // switched off, the screen becomes the fixed dead-end card shown in the reported build.
   const pullOn = cameraOn && !offline && !(frontPhoto && rearPhoto) && captureState === 'idle';
-  const pull = useCameraPull(pullOn, safeTop, pageWidth, pageHeight);
+  const pull = useCameraPull(pullOn, safeTop, pageWidth, pageHeight, feedDrag);
   // The pip window's place on the full camera, and where that maps to on the small camera card:
   // it moves and shrinks with the card (its height share, so it stays inside the card).
   const pipLeft = Math.max(PIP_MARGIN, railRoom);

@@ -87,3 +87,37 @@ export function pullFelt(offset: number, felt: boolean): boolean {
   'worklet';
   return !felt && offset > MOTION.pull.limit * MOTION.pullFeltAt;
 }
+
+/**
+ * Which way a drag on the camera goes (owner, 2026-10-08: one gesture for both, so the swipe up
+ * is as reliable as the pull down): down is the roadmap drawer, up is the feed; once the drawer
+ * has moved, either way is the drawer's. A clear vertical drag of half the slop is enough; a
+ * sideways one is the page swipe; a drag from the status bar is the phone's.
+ */
+export function cameraDrag({
+  startY,
+  insetTop,
+  moved,
+  feedOn,
+  dx,
+  dy,
+}: {
+  startY: number;
+  insetTop: number;
+  /** The drawer is at its peek or open. */
+  moved: boolean;
+  /** This camera has the feed behind it (the combined screen). */
+  feedOn: boolean;
+  dx: number;
+  dy: number;
+}): 'drawer' | 'feed' | 'fail' | 'wait' {
+  'worklet';
+  if (startY < insetTop) return 'fail';
+  const half = SWIPE.slop / 2;
+  const ax = Math.abs(dx);
+  const ay = Math.abs(dy);
+  if (ax > half && ax >= ay) return 'fail';
+  if (ay <= half || ay <= ax) return 'wait';
+  if (dy > 0 || moved) return 'drawer';
+  return feedOn ? 'feed' : 'fail';
+}

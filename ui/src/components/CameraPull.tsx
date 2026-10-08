@@ -26,7 +26,7 @@ import Reanimated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Path } from 'react-native-svg';
 import { haptic } from '@/lib/haptics';
-import { drawerOffset, drawerShouldOpen, pullParallax, verticalPull } from '@/lib/cameraPull';
+import { cameraDrag, drawerOffset, drawerShouldOpen, pullParallax } from '@/lib/cameraPull';
 import { loadSwiftUI } from '@/lib/expoUiModule';
 import { useCardMorphStyle } from '@/components/MorphTransition';
 import { detentProgress, releaseDetent, type Detent } from '@/lib/detent';
@@ -53,7 +53,13 @@ export function useCameraPull(
   enabled: boolean,
   insetTop: number,
   viewportWidth: number,
-  viewportHeight: number
+  viewportHeight: number,
+  /** The feed behind the camera (the combined screen): an upward drag moves it (cameraDrag). */
+  feed?: {
+    progress: SharedValue<number>;
+    travel: number;
+    onRelease: (progress: number, velocity: number) => void;
+  }
 ) {
   const reduceMotion = useReducedMotion();
   // Open: the camera is a portrait card in the bottom half; it travels down to its top edge.
@@ -65,6 +71,13 @@ export function useCameraPull(
   const openOffset = Math.max(0, viewportHeight - collapsedHeight - MOTION.pull.collapsedInset);
   const offset = useSharedValue(0);
   const startOffset = useSharedValue(0);
+  // 0 = this drag moves the drawer, 1 = it moves the feed. Plain values only for the worklets.
+  const dragMode = useSharedValue(0);
+  const feedStart = useSharedValue(0);
+  const feedProgress = feed?.progress;
+  const feedTravel = feed?.travel ?? 0;
+  const feedRelease = feed?.onRelease;
+  const feedOn = !!feed;
   const startY = useSharedValue(0);
   const startX = useSharedValue(0);
   const decided = useSharedValue(false);
@@ -124,24 +137,40 @@ export function useCameraPull(
         manager.fail();
         return;
       }
-      const dx = t.absoluteX - startX.value;
-      const dy = t.absoluteY - startY.value;
-      const decision =
-        moved && dy < -SWIPE.slop && Math.abs(dy) > Math.abs(dx)
-          ? 'activate'
-          : verticalPull({ startY: startY.value, dx, dy, insetTop });
-      if (decision === 'wait') return;
+      const way = cameraDrag({
+        startY: startY.value,
+        insetTop,
+        moved,
+        feedOn,
+        dx: t.absoluteX - startX.value,
+        dy: t.absoluteY - startY.value,
+      });
+      if (way === 'wait') return;
       decided.value = true;
-      if (decision === 'activate') manager.activate();
-      else manager.fail();
+      if (way === 'fail') {
+        manager.fail();
+        return;
+      }
+      dragMode.value = way === 'feed' ? 1 : 0;
+      manager.activate();
     })
     .onStart(() => {
       'worklet';
       felt.value = false;
       startOffset.value = offset.value;
+      if (feedProgress) feedStart.value = feedProgress.value;
     })
     .onUpdate((e) => {
       'worklet';
+      if (dragMode.value === 1) {
+        if (feedProgress && feedTravel > 0) {
+          feedProgress.value = Math.min(
+            1,
+            Math.max(0, feedStart.value - e.translationY / feedTravel)
+          );
+        }
+        return;
+      }
       // eslint-disable-next-line react-hooks/immutability
       offset.value =
         startOffset.value > 0
@@ -154,6 +183,13 @@ export function useCameraPull(
     })
     .onEnd((e) => {
       'worklet';
+      if (dragMode.value === 1) {
+        // Towards the feed is up: a negative vertical velocity.
+        if (feedRelease && feedProgress) {
+          scheduleOnRN(feedRelease, feedProgress.value, -e.velocityY / 1000);
+        }
+        return;
+      }
       const target = releaseDetent({
         start,
         progress: openOffset > 0 ? offset.value / openOffset : 0,

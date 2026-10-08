@@ -1,5 +1,6 @@
 import { MOTION, SWIPE } from '@/constants/tokens';
 import {
+  cameraDrag,
   drawerOffset,
   drawerShouldOpen,
   drawerShouldSettleOpen,
@@ -102,5 +103,30 @@ describe('camera pull-down (the waiting camera gives a little)', () => {
       expect(drawerShouldSettleOpen(40, open, false, 1)).toBe(true);
       expect(drawerShouldSettleOpen(open - 40, open, true, -1)).toBe(false);
     });
+  });
+});
+
+// Owner, 2026-10-08: the swipe up wasn't reliable. One gesture on the camera now takes both
+// directions — down is the roadmap drawer, up is the feed — and it reacts to half the old slop.
+describe('cameraDrag — which way a drag on the camera goes', () => {
+  const h = SWIPE.slop / 2 + 1;
+  const base = { startY: 300, insetTop: 50, moved: false, feedOn: true };
+  it('a short upward drag is the feed', () => {
+    expect(cameraDrag({ ...base, dx: 0, dy: -h })).toBe('feed');
+    expect(cameraDrag({ ...base, dx: h - 2, dy: -h })).toBe('feed');
+  });
+  it('a short downward drag is the drawer', () => {
+    expect(cameraDrag({ ...base, dx: 0, dy: h })).toBe('drawer');
+  });
+  it('with the drawer moved, either way belongs to the drawer', () => {
+    expect(cameraDrag({ ...base, moved: true, dx: 0, dy: -h })).toBe('drawer');
+  });
+  it('no feed on this screen: an upward drag is left alone', () => {
+    expect(cameraDrag({ ...base, feedOn: false, dx: 0, dy: -h })).toBe('fail');
+  });
+  it('sideways is the page swipe; a barely-moved finger waits; the status bar is the phone’s', () => {
+    expect(cameraDrag({ ...base, dx: h, dy: 2 })).toBe('fail');
+    expect(cameraDrag({ ...base, dx: 2, dy: -3 })).toBe('wait');
+    expect(cameraDrag({ ...base, startY: 20, dx: 0, dy: -h })).toBe('fail');
   });
 });
