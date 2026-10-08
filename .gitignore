@@ -73,3 +73,6 @@ docs/tag-slots-plan.md
 .slack-token
 .slack-user-token
 docs/design-gaps.md
+
+# Android build caches (made by Gradle; never committed)
+.gradle/
