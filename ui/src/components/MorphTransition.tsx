@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Image, StyleSheet } from 'react-native';
+import { Image, StyleSheet, type ViewStyle } from 'react-native';
 import Reanimated, {
   Extrapolation,
   interpolate,
@@ -14,6 +14,33 @@ import { scheduleOnRN } from 'react-native-worklets';
 import type { MorphRect, MorphSource } from '@/lib/morph';
 import { validMorphSource } from '@/lib/morph';
 import { ALPHA, COLORS, DURATION, MOTION } from '@/constants/tokens';
+
+type CardMorphGeometry = MorphRect & { borderRadius: number };
+
+/**
+ * Shared card-to-destination geometry. Camera drawers, workout tiles and avatars all use this
+ * same UI-thread value so position, size and corner shape resolve as one physical object.
+ */
+export function useCardMorphStyle(
+  progress: SharedValue<number>,
+  progressMax: number,
+  from: CardMorphGeometry,
+  to: CardMorphGeometry
+) {
+  const reduceMotion = useReducedMotion();
+  return useAnimatedStyle<ViewStyle>(() => {
+    const p = reduceMotion
+      ? 0
+      : Math.max(0, Math.min(1, progressMax > 0 ? progress.value / progressMax : 1));
+    return {
+      left: from.x + (to.x - from.x) * p,
+      top: from.y + (to.y - from.y) * p,
+      width: from.width + (to.width - from.width) * p,
+      height: from.height + (to.height - from.height) * p,
+      borderRadius: from.borderRadius + (to.borderRadius - from.borderRadius) * p,
+    };
+  });
+}
 
 /**
  * Manual shared-geometry transition. Unlike Reanimated's experimental shared-element API, this
@@ -75,12 +102,11 @@ export function MorphingImage({
   targetRadius: number;
   progress: SharedValue<number>;
 }): React.JSX.Element {
-  const style = useAnimatedStyle(() => ({
-    left: source.x + (target.x - source.x) * progress.value,
-    top: source.y + (target.y - source.y) * progress.value,
-    width: source.width + (target.width - source.width) * progress.value,
-    height: source.height + (target.height - source.height) * progress.value,
-    borderRadius: source.borderRadius + (targetRadius - source.borderRadius) * progress.value,
+  const geometryStyle = useCardMorphStyle(progress, 1, source, {
+    ...target,
+    borderRadius: targetRadius,
+  });
+  const imageStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       progress.value,
       [0, MOTION.morphImageUntil, 1],
@@ -90,7 +116,7 @@ export function MorphingImage({
   }));
 
   return (
-    <Reanimated.View pointerEvents="none" style={[styles.image, style]}>
+    <Reanimated.View pointerEvents="none" style={[styles.image, geometryStyle, imageStyle]}>
       <Image
         source={{ uri: source.uri, cache: 'force-cache' }}
         style={StyleSheet.absoluteFill}

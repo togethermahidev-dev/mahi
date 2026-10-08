@@ -97,5 +97,10 @@ describe('camera pull-down (the waiting camera gives a little)', () => {
       expect(drawerShouldSettleOpen(open * (1 - MOTION.pull.openAt) + 1, open, true)).toBe(true);
       expect(drawerShouldSettleOpen(open * (1 - MOTION.pull.openAt) - 1, open, true)).toBe(false);
     });
+
+    it('respects an intentional flick toward either detent', () => {
+      expect(drawerShouldSettleOpen(40, open, false, 1)).toBe(true);
+      expect(drawerShouldSettleOpen(open - 40, open, true, -1)).toBe(false);
+    });
   });
 });

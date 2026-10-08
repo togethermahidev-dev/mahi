@@ -1,6 +1,7 @@
 # mahi-fitness — Project Rules for Claude
 
 ## Product identity and core loop (2026-10-08)
+
 - Mahi is a **show-up fitness accountability app**, not a social-media app. Profiles, follows,
   messages, likes and comments support real accountability; they are not the primary loop.
 - Everyone starts with exactly one first workout post. It needs no incoming tag and no outgoing tags.
@@ -19,6 +20,7 @@
   copy says “Start by showing up” and “your first workout”; it sounds like a commitment, not a perk.
 
 ## Repo layout
+
 - A pnpm workspace like pingmee-v2: the Expo app is in `ui/` (`App.tsx`, `app.config.js`, `eas.json`, `src/`,
   `assets/`), the waitlist site in `web/`, the database in `supabase/`, shared scripts in `scripts/`.
   Paths below without a folder (`App.tsx`, `app.config.js`) are the app's, in `ui/`.
@@ -27,10 +29,12 @@
   EAS commands run from `ui/`.
 
 ## Security (2026-10-08)
+
 - `docs/security.md` is the security rulebook: database, server functions, links, staff portal, secrets,
   reviews and the review log. Read it before any database, server function, link or sign-in change.
 
 ## Branch and moderation (2026-10-06)
+
 - Work happens on branch `updates` (reaches `main` by the owner's say-so); commit by name, never push without a same-session go.
 - Moderation is server-side only: reports, staff actions and hiding go through the RPCs in
   `supabase/migrations/20261006100000_moderation.sql` (contract: `docs/moderation.md`). Never read
@@ -43,6 +47,7 @@
   signed in as a `staff_users` member; it never uses the service role key in the browser.
 
 ## Messages and posts (2026-10-06)
+
 - Messages go through the server functions only: `start_conversation`, `send_message`, `accept_message_request`,
   `decline_message_request`, `edit_message` (own message, 15 minutes), `unsend_message`; read with `get_inbox`,
   `get_messages`, `get_conversation_with`. Never insert, update or delete `messages` or `conversations` from the app
@@ -54,6 +59,7 @@
   posting opens the feed and starts the clock for any challenged friends. Never bypass this alert.
 
 ## Follows, tag requests and invite links (2026-10-07; public/private accounts 2026-10-08)
+
 - A normal profile Follow is one-way. Friends means both follow rows exist.
 - Accounts are public or private (`profiles.is_private`, changed only through `set_account_controls`).
   A Follow to a public account is a follow straight away. A Follow to a private account is a request
@@ -84,6 +90,7 @@
   you, after a clear confirm sheet.
 
 ## Swipe pages and tab bar (2026-10-07)
+
 - Order, left to right, everywhere (tab bar, swipe pages, glass rail, screen-reader actions):
   Messages, Feed, Camera, Profile. Camera is still the landing page. Change it only in `NATIVE_TABS`
   (`ui/src/lib/nativeTabs.ts`) and the page strip in `HorizontalNavigator`, which must match it.
@@ -92,6 +99,7 @@
   (the cause of "can't swipe from Profile", fixed in OTA 12.22).
 
 ## Live updates (2026-10-07)
+
 - A table sends live updates only if it is in the `supabase_realtime` publication (check against prod
   with `pg_publication_tables`). Since `20261007150000_live_updates_and_hardening`: conversations,
   messages, notifications, tag_challenges, follows, post_likes, post_comments.
@@ -100,11 +108,13 @@
   fetch what the screen shows (e.g. the commenter) before adding it.
 
 ## Database tools
+
 - Mahi doesn't use Docker: no `supabase start`, no local stack. Database types come from the Supabase MCP
   generator (`generate_typescript_types`), not `supabase gen types --local`.
 - Production writes only with the owner's permission, through `scripts/db.sh try` → `backup` → `push`.
 
 ## Architecture & Adding Features
+
 - 5-layer architecture, strict downward deps: `screens/components → hooks → stores → api → lib → supabase`.
   See the **Layering Contract** in `docs/architecture.md` for the per-layer import rules.
 - To add a full-stack feature, follow `docs/adding-a-feature.md` (copy `follows.ts` / `followStore.ts` /
@@ -115,6 +125,7 @@
   after every phone has that update (owner, 2026-10-06).
 
 ## Supabase Edge Functions
+
 - Pre-auth functions (`send-otp`, `verify-otp`, `complete-signup`, `send-reset-code`, `reset-password`)
   and the cron-called `send-push` and `moderate-content` are deployed with `verify_jwt: false` (`--no-verify-jwt`)
 - `delete-account` is the exception: deployed **with** JWT verification (the default); it acts on the caller
@@ -124,6 +135,7 @@
 - Functions are deployed by the owner only; see `supabase/README.md`
 
 ## Email / OTP
+
 - The server makes, stores (SHA-256 hash only) and checks every sign-up code; the app never sees
   the code except as the user types it. Same design as Pingmee.
   - `send-otp` `{ email }` → emails a 6-digit code, 10-minute expiry, send limits per email and per network address
@@ -145,6 +157,7 @@
   production binary.)
 
 ## Location / Privacy (per-post location)
+
 - Per-post location is **explicit opt-in** — never silent, and **never requested at onboarding**. Ask only on first use that needs it (e.g. a post attempt with location enabled), mirroring the camera-permission pattern.
 - The consent decision (`granted` / `denied`) is **cached locally in AsyncStorage** (`@mahi:location_consent`, via `ui/src/lib/location.ts`) so the user is asked **once** — the OS remembers too, but the cache prevents re-prompt churn.
 - Coordinates are **rounded to ~city-block precision** (3 decimal places ≈ 110m) via `roundCoord` before they ever leave `location.ts`, to avoid exact-home exposure. Low-quality fixes (accuracy worse than ~100m) are **dropped** (`null`).
@@ -152,6 +165,7 @@
 - Coordinates follow the post's visibility: only people allowed to see the post (`can_view_post`: the owner's workouts setting, not blocked, not banned, feed lock) get them, and a locked viewer gets them nulled. The `posts` table applies the same rule row by row (`20261008100000_security_hardening`, live 2026-10-08; see `docs/security.md`). Never loosen this.
 
 ## Camera / Upload Flow
+
 - Two taps, two photos (the second tap stays; no auto timer). Shutter captures only — no upload until
   the user taps Post on the preview screen. Microphone permission is never requested (the native
   usage string in `app.config.js` goes at the next native build)
@@ -168,6 +182,7 @@
   the same toast. No daily limit
 
 ## Auth
+
 - Supabase is the source of truth for auth
 - Sessions persist in the keychain on build 13+ (`ui/src/lib/sessionStorage.ts`: expo-secure-store behind a native probe, readable after first unlock, this device only); builds 10–12 keep AsyncStorage, and an existing AsyncStorage session moves to the keychain on first read (`autoRefreshToken: true`, `persistSession: true` in `ui/src/lib/supabase.ts`)
 - `onAuthStateChange` in `App.tsx` drives all screen transitions — no manual `authDone` flags
@@ -180,6 +195,7 @@
   (`20261001100100_account_delete_cascade`)
 
 ## State Management
+
 - Zustand stores, all exported from `ui/src/store/index.ts`: auth, user, signUp, theme, feed, messages,
   conversation, notifications, profilePosts, social, follow, suggest, block, push, tag, invite
   (`toastStore` is imported directly). Every per-user store's `reset()` is called in the `App.tsx`
@@ -195,11 +211,13 @@
 - When writing back to profile after async work, always read from `useUserStore.getState().profile` — never spread a closure snapshot
 
 ## What the feed shows (2026-10-07)
+
 - The feed is the people you follow, newest first (`get_feed`). Of your own posts it shows only your
   latest, in its place by time (`latestOwnPostOnly` in `useFeed`); the rest stay on your Profile.
   Never reorder the feed in the app; the server's newest-first order is the order.
 
 ## Reactive posting and Mahi points
+
 - You can post only while you have an open tag you can still answer (48 hours + 10 minutes grace); your very
   first post is the exception and requires no outgoing tags. No daily limit — the one-a-day unique index is dropped (`20261001120000_reactive_posting`)
 - Server rule: `public.reactive_posting_open(user)`, checked inside `create_post`. App rule: `reactivePostingGate()`
@@ -218,6 +236,7 @@
   `20261001170000_drop_rest_days` removed the columns and table (live)
 
 ## Sentry Logging
+
 - `reportError(err, { flow, action?, extra })` from `ui/src/lib/sentry.ts` in every catch and on every
   `{ error }` from Supabase (it also reads a server function's reply)
 - `Sentry.addBreadcrumb({ category, message, level })` for navigation/action events
@@ -227,6 +246,7 @@
   (`Sentry.setUser({ id })`), never the email
 
 ## Design System
+
 - Font: Inter only, through `FONTS` in `ui/src/constants/fonts.ts` (`Inter_400Regular`, `Inter_600SemiBold`,
   `Inter_700Bold`, loaded in `App.tsx`; no italic, no `fontWeight`/`fontStyle` — the face is the weight). The
   native tab bar titles use it too. `fonts.test.ts` fails on a typed-out font name, text without an Inter face,
@@ -247,6 +267,15 @@
   experimental shared-element API). Destination video/content waits for the morph to land, drag-to-
   dismiss scrubs the same transition, unavailable geometry falls back to a fade, and Reduce Motion
   is always a crossfade.
+- Controls that visibly open a related surface should preserve that relationship: glass pills and
+  primary buttons compress under the finger, then their destination resolves with the same shape,
+  tint and motion direction. Prefer native Liquid Glass on supported iOS builds, bounded tonal
+  ripple on Android, and the shared `PressScale` fallback. Apply this to meaningful object-to-sheet
+  transitions (accountability, caption, profile media), not every utility tap; one transition owns
+  attention at a time.
+- Card-to-destination motion uses `useCardMorphStyle`: one shared UI-thread progress value owns the
+  card's position, size and corner radius. Camera minimisation, workout/post expansion and avatar
+  expansion must reuse it rather than introducing separate geometry animation math.
 - UI copy is sentence case ("Log in", "12 points", "No tags to answer", "Take photo"). No all-caps,
   letter-spaced labels; the MAHI wordmark is the only exception (owner, 2026-10-01). `sentenceCase.test.ts`
   fails on Title Case in on-screen text, pop-ups, menu options and labels (names like Apple keep capitals)

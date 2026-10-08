@@ -7,12 +7,26 @@ The single entry point for continuing work on Mahi. Read this first. It encodes 
 
 ## State on 2026-10-08 (newest; overrides older notes below)
 
-**Camera waiting drawer fixed:** The locked/waiting camera is now the front layer, with a down arrow
-centred around its upper third. Pulling it down uncovers the accountability card physically behind
-it and settles open so its actions work; pull upward or tap the centred up arrow to close. Reduce
-Motion crossfades the layers. This is standard UI, not a PostHog-gated experiment: the remote
-`camera-pull-down` value caused the fixed oversized card/no gesture seen on the phone. Remove that
-obsolete flag from PostHog when convenient; no server change is needed.
+**Camera waiting drawer fixed:** The locked/waiting camera is the front layer. A compact labelled
+handle sits around its upper third; the camera gives a short two-beat vertical tug to teach the
+depth, then stays still. Pulling uncovers a deliberately compact accountability card behind it and
+settles open; the same handle travels to the camera edge and rotates to close. The leading edge gets
+a restrained cyan light, the card/primary/secondary actions resolve in order, confident flicks use
+velocity-aware snapping, Android Back closes it first, and accessibility announces the open state.
+Reduce Motion crossfades the layers. This is standard UI, not a PostHog-gated experiment: the
+remote `camera-pull-down` value caused the fixed oversized card/no gesture seen on the phone. Remove
+that obsolete flag from PostHog when convenient; no server change is needed.
+
+**Liquid controls direction:** The pull now reversibly changes the full-screen camera into a small
+rounded camera card near the bottom; swiping up restores the exact full-screen geometry. Its reveal
+card is compact (one short explanation, two actions, a utility row), avoiding the oversized panel
+seen in the phone screenshot. Camera accountability/caption/location pills use interactive Liquid
+Glass where supported and shared spring press motion everywhere else; Post uses the same response.
+RULES.md now limits this treatment to controls that genuinely open a related surface so utility
+actions stay quiet. Continue this object-to-destination pattern selectively, not as blanket motion.
+`useCardMorphStyle` in `components/MorphTransition.tsx` is the shared geometry owner: the camera,
+workout/post viewer and avatar viewer all drive position, size and radius from one UI-thread value.
+Reuse that hook for future card-to-sheet or card-to-full-screen transitions.
 
 **Native continuity motion (front end; no server work):** Profile workout tiles now expand from the
 exact tapped tile into `PostViewer` and reverse into it on close; a downward dismissal scrubs the
@@ -90,6 +104,7 @@ plus everything after are also unchecked on a phone. Check, in this order, on a 
 ### Sign in with Apple — owner steps before build 13 ships
 
 No secrets in code; native sign-in needs only the bundle ID.
+
 1. Apple Developer → Identifiers → `com.mahi.app`: the Sign in with Apple capability. EAS turns it
    on when it builds (app.config.js sets `ios.usesAppleSignIn` and the `expo-apple-authentication`
    plugin); check it's ticked after the build.
@@ -106,19 +121,19 @@ No secrets in code; native sign-in needs only the bundle ID.
    Accounts that signed in with Apple before these steps are live have no kept token, so their
    deletion skips Apple (they sign in again → token kept). Owner steps, in this order:
    a. Apple Developer → Certificates, IDs & Profiles → Keys → "+": name it "Mahi Sign in with
-      Apple", tick Sign in with Apple → Configure → primary App ID `com.mahi.app` → Save →
-      Continue → Register. Download the `.p8` file (Apple lets you download it once; keep it
-      somewhere safe, never in the repo). Note the Key ID (on the key's page) and the Team ID
-      (top right of the developer site, or Membership details).
+   Apple", tick Sign in with Apple → Configure → primary App ID `com.mahi.app` → Save →
+   Continue → Register. Download the `.p8` file (Apple lets you download it once; keep it
+   somewhere safe, never in the repo). Note the Key ID (on the key's page) and the Team ID
+   (top right of the developer site, or Membership details).
    b. Database: done. Migration `20261007300000_apple_tokens` is live on production (2026-10-08).
    c. Secrets (type the real values yourself; the key file path is wherever you saved it):
-      `supabase secrets set --project-ref pzepodsppqtvptzmwxzs APPLE_TEAM_ID=<team id> APPLE_KEY_ID=<key id> APPLE_CLIENT_ID=com.mahi.app`
-      then `supabase secrets set --project-ref pzepodsppqtvptzmwxzs APPLE_PRIVATE_KEY="$(cat <path to AuthKey_XXXX.p8>)"`.
+   `supabase secrets set --project-ref pzepodsppqtvptzmwxzs APPLE_TEAM_ID=<team id> APPLE_KEY_ID=<key id> APPLE_CLIENT_ID=com.mahi.app`
+   then `supabase secrets set --project-ref pzepodsppqtvptzmwxzs APPLE_PRIVATE_KEY="$(cat <path to AuthKey_XXXX.p8>)"`.
    d. Functions (both keep JWT verification on, the default):
-      `supabase functions deploy apple-token delete-account --project-ref pzepodsppqtvptzmwxzs`.
+   `supabase functions deploy apple-token delete-account --project-ref pzepodsppqtvptzmwxzs`.
    e. Then step 3 (switch to 100%). Check on a phone: sign in with Apple, then in Supabase →
-      Table editor → `apple_tokens` one row for that account; delete that account in the app, the
-      row is gone and iPhone Settings → Apple Account → Sign in with Apple no longer lists Mahi.
+   Table editor → `apple_tokens` one row for that account; delete that account in the app, the
+   row is gone and iPhone Settings → Apple Account → Sign in with Apple no longer lists Mahi.
    Missing secrets: `apple-token` answers 503 (sign-in carries on, a warning in Sentry) and
    `delete-account` deletes without revoking (warning in Sentry).
 
@@ -131,6 +146,7 @@ Mahi is installed → Mahi reads it once, deletes it, and the sign-up screen say
 (`ui/src/lib/clipHandover.ts`). If that ever fails, copying the link into "Got an invite link?"
 still works. Switch `app-clip` (default on) only stops the app taking the hand-over; to turn the
 clip itself off, remove its App Clip experience in App Store Connect.
+
 1. PostHog: create `app-clip` at 100% (the app waits for PostHog's answer before taking a
    hand-over, and a switch missing from PostHog reads off, so without it nothing is taken).
 2. Deploy the website once (web/README.md "How to deploy") so
@@ -167,6 +183,7 @@ applies to every tool call. Work on branch `updates`; commit by name, no AI attr
 without the owner's go in the same session.
 
 **State on 2026-10-07 (branch `updates`; `main` is behind):**
+
 - **OTA 12.20 is live on the preview channel (iOS and Android)** (EAS group
   `2eba344a-907a-45be-9366-cd573ddc888a`): right-swipe dismissal works again on another person's
   profile and now dismisses a friends list too. Follow/unfollow stays optimistic, then reconciles
@@ -239,6 +256,7 @@ without the owner's go in the same session.
   OpenAI key; the website waits for a web deploy.
 
 **State on 2026-10-06, 14:00 (branch `updates`; `main` is behind):**
+
 - **On phones (preview lane), published 2026-10-06, not yet checked on a phone:** OTA **12.07** the
   design pass (Inter only, no italics, tokens for every value, decisions #76–#93); **12.08** the
   Profile redesign; **12.09** reports, Follow back, account standing, hold to preview, the glass dock
@@ -261,11 +279,12 @@ without the owner's go in the same session.
   longer reads the last two; delete them in PostHog once every phone has 12.09 or later.
 - **Rules carried forward:** work on `updates`; a switch turned on is 100%, and removed once proven;
   Mahi doesn't use Docker (database types come from the Supabase MCP generator, not `supabase gen
-  types --local`); production writes only with the owner's permission, through `scripts/db.sh try` →
+types --local`); production writes only with the owner's permission, through `scripts/db.sh try` →
   `backup` → `push`.
 - **Next native build** moves to Expo SDK 58 (owner).
 
 **State on 2026-10-05, late (on main, not on phones yet):**
+
 - **Design system tidy-up, committed on main, not pushed, not in any update yet** (84377ac…3dd23a0):
   Inter on every word, the tab bar titles too, no italic; × for close buttons; camera pills read
   "+ Tag people", "+ Add a caption", "+ Add location" / "Location on" (no emoji); sentence case in the
@@ -289,6 +308,7 @@ without the owner's go in the same session.
   Can't move yet: async-storage 3, TypeScript 7, @types/node 26. eas-cli and pnpm are left as pinned.
 
 **State on 2026-10-05 (newest first; older notes below):**
+
 - **Phones:** build 12 (there is no build 11 — the numbers went 10 → 12) on the preview iPhones and
   TestFlight, both on the `preview` channel; latest update 12.06. Build 12 carries everything the
   notes below call "build 11" (video, Apple icons, hold to preview, Didit, RevenueCat, tap to focus)
@@ -306,6 +326,7 @@ without the owner's go in the same session.
   date ("/updateacross").
 
 **State on 2026-10-01:**
+
 - **Backend:** every migration in `supabase/migrations/` through `20261002130000_comment_likes` is live on
   production (checked against prod 2026-10-02); `20261002150000_identity_verifications` and
   `20261002170000_mahi_points` are waiting. Edge Functions live: `send-otp`, `verify-otp`, `complete-signup`,
@@ -332,6 +353,7 @@ without the owner's go in the same session.
   sign-out, server-authoritative sign-up codes, Jest + pgTAP + typecheck CI.
 
 **Pending (the work ahead):**
+
 - **Push notifications (built 2026-10-02, not live; decisions #52–#59,
   [architecture.md](./architecture.md#push-notifications)).** In the app, behind `push-core` (now a
   default-off flag, still absent from PostHog): a full-screen "turn on notifications" page once per
@@ -358,7 +380,7 @@ without the owner's go in the same session.
   `identity-verification` and `purchases`, both default OFF —
   [architecture.md](./architecture.md#identity-checks-and-purchases-dormant)). Build 11 carries the native
   pieces; switching either on later is an OTA plus the flag. Nothing is deployed or pushed. Owner steps:
-  - *Didit:* make an account at business.didit.me; build a workflow (ID document + liveness + face match,
+  - _Didit:_ make an account at business.didit.me; build a workflow (ID document + liveness + face match,
     no NFC) and copy its workflow id; create an API key; add a webhook destination with URL
     `https://pzepodsppqtvptzmwxzs.supabase.co/functions/v1/didit-webhook` and copy its secret. Then:
     ```bash
@@ -371,7 +393,7 @@ without the owner's go in the same session.
     supabase functions deploy didit-session --project-ref pzepodsppqtvptzmwxzs
     supabase functions deploy didit-webhook --no-verify-jwt --project-ref pzepodsppqtvptzmwxzs
     ```
-  - *RevenueCat + App Store Connect:* sign the Paid Apps Agreement (banking and tax) in App Store Connect;
+  - _RevenueCat + App Store Connect:_ sign the Paid Apps Agreement (banking and tax) in App Store Connect;
     create the products (subscriptions or one-off purchases); create an In-App Purchase key (.p8) under
     Users and Access → Integrations and give RevenueCat the .p8, its key id and the issuer id; in the app's
     App Store Connect page set App Store Server Notifications (Version 2) to the URL RevenueCat shows. In
@@ -421,25 +443,25 @@ These are non-negotiable on every change, by anyone (human or agent):
 Adding a full-stack feature is a mechanical copy of proven files — full recipe in
 [adding-a-feature.md](./adding-a-feature.md). Reference map:
 
-| Need | Copy |
-|---|---|
-| API function | `ui/src/api/follows.ts` |
-| Optimistic store + realtime registry | `ui/src/store/followStore.ts` |
-| Thin hook (sync on mount) | `ui/src/hooks/useFeed.ts` |
-| Thin hook (subscription lifecycle) | `ui/src/hooks/useNotifications.ts` |
-| DB table + RLS + RPC | `follows` table + `get_follow_data` in `supabase/migrations/` |
-| User-facing failure feedback | `useToastStore.getState().show(...)` |
-| Native page sheet | `BlockedUsersSheet.tsx` (`<Modal presentationStyle="pageSheet">`) |
-| Page swipe / spring | `HorizontalNavigator.tsx` + `ui/src/lib/swipeRules.ts` (`SPRING.page`, `SWIPE` in tokens) |
-| Pure, tested UI rules | `ui/src/lib/feedLock.ts` + `ui/src/lib/__tests__/feedLock.test.ts` |
-| Gate a feature behind a flag | `useFeatureFlag('flag-key')` (keys in `ui/src/lib/featureFlags.ts`; see [feature-flags.md](./feature-flags.md)) |
+| Need                                 | Copy                                                                                                            |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| API function                         | `ui/src/api/follows.ts`                                                                                         |
+| Optimistic store + realtime registry | `ui/src/store/followStore.ts`                                                                                   |
+| Thin hook (sync on mount)            | `ui/src/hooks/useFeed.ts`                                                                                       |
+| Thin hook (subscription lifecycle)   | `ui/src/hooks/useNotifications.ts`                                                                              |
+| DB table + RLS + RPC                 | `follows` table + `get_follow_data` in `supabase/migrations/`                                                   |
+| User-facing failure feedback         | `useToastStore.getState().show(...)`                                                                            |
+| Native page sheet                    | `BlockedUsersSheet.tsx` (`<Modal presentationStyle="pageSheet">`)                                               |
+| Page swipe / spring                  | `HorizontalNavigator.tsx` + `ui/src/lib/swipeRules.ts` (`SPRING.page`, `SWIPE` in tokens)                       |
+| Pure, tested UI rules                | `ui/src/lib/feedLock.ts` + `ui/src/lib/__tests__/feedLock.test.ts`                                              |
+| Gate a feature behind a flag         | `useFeatureFlag('flag-key')` (keys in `ui/src/lib/featureFlags.ts`; see [feature-flags.md](./feature-flags.md)) |
 
 ---
 
 ## 4. The Goal Loop (goal-driven development process)
 
 We work as a **loop over specific goals** — one goal at a time, each taken to "done" through the same pipeline
-before the next starts. A "goal" = one roadmap item (e.g. *"1.3 Split Messages row taps"*) or one backlog item.
+before the next starts. A "goal" = one roadmap item (e.g. _"1.3 Split Messages row taps"_) or one backlog item.
 
 ```
         ┌────────────────────────────────────────────────────────────────┐
@@ -458,10 +480,11 @@ before the next starts. A "goal" = one roadmap item (e.g. *"1.3 Split Messages r
 **3. BUILD** — Implement by copying the template files (§3). Obey every standing rule (§2): env, theme colors, sign-out reset, `{data,error}`, RLS-first.
 
 **4. VERIFY (red → green)** — The gate. For the goal:
-   - `pnpm typecheck` green, `pnpm test` green, `pnpm lint` clean.
-   - A **behavioral flip test**: break the new behavior, watch the check/UX fail (RED), restore, watch it pass (GREEN). Add a unit test for any pure logic introduced.
-   - For DB/RLS goals: prove the policy denies the forbidden case before allowing the permitted one.
-   A goal is not "done" until its red→green is demonstrated.
+
+- `pnpm typecheck` green, `pnpm test` green, `pnpm lint` clean.
+- A **behavioral flip test**: break the new behavior, watch the check/UX fail (RED), restore, watch it pass (GREEN). Add a unit test for any pure logic introduced.
+- For DB/RLS goals: prove the policy denies the forbidden case before allowing the permitted one.
+  A goal is not "done" until its red→green is demonstrated.
 
 **5. CHECKPOINT** — Commit (clean message, no AI fingerprints), staging files by name. Push only when the owner says so in that session. Update the plan's status. Then return to step 0 for the next goal.
 

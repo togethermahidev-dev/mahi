@@ -8,15 +8,18 @@
  *
  * Reduce Motion: the camera crossfades away instead of sliding.
  */
-import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import Reanimated, {
   interpolate,
+  type SharedValue,
+  cancelAnimation,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withSequence,
+  withDelay,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
@@ -31,10 +34,15 @@ import {
   verticalPull,
 } from '@/lib/cameraPull';
 import { loadSwiftUI } from '@/lib/expoUiModule';
+import { useCardMorphStyle } from '@/components/MorphTransition';
+import { FONTS } from '@/constants/fonts';
 import {
   ALPHA,
+  BORDER_WIDTH,
   COLORS,
+  FONT_SIZE,
   ICON_SIZE,
+  LINE_HEIGHT,
   MOTION,
   RADIUS,
   SIZE,
@@ -49,7 +57,12 @@ import {
  * The pull gesture and the styles it drives. `enabled`: only while the waiting card shows.
  * `insetTop`: a drag from the status bar is left to the phone.
  */
-export function useCameraPull(enabled: boolean, insetTop: number, viewportHeight: number) {
+export function useCameraPull(
+  enabled: boolean,
+  insetTop: number,
+  viewportWidth: number,
+  viewportHeight: number
+) {
   const reduceMotion = useReducedMotion();
   const openOffset = viewportHeight * MOTION.pull.openScreenShare;
   const offset = useSharedValue(0);
@@ -59,16 +72,30 @@ export function useCameraPull(enabled: boolean, insetTop: number, viewportHeight
   const decided = useSharedValue(false);
   const felt = useSharedValue(false);
   const [expanded, setExpanded] = useState(false);
+  const peeked = useRef(false);
 
   // Leaving the waiting state mid-pull puts everything back.
   useEffect(() => {
     if (!enabled) {
       offset.value = 0;
+      peeked.current = false;
       // The drawer may disappear because a tag arrived while it was open.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setExpanded(false);
+      return;
     }
-  }, [enabled, offset]);
+    if (reduceMotion || peeked.current) return;
+    peeked.current = true;
+    offset.value = withDelay(
+      MOTION.pull.peekDelayMs,
+      withSequence(
+        withTiming(MOTION.pull.peekY, { duration: MOTION.pull.peekOutMs }),
+        withTiming(0, { duration: MOTION.pull.peekBackMs }),
+        withTiming(MOTION.pull.peekReturnY, { duration: MOTION.pull.peekOutMs }),
+        withSpring(0, SPRING.pullBack)
+      )
+    );
+  }, [enabled, offset, reduceMotion]);
 
   const toggle = useCallback(() => {
     const next = !expanded;
@@ -85,6 +112,7 @@ export function useCameraPull(enabled: boolean, insetTop: number, viewportHeight
       'worklet';
       const t = e.changedTouches[0];
       if (e.numberOfTouches !== 1 || !t) return;
+      cancelAnimation(offset);
       startX.value = t.absoluteX;
       startY.value = t.absoluteY;
       decided.value = false;
@@ -130,21 +158,36 @@ export function useCameraPull(enabled: boolean, insetTop: number, viewportHeight
         scheduleOnRN(haptic, 'tick');
       }
     })
-    .onEnd(() => {
+    .onEnd((e) => {
       'worklet';
-      const open = drawerShouldSettleOpen(offset.value, openOffset, startOffset.value > 0);
+      const open = drawerShouldSettleOpen(
+        offset.value,
+        openOffset,
+        startOffset.value > 0,
+        e.velocityY / 1000
+      );
       // eslint-disable-next-line react-hooks/immutability
       offset.value = withSpring(open ? openOffset : 0, SPRING.pullBack, (finished) => {
         if (finished) scheduleOnRN(setExpanded, open);
       });
     });
 
-  // The live camera and its frost move together.
+  const cardStyle = useCardMorphStyle(
+    offset,
+    openOffset,
+    { x: 0, y: 0, width: viewportWidth, height: viewportHeight, borderRadius: 0 },
+    {
+      x: MOTION.pull.collapsedInset,
+      y: openOffset,
+      width: viewportWidth - MOTION.pull.collapsedInset * 2,
+      height: viewportHeight * MOTION.pull.collapsedHeightShare,
+      borderRadius: RADIUS.r24,
+    }
+  );
+  // The live camera and its frost crossfade for Reduce Motion; shared card geometry owns movement.
   const cameraStyle = useAnimatedStyle(() => {
     const progress = openOffset > 0 ? offset.value / openOffset : 0;
-    return reduceMotion
-      ? { opacity: interpolate(progress, [0, 1], [1, 0]) }
-      : { transform: [{ translateY: offset.value }] };
+    return { opacity: reduceMotion ? interpolate(progress, [0, 1], [1, 0]) : 1 };
   });
   // Reduce Motion: the frost thins instead.
   const frostStyle = useAnimatedStyle(() =>
@@ -152,32 +195,77 @@ export function useCameraPull(enabled: boolean, insetTop: number, viewportHeight
       ? {
           opacity: interpolate(offset.value, [0, openOffset], [1, 0]),
         }
-      : { transform: [{ translateY: offset.value }] }
+      : { opacity: 1 }
   );
   // The card behind the glass.
   const behindStyle = useAnimatedStyle(() => {
-    if (reduceMotion) return {};
     const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
+    if (reduceMotion) return { opacity: progress };
     const p = pullParallax(progress * MOTION.pull.limit);
     return {
-      opacity: progress,
+      opacity: interpolate(progress, [0, 0.12, 0.42], [0, 0.2, 1]),
       transform: [{ translateY: p.translateY }, { scale: p.scale }],
     };
   });
-  return { gesture, cameraStyle, frostStyle, behindStyle, expanded, toggle, openOffset };
+  const primaryStyle = useAnimatedStyle(() => {
+    const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
+    return {
+      opacity: interpolate(progress, [0.12, 0.45], [0, 1]),
+      transform: [{ translateY: reduceMotion ? 0 : interpolate(progress, [0.12, 0.45], [12, 0]) }],
+    };
+  });
+  const secondaryStyle = useAnimatedStyle(() => {
+    const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
+    return {
+      opacity: interpolate(progress, [0.38, 0.68], [0, 1]),
+      transform: [{ translateY: reduceMotion ? 0 : interpolate(progress, [0.38, 0.68], [12, 0]) }],
+    };
+  });
+  const tertiaryStyle = useAnimatedStyle(() => {
+    const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
+    return { opacity: interpolate(progress, [0.58, 0.82], [0, 1]) };
+  });
+  const edgeStyle = useAnimatedStyle(() => {
+    if (reduceMotion) return { opacity: 0 };
+    const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
+    return {
+      opacity: interpolate(progress, [0, 0.08, 1], [0, MOTION.pull.edgePeak, MOTION.pull.edgeRest]),
+    };
+  });
+  return {
+    gesture,
+    cameraStyle,
+    frostStyle,
+    behindStyle,
+    primaryStyle,
+    secondaryStyle,
+    tertiaryStyle,
+    cardStyle,
+    edgeStyle,
+    offset,
+    expanded,
+    toggle,
+    openOffset,
+  };
 }
 
 /** The handle at the top of the waiting camera: a short bar and a chevron pointing down. */
 export function PullHandle({
   top,
+  openTop,
+  offset,
+  openOffset,
+  expanded,
   anchorRef,
-  direction = 'down',
   onPress,
 }: {
   top: number;
+  openTop: number;
+  offset: SharedValue<number>;
+  openOffset: number;
+  expanded: boolean;
   /** Where the one-time "Pull down to peek" tip points. */
   anchorRef?: React.Ref<View>;
-  direction?: 'down' | 'up';
   onPress?: () => void;
 }): React.JSX.Element {
   const reduceMotion = useReducedMotion();
@@ -191,35 +279,62 @@ export function PullHandle({
     );
   }, [reduceMotion, swift, breath]);
   const breathStyle = useAnimatedStyle(() => ({ transform: [{ scale: breath.value }] }));
+  const positionStyle = useAnimatedStyle(() => {
+    const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
+    return {
+      transform: [{ translateY: (openTop - top) * progress }],
+    };
+  });
+  const chevronStyle = useAnimatedStyle(() => {
+    const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
+    return { transform: [{ rotate: `${progress * 180}deg` }] };
+  });
 
   return (
-    <Pressable
+    <Reanimated.View
       ref={anchorRef}
-      style={[styles.handleSpot, { top }]}
-      onPress={onPress}
-      disabled={!onPress}
-      accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={direction === 'down' ? 'Show accountability actions' : 'Close actions'}
-      accessibilityHint={direction === 'down' ? 'Pull down or double tap' : undefined}
+      style={[styles.handleSpot, { top }, positionStyle]}
+      collapsable={false}
     >
-      <Reanimated.View style={[styles.handleBar, breathStyle]} />
-      {swift ? (
-        <NativeChevron swift={swift} breathe={!reduceMotion} direction={direction} />
-      ) : (
-        <Reanimated.View style={breathStyle}>
-          <Svg width={ICON_SIZE.i20} height={ICON_SIZE.i14} viewBox="0 0 24 14">
-            <Path
-              d={direction === 'down' ? 'M3 3l9 8 9-8' : 'M3 11l9-8 9 8'}
-              stroke={withAlpha(COLORS.white, ALPHA.a75)}
-              strokeWidth={STROKE.s2}
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-        </Reanimated.View>
-      )}
-    </Pressable>
+      <Pressable
+        style={({ pressed }) => [
+          styles.handleCapsule,
+          pressed && Platform.OS !== 'android' && styles.handlePressed,
+        ]}
+        onPress={onPress}
+        disabled={!onPress}
+        android_ripple={{ color: COLORS.accent, foreground: true }}
+        accessibilityRole={onPress ? 'button' : undefined}
+        accessibilityLabel={
+          expanded ? 'Close accountability actions' : 'Show accountability actions'
+        }
+        accessibilityHint={expanded ? undefined : 'Pull down or double tap'}
+        accessibilityState={{ expanded }}
+      >
+        <Reanimated.View style={[styles.handleBar, breathStyle]} />
+        <View style={styles.handleLine}>
+          <Text style={styles.handleLabel}>
+            {expanded ? 'Close' : 'Pull down for accountability'}
+          </Text>
+          <Reanimated.View style={[breathStyle, chevronStyle]}>
+            {swift ? (
+              <NativeChevron swift={swift} breathe={!reduceMotion} />
+            ) : (
+              <Svg width={ICON_SIZE.i20} height={ICON_SIZE.i14} viewBox="0 0 24 14">
+                <Path
+                  d="M3 3l9 8 9-8"
+                  stroke={COLORS.accent}
+                  strokeWidth={STROKE.s2}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </Svg>
+            )}
+          </Reanimated.View>
+        </View>
+      </Pressable>
+    </Reanimated.View>
   );
 }
 
@@ -227,20 +342,18 @@ export function PullHandle({
 function NativeChevron({
   swift,
   breathe,
-  direction,
 }: {
   swift: NonNullable<ReturnType<typeof loadSwiftUI>>;
   breathe: boolean;
-  direction: 'down' | 'up';
 }): React.JSX.Element {
   const { Host, Image } = swift.ui;
   const { symbolEffect } = swift.modifiers;
   return (
     <Host matchContents>
       <Image
-        systemName={direction === 'down' ? 'chevron.compact.down' : 'chevron.compact.up'}
+        systemName="chevron.compact.down"
         size={ICON_SIZE.i20}
-        color={withAlpha(COLORS.white, ALPHA.a75)}
+        color={COLORS.accent}
         modifiers={
           breathe
             ? [symbolEffect({ effect: 'breathe' }, { options: { repeat: 'nonRepeating' } })]
@@ -259,12 +372,40 @@ const styles = StyleSheet.create({
     minHeight: SIZE.z44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  handleCapsule: {
+    minHeight: SIZE.z48,
+    minWidth: SIZE.z200,
+    paddingVertical: SPACE.s6,
+    paddingHorizontal: SPACE.s16,
+    borderRadius: RADIUS.pill,
+    borderWidth: BORDER_WIDTH.w1,
+    borderColor: withAlpha(COLORS.accent, ALPHA.a40),
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a72),
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: SPACE.s4,
+    overflow: 'hidden',
+  },
+  handlePressed: {
+    opacity: ALPHA.a80,
+  },
+  handleLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.s8,
+  },
+  handleLabel: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f13,
+    lineHeight: LINE_HEIGHT.l16,
+    fontFamily: FONTS.semiBold,
   },
   handleBar: {
     width: SIZE.z36,
     height: SIZE.z4,
     borderRadius: RADIUS.pill,
-    backgroundColor: withAlpha(COLORS.white, ALPHA.a60),
+    backgroundColor: withAlpha(COLORS.accent, ALPHA.a70),
   },
 });

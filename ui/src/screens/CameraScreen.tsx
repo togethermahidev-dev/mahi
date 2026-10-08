@@ -15,6 +15,7 @@ import {
   FlatList,
   Share,
   AccessibilityInfo,
+  BackHandler,
   ActivityIndicator,
   Keyboard,
   useWindowDimensions,
@@ -69,7 +70,6 @@ import { CameraIcon } from '@/components/ScreenIcons';
 import {
   pointCelebration,
   pointsCount,
-  pointsRowText,
   pointsValue,
   postedToast,
   taggedClockLine,
@@ -184,6 +184,7 @@ import { themeColors } from '@/lib/themeColors';
 import { cameraCornerTop } from '@/lib/pip';
 import PointCelebration, { type PointCelebrationContent } from '@/components/PointCelebration';
 import { PullHandle, useCameraPull } from '@/components/CameraPull';
+import { PressScale } from '@/components/Motion';
 import PointFlight, { type Flight } from '@/components/PointFlight';
 import RollingNumber from '@/components/RollingNumber';
 import AnswerStamp from '@/components/AnswerStamp';
@@ -195,12 +196,11 @@ import { openTagsTop } from '@/lib/pip';
  * The camera when there's no open tag to answer: says how Mahi works (reactive posting) and what
  * comes next, never a dead end (the refusal toast's words live in postRefusal).
  */
-const NO_TAGS_TITLE = 'Waiting for a friend to tag you';
+const NO_TAGS_TITLE = 'Waiting for your next tag';
 const NO_TAGS_LINE =
   'On Mahi you post when a friend tags you, so you keep each other going. Answer within 48 hours to earn a Mahi point.';
 /** The locked camera with no tag, with Find friends under it. */
-const QUIET_LINE =
-  'On Mahi you post when a friend tags you, so you keep each other going. More friends means more tags.';
+const QUIET_LINE = 'A friend’s tag unlocks your next workout.';
 /** The tags or the feed couldn't be read (no connection). */
 const OFFLINE_TITLE = 'Couldn’t reach Mahi';
 const OFFLINE_LINE = 'Check your connection. Your tags will show here.';
@@ -468,6 +468,7 @@ function GlassPill({ active, children }: { active?: boolean; children: React.Rea
         glassEffectStyle="regular"
         colorScheme="dark"
         tintColor={active ? COLORS.accent : undefined}
+        isInteractive
       >
         {children}
       </GlassView>
@@ -994,50 +995,49 @@ function DualPhotoPreview({
               }}
             >
               {!firstWorkout ? (
-                <Pressable
+                <View
                   ref={tagTip}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    taggedUsers.length + slots.length > 0
-                      ? `Holding accountable: ${tagPillLabel(taggedUsers, slots.length)}`
-                      : 'Choose who you’re holding accountable'
-                  }
-                  accessibilityHint="Opens your accountability list"
-                  accessibilityState={{ disabled: isUploading }}
-                  hitSlop={SLOP_PILL}
-                  disabled={isUploading}
-                  onPress={() => setActiveSheet('tag')}
-                  style={({ pressed }) => [
-                    { flex: 1, marginRight: pillGap / 2 },
-                    pressed && { opacity: ALPHA.a85 },
-                  ]}
+                  collapsable={false}
+                  style={{ flex: 1, marginRight: pillGap / 2 }}
                 >
-                  <GlassPill>
-                    <Text
-                      style={[
-                        styles.captionPillText,
-                        taggedUsers.length + slots.length > 0 && { color: COLORS.white },
-                      ]}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {tagPillLabel(taggedUsers, slots.length)}
-                    </Text>
-                  </GlassPill>
-                </Pressable>
+                  <PressScale
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      taggedUsers.length + slots.length > 0
+                        ? `Holding accountable: ${tagPillLabel(taggedUsers, slots.length)}`
+                        : 'Choose who you’re holding accountable'
+                    }
+                    accessibilityHint="Opens your accountability list"
+                    accessibilityState={{ disabled: isUploading }}
+                    hitSlop={SLOP_PILL}
+                    disabled={isUploading}
+                    onPress={() => setActiveSheet('tag')}
+                    style={{ flex: 1 }}
+                  >
+                    <GlassPill>
+                      <Text
+                        style={[
+                          styles.captionPillText,
+                          taggedUsers.length + slots.length > 0 && { color: COLORS.white },
+                        ]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {tagPillLabel(taggedUsers, slots.length)}
+                      </Text>
+                    </GlassPill>
+                  </PressScale>
+                </View>
               ) : null}
 
-              <Pressable
+              <PressScale
                 accessibilityRole="button"
                 accessibilityLabel={caption.trim() ? `Caption: ${caption.trim()}` : 'Add a caption'}
                 accessibilityState={{ disabled: isUploading }}
                 hitSlop={SLOP_PILL}
                 disabled={isUploading}
                 onPress={() => setActiveSheet('caption')}
-                style={({ pressed }) => [
-                  { flex: 1, marginLeft: !firstWorkout ? pillGap / 2 : 0 },
-                  pressed && { opacity: ALPHA.a85 },
-                ]}
+                style={{ flex: 1, marginLeft: !firstWorkout ? pillGap / 2 : 0 }}
               >
                 <GlassPill>
                   <Text
@@ -1048,7 +1048,7 @@ function DualPhotoPreview({
                     {caption.trim() || '+ Add a caption'}
                   </Text>
                 </GlassPill>
-              </Pressable>
+              </PressScale>
             </View>
 
             {/* Per-post location pill — default OFF (explicit opt-in). First tap
@@ -1066,14 +1066,14 @@ function DualPhotoPreview({
                 width: pillRowW,
               }}
             >
-              <Pressable
+              <PressScale
                 accessibilityRole="switch"
                 accessibilityLabel="Add location"
                 accessibilityState={{ checked: locationEnabled, disabled: isUploading }}
                 hitSlop={SLOP_PILL}
                 disabled={isUploading}
                 onPress={onToggleLocation}
-                style={({ pressed }) => [{ flex: 1 }, pressed && { opacity: ALPHA.a85 }]}
+                style={{ flex: 1 }}
               >
                 <GlassPill active={locationEnabled}>
                   <Text
@@ -1084,19 +1084,15 @@ function DualPhotoPreview({
                     {locationEnabled ? 'Location on' : '+ Add location'}
                   </Text>
                 </GlassPill>
-              </Pressable>
+              </PressScale>
             </View>
 
-            <Pressable
+            <PressScale
               accessibilityRole="button"
               accessibilityLabel={postLabel}
               accessibilityHint={tagsMissing > 0 ? 'Opens the tag list' : undefined}
               accessibilityState={{ disabled: isUploading, busy: isUploading }}
-              style={({ pressed }) => [
-                styles.postButton,
-                isUploading && { opacity: ALPHA.a50 },
-                pressed && { opacity: ALPHA.a82 },
-              ]}
+              style={[styles.postButton, isUploading && { opacity: ALPHA.a50 }]}
               disabled={isUploading}
               onPress={() => {
                 if (tagsMissing > 0) {
@@ -1133,7 +1129,7 @@ function DualPhotoPreview({
               }}
             >
               <Text style={styles.postButtonText}>{postLabel}</Text>
-            </Pressable>
+            </PressScale>
           </View>
         </Animated.View>
 
@@ -1709,7 +1705,7 @@ export default function CameraScreen({
   // this much higher so they clear it. 0 without the tab bar.
   const lift = cameraLift(useTabBarRoom(), OFFSET.o32, SPACE.s16);
   // The page's height: the screen, or above the tab bar, where the shutter row sits higher.
-  const pageHeight = usePageSize().height;
+  const { width: pageWidth, height: pageHeight } = usePageSize();
 
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [captureState, setCaptureState] = useState<CaptureState>('idle');
@@ -1950,7 +1946,18 @@ export default function CameraScreen({
   // Standard interaction: this must never depend on a remote flag. If the flag is absent or was
   // switched off, the screen becomes the fixed dead-end card shown in the reported build.
   const pullOn = cameraOn && waitingCard;
-  const pull = useCameraPull(pullOn, safeTop, pageHeight);
+  const pull = useCameraPull(pullOn, safeTop, pageWidth, pageHeight);
+  const { expanded: pullExpanded, toggle: togglePull } = pull;
+  useEffect(() => {
+    if (!pullExpanded) return;
+    AccessibilityInfo.announceForAccessibility('Accountability actions open');
+    if (Platform.OS !== 'android') return;
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      togglePull();
+      return true;
+    });
+    return () => back.remove();
+  }, [pullExpanded, togglePull]);
   // The waiting-card tip only points at the card once the drawer has actually revealed it.
   const waitingTip = useCoachAnchor('waiting', pullOn && pull.expanded);
   // VoiceOver uses the arrow as a button; the visual coach bubble stays for sighted sessions.
@@ -2955,7 +2962,7 @@ export default function CameraScreen({
     <GestureDetector gesture={doubleTapToFlip}>
       <View ref={rootRef} collapsable={false} style={styles.root}>
         {/* The camera layer: pulled down a little while waiting (see CameraPull). */}
-        <Reanimated.View style={[StyleSheet.absoluteFill, pull.cameraStyle]}>
+        <Reanimated.View style={[styles.cameraLayer, pull.cameraStyle, pull.cardStyle]}>
           <CameraView
             ref={cameraRef}
             style={StyleSheet.absoluteFill}
@@ -3064,108 +3071,115 @@ export default function CameraScreen({
               <Reanimated.View
                 style={[
                   styles.revealOverlay,
-                  { paddingTop: safeTop + SPACE.s16, paddingBottom: pageHeight - pull.openOffset },
+                  {
+                    paddingTop: openTagsTop(safeTop, fontScale),
+                    paddingBottom: pageHeight - pull.openOffset,
+                  },
                   pull.behindStyle,
                 ]}
                 pointerEvents={pull.expanded ? 'box-none' : 'none'}
+                accessibilityElementsHidden={!pull.expanded}
+                importantForAccessibility={pull.expanded ? 'auto' : 'no-hide-descendants'}
               >
                 <View ref={waitingTip} style={styles.noTagsCard}>
-                  {/* The words read as one; the button is its own element. */}
-                  <WaitingCardWords
-                    title={card.title}
-                    line={card.line}
-                    // Offline: no server to ask, so the offline words straight away.
-                    mates={waitingCard ? mates : undefined}
-                    points={
-                      waitingCard
-                        ? pointsRowText(pointsCountNow, profile?.streak_highest ?? null)
-                        : null
-                    }
-                  />
-                  {card.button ? (
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.seeFeedButton,
-                        pressed && { opacity: ALPHA.a70 },
-                      ]}
-                      onPress={card.button.onPress}
-                      disabled={card.button.busy}
-                      accessibilityRole="button"
-                      accessibilityLabel={card.button.label}
-                      accessibilityState={{ busy: card.button.busy }}
-                    >
-                      {card.button.busy ? (
-                        <ActivityIndicator color={COLORS.offBlack} />
-                      ) : (
-                        <Text style={styles.seeFeedText}>{card.button.label}</Text>
-                      )}
-                    </Pressable>
+                  <Reanimated.View style={[styles.actionStage, pull.primaryStyle]}>
+                    {/* The words read as one; the button is its own element. */}
+                    <WaitingCardWords
+                      title={card.title}
+                      line={card.line}
+                      mates={waitingCard ? mates : undefined}
+                      points={null}
+                    />
+                    {card.button ? (
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.seeFeedButton,
+                          pressed && { opacity: ALPHA.a70 },
+                        ]}
+                        android_ripple={{ color: COLORS.offBlack }}
+                        onPress={card.button.onPress}
+                        disabled={card.button.busy}
+                        accessibilityRole="button"
+                        accessibilityLabel={card.button.label}
+                        accessibilityState={{ busy: card.button.busy }}
+                      >
+                        {card.button.busy ? (
+                          <ActivityIndicator color={COLORS.offBlack} />
+                        ) : (
+                          <Text style={styles.seeFeedText}>{card.button.label}</Text>
+                        )}
+                      </Pressable>
+                    ) : null}
+                  </Reanimated.View>
+                  {gate === 'closed' && !offline ? (
+                    <Reanimated.View style={[styles.actionStage, pull.secondaryStyle]}>
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.inviteMateButton,
+                          pressed && { opacity: ALPHA.a70 },
+                        ]}
+                        android_ripple={{ color: COLORS.accent }}
+                        onPress={() => void inviteMate()}
+                        disabled={invitingMate}
+                        accessibilityRole="button"
+                        accessibilityLabel={INVITE_BUTTON}
+                        accessibilityHint="Makes a link to share. When they join, you’ll follow each other."
+                        accessibilityState={{ busy: invitingMate }}
+                      >
+                        {invitingMate ? (
+                          <ActivityIndicator color={COLORS.accent} />
+                        ) : (
+                          <Text style={styles.inviteMateText}>{INVITE_BUTTON}</Text>
+                        )}
+                      </Pressable>
+                    </Reanimated.View>
                   ) : null}
                   {gate === 'closed' && !offline ? (
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.inviteMateButton,
-                        pressed && { opacity: ALPHA.a70 },
-                      ]}
-                      onPress={() => void inviteMate()}
-                      disabled={invitingMate}
-                      accessibilityRole="button"
-                      accessibilityLabel={INVITE_BUTTON}
-                      accessibilityHint="Makes a link to share. When they join, you’ll follow each other."
-                      accessibilityState={{ busy: invitingMate }}
-                    >
-                      {invitingMate ? (
-                        <ActivityIndicator color={COLORS.accent} />
-                      ) : (
-                        <Text style={styles.inviteMateText}>{INVITE_BUTTON}</Text>
-                      )}
-                    </Pressable>
-                  ) : null}
-                  {gate === 'closed' && !offline ? (
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.seeInvites,
-                        pressed && { opacity: ALPHA.a70 },
-                      ]}
-                      onPress={() => setInvitesOpen(true)}
-                      accessibilityRole="button"
-                      accessibilityLabel={
-                        myInviteCount ? `See your invites, ${myInviteCount}` : 'See your invites'
-                      }
-                      accessibilityHint="Shows the links you’ve sent and who joined"
-                    >
-                      <Text style={styles.seeInvitesText}>See your invites</Text>
-                      <CountBadge count={myInviteCount ?? 0} />
-                    </Pressable>
-                  ) : null}
-                  {gate === 'closed' && !offline && contactsFinder ? (
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.seeInvites,
-                        pressed && { opacity: ALPHA.a70 },
-                      ]}
-                      onPress={() => setFindMatesOpen(true)}
-                      accessibilityRole="button"
-                      accessibilityLabel="Find friends in your contacts"
-                      accessibilityHint="Shows who from your contacts is on Mahi, and lets you invite the rest"
-                    >
-                      <Text style={styles.seeInvitesText}>Find friends in your contacts</Text>
-                    </Pressable>
+                    <Reanimated.View style={[styles.tertiaryActions, pull.tertiaryStyle]}>
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.seeInvites,
+                          pressed && { opacity: ALPHA.a70 },
+                        ]}
+                        onPress={() => setInvitesOpen(true)}
+                        accessibilityRole="button"
+                        accessibilityLabel={
+                          myInviteCount ? `See your invites, ${myInviteCount}` : 'See your invites'
+                        }
+                        accessibilityHint="Shows the links you’ve sent and who joined"
+                      >
+                        <Text style={styles.seeInvitesText}>Your invites</Text>
+                        <CountBadge count={myInviteCount ?? 0} />
+                      </Pressable>
+                      {contactsFinder ? (
+                        <Pressable
+                          style={({ pressed }) => [
+                            styles.seeInvites,
+                            pressed && { opacity: ALPHA.a70 },
+                          ]}
+                          onPress={() => setFindMatesOpen(true)}
+                          accessibilityRole="button"
+                          accessibilityLabel="Find friends in your contacts"
+                        >
+                          <Text style={styles.seeInvitesText}>Contacts</Text>
+                        </Pressable>
+                      ) : null}
+                    </Reanimated.View>
                   ) : null}
                 </View>
-                {pull.expanded ? (
-                  <PullHandle
-                    top={pull.openOffset - SIZE.z48}
-                    direction="up"
-                    onPress={pull.toggle}
-                  />
-                ) : null}
               </Reanimated.View>
               {/* This is the front camera sheet. Pulling its arrow uncovers the card above it. */}
               {pullOn ? (
                 <Reanimated.View
-                  style={[StyleSheet.absoluteFill, styles.cameraPullCover, pull.frostStyle]}
+                  style={[
+                    styles.cameraLayer,
+                    styles.cameraPullCover,
+                    pull.frostStyle,
+                    pull.cardStyle,
+                  ]}
                   pointerEvents={pull.expanded ? 'none' : 'auto'}
+                  accessibilityElementsHidden={pull.expanded}
+                  importantForAccessibility={pull.expanded ? 'no-hide-descendants' : 'auto'}
                 >
                   <BlurView
                     intensity={BLUR_INTENSITY.i60}
@@ -3173,13 +3187,21 @@ export default function CameraScreen({
                     style={StyleSheet.absoluteFill}
                     pointerEvents="none"
                   />
-                  <PullHandle
-                    top={pageHeight * MOTION.pull.handleTopShare}
-                    anchorRef={pullTip}
-                    onPress={pull.toggle}
+                  <Reanimated.View
+                    pointerEvents="none"
+                    style={[styles.cameraEdge, pull.edgeStyle]}
                   />
                 </Reanimated.View>
               ) : null}
+              <PullHandle
+                top={pageHeight * MOTION.pull.handleTopShare}
+                openTop={pull.openOffset - SIZE.z64}
+                offset={pull.offset}
+                openOffset={pull.openOffset}
+                expanded={pull.expanded}
+                anchorRef={pullTip}
+                onPress={pull.toggle}
+              />
             </View>
           </GestureDetector>
         ) : null}
@@ -3470,7 +3492,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
     borderWidth: BORDER_WIDTH.w1,
     borderColor: withAlpha(COLORS.accent, ALPHA.a50),
-    backgroundColor: withAlpha(COLORS.black, ALPHA.a35),
+    backgroundColor: COLORS.bgDark,
   },
   pointsNumber: {
     color: COLORS.white,
@@ -3514,6 +3536,26 @@ const styles = StyleSheet.create({
   },
   cameraPullCover: {
     backgroundColor: withAlpha(COLORS.ink, ALPHA.a35),
+    overflow: 'hidden',
+  },
+  cameraLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    overflow: 'hidden',
+  },
+  cameraEdge: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: SIZE.z2,
+    backgroundColor: COLORS.accent,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: SIZE.z4 },
+    shadowOpacity: ALPHA.a40,
+    shadowRadius: SHADOW_BLUR.b8,
+    elevation: ELEVATION.e8,
   },
   // Reactive posting closed: one card in the middle, in the app's card style (the locked feed's
   // card, and the camera's open-tags pill: frosted, an accent outline, the accent for the icon).
@@ -3521,10 +3563,10 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: SIZE.z360,
     alignItems: 'center',
-    gap: SPACE.s12,
-    paddingVertical: SPACE.s24,
-    paddingHorizontal: SPACE.s24,
-    borderRadius: RADIUS.r24,
+    gap: SPACE.s8,
+    paddingVertical: SPACE.s16,
+    paddingHorizontal: SPACE.s16,
+    borderRadius: RADIUS.r20,
     borderWidth: BORDER_WIDTH.w1,
     borderColor: withAlpha(COLORS.accent, ALPHA.a50),
     backgroundColor: withAlpha(COLORS.black, ALPHA.a35),
@@ -3536,7 +3578,19 @@ const styles = StyleSheet.create({
   },
   noTagsWords: {
     alignItems: 'center',
-    gap: SPACE.s12,
+    gap: SPACE.s6,
+  },
+  actionStage: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    gap: SPACE.s8,
+  },
+  tertiaryActions: {
+    minHeight: SIZE.z44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.s4,
   },
   // The app's one main-button style (ListState's): accent pill, dark words.
   seeFeedButton: {
@@ -3548,7 +3602,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s24,
     minHeight: SIZE.z44,
     justifyContent: 'center',
-    marginTop: SPACE.s8,
   },
   seeFeedText: {
     color: COLORS.offBlack,
@@ -3588,9 +3641,9 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   noTagsIcon: {
-    width: SIZE.z56,
-    height: SIZE.z56,
-    borderRadius: RADIUS.r28,
+    width: SIZE.z44,
+    height: SIZE.z44,
+    borderRadius: RADIUS.r22,
     borderWidth: BORDER_WIDTH.w1_5,
     borderColor: COLORS.accent,
     backgroundColor: withAlpha(COLORS.accent, ALPHA.a12),
@@ -3599,15 +3652,15 @@ const styles = StyleSheet.create({
   },
   postedTitle: {
     color: COLORS.white,
-    fontSize: FONT_SIZE.f22,
-    lineHeight: LINE_HEIGHT.l28,
+    fontSize: FONT_SIZE.f18,
+    lineHeight: LINE_HEIGHT.l24,
     fontFamily: FONTS.bold,
     textAlign: 'center',
   },
   postedSub: {
     color: withAlpha(COLORS.offWhite, ALPHA.a80),
-    fontSize: FONT_SIZE.f15,
-    lineHeight: LINE_HEIGHT.l22,
+    fontSize: FONT_SIZE.f13,
+    lineHeight: LINE_HEIGHT.l18,
     fontFamily: FONTS.regular,
     textAlign: 'center',
   },

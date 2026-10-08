@@ -60,11 +60,16 @@ export function drawerShouldOpen(offset: number, openOffset: number): boolean {
 export function drawerShouldSettleOpen(
   offset: number,
   openOffset: number,
-  startedOpen: boolean
+  startedOpen: boolean,
+  velocityY = 0
 ): boolean {
   'worklet';
-  if (!startedOpen) return drawerShouldOpen(offset, openOffset);
-  return offset > openOffset * (1 - MOTION.pull.openAt);
+  const projected = Math.max(
+    0,
+    Math.min(openOffset, offset + velocityY * MOTION.pull.projectionMs)
+  );
+  if (!startedOpen) return drawerShouldOpen(projected, openOffset);
+  return projected > openOffset * (1 - MOTION.pull.openAt);
 }
 
 /** Where the layer behind the camera sits for a camera `offset` down. */
