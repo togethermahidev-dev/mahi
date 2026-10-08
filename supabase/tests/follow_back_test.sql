@@ -30,8 +30,13 @@ select is((select is_following from public.get_follow_data(pg_temp.uid('a'), pg_
   'a follows c');
 select is((select follows_you from public.get_follow_data(pg_temp.uid('a'), pg_temp.uid('c'))), true,
   'and c follows a: friends');
-select is((select follows_you from public.get_follow_data(pg_temp.uid('b'), pg_temp.uid('c'))), false,
-  'c does not follow b');
+-- Since 20261008170000 the answer is always the caller's: the first id is not trusted.
+select set_config('request.jwt.claims',
+         json_build_object('sub', pg_temp.uid('b'), 'role', 'authenticated')::text, true);
+select is((select follows_you from public.get_follow_data(pg_temp.uid('a'), pg_temp.uid('c'))), false,
+  'c does not follow b (asked as b, with a''s id passed)');
+select set_config('request.jwt.claims',
+         json_build_object('sub', pg_temp.uid('a'), 'role', 'authenticated')::text, true);
 select is((select follows_you from public.get_follow_data(pg_temp.uid('a'), pg_temp.uid('a'))), false,
   'your own profile never says you follow yourself');
 select is((select count(*)::int from public.get_follow_data(pg_temp.uid('a'), pg_temp.uid('b'))), 1,

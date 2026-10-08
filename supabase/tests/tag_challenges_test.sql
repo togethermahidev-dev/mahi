@@ -165,7 +165,7 @@ select is((select count(*)::int from public.notifications
            where type = 'streak_lost' and user_id = '00000000-0000-0000-0000-00000000c00c'), 1,
   'the tagged person is told they lost their streak');
 select is((select body from public.push_outbox where kind = 'tag_missed' and user_id = '00000000-0000-0000-0000-00000000c00a'),
-  '@tag_c missed your tag. A quick message could get them back to it.', 'the tagger''s push names who missed');
+  '@tag_c missed your tag. Tag them in your next post to get them going again.', 'the tagger''s push names who missed');
 
 select * from finish();
 rollback;

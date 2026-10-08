@@ -227,8 +227,8 @@ select lives_ok($$select public.respond_tag_invite((select id from pg_temp.ids w
   'C accepts');
 select is((select count(*)::int from public.get_open_tags()), 1, 'C now has A''s tag to answer');
 reset role;
-select ok(pg_temp.friends('00000000-0000-0000-0000-00000000f50a', '00000000-0000-0000-0000-00000000f50c'),
-  'accepting makes A and C friends');
+select ok(not pg_temp.friends('00000000-0000-0000-0000-00000000f50a', '00000000-0000-0000-0000-00000000f50c'),
+  'accepting no longer makes A and C follow each other (20261008170000)');
 select ok(public.viewer_is_locked('00000000-0000-0000-0000-00000000f50c'),
   'the tag locks C''s feed, though the invite was made before C''s last post');
 select is(
@@ -248,7 +248,7 @@ select is(
 select throws_ok($$select public.make_invite_link()$$, 'P0001', 'reactive posting: not tagged',
   'no tag to answer, no new slots');
 
--- 10. Declining. B (tagged by A) invites C... C is A's friend now, not B's.
+-- 10. Declining. B (tagged by A) invites C.
 select pg_temp.as_user('00000000-0000-0000-0000-00000000f50b');
 insert into pg_temp.ids
 select 'req2', (public.invite_to_tag('00000000-0000-0000-0000-00000000f50c') ->> 'challenge_id')::uuid;

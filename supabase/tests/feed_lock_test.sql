@@ -16,6 +16,9 @@ insert into public.profiles (id, username, is_banned) values
   ('00000000-0000-0000-0000-00000000d00c', 'feed_c', false),
   ('00000000-0000-0000-0000-00000000d00d', 'feed_d', false),
   ('00000000-0000-0000-0000-00000000d00e', 'feed_e', true);
+-- D is private (since 20261008170000 a public account's posts are open to anyone signed in).
+update public.profiles set is_private = true, posts_visibility = 'followers'
+where id = '00000000-0000-0000-0000-00000000d00d';
 insert into public.follows (follower_id, following_id) values
   ('00000000-0000-0000-0000-00000000d00a', '00000000-0000-0000-0000-00000000d00b'),
   ('00000000-0000-0000-0000-00000000d00b', '00000000-0000-0000-0000-00000000d00a'),

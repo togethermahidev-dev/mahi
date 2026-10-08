@@ -38,6 +38,9 @@ insert into auth.users (id, email)
 select pg_temp.uid(c), 'fu-' || c || '@example.invalid' from unnest(array['a','b','c']) c;
 insert into public.profiles (id, username)
 select pg_temp.uid(c), 'fu_' || c from unnest(array['a','b','c']) c;
+-- a's workouts are for approved followers only (since 20261008170000 a public account's are open
+-- to anyone signed in).
+update public.profiles set is_private = true, posts_visibility = 'followers' where id = pg_temp.uid('a');
 insert into public.follows (follower_id, following_id) values (pg_temp.uid('b'), pg_temp.uid('a'));
 insert into public.posts (id, user_id, image_url, image_path, streak_day, caption)
 values ('00000000-0000-0000-0000-0000000f7a01', pg_temp.uid('a'), 'x',

@@ -102,7 +102,7 @@ select is((select array_agg(distinct error) from public.push_outbox
 insert into public.notifications (user_id, actor_id, type, post_id) values
   (pg_temp.uid('a'), pg_temp.uid('c'), 'tag_missed', '00000000-0000-0000-0000-00000000dd99');
 select is((select body from public.push_outbox where user_id = pg_temp.uid('a') and kind = 'tag_missed'),
-  '@pdw_test_c missed your tag. A quick message could get them back to it.',
+  '@pdw_test_c missed your tag. Tag them in your next post to get them going again.',
   'a missed tag gives the tagger something kind to do');
 
 select * from finish();

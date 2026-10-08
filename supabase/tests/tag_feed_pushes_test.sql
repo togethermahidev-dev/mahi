@@ -269,7 +269,7 @@ select is(
    where user_id = pg_temp.uid('g') and kind in ('like', 'comment', 'follow', 'tag_missed', 'streak_lost', 'invite_joined')),
   'comment: @fpush_test_a commented on your post | follow: @fpush_test_a started following you | '
   || 'invite_joined: @fpush_test_a joined Mahi from your invite. You follow each other now. | like: @fpush_test_a liked your post | '
-  || 'streak_lost: You missed @fpush_test_a''s tag. Your points are back to 0. | tag_missed: @fpush_test_a missed your tag. A quick message could get them back to it.',
+  || 'streak_lost: You missed @fpush_test_a''s tag. Your points are back to 0. | tag_missed: @fpush_test_a missed your tag. Tag them in your next post to get them going again.',
   'likes, comments and follows keep their words; a join confirms the mutual follow; a miss says points, not streak, and gives the tagger a next step');
 select is((select count(*)::int from public.push_outbox
            where user_id in (select pg_temp.uid(x) from unnest(array['a','b','c','d','e','f','g']) x)

@@ -28,6 +28,9 @@ insert into auth.users (id, email)
 select pg_temp.uid(c), 'clv-' || c || '@example.invalid' from unnest(array['a','b','c','d','s']) c;
 insert into public.profiles (id, username)
 select pg_temp.uid(c), 'clv_' || c from unnest(array['a','b','c','d','s']) c;
+-- a's workouts are for approved followers only (since 20261008170000 a public account's are open
+-- to anyone signed in).
+update public.profiles set is_private = true, posts_visibility = 'followers' where id = pg_temp.uid('a');
 -- Staff need a confirmed email (20261008110000_staff_confirmed_email).
 update auth.users set email_confirmed_at = now() where id in (pg_temp.uid('s'));
 insert into public.staff_users (user_id, role) values (pg_temp.uid('s'), 'admin');
