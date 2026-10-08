@@ -113,6 +113,30 @@ describe('a build with expo-secure-store', () => {
     expect(await store.getItem(KEY)).toBeNull();
   });
 
+  // The iPhone keychain survives deleting the app, AsyncStorage doesn't: a reinstall must not come
+  // back signed in as whoever used Mahi on this phone before.
+  it('a fresh install (no install mark) wipes a session left in the keychain by a deleted app', async () => {
+    const before = load();
+    await before.setItem(KEY, LONG);
+    plain.clear(); // the app was deleted: AsyncStorage (and the install mark) are gone
+    const store = load();
+    expect(await store.getItem(KEY)).toBeNull();
+    expect([...secure.keys()].filter((k) => k.startsWith(KEY))).toHaveLength(0);
+  });
+
+  it('an update from an older build keeps its AsyncStorage session (no install mark yet)', async () => {
+    plain.set(KEY, 'old session');
+    const store = load();
+    expect(await store.getItem(KEY)).toBe('old session');
+  });
+
+  it('after the first launch, the keychain session is kept across launches', async () => {
+    const first = load();
+    await first.setItem(KEY, 'session');
+    const next = load();
+    expect(await next.getItem(KEY)).toBe('session');
+  });
+
   it('if the keychain refuses a write, the session is kept (not lost) and no stale copy wins', async () => {
     const store = load();
     await store.setItem(KEY, 'first');

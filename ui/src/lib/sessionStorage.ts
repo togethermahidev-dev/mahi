@@ -12,6 +12,9 @@
  *   device only (not carried to another phone by a backup).
  * - If the keychain refuses a write, the session goes to AsyncStorage rather than being lost,
  *   and the keychain copy is dropped so an older token never wins over the new one.
+ * - The iPhone keychain survives deleting the app; AsyncStorage doesn't. So the first launch of an
+ *   install (no install mark in AsyncStorage yet) wipes any session a deleted app left in the
+ *   keychain before reading it — a reinstall never comes back signed in as the last person.
  * Tested in src/lib/__tests__/sessionStorage.test.ts.
  */
 import { Platform } from 'react-native';
@@ -22,6 +25,8 @@ import { reportError } from '@/lib/sentry';
 type SecureStore = typeof import('expo-secure-store');
 
 const PIECE = 1800;
+/** In AsyncStorage, so it goes when the app is deleted. Set on this install's first launch. */
+const INSTALL_MARK = '@mahi:install_started';
 
 let secureStore: SecureStore | null | undefined;
 
@@ -74,10 +79,29 @@ async function writeSecure(s: SecureStore, key: string, value: string): Promise<
   await s.setItemAsync(`${key}.count`, String(pieces.length), options(s));
 }
 
+const freshInstallChecks = new Map<string, Promise<void>>();
+
+/** Once per launch: on an install's first launch, drop a keychain session left by a deleted app. */
+function clearLeftoverSession(s: SecureStore, key: string): Promise<void> {
+  let check = freshInstallChecks.get(key);
+  if (!check) {
+    check = (async () => {
+      if ((await AsyncStorage.getItem(INSTALL_MARK)) != null) return;
+      await removeSecure(s, key);
+      await AsyncStorage.setItem(INSTALL_MARK, '1');
+    })().catch((err) =>
+      reportError(err, { flow: 'auth', action: 'clearLeftoverSession', level: 'warning' })
+    );
+    freshInstallChecks.set(key, check);
+  }
+  return check;
+}
+
 export const sessionStorage = {
   async getItem(key: string): Promise<string | null> {
     const s = loadSecureStore();
     if (!s) return AsyncStorage.getItem(key);
+    await clearLeftoverSession(s, key);
     try {
       const value = await readSecure(s, key);
       if (value != null) return value;
@@ -99,6 +123,7 @@ export const sessionStorage = {
   async setItem(key: string, value: string): Promise<void> {
     const s = loadSecureStore();
     if (!s) return AsyncStorage.setItem(key, value);
+    await clearLeftoverSession(s, key);
     try {
       await writeSecure(s, key, value);
       await AsyncStorage.removeItem(key);
