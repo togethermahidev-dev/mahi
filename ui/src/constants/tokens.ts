@@ -573,10 +573,6 @@ export const MOTION = {
    *  a swipe past this share of the way, or a flick faster than this (pt/ms), settles; the first
    *  swipe stops at the peek (this share of the way), the next goes the rest. */
   cameraFeed: { stripShare: 0.2, openAt: 0.15, flick: 0.5, lockedShare: 0.25, peekShare: 0.3 },
-  /** The pixel athlete's frame rate (ms per frame), and how many beats each exercise gets
-   *  before the next one (runner → weightlifter → jumping jacks → push-ups). */
-  pixelFrameMs: 400,
-  pixelBeatsPerExercise: 6,
   /** A "no": the padlock line wiggles sideways this far (pt), this fast (ms a beat), when a
    *  locked row is tapped (owner, 2026-10-08). */
   shake: { x: 6, ms: 60 },

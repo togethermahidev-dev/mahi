@@ -31,7 +31,6 @@ import { lockPill } from '@/lib/feedLock';
 import { useFeedStore, useUserStore } from '@/store';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useSecondTick } from '@/hooks/useSecondTick';
-import PixelAthlete from '@/components/PixelAthlete';
 import { appHeaderHeight } from '@/lib/pip';
 import { haptic } from '@/lib/haptics';
 import { FONTS } from '@/constants/fonts';
@@ -420,25 +419,29 @@ function LockedGap({
   if (!pill) return null;
   const toFriends = pill.target === 'friends';
   return (
+    // The reason on top; the padlock and the button side by side under it (owner, 2026-10-08).
     <View style={styles.gapInner}>
-      <View style={styles.gapWhy} accessible accessibilityLabel={pill.line}>
-        <View style={[styles.gapLock, { backgroundColor: colors.text }]}>
+      <Text style={[styles.gapLine, { color: colors.text }]} numberOfLines={2}>
+        {pill.line}
+      </Text>
+      <View style={styles.gapRow}>
+        <View
+          style={[styles.gapLock, { backgroundColor: colors.text }]}
+          accessible
+          accessibilityLabel="Locked"
+        >
           <LockIcon size={ICON_SIZE.i20} color={colors.bg} />
         </View>
-        <Text style={[styles.gapLine, { color: colors.text }]} numberOfLines={2}>
-          {pill.line}
-        </Text>
+        <PressScale
+          style={[styles.gapButton, { backgroundColor: colors.text }]}
+          onPress={toFriends ? onFindFriends : onPost}
+          accessibilityRole="button"
+          accessibilityLabel={pill.button}
+          accessibilityHint={toFriends ? 'Opens search' : 'Back to the camera'}
+        >
+          <Text style={[styles.gapButtonText, { color: colors.bg }]}>{pill.button}</Text>
+        </PressScale>
       </View>
-      <PressScale
-        style={[styles.gapButton, { backgroundColor: colors.text }]}
-        onPress={toFriends ? onFindFriends : onPost}
-        accessibilityRole="button"
-        accessibilityLabel={pill.button}
-        accessibilityHint={toFriends ? 'Opens search' : 'Back to the camera'}
-      >
-        <PixelAthlete size={SIZE.z28} color={colors.bg} />
-        <Text style={[styles.gapButtonText, { color: colors.bg }]}>{pill.button}</Text>
-      </PressScale>
     </View>
   );
 }
@@ -495,10 +498,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s24,
     gap: SPACE.s14,
   },
-  gapWhy: {
+  gapRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACE.s12,
+    gap: SPACE.s10,
   },
   gapLock: {
     width: SIZE.z40,
@@ -508,20 +511,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   gapLine: {
-    flex: 1,
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.semiBold,
   },
   gapButton: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.s8,
-    minHeight: SIZE.z44,
+    minHeight: SIZE.z40,
+    justifyContent: 'center',
     borderRadius: RADIUS.pill,
     paddingVertical: SPACE.s8,
-    paddingLeft: SPACE.s12,
-    paddingRight: SPACE.s16,
+    paddingHorizontal: SPACE.s16,
   },
   gapButtonText: {
     fontSize: FONT_SIZE.f14,

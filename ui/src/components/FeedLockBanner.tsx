@@ -1,7 +1,7 @@
 /**
  * Top of the feed, under the app header:
  * - locked → one line in the middle of the frosted rows: the app's padlock in a circle, then a
- *   pill with a little pixel athlete and what to do ("Post your first workout") — to the camera
+ *   pill with what to do ("Start first workout") — to the camera
  *   when there's something to post, or to people search when there isn't (owner, 2026-10-08:
  *   black / white, all in line, no big card);
  * - open → a live countdown to when the feed would lock (or, if you're tagged, to when it locks),
@@ -13,7 +13,6 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LockIcon } from '@/components/ScreenIcons';
-import PixelAthlete from '@/components/PixelAthlete';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useUserStore } from '@/store';
 import { useOpenTags } from '@/hooks/useOpenTags';
@@ -145,7 +144,6 @@ function LockedCard({
               accessibilityLabel={pill.button}
               accessibilityHint={toFriends ? 'Opens search' : 'Opens the camera'}
             >
-              <PixelAthlete size={SIZE.z28} color={colors.bg} />
               <Text style={[styles.actionText, { color: colors.bg }]} numberOfLines={1}>
                 {pill.button}
               </Text>
