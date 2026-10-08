@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 05 — camera pull: one white arrow and a smaller, plainer card; picking friends is
+ *     a grid of faces and names you tap to tick (2026-10-08)
  *   build 13 · 04 — welcome shows the three-step workout loop (show up, get tagged, pass it on);
  *     fitness-first wording on the welcome cards, locked feed and first camera (2026-10-08)
  *   build 13 · 03 — pulling the waiting camera down shrinks it into a small card and shows a
@@ -95,4 +97,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 4;
+export const OTA_NUMBER = 5;
