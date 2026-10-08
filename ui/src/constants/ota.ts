@@ -7,6 +7,9 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 25 — locked feed: swiping up lifts the camera a quarter with the reason and one
+ *     button underneath; the pulled-down camera's roadmap starts right under the points pill
+ *     (2026-10-08)
  *   build 13 · 24 — on the camera, swiping sideways changes pages again and swiping up opens
  *     the feed (both broken in 13.23) (2026-10-08)
  *   build 13 · 23 — camera and feed on one screen: swipe the camera up into a card and the feed
@@ -133,4 +136,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 24;
+export const OTA_NUMBER = 25;
