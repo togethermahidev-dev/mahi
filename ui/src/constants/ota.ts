@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 23 — camera and feed on one screen: swipe the camera up into a card and the feed
+ *     takes over; Feed and Camera pills; a post opens the feed; no Feed tab (2026-10-08)
  *   build 13 · 22 — the locked feed's pixel athlete cycles through a runner, a weightlifter,
  *     jumping jacks and push-ups (2026-10-08)
  *   build 13 · 21 — fixes the crash on opening Mahi in 13.19 and 13.20 (2026-10-08)
@@ -129,4 +131,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 22;
+export const OTA_NUMBER = 23;
