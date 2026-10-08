@@ -15,25 +15,31 @@ type ProfileRow = Database['public']['Tables']['profiles']['Row'];
  * The profile columns anyone signed in may read. Date of birth and phone number are private
  * (server: profile_private, read back only by their owner) and are never asked for here.
  */
-const PROFILE_COLUMNS =
-  'id, username, display_name, first_name, last_name, fitness_goals, avatar_url, streak_current, streak_highest, has_posted_before, is_banned, timezone, created_at, updated_at' as const;
+const BASE_COLUMNS =
+  'id, username, display_name, first_name, last_name, fitness_goals, avatar_url, streak_current, streak_highest, has_posted_before, is_banned, timezone, created_at, updated_at';
+/** Settings → Controls (20261008170000_private_accounts). */
+const CONTROLS_COLUMNS = 'is_private, posts_visibility, tag_permission, privacy_chosen_at';
+const PROFILE_COLUMNS = `${BASE_COLUMNS}, ${CONTROLS_COLUMNS}` as const;
+
+/** Postgres "column does not exist": the database change hasn't reached this server yet. */
+const UNDEFINED_COLUMN = '42703';
 
 export type PublicProfile = Omit<ProfileRow, 'date_of_birth' | 'contact_number'>;
 
 /**
  * Fetch a profile (anyone's, including your own). Mahi points are `streak_current` (best:
  * `streak_highest`); the server keeps the old column names so apps already on phones keep working.
+ * A server without the Controls columns yet is read without them (they come back missing).
  */
 export async function getProfile(
   userId: string
 ): Promise<{ data: PublicProfile | null; error: Error | null }> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select(PROFILE_COLUMNS)
-    .eq('id', userId)
-    .single();
+  const read = (columns: string) =>
+    supabase.from('profiles').select(columns).eq('id', userId).single();
+  let { data, error } = await read(PROFILE_COLUMNS);
+  if (error?.code === UNDEFINED_COLUMN) ({ data, error } = await read(BASE_COLUMNS));
   if (error) return { data: null, error: new Error(error.message, { cause: error }) };
-  return { data, error: null };
+  return { data: data as unknown as PublicProfile, error: null };
 }
 
 export type ProfileSearchResult = Pick<

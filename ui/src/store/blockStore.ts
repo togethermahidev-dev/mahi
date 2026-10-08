@@ -69,9 +69,10 @@ export const useBlockStore = create<BlockState>((set, get) => ({
     // and the updated RPC now excludes blocked users from the feed.
     useFeedStore.getState().sync(true);
     useMessagesStore.getState().sync();
-    // Clear local follow state for the blocked user
+    // Clear local follow state for the blocked user (a block also ends follow requests both ways)
     useFollowStore.setState((s) => ({
       followingByMe: { ...s.followingByMe, [targetUserId]: false },
+      requestedByMe: { ...s.requestedByMe, [targetUserId]: false },
     }));
 
     return { error: null };

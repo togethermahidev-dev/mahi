@@ -18,13 +18,15 @@ describe('notification list wording', () => {
     );
   });
 
-  it('an in-app invite and its yes match their pushes', () => {
-    expect(notificationText('tag_invite', 'sam')).toBe(
-      '@sam wants to tag you. Accept to follow each other.'
-    );
-    expect(notificationText('tag_invite_accepted', 'sam')).toBe(
-      '@sam accepted your tag request. You follow each other now.'
-    );
+  // Accepting a tag request no longer makes you follow each other (owner, 2026-10-08).
+  it('an in-app invite and its yes say nothing about following', () => {
+    expect(notificationText('tag_invite', 'sam')).toBe('@sam wants to tag you.');
+    expect(notificationText('tag_invite_accepted', 'sam')).toBe('@sam accepted your tag request.');
+  });
+
+  it('a follow request and its yes match their pushes', () => {
+    expect(notificationText('follow_request', 'sam')).toBe('@sam wants to follow you');
+    expect(notificationText('follow_accepted', 'sam')).toBe('@sam accepted your follow request');
   });
 
   // Usability walkthrough 2026-10-07: a row is read later, so no "48 hours" that is out of date.

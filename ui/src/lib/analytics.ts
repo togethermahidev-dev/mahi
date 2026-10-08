@@ -67,6 +67,20 @@ export type TagLoopEvents = {
   user_followed: { target_id: string; friends: boolean };
   /** I stopped following `target_id`. */
   user_unfollowed: { target_id: string };
+  /** My follow to a private `target_id` became a request (private accounts). */
+  follow_requested: { target_id: string };
+  /** I took back my waiting follow request to `target_id`. */
+  follow_request_cancelled: { target_id: string };
+  /** I answered a follow request to me (Confirm = `accepted`). */
+  follow_request_answered: { accepted: boolean };
+  /** My Controls changed; the values are what the server saved. */
+  account_controls_changed: {
+    is_private: boolean;
+    posts_visibility: 'everyone' | 'followers' | 'friends';
+    tag_permission: 'everyone' | 'approve' | 'friends';
+  };
+  /** I removed a follower; `tags_ended` open tags between us ended (they were a friend). */
+  follower_removed: { tags_ended: number };
   /** A post went from not liked to liked by me. */
   post_liked: { post_id: string };
   /** A comment was saved. */

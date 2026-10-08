@@ -57,6 +57,9 @@ export const FEATURE_FLAGS = [
   // Sign-in
   'auth-apple-signin', // Sign in with Apple on the welcome screen; build 13+ iPhones only (default OFF, not released yet)
   'auth-google-signin', // placeholder pill with nothing behind it yet
+
+  // Public and private accounts (owner, 2026-10-08)
+  'private-accounts', // Settings → Controls, the choice after sign-up, follow requests, remove a follower (default OFF)
 ] as const;
 
 /** A known PostHog feature flag key. */
@@ -79,6 +82,8 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * Sign in with Apple, the lock-screen tracker and widget, the Control Centre button, Siri and
  * Spotlight: not released yet (owner, 2026-10-08), so none of
  * them shows for a moment on cold start.
+ * `private-accounts`: Controls and the sign-up choice need migration
+ * 20261008170000_private_accounts; off until the owner switches it on.
  */
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'push-core',
@@ -94,6 +99,7 @@ export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'control-post-workout',
   'siri-shortcuts',
   'spotlight',
+  'private-accounts',
 ];
 
 /** Whether a flag reads as on before PostHog has answered (true for all but DEFAULT_OFF_FLAGS). */

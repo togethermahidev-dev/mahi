@@ -78,7 +78,11 @@ export default function InviteConfirmSheet({ userId }: { userId: string }): Reac
             @{inviter} invited you
           </Text>
           <Text style={[styles.sub, { color: colors.muted }]}>
-            {inviteAcceptLine({ tag: preview?.tag })}
+            {inviteAcceptLine({
+              tag: preview?.tag,
+              inviter: preview?.username,
+              inviterPrivate: preview?.is_private,
+            })}
           </Text>
 
           <Pressable

@@ -128,11 +128,14 @@ export const useInviteStore = create<InviteState>((set, get) => ({
     track('invite_claimed', { inviter_id: data.inviter.id });
     // A tag that started is live from this moment, so the camera's countdown should show it.
     useTagStore.getState().syncOpenTags();
-    useToastStore
-      .getState()
-      .show(
-        claimedText({ inviter: data.inviter.username, expiresAt: data.expires_at, tag: data.tag })
-      );
+    useToastStore.getState().show(
+      claimedText({
+        inviter: data.inviter.username,
+        expiresAt: data.expires_at,
+        tag: data.tag,
+        followStatus: data.follow_status,
+      })
+    );
     return true;
   },
 

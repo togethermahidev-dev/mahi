@@ -1,29 +1,52 @@
 /**
  * Follows API
  *
- * Follow / unfollow users (only through set_following), check status, get counts.
+ * Follow / unfollow users (only through set_following), check status, get counts. Private
+ * accounts (20261008170000_private_accounts): a follow to a private account is a request the
+ * owner answers; the owner can remove a follower and set their Controls.
  */
 
 import { supabase } from '@/lib/supabase';
+import type { AccountControls, PostsVisibility, TagPermission } from '@/lib/accountControls';
+
+type Result<T> = { data: T | null; error: Error | null };
+const failed = (error: { message: string }): { data: null; error: Error } => ({
+  data: null,
+  error: new Error(error.message, { cause: error }),
+});
+
+/** Where my follow to someone stands: following, a request waiting, or nothing. */
+export type FollowStatus = 'following' | 'requested' | 'none';
 
 export type FollowMutationData = FollowData & {
   /** The signed-in user's committed following count after this mutation. */
   current_following_count: number;
+  /** `requested`: the target is private and the follow is a request they answer. */
+  status: FollowStatus;
 };
 
 /** Set one follow relationship and return the committed server state. */
 export async function setFollowing(
   targetUserId: string,
   following: boolean
-): Promise<{ data: FollowMutationData | null; error: Error | null }> {
+): Promise<Result<FollowMutationData>> {
   const { data, error } = await supabase.rpc('set_following', {
     p_target_user_id: targetUserId,
     p_following: following,
   });
-  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
-  const row = (data as FollowMutationData[] | null)?.[0];
+  if (error) return failed(error);
+  const row = (data as Partial<FollowMutationData>[] | null)?.[0];
   if (!row) return { data: null, error: new Error('set_following returned no rows') };
-  return { data: row, error: null };
+  return {
+    data: {
+      ...(row as FollowMutationData),
+      follows_you: row.follows_you === true,
+      // A server before private accounts sends no status: read it from is_following.
+      status: row.status ?? (row.is_following ? 'following' : 'none'),
+      is_private: row.is_private === true,
+    },
+    error: null,
+  };
 }
 
 export type FollowListUser = {
@@ -88,6 +111,10 @@ export type FollowData = {
   following_count: number;
   /** They follow you (20261006110000_follow_back); false from a server without it. */
   follows_you: boolean;
+  /** I have a follow request waiting with them (private accounts); false from an older server. */
+  requested?: boolean;
+  /** Their account is private; false from an older server. */
+  is_private: boolean;
 };
 
 /** Fetch follow status + counts in a single RPC call. */
@@ -103,7 +130,77 @@ export async function getFollowData(
   if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   const row = (data as Partial<FollowData>[] | null)?.[0];
   if (!row) return { data: null, error: new Error('get_follow_data returned no rows') };
-  return { data: { ...(row as FollowData), follows_you: row.follows_you === true }, error: null };
+  return {
+    data: {
+      ...(row as FollowData),
+      follows_you: row.follows_you === true,
+      requested: row.requested === true,
+      is_private: row.is_private === true,
+    },
+    error: null,
+  };
+}
+
+/** Someone asking to follow you (`get_follow_requests`, newest first). */
+export type FollowRequest = {
+  requester_id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  requested_at: string;
+};
+
+/** Your incoming follow requests. Banned and blocked people are left out by the server. */
+export async function getFollowRequests(): Promise<Result<FollowRequest[]>> {
+  const { data, error } = await supabase.rpc('get_follow_requests');
+  if (error) return failed(error);
+  return { data: (data ?? []) as FollowRequest[], error: null };
+}
+
+/** What answering a follow request did. `gone`: it was already answered or taken back. */
+export type FollowRequestAnswer = {
+  status: 'accepted' | 'declined' | 'gone';
+  /** Your follow back, when asked for (`requested` if they are private too). */
+  follow_back: FollowStatus | null;
+};
+
+/** Confirm (optionally following them back) or delete a follow request to you. */
+export async function respondFollowRequest(
+  requesterId: string,
+  accept: boolean,
+  followBack = false
+): Promise<Result<FollowRequestAnswer>> {
+  const { data, error } = await supabase.rpc('respond_follow_request', {
+    p_requester: requesterId,
+    p_accept: accept,
+    p_follow_back: followBack,
+  });
+  if (error) return failed(error);
+  return { data: data as unknown as FollowRequestAnswer, error: null };
+}
+
+/** Remove someone who follows you. They aren't told; a friend's open tags with you end. */
+export async function removeFollower(
+  followerId: string
+): Promise<Result<{ removed: boolean; tags_ended: number }>> {
+  const { data, error } = await supabase.rpc('remove_follower', { p_follower: followerId });
+  if (error) return failed(error);
+  return { data: data as unknown as { removed: boolean; tags_ended: number }, error: null };
+}
+
+/** Change any of your Controls; the ones left out stay as they are. */
+export async function setAccountControls(patch: {
+  is_private?: boolean;
+  posts_visibility?: PostsVisibility;
+  tag_permission?: TagPermission;
+}): Promise<Result<AccountControls & { accepted_requests: number }>> {
+  const { data, error } = await supabase.rpc('set_account_controls', {
+    p_is_private: patch.is_private ?? null,
+    p_posts_visibility: patch.posts_visibility ?? null,
+    p_tag_permission: patch.tag_permission ?? null,
+  });
+  if (error) return failed(error);
+  return { data: data as unknown as AccountControls & { accepted_requests: number }, error: null };
 }
 
 /** A suggested user to follow. Only public profile fields (the RPC enforces this). */

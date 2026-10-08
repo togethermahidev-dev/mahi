@@ -91,7 +91,15 @@ describe('default-off flags (video-posts)', () => {
       'control-post-workout',
       'siri-shortcuts',
       'spotlight',
+      'private-accounts',
     ]);
+  });
+
+  // Public and private accounts (owner, 2026-10-08): Controls, the choice at sign-up, follow
+  // requests and removing a follower stay hidden until the owner switches it on.
+  it('keeps private-accounts off until switched on', () => {
+    expect(FEATURE_FLAGS).toContain('private-accounts');
+    expect(flagDefaultOn('private-accounts')).toBe(false);
   });
 
   // Google sign-in is a placeholder button that does nothing yet: it must never show on the

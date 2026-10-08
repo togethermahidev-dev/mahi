@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { getUserPosts, type FeedPost, type ProfilePostCursor } from '@/api';
 import { reportError } from '@/lib/sentry';
+import type { ProfileRestriction } from '@/lib/accountControls';
 
 // A profile grid loads four workouts at a time: enough to complete two rows without over-fetching.
 const PAGE_SIZE = 4;
@@ -42,6 +43,8 @@ interface ProfilePostsState {
   isSyncing: boolean;
   // Timestamp (ms) of the last successful sync, used for staleness checks.
   lastSyncedAt: number | null;
+  /** Their Controls hide their workouts from you (private accounts); null when you can see them. */
+  restricted: ProfileRestriction | null;
 
   sync: (userId: string, force?: boolean) => Promise<void>;
   loadMore: (userId: string) => Promise<void>;
@@ -59,12 +62,20 @@ export const useProfilePostsStore = create<ProfilePostsState>((set, get) => ({
   hasMore: true,
   isSyncing: false,
   lastSyncedAt: null,
+  restricted: null,
 
   sync: async (userId, force = false) => {
     const { isSyncing, posts, userId: currentUserId } = get();
     // If the userId changed, clear stale data and force a fresh fetch
     if (currentUserId !== userId) {
-      set({ userId, posts: [], cursor: undefined, hasMore: true, lastSyncedAt: null });
+      set({
+        userId,
+        posts: [],
+        cursor: undefined,
+        hasMore: true,
+        lastSyncedAt: null,
+        restricted: null,
+      });
       force = true;
     }
     // Concurrency guard only — never block on `posts.length > 0` when the store
@@ -74,7 +85,7 @@ export const useProfilePostsStore = create<ProfilePostsState>((set, get) => ({
     if (isSyncing || (!force && posts.length > 0)) return;
     set({ isSyncing: true, userId });
 
-    const { data, error } = await getUserPosts(userId, PAGE_SIZE);
+    const { data, error, restricted = null } = await getUserPosts(userId, PAGE_SIZE);
     if (!error && data) {
       // Only apply if this is still the active userId (avoid race conditions)
       if (get().userId !== userId) {
@@ -86,8 +97,9 @@ export const useProfilePostsStore = create<ProfilePostsState>((set, get) => ({
         : undefined;
       // An empty result keeps hasMore=true so a later focus can re-sync and
       // recover; a full page means more may exist; a short page means done.
-      const hasMore = data.length === 0 ? true : data.length === PAGE_SIZE;
-      set({ posts: data, cursor, hasMore, lastSyncedAt: Date.now() });
+      // A hidden grid has nothing more to load.
+      const hasMore = restricted ? false : data.length === 0 ? true : data.length === PAGE_SIZE;
+      set({ posts: data, cursor, hasMore, lastSyncedAt: Date.now(), restricted });
     } else if (error) {
       console.log(`[profilePostsStore] sync error userId=${userId}`, error);
       reportError(error, {
@@ -142,5 +154,6 @@ export const useProfilePostsStore = create<ProfilePostsState>((set, get) => ({
       hasMore: true,
       isSyncing: false,
       lastSyncedAt: null,
+      restricted: null,
     }),
 }));

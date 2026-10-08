@@ -114,9 +114,16 @@ export function inviteBlockedReason({
   return null;
 }
 
+/**
+ * How a tag reaches someone, from their "Who can tag you" control (the server's `tag_mode`):
+ * straight away, as a request they accept, or not at all. An older server sends none: friends
+ * are tagged, anyone else gets a request.
+ */
+export type TagMode = 'direct' | 'request' | 'none';
+
 /** What tapping someone in the list does, and the note under their name. */
 export function personAction(
-  person: { is_friend: boolean; has_open_tag: boolean; tagged_you: boolean },
+  person: { is_friend: boolean; has_open_tag: boolean; tagged_you: boolean; tag_mode?: TagMode },
   selected: boolean
 ): { action: 'tag' | 'untag' | 'invite' | 'none'; note: string | null } {
   if (selected) return { action: 'untag', note: null };
@@ -125,10 +132,14 @@ export function personAction(
       ? { action: 'none', note: 'you tagged them, open until they answer' }
       : { action: 'none', note: 'request sent' };
   }
+  const mode = person.tag_mode ?? (person.is_friend ? 'direct' : 'request');
+  if (mode === 'none') return { action: 'none', note: 'only takes tags from friends' };
   if (person.tagged_you) return { action: 'tag', note: 'tagged you · tag them back' };
-  return person.is_friend
-    ? { action: 'tag', note: null }
-    : { action: 'invite', note: 'accepting means you’ll follow each other' };
+  if (mode === 'direct') {
+    return { action: 'tag', note: person.is_friend ? null : 'tagged straight away' };
+  }
+  // Accepting a tag request no longer makes you follow each other (owner, 2026-10-08).
+  return { action: 'invite', note: 'sends a tag request' };
 }
 
 /** The low-pressure message that goes with an invite link. */

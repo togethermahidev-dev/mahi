@@ -6,7 +6,7 @@
  * (`slotIds`); the server enforces the cap and every state.
  */
 import { supabase } from '@/lib/supabase';
-import type { TagSlot } from '@/lib/tagSlots';
+import type { TagMode, TagSlot } from '@/lib/tagSlots';
 
 /** Someone in the tag screen's search. */
 export type TagPerson = {
@@ -21,6 +21,22 @@ export type TagPerson = {
   /** They tagged you and your post answers it, so you can't tag them back. */
   tagged_you: boolean;
   points: number;
+  /** How a tag reaches them, from their Controls (private accounts); missing from an older server. */
+  tag_mode?: TagMode;
+  /** Their account is private; missing from an older server. */
+  is_private?: boolean;
+  /** You have a follow request waiting with them; missing from an older server. */
+  requested?: boolean;
+};
+
+/**
+ * Where the follows stand after accepting a tag request (accepting no longer makes you follow
+ * each other). Empty from an older server, or after "Not now".
+ */
+export type TagInviteAnswer = {
+  you_follow_them?: boolean;
+  they_follow_you?: boolean;
+  their_follow_request?: boolean;
 };
 
 /** A link made on tap. */
@@ -87,16 +103,17 @@ export async function markInviteShared(challengeId: string): Promise<{ error: Er
   return { error: error ? new Error(error.message, { cause: error }) : null };
 }
 
-/** Accept (friends, and the tag lands) or "Not now". */
+/** Accept (the tag lands) or "Not now". */
 export async function respondTagInvite(
   challengeId: string,
   accept: boolean
-): Promise<{ error: Error | null }> {
-  const { error } = await supabase.rpc('respond_tag_invite', {
+): Promise<Result<TagInviteAnswer>> {
+  const { data, error } = await supabase.rpc('respond_tag_invite', {
     p_challenge: challengeId,
     p_accept: accept,
   });
-  return { error: error ? new Error(error.message, { cause: error }) : null };
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
+  return { data: (data as TagInviteAnswer | null) ?? {}, error: null };
 }
 
 /** Where each in-app invite to you is at. */

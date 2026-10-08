@@ -79,10 +79,34 @@ describe('personAction', () => {
     expect(personAction(p, true)).toEqual({ action: 'untag', note: null });
   });
 
-  it('invites someone on Mahi who is not a friend', () => {
+  // Accepting a tag no longer makes you follow each other (owner, 2026-10-08).
+  it('sends a tag request to someone on Mahi who is not a friend', () => {
     expect(personAction({ ...p, is_friend: false }, false)).toEqual({
       action: 'invite',
-      note: 'accepting means you’ll follow each other',
+      note: 'sends a tag request',
+    });
+    expect(personAction({ ...p, is_friend: false, tag_mode: 'request' }, false)).toEqual({
+      action: 'invite',
+      note: 'sends a tag request',
+    });
+  });
+
+  // Their "Who can tag you" control, read by the server as tag_mode (private accounts).
+  it('tags straight away someone who lets anyone tag them', () => {
+    expect(personAction({ ...p, is_friend: false, tag_mode: 'direct' }, false)).toEqual({
+      action: 'tag',
+      note: 'tagged straight away',
+    });
+    expect(personAction({ ...p, tag_mode: 'direct' }, false)).toEqual({
+      action: 'tag',
+      note: null,
+    });
+  });
+
+  it('can’t pick someone who only takes tags from friends', () => {
+    expect(personAction({ ...p, is_friend: false, tag_mode: 'none' }, false)).toEqual({
+      action: 'none',
+      note: 'only takes tags from friends',
     });
   });
 

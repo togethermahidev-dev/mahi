@@ -98,6 +98,9 @@ export interface MatchedAccount {
   avatar_url: string | null;
   is_following: boolean;
   follows_you: boolean;
+  /** Private accounts: a follow request of yours is waiting / their account is private. */
+  requested?: boolean;
+  is_private?: boolean;
   /** Which of the hashes you sent found them. */
   matched_hashes: string[];
 }
@@ -196,9 +199,13 @@ export function buildRows({
   return rows;
 }
 
-/** The follow button's words. A follow is one-way; friends means you follow each other. */
-export function followLabel(following: boolean, followsYou: boolean): string {
+/**
+ * The follow button's words. A follow is one-way; friends means you follow each other.
+ * `requested`: your follow request to a private account is waiting (a tap takes it back).
+ */
+export function followLabel(following: boolean, followsYou: boolean, requested = false): string {
   if (following) return followsYou ? 'Friends' : 'Following';
+  if (requested) return 'Requested';
   return followsYou ? 'Follow back' : 'Follow';
 }
 

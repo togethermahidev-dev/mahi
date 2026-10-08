@@ -31,6 +31,7 @@ import {
   useNotificationsStore,
   useProfilePostsStore,
   useFollowStore,
+  useFollowRequestStore,
   useSuggestStore,
   useBlockStore,
   useSocialStore,
@@ -229,6 +230,7 @@ export default function App(): React.JSX.Element {
         useNotificationsStore.getState().reset();
         useProfilePostsStore.getState().reset();
         useFollowStore.getState().reset();
+        useFollowRequestStore.getState().reset();
         useSuggestStore.getState().reset();
         useBlockStore.getState().reset();
         useSocialStore.getState().reset();

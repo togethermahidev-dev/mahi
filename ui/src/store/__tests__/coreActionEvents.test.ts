@@ -10,6 +10,10 @@ jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 jest.mock('@/api', () => ({
   getFollowData: jest.fn(),
   setFollowing: jest.fn(),
+  removeFollower: jest.fn(),
+  respondFollowRequest: jest.fn(),
+  getFollowRequests: jest.fn(),
+  setAccountControls: jest.fn(),
   toggleLike: jest.fn(),
   addComment: jest.fn(),
   getComments: jest.fn(),
@@ -42,15 +46,23 @@ import { useFollowStore } from '@/store/followStore';
 import { useSocialStore } from '@/store/socialStore';
 import { useConversationStore } from '@/store/conversationStore';
 import { useToastStore } from '@/store/toastStore';
+import { useFollowRequestStore } from '@/store/followRequestStore';
+import { useUserStore } from '@/store/userStore';
 
 const mocked = api as jest.Mocked<typeof api>;
-const followRow = (is_following: boolean, follows_you = false) => ({
+const followRow = (
+  is_following: boolean,
+  follows_you = false,
+  status: 'following' | 'requested' | 'none' = is_following ? 'following' : 'none'
+) => ({
   data: {
     is_following,
     follows_you,
     follower_count: 1,
     following_count: 1,
     current_following_count: 1,
+    status,
+    is_private: status === 'requested',
   },
   error: null,
 });
@@ -61,6 +73,87 @@ beforeEach(() => {
   useSocialStore.getState().reset();
   useConversationStore.getState().reset();
   useToastStore.getState().reset();
+  useFollowRequestStore.getState().reset();
+  useUserStore.getState().reset();
+});
+
+// Private accounts (20261008170000_private_accounts).
+describe('follow requests and controls', () => {
+  it('a follow that became a request sends follow_requested, not user_followed', async () => {
+    mocked.setFollowing.mockResolvedValue(followRow(false, false, 'requested'));
+    await useFollowStore.getState().toggleFollow('me', 'them');
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith('follow_requested', { target_id: 'them' });
+  });
+
+  it('taking a request back sends follow_request_cancelled', async () => {
+    useFollowStore.setState({ requestedByMe: { them: true } });
+    mocked.setFollowing.mockResolvedValue(followRow(false));
+    await useFollowStore.getState().toggleFollow('me', 'them');
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith('follow_request_cancelled', { target_id: 'them' });
+  });
+
+  it('answering a follow request sends follow_request_answered once the server has it', async () => {
+    useFollowRequestStore.setState({
+      requests: [
+        {
+          requester_id: 'r1',
+          username: 'sam',
+          display_name: null,
+          avatar_url: null,
+          requested_at: 'now',
+        },
+      ],
+    });
+    mocked.respondFollowRequest.mockResolvedValue({
+      data: { status: 'accepted', follow_back: null },
+      error: null,
+    });
+    await useFollowRequestStore.getState().respond('me', 'r1', true);
+    expect(track).toHaveBeenCalledWith('follow_request_answered', { accepted: true });
+  });
+
+  it('removing a follower sends follower_removed', async () => {
+    mocked.removeFollower.mockResolvedValue({
+      data: { removed: true, tags_ended: 0 },
+      error: null,
+    });
+    await useFollowStore.getState().removeFollower('me', 'f1');
+    expect(track).toHaveBeenCalledWith('follower_removed', { tags_ended: 0 });
+  });
+
+  it('changing a control sends what the server saved', async () => {
+    useUserStore.setState({ profile: { id: 'me', is_private: false } as never });
+    mocked.setAccountControls.mockResolvedValue({
+      data: {
+        is_private: true,
+        posts_visibility: 'followers',
+        tag_permission: 'approve',
+        accepted_requests: 0,
+      },
+      error: null,
+    });
+    await useUserStore.getState().saveControls({ is_private: true });
+    expect(track).toHaveBeenCalledWith('account_controls_changed', {
+      is_private: true,
+      posts_visibility: 'followers',
+      tag_permission: 'approve',
+    });
+  });
+
+  it('sends nothing when the server refuses', async () => {
+    mocked.setFollowing.mockResolvedValue({ data: null, error: new Error('no') });
+    await useFollowStore.getState().toggleFollow('me', 'them');
+    mocked.removeFollower.mockResolvedValue({ data: null, error: new Error('no') });
+    await useFollowStore.getState().removeFollower('me', 'f1');
+    mocked.respondFollowRequest.mockResolvedValue({ data: null, error: new Error('no') });
+    await useFollowRequestStore.getState().respond('me', 'r1', true);
+    useUserStore.setState({ profile: { id: 'me', is_private: false } as never });
+    mocked.setAccountControls.mockResolvedValue({ data: null, error: new Error('no') });
+    await useUserStore.getState().saveControls({ is_private: true });
+    expect(track).not.toHaveBeenCalled();
+  });
 });
 
 describe('follows', () => {

@@ -1,5 +1,10 @@
 import { create } from 'zustand';
-import { getFollowData as apiGetFollowData, setFollowing as apiSetFollowing } from '@/api';
+import {
+  getFollowData as apiGetFollowData,
+  removeFollower as apiRemoveFollower,
+  setFollowing as apiSetFollowing,
+  type FollowStatus,
+} from '@/api';
 import { supabase } from '@/lib/supabase';
 import { reportError } from '@/lib/sentry';
 import { track } from '@/lib/analytics';
@@ -18,13 +23,34 @@ interface FollowState {
   followingByMe: Record<string, boolean>;
   /** Whether userId follows the current user (for "Follow back"). Keyed by target userId. */
   followsMe: Record<string, boolean>;
+  /** My follow request to a private userId is waiting ("Requested"). Keyed by target userId. */
+  requestedByMe: Record<string, boolean>;
+  /** userId's account is private, as the server last said. Keyed by target userId. */
+  privateById: Record<string, boolean>;
   /** Follower/following counts keyed by userId. */
   counts: Record<string, FollowCounts>;
 
   /** Load follow status + counts for a user via single RPC. */
   loadFollowData: (currentUserId: string, targetUserId: string) => Promise<void>;
-  /** Optimistic toggle follow with rollback. Returns error for caller logging. */
-  toggleFollow: (currentUserId: string, targetUserId: string) => Promise<{ error: Error | null }>;
+  /**
+   * The follow button: Follow (or Follow back) follows, Following unfollows, Requested takes the
+   * request back. Optimistic with rollback; `status` is the server's committed answer.
+   */
+  toggleFollow: (
+    currentUserId: string,
+    targetUserId: string
+  ) => Promise<{ error: Error | null; status?: FollowStatus }>;
+  /** Follow (true) or unfollow / take back a request (false), whatever the button shows. */
+  setFollow: (
+    currentUserId: string,
+    targetUserId: string,
+    follow: boolean
+  ) => Promise<{ error: Error | null; status?: FollowStatus }>;
+  /** Remove someone who follows me (they aren't told). Optimistic with rollback. */
+  removeFollower: (
+    currentUserId: string,
+    followerId: string
+  ) => Promise<{ error: Error | null; tagsEnded?: number }>;
 
   /** Subscribe to realtime follow changes for a user. Returns unsubscribe fn. */
   subscribeToFollows: (
@@ -45,6 +71,8 @@ const followChannels = new Map<
 export const useFollowStore = create<FollowState>((set, get) => ({
   followingByMe: {},
   followsMe: {},
+  requestedByMe: {},
+  privateById: {},
   counts: {},
 
   loadFollowData: async (currentUserId, targetUserId) => {
@@ -62,6 +90,11 @@ export const useFollowStore = create<FollowState>((set, get) => ({
     set((s) => ({
       followingByMe: { ...s.followingByMe, [targetUserId]: data.is_following },
       followsMe: { ...s.followsMe, [targetUserId]: data.follows_you },
+      requestedByMe: {
+        ...s.requestedByMe,
+        [targetUserId]: !data.is_following && data.requested === true,
+      },
+      privateById: { ...s.privateById, [targetUserId]: data.is_private },
       counts: {
         ...s.counts,
         [targetUserId]: {
@@ -72,68 +105,79 @@ export const useFollowStore = create<FollowState>((set, get) => ({
     }));
   },
 
-  toggleFollow: async (currentUserId, targetUserId) => {
-    const wasFollowing = get().followingByMe[targetUserId] ?? false;
-    const prevCounts = get().counts[targetUserId] ?? { follower_count: 0, following_count: 0 };
+  toggleFollow: (currentUserId, targetUserId) => {
+    const s = get();
+    const engaged =
+      (s.followingByMe[targetUserId] ?? false) || (s.requestedByMe[targetUserId] ?? false);
+    return get().setFollow(currentUserId, targetUserId, !engaged);
+  },
 
-    // Optimistic update — target's follower count
-    set((s) => ({
-      followingByMe: { ...s.followingByMe, [targetUserId]: !wasFollowing },
+  setFollow: async (currentUserId, targetUserId, follow) => {
+    const wasFollowing = get().followingByMe[targetUserId] ?? false;
+    const wasRequested = get().requestedByMe[targetUserId] ?? false;
+    const prevCounts = get().counts[targetUserId] ?? { follower_count: 0, following_count: 0 };
+    const myPrevCounts = get().counts[currentUserId];
+    // A private account's follow is a request: Requested at once, and no count moves.
+    const asRequest = follow && !wasFollowing && (get().privateById[targetUserId] ?? false);
+    // Following → not following (or the reverse) moves the counts; a request never does.
+    const countStep = follow ? (wasFollowing || asRequest ? 0 : 1) : wasFollowing ? -1 : 0;
+
+    set((st) => ({
+      followingByMe: { ...st.followingByMe, [targetUserId]: follow && !asRequest },
+      requestedByMe: { ...st.requestedByMe, [targetUserId]: asRequest },
       counts: {
-        ...s.counts,
+        ...st.counts,
         [targetUserId]: {
           ...prevCounts,
-          follower_count: Math.max(0, prevCounts.follower_count + (wasFollowing ? -1 : 1)),
+          follower_count: Math.max(0, prevCounts.follower_count + countStep),
         },
+        ...(myPrevCounts
+          ? {
+              [currentUserId]: {
+                ...myPrevCounts,
+                following_count: Math.max(0, myPrevCounts.following_count + countStep),
+              },
+            }
+          : {}),
       },
     }));
 
-    // Also optimistically update current user's following_count if loaded
-    const myPrevCounts = get().counts[currentUserId];
-    if (myPrevCounts) {
-      set((s) => ({
-        counts: {
-          ...s.counts,
-          [currentUserId]: {
-            ...myPrevCounts,
-            following_count: Math.max(0, myPrevCounts.following_count + (wasFollowing ? -1 : 1)),
-          },
-        },
-      }));
-    }
-
-    const { data, error } = await apiSetFollowing(targetUserId, !wasFollowing);
+    const { data, error } = await apiSetFollowing(targetUserId, follow);
 
     if (error || !data) {
       const mutationError = error ?? new Error('Follow update returned no server state');
-      console.log('[followStore] toggleFollow error |', mutationError.message);
-      // Rollback target counts
-      set((s) => ({
-        followingByMe: { ...s.followingByMe, [targetUserId]: wasFollowing },
-        counts: { ...s.counts, [targetUserId]: prevCounts },
+      console.log('[followStore] setFollow error |', mutationError.message);
+      set((st) => ({
+        followingByMe: { ...st.followingByMe, [targetUserId]: wasFollowing },
+        requestedByMe: { ...st.requestedByMe, [targetUserId]: wasRequested },
+        counts: {
+          ...st.counts,
+          [targetUserId]: prevCounts,
+          ...(myPrevCounts ? { [currentUserId]: myPrevCounts } : {}),
+        },
       }));
-      // Rollback own counts
-      if (myPrevCounts) {
-        set((s) => ({
-          counts: { ...s.counts, [currentUserId]: myPrevCounts },
-        }));
-      }
       return { error: mutationError };
     }
 
     // Counted only when the server's answer is a real change, so a repeat tap is not a new follow.
-    if (data.is_following && !wasFollowing) {
+    if (data.status === 'following' && !wasFollowing) {
       track('user_followed', { target_id: targetUserId, friends: data.follows_you });
-    } else if (!data.is_following && wasFollowing) {
+    } else if (data.status === 'requested' && !wasRequested) {
+      track('follow_requested', { target_id: targetUserId });
+    } else if (data.status === 'none' && wasFollowing) {
       track('user_unfollowed', { target_id: targetUserId });
+    } else if (data.status === 'none' && wasRequested) {
+      track('follow_request_cancelled', { target_id: targetUserId });
     }
 
     // The tap felt immediate above; now replace estimates with the database's committed answer.
-    set((s) => ({
-      followingByMe: { ...s.followingByMe, [targetUserId]: data.is_following },
-      followsMe: { ...s.followsMe, [targetUserId]: data.follows_you },
+    set((st) => ({
+      followingByMe: { ...st.followingByMe, [targetUserId]: data.status === 'following' },
+      requestedByMe: { ...st.requestedByMe, [targetUserId]: data.status === 'requested' },
+      followsMe: { ...st.followsMe, [targetUserId]: data.follows_you },
+      privateById: { ...st.privateById, [targetUserId]: data.is_private },
       counts: {
-        ...s.counts,
+        ...st.counts,
         [targetUserId]: {
           follower_count: data.follower_count,
           following_count: data.following_count,
@@ -141,7 +185,7 @@ export const useFollowStore = create<FollowState>((set, get) => ({
         ...(myPrevCounts
           ? {
               [currentUserId]: {
-                ...myPrevCounts,
+                ...(st.counts[currentUserId] ?? myPrevCounts),
                 following_count: data.current_following_count,
               },
             }
@@ -149,7 +193,51 @@ export const useFollowStore = create<FollowState>((set, get) => ({
       },
     }));
 
-    return { error: null };
+    return { error: null, status: data.status };
+  },
+
+  removeFollower: async (currentUserId, followerId) => {
+    const wasFollower = get().followsMe[followerId];
+    const myPrevCounts = get().counts[currentUserId];
+
+    set((st) => ({
+      followsMe: { ...st.followsMe, [followerId]: false },
+      ...(myPrevCounts
+        ? {
+            counts: {
+              ...st.counts,
+              [currentUserId]: {
+                ...myPrevCounts,
+                follower_count: Math.max(0, myPrevCounts.follower_count - 1),
+              },
+            },
+          }
+        : {}),
+    }));
+
+    const { data, error } = await apiRemoveFollower(followerId);
+
+    if (error || !data) {
+      const mutationError = error ?? new Error('remove_follower returned no answer');
+      console.log('[followStore] removeFollower error |', mutationError.message);
+      set((st) => {
+        const followsMe = { ...st.followsMe };
+        if (wasFollower === undefined) delete followsMe[followerId];
+        else followsMe[followerId] = wasFollower;
+        return {
+          followsMe,
+          ...(myPrevCounts ? { counts: { ...st.counts, [currentUserId]: myPrevCounts } } : {}),
+        };
+      });
+      return { error: mutationError };
+    }
+
+    // Already gone (they unfollowed first): put my count back, nothing was removed.
+    if (!data.removed && myPrevCounts) {
+      set((st) => ({ counts: { ...st.counts, [currentUserId]: myPrevCounts } }));
+    }
+    if (data.removed) track('follower_removed', { tags_ended: data.tags_ended });
+    return { error: null, tagsEnded: data.tags_ended };
   },
 
   subscribeToFollows: (userId, currentUserId, onChange) => {
@@ -214,6 +302,6 @@ export const useFollowStore = create<FollowState>((set, get) => ({
       supabase.removeChannel(channel);
     }
     followChannels.clear();
-    set({ followingByMe: {}, followsMe: {}, counts: {} });
+    set({ followingByMe: {}, followsMe: {}, requestedByMe: {}, privateById: {}, counts: {} });
   },
 }));

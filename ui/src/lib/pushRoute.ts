@@ -6,7 +6,8 @@
 
 /** What the server puts in a push's `data`. */
 export type PushData = {
-  route?: 'post' | 'profile' | 'camera' | 'conversation';
+  /** `notifications`: "@x wants to follow you" (private accounts); anything unknown lands there too. */
+  route?: 'post' | 'profile' | 'camera' | 'conversation' | 'notifications';
   post_id?: string | null;
   user_id?: string;
   conversation_id?: string;

@@ -18,6 +18,7 @@ import {
 import type { Database } from '@/types';
 import type { PostInvite } from './invites';
 import type { AnswerTiming } from '@/lib/answerTiming';
+import type { ProfileRestriction } from '@/lib/accountControls';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
@@ -202,7 +203,12 @@ export async function getUserPosts(
   userId: string,
   limit = 30,
   cursor?: ProfilePostCursor
-): Promise<{ data: FeedPost[] | null; error: Error | null }> {
+): Promise<{
+  data: FeedPost[] | null;
+  error: Error | null;
+  /** Their Controls hide their workouts from you (private accounts); null when you can see them. */
+  restricted?: ProfileRestriction | null;
+}> {
   const { data, error } = await supabase.rpc('get_user_posts', {
     p_user: userId,
     p_limit: limit,
@@ -211,8 +217,8 @@ export async function getUserPosts(
   });
   if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   try {
-    const page = data as unknown as { items: FeedItem[] };
-    return { data: await toPosts(page.items), error: null };
+    const page = data as unknown as { items: FeedItem[]; restricted?: ProfileRestriction | null };
+    return { data: await toPosts(page.items), error: null, restricted: page.restricted ?? null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e : new Error(String(e)) };
   }

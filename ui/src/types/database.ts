@@ -510,9 +510,13 @@ export type Database = {
           has_posted_before: boolean;
           id: string;
           is_banned: boolean;
+          is_private: boolean;
           last_name: string | null;
+          posts_visibility: 'everyone' | 'followers' | 'friends';
+          privacy_chosen_at: string | null;
           streak_current: number;
           streak_highest: number;
+          tag_permission: 'everyone' | 'approve' | 'friends';
           timezone: string;
           updated_at: string;
           username: string;
@@ -528,9 +532,13 @@ export type Database = {
           has_posted_before?: boolean;
           id: string;
           is_banned?: boolean;
+          is_private?: boolean;
           last_name?: string | null;
+          posts_visibility?: 'everyone' | 'followers' | 'friends';
+          privacy_chosen_at?: string | null;
           streak_current?: number;
           streak_highest?: number;
+          tag_permission?: 'everyone' | 'approve' | 'friends';
           timezone?: string;
           updated_at?: string;
           username: string;
@@ -546,12 +554,35 @@ export type Database = {
           has_posted_before?: boolean;
           id?: string;
           is_banned?: boolean;
+          is_private?: boolean;
           last_name?: string | null;
+          posts_visibility?: 'everyone' | 'followers' | 'friends';
+          privacy_chosen_at?: string | null;
           streak_current?: number;
           streak_highest?: number;
+          tag_permission?: 'everyone' | 'approve' | 'friends';
           timezone?: string;
           updated_at?: string;
           username?: string;
+        };
+        Relationships: [];
+      };
+      // NOTE: hand-added pending a real `supabase gen types` regen (20261008170000_private_accounts).
+      follow_requests: {
+        Row: {
+          created_at: string;
+          requester_id: string;
+          target_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          requester_id: string;
+          target_id: string;
+        };
+        Update: {
+          created_at?: string;
+          requester_id?: string;
+          target_id?: string;
         };
         Relationships: [];
       };
@@ -651,12 +682,15 @@ export type Database = {
     };
     Functions: {
       get_follow_data: {
+        // p_current_user_id is ignored since 20261008170000_private_accounts (auth.uid()).
         Args: { p_current_user_id: string; p_target_user_id: string };
         Returns: {
           follower_count: number;
           following_count: number;
           is_following: boolean;
           follows_you: boolean;
+          requested: boolean;
+          is_private: boolean;
         }[];
       };
       set_following: {
@@ -667,7 +701,35 @@ export type Database = {
           following_count: number;
           follows_you: boolean;
           is_following: boolean;
+          status: 'following' | 'requested' | 'none';
+          is_private: boolean;
         }[];
+      };
+      respond_follow_request: {
+        Args: { p_requester: string; p_accept: boolean; p_follow_back?: boolean };
+        Returns: Json;
+      };
+      remove_follower: {
+        Args: { p_follower: string };
+        Returns: Json;
+      };
+      get_follow_requests: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          requester_id: string;
+          username: string;
+          display_name: string | null;
+          avatar_url: string | null;
+          requested_at: string;
+        }[];
+      };
+      set_account_controls: {
+        Args: {
+          p_is_private?: boolean | null;
+          p_posts_visibility?: string | null;
+          p_tag_permission?: string | null;
+        };
+        Returns: Json;
       };
       get_suggested_follows: {
         Args: { p_current_user_id: string; p_limit?: number; p_offset?: number };

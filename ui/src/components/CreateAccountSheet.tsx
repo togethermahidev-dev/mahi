@@ -548,7 +548,11 @@ export default function CreateAccountSheet({
                     @{invitePreview.username} invited you
                   </Text>
                   <Text style={[styles.inviteWhat, { color: muted }]}>
-                    {invitePreviewLine(invitePreview)}
+                    {invitePreviewLine({
+                      ...invitePreview,
+                      inviter: invitePreview.username,
+                      inviterPrivate: invitePreview.is_private,
+                    })}
                   </Text>
                 </View>
               ) : pendingInvite && !codeInput && !inviteChecked ? null : (
@@ -789,7 +793,11 @@ export default function CreateAccountSheet({
                     @{invitePreview.username} invited you
                   </Text>
                   <Text style={[styles.inviteWhat, { color: muted }]}>
-                    {invitePreviewLine(invitePreview)}
+                    {invitePreviewLine({
+                      ...invitePreview,
+                      inviter: invitePreview.username,
+                      inviterPrivate: invitePreview.is_private,
+                    })}
                   </Text>
                 </View>
               ) : null}

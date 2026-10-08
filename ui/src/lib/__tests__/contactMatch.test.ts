@@ -167,6 +167,11 @@ describe('followLabel (one-way follow; friends when both)', () => {
   ])('following %p, follows you %p → %s', (following, followsYou, label) => {
     expect(followLabel(following, followsYou)).toBe(label);
   });
+
+  it('Requested while a follow request to a private account waits', () => {
+    expect(followLabel(false, false, true)).toBe('Requested');
+    expect(followLabel(false, true, true)).toBe('Requested');
+  });
 });
 
 describe('contactsAccess', () => {

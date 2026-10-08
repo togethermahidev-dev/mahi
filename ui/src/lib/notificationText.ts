@@ -24,10 +24,16 @@ export function notificationText(type: string, username: string): string {
       return `You missed ${who}'s tag. Your points are back to 0.`;
     case 'invite_joined':
       return `${who} joined Mahi from your invite. You follow each other now.`;
+    // Accepting a tag request no longer makes you follow each other (owner, 2026-10-08).
     case 'tag_invite':
-      return `${who} wants to tag you. Accept to follow each other.`;
+      return `${who} wants to tag you.`;
     case 'tag_invite_accepted':
-      return `${who} accepted your tag request. You follow each other now.`;
+      return `${who} accepted your tag request.`;
+    // Private accounts (20261008170000_private_accounts).
+    case 'follow_request':
+      return `${who} wants to follow you`;
+    case 'follow_accepted':
+      return `${who} accepted your follow request`;
     default:
       return who;
   }

@@ -102,6 +102,16 @@ describe('claimedText', () => {
       'You and @sam follow each other now.'
     );
   });
+
+  // A general invite from a private account: they follow you, your follow is a request.
+  it('an invite for a friend from a private account: your follow is a request', () => {
+    expect(
+      claimedText({ inviter: 'sam', expiresAt: null, tag: false, followStatus: 'requested' })
+    ).toBe('@sam follows you now. They approve followers, so your follow is a request.');
+    expect(
+      claimedText({ inviter: 'sam', expiresAt: null, tag: false, followStatus: 'following' })
+    ).toBe('You and @sam follow each other now.');
+  });
 });
 
 describe('invitePreviewLine (said before joining)', () => {
@@ -117,6 +127,16 @@ describe('invitePreviewLine (said before joining)', () => {
     expect(invitePreviewLine({ open: true, tag: true })).toBe(line);
     // An older server that doesn't say: as before, a tag.
     expect(invitePreviewLine({ open: true })).toBe(line);
+  });
+
+  it('an invite for a friend from a private account: your follow will be a request', () => {
+    expect(
+      invitePreviewLine({ open: true, tag: false, inviter: 'sam', inviterPrivate: true })
+    ).toBe('@sam approves followers — your follow will be a request.');
+    // A tag invite on a post: you follow each other straight away, private or not.
+    expect(
+      invitePreviewLine({ open: true, tag: true, inviter: 'sam', inviterPrivate: true })
+    ).toMatch(/^Join and you’ll automatically follow each other\./);
   });
 
   it('a used or ended invite', () => {
@@ -185,6 +205,13 @@ describe('inviteAcceptLine (said on the sheet before a signed-in person accepts)
       'Accept and you’ll automatically follow each other. Their tag starts when you accept — you’ll have 48 hours to post back.';
     expect(inviteAcceptLine({ tag: true })).toBe(line);
     expect(inviteAcceptLine({})).toBe(line);
+    expect(inviteAcceptLine({ tag: true, inviter: 'sam', inviterPrivate: true })).toBe(line);
+  });
+
+  it('an invite for a friend from a private account: your follow will be a request', () => {
+    expect(inviteAcceptLine({ tag: false, inviter: 'sam', inviterPrivate: true })).toBe(
+      '@sam approves followers — your follow will be a request.'
+    );
   });
 });
 

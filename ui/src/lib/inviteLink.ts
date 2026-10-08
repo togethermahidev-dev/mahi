@@ -66,11 +66,17 @@ export function claimedText({
   inviter,
   expiresAt,
   tag,
+  followStatus,
 }: {
   inviter: string;
   expiresAt: string | null;
   tag?: boolean;
+  /** `requested`: a general invite from a private account — they follow you, yours waits. */
+  followStatus?: 'following' | 'requested';
 }): string {
+  if (followStatus === 'requested') {
+    return `@${inviter} follows you now. They approve followers, so your follow is a request.`;
+  }
   if (tag === false) return `You and @${inviter} follow each other now.`;
   return expiresAt
     ? `You and @${inviter} follow each other now. You have 48 hours to answer their tag.`
@@ -81,8 +87,19 @@ export function claimedText({
  * The line under "@sam invited you" on the sign-up screen: the automatic follow both ways is said
  * before joining, and a tag only when one comes with the link (`tag` missing: an older server).
  */
-export function invitePreviewLine({ open, tag }: { open: boolean; tag?: boolean }): string {
+export function invitePreviewLine({
+  open,
+  tag,
+  inviter,
+  inviterPrivate,
+}: {
+  open: boolean;
+  tag?: boolean;
+  inviter?: string;
+  inviterPrivate?: boolean;
+}): string {
   if (!open) return 'That invite has already been used, but you can still sign up.';
+  if (tag === false && inviterPrivate && inviter) return privateInviteLine(inviter);
   const follow = 'Join and you’ll automatically follow each other.';
   return tag === false
     ? follow
@@ -90,10 +107,28 @@ export function invitePreviewLine({ open, tag }: { open: boolean; tag?: boolean 
 }
 
 /**
+ * A general invite ("invite a mate", no tag) from a private account: the inviter follows you,
+ * and your follow is a request they approve (owner, 2026-10-08). A tag invite on a post still
+ * makes you follow each other straight away.
+ */
+function privateInviteLine(inviter: string): string {
+  return `@${inviter} approves followers — your follow will be a request.`;
+}
+
+/**
  * The line under "@sam invited you" on the sheet a signed-in person sees when an invite link
  * arrives: the same promise as the sign-up card, said before Accept.
  */
-export function inviteAcceptLine({ tag }: { tag?: boolean }): string {
+export function inviteAcceptLine({
+  tag,
+  inviter,
+  inviterPrivate,
+}: {
+  tag?: boolean;
+  inviter?: string;
+  inviterPrivate?: boolean;
+}): string {
+  if (tag === false && inviterPrivate && inviter) return privateInviteLine(inviter);
   const follow = 'Accept and you’ll automatically follow each other.';
   return tag === false
     ? follow

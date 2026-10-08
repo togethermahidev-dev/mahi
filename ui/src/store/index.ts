@@ -12,6 +12,7 @@ export { useNotificationsStore } from './notificationsStore';
 export { useProfilePostsStore } from './profilePostsStore';
 export { useSocialStore } from './socialStore';
 export { useFollowStore } from './followStore';
+export { useFollowRequestStore } from './followRequestStore';
 export { useSuggestStore } from './suggestStore';
 export { useBlockStore } from './blockStore';
 export { usePushStore } from './pushStore';
