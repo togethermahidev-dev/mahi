@@ -1,29 +1,27 @@
 /**
- * One screen for the camera and the feed (owner, 2026-10-08): swipe the camera up and it shrinks
- * into a small card at the top-left while the feed's rows take the screen under it; tap the card,
- * the Camera pill, or swipe it down and the camera is back full screen. Pure geometry and release
+ * One screen for the camera and the feed (owner, 2026-10-08): the camera is the front sheet. Swipe
+ * it up and it slides up, leaving a strip under the header, with the feed behind it (the mirror
+ * of the pull down); tap the strip, the Camera pill, or swipe it down and the camera is back. Pure geometry and release
  * rules, unit-tested; the screen is src/screens/CameraFeedPage.tsx.
  */
 import { MOTION, SPACE, SWIPE } from '@/constants/tokens';
 import type { SwipeDecision } from './swipeRules';
 
-export type CameraCard = { x: number; y: number; width: number; height: number; scale: number };
+export type CameraStrip = { bottom: number; lift: number };
 
-/** Where the small camera sits when the feed is showing: its own shape, under the header, left. */
-export function cameraCard(page: { width: number; height: number }, headerH: number): CameraCard {
-  const { scale } = MOTION.cameraFeed;
-  return {
-    x: SPACE.s16,
-    y: headerH + SPACE.s8,
-    width: Math.round(page.width * scale),
-    height: Math.round(page.height * scale),
-    scale,
-  };
+/**
+ * The camera slid up while the feed is showing (owner, 2026-10-08: the mirror of the pull down):
+ * a strip of it stays under the header, `bottom` is that strip's lower edge, `lift` how far the
+ * camera has slid up to get there.
+ */
+export function cameraStrip(page: { width: number; height: number }, headerH: number): CameraStrip {
+  const bottom = headerH + Math.round(page.height * MOTION.cameraFeed.stripShare);
+  return { bottom, lift: page.height - bottom };
 }
 
-/** Where the feed's rows start: just under the camera card. */
-export function feedTop(card: CameraCard): number {
-  return card.y + card.height + SPACE.s8;
+/** Where the feed's rows start: just under the camera strip. */
+export function feedTop(strip: CameraStrip): number {
+  return strip.bottom + SPACE.s8;
 }
 
 /**

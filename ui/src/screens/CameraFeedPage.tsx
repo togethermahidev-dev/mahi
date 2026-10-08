@@ -25,7 +25,7 @@ import { PressScale } from '@/components/Motion';
 import { CameraIcon, FeedIcon, LockIcon } from '@/components/ScreenIcons';
 import { usePageSize } from '@/hooks/useChrome';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { cameraCard, feedOpensOnRelease, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
+import { cameraStrip, feedOpensOnRelease, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
 import { lockPill } from '@/lib/feedLock';
 import { useFeedStore } from '@/store';
 import { useOpenTags } from '@/hooks/useOpenTags';
@@ -73,8 +73,10 @@ export default function CameraFeedPage({
   const page = usePageSize();
   const insets = useSafeAreaInsets();
   const headerH = appHeaderHeight(insets.top);
-  const card = useMemo(() => cameraCard(page, headerH), [page, headerH]);
-  const rowsTop = feedTop(card);
+  // The camera is the front sheet: swipe up and it slides up, leaving a strip under the header,
+  // with the feed behind it — the mirror of the pull down (owner, 2026-10-08).
+  const strip = useMemo(() => cameraStrip(page, headerH), [page, headerH]);
+  const rowsTop = feedTop(strip);
   // A locked feed doesn't open: the camera lifts a quarter of the page and the gap underneath says
   // why and what to do (owner, 2026-10-08). No feed rows show.
   const locked = useFeedStore((s) => s.loaded && s.locked);
@@ -104,9 +106,7 @@ export default function CameraFeedPage({
   }, [active, feedShown, closeFeed]);
 
   // Numbers only for the worklets (see the rule above).
-  const cardX = card.x;
-  const cardY = card.y;
-  const cardScale = card.scale;
+  const lift = locked ? gap : strip.lift;
   const cardRadius = RADIUS.r24;
 
   // Swipe the full camera up (it shrinks towards its card as the finger goes), or the small card
@@ -177,24 +177,11 @@ export default function CameraFeedPage({
   const upSwipe = useMemo(() => makeSwipe(false), [makeSwipe]);
   const cardSwipe = useMemo(() => makeSwipe(true), [makeSwipe]);
 
+  // One move for both: the camera slides up by `lift` (a quarter when locked, to the strip when
+  // open), rounding its corners as it goes.
   const cameraStyle = useAnimatedStyle(() => {
     const p = progress.value;
-    if (locked) {
-      return {
-        transformOrigin: 'top left',
-        borderRadius: p * cardRadius,
-        transform: [{ translateX: 0 }, { translateY: -p * gap }, { scale: 1 }],
-      };
-    }
-    return {
-      transformOrigin: 'top left',
-      borderRadius: p * cardRadius,
-      transform: [
-        { translateX: p * cardX },
-        { translateY: p * cardY },
-        { scale: 1 + p * (cardScale - 1) },
-      ],
-    };
+    return { borderRadius: p * cardRadius, transform: [{ translateY: -p * lift }] };
   });
   const feedStyle = useAnimatedStyle(() => ({
     opacity: locked ? 0 : interpolate(progress.value, [0, 0.35], [0, 1], 'clamp'),
@@ -222,7 +209,7 @@ export default function CameraFeedPage({
 
   return (
     <View style={styles.root}>
-      {/* The feed, behind: its rows start under the camera card. */}
+      {/* The feed, behind: its rows start under the camera strip. */}
       <Reanimated.View
         style={[styles.layer, { backgroundColor: dark ? COLORS.bgDark : COLORS.white }, feedStyle]}
         pointerEvents={feedShown && !locked ? 'auto' : 'none'}
@@ -238,27 +225,6 @@ export default function CameraFeedPage({
           isActive={active && feedShown && !locked}
           topInset={rowsTop - headerH}
         />
-        <RNAnimated.View
-          pointerEvents="box-none"
-          style={[
-            styles.header,
-            {
-              transform: [
-                {
-                  translateY: headerAnim.interpolate({
-                    inputRange: [0, headerH],
-                    outputRange: [0, -headerH],
-                    extrapolate: 'clamp',
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <Reanimated.View style={feedHeaderStyle} pointerEvents={feedShown ? 'box-none' : 'none'}>
-            {header(false)}
-          </Reanimated.View>
-        </RNAnimated.View>
       </Reanimated.View>
 
       {/* Locked: the quarter under the lifted camera says why and what to do. */}
@@ -277,7 +243,7 @@ export default function CameraFeedPage({
         </Reanimated.View>
       ) : null}
 
-      {/* The camera, in front: full screen, or a small card at the top-left. */}
+      {/* The camera, in front: full screen, or slid up to a strip under the header. */}
       <GestureDetector gesture={upSwipe}>
         <Reanimated.View
           style={[styles.layer, styles.camera, cameraStyle]}
@@ -299,7 +265,30 @@ export default function CameraFeedPage({
         </Reanimated.View>
       </GestureDetector>
 
-      {/* The small card (or, locked, the lifted camera) takes taps and a swipe down. */}
+      {/* The feed's header sits over the camera strip once the feed is up. */}
+      <RNAnimated.View
+        pointerEvents="box-none"
+        style={[
+          styles.header,
+          {
+            transform: [
+              {
+                translateY: headerAnim.interpolate({
+                  inputRange: [0, headerH],
+                  outputRange: [0, -headerH],
+                  extrapolate: 'clamp',
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <Reanimated.View style={feedHeaderStyle} pointerEvents={feedShown ? 'box-none' : 'none'}>
+          {header(false)}
+        </Reanimated.View>
+      </RNAnimated.View>
+
+      {/* The camera strip (or, locked, the lifted camera) takes taps and a swipe down. */}
       {feedShown ? (
         <GestureDetector gesture={cardSwipe}>
           <PressScale
@@ -307,7 +296,7 @@ export default function CameraFeedPage({
               styles.cardTouch,
               locked
                 ? { left: 0, top: 0, width: page.width, height: page.height - gap }
-                : { left: card.x, top: card.y, width: card.width, height: card.height },
+                : { left: 0, top: headerH, width: page.width, height: strip.bottom - headerH },
             ]}
             onPress={closeFeed}
             accessibilityRole="button"

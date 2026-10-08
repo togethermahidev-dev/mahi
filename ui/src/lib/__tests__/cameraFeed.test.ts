@@ -1,24 +1,24 @@
 /**
- * One screen for the camera and the feed (owner, 2026-10-08): swipe the camera up and it shrinks
- * into a small card at the top while the feed takes the screen; tap the card, the Camera pill or
- * swipe it down and the camera is back. Pure geometry and release rules, unit-tested.
+ * One screen for the camera and the feed (owner, 2026-10-08): the camera is the front sheet.
+ * Swipe it up and it slides up, leaving a strip at the top, with the feed behind it — the mirror
+ * of the pull down, which slides it down to show the roadmap behind. Tap the strip, the Camera
+ * pill or swipe it down and the camera is back. Pure geometry and release rules, unit-tested.
  */
-import { cameraCard, feedOpensOnRelease, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
+import { cameraStrip, feedOpensOnRelease, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
 import { SWIPE } from '@/constants/tokens';
 
 const page = { width: 400, height: 800 };
 
-describe('cameraCard — the small camera when the feed is showing', () => {
-  it('keeps the camera’s shape at a third of its width, under the header on the left', () => {
-    const card = cameraCard(page, 100);
-    expect(card.scale).toBe(0.32);
-    expect(card).toEqual({ x: 16, y: 108, width: 128, height: 256, scale: 0.32 });
+describe('cameraStrip — the camera slid up while the feed is showing', () => {
+  it('leaves a strip a fifth of the page tall under the header; the rest slides up', () => {
+    // 100 header + 160 strip = the camera's bottom edge at 260, so it slides up 540.
+    expect(cameraStrip(page, 100)).toEqual({ bottom: 260, lift: 540 });
   });
 });
 
 describe('feedTop — where the feed’s rows start', () => {
-  it('is just under the camera card', () => {
-    expect(feedTop(cameraCard(page, 100))).toBe(108 + 256 + 8);
+  it('is just under the camera strip', () => {
+    expect(feedTop(cameraStrip(page, 100))).toBe(260 + 8);
   });
 });
 
