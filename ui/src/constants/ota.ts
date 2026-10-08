@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 04 — welcome shows the three-step workout loop (show up, get tagged, pass it on);
+ *     fitness-first wording on the welcome cards, locked feed and first camera (2026-10-08)
  *   build 13 · 03 — pulling the waiting camera down shrinks it into a small card and shows a
  *     compact accountability card with two actions; camera pills press like glass; Settings cards
  *     stack under their titles; a line sun / moon for light and dark (2026-10-08)
@@ -93,4 +95,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 3;
+export const OTA_NUMBER = 4;
