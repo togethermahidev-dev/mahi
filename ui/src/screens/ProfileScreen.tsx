@@ -40,6 +40,7 @@ import {
   withAlpha,
 } from '@/constants/tokens';
 import { TAP_AREA, tapSlop } from '@/lib/tapArea';
+import type { MorphSource } from '@/lib/morph';
 
 // The settings and search icons are drawn 22 across; each taps as 44.
 const ICON_SLOP = tapSlop(ICON_SIZE.i22, TAP_AREA.ios);
@@ -106,7 +107,10 @@ export default function ProfileScreen({
   // kept on the phone). Null while reading or after a failed read: the row says so instead.
   const [invitesLine, setInvitesLine] = useState<string | null>(null);
   const [invitesRead, setInvitesRead] = useState(false);
-  const [viewerPostId, setViewerPostId] = useState<string | null>(null);
+  const [viewerPost, setViewerPost] = useState<{
+    postId: string;
+    source?: MorphSource;
+  } | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
@@ -388,7 +392,7 @@ export default function ProfileScreen({
           userId={profile.id}
           isSelf={userId === profile.id}
           header={header}
-          onPostPress={(post) => setViewerPostId(post.id)}
+          onPostPress={(post, source) => setViewerPost({ postId: post.id, source })}
           listGesture={listGesture}
           onOpenCamera={onOpenCamera}
         />
@@ -415,10 +419,11 @@ export default function ProfileScreen({
       {profile ? (
         <PostViewer
           userId={profile.id}
-          postId={viewerPostId}
-          onClose={() => setViewerPostId(null)}
+          postId={viewerPost?.postId ?? null}
+          source={viewerPost?.source}
+          onClose={() => setViewerPost(null)}
           onOpenProfile={(id) => {
-            setViewerPostId(null);
+            setViewerPost(null);
             setProfileUserId(id);
           }}
         />

@@ -33,7 +33,7 @@
  * - Supabase Storage  — `avatars` bucket, public, RLS: foldername[1] = auth.uid()
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -54,6 +54,7 @@ import { supabase } from '@/lib/supabase';
 import { reportError } from '@/lib/sentry';
 import { updateAvatarUrl } from '@/api/profile';
 import AvatarViewer from '@/components/AvatarViewer';
+import type { MorphSource } from '@/lib/morph';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -310,6 +311,8 @@ export default function AvatarPicker({
   // The full-screen viewer — presentation only, so it stays in the component rather than the
   // upload hook. Only opens when there is a real image to show.
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerSource, setViewerSource] = useState<MorphSource | null>(null);
+  const avatarRef = useRef<View>(null);
 
   // Show local optimistic preview while uploading, otherwise the persisted URL.
   const displayUri = localUri ?? avatarUrl;
@@ -323,7 +326,27 @@ export default function AvatarPicker({
         <Pressable
           accessibilityRole="imagebutton"
           accessibilityLabel="View profile photo"
-          onPress={() => setViewerOpen(true)}
+          ref={avatarRef}
+          onPress={() => {
+            setViewerSource(null);
+            if (!avatarRef.current) {
+              setViewerOpen(true);
+              return;
+            }
+            avatarRef.current.measureInWindow((x, y, width, height) => {
+              if (width > 0 && height > 0) {
+                setViewerSource({
+                  x,
+                  y,
+                  width,
+                  height,
+                  uri: displayUri,
+                  borderRadius: width / 2,
+                });
+              }
+              setViewerOpen(true);
+            });
+          }}
           style={({ pressed }) => pressed && { opacity: ALPHA.a90 }}
         >
           <Image source={{ uri: displayUri }} style={styles.avatar} />
@@ -384,6 +407,7 @@ export default function AvatarPicker({
       {/* Full screen: pinch to zoom; swipe away, ✕ or back to close. */}
       <AvatarViewer
         uri={viewerOpen ? displayUri : null}
+        source={viewerSource}
         onClose={() => setViewerOpen(false)}
         label="Your profile photo"
       />

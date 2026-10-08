@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'r
 import { FlashList } from '@shopify/flash-list';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Reanimated, {
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -19,6 +20,8 @@ import CommentSheet from '@/components/CommentSheet';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import { backdropOpacity, openablePosts, swipeCloses, viewerStartIndex } from '@/lib/viewer';
 import { shouldPlay } from '@/lib/videoPosts';
+import type { MorphSource } from '@/lib/morph';
+import { MorphingImage, useMorphTransition } from '@/components/MorphTransition';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -44,6 +47,8 @@ interface PostViewerProps {
   onOpenProfile: (userId: string) => void;
   /** Open with the start post's comments up (a comment notification). */
   openComments?: boolean;
+  /** Measured grid tile used for the native shared-geometry transition. */
+  source?: MorphSource | null;
 }
 
 /**
@@ -58,40 +63,89 @@ export default function PostViewer({
   onClose,
   onOpenProfile,
   openComments = false,
+  source = null,
 }: PostViewerProps): React.JSX.Element {
   // Keep showing the last posts while the viewer fades out after `postId` goes null. Each opening
   // is a fresh viewer (new start post, back in place after a swipe closed the last one).
   const [openId, setOpenId] = useState<string | null>(null);
-  const [shown, setShown] = useState<{ postId: string; opening: number } | null>(null);
+  const [shown, setShown] = useState<{
+    postId: string;
+    opening: number;
+    source: MorphSource | null;
+  } | null>(null);
   if (postId !== openId) {
     setOpenId(postId);
-    if (postId) setShown({ postId, opening: (shown?.opening ?? 0) + 1 });
+    if (postId) setShown({ postId, opening: (shown?.opening ?? 0) + 1, source });
   }
-  // Which opening has finished appearing: the comment sheet can only slide up over it after that.
-  const [presented, setPresented] = useState(0);
+
+  if (!shown) return <></>;
+
+  return (
+    <PostViewerModal
+      key={shown.opening}
+      visible={!!postId}
+      userId={userId}
+      startPostId={shown.postId}
+      source={shown.source}
+      onClose={onClose}
+      onOpenProfile={onOpenProfile}
+      openComments={openComments}
+    />
+  );
+}
+
+function PostViewerModal({
+  visible,
+  userId,
+  startPostId,
+  source,
+  onClose,
+  onOpenProfile,
+  openComments,
+}: {
+  visible: boolean;
+  userId: string;
+  startPostId: string;
+  source: MorphSource | null;
+  onClose: () => void;
+  onOpenProfile: (userId: string) => void;
+  openComments: boolean;
+}): React.JSX.Element {
+  const { width, height } = useWindowDimensions();
+  const morph = useMorphTransition(source, onClose);
 
   return (
     <Modal
-      visible={!!postId}
-      animationType="fade"
+      visible={visible}
+      animationType={morph.enabled ? 'none' : 'fade'}
       transparent
       statusBarTranslucent
-      onRequestClose={onClose}
-      onShow={() => setPresented(shown?.opening ?? 0)}
+      onRequestClose={morph.close}
     >
       {/* A Modal is its own native window: gesture-handler needs its own root here. */}
       <GestureHandlerRootView style={styles.root}>
         {/* No tab bar in here, even when opened from a tab. */}
         <TabBarRoomContext.Provider value={null}>
-          {shown ? (
+          <Reanimated.View
+            style={[StyleSheet.absoluteFill, styles.backdrop, morph.backdropStyle]}
+          />
+          <Reanimated.View style={[styles.root, morph.contentStyle]}>
             <ViewerPages
-              key={shown.opening}
               userId={userId}
-              startPostId={shown.postId}
-              open={!!postId}
-              onClose={onClose}
+              startPostId={startPostId}
+              open={visible && morph.presented}
+              onClose={morph.close}
               onOpenProfile={onOpenProfile}
-              commentsUp={openComments && presented === shown.opening}
+              commentsUp={openComments && morph.presented}
+              morphProgress={morph.enabled ? morph.progress : undefined}
+            />
+          </Reanimated.View>
+          {morph.enabled && source ? (
+            <MorphingImage
+              source={source}
+              target={{ x: 0, y: 0, width, height }}
+              targetRadius={0}
+              progress={morph.progress}
             />
           ) : null}
         </TabBarRoomContext.Provider>
@@ -107,6 +161,7 @@ function ViewerPages({
   onClose,
   onOpenProfile,
   commentsUp,
+  morphProgress,
 }: {
   userId: string;
   startPostId: string;
@@ -116,6 +171,8 @@ function ViewerPages({
   onOpenProfile: (userId: string) => void;
   /** Bring the start post's comments up (once, when this turns true). */
   commentsUp: boolean;
+  /** When present, swipe-to-close directly scrubs the shared-geometry transition. */
+  morphProgress?: SharedValue<number>;
 }): React.JSX.Element {
   const { dark } = useAppTheme();
   const { width, height } = useWindowDimensions();
@@ -184,16 +241,28 @@ function ViewerPages({
     .simultaneousWithExternalGesture(list)
     .onUpdate((e) => {
       'worklet';
-      dy.value = Math.max(0, e.translationY);
+      if (morphProgress) {
+        // SharedValue supplied by the transition owner; the pan directly scrubs its UI-thread value.
+        // eslint-disable-next-line react-hooks/immutability
+        morphProgress.value = Math.max(0, Math.min(1, 1 - e.translationY / height));
+      } else {
+        dy.value = Math.max(0, e.translationY);
+      }
     })
     .onEnd((e) => {
       'worklet';
       if (swipeCloses(e.translationY, e.velocityY)) {
-        dy.value = withTiming(height, { duration: VIEWER.closeMs }, (done) => {
-          if (done) scheduleOnRN(onClose);
-        });
+        if (morphProgress) scheduleOnRN(onClose);
+        else {
+          dy.value = withTiming(height, { duration: VIEWER.closeMs }, (done) => {
+            if (done) scheduleOnRN(onClose);
+          });
+        }
       } else {
-        dy.value = withSpring(0, VIEWER.snapBack);
+        if (morphProgress) {
+          // eslint-disable-next-line react-hooks/immutability
+          morphProgress.value = withSpring(1, VIEWER.snapBack);
+        } else dy.value = withSpring(0, VIEWER.snapBack);
       }
     });
 

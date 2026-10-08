@@ -7,6 +7,17 @@ The single entry point for continuing work on Mahi. Read this first. It encodes 
 
 ## State on 2026-10-08 (newest; overrides older notes below)
 
+**Native continuity motion (front end; no server work):** Profile workout tiles now expand from the
+exact tapped tile into `PostViewer` and reverse into it on close; a downward dismissal scrubs the
+same geometry. Profile photos do the same into the circular avatar viewer. The camera's captured
+frame now settles into the post composer with a scale/crossfade instead of arriving as a separate
+sideways page. All three paths become crossfades under Reduce Motion, and post video/content waits
+until the moving still has landed. The reusable implementation is `components/MorphTransition.tsx`
+plus `lib/morph.ts`; it deliberately uses a measured clone inside the destination Modal rather than
+Reanimated's experimental shared-element API. Phone-check grid photo/video opens and closes, avatar
+opens/closes, swipe-down cancellation/dismissal, camera preview/discard, light/dark, and Reduce
+Motion. No database migration, RPC or edge-function change is required for this motion work.
+
 **Show-up accountability (product):** Mahi is a show-up fitness accountability app (RULES.md
 "Product identity and core loop"). The front end says "Start by showing up", the first workout has
 no tagging step, and every later post answers a live tag and picks 3 friends ("Who are you holding

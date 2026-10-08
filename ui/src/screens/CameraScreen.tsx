@@ -552,7 +552,9 @@ function DualPhotoPreview({
     tagsMissing,
     taggedUsers.length + inviteCount + slots.length > 0
   );
-  const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+  // The live camera and the finished post are the same visual object: resolve the captured frame
+  // into its controls with a restrained scale/crossfade instead of pushing in a separate page.
+  const previewScale = useRef(new Animated.Value(SCALE.s0_96)).current;
   const [modalOpen, setModalOpen] = useState(false);
 
   // Which photo is the full-screen background: 'rear' or 'front'
@@ -655,16 +657,16 @@ function DualPhotoPreview({
     !firstWorkout && modalOpen && activeSheet === 'none' && !isUploading
   );
 
-  // Reduce Motion: the preview fades in and out instead of sliding (owner approved 2026-10-05).
+  // Reduce Motion keeps only the crossfade; otherwise the captured frame settles into the post.
   const reduceMotion = useReducedMotion();
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (hasPhotos) {
       setModalOpen(true);
+      fadeAnim.setValue(0);
       if (reduceMotion) {
-        slideAnim.setValue(0);
-        fadeAnim.setValue(0);
+        previewScale.setValue(1);
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: DURATION.d200,
@@ -672,12 +674,19 @@ function DualPhotoPreview({
         }).start();
         return;
       }
-      fadeAnim.setValue(1);
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        ...SPRING.page,
-        useNativeDriver: true,
-      }).start();
+      previewScale.setValue(SCALE.s0_96);
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: DURATION.d200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(previewScale, {
+          toValue: 1,
+          ...MOTION.morph,
+          useNativeDriver: true,
+        }),
+      ]).start();
     } else {
       const close = reduceMotion
         ? Animated.timing(fadeAnim, {
@@ -685,13 +694,20 @@ function DualPhotoPreview({
             duration: DURATION.d200,
             useNativeDriver: true,
           })
-        : Animated.spring(slideAnim, {
-            toValue: SCREEN_WIDTH,
-            ...SPRING.page,
-            useNativeDriver: true,
-          });
+        : Animated.parallel([
+            Animated.timing(fadeAnim, {
+              toValue: 0,
+              duration: DURATION.d200,
+              useNativeDriver: true,
+            }),
+            Animated.spring(previewScale, {
+              toValue: SCALE.s0_96,
+              ...MOTION.morph,
+              useNativeDriver: true,
+            }),
+          ]);
       close.start(() => {
-        slideAnim.setValue(SCREEN_WIDTH);
+        previewScale.setValue(SCALE.s0_96);
         fadeAnim.setValue(1);
         frozenFront.current = null;
         frozenRear.current = null;
@@ -879,10 +895,7 @@ function DualPhotoPreview({
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Animated.View
-          style={[
-            styles.previewPanel,
-            { transform: [{ translateX: slideAnim }], opacity: fadeAnim },
-          ]}
+          style={[styles.previewPanel, { transform: [{ scale: previewScale }], opacity: fadeAnim }]}
         >
           {/* Primary full-screen photo — pinch to zoom, drag to pan when
             zoomed, double-tap to reset. Lives behind the PIP/pills. */}

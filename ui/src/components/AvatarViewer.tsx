@@ -9,6 +9,8 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { MorphSource } from '@/lib/morph';
+import { MorphingImage, useMorphTransition } from '@/components/MorphTransition';
 import {
   avatarCircleSize,
   avatarTapCloses,
@@ -37,6 +39,8 @@ interface AvatarViewerProps {
   onClose: () => void;
   /** What VoiceOver calls the photo ("@sam’s profile photo"); without it, "Profile photo". */
   label?: string | null;
+  /** Measured profile picture used for the native shared-geometry transition. */
+  source?: MorphSource | null;
 }
 
 /**
@@ -49,27 +53,71 @@ export default function AvatarViewer({
   uri,
   onClose,
   label,
+  source = null,
 }: AvatarViewerProps): React.JSX.Element {
-  // Keep showing the photo while the viewer fades out after `uri` goes null.
-  const [shown, setShown] = useState(uri);
-  if (uri && uri !== shown) setShown(uri);
+  // Keep the source geometry stable until the reverse transition has finished.
+  const [openUri, setOpenUri] = useState<string | null>(null);
+  const [shown, setShown] = useState<{
+    uri: string;
+    source: MorphSource | null;
+    opening: number;
+  } | null>(null);
+  if (uri !== openUri) {
+    setOpenUri(uri);
+    if (uri) setShown({ uri, source, opening: (shown?.opening ?? 0) + 1 });
+  }
+
+  if (!shown) return <></>;
+
+  return (
+    <AvatarViewerModal
+      key={shown.opening}
+      visible={!!uri}
+      uri={shown.uri}
+      source={shown.source}
+      onClose={onClose}
+      label={label ?? 'Profile photo'}
+    />
+  );
+}
+
+function AvatarViewerModal({
+  visible,
+  uri,
+  source,
+  onClose,
+  label,
+}: {
+  visible: boolean;
+  uri: string;
+  source: MorphSource | null;
+  onClose: () => void;
+  label: string;
+}): React.JSX.Element {
+  const { width, height } = useWindowDimensions();
+  const size = avatarCircleSize(width, height);
+  const morph = useMorphTransition(source, onClose);
 
   return (
     <Modal
-      visible={!!uri}
-      animationType="fade"
+      visible={visible}
+      animationType={morph.enabled ? 'none' : 'fade'}
       transparent
       statusBarTranslucent
-      onRequestClose={onClose}
+      onRequestClose={morph.close}
     >
       {/* A Modal is its own native window: gesture-handler needs its own root here. */}
       <GestureHandlerRootView style={styles.root}>
-        {shown ? (
-          <ZoomablePhoto
-            key={shown}
-            uri={shown}
-            onClose={onClose}
-            label={label ?? 'Profile photo'}
+        <Reanimated.View style={[StyleSheet.absoluteFill, styles.backdrop, morph.backdropStyle]} />
+        <Reanimated.View style={[styles.root, morph.contentStyle]}>
+          <ZoomablePhoto uri={uri} onClose={morph.close} label={label} />
+        </Reanimated.View>
+        {morph.enabled && source ? (
+          <MorphingImage
+            source={source}
+            target={{ x: (width - size) / 2, y: (height - size) / 2, width: size, height: size }}
+            targetRadius={size / 2}
+            progress={morph.progress}
           />
         ) : null}
       </GestureHandlerRootView>

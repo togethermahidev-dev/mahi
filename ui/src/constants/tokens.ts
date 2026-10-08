@@ -400,6 +400,8 @@ export const SPRING = {
 // ─── Motion: how big things grow or shrink (transform scale) ──────────────────
 export const SCALE = {
   s0_68: 0.68,
+  /** Full-screen content beginning or ending a restrained continuity morph. */
+  s0_96: 0.96,
   s1_1: 1.1,
   s1_3: 1.3,
   s4: 4,
@@ -554,6 +556,9 @@ export const MOTION = {
   countUpMs: 700,
   /** A tag pill turning into a check. */
   morph: { damping: 14, stiffness: 180, mass: 0.8 },
+  /** Shared geometry: destination content joins near the end; the moving image then disappears. */
+  morphContentAt: 0.72,
+  morphImageUntil: 0.94,
   /** A button press and release. */
   press: { damping: 18, stiffness: 420, mass: 0.6 },
   /** The countdown ring's line width and size. */

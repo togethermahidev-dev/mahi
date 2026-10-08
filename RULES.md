@@ -240,6 +240,13 @@
   anywhere else, a numeric constant in a screen or raw layout maths — need a new value? add a token first.
   `app.config.js` can't import tokens, so the brand colour is typed once there (`ACCENT`) and the test checks it
   matches `COLORS.accent`
+- Motion preserves continuity: when a person opens a workout tile or profile photo, the tapped
+  object expands into its destination and reverses into place on close; camera capture resolves
+  into the post preview rather than pushing in an unrelated page. Use the measured-clone pattern in
+  `ui/src/components/MorphTransition.tsx` across native `Modal` boundaries (not Reanimated's
+  experimental shared-element API). Destination video/content waits for the morph to land, drag-to-
+  dismiss scrubs the same transition, unavailable geometry falls back to a fade, and Reduce Motion
+  is always a crossfade.
 - UI copy is sentence case ("Log in", "12 points", "No tags to answer", "Take photo"). No all-caps,
   letter-spaced labels; the MAHI wordmark is the only exception (owner, 2026-10-01). `sentenceCase.test.ts`
   fails on Title Case in on-screen text, pop-ups, menu options and labels (names like Apple keep capitals)

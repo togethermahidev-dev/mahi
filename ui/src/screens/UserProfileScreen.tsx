@@ -60,6 +60,7 @@ import {
   withAlpha,
 } from '@/constants/tokens';
 import { themeColors } from '@/hooks/useAppTheme';
+import type { MorphSource } from '@/lib/morph';
 
 type ProfileRow = PublicProfile;
 
@@ -155,8 +156,13 @@ export default function UserProfileScreen({
   const [messaging, setMessaging] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [activeConvo, setActiveConvo] = useState<ConversationPreview | null>(null);
-  const [viewerPostId, setViewerPostId] = useState<string | null>(null);
+  const [viewerPost, setViewerPost] = useState<{
+    postId: string;
+    source?: MorphSource;
+  } | null>(null);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [avatarSource, setAvatarSource] = useState<MorphSource | null>(null);
+  const avatarRef = useRef<View>(null);
   const [suggestedUserId, setSuggestedUserId] = useState<string | null>(null);
 
   // Swipe right to close. The pan only takes over once the finger has clearly moved right, so
@@ -463,7 +469,27 @@ export default function UserProfileScreen({
             <Pressable
               accessibilityRole="imagebutton"
               accessibilityLabel={`View @${profile.username}'s profile photo`}
-              onPress={() => setAvatarOpen(true)}
+              ref={avatarRef}
+              onPress={() => {
+                setAvatarSource(null);
+                if (!avatarRef.current) {
+                  setAvatarOpen(true);
+                  return;
+                }
+                avatarRef.current.measureInWindow((avatarX, avatarY, width, height) => {
+                  if (width > 0 && height > 0 && profile.avatar_url) {
+                    setAvatarSource({
+                      x: avatarX,
+                      y: avatarY,
+                      width,
+                      height,
+                      uri: profile.avatar_url,
+                      borderRadius: width / 2,
+                    });
+                  }
+                  setAvatarOpen(true);
+                });
+              }}
               style={({ pressed }) => pressed && { opacity: ALPHA.a90 }}
             >
               <Image
@@ -632,7 +658,7 @@ export default function UserProfileScreen({
             userId={profile.id}
             isSelf={false}
             header={header}
-            onPostPress={(post) => setViewerPostId(post.id)}
+            onPostPress={(post, source) => setViewerPost({ postId: post.id, source })}
             username={profile.username}
           />
         ) : (
@@ -681,10 +707,11 @@ export default function UserProfileScreen({
             Only posts the feed lock lets you open (see ProfileMediaMap) can be tapped. */}
         <PostViewer
           userId={userId}
-          postId={viewerPostId}
-          onClose={() => setViewerPostId(null)}
+          postId={viewerPost?.postId ?? null}
+          source={viewerPost?.source}
+          onClose={() => setViewerPost(null)}
           onOpenProfile={(id) => {
-            setViewerPostId(null);
+            setViewerPost(null);
             setSuggestedUserId(id);
           }}
         />
@@ -692,6 +719,7 @@ export default function UserProfileScreen({
         {/* Their profile photo, full screen */}
         <AvatarViewer
           uri={avatarOpen ? (profile?.avatar_url ?? null) : null}
+          source={avatarSource}
           onClose={() => setAvatarOpen(false)}
           label={profile?.username ? `@${profile.username}’s profile photo` : null}
         />

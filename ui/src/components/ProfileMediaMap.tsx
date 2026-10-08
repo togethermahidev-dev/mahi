@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Image,
@@ -34,6 +34,7 @@ import PreviewMenu, { PostPreviewImage } from '@/components/PreviewMenu';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import ListState from '@/components/ListState';
 import { restrictedText } from '@/lib/accountControls';
+import type { MorphSource } from '@/lib/morph';
 import type { FeedPost } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -109,7 +110,7 @@ function WorkoutCard({
   dark: boolean;
   width: number;
   mediaHeight: number;
-  onPress: () => void;
+  onPress: (source?: MorphSource) => void;
   /** Hold to preview (standard, no switch; iPhone, build 11). */
   menuOn: boolean;
 }) {
@@ -134,9 +135,34 @@ function WorkoutCard({
   const liked = useSocialStore((s) => s.likedByMe[post.id] ?? post.liked_by_me);
   const { width: screenW, height: screenH } = useWindowDimensions();
   const items = withMenu ? gridMenuItems({ liked, canShare: shareTarget(post) != null }) : [];
+  const cellRef = useRef<View>(null);
+  const openFromCell = () => {
+    if (!tile.uri) {
+      onPress();
+      return;
+    }
+    if (!cellRef.current) {
+      onPress();
+      return;
+    }
+    cellRef.current.measureInWindow((x, y, measuredWidth, measuredHeight) => {
+      if (measuredWidth <= 0 || measuredHeight <= 0) {
+        onPress();
+        return;
+      }
+      onPress({
+        x,
+        y,
+        width: measuredWidth,
+        height: measuredHeight,
+        uri: tile.uri!,
+        borderRadius: 0,
+      });
+    });
+  };
   const runAction = (action: string) => {
     if (!isMenuAction(action)) return;
-    if (action === 'open') onPress();
+    if (action === 'open') openFromCell();
     else if (action === 'like' || action === 'unlike') {
       const userId = useUserStore.getState().profile?.id;
       if (!userId) return;
@@ -148,12 +174,13 @@ function WorkoutCard({
 
   const cell = (
     <Pressable
+      ref={cellRef}
       style={({ pressed }) => [
         styles.gridCard,
         { width, backgroundColor: tileBg },
         pressed && styles.pressed,
       ]}
-      onPress={locked ? () => useToastStore.getState().show(LOCKED_HINT) : onPress}
+      onPress={locked ? () => useToastStore.getState().show(LOCKED_HINT) : openFromCell}
       accessibilityRole="button"
       accessibilityLabel={
         locked
@@ -234,7 +261,7 @@ interface ProfileMediaMapProps {
    * one list: this scrolls away with the grid, so the grid can fill the screen.
    */
   header: React.ReactElement;
-  onPostPress?: (post: FeedPost) => void;
+  onPostPress?: (post: FeedPost, source?: MorphSource) => void;
   /** The list's scrolling as a gesture, so a page swipe around it can run alongside it. */
   listGesture?: NativeGesture;
   /** Someone else's @username, for their empty grid ("@sam hasn't posted yet."). */
@@ -355,7 +382,7 @@ export default function ProfileMediaMap({
               dark={dark}
               width={cardWidth}
               mediaHeight={mediaHeight}
-              onPress={() => onPostPress?.(item)}
+              onPress={(source) => onPostPress?.(item, source)}
               menuOn={menuOn}
             />
           </View>
