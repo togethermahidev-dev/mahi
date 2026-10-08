@@ -575,10 +575,11 @@ export const MOTION = {
     limit: 48,
     parallax: 0.3,
     fromScale: 0.985,
-    /** The camera settles here, leaving the accountability card visibly behind it. */
-    openScreenShare: 0.72,
-    /** At the open detent the camera itself has become a compact card near the bottom. */
-    collapsedHeightShare: 0.16,
+    /** At the open detent the camera is a portrait card (3:4) filling the bottom half of the
+     *  page, centred, with the background showing around it; the roadmap and card take the top
+     *  half (owner, 2026-10-08). */
+    collapsedHeightShare: 0.46,
+    collapsedAspect: 0.75,
     collapsedInset: 16,
     /** Release after this share of the reveal and the camera completes opening. */
     openAt: 0.24,

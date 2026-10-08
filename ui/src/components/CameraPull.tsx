@@ -58,7 +58,13 @@ export function useCameraPull(
   viewportHeight: number
 ) {
   const reduceMotion = useReducedMotion();
-  const openOffset = viewportHeight * MOTION.pull.openScreenShare;
+  // Open: the camera is a portrait card in the bottom half; it travels down to its top edge.
+  const collapsedHeight = viewportHeight * MOTION.pull.collapsedHeightShare;
+  const collapsedWidth = Math.min(
+    collapsedHeight * MOTION.pull.collapsedAspect,
+    viewportWidth - MOTION.pull.collapsedInset * 2
+  );
+  const openOffset = Math.max(0, viewportHeight - collapsedHeight - MOTION.pull.collapsedInset);
   const offset = useSharedValue(0);
   const startOffset = useSharedValue(0);
   const startY = useSharedValue(0);
@@ -171,10 +177,10 @@ export function useCameraPull(
     openOffset,
     { x: 0, y: 0, width: viewportWidth, height: viewportHeight, borderRadius: 0 },
     {
-      x: MOTION.pull.collapsedInset,
+      x: (viewportWidth - collapsedWidth) / 2,
       y: openOffset,
-      width: viewportWidth - MOTION.pull.collapsedInset * 2,
-      height: viewportHeight * MOTION.pull.collapsedHeightShare,
+      width: collapsedWidth,
+      height: collapsedHeight,
       borderRadius: RADIUS.r24,
     }
   );
@@ -288,6 +294,17 @@ export function PullHandle({
       withSpring(0, SPRING.pullBack)
     );
   }, [reduceMotion, jump]);
+  // Opened: the arrow turns Mahi blue and bounces (owner, 2026-10-08).
+  useEffect(() => {
+    if (!expanded || reduceMotion) return;
+    jump.value = withSequence(
+      withTiming(-MOTION.pull.arrowJumpY, { duration: MOTION.pullHandleMs }),
+      withSpring(0, SPRING.bounce),
+      withTiming(-MOTION.pull.arrowJumpY, { duration: MOTION.pullHandleMs }),
+      withSpring(0, SPRING.bounce)
+    );
+  }, [expanded, reduceMotion, jump]);
+  const arrowColor = expanded ? COLORS.accent : COLORS.offWhite;
   const jumpStyle = useAnimatedStyle(() => ({ transform: [{ translateY: jump.value }] }));
   const positionStyle = useAnimatedStyle(() => {
     const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
@@ -321,21 +338,24 @@ export function PullHandle({
         accessibilityHint={expanded ? undefined : 'Pull down or double tap'}
         accessibilityState={{ expanded }}
       >
-        <Reanimated.View style={[jumpStyle, chevronStyle]}>
-          {swift ? (
-            <NativeChevron swift={swift} breathe={!reduceMotion} />
-          ) : (
-            <Svg width={SIZE.z36} height={ICON_SIZE.i24} viewBox="0 0 24 14">
-              <Path
-                d="M3 3l9 8 9-8"
-                stroke={COLORS.offWhite}
-                strokeWidth={STROKE.s2}
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-          )}
+        {/* Two layers: the hop and the turn each own a transform, so neither overwrites the other. */}
+        <Reanimated.View style={jumpStyle}>
+          <Reanimated.View style={chevronStyle}>
+            {swift ? (
+              <NativeChevron swift={swift} breathe={!reduceMotion} color={arrowColor} />
+            ) : (
+              <Svg width={SIZE.z36} height={ICON_SIZE.i24} viewBox="0 0 24 14">
+                <Path
+                  d="M3 3l9 8 9-8"
+                  stroke={arrowColor}
+                  strokeWidth={STROKE.s2}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </Svg>
+            )}
+          </Reanimated.View>
         </Reanimated.View>
       </Pressable>
     </Reanimated.View>
@@ -346,9 +366,11 @@ export function PullHandle({
 function NativeChevron({
   swift,
   breathe,
+  color,
 }: {
   swift: NonNullable<ReturnType<typeof loadSwiftUI>>;
   breathe: boolean;
+  color: string;
 }): React.JSX.Element {
   const { Host, Image } = swift.ui;
   const { symbolEffect } = swift.modifiers;
@@ -357,7 +379,7 @@ function NativeChevron({
       <Image
         systemName="chevron.compact.down"
         size={SIZE.z36}
-        color={COLORS.offWhite}
+        color={color}
         modifiers={
           breathe
             ? [symbolEffect({ effect: 'breathe' }, { options: { repeat: 'nonRepeating' } })]

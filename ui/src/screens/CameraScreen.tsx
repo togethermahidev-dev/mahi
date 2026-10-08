@@ -335,6 +335,8 @@ function WaitingCardWords({
   mates: { list: MateOnClock[]; offsetMs: number } | null | undefined;
   points: string | null;
 }) {
+  // Behind the camera these words sit on the page's own background, so they follow the theme.
+  const { colors } = useAppTheme();
   const ticking = !!mates && mates.list.length > 0;
   const deviceNow = useSecondTick(ticking);
   if (mates === null) {
@@ -361,8 +363,8 @@ function WaitingCardWords({
       accessibilityRole="text"
       accessibilityLabel={`${t}. ${l}${points ? ` ${points}.` : ''}`}
     >
-      <Text style={styles.postedTitle}>{t}</Text>
-      <Text style={styles.postedSub}>{l}</Text>
+      <Text style={[styles.postedTitle, { color: colors.text }]}>{t}</Text>
+      <Text style={[styles.postedSub, { color: colors.muted }]}>{l}</Text>
       {points ? <Text style={styles.waitingPoints}>{points}</Text> : null}
     </View>
   );
@@ -1698,6 +1700,9 @@ export default function CameraScreen({
   onOpenProfileRef.current = onOpenProfile;
   const cameraRef = useRef<CameraView>(null);
   const { dark } = useAppTheme();
+  // The card behind the camera sits on the page background (white in light mode): its words and
+  // buttons follow the theme so they can always be read (owner, 2026-10-08).
+  const onBg = themeColors(dark);
   // The glass bar sits on the left, level with the small window's spot: the window starts past it.
   const railRoom = useRailRoom();
   // Apple's tab bar at the bottom: the shutter row, the lens switch and the small window sit
@@ -3075,7 +3080,8 @@ export default function CameraScreen({
                 style={[
                   styles.revealOverlay,
                   {
-                    paddingTop: openTagsTop(safeTop, fontScale) + SIZE.z64,
+                    // Just under the arrow, so the roadmap and card fill the top half.
+                    paddingTop: appHeaderHeight(safeTop) + SPACE.s8 + SIZE.z64,
                     paddingBottom: pageHeight - pull.openOffset + SPACE.s16,
                   },
                   pull.behindStyle,
@@ -3108,6 +3114,7 @@ export default function CameraScreen({
                           <Pressable
                             style={({ pressed }) => [
                               styles.seeFeedButton,
+                              { backgroundColor: onBg.text },
                               pressed && { opacity: ALPHA.a70 },
                             ]}
                             android_ripple={{ color: COLORS.offBlack }}
@@ -3118,9 +3125,11 @@ export default function CameraScreen({
                             accessibilityState={{ busy: card.button.busy }}
                           >
                             {card.button.busy ? (
-                              <ActivityIndicator color={COLORS.offBlack} />
+                              <ActivityIndicator color={onBg.bg} />
                             ) : (
-                              <Text style={styles.seeFeedText}>{card.button.label}</Text>
+                              <Text style={[styles.seeFeedText, { color: onBg.bg }]}>
+                                {card.button.label}
+                              </Text>
                             )}
                           </Pressable>
                         ) : null}
@@ -3143,7 +3152,9 @@ export default function CameraScreen({
                             {invitingMate ? (
                               <ActivityIndicator color={COLORS.accent} />
                             ) : (
-                              <Text style={styles.inviteMateText}>{INVITE_BUTTON}</Text>
+                              <Text style={[styles.inviteMateText, { color: onBg.muted }]}>
+                                {INVITE_BUTTON}
+                              </Text>
                             )}
                           </Pressable>
                         </Reanimated.View>
@@ -3164,7 +3175,9 @@ export default function CameraScreen({
                             }
                             accessibilityHint="Shows the links you’ve sent and who joined"
                           >
-                            <Text style={styles.seeInvitesText}>Your invites</Text>
+                            <Text style={[styles.seeInvitesText, { color: onBg.muted }]}>
+                              Your invites
+                            </Text>
                             <CountBadge count={myInviteCount ?? 0} />
                           </Pressable>
                           {contactsFinder ? (
@@ -3177,7 +3190,9 @@ export default function CameraScreen({
                               accessibilityRole="button"
                               accessibilityLabel="Find friends in your contacts"
                             >
-                              <Text style={styles.seeInvitesText}>Contacts</Text>
+                              <Text style={[styles.seeInvitesText, { color: onBg.muted }]}>
+                                Contacts
+                              </Text>
                             </Pressable>
                           ) : null}
                         </Reanimated.View>
