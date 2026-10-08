@@ -25,7 +25,7 @@ import { PressScale } from '@/components/Motion';
 import { CameraIcon, FeedIcon } from '@/components/ScreenIcons';
 import { usePageSize } from '@/hooks/useChrome';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { cameraCard, feedOpensOnRelease, feedTop } from '@/lib/cameraFeed';
+import { cameraCard, feedOpensOnRelease, feedSwipe, feedTop } from '@/lib/cameraFeed';
 import { appHeaderHeight } from '@/lib/pip';
 import { haptic } from '@/lib/haptics';
 import { FONTS } from '@/constants/fonts';
@@ -38,7 +38,6 @@ import {
   SIZE,
   SPACE,
   SPRING,
-  SWIPE,
 } from '@/constants/tokens';
 
 export default function CameraFeedPage({
@@ -100,14 +99,51 @@ export default function CameraFeedPage({
   const cardScale = card.scale;
   const cardRadius = RADIUS.r24;
 
-  // Swipe the full camera up: it shrinks towards its card as the finger goes.
-  const upSwipe = useMemo(
-    () =>
+  // Swipe the full camera up (it shrinks towards its card as the finger goes), or the small card
+  // down. Decided by direction and handed off explicitly, like the camera's own pull, so a
+  // sideways drag is always the page swipe to Messages / Profile (feedSwipe, cameraFeed.ts).
+  const touchX = useSharedValue(0);
+  const touchY = useSharedValue(0);
+  const decided = useSharedValue(false);
+  const insetTop = insets.top;
+  const makeSwipe = useCallback(
+    (open: boolean) =>
       Gesture.Pan()
-        .enabled(!feedShown)
-        .maxPointers(1)
-        .activeOffsetY(-SWIPE.slop * 2)
-        .failOffsetX([-SWIPE.slop, SWIPE.slop])
+        .enabled(open === feedShown)
+        .manualActivation(true)
+        .onTouchesDown((e, manager) => {
+          'worklet';
+          const t = e.changedTouches[0];
+          if (e.numberOfTouches !== 1 || !t) return;
+          touchX.value = t.absoluteX;
+          touchY.value = t.absoluteY;
+          decided.value = false;
+          if (t.absoluteY < insetTop) {
+            decided.value = true;
+            manager.fail();
+          }
+        })
+        .onTouchesMove((e, manager) => {
+          'worklet';
+          const t = e.allTouches[0];
+          if (decided.value || !t) return;
+          if (e.numberOfTouches > 1) {
+            decided.value = true;
+            manager.fail();
+            return;
+          }
+          const decision = feedSwipe({
+            startY: touchY.value,
+            insetTop,
+            open,
+            dx: t.absoluteX - touchX.value,
+            dy: t.absoluteY - touchY.value,
+          });
+          if (decision === 'wait') return;
+          decided.value = true;
+          if (decision === 'activate') manager.activate();
+          else manager.fail();
+        })
         .onStart(() => {
           'worklet';
           startProgress.value = progress.value;
@@ -118,44 +154,18 @@ export default function CameraFeedPage({
         })
         .onEnd((e) => {
           'worklet';
-          const open = feedOpensOnRelease({
+          const settled = feedOpensOnRelease({
             progress: progress.value,
             velocity: e.velocityY / 1000,
             travel,
-            startedOpen: false,
+            startedOpen: open,
           });
-          scheduleOnRN(settle, open);
+          scheduleOnRN(settle, settled);
         }),
-    [feedShown, progress, startProgress, travel, settle]
+    [feedShown, insetTop, touchX, touchY, decided, progress, startProgress, travel, settle]
   );
-  // Swipe the small card down: the camera grows back.
-  const cardSwipe = useMemo(
-    () =>
-      Gesture.Pan()
-        .enabled(feedShown)
-        .maxPointers(1)
-        .activeOffsetY(SWIPE.slop * 2)
-        .failOffsetX([-SWIPE.slop, SWIPE.slop])
-        .onStart(() => {
-          'worklet';
-          startProgress.value = progress.value;
-        })
-        .onUpdate((e) => {
-          'worklet';
-          progress.value = Math.min(1, Math.max(0, startProgress.value - e.translationY / travel));
-        })
-        .onEnd((e) => {
-          'worklet';
-          const open = feedOpensOnRelease({
-            progress: progress.value,
-            velocity: e.velocityY / 1000,
-            travel,
-            startedOpen: true,
-          });
-          scheduleOnRN(settle, open);
-        }),
-    [feedShown, progress, startProgress, travel, settle]
-  );
+  const upSwipe = useMemo(() => makeSwipe(false), [makeSwipe]);
+  const cardSwipe = useMemo(() => makeSwipe(true), [makeSwipe]);
 
   const cameraStyle = useAnimatedStyle(() => {
     const p = progress.value;

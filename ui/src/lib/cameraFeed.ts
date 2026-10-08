@@ -4,7 +4,8 @@
  * the Camera pill, or swipe it down and the camera is back full screen. Pure geometry and release
  * rules, unit-tested; the screen is src/screens/CameraFeedPage.tsx.
  */
-import { MOTION, SPACE } from '@/constants/tokens';
+import { MOTION, SPACE, SWIPE } from '@/constants/tokens';
+import type { SwipeDecision } from './swipeRules';
 
 export type CameraCard = { x: number; y: number; width: number; height: number; scale: number };
 
@@ -43,4 +44,35 @@ export function feedOpensOnRelease(input: {
   if (input.velocity <= -flick) return true;
   if (input.velocity >= flick) return false;
   return input.startedOpen ? input.progress > 1 - openAt : input.progress >= openAt;
+}
+
+/**
+ * Whether a drag on the camera moves the feed: up on the full camera, down on the small card.
+ * Decided by direction, like the camera's pull (cameraPull.ts): a sideways drag is the page swipe
+ * to Messages / Profile, the other direction belongs to the camera's own pull, and a drag from
+ * the status bar is the phone's.
+ */
+export function feedSwipe({
+  startY,
+  insetTop,
+  open,
+  dx,
+  dy,
+}: {
+  startY: number;
+  insetTop: number;
+  /** The feed is showing (the camera is the small card). */
+  open: boolean;
+  dx: number;
+  dy: number;
+}): SwipeDecision {
+  'worklet';
+  if (startY < insetTop) return 'fail';
+  const ax = Math.abs(dx);
+  const ay = Math.abs(dy);
+  if (ax > SWIPE.slop && ax >= ay) return 'fail';
+  const toward = open ? dy : -dy;
+  if (toward < -SWIPE.slop) return 'fail';
+  if (toward > SWIPE.slop && ay > ax) return 'activate';
+  return 'wait';
 }
