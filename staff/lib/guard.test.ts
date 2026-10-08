@@ -64,6 +64,10 @@ test('after sign-in, only a path on this site is followed; otherwise the overvie
   assert.equal(safeNext('//evil.example'), '/');
   assert.equal(safeNext('/\\evil.example'), '/');
   assert.equal(safeNext('/login'), '/');
+  // Browsers drop tabs and newlines in a URL, so "/\t/evil.example" would become "//evil.example".
+  assert.equal(safeNext('/\t/evil.example'), '/');
+  assert.equal(safeNext('/\n/evil.example'), '/');
+  assert.equal(safeNext('/\r\\evil.example'), '/');
 });
 
 test('a token is refreshed when it ends within a minute, or cannot be read', () => {

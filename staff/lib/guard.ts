@@ -41,7 +41,10 @@ export const HOME = '/';
 
 /** Where to go after signing in: only a path on this site, never back to the sign-in page. */
 export function safeNext(next: string | null | undefined): string {
-  if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/\\')) return HOME;
+  // Browsers drop tabs and newlines inside a URL ("/\t/evil" becomes "//evil"), so refuse any
+  // control character before checking the start.
+  if (!next || /[\u0000-\u001f\u007f]/.test(next)) return HOME;
+  if (!next.startsWith('/') || next.startsWith('//') || next.startsWith('/\\')) return HOME;
   if (next === '/login' || next.startsWith('/login?')) return HOME;
   return next;
 }
