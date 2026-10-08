@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 19 — pulled-down camera: the selfie window shrinks with it, the arrow rides down
+ *     to the card, and a swipe up anywhere brings the camera back (2026-10-08)
  *   build 13 · 18 — tab bar labels stay in line with the Camera tab selected (both Camera
  *     pictures share one size) (2026-10-08)
  *   build 13 · 17 — tapping a locked row wiggles the padlock line (2026-10-08)
@@ -123,4 +125,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 18;
+export const OTA_NUMBER = 19;
