@@ -1,4 +1,4 @@
--- Undo 20261008140000_security_hardening_live: the app may write follows and reports directly
+-- Undo 20261008150000_security_hardening_live: the app may write follows and reports directly
 -- again, notify_on_follow goes back to its old body (as live on 2026-10-08), the avatar address
 -- check goes, anyone may list avatar files again, and signed-out callers may call the two message
 -- reaction functions again.
@@ -51,7 +51,7 @@ drop policy if exists "Users can insert own reports" on public.user_reports;
 create policy "Users can insert own reports"
   on public.user_reports for insert with check (auth.uid() = reporter_id);
 
-delete from supabase_migrations.schema_migrations where version = '20261008140000';
+delete from supabase_migrations.schema_migrations where version = '20261008150000';
 
 notify pgrst, 'reload schema';
 
