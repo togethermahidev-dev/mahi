@@ -389,7 +389,7 @@ export default function GlobalSearchOverlay({
                     }
                     Sentry.addBreadcrumb({
                       category: 'search',
-                      message: `Profile tapped: ${item.username}`,
+                      message: `Profile tapped: ${item.id}`,
                       level: 'info',
                     });
                     Keyboard.dismiss();

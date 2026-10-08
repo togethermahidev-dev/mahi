@@ -456,7 +456,6 @@ export default function CreateAccountSheet({
       //    splits the two paths (Maximus, 2026-10-07): an invite from a mate, or downloaded alone.
       const joinedVia = useInviteStore.getState().pendingToken ? 'invite' : 'self';
       posthog.capture('signup_completed', {
-        username: username.trim().toLowerCase(),
         fitness_goals: fitnessGoals,
         joined_via: joinedVia,
         method: apple ? 'apple' : 'email',

@@ -265,7 +265,7 @@ export default function UserProfileScreen({
     if (!currentUserId || !profile || messaging) return;
     Sentry.addBreadcrumb({
       category: 'profile',
-      message: `Message tapped: ${profile.username}`,
+      message: `Message tapped: ${userId}`,
       level: 'info',
     });
     setMessaging(true);
