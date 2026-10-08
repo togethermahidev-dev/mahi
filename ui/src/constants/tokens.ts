@@ -350,6 +350,11 @@ export const STROKE = {
 } as const;
 
 // ─── Glass blur strength (BlurView intensity, 0–100) ─────────────────────────
+/** React Native Image `blurRadius` (points): a picture reduced to colour, no detail. */
+export const BLUR_RADIUS = {
+  heavy: 24,
+} as const;
+
 export const BLUR_INTENSITY = {
   i35: 35,
   i40: 40,

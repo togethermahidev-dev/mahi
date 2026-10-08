@@ -35,27 +35,38 @@ import { FONTS } from '@/constants/fonts';
 import {
   ALPHA,
   BLUR_INTENSITY,
+  BLUR_RADIUS,
   BORDER_WIDTH,
-  COLORS,
   FONT_SIZE,
   ICON_SIZE,
   OFFSET,
   RADIUS,
   SIZE,
   SPACE,
-  withAlpha,
 } from '@/constants/tokens';
 
 /**
- * A locked row: the real row under full frost, like the camera's cover over the live camera
- * (owner, 2026-10-08). The person's photo and name are there (the server sends who posted) but
- * frosted to a smudge; the previews are blank, since the server sends no photo or caption. Nothing
- * can be read, and VoiceOver says only "Locked post".
+ * A locked row: the real row under frost, like the camera's cover over the live camera (owner,
+ * 2026-10-08). A blur needs a picture behind it, and the server sends none for a locked post, so
+ * the poster's profile photo (the one picture we have) fills the row and both preview windows,
+ * enlarged and heavily blurred: colour, no face. The name is there but frosted to a smudge.
+ * Nothing can be read, and VoiceOver says only "Locked post".
  */
 function LockedRow({ item }: { item: FeedPost }): React.JSX.Element {
   const { dark, colors } = useAppTheme();
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
+  const photo = item.profiles.avatar_url;
+  const blurred = (style: object) =>
+    photo ? (
+      <Image
+        source={{ uri: photo, cache: 'force-cache' }}
+        style={style}
+        resizeMode="cover"
+        blurRadius={BLUR_RADIUS.heavy}
+        accessibilityElementsHidden
+      />
+    ) : null;
   return (
     <View
       style={[styles.row, { backgroundColor: colors.bg }]}
@@ -63,6 +74,7 @@ function LockedRow({ item }: { item: FeedPost }): React.JSX.Element {
       accessibilityLabel="Locked post"
       importantForAccessibility="yes"
     >
+      {blurred([StyleSheet.absoluteFill, styles.lockedWash])}
       {item.profiles.avatar_url ? (
         <Image
           source={{ uri: item.profiles.avatar_url, cache: 'force-cache' }}
@@ -83,13 +95,17 @@ function LockedRow({ item }: { item: FeedPost }): React.JSX.Element {
         </Text>
       </View>
       <View style={styles.thumbs}>
-        <View style={[styles.thumb, { backgroundColor: colors.border }]} />
-        <View style={[styles.thumb, { backgroundColor: colors.border }]} />
+        <View style={[styles.thumb, { backgroundColor: colors.border }]}>
+          {blurred(StyleSheet.absoluteFill)}
+        </View>
+        <View style={[styles.thumb, { backgroundColor: colors.border }]}>
+          {blurred(StyleSheet.absoluteFill)}
+        </View>
       </View>
       <BlurView
         intensity={BLUR_INTENSITY.i100}
         tint={dark ? 'dark' : 'light'}
-        style={[StyleSheet.absoluteFill, styles.frost]}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
     </View>
@@ -331,7 +347,8 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r10,
     overflow: 'hidden',
   },
-  frost: {
-    backgroundColor: withAlpha(COLORS.accent, ALPHA.a20),
+  // The profile photo, enlarged and faint, behind a locked row: colour for the frost to work on.
+  lockedWash: {
+    opacity: ALPHA.a60,
   },
 });
