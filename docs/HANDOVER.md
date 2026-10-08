@@ -5,7 +5,20 @@ The single entry point for continuing work on Mahi. Read this first. It encodes 
 
 ---
 
-## State on 2026-10-08 (newest; overrides older notes below)
+## State on 2026-10-08, evening (newest; overrides everything below)
+
+Preview lane / TestFlight at **OTA 13.32** on build 13 (build 13 on preview + TestFlight; production
+untouched). Today, in order: photo saving by file name (egress fix, 13.01); Codex's camera drawer,
+welcome loop and friend grid (13.02–13.06); feed rows, frosted locked feed, black/white colours
+(13.07–13.18); Netflix-style tab morph (13.08); **camera and feed on one screen**, three tabs (13.23);
+two-stage camera swipes and one camera gesture for both directions (13.29–13.30); the locked camera
+says why and keeps a locked shutter (13.28); lock reason uses the server's has-posted mark (13.31).
+Launch crashes in 13.08 and 13.19–13.20 were animation-thread mistakes (rules now in RULES.md, Design
+System), fixed in 13.09 and 13.21. Supabase is over the free plan's data allowance: the owner is to
+upgrade to Pro before 10 Oct. Build 14 list: Camera tab wiggle, liquid ink transitions (Skia).
+Nothing here has been checked on a phone by Claude.
+
+## State on 2026-10-08 (earlier)
 
 Camera reveal correction: the arrow now stays directly below the header in both states. Waiting
 content is borderless and scrollable, with wrapping actions for large text. The compressed camera

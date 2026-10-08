@@ -100,11 +100,22 @@
 - Removing a follower (`remove_follower`) is silent; removing a Friend also ends the open tags between
   you, after a clear confirm sheet.
 
-## Swipe pages and tab bar (2026-10-07)
+## Swipe pages and tab bar (2026-10-07; camera and feed combined 2026-10-08)
 
 - Order, left to right, everywhere (tab bar, swipe pages, glass rail, screen-reader actions):
-  Messages, Feed, Camera, Profile. Camera is still the landing page. Change it only in `NATIVE_TABS`
-  (`ui/src/lib/nativeTabs.ts`) and the page strip in `HorizontalNavigator`, which must match it.
+  Messages, Camera, Profile — three pages. The feed has no page or tab: it lives behind the camera on
+  one screen (`CameraFeedPage`, decision #147). Camera is the landing page. Change the order only in
+  `NATIVE_TABS` (`ui/src/lib/nativeTabs.ts`) and the page strip in `HorizontalNavigator`, which must match.
+- The camera is the front sheet both ways, two-stage (decisions #147–#150): pull it down and it slides
+  down to a portrait card with the roadmap behind it; swipe it up and it slides up to a strip with the
+  feed behind it (a locked feed: a one-stage quarter lift with the reason and one button). The first
+  swipe stops at a peek (`MOTION.pull.peekShare` / `MOTION.cameraFeed.peekShare`); a second swipe or a
+  tap goes the rest; back returns to the camera. Where it settles: `releaseDetent` (`ui/src/lib/detent.ts`).
+- One gesture on the camera decides both directions (`cameraDrag` in `ui/src/lib/cameraPull.ts`), so the
+  swipe up is as reliable as the pull down. Never add a second vertical pan beside it: nested pans
+  compete and the outer one loses (13.23–13.29).
+- Tapping a tab, or a button that opens a page, grows the page in (`pageMorphFrame`, decision #146);
+  only a swipe slides the strip.
 - Only a real sideways carousel may hold the page swipe (`onCarouselTouchChange`). Never wire it to a
   whole-screen list: every touch would hold the swipe and the page could not be left by swiping
   (the cause of "can't swipe from Profile", fixed in OTA 12.22).
@@ -221,11 +232,19 @@
   rows or expired links on the device.
 - When writing back to profile after async work, always read from `useUserStore.getState().profile` — never spread a closure snapshot
 
-## What the feed shows (2026-10-07)
+## What the feed shows (2026-10-07; rows 2026-10-08)
 
 - The feed is the people you follow, newest first (`get_feed`). Of your own posts it shows only your
   latest, in its place by time (`latestOwnPostOnly` in `useFeed`); the rest stay on your Profile.
   Never reorder the feed in the app; the server's newest-first order is the order.
+- Each post is a Messages-sized row (`FeedRow`): who, caption or time, likes and comments, two small
+  previews. Tap → the full-screen TikTok view (`PostViewer` with `from="feed"`, the shared morph from the
+  rear preview); hold → Apple's menu (`rowMenuItems`). Rows sit on the page background with hairline
+  dividers.
+- A locked feed sends no photo or caption; never fake one. Locked rows are blurred skeletons with mock
+  counts. The reason and the one way out come from `lockPill`, which always gets the server's
+  `has_posted_before` mark (`postedBefore`): someone who has posted is never told to post a first
+  workout, even with no post left in the feed (13.31).
 
 ## Reactive posting and Mahi points
 
@@ -287,6 +306,18 @@
 - Card-to-destination motion uses `useCardMorphStyle`: one shared UI-thread progress value owns the
   card's position, size and corner radius. Camera minimisation, workout/post expansion and avatar
   expansion must reuse it rather than introducing separate geometry animation math.
+- Animation-thread code (worklets: `useAnimatedStyle`, gesture callbacks) may only call functions
+  marked `'worklet'`, and may only read numbers, flags and shared values held in local consts — never
+  an object that also holds a gesture, a ref or a plain function (pass functions back with
+  `scheduleOnRN`). Hooks go above every early `return`. Tests run on one thread and can't catch
+  these: 13.08, 13.19 and 13.20 crashed on launch from exactly this. Lint must pass by exit status
+  before any publish.
+- Colours (owner, 2026-10-08): cards, circles, pills and buttons are solid black or white with the
+  theme (`colors.text` fill, `colors.bg` words, or the reverse) — never a grey fill. Mahi blue
+  (`COLORS.accent`) is for one active cue (the current step, the selected tab, an open arrow). Muted
+  grey is for secondary words only.
+- One padlock for every locked state: `LockIcon` in `ScreenIcons` (Apple's `lock` where SF Symbols are
+  on). Never draw another.
 - UI copy is sentence case ("Log in", "12 points", "No tags to answer", "Take photo"). No all-caps,
   letter-spaced labels; the MAHI wordmark is the only exception (owner, 2026-10-01). `sentenceCase.test.ts`
   fails on Title Case in on-screen text, pop-ups, menu options and labels (names like Apple keep capitals)

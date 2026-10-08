@@ -422,17 +422,28 @@ The app uses **state-driven navigation** — no React Navigation, no router (don
 
 ### The swipe pages
 
-One row, sideways only, in the tab bar's order (founder, 2026-10-05, decisions #60–#64). No up/down
-page swiping; the Camera's pull-down for search is gone with it.
+One row, sideways only, in the tab bar's order (decisions #60–#64, #95; combined 2026-10-08, #147).
+Three pages; the feed lives behind the camera on the middle one.
 
 ```
-     swipe right ←                                              → swipe left
-┌──────────────┬──────────────┬──────────────┬──────────────┐
-│ CameraScreen │  FeedScreen  │ ProfileScreen│MessagesScreen│
-│  (index 0,   │  (index 1)   │  (index 2)   │  (index 3)   │
-│   on entry)  │              │              │              │
-└──────────────┴──────────────┴──────────────┴──────────────┘
+     swipe right ←                                → swipe left
+┌────────────────┬──────────────────────────┬────────────────┐
+│ MessagesScreen │      CameraFeedPage      │  ProfileScreen │
+│   (index 0)    │ CameraScreen in front,   │   (index 2)    │
+│                │ FeedScreen behind it     │                │
+│                │ (index 1, on entry)      │                │
+└────────────────┴──────────────────────────┴────────────────┘
 ```
+
+**The camera and the feed (`ui/src/screens/CameraFeedPage.tsx`):** the camera is the front sheet.
+One gesture on it (`cameraDrag`, `ui/src/lib/cameraPull.ts`) decides the direction: down moves the
+roadmap drawer (`useCameraPull`), up moves the feed (`feedDrag`, passed `CameraFeedPage` →
+`CameraScreen` → `useCameraPull`). Both are two-stage (`releaseDetent`, `ui/src/lib/detent.ts`):
+closed → peek → open. Swiping up slides the camera up to a strip under the header with the feed's
+rows behind it (`cameraStrip`, `ui/src/lib/cameraFeed.ts`); a locked feed lifts a quarter
+(`lockedGap`) and shows `LockedGap` (the reason, the padlock and one button). The pill beside the bell
+morphs between a question mark, the up-arrow and a camera icon (decision #148). A post opens the
+feed (`onPosted`).
 
 The order is `SWIPE_PAGES` in `ui/src/lib/nativeTabs.ts` (= the tab bar's `NATIVE_TABS`, tested).
 
@@ -458,16 +469,15 @@ The swipe pages above, plus what they share: an `AppHeader` on the Camera and on
 
 | Index | Page | Also reached by |
 |---|---|---|
-| 0 | `CameraScreen` | Entry page; the tab bar / rail |
-| 1 | `FeedScreen` | The tab bar / rail |
+| 0 | `MessagesScreen` | The tab bar / rail; the header icon when neither shows; a message push |
+| 1 | `CameraFeedPage` (`CameraScreen` + `FeedScreen`) | Entry page; the tab bar / rail; the feed by swiping up or the Feed pill |
 | 2 | `ProfileScreen` | The tab bar / rail; the header pill when neither shows |
-| 3 | `MessagesScreen` | The tab bar / rail; the header icon when neither shows; a message push |
 
 **Global Search:** `GlobalSearchOverlay` — a frosted-glass overlay (`BlurView`). It searches with `searchProfiles()`; tapping a result opens `UserProfileScreen` over it, from which Message opens `ConversationScreen`. Tapping your own profile is a no-op. All state resets when the overlay closes. Opened from the magnifier on your Profile screen (`ProfileScreen` `onSearch`, decision #64) and the empty feed's "Find friends"; Messages has its own magnifier.
 
 ### The phone's tab bar (`ui/src/screens/TabsNavigator.tsx`) — build 12+, no switch
 
-On builds with react-native-screens (build 12+; `loadScreens()` probes first, so build 10 never loads it) `App.tsx` renders `TabsNavigator` instead of `HorizontalNavigator` alone: the phone's own tab bar at the bottom (Apple's on iPhone, Material's on Android) — Camera, Feed, Profile, Messages — with `HorizontalNavigator` filling the screen above it. The bar's own tab pages are empty; they only measure the room the bar takes. A tap on a tab moves the swipe pages there (`movesPages`); a swipe moves the bar's highlight (`onTabChange`). The pages always end above the bar and never resize (the Feed would jump), so the bar stays visible under profiles, search and settings; it hides only under the post preview. Inside the pages `TabBarRoomContext` is 0 and `PageSizeContext` is the space above the bar. With the tab bar there is no glass rail and no header pills. The tab titles are Inter like every other word (`TAB_TITLE_APPEARANCE` in `ui/src/lib/nativeTabs.ts`, passed as the bar's `standardAppearance`); the rest of the bar stays the phone's.
+On builds with react-native-screens (build 12+; `loadScreens()` probes first, so build 10 never loads it) `App.tsx` renders `TabsNavigator` instead of `HorizontalNavigator` alone: the phone's own tab bar at the bottom (Apple's on iPhone, Material's on Android) — Messages, Camera, Profile — with `HorizontalNavigator` filling the screen above it. The bar's own tab pages are empty; they only measure the room the bar takes. A tap on a tab moves the swipe pages there (`movesPages`); a swipe moves the bar's highlight (`onTabChange`). The pages always end above the bar and never resize (the Feed would jump), so the bar stays visible under profiles, search and settings; it hides only under the post preview. Inside the pages `TabBarRoomContext` is 0 and `PageSizeContext` is the space above the bar. With the tab bar there is no glass rail and no header pills. The tab titles are Inter like every other word (`TAB_TITLE_APPEARANCE` in `ui/src/lib/nativeTabs.ts`, passed as the bar's `standardAppearance`); the rest of the bar stays the phone's.
 
 ### Nav Rail (`ui/src/components/NavRail.tsx`) — flags `nav-glass-rail`, `nav-rail-morph`; builds without the tab bar
 
@@ -491,7 +501,8 @@ Top bar placed from the safe area, `pointerEvents: 'box-none'` so touches pass t
 | `InAppAnimationScreen` | `ui/src/screens/InAppAnimationScreen.tsx` | Post-login entry animation |
 | `HorizontalNavigator` / `TabsNavigator` | `ui/src/screens/` | Swipe pages and the phone's tab bar (above) |
 | `CameraScreen` | `ui/src/screens/CameraScreen.tsx` | **Two-tap** dual-camera capture. `CaptureState` (`ui/src/lib/captureGuide.ts`): `idle → capturing-first → switching → awaiting-second → capturing-second`. With `camera-pip-guide`, `CapturePipGuide` shows what comes second, then the first photo, in the photo-in-photo spot. Then `DualPhotoPreview` (Modal: big photo + draggable pip, tap to swap), caption, tag sheet (page sheet; `InviteStep` when friends can't fill the slots), Post → `InviteShareSheet` when invites were used. Also `OpenTagsBanner` (who tagged you and the time left to answer) and the reactive-posting gate: a spinner while it loads, "No tags to answer" when closed. Flash button (off → on → auto, kept for the app session; the selfie side lights the screen) and photo quality (`ui/src/lib/cameraCapture.ts`). With `camera-tap-focus` (build 11+, iPhone): one tap focuses and exposes there (`FocusSquare`, native `focusAt` from `patches/expo-camera.patch`); two taps still flip. Haptics come from `haptic(moment)` in `ui/src/lib/haptics.ts`. No microphone |
-| `FeedScreen` | `ui/src/screens/FeedScreen.tsx` | Feed from `useFeed()` (`get_feed`), FlashList; `FeedLockBanner` (flag `feed-lock-explainer`) on top; locked posts say "Answer a tag to see it", with a button only when you can post; each post is a `PostCard` (`ui/src/components/PostCard.tsx`; dual-photo posts use `DraggablePip`); comments in `CommentSheet`, a native page sheet (with `comment-likes`: a heart and count per comment, read fresh on each opening and shown once they arrive; the count opens `CommentLikersSheet`, a page sheet of who liked it — loading, then the live list, nothing kept); avatar → `UserProfileScreen` |
+| `CameraFeedPage` | `ui/src/screens/CameraFeedPage.tsx` | The camera in front, the feed behind (see [The swipe pages](#the-swipe-pages)) |
+| `FeedScreen` | `ui/src/screens/FeedScreen.tsx` | Feed from `useFeed()` (`get_feed`), FlashList of `FeedRow`s (Messages-sized rows: who, caption, counts, two previews; tap → `PostViewer` `from="feed"`, the full-screen view; hold → Apple's menu); locked rows are blurred skeletons with `FeedLockBanner`'s padlock line over them (one inline row: padlock + action; tapping a row wiggles it); in the full-screen view each post is a `PostCard` (`ui/src/components/PostCard.tsx`; dual-photo posts use `DraggablePip`); comments in `CommentSheet`, a native page sheet (with `comment-likes`: a heart and count per comment, read fresh on each opening and shown once they arrive; the count opens `CommentLikersSheet`, a page sheet of who liked it — loading, then the live list, nothing kept); avatar → `UserProfileScreen` |
 | `ProfileScreen` | `ui/src/screens/ProfileScreen.tsx` | Own profile with avatar, stats, suggestions and workout grid. `SettingsPanel` has an inline appearance icon, Notifications, Security and privacy (Blocked users, Log out, Delete account), Support/Help and the version line |
 | `UserProfileScreen` | `ui/src/screens/UserProfileScreen.tsx` | Another person's profile, opened over Feed, search, notifications, messages, friends lists; one scrolling list like your own (back and menu scroll away with the header); swipe right to close — it follows the finger and slides away like a page swipe (`backSwipeX` / `backSwipeCloses` in `swipeRules`, reanimated on the UI thread); tap the photo → `AvatarViewer`; tap a post → `PostViewer`; menu and report reasons via `ActionSheetIOS`; Message (spinner while the chat opens) |
 | `PostViewer` | `ui/src/components/PostViewer.tsx` | A tapped grid post, full screen, in a Modal: up/down pages through all of that profile's posts (only those the grid opens — the feed lock's rule, `openablePosts` in `ui/src/lib/viewer.ts`), each drawn by `PostCard` (videos play on screen); a swipe left or right closes (`swipeCloses`), as do × and back. Owner, 2026-10-02 |
