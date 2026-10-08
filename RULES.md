@@ -8,6 +8,10 @@
   Install with `pnpm --filter ./ui add <pkg>` (Expo packages: `cd ui && npx expo install <pkg>`).
   EAS commands run from `ui/`.
 
+## Security (2026-10-08)
+- `docs/security.md` is the security rulebook: database, server functions, links, staff portal, secrets,
+  reviews and the review log. Read it before any database, server function, link or sign-in change.
+
 ## Branch and moderation (2026-10-06)
 - Work happens on branch `updates` (reaches `main` by the owner's say-so); commit by name, never push without a same-session go.
 - Moderation is server-side only: reports, staff actions and hiding go through the RPCs in
@@ -37,6 +41,8 @@
   declining a tag request creates neither. Preserve this server invariant in every future flow.
 - Before a tag request is sent or an invite link is shared/accepted, the UI must plainly say that
   acceptance or joining makes both people follow each other. The accepted/joined state confirms it.
+- An invite link opened by someone already signed in never claims by itself: a confirm sheet (Accept /
+  Not now) comes first; Not now writes nothing (2026-10-08, `docs/security.md`).
 - Profile follow/unfollow writes go only through `set_following`; the store may update optimistically,
   but must reconcile from the RPC's committed state. Friends/follow lists always load fresh server data
   and subscribe to follow changes while open; never cache them on-device.
@@ -76,6 +82,9 @@
 - Pre-auth functions (`send-otp`, `verify-otp`, `complete-signup`, `send-reset-code`, `reset-password`)
   and the cron-called `send-push` and `moderate-content` are deployed with `verify_jwt: false` (`--no-verify-jwt`)
 - `delete-account` is the exception: deployed **with** JWT verification (the default); it acts on the caller
+- Whatever the JWT setting, every function checks its caller itself: Bearer token via `auth.getUser` for
+  person-facing functions, `X-Internal-Secret` for `send-push` / `moderate-content`, signature for webhooks
+  (`docs/security.md`). Never take a user id from the request body
 - Functions are deployed by the owner only; see `supabase/README.md`
 
 ## Email / OTP
@@ -84,11 +93,14 @@
   - `send-otp` `{ email }` → emails a 6-digit code, 10-minute expiry, send limits per email and per network address
   - `verify-otp` `{ email, code }` → checks it (5 tries), stamps `otp_codes.verified_at`
   - `complete-signup` `{ email, password, code }` → creates the account only for a code verified in the last 30 minutes
-  - Auth hook `hook_require_verified_signup` (Before User Created) refuses email accounts without that stamp
+  - Auth hook `hook_require_verified_signup` (Before User Created) refuses email accounts without that stamp,
+    and (from the 2026-10-08 security migration) without `app_metadata.signup_via = 'complete-signup'`, so the
+    public sign-up address can't create email accounts. `complete-signup` also counts code tries (5)
   - These three read only `purpose = 'signup'` codes in `otp_codes`
 - Password reset uses the same table with `purpose = 'reset'`:
   - `send-reset-code` `{ email }` → same answer and same work whether or not the email has an account
-  - `reset-password` `{ email, code, password }` → 5 tries, then sets the password with the admin API
+  - `reset-password` `{ email, code, password }` → 5 tries, then sets the password with the admin API and
+    signs out every session of that account (2026-10-08)
 - Codes are emailed via Resend from `noreply@mahitechnology.com`. Test with real inboxes (Gmail works;
   Maildrop dropped the email, 2026-10-01)
 - App Store review: provide Apple a **real seeded account** (created via the normal OTP flow) or a
@@ -101,7 +113,7 @@
 - The consent decision (`granted` / `denied`) is **cached locally in AsyncStorage** (`@mahi:location_consent`, via `ui/src/lib/location.ts`) so the user is asked **once** — the OS remembers too, but the cache prevents re-prompt churn.
 - Coordinates are **rounded to ~city-block precision** (3 decimal places ≈ 110m) via `roundCoord` before they ever leave `location.ts`, to avoid exact-home exposure. Low-quality fixes (accuracy worse than ~100m) are **dropped** (`null`).
 - A one-shot `getCurrentPositionAsync` (Balanced accuracy) is used — **not** a watch — for battery. Denials/errors degrade to `null`/`false` and never throw to the caller; a post without location stays valid.
-- Coordinates inherit the **post's public-read RLS** — there is no separate authz on the columns, so **anyone who can see the post can see its (rounded) coordinates**. RLS is unchanged and must not be weakened.
+- Coordinates follow the post's visibility: only people allowed to see the post (`can_view_post`: follower, not blocked, not banned, feed lock) get them, and a locked viewer gets them nulled. Until the 2026-10-08 security migration is pushed, the `posts` table is still readable row by row by any signed-in account (see `docs/security.md`). Never loosen this.
 
 ## Camera / Upload Flow
 - Two taps, two photos (the second tap stays; no auto timer). Shutter captures only — no upload until
@@ -113,7 +125,7 @@
   `createPost` = the `create_post` RPC, one server call that dates the post, records the Mahi points and
   saves tags, deadlines and pushes. A retry with the same `clientId` returns the same post
 - On a failure: remove the pending post and revert the points. The uploaded paths go (`removePostPhotos`) only when the server refused the post; on a network failure the photos and the `clientId` are kept so Try again replays the same post (`create_post` returns it with `replayed: true`)
-- `posts` storage bucket is still **public** (`supabase/deferred/private_bucket.sql` makes it private later)
+- `posts` storage bucket: private once the 2026-10-08 security migration is pushed (files only through signed URLs, read rule = `can_view_post`). Until then it is still public. Never show a photo by building its public address
 - Reactive posting (below): `create_post` checks `reactive_posting_open` and raises `'reactive posting: not tagged'`;
   the camera mirrors it with `reactivePostingGate()` (`ui/src/lib/reactivePosting.ts`), fed by the feed store's
   `unlockedUntil` (null until the first post) and the open tags — a spinner while loading, "No tags to answer" when closed; the server error maps to
@@ -124,7 +136,7 @@
 - Sessions persist via AsyncStorage (`autoRefreshToken: true`, `persistSession: true` in `ui/src/lib/supabase.ts`)
 - `onAuthStateChange` in `App.tsx` drives all screen transitions — no manual `authDone` flags
 - User creation uses `complete-signup` Edge Function (admin API, `email_confirm: true`)
-- Profile data is inserted into `public.profiles` after successful `signInWithPassword`
+- Profile data is inserted into `public.profiles` after successful `signInWithPassword` — only the sign-up columns (column grant from the 2026-10-08 security migration); points, ban and dates are the server's
 - Sign-up keeps date of birth and phone number as required fields (founder, 2026-10-01)
 - Log in → "Forgot password?" (`ForgotPasswordSheet`, `OtpCodeInput`) emails a code; code + new password log you in
 - Settings → Security and privacy → "Delete account" (Apple requires in-app deletion) asks once, then calls

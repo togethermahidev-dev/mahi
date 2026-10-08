@@ -250,7 +250,7 @@ Native capability work. Ship in this order (lowest risk first): **pinch-zoom →
 
 **Layers touched** — DB: `posts` (+2 cols, RLS unchanged but **review read exposure**) · lib: new `ui/src/lib/location.ts` (consent cache) · API: `posts.ts createPost` · Store: none (consent in AsyncStorage) · UI: `CameraScreen` toggle; optionally surface on `ProfileMediaMap`. · **Deps:** `expo-location`.
 
-**Security/Privacy (mandatory):** location is **per-post and inherits the post's public read RLS** — anyone who can see the post can see its coordinates. So: (a) **explicit opt-in per post**, never silent; (b) cache the consent decision locally; (c) consider rounding/truncating coordinates (e.g. ~city block) to avoid exact-home exposure; (d) document this in `RULES.md`. Do **not** request location at onboarding by default — request on first use.
+**Security/Privacy (mandatory):** location is **per-post and follows the post's visibility** (`can_view_post`, see `docs/security.md`) — anyone allowed to see the post can see its coordinates. So: (a) **explicit opt-in per post**, never silent; (b) cache the consent decision locally; (c) consider rounding/truncating coordinates (e.g. ~city block) to avoid exact-home exposure; (d) document this in `RULES.md`. Do **not** request location at onboarding by default — request on first use.
 
 **Risks:** GPS accuracy varies (omit if accuracy > ~100m); battery (one-shot fix, not watch); privacy backlash if location is on-by-default.
 

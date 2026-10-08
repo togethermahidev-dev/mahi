@@ -13,12 +13,15 @@ Worked example: a **"saved posts / bookmarks"** feature.
 
 ## 1. Database (do this first)
 
-Create the table + RLS, mirroring the existing `follows` table. Add a `SECURITY DEFINER` RPC **only**
-if the operation must validate `auth.uid()` server-side or return aggregate counts (mirror
-`get_follow_data`); a simple owner-scoped insert/delete can stay a direct table op guarded by RLS.
+Create the table with RLS on, then `revoke all … from anon, authenticated` and grant back only what
+the feature needs ([security.md](./security.md)). Writes that carry any rule go through a
+`SECURITY DEFINER` RPC that takes the caller from `auth.uid()`, sets `search_path` and revokes execute
+from `public, anon` (mirror `set_following`). A plain owner-only row with no rules (a bookmark) may be a
+direct insert/delete, with an owner-scoped policy and a column grant, never a whole-table grant.
 
-Every table needs owner-scoped `INSERT`/`UPDATE`/`DELETE` policies — RLS is the only authorization
-layer (there is no backend server).
+RLS and definer functions are the only authorization layer (there is no backend server), and anyone
+can make an account: the pgTAP test must show a signed-in stranger is refused, not only that the owner
+path works.
 
 Schema changes go **only** through a migration file (`supabase migration new <name>`) with a matching
 `supabase/rollbacks/<name>.rollback.sql` and a pgTAP test in `supabase/tests/` — red before the
