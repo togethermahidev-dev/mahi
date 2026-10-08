@@ -5,6 +5,10 @@
 begin;
 select plan(62);
 
+-- Reports need the post to be visible to the reporter (20261008180000); b hasn't posted, so
+-- the feed lock is off here.
+update public.app_config set feed_lock_enabled = false;
+
 create function pg_temp.uid(p text) returns uuid language sql immutable as $$
   select ('00000000-0000-0000-0000-00000000d0' || lpad((ascii(p) - 96)::text, 2, '0'))::uuid
 $$;

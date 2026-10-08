@@ -52,15 +52,15 @@ insert into public.comment_likes (comment_id, user_id) values
   ('00000000-0000-0000-0000-0000000f7c01', pg_temp.uid('a')),
   ('00000000-0000-0000-0000-0000000f7c02', pg_temp.uid('a'));
 
--- 2. Report copies.
-select pg_temp.as_user('c');
+-- 2. Report copies. b reports: since 20261008180000 a stranger can't report a post they can't see.
+select pg_temp.as_user('b');
 select from public.report_post('00000000-0000-0000-0000-0000000f7a01', 'other');
-select throws_ok($$select snapshot from public.user_reports where reporter_id = pg_temp.uid('c')$$,
+select throws_ok($$select snapshot from public.user_reports where reporter_id = pg_temp.uid('b')$$,
   '42501', null, 'a reporter cannot read the copy their report keeps');
-select is((select count(*)::int from public.user_reports where reporter_id = pg_temp.uid('c')), 1,
+select is((select count(*)::int from public.user_reports where reporter_id = pg_temp.uid('b')), 1,
   'a reporter can still count their own reports (the app''s "already reported" check)');
 reset role;
-select is((select snapshot ->> 'caption' from public.user_reports where reporter_id = pg_temp.uid('c')),
+select is((select snapshot ->> 'caption' from public.user_reports where reporter_id = pg_temp.uid('b')),
   'private caption', 'the copy is still kept for staff');
 
 -- 3. Comment likes follow the post.
