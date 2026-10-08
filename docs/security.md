@@ -40,7 +40,9 @@ means "trusted": always ask what a stranger with a fresh account could read or w
   - Follower and following lists: a `follows` row shows to someone outside it only when both people's
     lists are open to them (`can_see_follow_lists`: the owner, or someone the owner's workouts setting
     lets in, with no block). The policy calls that definer function and never reads `follows` itself
-    (no recursion). Counts come from `get_follow_data`, which answers only for `auth.uid()`.
+    (no recursion). `get_follow_data` returns the relationship fields (`is_following`,
+    `follows_you`, `requested`) for the caller (`auth.uid()`) only; follower and following counts
+    are public to anyone signed in.
     Suggestions count mates in common only through follows the caller may see.
   - One exception, per post (`tag_shows_post`): someone tagged on a post (`post_tags`, or a started
     tag on it), and the tagger of a tag the post answers (`tag_challenges.answered_post_id`), see that
@@ -147,7 +149,10 @@ Each is a setting only the owner can change. Tick it here when done.
 - `check-email` says whether an email has an account. Sign-up needs it.
 - Contacts are matched with unsalted SHA-256 hashes. The server doesn't keep them, and only the
   matched accounts come back.
-- Invite codes are 6 characters; guessing is limited by rate limits.
+- Invite codes are 6 characters. The database refuses code lookups (`get_invite_preview`,
+  `claim_invite`) after 20 unknown codes an hour per caller: the account when signed in, else the
+  address (Cloudflare's, else the last `x-forwarded-for` entry), counted in `auth_rate_limits`
+  (20261008180000). Full link tokens are not limited.
 - The `avatars` bucket is public: a profile photo opens by its address without signing in. Only the
   owner can list or change their folder, and `avatar_url` must point into it (20261008150000).
 
@@ -169,3 +174,4 @@ Each is a setting only the owner can change. Tick it here when done.
 | Second review: reporting a post or comment you can't see showed you its copy; comment-like lists ignored the post's rule; comments and likes were readable on any post | Medium | Report copies staff-only; `get_comment_likes` / `get_comment_likers` and the comment and like read rules follow the post | Live 2026-10-08 (20261008120000, 20261008130000) |
 | Live Supabase check 2026-10-08: the app could still write `follows` directly (follow across a block, follow-spam pushes); `avatar_url` could point anywhere (tracking image, someone else's photo); anyone could list every avatar file; signed-out callers could call the message reaction functions; anon kept table rights in `public` and authenticated kept truncate/references/trigger; the old direct report insert rule was still there; `answered_by_post` / `post_invites` (invite links) were callable by anyone | Medium | Follows only through `set_following` and no follow notice across a block or from a banned person; `avatar_url` must be this project's avatars address in your own folder; avatar files listable only by their owner (bucket stays public for image links); reaction functions signed-in only; anon has no table rights, authenticated no truncate/references/trigger (also for new tables); reports only through `report_*`; the two helpers internal; the unused direct follow and report calls removed from the app | Live 2026-10-08 (20261008150000). Phones older than OTA 12.20 lost Follow (none before launch) |
 | Public and private accounts (owner feature, 2026-10-08): every follow list was readable by anyone signed in, and `get_follow_data` trusted the id it was given | Medium | Follow lists follow the owner's workouts setting (a row shows only when both people's lists are open to you); `get_follow_data` answers only for the caller and is not callable signed out; requests readable by their two people only; privacy settings change only through `set_account_controls`; blocks and bans clear requests; tests prove a stranger is refused posts, files, comments, likes, comment likes and lists of a private account, and that a person tagged on one post (or the tagger of the tag it answers) sees only that post (not if blocked); a person could rewrite the type and sender of their own notifications, now only `is_read` | Live 2026-10-08 (20261008170000) |
+| Pre-build review 2026-10-08: a banned person's profile still showed other people padlock squares with tagged people and counts; follow/unfollow and like/unlike loops sent a notice (and push) every time; invite codes could be guessed without limit (`get_invite_preview` works signed out); reporting a post or comment you can't see answered differently from an unknown id, confirming it exists | Low | `get_user_posts` answers `{"locked": true, "items": []}` for a banned owner to anyone else; one follow and one like notice per recipient and sender a day; 20 unknown invite codes an hour per account or address, then code lookups refused (link tokens never; `claim_invite` answers null for an unknown code so the miss is counted); `file_report` answers "that does not exist" for a post or comment you can't see (`can_view_post_id`, staff exempt) | Built; not pushed (20261008180000) |

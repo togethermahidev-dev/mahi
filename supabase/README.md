@@ -73,6 +73,19 @@ bans clear requests. Tests
 `tests/tag_challenges_test.sql`, `tests/tag_feed_pushes_test.sql`, `tests/tag_slots_test.sql`), undo
 `rollbacks/20261008170000_private_accounts.rollback.sql`. Phones without the app update read
 `requested` as not following until the OTA.
+**Not pushed yet (pre-build review 2026-10-08):** `20261008180000_prebuild_hardening` —
+`get_user_posts` shows nobody else anything for a banned owner (`{"locked": true, "items": []}`, no
+padlock squares); `notify_on_follow` / `notify_on_like` send one notice per recipient, sender and kind
+a day (block, ban and approval skips stay); invite codes: 20 unknown codes an hour per caller (the
+account, or the address when signed out) in `auth_rate_limits` (action `invite_code_miss`), then
+`get_invite_preview` / `claim_invite` refuse code lookups with 22023 'too many tries, try again
+later' (32-character link tokens are never limited; `claim_invite` now answers null for an unknown
+code, because an error would roll the count back — the app only claims invites its preview found);
+`file_report` answers 'that does not exist' for a post or comment the reporter can't see
+(`can_view_post_id`; staff exempt). New internal helper `invite_code_limit`. Test
+`tests/prebuild_hardening_test.sql` (also updated: `tests/moderation_test.sql` turns the feed lock
+off, `tests/security_followups_test.sql` reports as a follower), undo
+`rollbacks/20261008180000_prebuild_hardening.rollback.sql`.
 Still held back: `deferred/contract_points.sql`, which drops the profile's `points` column once
 every phone has the Mahi points update. (`contract_messages` is live as migration
 `20261007111029_contract_messages`; `contract_posting` and `private_bucket` became
