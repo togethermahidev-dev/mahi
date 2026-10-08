@@ -40,14 +40,14 @@ npx supabase gen types typescript --project-id <project-id> > ui/src/types/datab
 
 | Table | Key Columns | Notes |
 |---|---|---|
-| `public.profiles` | `id`, `username`, `display_name`, `avatar_url`, `timezone`, `streak_current`, `streak_highest`, `has_posted_before` | `streak_current`: Mahi points; `streak_highest`: Best. `has_posted_before` is permanent, so deleting every post never restores the free first post. SELECT open to authenticated users; INSERT/UPDATE own only. |
+| `public.profiles` | `id`, `username`, `display_name`, `avatar_url`, `timezone`, `streak_current`, `streak_highest`, `has_posted_before` | `streak_current`: Mahi points; `streak_highest`: Best. `has_posted_before` is permanent, so deleting every post never restores the first workout. SELECT open to authenticated users; INSERT/UPDATE own only. |
 | `public.posts` | `id`, `user_id`, `image_url`, `pov_image_url`, `caption`, `streak_day`, `created_at` | Made under reactive posting. Owners edit captions through `update_post_caption` for one hour and delete through `delete_post`; direct table mutation stays denied. Media is returned through short-lived signed URLs, reused in memory until shortly before expiry. |
-| `public.post_likes` | `id`, `post_id`, `user_id`, `created_at` | Unique constraint `(post_id, user_id)`. RLS: authenticated read-all; insert/delete own only (`auth.uid() = user_id`). |
-| `public.post_comments` | `id`, `post_id`, `user_id`, `content`, `created_at` | Ordered oldest-first. RLS: authenticated read-all; insert/delete own only. |
+| `public.post_likes` | `id`, `post_id`, `user_id`, `created_at` | Unique constraint `(post_id, user_id)`. RLS: readable only on posts the reader can see (`can_view_post_id`; staff see all, `20261008120000`); insert own only on a visible post (`auth.uid() = user_id`); delete own only. |
+| `public.post_comments` | `id`, `post_id`, `user_id`, `content`, `created_at` | Ordered oldest-first. RLS: readable only on posts the reader can see (`can_view_post_id`; your own and staff always, removed comments hidden, `20261008120000`); insert own only on a visible post; delete own only. |
 | `public.follows` | `id`, `follower_id`, `following_id`, `created_at` | Unique constraint `(follower_id, following_id)`. CHECK constraint prevents self-follows (`follower_id <> following_id`). RLS: authenticated read-all; explicit UPDATE deny policy (`USING (false)`). No direct writes (insert/update/delete revoked, 20261008150000): follow and unfollow go through the `set_following` RPC (`setFollowing`); Friends are made by `claim_invite` / `respond_tag_invite`. |
 | `public.conversations` | `id`, `participant_one`, `participant_two`, `status`, `initiated_by`, `updated_at` | `participant_one < participant_two` enforced by `ordered_participants` CHECK constraint. `conversations_participants_unique` UNIQUE INDEX on `(participant_one, participant_two)` required for upsert `ON CONFLICT`. `REPLICA IDENTITY FULL` set for Realtime UPDATE/DELETE events. |
 | `public.messages` | `id`, `conversation_id`, `sender_id`, `content`, `created_at` | Trigger updates `conversations.updated_at` on insert. `REPLICA IDENTITY FULL` set for Realtime. Immutable — no UPDATE or DELETE. |
-| `public.post_tags` | `post_id`, `user_id` | Junction table storing user tags on posts (user mentions in captions + on-photo bubble overlays). Composite PK `(post_id, user_id)` — dedup enforced at the DB layer. Both FKs use `ON DELETE CASCADE` (deleting a post or a profile also clears its tags). RLS: `SELECT using (true)` (tags are visible whenever the parent post is visible); `INSERT with check (exists (select 1 from posts p where p.id = post_id and p.user_id = auth.uid()))` — a user can only tag on posts they own. No UPDATE or DELETE policies (immutable v1; re-post to change). `post_tags_user_id_idx` btree on `user_id` for future "posts I was tagged in" lookups. `get_feed_posts` RPC aggregates these into a `tagged_users` array per post row. |
+| `public.post_tags` | `post_id`, `user_id` | Junction table storing user tags on posts (user mentions in captions + on-photo bubble overlays). Composite PK `(post_id, user_id)` — dedup enforced at the DB layer. Both FKs use `ON DELETE CASCADE` (deleting a post or a profile also clears its tags). RLS: signed-in read only where the parent post is visible to the reader (the posts policy applies inside the check; hidden posts only for staff). No direct writes (insert/update/delete revoked, `20261008100000_security_hardening`): tags are added only by `create_post` and `start_tag`. `post_tags_user_id_idx` btree on `user_id` for future "posts I was tagged in" lookups. `get_feed` aggregates these into a `tagged_users` array per post row. |
 
 Tag-loop, moderation, push and code tables (`tag_challenges`, `invites`, `app_config`,
 `push_tokens`, `push_outbox`, `conversation_reads`, `notifications`, `user_blocks`, `user_reports`,
@@ -79,7 +79,9 @@ specified in [tag-loop-plan.md](./tag-loop-plan.md); their SQL is in `supabase/m
 `reactive_posting_open` — raises `reactive posting: not tagged` — then post, Mahi points, tags, deadlines,
 pushes, invites); the feed is `get_feed` (server-side lock, `feed-lock-explainer` reads its
 unlock window); profiles read `get_user_posts`; chat sends through `send_message`. The entries below
-describe the older functions, still live for old builds until `supabase/deferred/` retires them.
+describe older functions, now retired and kept for history: `get_feed_posts` was revoked from every app
+role by `20261008100000_security_hardening` and is dropped by `20261008160000_drop_dead_functions`
+(not pushed yet).
 
 **`get_feed_posts(p_limit int, p_cursor_ts timestamptz, p_cursor_id uuid)`** — `SECURITY DEFINER STABLE` (legacy; the app now reads `get_feed`)
 - Replaces the old `posts` table select + `FEED_SELECT` constant.
@@ -110,7 +112,8 @@ describe the older functions, still live for old builds until `supabase/deferred
 
 ### Storage
 
-**Bucket: `posts`** (public — images served via CDN)
+**Bucket: `posts`** (private since `20261008100000_security_hardening` — the app opens every photo
+through a short-lived signed URL, for the owner, staff or someone the feed rule lets see the post)
 
 - Upload paths: `{userId}/{clientId}_rear.jpg` and `{userId}/{clientId}_pov.jpg` (`uploadPostMedia`, `upsert: true`, so a retry overwrites). A video shot (flag `video-posts`) is `_rear|_pov.mov` (iPhone) or `.mp4` (Android)
 - Limits (migration `20261002100000_video_posts`): `image/jpeg`, `video/quicktime`, `video/mp4`, up to 50 MB a file
@@ -333,7 +336,7 @@ permission, a native module missing from an older build.
 
 **Also captured automatically:** crashes and unhandled promise rejections (SDK default), screen
 render errors (`ErrorBoundary`, level `fatal`), and the taps before each error
-(`Sentry.wrap(App)` in `ui/index.ts`). `Sentry.setUser({ id, email })` on sign-in, cleared on
+(`Sentry.wrap(App)` in `ui/index.ts`). `Sentry.setUser({ id })` on sign-in (the account id only, never the email), cleared on
 sign-out (`App.tsx`). Keep `Sentry.addBreadcrumb` for steps worth seeing in the trail.
 
 **Readable stack traces.** `ui/metro.config.js` uses `getSentryExpoConfig`, which stamps each

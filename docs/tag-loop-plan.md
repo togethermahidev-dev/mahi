@@ -6,13 +6,12 @@ Phases run in order; each one ships, is verified red→green, and is committed b
 Read first: [HANDOVER.md](./HANDOVER.md) (rules, goal loop), [architecture.md](./architecture.md#layering-contract)
 (layering contract), [adding-a-feature.md](./adding-a-feature.md) (copy-this recipe).
 
-> **Status (checked against prod 2026-10-01):** every migration below that has been written is live —
-> the twelve go-live changes on 2026-09-23, then `friends`, `tag_nudge`, `signup_codes`, `version_gate`,
-> `tag_lock_rules`, `contract_invites` (invite links on) and the 2026-10-01 reset/delete migrations.
-> Not done: `send-push` deployment and push credentials (Phase 1), the invite landing page (Phase 7), the
-> reactive posting migration `20261001120000_reactive_posting.sql` (Phase 5's streak half, replaced — not
-> yet live), the store release and the `supabase/deferred/` contract steps
-> (Phases 3, 4, 6). The app is on the EAS preview lane only.
+> **Status (checked against prod 2026-10-08):** every migration below is live, through
+> `20261008150000_security_hardening_live` — including reactive posting, the contract steps for posting
+> and private photos (`20261008100000_security_hardening`) and messages
+> (`20261007111029_contract_messages`). Only `contract_points` is still deferred
+> (`supabase/deferred/contract_points.sql`). Not done: `send-push` deployment and push credentials
+> (Phase 1) and the store release. The app is on the EAS preview lane only.
 
 > **Superseded 2026-10-02 — Mahi points (#47–#50):** wherever this plan says "streak", "points for the
 > tagger", "3 a day" or the flame badge, read: one **Mahi point** per post that answers a tag (answerer only,
@@ -390,7 +389,7 @@ deadlines and their pushes, and answers any tags the poster holds.
 `get_app_status()` RPC — `app_config` is already readable.
 
 *Contract step built 2026-10-08:* the parked `supabase/deferred/contract_posting.sql` became part of
-`supabase/migrations/20261008100000_security_hardening.sql` (security review; not pushed yet). Every app
+`supabase/migrations/20261008100000_security_hardening.sql` (security review; live 2026-10-08). Every app
 since 2026-09-17 posts through `create_post`.
 
 
@@ -406,12 +405,13 @@ since 2026-09-17 posts through `create_post`.
 works.
 
 **Owner says go:** raise `min_app_version` only after the Phase 2 build is live in the store; apply `contract_posting`.
+(Applied: `contract_posting` is part of `20261008100000_security_hardening`, live.)
 
 ---
 
 ### Phase 4 — Feed lock and private photos
 
-*Expand step built 2026-09-17, live 2026-09-23; founder's lock and no-tag-back rules added by `20260928120000_tag_lock_rules` (live 2026-09-28); `private_bucket` built 2026-10-08 as part of `20261008100000_security_hardening` (not pushed yet), which also makes the `posts` table follow `can_view_post`:* `supabase/migrations/20260917114517_feed_lock.sql`
+*Expand step built 2026-09-17, live 2026-09-23; founder's lock and no-tag-back rules added by `20260928120000_tag_lock_rules` (live 2026-09-28); `private_bucket` built 2026-10-08 as part of `20261008100000_security_hardening` (live 2026-10-08), which also makes the `posts` table follow `can_view_post`:* `supabase/migrations/20260917114517_feed_lock.sql`
 (+ rollback, `supabase/tests/feed_lock_test.sql`, 20 checks, flip-tested by disabling the lock rule).
 Differences from the design below:
 
@@ -497,6 +497,7 @@ for both the post data and the image files.
 - Device: fresh account → locked feed → post → unlocked; old public URL (after `private_bucket`) → 400.
 
 **Owner says go:** apply `feed_lock`; ship the build; after adoption (Phase 3 version gate), apply `private_bucket`.
+(Applied: `private_bucket` is part of `20261008100000_security_hardening`, live.)
 
 ---
 
@@ -566,8 +567,8 @@ correct for `Europe/London` and `America/New_York`.
 
 ### Phase 6 — Messages hardening
 
-*Built 2026-09-17; live 2026-09-23; contract step deferred.* `supabase/migrations/20260917120414_messages.sql` (+ rollback,
-`supabase/deferred/contract_messages.sql`; `supabase/tests/messages_test.sql`, 21 checks, red before
+*Built 2026-09-17; live 2026-09-23; contract step live as `20261007111029_contract_messages`.* `supabase/migrations/20260917120414_messages.sql` (+ rollback,
+`supabase/migrations/20261007111029_contract_messages.sql`; `supabase/tests/messages_test.sql`, 21 checks, red before
 the migration, green after). Differences from the design below:
 
 - **A live bug fixed on the way:** blocking someone you had messaged failed outright — the block
@@ -600,8 +601,8 @@ the migration, green after). Differences from the design below:
 - `mark_conversation_read(p_conversation_id)` — upsert `last_read_at = now()`.
 - `get_inbox()` — conversations with last message, other profile and `unread_count` in one query
   (replaces the two-query merge in `ui/src/api/messages.ts`).
-- Contract later (`contract_messages`, after the version gate covers this build): revoke direct
-  `INSERT` on `messages`.
+- Contract step (`20261007111029_contract_messages`, live): direct writes to `messages` and
+  `conversations` are closed.
 
 **Client**
 - `ui/src/api/messages.ts` (*edit*): `sendMessage(clientId)` → RPC, `getMessages(before)`, `getInbox()`,

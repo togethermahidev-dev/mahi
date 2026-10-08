@@ -116,9 +116,8 @@ All are Supabase RPCs (`supabase.rpc(name, args)`) for a signed-in person.
   characters`, `22023 that does not exist` (including a message from a conversation you're not
   in), `22023 you cannot report yourself`, `P0001 too many reports today` (30 a day),
   `42501 not signed in`.
-- The app's existing report (an insert into `user_reports` with `reporter_id`, `reported_user_id`
-  or `reported_post_id`, `reason`, `description`, and error `23505` = "Already reported") keeps
-  working unchanged for apps already on phones. New app code should use the calls above.
+- Direct report inserts into `user_reports` are closed (`20261008150000_security_hardening_live`):
+  every report goes through the `report_*` calls above.
 
 ### Your standing
 
@@ -301,8 +300,7 @@ table only the person can read); other people's profiles simply come back withou
 - Staff see a message only when it's reported; there's no list of a person's messages.
 - Videos and profile photos aren't checked automatically.
 - A hidden post's photo link already handed out keeps working until it expires (signed links
-  last minutes). The bucket is private from `20261008100000_security_hardening`; before that
-  migration is pushed, public links work for anyone who has them.
+  last minutes). The bucket is private from `20261008100000_security_hardening`.
 
 ## Added 2026-10-06 (applied to production the same day)
 
@@ -314,6 +312,7 @@ table only the person can read); other people's profiles simply come back withou
   standing"). Test `tests/sign_out_on_ban_test.sql`.
 - `20261006170000_signed_in_reads`: `get_feed_posts` and `get_follow_data` are for signed-in
   callers only (the app never calls them signed out). Test `tests/signed_in_reads_test.sql`.
+  (`get_feed_posts` revoked by 20261008100000.)
 
 - `20261006180000_post_caption_edits`: direct post mutation is denied; the owner can change the
   caption for one hour (`update_post_caption`). `20261006200000_maximus_answers` later added the

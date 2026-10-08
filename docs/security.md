@@ -30,8 +30,9 @@ means "trusted": always ask what a stranger with a fresh account could read or w
   - The caller comes from `auth.uid()`. Never trust a user id passed in.
   - `revoke execute … from public, anon`, then grant to the roles that need it. Internal helpers
     are revoked from `authenticated` too.
-- **Storage:** buckets are private; the app shows files through signed URLs; the read policy
-  applies the same visibility rule as the rows; uploads only into `<your user id>/`.
+- **Storage:** buckets holding people's content are private (avatars accepted public); the app
+  shows files through signed URLs; the read policy applies the same visibility rule as the rows;
+  uploads only into `<your user id>/`.
 - **Old paths close with the new one.** When a server function replaces a direct table path,
   remove the old policy and grant in the same release, not "later". Before launch there are no
   store users, so there is nothing to wait for.

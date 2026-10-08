@@ -50,7 +50,7 @@ plus everything after are also unchecked on a phone. Check, in this order, on a 
   pointing at the right things; the points pill visible when the camera is open.
 - Posting: the three friend circles fill as you tag (tag back the friend you answer); confirm words;
   the +1 moment; links sheet; "Answered @sam in 2h" on the post.
-- Lock screen: the Live Activity appears with an open tag, ticks, turns yellow at 6 h, opens the
+- Lock screen (only once released): the Live Activity appears with an open tag, ticks, turns yellow at 6 h, opens the
   camera on tap, ends on answer; the widget at both sizes; the tagger's photo shows.
 - Messages: hold a bubble → native menu with the emoji row; badges; double-tap ❤️; "+" opens the
   emoji keyboard with search and suggestions; the keyboard never covers the composer.
@@ -58,7 +58,7 @@ plus everything after are also unchecked on a phone. Check, in this order, on a 
 - Your invites: list, resend (share sheet), cancel; Settings → Friends rows.
 - Push: after the server steps, one tag push arrives and opens the camera.
 - Miss: the "You missed @sam's tag" moment once; points to 0, best kept.
-- Sign in with Apple (after the owner steps below): Apple's black button on the light welcome
+- Sign in with Apple (after the owner steps below, and only once released): Apple's black button on the light welcome
   screen, white on dark; cancel says nothing; a new Apple account goes to "Getting started" with
   the name filled in, then "Your profile", then the camera; Cancel there goes back to the welcome
   screen; an invite link still says who invited you and is claimed; signing out and in again with
@@ -77,8 +77,9 @@ No secrets in code; native sign-in needs only the bundle ID.
    plugin); check it's ticked after the build.
 2. Supabase dashboard → Authentication → Sign In / Providers → Apple: enable it, Client IDs =
    `com.mahi.app`. Leave Secret Key empty (that is only for web sign-in, and it expires every 6 months).
-3. PostHog switch `auth-apple-signin`: set to 100% (it is at 0% now, checked 2026-10-07). It is the
-   kill switch: off hides the button. Builds 10–12 never show it.
+3. PostHog switch `auth-apple-signin`: stays off (default off in code, off in PostHog since
+   2026-10-08) until the owner releases Sign in with Apple; then set it to 100%. Off hides the
+   button. Builds 10–12 never show it.
 4. Account deletion revokes Apple's access (App Store guideline 5.1.1(v); owner, 2026-10-07).
    Built: at sign-in the app sends Apple's one-time code to the new `apple-token` function, which
    keeps Apple's refresh token in `apple_tokens` (server-only table); `delete-account` revokes it
@@ -91,10 +92,7 @@ No secrets in code; native sign-in needs only the bundle ID.
       Continue → Register. Download the `.p8` file (Apple lets you download it once; keep it
       somewhere safe, never in the repo). Note the Key ID (on the key's page) and the Team ID
       (top right of the developer site, or Membership details).
-   b. Database: migration `20261007300000_apple_tokens` (with whatever else is pending), the usual
-      way from the repo root: `scripts/db.sh backup`, then
-      `scripts/db.sh try supabase/migrations/20261007300000_apple_tokens.sql supabase/tests/apple_tokens_test.sql`,
-      then `scripts/db.sh push --dry-run`, then `scripts/db.sh push`.
+   b. Database: done. Migration `20261007300000_apple_tokens` is live on production (2026-10-08).
    c. Secrets (type the real values yourself; the key file path is wherever you saved it):
       `supabase secrets set --project-ref pzepodsppqtvptzmwxzs APPLE_TEAM_ID=<team id> APPLE_KEY_ID=<key id> APPLE_CLIENT_ID=com.mahi.app`
       then `supabase secrets set --project-ref pzepodsppqtvptzmwxzs APPLE_PRIVATE_KEY="$(cat <path to AuthKey_XXXX.p8>)"`.
@@ -164,21 +162,21 @@ without the owner's go in the same session.
 - **OTAs 12.32–12.34 live on preview 2026-10-07** (12.34 group `655b1b1a-3807-45b3-8bde-326a4ad314a3`): Apple-popover tips, invites badge + Settings row, tag back (#112), mate circles, "Answered @sam in 2h", sign-up profile fix, "@sam is waiting on you", mates on the clock, miss moment, mates wording, website invite page says who tagged you. Prod DB through `20261007275000_mates_on_clock`.
 - **OTAs 12.29–12.31 live on preview 2026-10-07** (12.31 group `48a2a28e-8a91-41bd-9685-44cb52860bb0`): Invite a mate any time; a first answer needs no tags; one-time tips; yellow tag clock under 6 hours; open-tag reminder; padlock on the Feed tab; invite link opens and `app_update` in PostHog; Your invites (Profile card, resend once a day up to 3 times, cancel). Prod DB through `20261007210000_my_invites`. Website live with `/i/` and `/p/` pages and the Apple app-association file.
 - **OTA 12.28 live on preview 2026-10-07 16:17 UTC** (EAS group `6fcf3a45-7b81-4985-957f-a4a444849c90`): new people guided by how they arrived (Maximus's Type A/B words), first post earns the first point (`20261007180000_first_post_point`, live in prod), every tag countdown ticks, 'Waiting for a mate to tag you' card, full-screen +1 celebration, `joined_via` on sign-up.
-- **OTA 12.27 live on preview 2026-10-07 15:28 UTC** (EAS group `490c1120-a02a-4d34-b2e0-e0ea4ec13585`): the camera's tag pill sits under the points counter; the camera and an empty own profile read `profiles.has_posted_before`, so deleting every post never offers a free first post the server would refuse.
+- **OTA 12.27 live on preview 2026-10-07 15:28 UTC** (EAS group `490c1120-a02a-4d34-b2e0-e0ea4ec13585`): the camera's tag pill sits under the points counter; the camera and an empty own profile read `profiles.has_posted_before`, so deleting every post never offers a first workout the server would refuse.
 - **OTA 12.26 live on preview 2026-10-07 15:22 UTC** (EAS group `b026ffa4-29cb-48e4-a845-5d8b79103f4c`): profile workout grids have hairline gaps between rows again.
 - **OTA 12.25 live on preview 2026-10-07 15:12 UTC** (EAS group `4396ab1a-c9cb-4843-bd1c-d373c1b64a5d`): the camera tells a first-time poster whose tag their post answers. `20261007170000_username_available` is live in prod (checked against prod). The twelve switches made standard in 12.24 are deleted in PostHog.
 - **OTA 12.24 live on preview 2026-10-07 14:57 UTC** (EAS group `bedd3fdd-602e-48bb-8c52-3427563769a0`): the audit fixes below, twelve switches made standard, Sentry reporting everywhere (`reportError`, docs/integrations.md), PostHog one-person-per-account and core action events, profile photo save fix, server username check. Source maps uploaded. Not yet checked on a phone.
 - **Audit 2026-10-07 (checked against prod) and its fixes, on `updates`, now in OTA 12.24:**
   migration `20261007150000_live_updates_and_hardening` (live updates for follows, likes and
   comments; tags readable only by signed-in people and never on hidden posts; fixed search paths;
-  trigger functions not callable through the API; indexes on 27 foreign keys) — tried with
-  `scripts/db.sh try` (9/9), waiting for the owner's backup → push. App: unfollows/unlikes arrive
+  trigger functions not callable through the API; indexes on 27 foreign keys) — live on
+  production. App: unfollows/unlikes arrive
   live, live comments get their commenter, no duplicate own comment, blank names no longer crash
   (55b90b6). `check-email` source now in the repo (eac0aeb). Sign-in placeholders
   `auth-apple-signin` / `auth-google-signin` set to 0% in PostHog. Twelve 100% switches are being
   removed from the code. Found, not fixed (owner): send-push, moderate-content and didit functions
   not deployed; the update gate is off while old messaging is removed; post photos were public by
-  link (now private in `20261008100000_security_hardening`, not pushed yet); leaked-password protection off;
+  link (private since `20261008100000_security_hardening`, live); leaked-password protection off;
   `messages_test.sql` fails since `contract_messages` (it writes conversations directly).
 - **OTA 12.23 is live on preview** (EAS group `6127092f-5dce-44a0-b839-cadb60becb80`, commit 4454e3e):
   the feed shows the people you follow, newest first, and only your latest post among them; older
@@ -197,7 +195,7 @@ without the owner's go in the same session.
 - **Production OTA 12.16 is live on iOS and Android** (EAS group
   `cc174c9d-c47c-42a0-b4c7-cf37a2777ec2`). It applies Maximus's Q1–Q10 answers: one-day
   re-invite cooldown, no daily invite cap, blocking cancels without a miss, owners may delete posts
-  without regaining the free first post, correct invite timing, short share copy without the code,
+  without regaining the first workout, correct invite timing, short share copy without the code,
   accepted slots survive unfollowing, and each of the three tags may be either a current friend or
   someone not on Mahi. It also reuses valid signed media URLs, enables native caching for remote
   media/avatars, and reorganises Settings (appearance icon in the title, Notifications, nested
@@ -209,13 +207,13 @@ without the owner's go in the same session.
   messages (requests, edit, unsend) and the design pass (no "Mahi" above screen titles, double tap only
   likes, post sizes follow the phone and text size, the crew strip, the countdown ring, the answer
   celebration, motion tokens with Reduce Motion fades).
-- **Production database:** every migration through `20261007105647_explicit_mutual_follow_wording`
+- **Production database:** every migration through `20261008150000_security_hardening_live`
   is applied. `20261006200000_maximus_answers` adds the invite cooldown, permanent
   `has_posted_before` marker and owner-only `delete_post`; `20261006201000_optional_non_user_tags`
   removes friends-first. `20261006190000_message_requests` makes the first message from a non-friend a request;
   accept, decline or block; edit for 15 minutes; unsend; the server checks blocks, bans and removed
-  messages). Old apps still write conversations directly; `supabase/deferred/contract_messages.sql`
-  closes that once every phone has 12.12 (owner).
+  messages). Direct conversation writes from old apps are closed by
+  `20261007111029_contract_messages` (live).
 - **Shared post links:** `togethermahi.com/p/<post>` opens the post in the app (universal link). The
   web fallback (`web/app/p/[postId]/route.ts`, sends people without Mahi to the store) needs a web
   deploy (owner); Android link association needs the next native build.

@@ -13,8 +13,7 @@ policies that had been created in the dashboard. Every live table, column, funct
 index and bucket was checked against these files; nothing else was missing.
 
 Every later migration through `20261008150000_security_hardening_live` is live on production
-(checked against prod 2026-10-08, backup `20261008093204`). The historical "not pushed" paragraphs below describe rollout dependencies
-that have since landed unless they are explicitly listed under `supabase/deferred/`.
+(checked against prod 2026-10-08, backup `20261008093204`).
 **Pushed 2026-10-08:** `20261008140000_first_workout_no_tags` — the first workout needs no tags,
 whether or not it answers a tag (`create_post`: `when v_first_post then 0`); later posts still need
 a live tag and 3 friends. Test `tests/first_workout_no_tags_test.sql`.
@@ -41,64 +40,27 @@ internal, `get_suggested_follows` answers for `auth.uid()`. Then
 follow the post). Deploy `complete-signup` before the push and `reset-password` / `check-email`
 after it. Tests `tests/security_hardening_test.sql`, `tests/staff_confirmed_email_test.sql`,
 `tests/comment_like_visibility_test.sql`, `tests/security_followups_test.sql`; undo in `rollbacks/`.
-**Not pushed yet (2026-10-07, after `20261007270000_contact_match`):** `20261007280000_message_reactions`
-— reactions on messages: the `message_reactions` table (one per person per message; the same emoji
-again takes it off, a different one replaces it), `react_to_message` and `get_message_reactions`
-(only the two people in the chat, and the same closed doors as sending: a waiting request, a block,
-a ban, a gone message), `get_messages` carrying each message's `reactions` as
-`[{emoji, count, mine}]`, and the table in the realtime publication. Safe for every app on phones:
-`message_json` and every other field are unchanged. Test `tests/message_reactions_test.sql`, undo
-`rollbacks/20261007280000_message_reactions.rollback.sql`.
-**Not pushed yet (2026-10-07):** `20261007160000_founder_stats` — founder numbers of record in
-`stats` (daily actions, DAU/WAU/MAU and stickiness, weekly and day 1/7/30 retention, activation,
-weekly churn) and `posthog_reader`, a role that can read only those totals, for PostHog's
-data warehouse (created no-login; on production it has LOGIN, checked 2026-10-08). Reading only; nothing in the app changes. Test `tests/founder_stats_test.sql`, undo
-`rollbacks/20261007160000_founder_stats.rollback.sql`.
-**Not pushed yet:** `20261002150000_identity_verifications` (identity checks with Didit: the
-`identity_verifications` table — people read only their own rows — and `record_identity_verification`,
-service role only; test `tests/identity_verifications_test.sql`, undo
-`rollbacks/20261002150000_identity_verifications.rollback.sql`). Additive — nothing reads it unless the
-`identity-verification` flag is on. Push it before deploying `didit-session` / `didit-webhook`.
-Also not pushed: `20261002170000_mahi_points` (Mahi points replace the old points: no tagger point,
-no daily cap, the `point_events` ledger, `award_point`, `app_config.daily_point_cap` and
-`stats.points_daily` dropped; `points` in the profile, feed items and the tag list now carries
-`streak_current`; the missed-tag push says "points"; test `tests/mahi_points_test.sql`, undo
-`rollbacks/20261002170000_mahi_points.rollback.sql`). Safe for every app already on phones: they read
-`points` and `streak_current`, and both still exist (`point_events` was empty on prod, checked
-2026-10-02).
-Also not pushed: `20261002190000_tag_and_feed_pushes` (push wording and feed-lock pushes: the tag
-push says "You've just been tagged by @sam. 48 hours left to post your Mahi!", the reminders "24
-hours left to post your Mahi! @sam is waiting."; two new pushes, "Your feed locks in 1 hour…" and
-"Your feed is locked…", queued only for someone whose feed is open and who holds an open tag, each
-with its own switch — `app_config.feed_lock_warning_push`, `feed_lock_warning_lead`,
-`feed_locked_push`; reminders and feed pushes are queued by the `queue_tag_pushes` trigger on
-`tag_challenges`, no longer by `create_post` / `claim_invite`; `claim_push_batch` closes a push more
-than `app_config.push_stale_after` (1 hour) overdue as `stale` instead of sending it; test
-`tests/tag_feed_pushes_test.sql`, undo `rollbacks/20261002190000_tag_and_feed_pushes.rollback.sql`).
-Safe for every app on phones: nothing the app reads changes. It goes out with the push go-live steps
-in `docs/go-live-runbook.md`.
-Also not pushed (2026-10-06, after `20261003120000_tag_slots`): `20261006100000_moderation`
-(reports on people, posts, comments and messages with a status; staff list and actions with an
-audit log; hidden posts and removed comments left out of feeds; the automatic check's queue),
-`20261006110000_follow_back` (`get_follow_data` adds `follows_you`) and
-`20261006120000_push_deadline_wording` (pushes say the deadline as a day and time, filled in when
-sent; the last-call reminder kept for early-morning deadlines). Contract and owner steps:
-[docs/moderation.md](../docs/moderation.md). Tests `tests/moderation_test.sql`,
-`tests/follow_back_test.sql`, `tests/push_deadline_wording_test.sql`.
+`posthog_reader` (from `20261007160000_founder_stats`) is created no-login; on production it has
+LOGIN (checked 2026-10-08).
+**Not pushed yet (2026-10-08):** `20261008160000_drop_dead_functions` — drops `get_feed_posts`
+(revoked from everyone by `20261008100000`; the app reads `get_feed`) and `format_wait` (pushes use
+`format_duration`); nothing calls either. Test `tests/drop_dead_functions_test.sql` (also updated:
+`tests/signed_in_reads_test.sql`, `tests/security_hardening_test.sql`), undo
+`rollbacks/20261008160000_drop_dead_functions.rollback.sql`.
 Still held back: `deferred/contract_points.sql`, which drops the profile's `points` column once
-every phone has the Mahi points update. (`deferred/contract_messages.sql` is already migration
+every phone has the Mahi points update. (`contract_messages` is live as migration
 `20261007111029_contract_messages`; `contract_posting` and `private_bucket` became
 `20261008100000_security_hardening`.)
 
-Rules (enforced by `.claude/hooks/guard.cjs`):
+Latest production migration: `20261008150000_security_hardening_live` (live 2026-10-08), the
+doors the live Supabase check found open: follows change only through `set_following`, reports only
+through `report_*`, avatar addresses and files limited to the person's own folder, no table rights
+for signed-out callers (details above). Its header names the undo file
+`rollbacks/20261008140000_security_hardening_live.rollback.sql`; the file is
+`rollbacks/20261008150000_security_hardening_live.rollback.sql`. The migration is applied, so its
+header stays as it is.
 
-Latest production migration: `20261008150000_security_hardening_live` (live 2026-10-08).
-It makes push wording explicit: accepting a tag request or joining through an invite makes both
-people follow each other. `20261007104406_authoritative_follow_mutations` immediately before it adds
-`set_following`, the atomic follow/unfollow path used by OTA 12.20. The production social graph was
-audited before and after that push: 48 rows, 16 mutual pairs, and no claimed invite missing either
-follow direction. Tag-request acceptance and invite claims create both rows transactionally;
-declining creates neither.
+Rules (enforced by `.claude/hooks/guard.cjs`):
 
 - Create migrations with `supabase migration new <name>` (14-digit timestamp prefix, newest last).
   Never edit a migration once it has been pushed; add a new one.

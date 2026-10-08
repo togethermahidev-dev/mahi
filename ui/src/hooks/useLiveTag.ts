@@ -30,7 +30,7 @@ const ONE_SECOND = 1000;
 
 /**
  * Taggers' photos saved for the widget and Live Activity this session, by username (owner,
- * 2026-10-07, #117). Widgets can't fetch, so the app saves a small copy in expo-widgets' shared
+ * 2026-10-07, #118). Widgets can't fetch, so the app saves a small copy in expo-widgets' shared
  * folder first; the files are overwritten on each save, so a changed photo is picked up, and
  * deleted once the mate's tag closes, on sign-out or when either switch is off.
  */

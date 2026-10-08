@@ -192,7 +192,7 @@ export function liveTagView({
 /**
  * Where a tagger's photo is saved for the widget and Live Activity: in expo-widgets' shared
  * folder (`dir`, the App Group), one small file per mate. Widgets can't fetch from the internet,
- * so the app saves it there first (owner, 2026-10-07, #117).
+ * so the app saves it there first (owner, 2026-10-07, #118).
  */
 /** The saved photo's size (px, square) and JPEG quality: small, as widgets and Live Activities
  *  must be. */

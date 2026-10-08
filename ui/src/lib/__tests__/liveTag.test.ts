@@ -319,7 +319,7 @@ describe('isCameraLink — a tap on the Live Activity or widget opens the camera
   });
 });
 
-describe('the tagger’s photo on the Live Activity and widget (owner, 2026-10-07, #117)', () => {
+describe('the tagger’s photo on the Live Activity and widget (owner, 2026-10-07, #118)', () => {
   it('shows the soonest tagger’s saved photo', () => {
     const v = liveTagView({
       tags: [tag('a', 'amy', 40 * HOUR), tag('b', 'sam', 20 * HOUR)],

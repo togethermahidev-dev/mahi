@@ -46,7 +46,7 @@
 - Messages go through the server functions only: `start_conversation`, `send_message`, `accept_message_request`,
   `decline_message_request`, `edit_message` (own message, 15 minutes), `unsend_message`; read with `get_inbox`,
   `get_messages`, `get_conversation_with`. Never insert, update or delete `messages` or `conversations` from the app
-  (the direct conversation writes old apps use go with `supabase/deferred/contract_messages.sql`).
+  (direct conversation writes are closed on the server by `20261007111029_contract_messages`, live).
 - Owners can delete their posts through `delete_post`; deletion never restores the one first-post
   post (`profiles.has_posted_before` is permanent). Captions remain editable for one hour through
   `update_post_caption` (an edited caption is checked by moderation again).
@@ -144,7 +144,7 @@
   `createPost` = the `create_post` RPC, one server call that dates the post, records the Mahi points and
   saves tags, deadlines and pushes. A retry with the same `clientId` returns the same post
 - On a failure: remove the pending post and revert the points. The uploaded paths go (`removePostPhotos`) only when the server refused the post; on a network failure the photos and the `clientId` are kept so Try again replays the same post (`create_post` returns it with `replayed: true`)
-- `posts` storage bucket is **private** once `supabase/migrations/20261008100000_security_hardening.sql` is pushed (until then still public): a photo opens or signs only for its owner, staff, or someone the feed rule lets see the post; the app signs every photo
+- `posts` storage bucket is **private** (`20261008100000_security_hardening`, live): a photo opens or signs only for its owner, staff, or someone the feed rule lets see the post; the app signs every photo
 - Reactive posting (below): `create_post` checks `reactive_posting_open` and raises `'reactive posting: not tagged'`;
   the camera mirrors it with `reactivePostingGate()` (`ui/src/lib/reactivePosting.ts`), fed by the feed store's
   `unlockedUntil` (null until the first post) and the open tags — a spinner while loading, "No tags to answer" when closed; the server error maps to
@@ -198,13 +198,16 @@
 - Notifications: `streak_lost` (internal name; its words say "Your points are back to 0") to the person who
   missed (actor = the tagger); `tag_missed` only to the tagger
 - Gone: rest days, training days, `fitness_routine`, `streak_logs`, `record_upload_streak`, the streak calendar.
-  `20261001170000_drop_rest_days` removes the columns and table once every phone has the new app
+  `20261001170000_drop_rest_days` removed the columns and table (live)
 
 ## Sentry Logging
-- `Sentry.captureException(err, { tags: { flow, action? }, extra })` for caught errors
+- `reportError(err, { flow, action?, extra })` from `ui/src/lib/sentry.ts` in every catch and on every
+  `{ error }` from Supabase (it also reads a server function's reply)
 - `Sentry.addBreadcrumb({ category, message, level })` for navigation/action events
-- `console.error('[ComponentName]')` alongside Sentry for dev debugging
-- Sentry only enabled in production (`EXPO_PUBLIC_APP_ENV === 'production'`)
+- In `__DEV__`, `reportError` also logs to the console; Sentry itself never sends from a dev machine
+- Sentry sends from every installed build (preview, TestFlight, App Store) when a DSN is baked in, not
+  only production; the environment is the update channel. Only the account id is set as the user
+  (`Sentry.setUser({ id })`), never the email
 
 ## Design System
 - Font: Inter only, through `FONTS` in `ui/src/constants/fonts.ts` (`Inter_400Regular`, `Inter_600SemiBold`,

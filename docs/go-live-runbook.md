@@ -2,8 +2,8 @@
 
 For the owner to run, on their own machine. Nobody else touches production.
 
-> **Status (checked against prod 2026-10-06):** done. Production is current through
-> `20261006201000_optional_non_user_tags`; the Q1–Q10 changes were backed up, rehearsed and applied
+> **Status (checked against prod 2026-10-08):** done. Production is current through
+> `20261008150000_security_hardening_live`; the Q1–Q10 changes were backed up, rehearsed and applied
 > before OTA 12.16. Steps 0–4 stay here as the procedure for the
 > next database change (back up → `try` → `push --dry-run` → `push` → `test`). What's left is under
 > **After this**.
@@ -152,10 +152,8 @@ built to leave the current app untouched, and this is how we confirm it.
 The database is ready. The app runs on the preview lane (native build 10, OTA updates since); nothing
 is in the stores yet. Still to do, in order:
 
-0. **Reactive posting** (not pushed yet; rules in [architecture.md](./architecture.md#reactive-posting)),
-   in this order: push `20261001120000_reactive_posting` (Steps 1–4 above) → publish the OTA → push
-   `20261001170000_drop_rest_days` only once every phone has the new app (old builds still insert
-   `fitness_routine` at sign-up and read the dropped columns).
+0. **Reactive posting**: done. `20261001120000_reactive_posting` and `20261001170000_drop_rest_days`
+   are live (rules in [architecture.md](./architecture.md#reactive-posting)).
 1. **Push notifications** — the ordered steps are in
    [Switching push notifications on](#switching-push-notifications-on) below. No new native build
    is needed for iPhone. `push-core` stays absent from PostHog (off) until step 6 there.
@@ -173,9 +171,9 @@ is in the stores yet. Still to do, in order:
    It refuses if a migration would set the minimum app version higher than the version you're
    shipping — which would put every user behind an update screen with no update to install.
    CI runs it too.
-5. **The held-back steps** in `supabase/deferred/` (`contract_messages`, `contract_points`) — only
-   once that build is in both stores. (`contract_posting` and `private_bucket` became
-   `20261008100000_security_hardening`.)
+5. **The held-back step** in `supabase/deferred/`: only `contract_points` is left, once that build is
+   in both stores. (`contract_messages` is live as `20261007111029_contract_messages`;
+   `contract_posting` and `private_bucket` became `20261008100000_security_hardening`.)
 
 ---
 
@@ -202,7 +200,7 @@ FCM credentials and its own first build.
 | Jobs `send-push` (every minute), `push-receipts` (every 15 minutes) | Active, and doing nothing: they skip until both Vault secrets exist |
 | `push_tokens` | 0 rows — no phone has registered |
 | `push_outbox` | 18 rows, none ever sent, 15 already due (likes, follows, tags, reminders, a message since 2026-10-01) |
-| Latest migration | `20261002170000_mahi_points`; `20261002190000_tag_and_feed_pushes` is waiting |
+| Latest migration | Now `20261008150000_security_hardening_live` (2026-10-08): step 2's migrations are applied |
 | PostHog `push-core` | Does not exist, so it reads as off |
 
 The 18 queued pushes are old news. They are not sent when push goes live: step 2's migration
@@ -222,6 +220,9 @@ create it. The key lives on Expo's servers, so adding it needs no rebuild. Nothi
 Google until there is an Android build.
 
 ### 2. Database: try → backup → push
+
+**Done:** `20261002190000_tag_and_feed_pushes` and `20261003120000_tag_slots` are live on production.
+The `send-push` function deploy (step 3 onwards) is still open.
 
 ```bash
 cd ~/workspace/mahi

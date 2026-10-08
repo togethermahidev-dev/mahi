@@ -18,8 +18,8 @@ the server and the owner creates it (steps in
 (never for one account first, owner 2026-10-07).
 **`video-posts` (added 2026-10-02) is a default-off flag:** the owner wants it OFF for everyone.
 Create it in PostHog **switched off** (or at 0%); it reads as off until PostHog says true.
-**`ios-sf-symbols`, `context-menu-preview` and `camera-tap-focus` (added 2026-10-02) are default-off too:**
-they need build 11; they exist in PostHog **switched off** (2026-10-06: `ios-sf-symbols` and `context-menu-preview` are ON at 100%; the code no longer reads `context-menu-preview`; deleted from PostHog 2026-10-07) — turn each on only once build 11 is on the phones
+**`ios-sf-symbols` and `camera-tap-focus` (added 2026-10-02) are default-off too:**
+they need build 11; they exist in PostHog **switched off** (2026-10-06: `ios-sf-symbols` is ON at 100%) — turn each on only once build 11 is on the phones
 (build 10 ignores them either way).
 **`identity-verification` and `purchases` (added 2026-10-02) are default off too:** dormant until Didit and
 RevenueCat are set up (owner steps in [HANDOVER.md](./HANDOVER.md)). Both exist in PostHog **switched off**.
@@ -50,8 +50,9 @@ if (!videoOn) return null;
   found 2026-10-01, when seven new features stayed hidden on the test phones until their flags were created.
   This pure logic is unit-tested in [`ui/src/lib/__tests__/featureFlags.test.ts`](../ui/src/lib/__tests__/featureFlags.test.ts).
 - **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `push-core`, `video-posts`,
-  `ios-sf-symbols`, `context-menu-preview`, `camera-tap-focus`, `identity-verification`, `purchases`,
-  `tag-slots` and `auth-google-signin`): off
+  `ios-sf-symbols`, `camera-tap-focus`, `identity-verification`, `purchases`, `tag-slots`,
+  `auth-google-signin`, `auth-apple-signin`, `live-activity`, `control-post-workout`, `siri-shortcuts`
+  and `spotlight`): off
   while flags load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns
   `true`. Use this for a feature that must never show, even for a moment on cold start (video posts would
   otherwise be able to ask for the microphone before flags load; the full-screen notifications page would
@@ -59,7 +60,7 @@ if (!videoOn) return null;
 
 ## The flags
 
-Ten keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone. Nor do the twelve switches removed on 2026-10-07 — see [Removed from code 2026-10-07](#removed-from-code-2026-10-07).)
+29 keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone. Nor do the twelve switches removed on 2026-10-07 — see [Removed from code 2026-10-07](#removed-from-code-2026-10-07).)
 
 **Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
 are switched in the `app_config` table):
@@ -71,22 +72,21 @@ camera's open-tags pill, "Turn on notifications so you never miss a tag", which 
 phone's Settings (or the phone's question if it was never asked). Works on build 10; needs `send-push`
 live to be worth switching on. The server queues pushes whether it is on or off. Off = nobody is asked;
 phones that already allowed still register.)
-`tag-slots` (**default off**; added 2026-10-03; needs migration `20261003120000_tag_slots` applied first). On:
+`tag-slots` (**default off**; added 2026-10-03; its migration `20261003120000_tag_slots` is live). On:
 one "Tag 3 friends" screen. Three slots at the top, each showing where it's at (tagged, invite sent,
 accepted, link ready, shared, joined). Search finds anyone on Mahi: a friend is tagged; someone who isn't
 a friend gets an in-app invite ("@x wants to tag you", Accept / Not now in their notifications). A share
-row (WhatsApp, Messages, Copy or more) makes a personal link on tap and fills a slot. Friends first:
-invites wait until every friend you could tag is tagged. Live while open; nothing kept on the phone.
+row (WhatsApp, Messages, Copy or more) makes a personal link on tap and fills a slot. Live while open; nothing kept on the phone.
 Off = today's tag sheet (with the invite step). The caption's `@` still picks one friend either way.
-**Find your mates (no switch, owner 2026-10-07):** on for everyone on build 13+ (expo-contacts), needs migration `20261007270000_contact_match`. "Find your mates" — once
+**Find your mates:** switch `contacts-finder` (**default on**, a kill switch); on for everyone on build 13+ (expo-contacts), needs migration `20261007270000_contact_match`. "Find your mates" — once
 after sign-up for a new account (after the welcome cards, before the notifications page), and from
 Settings → Mates, Your invites and the camera's waiting card. Asks for contacts with a plain why first;
 a no gets "Invite by link instead". Contacts on Mahi can be followed; everyone else with a number gets
 "Invite", which opens a text with a mate link. Only hashes of numbers and emails reach the server;
 nothing is kept on the phone. Builds 10–12 never show it, switch or not.
 
-**Lock screen and widget:** `live-tag` (**default off**; added 2026-10-07; needs build 13, which carries
-`expo-widgets`; **not in PostHog yet** — create it switched off). On: while you have a tag to answer, a Live
+**Lock screen and widget:** `live-activity` (**default off** since 2026-10-08, held back until the owner
+releases it; off in PostHog; needs build 13, which carries `expo-widgets`). On: while you have a tag to answer, a Live
 Activity on the lock screen and in the Dynamic Island says "@sam is waiting on you", "Answer with any
 workout" and counts down to the tag's deadline with Apple's own timer (ticks with Mahi closed); several tags
 show the soonest and "+2 more"; from the 6-hour mark the countdown turns to the warning colour. It starts when
@@ -150,7 +150,7 @@ column does nothing new. VoiceOver: the same choices are actions on the square, 
 become Apple's own (SF Symbols) at the same size and colour: search → magnifying glass, camera, feed →
 three left-aligned lines, profile → person, settings → gear, notifications → bell, heart (red filled heart
 when liked), video, sound on / sound off (speaker with waves / speaker struck through). The brand "echo"
-icons — comment and messages bubbles with the blue offset layer, and the like medal — stay drawn. Mapping
+icons — comment and messages bubbles with the blue offset layer — stay drawn. Mapping
 in [`ui/src/lib/sfSymbols.ts`](../ui/src/lib/sfSymbols.ts). Needs the `expo-symbols` native module: on build 10
 and on Android it reads as off. Off = today's drawn icons exactly.)
 
@@ -212,8 +212,11 @@ reads a switch the app hasn't written yet as off. What a switch can't hide, beca
 build itself: the Mahi widget in the widget gallery, the "Post a workout" button in the Control Centre
 gallery (it reads "Open Mahi"), and the Siri phrases in the Shortcuts app (each just opens Mahi).
 
-**Build 13 native extras — kill switches, on for everyone** (owner, 2026-10-07). Default on in code; each
-must be **created in PostHog at 100% before build 13 ships** (a missing key reads as off). Builds 10–12
+**Build 13 native extras** (owner, 2026-10-07). `share-to-mahi`, `shutter-sound` and
+`widget-background-refresh` are kill switches, default on in code, each **created in PostHog at 100%
+before build 13 ships** (a missing key reads as off). `control-post-workout`, `spotlight` and
+`siri-shortcuts` are held back, default off in code and off in PostHog, until the owner releases them
+(owner, 2026-10-08). Builds 10–12
 don't have the native parts, so the switches do nothing there.
 - `share-to-mahi`: "Post to Mahi" in the Photos share sheet (1–2 photos). On: Mahi opens on the Camera
   page with them as the shots (two fill the preview; one is the first shot and the selfie side takes the

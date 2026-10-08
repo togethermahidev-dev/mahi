@@ -106,8 +106,8 @@ for iPhone (build 10 has `expo-notifications` and the push entitlement).
 - **Tapping** a push: `pushDestination()` (`ui/src/lib/pushRoute.ts`) → `usePushRouting` in
   `HorizontalNavigator`, which moves the pages to the Camera or Messages, or opens the profile or
   the notifications over them.
-- **Later:** a live countdown on the lock screen (iOS Live Activity) — researched, not built; it needs
-  a native build.
+- **Lock screen:** the live countdown (iOS Live Activity) and home-screen widget are built (build 13),
+  held back behind the default-off switch `live-activity` until the owner releases them (2026-10-08).
 
 ## Video posts
 
@@ -209,8 +209,8 @@ Rebuilt like PingMee-v2 (migration `20261006190000_message_requests`, live 2026-
   (`unsend_message`: gone for both, its words not kept). The app has no direct write to `messages`;
   a trigger refuses `edited_at` / `unsent_at` / removal fields from the app.
 - Reads: `get_inbox(p_status)` (inbox or requests), `get_messages`, `get_conversation_with`.
-  Old apps still insert and update `conversations` directly until
-  `supabase/deferred/contract_messages.sql` goes in (after every phone has 12.12).
+  Direct inserts and updates of `conversations` are closed on the server
+  (`20261007111029_contract_messages`, live).
 
 ## Post deletion and caption editing
 
@@ -375,10 +375,10 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 |---|---|
 | `public.profiles` | User profile — display name, avatar, Mahi points (`streak_current`) and best (`streak_highest`) |
 | `public.posts` | Workout posts made under reactive posting. Owners edit captions for one hour through `update_post_caption` and delete through `delete_post`; direct table mutation remains denied. Media uses short-lived signed URLs. No daily limit: one post per tag answered |
-| `public.post_likes` | One row per user-post like. Unique constraint `(post_id, user_id)`. RLS: authenticated read-all, insert/delete own only. |
-| `public.post_comments` | Comments on posts. Ordered oldest-first. RLS: authenticated read-all, insert/delete own only. |
+| `public.post_likes` | One row per user-post like. Unique constraint `(post_id, user_id)`. RLS: readable only on posts the reader can see (`can_view_post_id`, staff see all); insert own only on a visible post, delete own only. |
+| `public.post_comments` | Comments on posts. Ordered oldest-first. RLS: readable only on posts the reader can see (`can_view_post_id`; your own comments and staff always), removed comments hidden; insert own only on a visible post, delete own only. |
 | `public.comment_likes` | One row per user-comment like (flag `comment-likes`). Unique `(comment_id, user_id)`, cascades with the comment and the profile. RLS: read where the comment is readable, insert own only and not across a block (`comment_like_allowed`), delete own only. Read through `get_comment_likes(post)` (count + liked by me per comment) and `get_comment_likers(comment)` (newest first, without people blocked either way or banned); written through `toggle_comment_like`. Migration `20261002130000_comment_likes`. |
-| `public.follows` | Follow relationships. Unique constraint `(follower_id, following_id)`, self-follow check constraint. RLS: authenticated read-all, insert/delete own only (`auth.uid() = follower_id`). Explicit UPDATE deny policy. |
+| `public.follows` | Follow relationships. Unique constraint `(follower_id, following_id)`, self-follow check constraint. RLS: authenticated read. No direct writes from the app (`20261008150000_security_hardening_live`): follow and unfollow only through `set_following`. |
 | `public.post_tags` | User-tag junction table: which users were mentioned on which post. Composite PK `(post_id, user_id)`. RLS: authenticated read on posts the reader can see; no direct writes (`create_post` / `start_tag` add tags). |
 | `public.conversations` | Messaging thread — one row per pair, ordered participants constraint; a request until accepted (`declined_at` when declined) — see [Messages](#messages) |
 | `public.messages` | Individual messages within a conversation; `edited_at` / `unsent_at` set only by the server |
@@ -391,7 +391,7 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | `public.app_config` | One row of numeric rules (tag window, unlock window, caps, `min_app_version`, `invite_links_enabled`) |
 | `public.otp_codes` / `public.auth_rate_limits` | Hashed sign-up and reset codes (`purpose` = `signup` / `reset`) and send limits |
 
-All tables use Row Level Security (RLS). Writes for posting and messaging go through one `SECURITY DEFINER` function each: `create_post` (checks reactive posting with `reactive_posting_open`, dates the post, adds the Mahi point, saves tags and deadlines, queues pushes, answers waiting tags) and `send_message`. Follow/unfollow goes through `set_following`, which returns the committed follow state and counts; accepting an in-app tag request or claiming an invite link creates both directional follow rows in the same server transaction, while declining creates neither. The feed reads through `get_feed` (server-side lock), profiles through `get_user_posts`. Every migration through `20261007105647_explicit_mutual_follow_wording` is live on production (checked 2026-10-07); see `supabase/README.md`. The old paths (`get_feed_posts`, the public photo bucket, direct message inserts) are retired later by the files in `supabase/deferred/`.
+All tables use Row Level Security (RLS). Writes for posting and messaging go through one `SECURITY DEFINER` function each: `create_post` (checks reactive posting with `reactive_posting_open`, dates the post, adds the Mahi point, saves tags and deadlines, queues pushes, answers waiting tags) and `send_message`. Follow/unfollow goes through `set_following`, which returns the committed follow state and counts; accepting an in-app tag request or claiming an invite link creates both directional follow rows in the same server transaction, while declining creates neither. The feed reads through `get_feed` (server-side lock), profiles through `get_user_posts`. Every migration through `20261008150000_security_hardening_live` is live on production (checked 2026-10-08); see `supabase/README.md`. The old paths are closed: direct conversation writes (`20261007111029_contract_messages`), the public photo bucket and `get_feed_posts` (`20261008100000_security_hardening`; `20261008160000_drop_dead_functions`, not pushed yet, drops `get_feed_posts`).
 
 ---
 
@@ -399,7 +399,7 @@ All tables use Row Level Security (RLS). Writes for posting and messaging go thr
 
 | File | Exports |
 |---|---|
-| `posts.ts` | `getFeed` (`get_feed` — lock state, `like_count`, `comment_count`, `liked_by_me`, `tagged_users`), `getUserPosts` (`get_user_posts`), `hasEverPosted` (the first post is free), `uploadPostMedia` (photos or videos), `removePostPhotos`, `createPost` (`create_post`, one call with tags, invites, location and — for a video post — media types) |
+| `posts.ts` | `getFeed` (`get_feed` — lock state, `like_count`, `comment_count`, `liked_by_me`, `tagged_users`), `getUserPosts` (`get_user_posts`), `uploadPostMedia` (photos or videos), `removePostPhotos`, `createPost` (`create_post`, one call with tags, invites, location and — for a video post — media types) |
 | `tags.ts` | `getTaggableFriends`, `getOpenTags`, `getTagRules` |
 | `invites.ts` | `getInvitePreview`, `claimInvite` |
 | `social.ts` | `toggleLike` (single-RPC atomic toggle), `getComments`, `addComment`, comment likes: `getCommentLikes`, `toggleCommentLike`, `getCommentLikers` |
@@ -448,7 +448,7 @@ The swipe runs on **react-native-gesture-handler + reanimated** (UI thread): one
 
 **Pinch to zoom** (2026-10-05, for everyone, no switch): `PostCard`'s photo also takes a `Gesture.Pinch` (with the double tap and the hold, alongside the list). Two fingers zoom around the point between them (`pinchOffset` in `ui/src/lib/viewer.ts`, up to `VIEWER.pinchMax`); letting go springs back. While pinching, `chromeStore.zooming` holds the Feed and post-viewer lists still and blocks the page swipe (which also fails on a second finger), and `viewing` fades everything over the post.
 
-**Hold to preview** (flag `context-menu-preview`, default off, iPhone + build 11): `PreviewMenu` (`ui/src/components/PreviewMenu.tsx`) hosts the held content in a SwiftUI `Host` → `ContextMenu` → `RNHostView`, so Apple's own context-menu hold (a `UIContextMenuInteraction`, not a gesture-handler gesture) lifts a `Preview` with menu `Items`. Used by profile grid squares, Messages rows and `PostCard` (where it replaces the `Gesture.LongPress` above: with the flag on `postGesture` is the double tap alone). Nothing in the gesture relations changes: the hosted RN content keeps its gestures (double tap, taps) because the surface's touch handler still dispatches into it; the system hold fails as soon as the finger moves, so list scrolling and the page swipes win a moving finger, and once the menu is up the system takes the touch. The draggable small photo and the like / comment column sit outside the held area. `@expo/ui` is required lazily (`ui/src/lib/expoUiModule.ts`) so build 10 never loads it. One `Host` per mounted cell (FlashList recycles them: about a screenful), because a context menu must belong to the view that is held; the preview's content mounts only while it shows (`onAppear` / `onDisappear`), so no second picture is decoded per cell.
+**Hold to preview** (standard since 2026-10-06, no switch; iPhone + build 11): `PreviewMenu` (`ui/src/components/PreviewMenu.tsx`) hosts the held content in a SwiftUI `Host` → `ContextMenu` → `RNHostView`, so Apple's own context-menu hold (a `UIContextMenuInteraction`, not a gesture-handler gesture) lifts a `Preview` with menu `Items`. Used by profile grid squares, Messages rows and `PostCard` (where it replaces the `Gesture.LongPress` above: where hold to preview runs, `postGesture` is the double tap alone). Nothing in the gesture relations changes: the hosted RN content keeps its gestures (double tap, taps) because the surface's touch handler still dispatches into it; the system hold fails as soon as the finger moves, so list scrolling and the page swipes win a moving finger, and once the menu is up the system takes the touch. The draggable small photo and the like / comment column sit outside the held area. `@expo/ui` is required lazily (`ui/src/lib/expoUiModule.ts`) so build 10 never loads it. One `Host` per mounted cell (FlashList recycles them: about a screenful), because a context menu must belong to the view that is held; the preview's content mounts only while it shows (`onAppear` / `onDisappear`), so no second picture is decoded per cell.
 
 Spring: `SPRING.page` (`damping: 22, stiffness: 160, mass: 0.9`; Reduce Motion ignored on purpose). Light haptic on a page change. Pages are sized from `usePageSize()` (`ui/src/hooks/useChrome.ts`): the live window, or with the phone's tab bar the space above it — so each page, and each Feed post, is one page tall.
 
