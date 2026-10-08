@@ -7,6 +7,9 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 33 — the feed goes all the way up; a divider on every row; the pull down slides to
+ *     the peek before shrinking; the arrow is the app's own; a smaller locked lift; tidy-up
+ *     (2026-10-08)
  *   build 13 · 32 — locked panel: the reason on top, the padlock and the button side by side;
  *     the pixel athlete is gone (2026-10-08)
  *   build 13 · 31 — the locked feed never asks someone who has posted for a first workout; the
@@ -151,4 +154,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 32;
+export const OTA_NUMBER = 33;
