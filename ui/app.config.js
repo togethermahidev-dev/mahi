@@ -31,6 +31,9 @@ const config = {
       },
     ],
     '@react-native-community/datetimepicker',
+    // The sign-in session's keychain (src/lib/sessionStorage.ts). On Android it keeps its data out
+    // of Auto Backup; no Face ID text, as Mahi never asks for Face ID.
+    ['expo-secure-store', { configureAndroidBackup: true, faceIDPermission: false }],
     // Sign in with Apple (build 13+; src/lib/appleAuthModule.ts). Adds the capability.
     'expo-apple-authentication',
     ['expo-notifications', { color: ACCENT, defaultChannel: 'default' }],
@@ -167,16 +170,26 @@ const config = {
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
-    // The Android half of the same invite links. Needs assetlinks.json on the domain.
+    // No Android backups of Mahi's data (the sign-in session lives in secure-store; see its
+    // plugin above). Takes effect at the next native build.
+    allowBackup: false,
+    // Never granted, even if a package asks: Mahi only reads contacts and never draws over other
+    // apps.
+    blockedPermissions: [
+      'android.permission.WRITE_CONTACTS',
+      'android.permission.SYSTEM_ALERT_WINDOW',
+    ],
+    // The Android half of the same invite links. Needs assetlinks.json on the domain. The trailing
+    // slash keeps other pages (/privacy, /index…) in the browser.
     intentFilters: [
       {
         action: 'VIEW',
         autoVerify: true,
         data: [
-          { scheme: 'https', host: 'togethermahi.com', pathPrefix: '/i' },
-          { scheme: 'https', host: 'www.togethermahi.com', pathPrefix: '/i' },
-          { scheme: 'https', host: 'togethermahi.com', pathPrefix: '/p' },
-          { scheme: 'https', host: 'www.togethermahi.com', pathPrefix: '/p' },
+          { scheme: 'https', host: 'togethermahi.com', pathPrefix: '/i/' },
+          { scheme: 'https', host: 'www.togethermahi.com', pathPrefix: '/i/' },
+          { scheme: 'https', host: 'togethermahi.com', pathPrefix: '/p/' },
+          { scheme: 'https', host: 'www.togethermahi.com', pathPrefix: '/p/' },
         ],
         category: ['BROWSABLE', 'DEFAULT'],
       },
