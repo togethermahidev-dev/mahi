@@ -3139,6 +3139,7 @@ export default function CameraScreen({
                           <Pressable
                             style={({ pressed }) => [
                               styles.inviteMateButton,
+                              { borderColor: onBg.text },
                               pressed && { opacity: ALPHA.a70 },
                             ]}
                             android_ripple={{ color: COLORS.accent }}
@@ -3152,7 +3153,7 @@ export default function CameraScreen({
                             {invitingMate ? (
                               <ActivityIndicator color={COLORS.accent} />
                             ) : (
-                              <Text style={[styles.inviteMateText, { color: onBg.muted }]}>
+                              <Text style={[styles.inviteMateText, { color: onBg.text }]}>
                                 {INVITE_BUTTON}
                               </Text>
                             )}
@@ -3175,7 +3176,7 @@ export default function CameraScreen({
                             }
                             accessibilityHint="Shows the links you’ve sent and who joined"
                           >
-                            <Text style={[styles.seeInvitesText, { color: onBg.muted }]}>
+                            <Text style={[styles.seeInvitesText, { color: onBg.text }]}>
                               Your invites
                             </Text>
                             <CountBadge count={myInviteCount ?? 0} />
@@ -3190,7 +3191,7 @@ export default function CameraScreen({
                               accessibilityRole="button"
                               accessibilityLabel="Find friends in your contacts"
                             >
-                              <Text style={[styles.seeInvitesText, { color: onBg.muted }]}>
+                              <Text style={[styles.seeInvitesText, { color: onBg.text }]}>
                                 Contacts
                               </Text>
                             </Pressable>
@@ -3638,8 +3639,9 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.bold,
   },
-  // The second choice on the no-tag card: the same pill, outlined in the accent.
+  // The second choice on the no-tag card: the same pill, outlined in the theme's black or white.
   inviteMateButton: {
+    borderWidth: BORDER_WIDTH.w1,
     alignSelf: 'stretch',
     alignItems: 'center',
     justifyContent: 'center',

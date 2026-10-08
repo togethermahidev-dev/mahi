@@ -69,17 +69,14 @@ export default function WorkoutRoadmap({
                   backgroundColor:
                     index === current
                       ? COLORS.accent
-                      : index < current
-                        ? colors.text
-                        : colors.border,
+                      : colors.text,
                 },
               ]}
             >
               <Text
                 style={[
                   styles.number,
-                  index < current && { color: colors.bg },
-                  index > current && { color: colors.text },
+                  index !== current && { color: colors.bg },
                 ]}
               >
                 {index < current ? '✓' : index + 1}
