@@ -1,8 +1,8 @@
 /**
  * Top of the feed, under the app header:
- * - locked → one small pill saying why and what to do, with one button: to the camera when
- *   there's something to post, or to people search when there isn't (owner, 2026-10-08: the
- *   blurred rows behind it are the feed; no big card);
+ * - locked → one pill on a Mahi-blue gradient in the middle of the frosted rows: a padlock
+ *   circle, the reason, and under it a round button with what to do — to the camera when there's
+ *   something to post, or to people search when there isn't (owner, 2026-10-08; no big card);
  * - open → a live countdown to when the feed would lock (or, if you're tagged, to when it locks),
  *   in the camera banner's style (founder, 2026-10-05).
  * Lock state and open tags expire, so both come fresh from the server each session (never saved
@@ -11,6 +11,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useCoachAnchor } from '@/hooks/useCoachMarks';
@@ -23,7 +25,10 @@ import {
   ALPHA,
   BLUR_INTENSITY,
   BORDER_WIDTH,
+  COLORS,
   FONT_SIZE,
+  ICON_SIZE,
+  STROKE,
   LINE_HEIGHT,
   RADIUS,
   SIZE,
@@ -83,29 +88,57 @@ function LockedCard({
   return (
     // Only the button takes touches, so the feed's scroll and swipe still start anywhere else.
     <FadeInItem>
-      <View ref={lockTip} pointerEvents="box-none" style={styles.pillRow}>
-        <BlurView
-          intensity={BLUR_INTENSITY.i40}
-          tint={dark ? 'dark' : 'light'}
-          style={[styles.timer, { borderColor: colors.text }]}
+      <View ref={lockTip} pointerEvents="box-none" style={styles.lockWrap}>
+        <LinearGradient
+          colors={[colors.accent, colors.accentText]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.lockPill}
         >
-          <Text style={[styles.timerText, { color: colors.text }]} numberOfLines={2}>
+          <View style={[styles.lockCircle, { backgroundColor: colors.offWhite }]}>
+            <LockGlyph color={colors.offBlack} />
+          </View>
+          <Text style={[styles.lockLine, { color: colors.offWhite }]} numberOfLines={3}>
             {pill.line}
           </Text>
-        </BlurView>
-        {onPress ? (
-          <PressScale
-            style={[styles.pillButton, { backgroundColor: colors.text }]}
-            onPress={onPress}
-            accessibilityRole="button"
-            accessibilityLabel={pill.button}
-            accessibilityHint={toFriends ? 'Opens search' : 'Opens the camera'}
-          >
-            <Text style={[styles.buttonText, { color: colors.bg }]}>{pill.button}</Text>
-          </PressScale>
-        ) : null}
+          {onPress ? (
+            <PressScale
+              style={[styles.actionCircle, { backgroundColor: colors.offWhite }]}
+              onPress={onPress}
+              accessibilityRole="button"
+              accessibilityLabel={pill.button}
+              accessibilityHint={toFriends ? 'Opens search' : 'Opens the camera'}
+            >
+              <Text style={[styles.actionText, { color: colors.offBlack }]} numberOfLines={2}>
+                {pill.button}
+              </Text>
+            </PressScale>
+          ) : null}
+        </LinearGradient>
       </View>
     </FadeInItem>
+  );
+}
+
+/** A padlock, as on the profile grid's locked squares. */
+function LockGlyph({ color }: { color: string }): React.JSX.Element {
+  return (
+    <Svg width={ICON_SIZE.i22} height={ICON_SIZE.i22} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M7 11V8a5 5 0 0 1 10 0v3"
+        stroke={color}
+        strokeWidth={STROKE.s2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M5 13a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7z"
+        stroke={color}
+        strokeWidth={STROKE.s2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
   );
 }
 
@@ -162,20 +195,43 @@ function OpenTimer({
 }
 
 const styles = StyleSheet.create({
-  // The lock pill and its button, centred, wrapping under each other when words run long.
-  pillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+  // The lock pill: a padlock circle, the reason, and a round button, on a Mahi-blue gradient.
+  lockWrap: {
     alignItems: 'center',
-    gap: SPACE.s8,
   },
-  pillButton: {
-    minHeight: SIZE.z36,
+  lockPill: {
+    alignItems: 'center',
+    gap: SPACE.s12,
+    paddingVertical: SPACE.s20,
+    paddingHorizontal: SPACE.s24,
+    borderRadius: RADIUS.r28,
+    maxWidth: SIZE.z320,
+  },
+  lockCircle: {
+    width: SIZE.z56,
+    height: SIZE.z56,
+    borderRadius: RADIUS.r28,
+    alignItems: 'center',
     justifyContent: 'center',
+  },
+  lockLine: {
+    fontSize: FONT_SIZE.f15,
+    lineHeight: LINE_HEIGHT.l20,
+    fontFamily: FONTS.semiBold,
+    textAlign: 'center',
+  },
+  actionCircle: {
+    width: SIZE.z120,
+    height: SIZE.z120,
     borderRadius: RADIUS.pill,
-    paddingVertical: SPACE.s8,
-    paddingHorizontal: SPACE.s16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACE.s12,
+  },
+  actionText: {
+    fontSize: FONT_SIZE.f14,
+    fontFamily: FONTS.bold,
+    textAlign: 'center',
   },
   buttonText: {
     fontSize: FONT_SIZE.f15,

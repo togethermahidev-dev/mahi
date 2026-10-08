@@ -1,19 +1,17 @@
 /**
- * One post as a feed row (owner, 2026-10-08: the feed is rows, like Facebook; tapping a row grows
- * it into the full-screen TikTok view through the shared morph). Who posted, a square with both
- * photos (the rear shot, the selfie inset), the caption, likes and comments.
+ * One post as a feed row (owner, 2026-10-08): the size of a Messages row. Who posted, the caption
+ * or time, likes and comments, and small previews of both shots in the same line. Tapping grows
+ * the rear shot into the full-screen TikTok view through the shared morph; holding pops the row
+ * out with Apple's menu (Open, Like, Comment, Share, View profile).
  *
- * Rows sit on Mahi blue, which shows through the gap between rows as the divider. A locked row
- * (the server sends no photo while your feed is locked) is frosted with a small padlock pill, so
- * a locked feed still looks like a feed.
- *
- * Hold the square and it pops out with Apple's menu (Open, Like, Comment, Share, View profile),
- * as a profile grid square does; Open morphs it into the full-screen feed.
+ * Rows sit on Mahi blue, which shows through the gap between rows as the divider. While your
+ * feed is locked the server sends no photo or caption; the row is then a stand-in (no name, no
+ * face) under heavy frost, so nothing can be read until the feed opens. The one lock pill with
+ * what to do sits over the feed (FeedLockBanner), not on each row.
  */
 import React, { useCallback, useEffect, useRef } from 'react';
 import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
-import Svg, { Path } from 'react-native-svg';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAuthStore, useFeedStore, useSocialStore } from '@/store';
 import { HeartIcon, CommentIcon } from '@/components/ScreenIcons';
@@ -41,87 +39,90 @@ import {
   COLORS,
   FONT_SIZE,
   ICON_SIZE,
-  LINE_HEIGHT,
+  OFFSET,
   RADIUS,
   SIZE,
   SPACE,
-  STROKE,
   withAlpha,
 } from '@/constants/tokens';
 
-/** A padlock, as on the profile grid's locked squares. */
-function LockIcon({ color }: { color: string }) {
+/**
+ * A locked row: the shape of a row with nothing in it (a blank circle, two bars, two blank
+ * previews), frosted over. Nothing here is the real post.
+ */
+function LockedRow(): React.JSX.Element {
+  const { dark, colors } = useAppTheme();
   return (
-    <Svg width={ICON_SIZE.i16} height={ICON_SIZE.i16} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M7 11V8a5 5 0 0 1 10 0v3"
-        stroke={color}
-        strokeWidth={STROKE.s2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
+    <View
+      style={[styles.row, { backgroundColor: colors.bg }]}
+      accessible
+      accessibilityLabel="Locked post"
+    >
+      <View style={[styles.avatar, { backgroundColor: colors.border }]} />
+      <View style={styles.words}>
+        <View style={[styles.bar, styles.barName, { backgroundColor: colors.border }]} />
+        <View style={[styles.bar, styles.barLine, { backgroundColor: colors.border }]} />
+      </View>
+      <View style={styles.thumbs}>
+        <View style={[styles.thumb, { backgroundColor: colors.border }]} />
+        <View style={[styles.thumb, { backgroundColor: colors.border }]} />
+      </View>
+      <BlurView
+        intensity={BLUR_INTENSITY.i100}
+        tint={dark ? 'dark' : 'light'}
+        style={[StyleSheet.absoluteFill, styles.frost]}
+        pointerEvents="none"
       />
-      <Path
-        d="M5 13a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7z"
-        stroke={color}
-        strokeWidth={STROKE.s2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
+    </View>
   );
 }
 
 export default function FeedRow({
   item,
   width,
-  lockedHint,
   onOpen,
   onAvatarPress,
   onCommentPress,
 }: {
   item: FeedPost;
   width: number;
-  /** What a locked row says under its padlock. */
-  lockedHint: string;
-  /** Open the full-screen view from this row's square (its measured place, for the morph). */
+  /** Open the full-screen view from this row's rear shot (its measured place, for the morph). */
   onOpen: (postId: string, source: MorphSource | null) => void;
   onAvatarPress: (userId: string) => void;
   onCommentPress: (postId: string) => void;
 }): React.JSX.Element {
   const { dark, colors } = useAppTheme();
   const currentUser = useAuthStore((s) => s.user);
-  const name = item.profiles.display_name ?? item.profiles.username;
-  const initials = (item.profiles.username ?? '?')[0].toUpperCase();
   const tile = gridTile(item);
-  const square = width - SPACE.s16 * 2;
-  const squareRef = useRef<View>(null);
+  const rearRef = useRef<View>(null);
 
   // Likes and counts move with the feed's copy of the post, the same as the full-screen card.
   const likedByMe = useSocialStore((s) => s.likedByMe[item.id] ?? item.liked_by_me);
-  // Hold to preview: only a row that opens (a locked one has no photo) gets the pop-up.
+  const counts = useFeedStore((s) => s.posts.find((p) => p.id === item.id));
+  const likeCount = counts?.like_count ?? item.like_count;
+  const commentCount = counts?.comment_count ?? item.comment_count;
+  useEffect(() => {
+    if (!item.locked) useSocialStore.getState().initPost(item.id, item.liked_by_me);
+  }, [item.id, item.liked_by_me, item.locked]);
+
+  // Hold to preview: only a row that opens gets the pop-up.
   const menuOn = useContextMenuPreview();
   const withMenu = menuOn && !item.locked && !!tile.uri;
   const { width: screenW, height: screenH } = useWindowDimensions();
   const items = withMenu
     ? rowMenuItems({ liked: likedByMe, canShare: shareTarget(item) != null })
     : [];
-  const counts = useFeedStore((s) => s.posts.find((p) => p.id === item.id));
-  const likeCount = counts?.like_count ?? item.like_count;
-  const commentCount = counts?.comment_count ?? item.comment_count;
-  useEffect(() => {
-    useSocialStore.getState().initPost(item.id, item.liked_by_me);
-  }, [item.id, item.liked_by_me]);
 
   const open = useCallback(() => {
-    if (item.locked || !tile.uri) {
+    const uri = tile.uri;
+    if (!uri) {
       onOpen(item.id, null);
       return;
     }
-    const uri = tile.uri;
-    squareRef.current?.measureInWindow((x, y, w, h) => {
-      onOpen(item.id, { x, y, width: w, height: h, uri, borderRadius: RADIUS.r16 });
+    rearRef.current?.measureInWindow((x, y, w, h) => {
+      onOpen(item.id, { x, y, width: w, height: h, uri, borderRadius: RADIUS.r10 });
     });
-  }, [item.id, item.locked, tile.uri, onOpen]);
+  }, [item.id, tile.uri, onOpen]);
 
   const like = useCallback(() => {
     if (!currentUser) return;
@@ -137,63 +138,30 @@ export default function FeedRow({
     else if (action === 'view-profile') onAvatarPress(item.profiles.id);
   };
 
-  const squareView = (
+  if (item.locked) return <LockedRow />;
+
+  const name = item.profiles.display_name ?? item.profiles.username;
+  const initials = (item.profiles.username ?? '?')[0].toUpperCase();
+  const line = item.caption?.trim() || relativeTime(item.created_at);
+  // The rear shot first (it opens), the selfie beside it.
+  const second = tile.uri === item.image_url ? item.pov_image_url : item.image_url;
+
+  const row = (
     <PressScale
+      style={[styles.row, { backgroundColor: colors.bg }]}
       onPress={open}
       accessibilityRole="button"
-      accessibilityLabel={item.locked ? `${name}'s post, locked` : `Open ${name}'s post`}
-      accessibilityHint={item.locked ? lockedHint : 'Opens it full screen'}
+      accessibilityLabel={`${name}'s post. ${line}. ${likeCount} likes, ${commentCount} comments`}
+      accessibilityHint="Opens it full screen"
       // VoiceOver: the menu's choices as actions (a double tap already opens the post).
       accessibilityActions={withMenu ? menuA11yActions(items, ['open']) : undefined}
       onAccessibilityAction={withMenu ? (e) => runAction(e.nativeEvent.actionName) : undefined}
     >
-      <View
-        ref={squareRef}
-        collapsable={false}
-        style={[styles.square, { width: square, height: square, backgroundColor: colors.border }]}
-      >
-        {!item.locked && tile.uri ? (
-          <>
-            <Image
-              source={{ uri: tile.uri, cache: 'force-cache' }}
-              style={StyleSheet.absoluteFill}
-              resizeMode="cover"
-            />
-            {item.pov_image_url && item.image_url ? (
-              <Image
-                source={{
-                  uri: tile.uri === item.image_url ? item.pov_image_url : item.image_url,
-                  cache: 'force-cache',
-                }}
-                style={[styles.inset, { borderColor: colors.bg }]}
-                resizeMode="cover"
-              />
-            ) : null}
-          </>
-        ) : (
-          <BlurView
-            intensity={BLUR_INTENSITY.i60}
-            tint={dark ? 'dark' : 'light'}
-            style={[StyleSheet.absoluteFill, styles.lockedFill]}
-          >
-            <View style={[styles.lockPill, { backgroundColor: colors.text }]}>
-              <LockIcon color={colors.bg} />
-              <Text style={[styles.lockPillText, { color: colors.bg }]}>{lockedHint}</Text>
-            </View>
-          </BlurView>
-        )}
-      </View>
-    </PressScale>
-  );
-
-  return (
-    <View style={[styles.row, { backgroundColor: colors.bg }]}>
-      {/* Who, and when. */}
       <Pressable
-        style={({ pressed }) => [styles.who, pressed && { opacity: ALPHA.a75 }]}
         onPress={() => onAvatarPress(item.profiles.id)}
         accessibilityRole="button"
         accessibilityLabel={`Open ${name}'s profile`}
+        hitSlop={OFFSET.o8}
       >
         {item.profiles.avatar_url ? (
           <Image
@@ -205,81 +173,98 @@ export default function FeedRow({
             <Text style={[styles.avatarInitial, { color: colors.text }]}>{initials}</Text>
           </View>
         )}
-        <View style={styles.whoWords}>
-          <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-            {name}
-          </Text>
-          <Text style={[styles.time, { color: colors.muted }]}>{relativeTime(item.created_at)}</Text>
-        </View>
       </Pressable>
 
-      {/* The square: both photos, or frosted with a padlock while locked. Hold it to preview. */}
-      {withMenu ? (
-        <PreviewMenu
-          width={square}
-          height={square}
-          dark={dark}
-          items={items}
-          onAction={runAction}
-          previewSize={previewSize({ width: screenW, height: screenH }, 'post')}
-          previewBackground={colors.bg}
-          renderPreview={() => <PostPreviewImage uri={tile.uri} />}
-        >
-          {squareView}
-        </PreviewMenu>
-      ) : (
-        squareView
-      )}
-
-      {/* Caption, likes and comments stay on the row, like Facebook. */}
-      {!item.locked && item.caption ? (
-        <Text style={[styles.caption, { color: colors.text }]} numberOfLines={3}>
-          {item.caption}
+      <View style={styles.words}>
+        <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+          {name}
         </Text>
-      ) : null}
-      <View style={styles.actions}>
-        <Pressable
-          style={({ pressed }) => [styles.action, pressed && { opacity: ALPHA.a75 }]}
-          onPress={like}
-          disabled={item.locked}
-          accessibilityRole="button"
-          accessibilityLabel={`Like, ${likeCount} ${likeCount === 1 ? 'like' : 'likes'}`}
-          accessibilityState={{ selected: likedByMe }}
-        >
-          <HeartIcon size={ICON_SIZE.i22} color={colors.text} filled={likedByMe} />
-          <Text style={[styles.count, { color: colors.text }]}>{likeCount}</Text>
-        </Pressable>
-        <Pressable
-          style={({ pressed }) => [styles.action, pressed && { opacity: ALPHA.a75 }]}
-          onPress={() => onCommentPress(item.id)}
-          disabled={item.locked}
-          accessibilityRole="button"
-          accessibilityLabel={`Comments, ${commentCount}`}
-        >
-          <CommentIcon size={ICON_SIZE.i22} color={colors.text} />
-          <Text style={[styles.count, { color: colors.text }]}>{commentCount}</Text>
-        </Pressable>
+        <Text style={[styles.line, { color: colors.muted }]} numberOfLines={1}>
+          {line}
+        </Text>
+        <View style={styles.counts}>
+          <Pressable
+            style={({ pressed }) => [styles.count, pressed && { opacity: ALPHA.a75 }]}
+            onPress={like}
+            accessibilityRole="button"
+            accessibilityLabel={`Like, ${likeCount} ${likeCount === 1 ? 'like' : 'likes'}`}
+            accessibilityState={{ selected: likedByMe }}
+            hitSlop={OFFSET.o8}
+          >
+            <HeartIcon size={ICON_SIZE.i16} color={colors.text} filled={likedByMe} />
+            <Text style={[styles.countText, { color: colors.text }]}>{likeCount}</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.count, pressed && { opacity: ALPHA.a75 }]}
+            onPress={() => onCommentPress(item.id)}
+            accessibilityRole="button"
+            accessibilityLabel={`Comments, ${commentCount}`}
+            hitSlop={OFFSET.o8}
+          >
+            <CommentIcon size={ICON_SIZE.i16} color={colors.text} />
+            <Text style={[styles.countText, { color: colors.text }]}>{commentCount}</Text>
+          </Pressable>
+        </View>
       </View>
-    </View>
+
+      {/* Both shots, small, in the same line. */}
+      <View style={styles.thumbs}>
+        <View
+          ref={rearRef}
+          collapsable={false}
+          style={[styles.thumb, { backgroundColor: colors.border }]}
+        >
+          {tile.uri ? (
+            <Image
+              source={{ uri: tile.uri, cache: 'force-cache' }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          ) : null}
+        </View>
+        <View style={[styles.thumb, { backgroundColor: colors.border }]}>
+          {second ? (
+            <Image
+              source={{ uri: second, cache: 'force-cache' }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          ) : null}
+        </View>
+      </View>
+    </PressScale>
+  );
+
+  if (!withMenu) return row;
+  return (
+    <PreviewMenu
+      width={width}
+      dark={dark}
+      items={items}
+      onAction={runAction}
+      previewSize={previewSize({ width: screenW, height: screenH }, 'post')}
+      previewBackground={colors.bg}
+      renderPreview={() => <PostPreviewImage uri={tile.uri} />}
+    >
+      {row}
+    </PreviewMenu>
   );
 }
 
 const styles = StyleSheet.create({
+  // The Messages row's size and spacing.
   row: {
-    paddingHorizontal: SPACE.s16,
-    paddingVertical: SPACE.s12,
-    gap: SPACE.s10,
-  },
-  who: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACE.s10,
+    paddingHorizontal: SPACE.s16,
+    paddingVertical: SPACE.s14,
+    gap: SPACE.s12,
+    overflow: 'hidden',
   },
-  whoWords: { flex: 1 },
   avatar: {
-    width: SIZE.z40,
-    height: SIZE.z40,
-    borderRadius: RADIUS.r20,
+    width: SIZE.z44,
+    height: SIZE.z44,
+    borderRadius: RADIUS.r22,
   },
   avatarFallback: {
     alignItems: 'center',
@@ -287,66 +272,54 @@ const styles = StyleSheet.create({
     borderWidth: BORDER_WIDTH.w1,
   },
   avatarInitial: {
-    fontSize: FONT_SIZE.f15,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.bold,
+  },
+  words: {
+    flex: 1,
+    gap: SPACE.s3,
   },
   name: {
-    fontSize: FONT_SIZE.f15,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.bold,
   },
-  time: {
+  line: {
     fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.regular,
   },
-  square: {
-    borderRadius: RADIUS.r16,
-    overflow: 'hidden',
-  },
-  // The second shot, inset bottom-right like the full-screen view's picture-in-picture.
-  inset: {
-    position: 'absolute',
-    right: SPACE.s10,
-    bottom: SPACE.s10,
-    width: SIZE.z72,
-    height: SIZE.z96,
-    borderRadius: RADIUS.r12,
-    borderWidth: BORDER_WIDTH.w2,
-  },
-  lockedFill: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: withAlpha(COLORS.accent, ALPHA.a20),
-  },
-  lockPill: {
+  counts: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.s6,
-    paddingVertical: SPACE.s8,
-    paddingHorizontal: SPACE.s14,
-    borderRadius: RADIUS.pill,
-    marginHorizontal: SPACE.s24,
-  },
-  lockPillText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
-  },
-  caption: {
-    fontSize: FONT_SIZE.f14,
-    lineHeight: LINE_HEIGHT.l20,
-    fontFamily: FONTS.regular,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: SPACE.s20,
-  },
-  action: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.s6,
-    minHeight: SIZE.z36,
+    gap: SPACE.s12,
+    marginTop: SPACE.s3,
   },
   count: {
-    fontSize: FONT_SIZE.f14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s4,
+  },
+  countText: {
+    fontSize: FONT_SIZE.f12,
     fontFamily: FONTS.semiBold,
+  },
+  thumbs: {
+    flexDirection: 'row',
+    gap: SPACE.s6,
+  },
+  // A small 3:4 preview of each shot.
+  thumb: {
+    width: SIZE.z42,
+    height: SIZE.z56,
+    borderRadius: RADIUS.r10,
+    overflow: 'hidden',
+  },
+  // The locked stand-in's bars where a name and a line would be.
+  bar: {
+    height: SIZE.z10,
+    borderRadius: RADIUS.r4,
+  },
+  barName: { width: SIZE.z120 },
+  barLine: { width: SIZE.z160 },
+  frost: {
+    backgroundColor: withAlpha(COLORS.accent, ALPHA.a20),
   },
 });

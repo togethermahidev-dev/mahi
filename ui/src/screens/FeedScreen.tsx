@@ -338,7 +338,6 @@ export default function FeedScreen({
               <FeedRow
                 item={item}
                 width={screenWidth}
-                lockedHint={lockedText.hint}
                 onOpen={openPost}
                 onAvatarPress={handleAvatarPress}
                 onCommentPress={setCommentPostId}
@@ -462,6 +461,7 @@ export default function FeedScreen({
           onLayout={(e) => setBannerH(e.nativeEvent.layout.height)}
           style={[
             styles.lockBanner,
+            locked && posts.length > 0 && styles.lockBannerCentred,
             {
               top: headerH,
               // Slides away with the header once the first post scrolls off.
@@ -549,6 +549,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: SPACE.s16,
+  },
+  // A locked feed: the lock pill floats in the middle of the frosted rows.
+  lockBannerCentred: {
+    bottom: 0,
+    justifyContent: 'center',
   },
   skeleton: {
     justifyContent: 'flex-end',

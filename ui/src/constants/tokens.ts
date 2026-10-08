@@ -354,6 +354,8 @@ export const BLUR_INTENSITY = {
   i35: 35,
   i40: 40,
   i60: 60,
+  /** Nothing behind it can be read (a locked feed row). */
+  i100: 100,
 } as const;
 
 // ─── Motion: how long things take (ms) ───────────────────────────────────────
