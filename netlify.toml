@@ -31,6 +31,18 @@
   [headers.values]
     Content-Type = "application/json"
 
+# Every page: no type sniffing, never shown inside another site's frame, only the domain sent on
+# as the referrer, and no camera, microphone or location. Netlify applies every matching block, so
+# the Apple file above keeps its Content-Type. Tests: web/scripts/links.test.mjs
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Content-Security-Policy = "frame-ancestors 'none'"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
 # Without the app, every invite and post link gets the one fallback page; the page reads the link
 # from the address. (A real file at the path, like /i/index.html itself, still wins.)
 [[redirects]]

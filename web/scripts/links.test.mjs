@@ -81,6 +81,27 @@ test('Netlify serves the Apple file as JSON and the link pages for every token',
   );
 });
 
+test('every page tells browsers not to sniff, frame or leak it', () => {
+  const toml = read('../../netlify.toml');
+  const block =
+    /\[\[headers\]\]\s*for = "\/\*"\s*\[headers\.values\]\s*((?:\s*[\w-]+ = "[^"]*"\s*)+)/.exec(
+      toml
+    );
+  assert.ok(block, 'a [[headers]] block for "/*"');
+  const values = Object.fromEntries(
+    [...block[1].matchAll(/([\w-]+) = "([^"]*)"/g)].map(([, k, v]) => [k, v])
+  );
+  assert.deepEqual(values, {
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Content-Security-Policy': "frame-ancestors 'none'",
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  });
+  // The catch-all never sets a Content-Type, so the Apple file keeps its own.
+  assert.equal(values['Content-Type'], undefined);
+});
+
 test('an invite link gives its token or code, like the app reads it', () => {
   assert.equal(inviteFromPath(`/i/${TOKEN}`), TOKEN);
   assert.equal(inviteFromPath(`/i/${TOKEN.toUpperCase()}/`), TOKEN);
