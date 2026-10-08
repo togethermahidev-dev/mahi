@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 27 — the pill beside the bell morphs: question mark, up-arrow when the camera
+ *     nudges down, camera icon while the feed is up (2026-10-08)
  *   build 13 · 26 — roadmap circles do their step; Invite friends under the roadmap; shorter
  *     step words (2026-10-08)
  *   build 13 · 25 — locked feed: swiping up lifts the camera a quarter with the reason and one
@@ -138,4 +140,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 26;
+export const OTA_NUMBER = 27;
