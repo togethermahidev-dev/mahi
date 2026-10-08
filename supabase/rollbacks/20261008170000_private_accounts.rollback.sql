@@ -1049,7 +1049,7 @@ $function$
 
 -- 4. New functions.
 drop function public.can_view_post_for(uuid, uuid, uuid);
-drop function public.tagged_on_post(uuid, uuid);
+drop function public.tag_shows_post(uuid, uuid);
 drop function public.respond_follow_request(uuid, boolean, boolean);
 drop function public.remove_follower(uuid);
 drop function public.get_follow_requests();
@@ -1063,6 +1063,8 @@ drop function public.clear_follow_request_notice(uuid, uuid);
 -- 5. Notices of the new types, then the old type check.
 delete from public.notifications where type in ('follow_request', 'follow_accepted');
 alter table public.notifications drop column follow_request;
+revoke update (is_read) on public.notifications from authenticated;
+grant update on public.notifications to authenticated;
 alter table public.notifications drop constraint notifications_type_check;
 alter table public.notifications add constraint notifications_type_check
   check (type in ('like', 'comment', 'follow', 'tag', 'tag_answered', 'tag_missed', 'invite_joined',

@@ -14,9 +14,10 @@
 --    workouts setting lets the viewer in). Posts, files, likes, comments and comment likes follow it.
 --    get_feed keeps to followed accounts within the same setting; get_user_posts says why a profile
 --    is closed (restricted) instead of padlocks, unless the viewer's feed lock is the reason.
---    A person tagged on a post (post_tags, or a started tag on it) always sees THAT post, its photo,
---    comments and likes, and can like and comment (owner, 2026-10-08); blocks, bans and the feed
---    lock still win, and the poster's other posts stay closed (can_view_post_for, used by
+--    A person tagged on a post (post_tags, or a started tag on it), and the tagger of a tag a post
+--    answers (tag_challenges.answered_post_id), always see THAT post, its photo, comments and
+--    likes, and can like and comment (owner, 2026-10-08); blocks, bans and the feed lock still win,
+--    and the poster's other posts stay closed (tag_shows_post + can_view_post_for, used by
 --    can_view_post_id, can_view_post_object, posts_select and get_user_posts).
 --    Follower and following lists (follows_select, get_friends) follow the owner's setting too: a
 --    follows row shows to someone outside it only when BOTH people's lists are open to them, so a
@@ -75,6 +76,9 @@ revoke all on public.follow_request_notices from anon, authenticated;
 -- True on an invite_joined notice when the claimer's follow is a request waiting for the inviter
 -- (claim_invite); null on every other notice. Readable by the recipient like the rest of the row.
 alter table public.notifications add column follow_request boolean;
+-- Your own notices: only is_read may change (the app marks read; nothing else is written).
+revoke update on public.notifications from authenticated;
+grant update (is_read) on public.notifications to authenticated;
 
 alter table public.notifications drop constraint notifications_type_check;
 alter table public.notifications add constraint notifications_type_check
@@ -184,9 +188,10 @@ as $$
   );
 $$;
 
--- Whether the viewer is tagged on this post: its tag bubble (post_tags), or a started tag on it
--- (a slot whose 48 hours are running).
-create function public.tagged_on_post(p_viewer uuid, p_post_id uuid)
+-- Whether a tag ties the viewer to this post: they are tagged on it (its tag bubble in post_tags,
+-- or a started tag on it: a slot whose 48 hours are running), or they tagged the person whose post
+-- this is and this post answers that tag.
+create function public.tag_shows_post(p_viewer uuid, p_post_id uuid)
 returns boolean
 language sql
 stable
@@ -197,10 +202,13 @@ as $$
            select 1 from public.post_tags pt where pt.post_id = p_post_id and pt.user_id = p_viewer)
       or exists (
            select 1 from public.tag_challenges c
-           where c.post_id = p_post_id and c.tagged_id = p_viewer and c.expires_at is not null);
+           where c.post_id = p_post_id and c.tagged_id = p_viewer and c.expires_at is not null)
+      or exists (
+           select 1 from public.tag_challenges c
+           where c.answered_post_id = p_post_id and c.tagger_id = p_viewer);
 $$;
 
--- One post: the owner's rule (can_view_post), or the viewer is tagged on this post. The tag
+-- One post: the owner's rule (can_view_post), or a tag ties the viewer to this post. The tag
 -- exception skips only the workouts setting: a block either way, a banned owner or the viewer's
 -- feed lock still keep it shut.
 create function public.can_view_post_for(p_viewer uuid, p_owner uuid, p_post_id uuid)
@@ -212,7 +220,7 @@ set search_path = public
 as $$
   select public.can_view_post(p_viewer, p_owner) or (
     p_viewer is not null
-    and public.tagged_on_post(p_viewer, p_post_id)
+    and public.tag_shows_post(p_viewer, p_post_id)
     and exists (select 1 from public.profiles where id = p_owner and not is_banned)
     and not exists (
       select 1 from public.user_blocks b
@@ -222,7 +230,7 @@ as $$
     and not public.viewer_is_locked(p_viewer)
   );
 $$;
-revoke execute on function public.tagged_on_post(uuid, uuid), public.can_view_post_for(uuid, uuid, uuid)
+revoke execute on function public.tag_shows_post(uuid, uuid), public.can_view_post_for(uuid, uuid, uuid)
   from public, anon, authenticated;
 
 create or replace function public.can_view_post_id(p_post_id uuid)
@@ -421,8 +429,8 @@ begin
     return jsonb_build_object('locked', true, 'items', '[]'::jsonb);
   end if;
 
-  -- Closed by the owner's setting: say why, and show no padlock squares. Only the posts the
-  -- viewer is tagged on come back (usually none), so a notification can still open one; the
+  -- Closed by the owner's setting: say why, and show no padlock squares. Only the posts a tag ties
+  -- the viewer to come back (usually none), so a notification can still open one; the
   -- viewer's feed lock still padlocks them.
   select * into v_owner from public.profiles where id = p_user;
   if found and not v_owner.is_banned and v_uid <> p_user
@@ -438,7 +446,7 @@ begin
       from public.posts p
       where p.user_id = p_user
         and p.hidden_at is null
-        and public.tagged_on_post(v_uid, p.id)
+        and public.tag_shows_post(v_uid, p.id)
         and (p_cursor_ts is null or (p.created_at, p.id) < (p_cursor_ts, p_cursor_id))
       order by p.created_at desc, p.id desc
       limit least(greatest(coalesce(p_limit, 30), 1), 60)

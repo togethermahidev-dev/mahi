@@ -10,7 +10,7 @@
 -- * push words for the new notices and the missed tag
 -- Every check reads only this test's own people.
 begin;
-select plan(59);
+select plan(64);
 
 update public.app_config set feed_lock_enabled = false, tags_required = false,
   invite_links_enabled = true, max_open_invites = 10;
@@ -234,6 +234,17 @@ select pg_temp.as_user('r');
 select is((select follow_request from public.notifications
            where type = 'invite_joined' and actor_id = pg_temp.uid('n')), true,
   'r''s notice row says the follow is a request');
+-- Only is_read can be changed on your own notices.
+select throws_ok($$update public.notifications set follow_request = false where user_id = auth.uid()$$,
+  '42501', null, 'the request flag cannot be changed');
+select throws_ok($$update public.notifications set type = 'like' where user_id = auth.uid()$$,
+  '42501', null, 'nor the type');
+select throws_ok($$update public.notifications set actor_id = auth.uid() where user_id = auth.uid()$$,
+  '42501', null, 'nor who it is from');
+select lives_ok($$update public.notifications set is_read = true where user_id = auth.uid()$$,
+  'marking read still works');
+select ok((select bool_and(is_read) from public.notifications where user_id = auth.uid()),
+  'and they are read');
 reset role;
 with c as (insert into public.tag_challenges (tagger_id) values (pg_temp.uid('r')) returning id)
 insert into pg_temp.ids select 'slot', c.id::text from c;
