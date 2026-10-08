@@ -11,6 +11,7 @@ import {
 } from '@/api';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useUserStore } from './userStore';
+import { useBlockStore } from './blockStore';
 
 // Channel registry — outside store state so channel changes don't trigger renders
 const notifChannels = new Map<string, RealtimeChannel>();
@@ -132,6 +133,8 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     const handleInsert = async (payload: NotifPayload) => {
       // Dedupe: ignore rows we already have (e.g. from an in-flight sync)
       if (get().items.some((n) => n.id === payload.new.id)) return;
+      // Someone blocked either way: the list hides them, so the badge doesn't count them either.
+      if (useBlockStore.getState().blockedSet.has(payload.new.actor_id)) return;
 
       // Fetch the actor profile separately — the realtime payload is the raw row
       const { data: actor, error: actorError } = await supabase

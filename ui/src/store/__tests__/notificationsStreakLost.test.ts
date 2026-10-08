@@ -35,6 +35,7 @@ jest.mock('@/lib/analytics', () => ({ track: jest.fn() }));
 
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { useUserStore } from '@/store/userStore';
+import { useBlockStore } from '@/store/blockStore';
 
 const refresh = jest.fn(async () => {});
 const row = (type: string) => ({
@@ -55,6 +56,7 @@ beforeEach(() => {
   onInsert = null;
   refresh.mockClear();
   useNotificationsStore.getState().reset();
+  useBlockStore.getState().reset();
   useUserStore.setState({ refresh });
   useNotificationsStore.getState().subscribe('me');
 });
@@ -69,5 +71,19 @@ describe('a streak_lost notice', () => {
     await onInsert!(row('like'));
     await onInsert!(row('tag_missed'));
     expect(refresh).not.toHaveBeenCalled();
+  });
+});
+
+describe('a live notice from someone blocked', () => {
+  it('does not bump the badge or join the list', async () => {
+    useBlockStore.setState({ blockedSet: new Set(['tagger']) });
+    await onInsert!(row('like'));
+    expect(useNotificationsStore.getState().unreadCount).toBe(0);
+    expect(useNotificationsStore.getState().items).toHaveLength(0);
+  });
+
+  it('from anyone else, counts as before', async () => {
+    await onInsert!(row('like'));
+    expect(useNotificationsStore.getState().unreadCount).toBe(1);
   });
 });

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getBlockedIds } from './moderation';
 import type { Database } from '@/types';
 
 type NotificationRow = Database['public']['Tables']['notifications']['Row'];
@@ -43,14 +44,25 @@ export async function getNotifications(
   return { data: merged, error: null };
 }
 
+/**
+ * The unread number on the badge. Notifications from anyone blocked either way are left out, as
+ * the list leaves them out, so a blocked person can't make the badge go up. The blocks are read
+ * here rather than taken from blockStore, which may not have loaded yet when this runs.
+ */
 export async function getUnreadCount(
   userId: string
 ): Promise<{ data: number | null; error: Error | null }> {
-  const { count, error } = await supabase
+  const { data: blocks, error: blocksErr } = await getBlockedIds(userId);
+  if (blocksErr || !blocks) return { data: null, error: blocksErr };
+  const blocked = [...new Set([...blocks.blockedByMe, ...blocks.blockedMe])];
+
+  let query = supabase
     .from('notifications')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('is_read', false);
+  if (blocked.length > 0) query = query.not('actor_id', 'in', `(${blocked.join(',')})`);
+  const { count, error } = await query;
 
   if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   return { data: count ?? 0, error: null };
