@@ -108,9 +108,14 @@ select is((select count(*)::int from storage.objects where bucket_id = 'avatars'
   'you can list only your own avatar file');
 select is((select string_agg(name, ',' order by name) from storage.objects where bucket_id = 'avatars'),
   pg_temp.uid('b')::text || '/avatar.jpg', 'and it is yours');
-select lives_ok(format($$insert into storage.objects (bucket_id, name) values ('avatars', %L)
-                         on conflict (bucket_id, name) do update set updated_at = now()$$,
-                       pg_temp.uid('b')::text || '/avatar.jpg'),
+-- Replacing a file (the app's upsert) updates the existing row, which needs it to be visible to you.
+-- (Production's storage.objects has no plain (bucket_id, name) constraint for ON CONFLICT.)
+with replaced as (
+  update storage.objects set updated_at = now()
+  where bucket_id = 'avatars' and name = pg_temp.uid('b')::text || '/avatar.jpg'
+  returning 1
+)
+select is((select count(*)::int from replaced), 1,
   'replacing your own avatar (the app''s upsert) still works');
 select throws_ok(format($$insert into storage.objects (bucket_id, name) values ('avatars', %L)$$,
                         pg_temp.uid('a')::text || '/mine.jpg'),
