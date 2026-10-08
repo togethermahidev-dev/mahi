@@ -55,12 +55,13 @@ export function pipGuide(input: {
   state: CaptureState;
   facing: CameraSide;
   hasFirstPhoto: boolean;
-  /** Posting isn't open (still loading, or no tag to answer). */
-  blocked: boolean;
+  /** Posting isn't open (still loading, or no tag to answer). The window shows anyway (owner,
+   *  2026-10-08: the camera always looks like the camera); only the shutter waits for a tag. */
+  blocked?: boolean;
   cameraGranted: boolean;
 }): PipGuide | null {
-  const { state, facing, hasFirstPhoto, blocked, cameraGranted } = input;
-  if (blocked || !cameraGranted) return null;
+  const { state, facing, hasFirstPhoto, cameraGranted } = input;
+  if (!cameraGranted) return null;
 
   const beforeFirst = state === 'idle' || state === 'capturing-first';
   if (!beforeFirst && hasFirstPhoto) return { kind: 'photo' };

@@ -121,8 +121,9 @@ describe('pipGuide — what the small window on the live camera shows', () => {
     });
   });
 
-  it('is hidden while posting is blocked', () => {
-    expect(pipGuide({ ...base, blocked: true })).toBeNull();
+  // Owner, 2026-10-08: the camera always looks like the camera; only the shutter waits for a tag.
+  it('shows while posting is blocked (waiting for a tag)', () => {
+    expect(pipGuide({ ...base, blocked: true })).toEqual(pipGuide(base));
   });
 
   it('is hidden without camera permission', () => {
