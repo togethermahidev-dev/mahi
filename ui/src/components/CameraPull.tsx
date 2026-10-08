@@ -72,30 +72,17 @@ export function useCameraPull(
   const decided = useSharedValue(false);
   const felt = useSharedValue(false);
   const [expanded, setExpanded] = useState(false);
-  const peeked = useRef(false);
 
-  // Leaving the waiting state mid-pull puts everything back.
+  // Leaving the waiting state mid-pull puts everything back. The camera itself never tugs on
+  // its own (owner, 2026-10-08: no shake when Mahi opens); the arrow's hops are the hint.
   useEffect(() => {
     if (!enabled) {
       offset.value = 0;
-      peeked.current = false;
       // The drawer may disappear because a tag arrived while it was open.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setExpanded(false);
-      return;
     }
-    if (reduceMotion || peeked.current) return;
-    peeked.current = true;
-    offset.value = withDelay(
-      MOTION.pull.peekDelayMs,
-      withSequence(
-        withTiming(MOTION.pull.peekY, { duration: MOTION.pull.peekOutMs }),
-        withTiming(0, { duration: MOTION.pull.peekBackMs }),
-        withTiming(MOTION.pull.peekReturnY, { duration: MOTION.pull.peekOutMs }),
-        withSpring(0, SPRING.pullBack)
-      )
-    );
-  }, [enabled, offset, reduceMotion]);
+  }, [enabled, offset]);
 
   const toggle = useCallback(() => {
     const next = !expanded;

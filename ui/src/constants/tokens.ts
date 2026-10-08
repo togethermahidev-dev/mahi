@@ -590,12 +590,6 @@ export const MOTION = {
     /** The lit leading edge is strongest early, then settles to this quieter strength. */
     edgePeak: 0.62,
     edgeRest: 0.24,
-    /** One quiet two-beat tug teaches that the camera is a movable front layer. */
-    peekY: 56,
-    peekReturnY: 22,
-    peekDelayMs: 600,
-    peekOutMs: 180,
-    peekBackMs: 220,
     /** The standalone arrow gives two short downward jumps instead of showing an instruction pill. */
     arrowJumpY: 8,
     cameraFadeAt: 0.65,
