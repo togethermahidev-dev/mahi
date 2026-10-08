@@ -3,6 +3,7 @@ import {
   gridMenuItems,
   messagesMenuItems,
   postMenuItems,
+  rowMenuItems,
   menuA11yActions,
   isMenuAction,
   previewMessages,
@@ -281,5 +282,25 @@ describe('previewSize — the pop-up fits on the screen', () => {
       expect(Number.isInteger(s.width)).toBe(true);
       expect(Number.isInteger(s.height)).toBe(true);
     }
+  });
+});
+
+// Owner, 2026-10-08: a feed row holds to preview like a grid square; Open morphs it into the
+// full-screen feed.
+describe('rowMenuItems — a feed row', () => {
+  it('Open, Like / Unlike, Comment, Share, View profile', () => {
+    expect(rowMenuItems({ liked: false, canShare: true }).map((i) => i.action)).toEqual([
+      'open',
+      'like',
+      'comment',
+      'share',
+      'view-profile',
+    ]);
+    expect(rowMenuItems({ liked: true, canShare: false }).map((i) => i.action)).toEqual([
+      'open',
+      'unlike',
+      'comment',
+      'view-profile',
+    ]);
   });
 });

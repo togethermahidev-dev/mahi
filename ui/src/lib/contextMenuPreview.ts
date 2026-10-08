@@ -73,6 +73,11 @@ export function messagesMenuItems(input: { unread: boolean }): MenuItem[] {
   return [OPEN, ...(input.unread ? [MARK_READ] : [])];
 }
 
+/** A feed row (owner, 2026-10-08): Open (morphs into the full-screen feed), then the post's choices. */
+export function rowMenuItems(input: { liked: boolean; canShare: boolean }): MenuItem[] {
+  return [OPEN, ...postMenuItems(input)];
+}
+
 /** A feed post (replaces hold to view): Like / Unlike, Comment, Share, View profile. */
 export function postMenuItems(input: { liked: boolean; canShare: boolean }): MenuItem[] {
   return [input.liked ? UNLIKE : LIKE, COMMENT, ...(input.canShare ? [SHARE] : []), VIEW_PROFILE];

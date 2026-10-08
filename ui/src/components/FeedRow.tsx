@@ -6,15 +6,28 @@
  * Rows sit on Mahi blue, which shows through the gap between rows as the divider. A locked row
  * (the server sends no photo while your feed is locked) is frosted with a small padlock pill, so
  * a locked feed still looks like a feed.
+ *
+ * Hold the square and it pops out with Apple's menu (Open, Like, Comment, Share, View profile),
+ * as a profile grid square does; Open morphs it into the full-screen feed.
  */
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAuthStore, useFeedStore, useSocialStore } from '@/store';
 import { HeartIcon, CommentIcon } from '@/components/ScreenIcons';
 import { PressScale } from '@/components/Motion';
+import PreviewMenu, { PostPreviewImage } from '@/components/PreviewMenu';
+import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
+import {
+  isMenuAction,
+  menuA11yActions,
+  previewSize,
+  rowMenuItems,
+  shareTarget,
+} from '@/lib/contextMenuPreview';
+import { sharePost } from '@/lib/sharePost';
 import { gridTile } from '@/lib/videoPosts';
 import { relativeTime } from '@/lib/relativeTime';
 import { haptic } from '@/lib/haptics';
@@ -85,6 +98,13 @@ export default function FeedRow({
 
   // Likes and counts move with the feed's copy of the post, the same as the full-screen card.
   const likedByMe = useSocialStore((s) => s.likedByMe[item.id] ?? item.liked_by_me);
+  // Hold to preview: only a row that opens (a locked one has no photo) gets the pop-up.
+  const menuOn = useContextMenuPreview();
+  const withMenu = menuOn && !item.locked && !!tile.uri;
+  const { width: screenW, height: screenH } = useWindowDimensions();
+  const items = withMenu
+    ? rowMenuItems({ liked: likedByMe, canShare: shareTarget(item) != null })
+    : [];
   const counts = useFeedStore((s) => s.posts.find((p) => p.id === item.id));
   const likeCount = counts?.like_count ?? item.like_count;
   const commentCount = counts?.comment_count ?? item.comment_count;
@@ -108,6 +128,63 @@ export default function FeedRow({
     haptic('tick');
     void useSocialStore.getState().toggleLike(item.id, currentUser.id);
   }, [currentUser, item.id]);
+  const runAction = (action: string) => {
+    if (!isMenuAction(action)) return;
+    if (action === 'open') open();
+    else if (action === 'like' || action === 'unlike') like();
+    else if (action === 'comment') onCommentPress(item.id);
+    else if (action === 'share') void sharePost(item);
+    else if (action === 'view-profile') onAvatarPress(item.profiles.id);
+  };
+
+  const squareView = (
+    <PressScale
+      onPress={open}
+      accessibilityRole="button"
+      accessibilityLabel={item.locked ? `${name}'s post, locked` : `Open ${name}'s post`}
+      accessibilityHint={item.locked ? lockedHint : 'Opens it full screen'}
+      // VoiceOver: the menu's choices as actions (a double tap already opens the post).
+      accessibilityActions={withMenu ? menuA11yActions(items, ['open']) : undefined}
+      onAccessibilityAction={withMenu ? (e) => runAction(e.nativeEvent.actionName) : undefined}
+    >
+      <View
+        ref={squareRef}
+        collapsable={false}
+        style={[styles.square, { width: square, height: square, backgroundColor: colors.border }]}
+      >
+        {!item.locked && tile.uri ? (
+          <>
+            <Image
+              source={{ uri: tile.uri, cache: 'force-cache' }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+            {item.pov_image_url && item.image_url ? (
+              <Image
+                source={{
+                  uri: tile.uri === item.image_url ? item.pov_image_url : item.image_url,
+                  cache: 'force-cache',
+                }}
+                style={[styles.inset, { borderColor: colors.bg }]}
+                resizeMode="cover"
+              />
+            ) : null}
+          </>
+        ) : (
+          <BlurView
+            intensity={BLUR_INTENSITY.i60}
+            tint={dark ? 'dark' : 'light'}
+            style={[StyleSheet.absoluteFill, styles.lockedFill]}
+          >
+            <View style={[styles.lockPill, { backgroundColor: colors.text }]}>
+              <LockIcon color={colors.bg} />
+              <Text style={[styles.lockPillText, { color: colors.bg }]}>{lockedHint}</Text>
+            </View>
+          </BlurView>
+        )}
+      </View>
+    </PressScale>
+  );
 
   return (
     <View style={[styles.row, { backgroundColor: colors.bg }]}>
@@ -136,50 +213,23 @@ export default function FeedRow({
         </View>
       </Pressable>
 
-      {/* The square: both photos, or frosted with a padlock while locked. */}
-      <PressScale
-        onPress={open}
-        accessibilityRole="button"
-        accessibilityLabel={item.locked ? `${name}'s post, locked` : `Open ${name}'s post`}
-        accessibilityHint={item.locked ? lockedHint : 'Opens it full screen'}
-      >
-        <View
-          ref={squareRef}
-          collapsable={false}
-          style={[styles.square, { width: square, height: square, backgroundColor: colors.border }]}
+      {/* The square: both photos, or frosted with a padlock while locked. Hold it to preview. */}
+      {withMenu ? (
+        <PreviewMenu
+          width={square}
+          height={square}
+          dark={dark}
+          items={items}
+          onAction={runAction}
+          previewSize={previewSize({ width: screenW, height: screenH }, 'post')}
+          previewBackground={colors.bg}
+          renderPreview={() => <PostPreviewImage uri={tile.uri} />}
         >
-          {!item.locked && tile.uri ? (
-            <>
-              <Image
-                source={{ uri: tile.uri, cache: 'force-cache' }}
-                style={StyleSheet.absoluteFill}
-                resizeMode="cover"
-              />
-              {item.pov_image_url && item.image_url ? (
-                <Image
-                  source={{
-                    uri: tile.uri === item.image_url ? item.pov_image_url : item.image_url,
-                    cache: 'force-cache',
-                  }}
-                  style={[styles.inset, { borderColor: colors.bg }]}
-                  resizeMode="cover"
-                />
-              ) : null}
-            </>
-          ) : (
-            <BlurView
-              intensity={BLUR_INTENSITY.i60}
-              tint={dark ? 'dark' : 'light'}
-              style={[StyleSheet.absoluteFill, styles.lockedFill]}
-            >
-              <View style={[styles.lockPill, { backgroundColor: colors.text }]}>
-                <LockIcon color={colors.bg} />
-                <Text style={[styles.lockPillText, { color: colors.bg }]}>{lockedHint}</Text>
-              </View>
-            </BlurView>
-          )}
-        </View>
-      </PressScale>
+          {squareView}
+        </PreviewMenu>
+      ) : (
+        squareView
+      )}
 
       {/* Caption, likes and comments stay on the row, like Facebook. */}
       {!item.locked && item.caption ? (
