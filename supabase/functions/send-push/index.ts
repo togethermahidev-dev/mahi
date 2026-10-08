@@ -4,13 +4,16 @@
 //   {"mode":"send"}      claim due outbox rows, group them per user, send, record tickets
 //   {"mode":"receipts"}  check Expo receipts for recent tickets and drop dead device tokens
 //
-// Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (built in), SEND_PUSH_SECRET.
+// Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (built in), SEND_PUSH_SECRET; optional
+// EXPO_ACCESS_TOKEN (sent to Expo when set; see _shared/push.ts).
 // Deployed with verify_jwt: false like every function in this project; the secret is the gate.
 import { createClient } from "npm:@supabase/supabase-js@2.117.2";
+import { expoHeaders } from "../_shared/push.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const SEND_PUSH_SECRET = Deno.env.get("SEND_PUSH_SECRET") || "";
+const EXPO_HEADERS = expoHeaders(Deno.env.get("EXPO_ACCESS_TOKEN"));
 const EXPO_PUSH = "https://exp.host/--/api/v2/push";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -47,7 +50,7 @@ function chunk<T>(items: T[], size: number): T[][] {
 async function expo<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${EXPO_PUSH}/${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: EXPO_HEADERS,
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`Expo ${path} ${res.status}: ${await res.text()}`);
