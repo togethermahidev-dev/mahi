@@ -12,16 +12,17 @@ export function requiredTagCount(
 }
 
 /**
- * Tags this post needs (owner, 2026-10-07): your first ever post that answers a mate's open tag
- * may tag nobody — tagging is encouraged, not required. Every other post needs `required`.
+ * Tags this post needs: the first workout post may tag nobody, whether the person arrived alone
+ * or through a mate's tag. Tagging is an optional hand-off on that first check-in, never the price
+ * of completing it. Every later answer needs `required` so accountability keeps moving.
  * `firstPost` is null until it's known, and then the usual rule holds. The server
- * (20261007190000_first_answer_no_tags) enforces the same.
+ * (`20261008140000_free_first_post`) enforces the same.
  */
 export function postTagsRequired(
   required: number,
   s: { firstPost: boolean | null; answersTag: boolean }
 ): number {
-  return s.firstPost === true && s.answersTag ? 0 : required;
+  return s.firstPost === true ? 0 : required;
 }
 
 /**

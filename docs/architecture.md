@@ -2,14 +2,15 @@
 
 ## Overview
 
-Mahi Fitness is a React Native fitness application built with Expo (iPhone first). Users post a two-photo workout from the Camera screen only to answer a friend's tag (reactive posting, below — the first post is the exception), and every post tags 3 friends, who have 48 hours to answer. Each answer earns one Mahi point; the friends-only Feed opens for 24 hours after each post (the tag loop — [tag-loop-plan.md](./tag-loop-plan.md), [decisions.md](./decisions.md)). The app has messaging (inbox + requests), notifications, and profiles with Mahi points (Points and Best).
+Mahi Fitness is a React Native **show-up fitness accountability app**, not a social-media app. Everyone gets one free two-photo workout check-in; after that, posting is only possible as the answer to a friend's live tag. The answer is the post. Later answers tag 3 friends, who have 48 hours to show up in turn. Each answer earns one Mahi point; the friends-only Feed opens after accountable check-ins (the tag loop — [tag-loop-plan.md](./tag-loop-plan.md), [decisions.md](./decisions.md)). Messaging, profiles, follows, likes and comments support accountability rather than define the product loop.
 
 ## Reactive posting
 
 The posting rule since 2026-10-01 ([decisions.md](./decisions.md#reactive-posting-2026-10-01) #1, #10, #27–#30; Mahi points #47–#50):
 
 - **Reactive posting** — you post only when a friend has tagged you and you can still answer (48 hours,
-  `app_config.tag_window`, plus 10 minutes `answer_grace`). Your very first post is the one exception. The
+  `app_config.tag_window`, plus 10 minutes `answer_grace`). Your very first post is the one exception and
+  requires no outgoing tags. The
   server enforces it: `create_post` checks `public.reactive_posting_open(user)` and raises
   `reactive posting: not tagged` otherwise (migration `20261001120000_reactive_posting.sql`, test
   `supabase/tests/reactive_posting_test.sql`). The app's copy of the rule is `reactivePostingGate()` in
@@ -517,11 +518,11 @@ deleted; `20261001170000_drop_rest_days` removes the last columns and table from
 
 ## Caption + Tagging
 
-Users attach an optional caption and must fill the post's tag slots (3, `tagStore.maxTags` from `app_config`) with friends or invite links. The flow lives inside the `DualPhotoPreview` modal in `CameraScreen.tsx` and renders in `FeedScreen.tsx`.
+Users attach an optional caption. The first workout post can go immediately and shows no tagging step. Every later answer must fill its accountability slots (3, `tagStore.maxTags` from `app_config`) with friends or invite links so the show-up loop continues. The flow lives inside the `DualPhotoPreview` modal in `CameraScreen.tsx` and renders in `FeedScreen.tsx`.
 
 ### Preview UI (`DualPhotoPreview`)
 
-Above the Post button sits one row of glass pills: tag (`tagPillLabel` — `'+ Tag people'`, `'@username'`, `'@user1 +N'`), caption (`'+ Add a caption'`), and location (`'+ Add location'` / `'Location on'`). The Post button reads `Tag N more` until every slot is filled (tapping it then opens the tag sheet with a warning haptic), then `Post`. The draggable pip may paint over the pill row.
+Above the Post button sits the caption (`'+ Add a caption'`) and location (`'+ Add location'` / `'Location on'`). Later answers also show the accountability pill (`tagPillLabel` — `'+ Challenge friends'`, `'@username'`, `'@user1 +N'`). Their Post button reads `Challenge N more` until every slot is filled; the sheet asks “Who are you holding accountable?” and “Pick 3 friends you want to see show up on Mahi.” On the first workout post, the challenge control is absent and the button reads `Post` immediately. The draggable pip may paint over the pill row.
 
 ### Sheet state machine
 

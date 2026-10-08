@@ -303,7 +303,7 @@ export default function ProfileMediaMap({
         isSelf
           ? postedBefore
             ? 'You post when a friend tags you. Any workout counts.'
-            : 'Post your first Mahi to get your first point and tag 3 friends.'
+            : 'Show up with your first workout to earn your first point.'
           : username
             ? `@${username} hasn’t posted yet.`
             : 'Nothing posted yet.'

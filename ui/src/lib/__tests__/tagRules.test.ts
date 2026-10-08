@@ -19,13 +19,13 @@ describe('requiredTagCount', () => {
   });
 });
 
-describe('postTagsRequired — a first post that answers a friend needs no tags', () => {
+describe('postTagsRequired — the first workout post needs no tags', () => {
   it('asks for nothing when your first post answers a friend’s tag', () => {
     expect(postTagsRequired(3, { firstPost: true, answersTag: true })).toBe(0);
   });
 
-  it('keeps the rule for a first post with no tag to answer', () => {
-    expect(postTagsRequired(3, { firstPost: true, answersTag: false })).toBe(3);
+  it('asks for nothing when the person arrived without a tag', () => {
+    expect(postTagsRequired(3, { firstPost: true, answersTag: false })).toBe(0);
   });
 
   it('keeps the rule for every post after the first', () => {

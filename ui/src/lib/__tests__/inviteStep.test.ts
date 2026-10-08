@@ -54,8 +54,8 @@ describe('tagSheetStep', () => {
 describe('inviteStepCopy', () => {
   it('asks a newcomer with no friends to invite all 3', () => {
     expect(inviteStepCopy({ maxTags: 3, availableFriends: 0, friends: 0, invites: 0 })).toEqual({
-      headline: 'Invite 3 friends to post',
-      why: 'Every post tags 3 friends. When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.',
+      headline: 'Invite 3 friends to show up',
+      why: 'Each answer challenges 3 friends. When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.',
       button: 'Hold someone else accountable',
       canAdd: true,
       count: '0 of 3 tags',
@@ -64,7 +64,7 @@ describe('inviteStepCopy', () => {
 
   it('asks only for the slots friends cannot fill', () => {
     const copy = inviteStepCopy({ maxTags: 3, availableFriends: 2, friends: 2, invites: 0 });
-    expect(copy.headline).toBe('Invite 1 friend to post');
+    expect(copy.headline).toBe('Invite 1 friend to show up');
     expect(copy.count).toBe('2 of 3 tags · 2 friends');
   });
 
@@ -76,8 +76,7 @@ describe('inviteStepCopy', () => {
   });
 });
 
-// Usability walkthrough 2026-10-07: a first post that answers a tag needs no tags, so the step
-// asks for mates to keep you going instead of slots to fill.
+// The first workout post needs no tags, so this offers a hand-off without blocking the workout.
 describe('inviteStepCopy — when this post needs no tags', () => {
   it('invites friends to keep you going', () => {
     const copy = inviteStepCopy({
@@ -87,7 +86,7 @@ describe('inviteStepCopy — when this post needs no tags', () => {
       invites: 0,
       tagsOptional: true,
     });
-    expect(copy.headline).toBe('Invite friends to keep you going');
+    expect(copy.headline).toBe('Challenge friends when you’re ready');
     expect(copy.button).toBe('Hold someone else accountable');
     expect(copy.why).toBe(
       'When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.'

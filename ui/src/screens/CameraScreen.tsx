@@ -486,7 +486,7 @@ function GlassPill({ active, children }: { active?: boolean; children: React.Rea
 
 /** `others`: slots filled by an invite or a link (flag `tag-slots`). */
 function tagPillLabel(tagged: TaggedUser[], others = 0): string {
-  if (tagged.length === 0 && others === 0) return '+ Tag people';
+  if (tagged.length === 0 && others === 0) return '+ Challenge friends';
   if (tagged.length === 0) return others === 1 ? '1 link' : `${others} links`;
   const more = tagged.length - 1 + others;
   return more > 0 ? `@${tagged[0].username} +${more}` : `@${tagged[0].username}`;
@@ -511,6 +511,8 @@ interface DualPhotoPreviewProps {
   onSlotsChange: (slots: ScreenSlot[]) => void;
   /** Tags this post needs before POST unlocks (server enforces the same rule). */
   requiredTags: number;
+  /** The one first workout: show-up only, with no outgoing accountability step. */
+  firstWorkout: boolean;
   /** Usernames whose open tags this post answers, soonest first (empty: it answers none). */
   answering: string[];
   /** Per-post location toggle. Default OFF — explicit opt-in, never silent. */
@@ -537,6 +539,7 @@ function DualPhotoPreview({
   slots,
   onSlotsChange,
   requiredTags,
+  firstWorkout,
   answering,
   locationEnabled,
   onToggleLocation,
@@ -647,7 +650,10 @@ function DualPhotoPreview({
   // tag pill and commits/cancels go straight back to 'none'.
   const [captionAtIndex, setCaptionAtIndex] = useState<number | null>(null);
   // One-time tip on the tag pill, the first time the preview is up with no sheet over it.
-  const tagTip = useCoachAnchor('tagMates', modalOpen && activeSheet === 'none' && !isUploading);
+  const tagTip = useCoachAnchor(
+    'tagMates',
+    !firstWorkout && modalOpen && activeSheet === 'none' && !isUploading
+  );
 
   // Reduce Motion: the preview fades in and out instead of sliding (owner approved 2026-10-05).
   const reduceMotion = useReducedMotion();
@@ -974,37 +980,39 @@ function DualPhotoPreview({
                 width: pillRowW,
               }}
             >
-              <Pressable
-                ref={tagTip}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  taggedUsers.length + slots.length > 0
-                    ? `Tagged: ${tagPillLabel(taggedUsers, slots.length)}`
-                    : 'Tag people'
-                }
-                accessibilityHint="Opens the tag list"
-                accessibilityState={{ disabled: isUploading }}
-                hitSlop={SLOP_PILL}
-                disabled={isUploading}
-                onPress={() => setActiveSheet('tag')}
-                style={({ pressed }) => [
-                  { flex: 1, marginRight: pillGap / 2 },
-                  pressed && { opacity: ALPHA.a85 },
-                ]}
-              >
-                <GlassPill>
-                  <Text
-                    style={[
-                      styles.captionPillText,
-                      taggedUsers.length + slots.length > 0 && { color: COLORS.white },
-                    ]}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {tagPillLabel(taggedUsers, slots.length)}
-                  </Text>
-                </GlassPill>
-              </Pressable>
+              {!firstWorkout ? (
+                <Pressable
+                  ref={tagTip}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    taggedUsers.length + slots.length > 0
+                      ? `Holding accountable: ${tagPillLabel(taggedUsers, slots.length)}`
+                      : 'Choose who you’re holding accountable'
+                  }
+                  accessibilityHint="Opens your accountability list"
+                  accessibilityState={{ disabled: isUploading }}
+                  hitSlop={SLOP_PILL}
+                  disabled={isUploading}
+                  onPress={() => setActiveSheet('tag')}
+                  style={({ pressed }) => [
+                    { flex: 1, marginRight: pillGap / 2 },
+                    pressed && { opacity: ALPHA.a85 },
+                  ]}
+                >
+                  <GlassPill>
+                    <Text
+                      style={[
+                        styles.captionPillText,
+                        taggedUsers.length + slots.length > 0 && { color: COLORS.white },
+                      ]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {tagPillLabel(taggedUsers, slots.length)}
+                    </Text>
+                  </GlassPill>
+                </Pressable>
+              ) : null}
 
               <Pressable
                 accessibilityRole="button"
@@ -1014,7 +1022,7 @@ function DualPhotoPreview({
                 disabled={isUploading}
                 onPress={() => setActiveSheet('caption')}
                 style={({ pressed }) => [
-                  { flex: 1, marginLeft: pillGap / 2 },
+                  { flex: 1, marginLeft: !firstWorkout ? pillGap / 2 : 0 },
                   pressed && { opacity: ALPHA.a85 },
                 ]}
               >
@@ -1123,13 +1131,17 @@ function DualPhotoPreview({
             onCaptionChange(committed);
             setActiveSheet('none');
           }}
-          onOpenTagAt={(atIndex, currentText) => {
-            // User typed `@` mid-caption. Commit the current text (with the
-            // `@` still in place) and hand off to TagSheet in single-shot mode.
-            onCaptionChange(currentText);
-            setCaptionAtIndex(atIndex);
-            setActiveSheet('tag');
-          }}
+          onOpenTagAt={
+            !firstWorkout
+              ? (atIndex, currentText) => {
+                  // User typed `@` mid-caption. Commit the current text (with the
+                  // `@` still in place) and hand off to TagSheet in single-shot mode.
+                  onCaptionChange(currentText);
+                  setCaptionAtIndex(atIndex);
+                  setActiveSheet('tag');
+                }
+              : undefined
+          }
         />
 
         {slotsOn ? (
@@ -1150,7 +1162,7 @@ function DualPhotoPreview({
           initialSelected={taggedUsers}
           initialInvites={inviteCount}
           singleShot={captionAtIndex !== null}
-          tagsOptional={requiredTags === 0}
+          tagsOptional={firstWorkout}
           onCancel={() => {
             // If we came from the caption `@` bridge, return to the caption
             // sheet (the `@` stays in the text). Otherwise, close entirely.
@@ -1506,7 +1518,7 @@ function TagSheet({
     >
       <View style={styles.tagSheetPanel}>
         <View style={styles.sheetLabelRow}>
-          <Text style={styles.sheetLabel}>Tag people</Text>
+          <Text style={styles.sheetLabel}>Who are you holding accountable?</Text>
           <View style={styles.sheetHeaderEnd}>
             {singleShot ? null : (
               <Text style={styles.sheetCounter}>
@@ -1524,6 +1536,10 @@ function TagSheet({
             </Pressable>
           </View>
         </View>
+
+        <Text style={styles.accountabilityPrompt}>
+          Pick {maxTags} friends you want to see show up on Mahi.
+        </Text>
 
         {singleShot ? null : (
           <View style={styles.tagCircles}>
@@ -1813,7 +1829,7 @@ export default function CameraScreen({
     serverOffsetMs,
   });
   const blocked = gate !== 'open';
-  // A first post that answers a mate's tag may tag nobody; every other post tags `requiredTags`.
+  // The first workout post may tag nobody; every later answer passes accountability onwards.
   const postRequiredTags = postTagsRequired(requiredTags, {
     firstPost: hasPosted === null ? null : !hasPosted,
     answersTag: answersATag(openTags, serverOffsetMs),
@@ -2405,9 +2421,11 @@ export default function CameraScreen({
       setHeldPoints(profile.streak_current);
     }
     const captionValue = caption || null;
-    const taggedUsersSnapshot = taggedUsers;
-    const inviteCountSnapshot = inviteCount;
-    const slotsSnapshot = tagSlotsOn ? slots : [];
+    // The first workout is only about showing up. Passing accountability on begins with later
+    // answers, so stale draft slots can never turn the first workout into a tagging step.
+    const taggedUsersSnapshot = firstPostNow ? [] : taggedUsers;
+    const inviteCountSnapshot = firstPostNow ? 0 : inviteCount;
+    const slotsSnapshot = firstPostNow ? [] : tagSlotsOn ? slots : [];
     // Snapshot the location opt-in for THIS post before we reset UI state below.
     const locationEnabledSnapshot = locationEnabled;
 
@@ -2725,6 +2743,7 @@ export default function CameraScreen({
   // Slots made earlier (still open on the server) fill this post's slots too.
   useEffect(() => {
     if (!hasPreview || !tagSlotsOn) return;
+    if (hasPosted === false) return;
     let stale = false;
     getTagSlots().then(({ data, error }) => {
       if (error) reportError(error, { flow: 'tags', action: 'loadSlotsForPost', level: 'warning' });
@@ -2733,7 +2752,7 @@ export default function CameraScreen({
     return () => {
       stale = true;
     };
-  }, [hasPreview, tagSlotsOn]);
+  }, [hasPosted, hasPreview, tagSlotsOn]);
   const onComposingRef = useRef(onComposingChange);
   onComposingRef.current = onComposingChange;
   useEffect(() => {
@@ -3353,6 +3372,7 @@ export default function CameraScreen({
           slots={slots}
           onSlotsChange={setSlots}
           requiredTags={postRequiredTags}
+          firstWorkout={hasPosted === false}
           answering={answersATag(openTags, serverOffsetMs) ? openTags.map((t) => t.username) : []}
           locationEnabled={locationEnabled}
           onToggleLocation={handleToggleLocation}
@@ -3812,9 +3832,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sheetLabel: {
+    flex: 1,
     color: COLORS.offWhite,
     fontSize: FONT_SIZE.f17,
     fontFamily: FONTS.semiBold,
+  },
+  accountabilityPrompt: {
+    color: themeColors(true).muted,
+    fontSize: FONT_SIZE.f14,
+    lineHeight: LINE_HEIGHT.l20,
+    fontFamily: FONTS.regular,
   },
   sheetCounter: {
     color: themeColors(true).muted,

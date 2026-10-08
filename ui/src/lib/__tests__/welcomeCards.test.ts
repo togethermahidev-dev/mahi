@@ -12,30 +12,30 @@ import {
 describe('welcome cards', () => {
   it('has the three owner-approved cards, in order', () => {
     expect(WELCOME_CARDS.map((c) => c.title)).toEqual([
-      'Your first post is free.',
-      'Every post tags 3 friends.',
-      'Post to open your feed.',
+      'Start by showing up.',
+      'A tag is a call to show up.',
+      'Answer, then pass it on.',
     ]);
   });
 
   // Design review 2026-10-05 (Q1): a newcomer read "post when a friend tags you" and waited for a
   // tag that couldn't come, so card 1 says the first post needs no tag and any workout counts,
   // and says what a miss costs.
-  it('card 1: the first post needs no tag, any workout counts, and a miss resets points', () => {
+  it('card 1: the first check-in needs no tag and any workout counts', () => {
     expect(WELCOME_CARDS[0].body).toBe(
-      'Post your first Mahi to get your first point and tag 3 friends. After that, you post when a friend tags you: 48 hours to answer with a photo, back camera then selfie. Any workout counts. Each answer earns a Mahi point. Miss a tag and your points go back to 0, but your best stays. Open Mahi each day to see if you’ve been tagged.'
+      'Show up with your first workout and earn your first Mahi point. Take a back-camera photo, then a selfie. Any workout counts, even 10 minutes.'
     );
   });
 
-  it('card 2 says friends the same way as the rest of the app', () => {
+  it('card 2 says that answering the tag is the next post', () => {
     expect(WELCOME_CARDS[1].body).toBe(
-      'They have 48 hours to answer with a workout of their own. Follow each other and you can tag each other.'
+      'After you’ve shown up once, you can only post by answering a friend’s tag. You have 48 hours, and your workout answer is your next post. Follow each other to become accountability partners.'
     );
   });
 
-  it('card 3: a tag in the 24 hours locks the feed when they end, not at once', () => {
+  it('card 3 makes passing accountability on the outcome', () => {
     expect(WELCOME_CARDS[2].body).toBe(
-      'Posting your answer opens your feed for 24 hours. Get tagged in that time and it locks when they end, until you answer.'
+      'Each answer earns a point, opens your feed and challenges friends to show up next. Miss a tag and your points go back to 0, but your best stays.'
     );
   });
 
@@ -76,7 +76,7 @@ describe('welcome cards', () => {
       expect(cards[0]).toEqual({
         icon: 'camera',
         title: '@sam tagged you.',
-        body: 'Post any workout in the next 48 hours to answer and earn your first point.',
+        body: 'Show up with any workout in the next 48 hours. Your answer is your first post and earns your first point.',
       });
       expect(cards.slice(1)).toEqual(WELCOME_CARDS.slice(1));
     });

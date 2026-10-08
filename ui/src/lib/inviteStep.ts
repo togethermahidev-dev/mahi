@@ -1,6 +1,7 @@
 /**
  * The "Invite 3 friends" step in the tag sheet (owner's call 2026-10-01; standard since 2026-10-07).
- * Every post fills its tag slots; an invite link fills any slot friends can't (the server rule in
+ * Every later answer fills its tag slots; the first workout post may pass accountability on but does
+ * not have to. An invite link fills any required slot friends can't (the server rule in
  * tagRules.ts). A newcomer invited by a friend can't tag that friend back, so they start with no
  * one to tag — the sheet then leads with a plain invite step instead of an empty list.
  *
@@ -64,8 +65,8 @@ export function inviteStepCopy({
   friends: number;
   invites: number;
   /**
-   * This post needs no tags (a first post that answers a tag): ask for mates to keep you going,
-   * not for slots to fill (usability walkthrough, 2026-10-07).
+   * This post needs no tags (the first workout post): offer an accountability hand-off without
+   * making it part of completing the check-in.
    */
   tagsOptional?: boolean;
 }): { headline: string; why: string; button: string; canAdd: boolean; count: string } {
@@ -76,9 +77,9 @@ export function inviteStepCopy({
     'When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.';
   return {
     headline: tagsOptional
-      ? 'Invite friends to keep you going'
-      : `Invite ${count(toInvite, 'friend', 'friends')} to post`,
-    why: tagsOptional ? how : `Every post tags ${maxTags} friends. ${how}`,
+      ? 'Challenge friends when you’re ready'
+      : `Invite ${count(toInvite, 'friend', 'friends')} to show up`,
+    why: tagsOptional ? how : `Each answer challenges ${maxTags} friends. ${how}`,
     button: canAdd ? INVITE_BUTTON : `All ${maxTags} tags used`,
     canAdd,
     count: slots.text,

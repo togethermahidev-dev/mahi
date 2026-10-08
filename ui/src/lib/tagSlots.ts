@@ -72,7 +72,9 @@ export function slotLabel(slot: ScreenSlot, index: number): string {
 export function postButtonLabel(missing: number, anyTagged: boolean): string {
   if (missing <= 0) return 'Post';
   const mates = missing === 1 ? 'friend' : 'friends';
-  return anyTagged ? `Tag ${missing} more ${mates} to post` : `Tag ${missing} ${mates} to post`;
+  return anyTagged
+    ? `Challenge ${missing} more ${mates} to post`
+    : `Challenge ${missing} ${mates} to post`;
 }
 
 /**

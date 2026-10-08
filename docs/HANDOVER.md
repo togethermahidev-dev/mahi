@@ -5,6 +5,33 @@ The single entry point for continuing work on Mahi. Read this first. It encodes 
 
 ---
 
+## Immediate Claude handover — server rule for the show-up workflow (2026-10-08)
+
+The front end now treats Mahi as a show-up accountability app:
+
+- Welcome and locked-feed copy starts with “Start by showing up,” never “free post” or “opening
+  check-in.”
+- The first workout preview has no tagging step and posts with zero outgoing tags.
+- Every later post is an answer to a live incoming tag. The challenge sheet asks “Who are you
+  holding accountable?” and “Pick 3 friends you want to see show up on Mahi.”
+- Answering the incoming tag is the workout post; do not model or word it as a second action.
+
+**Claude's remaining server task:** add a new migration after `20261008130000_security_followups.sql`
+that updates `public.create_post`. In its `v_required` case, the first-workout rule must be
+`when v_first_post then 0` (not `when v_first_post and v_answers then 0`). Keep reactive posting
+unchanged: after `profiles.has_posted_before` becomes true, `reactive_posting_open` still requires a
+live incoming tag. Keep the 3-outgoing-tag requirement for every later answer. Write the matching
+rollback and pgTAP coverage for: first workout with no incoming tag and zero outgoing tags succeeds;
+first workout answering a tag succeeds; later answer with zero outgoing tags is refused; later
+answer with 3 valid friends succeeds; direct writes remain refused. Follow `docs/security.md` and do
+not apply or push the migration without the owner's same-session permission.
+
+Until that migration is applied, a brand-new untagged account's new front-end flow will reach the
+old server refusal (`tag or invite 3 people`). This mismatch is deliberate for this handoff and is
+the first thing Claude should close.
+
+---
+
 ## 0. Build 13 phone checks (2026-10-07; nothing below is phone-checked yet)
 
 Build 13 carries: contacts (Find friends in your contacts), expo-widgets (lock-screen Live Activity + home-screen

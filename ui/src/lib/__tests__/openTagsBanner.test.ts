@@ -13,11 +13,9 @@ const at = (ms: number) => new Date(deviceNow + ms).toISOString();
 const tag = (username: string, expiresIn: number) => ({ username, expires_at: at(expiresIn) });
 
 describe('openTagsBanner — someone who downloaded Mahi themselves (Type B)', () => {
-  it('asks for the first Mahi, promises the first point and asks for 3 friends', () => {
+  it('makes the first workout and first point clear', () => {
     const b = openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow, firstPost: true });
-    expect(b && bannerText(b)).toBe(
-      'Post your first Mahi to get your first point and tag 3 friends.'
-    );
+    expect(b && bannerText(b)).toBe('Show up with your first workout to earn your first point.');
     expect(b?.firstPost).toBe(true);
     expect(b?.note).toBe('Any workout counts, even 10 minutes.');
   });

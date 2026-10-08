@@ -85,9 +85,9 @@ export function lockExplainer({
     };
   }
   return {
-    headline: 'Your feed is locked.',
-    body: 'Post your first Mahi to get your first point and see what your friends are doing. Any workout counts.',
-    button: 'Post your first Mahi',
+    headline: 'Start by showing up.',
+    body: 'Your first workout earns your first point and opens your feed. Any workout counts.',
+    button: 'Show up now',
     target: 'camera',
   };
 }
@@ -103,7 +103,7 @@ export function lockedPostText({
 }): { hint: string; button?: string } {
   if (tagged) return { hint: 'Opens when you post your answer', button: 'Post your answer' };
   if (!postedBefore)
-    return { hint: 'Post your first Mahi to see it', button: 'Post your first Mahi' };
+    return { hint: 'Show up with your first workout to see it', button: 'Show up now' };
   return { hint: 'Opens when a friend tags you' };
 }
 

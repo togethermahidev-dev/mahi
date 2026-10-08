@@ -406,7 +406,7 @@ export default function TagSlotsSheet({
       <View style={styles.panel}>
         <View style={styles.headerRow}>
           <Text style={styles.title} accessibilityRole="header">
-            Tag {maxTags} friends
+            Who are you holding accountable?
           </Text>
           <View style={styles.headerEnd}>
             <Text style={styles.counter}>
@@ -423,6 +423,8 @@ export default function TagSlotsSheet({
             </Pressable>
           </View>
         </View>
+
+        <Text style={styles.prompt}>Pick {maxTags} friends you want to see show up on Mahi.</Text>
 
         {!loaded ? (
           <View style={styles.loading}>
@@ -479,7 +481,7 @@ export default function TagSlotsSheet({
             <View style={styles.shareBlock}>
               <Text style={styles.shareLabel}>
                 {blocked ??
-                  'Not on Mahi? Send a link. When they join, you’ll automatically follow each other.'}
+                  'Want to see someone else show up? Send a link. When they join, you’ll automatically follow each other.'}
               </Text>
               <View style={styles.shareRow}>
                 {SHARE_TARGETS.map(({ target, label }) => (
@@ -541,7 +543,7 @@ export default function TagSlotsSheet({
                   <Text style={styles.empty}>
                     {query.trim()
                       ? 'No one found.'
-                      : 'No friends to tag yet. Follow each other to tag each other, or send a link.'}
+                      : 'No accountability partners yet. Follow each other, or send a link.'}
                   </Text>
                 )
               }
@@ -707,7 +709,17 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
   },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { color: COLORS.offWhite, fontSize: FONT_SIZE.f17, fontFamily: FONTS.semiBold },
+  title: {
+    flex: 1,
+    color: COLORS.offWhite,
+    fontSize: FONT_SIZE.f17,
+    fontFamily: FONTS.semiBold,
+  },
+  prompt: {
+    color: themeColors(true).muted,
+    fontSize: FONT_SIZE.f14,
+    fontFamily: FONTS.regular,
+  },
   headerEnd: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s8 },
   counter: {
     color: themeColors(true).muted,

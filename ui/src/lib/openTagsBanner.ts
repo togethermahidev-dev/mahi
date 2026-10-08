@@ -1,7 +1,6 @@
 /**
  * The camera's open-tags message: what to do next, in the founder's words (Maximus, 2026-10-07).
- * - Downloaded Mahi themselves, never posted: "Post your first Mahi to get your first point and
- *   tag 3 mates."
+ * - Downloaded Mahi themselves, never posted: their one free check-in needs no tag.
  * - A mate tagged them, never posted: "You were tagged by @sam. You have 47:59:59 to post your
  *   Mahi and get your first point."
  * - Tagged after that: "@sam is waiting on you · 41:20:00 left", and what answering earns and a
@@ -62,9 +61,9 @@ export function openTagsBanner({
     return firstPost
       ? {
           parts: [
-            { text: 'Post your first Mahi to get ' },
+            { text: 'Show up with your first workout to earn ' },
             { text: 'your first point', accent: true },
-            { text: ' and tag 3 friends.' },
+            { text: '.' },
           ],
           note: ANY_WORKOUT,
           firstPost: true,

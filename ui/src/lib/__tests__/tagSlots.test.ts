@@ -270,13 +270,13 @@ describe('postButtonLabel', () => {
   });
 
   it('says how many friends to tag when none are tagged yet', () => {
-    expect(postButtonLabel(3, false)).toBe('Tag 3 friends to post');
-    expect(postButtonLabel(1, false)).toBe('Tag 1 friend to post');
+    expect(postButtonLabel(3, false)).toBe('Challenge 3 friends to post');
+    expect(postButtonLabel(1, false)).toBe('Challenge 1 friend to post');
   });
 
   it('says how many more once some are tagged', () => {
-    expect(postButtonLabel(1, true)).toBe('Tag 1 more friend to post');
-    expect(postButtonLabel(2, true)).toBe('Tag 2 more friends to post');
+    expect(postButtonLabel(1, true)).toBe('Challenge 1 more friend to post');
+    expect(postButtonLabel(2, true)).toBe('Challenge 2 more friends to post');
   });
 });
 

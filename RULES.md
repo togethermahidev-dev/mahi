@@ -1,5 +1,23 @@
 # mahi-fitness — Project Rules for Claude
 
+## Product identity and core loop (2026-10-08)
+- Mahi is a **show-up fitness accountability app**, not a social-media app. Profiles, follows,
+  messages, likes and comments support real accountability; they are not the primary loop.
+- Everyone starts with exactly one first workout post. It needs no incoming tag and no outgoing tags.
+  After that, a person can post only by answering a live tag. Answering the tag **is** their next
+  workout post; never present answering and posting as separate jobs.
+- The feed is earned, not browsed by default: it stays locked until the first post, then reopens
+  through accountable check-ins under the feed-lock rules below.
+- Tags are calls to show up. A later answer passes accountability onwards by tagging friends for
+  their own workout response. UI copy should say who is waiting, what workout action is due and how
+  long remains; avoid social-media framing such as posting for reach, content or engagement.
+- The first-workout UI does not show a tagging step: that moment is only about showing up. Later
+  answers ask “Who are you holding accountable?” and require 3 friends before posting. Profiles
+  and follows help people find accountability partners; the viral tag-and-answer loop remains the
+  product's centre.
+- “Free post” and “opening check-in” are not UI language. User-facing
+  copy says “Start by showing up” and “your first workout”; it sounds like a commitment, not a perk.
+
 ## Repo layout
 - A pnpm workspace like pingmee-v2: the Expo app is in `ui/` (`App.tsx`, `app.config.js`, `eas.json`, `src/`,
   `assets/`), the waitlist site in `web/`, the database in `supabase/`, shared scripts in `scripts/`.
@@ -29,11 +47,11 @@
   `decline_message_request`, `edit_message` (own message, 15 minutes), `unsend_message`; read with `get_inbox`,
   `get_messages`, `get_conversation_with`. Never insert, update or delete `messages` or `conversations` from the app
   (the direct conversation writes old apps use go with `supabase/deferred/contract_messages.sql`).
-- Owners can delete their posts through `delete_post`; deletion never restores the one free first
+- Owners can delete their posts through `delete_post`; deletion never restores the one first-post
   post (`profiles.has_posted_before` is permanent). Captions remain editable for one hour through
   `update_post_caption` (an edited caption is checked by moderation again).
 - The preview's Post tap always asks for confirmation: captions are editable for one hour, and
-  posting opens the feed and can notify tagged friends. Never bypass this alert.
+  posting opens the feed and starts the clock for any challenged friends. Never bypass this alert.
 
 ## Follows, tag requests and invite links (2026-10-07)
 - A normal profile Follow is one-way. Friends means both follow rows exist.
@@ -165,7 +183,7 @@
 
 ## Reactive posting and Mahi points
 - You can post only while you have an open tag you can still answer (48 hours + 10 minutes grace); your very
-  first post is free. No daily limit — the one-a-day unique index is dropped (`20261001120000_reactive_posting`)
+  first post is the exception and requires no outgoing tags. No daily limit — the one-a-day unique index is dropped (`20261001120000_reactive_posting`)
 - Server rule: `public.reactive_posting_open(user)`, checked inside `create_post`. App rule: `reactivePostingGate()`
   in `ui/src/lib/reactivePosting.ts`
 - Mahi points (founder, 2026-10-02: "This is not streaks"): +1 per post that answers at least one tag, only for
