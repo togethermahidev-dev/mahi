@@ -9,7 +9,7 @@
  * Lock state and open tags expire, so both come fresh from the server each session (never saved
  * on the phone); the card waits for this session's first read of open tags rather than guessing.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LockIcon } from '@/components/ScreenIcons';
@@ -21,6 +21,15 @@ import { useSecondTick } from '@/hooks/useSecondTick';
 import { clockText, feedCountdown, lockPill } from '@/lib/feedLock';
 import { FEED_WINDOW_MS, ringProgress } from '@/lib/feedLayout';
 import { CountdownRing, FadeInItem, PressScale } from '@/components/Motion';
+import Reanimated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import { haptic } from '@/lib/haptics';
+import { MOTION } from '@/constants/tokens';
 import { FONTS } from '@/constants/fonts';
 import {
   ALPHA,
@@ -46,11 +55,14 @@ interface FeedLockBannerProps {
   onPost: () => void;
   /** Open people search (the way out when there's nothing to post yet). */
   onFindFriends?: () => void;
+  /** Bumped each time a locked row is tapped: the padlock line wiggles "no". */
+  shake?: number;
 }
 
 export default function FeedLockBanner(props: FeedLockBannerProps): React.JSX.Element | null {
   return props.locked ? (
     <LockedCard
+      shake={props.shake ?? 0}
       onPost={props.onPost}
       onFindFriends={props.onFindFriends}
       unlockedUntil={props.unlockedUntil}
@@ -66,13 +78,32 @@ function LockedCard({
   serverOffsetMs,
   onPost,
   onFindFriends,
+  shake,
 }: {
   unlockedUntil: string | null;
   serverOffsetMs: number;
   onPost: () => void;
   onFindFriends?: () => void;
+  shake: number;
 }): React.JSX.Element | null {
   const { dark, colors } = useAppTheme();
+  // A tap on a locked row behind: a quick sideways wiggle and a tick (still with Reduce Motion).
+  const reduceMotion = useReducedMotion();
+  const shakeX = useSharedValue(0);
+  useEffect(() => {
+    if (shake === 0) return;
+    haptic('tick');
+    if (reduceMotion) return;
+    const { x, ms } = MOTION.shake;
+    shakeX.value = withSequence(
+      withTiming(-x, { duration: ms }),
+      withTiming(x, { duration: ms }),
+      withTiming(-x / 2, { duration: ms }),
+      withTiming(x / 2, { duration: ms }),
+      withTiming(0, { duration: ms })
+    );
+  }, [shake, reduceMotion, shakeX]);
+  const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shakeX.value }] }));
   const { openTags, loaded } = useOpenTags();
   // The tag clock ticks every second, like every tag countdown.
   const deviceNow = useSecondTick(openTags.length > 0);
@@ -89,7 +120,13 @@ function LockedCard({
     // Only the button takes touches, so the feed's scroll and swipe still start anywhere else.
     <FadeInItem>
       <View ref={lockTip} pointerEvents="box-none" style={styles.lockWrap}>
-        <View style={[styles.lockPill, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+        <Reanimated.View
+          style={[
+            styles.lockPill,
+            { backgroundColor: colors.bg, borderColor: colors.border },
+            shakeStyle,
+          ]}
+        >
           <View
             style={[styles.lockCircle, { backgroundColor: colors.text }]}
             accessible
@@ -111,7 +148,7 @@ function LockedCard({
               </Text>
             </PressScale>
           ) : null}
-        </View>
+        </Reanimated.View>
       </View>
     </FadeInItem>
   );

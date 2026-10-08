@@ -255,6 +255,9 @@ export default function FeedScreen({
   const openPost = useCallback((postId: string, source: MorphSource | null) => {
     setViewerPost({ postId, source });
   }, []);
+  // Tapping a locked row: the padlock line wiggles "no" (each tap bumps the count).
+  const [lockShake, setLockShake] = useState(0);
+  const onLockedPress = useCallback(() => setLockShake((n) => n + 1), []);
   const currentUserId = useAuthStore((s) => s.user?.id);
 
   // Video posts: the card in view plays (muted, looping) while the Feed is on screen and no
@@ -345,6 +348,7 @@ export default function FeedScreen({
                 onOpen={openPost}
                 onAvatarPress={handleAvatarPress}
                 onCommentPress={setCommentPostId}
+                onLockedPress={onLockedPress}
               />
               {develop?.plan.has(item.id) ? (
                 <DevelopCover
@@ -486,6 +490,7 @@ export default function FeedScreen({
           ]}
         >
           <FeedLockBanner
+            shake={lockShake}
             locked={locked}
             unlockedUntil={unlockedUntil}
             serverOffsetMs={serverOffsetMs}

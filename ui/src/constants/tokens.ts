@@ -570,6 +570,9 @@ export const MOTION = {
   morphContentAt: 0.72,
   /** The pixel athlete's frame rate (ms per frame). */
   pixelFrameMs: 400,
+  /** A "no": the padlock line wiggles sideways this far (pt), this fast (ms a beat), when a
+   *  locked row is tapped (owner, 2026-10-08). */
+  shake: { x: 6, ms: 60 },
   /** A page growing in from a tab tap (owner, 2026-10-08): where it starts, before full size. */
   pageMorph: { fromScale: 0.94, fromRadius: 28 },
   morphImageUntil: 0.94,

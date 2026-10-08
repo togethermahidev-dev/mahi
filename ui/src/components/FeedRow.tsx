@@ -52,16 +52,18 @@ import {
  * feed behind glass, so the frost is light enough to see the shapes through it. VoiceOver says
  * only "Locked post".
  */
-function LockedRow({ seed }: { seed: string }): React.JSX.Element {
+function LockedRow({ seed, onPress }: { seed: string; onPress: () => void }): React.JSX.Element {
   const { dark, colors } = useAppTheme();
   const shape = { backgroundColor: withAlpha(colors.text, ALPHA.a25) };
   const { likes, comments } = mockCounts(seed);
   return (
-    <View
+    // A tap says "no": the padlock line over the feed wiggles (FeedScreen).
+    <Pressable
       style={[styles.row, { backgroundColor: colors.bg }]}
-      accessible
+      onPress={onPress}
+      accessibilityRole="button"
       accessibilityLabel="Locked post"
-      importantForAccessibility="yes"
+      accessibilityHint="Locked until you post"
     >
       <View style={[styles.avatar, shape]} />
       <View style={styles.words}>
@@ -70,15 +72,11 @@ function LockedRow({ seed }: { seed: string }): React.JSX.Element {
         <View style={styles.counts}>
           <View style={styles.count}>
             <HeartIcon size={ICON_SIZE.i16} color={colors.muted} />
-            <Text style={[styles.countText, { color: colors.muted }]}>
-              {likes}
-            </Text>
+            <Text style={[styles.countText, { color: colors.muted }]}>{likes}</Text>
           </View>
           <View style={styles.count}>
             <CommentIcon size={ICON_SIZE.i16} color={colors.muted} />
-            <Text style={[styles.countText, { color: colors.muted }]}>
-              {comments}
-            </Text>
+            <Text style={[styles.countText, { color: colors.muted }]}>{comments}</Text>
           </View>
         </View>
       </View>
@@ -92,7 +90,7 @@ function LockedRow({ seed }: { seed: string }): React.JSX.Element {
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-    </View>
+    </Pressable>
   );
 }
 
@@ -109,6 +107,7 @@ export default function FeedRow({
   onOpen,
   onAvatarPress,
   onCommentPress,
+  onLockedPress,
 }: {
   item: FeedPost;
   width: number;
@@ -116,6 +115,8 @@ export default function FeedRow({
   onOpen: (postId: string, source: MorphSource | null) => void;
   onAvatarPress: (userId: string) => void;
   onCommentPress: (postId: string) => void;
+  /** A locked row was tapped (the padlock line answers with a wiggle). */
+  onLockedPress: () => void;
 }): React.JSX.Element {
   const { dark, colors } = useAppTheme();
   const currentUser = useAuthStore((s) => s.user);
@@ -164,7 +165,7 @@ export default function FeedRow({
     else if (action === 'view-profile') onAvatarPress(item.profiles.id);
   };
 
-  if (item.locked) return <LockedRow seed={item.id} />;
+  if (item.locked) return <LockedRow seed={item.id} onPress={onLockedPress} />;
 
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
