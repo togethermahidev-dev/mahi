@@ -924,6 +924,11 @@ begin
     where
       f1.follower_id = p_current_user_id
       and f2.following_id <> p_current_user_id
+      and not pr.is_banned
+      -- Only follows the caller may see count (the follows rule: both people's lists open), so a
+      -- closed list never shows up as a number or a suggestion.
+      and public.can_see_follow_lists(f1.following_id)
+      and public.can_see_follow_lists(f2.following_id)
       and not exists (
         select 1 from public.follows af
         where af.follower_id = p_current_user_id
@@ -961,8 +966,12 @@ begin
     from public.profiles pr
     left join public.follows fol
       on fol.following_id = pr.id
+      -- Only followers the caller may see count.
+      and public.can_see_follow_lists(fol.follower_id)
+      and public.can_see_follow_lists(pr.id)
     where
       pr.id <> p_current_user_id
+      and not pr.is_banned
       and not exists (
         select 1 from public.follows af
         where af.follower_id = p_current_user_id

@@ -10,7 +10,7 @@
 -- * push words for the new notices and the missed tag
 -- Every check reads only this test's own people.
 begin;
-select plan(68);
+select plan(71);
 
 update public.app_config set feed_lock_enabled = false, tags_required = false,
   invite_links_enabled = true, max_open_invites = 10;
@@ -285,6 +285,29 @@ select ok(not exists (select 1 from public.get_suggested_follows(null, 100, 0) w
   'suggestions leave out people you already asked');
 select is((select row(is_private, requested)::text from public.get_suggested_follows(null, 100, 0)
            where id = pg_temp.uid('o')), '(f,f)', 'and say whether each is private');
+reset role;
+-- Suggestions count only follows you may see, and skip banned people. a follows b, c and d;
+-- b's workouts are for friends (a is not one), so b's list is closed to a; c and d are open.
+-- b and c follow e; c follows f; d follows g, who is banned. z follows nobody.
+insert into auth.users (id, email)
+select pg_temp.uid(c), 'ctl-' || c || '@example.invalid' from unnest(array['a','b','c','d','e','f','g','z']) c;
+insert into public.profiles (id, username, posts_visibility, is_banned)
+select pg_temp.uid(c), 'ctl_' || c, case when c = 'b' then 'friends' else 'everyone' end, c = 'g'
+from unnest(array['a','b','c','d','e','f','g','z']) c;
+insert into public.follows (follower_id, following_id) values
+  (pg_temp.uid('a'), pg_temp.uid('b')), (pg_temp.uid('a'), pg_temp.uid('c')), (pg_temp.uid('a'), pg_temp.uid('d')),
+  (pg_temp.uid('b'), pg_temp.uid('e')), (pg_temp.uid('c'), pg_temp.uid('e')), (pg_temp.uid('c'), pg_temp.uid('f')),
+  (pg_temp.uid('d'), pg_temp.uid('g'));
+select pg_temp.as_user('a');
+select is((select string_agg(username || ':' || mutual_count, ',' order by username)
+           from public.get_suggested_follows(null, 100, 0)
+           where id in (pg_temp.uid('e'), pg_temp.uid('f'), pg_temp.uid('g'))),
+  'ctl_e:1,ctl_f:1', 'mates in common count only lists you may see, and banned people are left out');
+select pg_temp.as_user('z');
+select is((select mutual_count::int from public.get_suggested_follows(null, 100, 0) where id = pg_temp.uid('e')), 1,
+  'for someone who follows few people, only the followers they may see count');
+select ok(not exists (select 1 from public.get_suggested_follows(null, 100, 0) where id = pg_temp.uid('g')),
+  'and banned people are left out there too');
 reset role;
 insert into public.notifications (user_id, actor_id, type) values (pg_temp.uid('t'), pg_temp.uid('q'), 'tag_missed');
 select is(pg_temp.push('t', 'tag_missed'),

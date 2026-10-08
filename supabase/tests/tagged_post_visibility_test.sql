@@ -9,7 +9,7 @@
 --   their tag (tag_challenges.answered_post_id), only that post, with the same block, ban and
 --   feed-lock rules
 begin;
-select plan(30);
+select plan(32);
 
 update public.app_config set feed_lock_enabled = false, tags_required = false;
 
@@ -122,6 +122,9 @@ select ok(not exists (select 1 from public.posts where id = pg_temp.post('x'))
           and not exists (select 1 from storage.objects where bucket_id = 'posts'
                           and name = pg_temp.uid('a')::text || '/x.jpg'),
   'but not the answerer''s other posts');
+select throws_ok($$insert into public.post_comments (post_id, user_id, content)
+                   values (pg_temp.post('x'), pg_temp.uid('g'), 'hi')$$,
+  '42501', null, 'nor comment on them');
 select is((select jsonb_agg(i ->> 'id') from jsonb_array_elements(public.get_user_posts(pg_temp.uid('a')) -> 'items') i),
   jsonb_build_array(pg_temp.post('w')::text), 'the closed profile holds only the answer');
 select is(public.get_user_posts(pg_temp.uid('a')) ->> 'restricted', 'friends', 'and still says friends only');
@@ -149,6 +152,10 @@ update public.app_config set feed_lock_enabled = false;
 update public.profiles set is_banned = true where id = pg_temp.uid('o');
 select pg_temp.as_user('z');
 select ok(not pg_temp.sees('t'), 'nobody sees a banned person''s post, tagged or not');
+reset role;
+update public.profiles set is_banned = true where id = pg_temp.uid('a');
+select pg_temp.as_user('g');
+select ok(not pg_temp.sees_a('w'), 'nor a banned answerer''s answer, even the tagger');
 
 select * from finish();
 rollback;
