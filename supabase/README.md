@@ -12,10 +12,20 @@ The files are production's own migration history, downloaded from
 policies that had been created in the dashboard. Every live table, column, function, trigger, policy,
 index and bucket was checked against these files; nothing else was missing.
 
-Every later migration through `20261007105647_explicit_mutual_follow_wording` is live on production
-(checked 2026-10-07). The historical "not pushed" paragraphs below describe rollout dependencies
+Every later migration through `20261008130000_security_followups` is live on production
+(checked 2026-10-08). The historical "not pushed" paragraphs below describe rollout dependencies
 that have since landed unless they are explicitly listed under `supabase/deferred/`.
-**Not pushed yet (2026-10-08, security review):** `20261008100000_security_hardening` — posts
+**Not pushed yet (2026-10-08, live Supabase check):** `20261008140000_security_hardening_live` —
+follows change only through `set_following` (direct insert/delete rules and grants gone;
+`notify_on_follow` skips blocked pairs and banned followers); `profiles.avatar_url` must be this
+project's public avatars address in the person's own folder; avatar files listable only by their
+owner (bucket stays public); `get_message_reactions` / `react_to_message` signed-in only; anon has
+no table rights in `public` and authenticated no truncate/references/trigger (also for new
+tables); reports only through `report_*` (direct insert rule and grant gone); `answered_by_post` /
+`post_invites` internal. Phones on an app older than OTA 12.20 follow by writing the table, so
+their Follow button stops working once this is live: publish a newer production OTA first. Test
+`tests/security_hardening_live_test.sql`, undo `rollbacks/20261008140000_security_hardening_live.rollback.sql`.
+**Pushed 2026-10-08 (security review):** `20261008100000_security_hardening` — posts
 and their photos follow the feed rule (own, staff, or `can_view_post`), the `posts` bucket is
 private, likes/comments/`toggle_like` only on posts you can see, `get_feed_posts` revoked, no
 direct writes to `posts` / `post_tags`, no tag notification across a block or from a banned
@@ -23,9 +33,11 @@ person, profile inserts limited to the sign-up columns, email sign-ups need comp
 `app_metadata.signup_via` marker, `revoke_user_sessions` (server only), `message_reactions_json`
 internal, `get_suggested_follows` answers for `auth.uid()`. Then
 `20261008110000_staff_confirmed_email` — staff rows of unconfirmed accounts removed and
-`staff_role` / `is_staff` require a confirmed email. Deploy `complete-signup` before the push and
-`reset-password` / `check-email` after it. Tests `tests/security_hardening_test.sql`,
-`tests/staff_confirmed_email_test.sql`; undo in `rollbacks/`.
+`staff_role` / `is_staff` require a confirmed email; `20261008120000_comment_like_visibility` and
+`20261008130000_security_followups` (sign-up stamp, report copies staff-only, comment-like lists
+follow the post). Deploy `complete-signup` before the push and `reset-password` / `check-email`
+after it. Tests `tests/security_hardening_test.sql`, `tests/staff_confirmed_email_test.sql`,
+`tests/comment_like_visibility_test.sql`, `tests/security_followups_test.sql`; undo in `rollbacks/`.
 **Not pushed yet (2026-10-07, after `20261007270000_contact_match`):** `20261007280000_message_reactions`
 — reactions on messages: the `message_reactions` table (one per person per message; the same emoji
 again takes it off, a different one replaces it), `react_to_message` and `get_message_reactions`
@@ -36,8 +48,8 @@ a ban, a gone message), `get_messages` carrying each message's `reactions` as
 `rollbacks/20261007280000_message_reactions.rollback.sql`.
 **Not pushed yet (2026-10-07):** `20261007160000_founder_stats` — founder numbers of record in
 `stats` (daily actions, DAU/WAU/MAU and stickiness, weekly and day 1/7/30 retention, activation,
-weekly churn) and `posthog_reader`, a no-login role that can read only those totals, for PostHog's
-data warehouse. Reading only; nothing in the app changes. Test `tests/founder_stats_test.sql`, undo
+weekly churn) and `posthog_reader`, a role that can read only those totals, for PostHog's
+data warehouse (created no-login; on production it has LOGIN, checked 2026-10-08). Reading only; nothing in the app changes. Test `tests/founder_stats_test.sql`, undo
 `rollbacks/20261007160000_founder_stats.rollback.sql`.
 **Not pushed yet:** `20261002150000_identity_verifications` (identity checks with Didit: the
 `identity_verifications` table — people read only their own rows — and `record_identity_verification`,
@@ -77,7 +89,7 @@ every phone has the Mahi points update. (`deferred/contract_messages.sql` is alr
 
 Rules (enforced by `.claude/hooks/guard.cjs`):
 
-Latest production migration: `20261007105647_explicit_mutual_follow_wording` (live 2026-10-07).
+Latest production migration: `20261008130000_security_followups` (live 2026-10-08).
 It makes push wording explicit: accepting a tag request or joining through an invite makes both
 people follow each other. `20261007104406_authoritative_follow_mutations` immediately before it adds
 `set_following`, the atomic follow/unfollow path used by OTA 12.20. The production social graph was

@@ -61,7 +61,8 @@
   acceptance or joining makes both people follow each other. The accepted/joined state confirms it.
 - An invite link opened by someone already signed in never claims by itself: a confirm sheet (Accept /
   Not now) comes first; Not now writes nothing (2026-10-08, `docs/security.md`).
-- Profile follow/unfollow writes go only through `set_following`; the store may update optimistically,
+- Profile follow/unfollow writes go only through `set_following` (the app has no write rights on `follows`
+  from `20261008140000_security_hardening_live`); the store may update optimistically,
   but must reconcile from the RPC's committed state. Friends/follow lists always load fresh server data
   and subscribe to follow changes while open; never cache them on-device.
 
@@ -131,7 +132,7 @@
 - The consent decision (`granted` / `denied`) is **cached locally in AsyncStorage** (`@mahi:location_consent`, via `ui/src/lib/location.ts`) so the user is asked **once** — the OS remembers too, but the cache prevents re-prompt churn.
 - Coordinates are **rounded to ~city-block precision** (3 decimal places ≈ 110m) via `roundCoord` before they ever leave `location.ts`, to avoid exact-home exposure. Low-quality fixes (accuracy worse than ~100m) are **dropped** (`null`).
 - A one-shot `getCurrentPositionAsync` (Balanced accuracy) is used — **not** a watch — for battery. Denials/errors degrade to `null`/`false` and never throw to the caller; a post without location stays valid.
-- Coordinates follow the post's visibility: only people allowed to see the post (`can_view_post`: follower, not blocked, not banned, feed lock) get them, and a locked viewer gets them nulled. Until the `20261008100000_security_hardening` migration is pushed, the `posts` table is still readable row by row by any signed-in account (see `docs/security.md`). Never loosen this.
+- Coordinates follow the post's visibility: only people allowed to see the post (`can_view_post`: follower, not blocked, not banned, feed lock) get them, and a locked viewer gets them nulled. The `posts` table applies the same rule row by row (`20261008100000_security_hardening`, live 2026-10-08; see `docs/security.md`). Never loosen this.
 
 ## Camera / Upload Flow
 - Two taps, two photos (the second tap stays; no auto timer). Shutter captures only — no upload until
