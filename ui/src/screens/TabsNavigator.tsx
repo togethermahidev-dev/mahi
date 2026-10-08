@@ -27,6 +27,19 @@ import { useFeedStore } from '@/store';
 import { loadExpoSymbols } from '@/lib/symbolModule';
 import { COLORS, ICON_SIZE, SIZE } from '@/constants/tokens';
 
+/**
+ * iPhone: the Camera tab is Mahi blue even when not selected, and larger when it is (owner,
+ * 2026-10-08). Apple's bar tints every unselected tab alike, so these are ready-made images of
+ * Apple's own camera symbols in COLORS.accent (drawn by scripts/tab-icons.swift).
+ */
+const CAMERA_TAB_ICONS = {
+  icon: { type: 'imageSource', imageSource: require('../../assets/tabs/camera.png') },
+  selectedIcon: {
+    type: 'imageSource',
+    imageSource: require('../../assets/tabs/camera-selected.png'),
+  },
+} as const;
+
 /** What the bar reports when a tab is selected (react-native-screens' TabSelectedEvent). */
 type TabSelected = NativeSyntheticEvent<{
   selectedScreenKey: string;
@@ -133,8 +146,12 @@ export default function TabsNavigator(): React.JSX.Element | null {
             }
             style={{ backgroundColor: pageBg(t.key) }}
             ios={{
-              icon: { type: 'sfSymbol', name: tabIcons(t, feedLocked).icon },
-              selectedIcon: { type: 'sfSymbol', name: tabIcons(t, feedLocked).selectedIcon },
+              ...(t.key === 'camera'
+                ? CAMERA_TAB_ICONS
+                : {
+                    icon: { type: 'sfSymbol', name: tabIcons(t, feedLocked).icon },
+                    selectedIcon: { type: 'sfSymbol', name: tabIcons(t, feedLocked).selectedIcon },
+                  }),
               standardAppearance: TAB_TITLE_APPEARANCE.ios,
             }}
             android={{
