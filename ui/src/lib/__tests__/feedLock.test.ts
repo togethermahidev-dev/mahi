@@ -1,4 +1,11 @@
-import { clockText, feedCountdown, lockExplainer, lockedPostText, timeLeftText } from '../feedLock';
+import {
+  clockText,
+  feedCountdown,
+  lockExplainer,
+  lockPill,
+  lockedPostText,
+  timeLeftText,
+} from '../feedLock';
 
 const HOUR = 3600 * 1000;
 const MIN = 60 * 1000;
@@ -201,5 +208,39 @@ describe('lockedPostText', () => {
     const text = lockedPostText({ tagged: false, postedBefore: true });
     expect(text).toEqual({ hint: 'Opens when a friend tags you' });
     expect(text).not.toHaveProperty('button');
+  });
+});
+
+// Owner, 2026-10-08: a locked feed is the real rows, blurred, with one small pill saying why and
+// what to do; no big card.
+describe('lockPill', () => {
+  const base = { locked: true, unlockedUntil: at(-2 * HOUR), serverOffsetMs: 0, deviceNow };
+
+  it('nothing while the feed is open', () => {
+    expect(lockPill({ ...base, locked: false, openTags: [] })).toBeNull();
+  });
+
+  it('never posted: post a first workout', () => {
+    expect(lockPill({ ...base, unlockedUntil: null, openTags: [] })).toEqual({
+      line: 'Locked. Post your first workout to open it.',
+      button: 'Start first workout',
+      target: 'camera',
+    });
+  });
+
+  it('tagged: answer the friend, with the time left', () => {
+    expect(lockPill({ ...base, openTags: [tag('sam', 41 * HOUR + MIN)] })).toEqual({
+      line: 'Locked. Answer @sam to open it. 41:01:00 left.',
+      button: 'Post your answer',
+      target: 'camera',
+    });
+  });
+
+  it('posted, no tag: it opens when a friend tags you', () => {
+    expect(lockPill({ ...base, openTags: [] })).toEqual({
+      line: 'Locked until a friend tags you.',
+      button: 'Find friends',
+      target: 'friends',
+    });
   });
 });

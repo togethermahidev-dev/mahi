@@ -3,7 +3,6 @@ import {
   AccessibilityInfo,
   View,
   Text,
-  Image,
   RefreshControl,
   StyleSheet,
   Animated,
@@ -24,10 +23,10 @@ import { Skeleton } from '@/components/Motion';
 import { useSocialStore, useAuthStore, useChromeStore, useFeedStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
-import PostCard from '@/components/PostCard';
+import FeedRow from '@/components/FeedRow';
+import PostViewer from '@/components/PostViewer';
+import type { MorphSource } from '@/lib/morph';
 import CommentSheet from '@/components/CommentSheet';
-import { relativeTime } from '@/lib/relativeTime';
-import { pointsBadgeText } from '@/lib/mahiPoints';
 import { lockExplainer as lockCardFor, lockedPostText } from '@/lib/feedLock';
 import { feedLockMoment, haptic } from '@/lib/haptics';
 import { developPlan, developWords } from '@/lib/feedDevelop';
@@ -100,82 +99,12 @@ function DevelopCover({ delay, words }: { delay: number; words: string | null })
   );
 }
 
-// ─── LockedPostItem ──────────────────────────────────────────────────────────
-
-/** A friend's post while the viewer's feed is locked: who and when, no photo or caption. */
-function LockedPostItem({
-  item,
-  height,
-  text,
-  onAvatarPress,
-  onUnlockPress,
-  topSpace = 0,
-}: {
-  item: FeedPost;
-  /** What to say, and a button only when the viewer can post. */
-  text: { hint: string; button?: string };
-  /** Card height: one full screen (TikTok-style snap). */
-  height: number;
-  onAvatarPress: (userId: string) => void;
-  onUnlockPress: () => void;
-  /** Room kept at the top for the lock card over the first post. */
-  topSpace?: number;
-}) {
-  const { colors } = useAppTheme();
-  const name = item.profiles.display_name ?? item.profiles.username;
-  const initials = (item.profiles.username ?? '?')[0].toUpperCase();
-  const points = pointsBadgeText(item.streak_day);
-  return (
-    <View
-      style={[
-        styles.lockedCard,
-        { backgroundColor: colors.offBlack, height, paddingTop: topSpace },
-      ]}
-    >
-      <Pressable
-        style={({ pressed }) => [styles.lockedWho, pressed && { opacity: ALPHA.a75 }]}
-        onPress={() => onAvatarPress(item.profiles.id)}
-        accessibilityRole="button"
-        accessibilityLabel={`Open ${name}'s profile`}
-      >
-        {item.profiles.avatar_url ? (
-          <Image
-            source={{ uri: item.profiles.avatar_url, cache: 'force-cache' }}
-            style={styles.lockedAvatar}
-          />
-        ) : (
-          <View
-            style={[styles.lockedAvatar, styles.avatarFallback, { borderColor: colors.accent }]}
-          >
-            <Text style={[styles.avatarInitial, { color: colors.offWhite }]}>{initials}</Text>
-          </View>
-        )}
-        <Text style={[styles.lockedName, { color: colors.offWhite }]}>{name}</Text>
-        <Text style={[styles.lockedTime, { color: colors.offWhite }]}>
-          posted {relativeTime(item.created_at)}
-          {points ? ` · ${points}` : ''}
-        </Text>
-      </Pressable>
-      <Text style={[styles.lockedHint, { color: colors.offWhite }]}>{text.hint}</Text>
-      {text.button ? (
-        <Pressable
-          style={({ pressed }) => [
-            styles.lockedButton,
-            { backgroundColor: colors.accent },
-            pressed && { opacity: ALPHA.a85 },
-          ]}
-          onPress={onUnlockPress}
-          accessibilityRole="button"
-          accessibilityLabel={text.button}
-        >
-          <Text style={[styles.lockedButtonText, { color: colors.offBlack }]}>{text.button}</Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
 // ─── FeedScreen ──────────────────────────────────────────────────────────────
+
+/** The gap between rows: the Mahi-blue list shows through it as the divider. */
+function RowGap() {
+  return <View style={styles.rowGap} />;
+}
 
 interface FeedScreenProps {
   /** Take the user to the camera (used by locked posts). */
@@ -205,6 +134,8 @@ export default function FeedScreen({
   // TikTok-style snap: each card fills the page (the screen, or the space above the tab bar).
   const { width: screenWidth, height: cardHeight } = usePageSize();
   const bg = dark ? COLORS.bgDark : COLORS.white;
+  // Rows sit on Mahi blue, which shows between them as the divider (owner, 2026-10-08).
+  const listBg = COLORS.accent;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const { muted, accentText } = themeColors(dark);
   const skeletonFill = withAlpha(text, ALPHA.a10);
@@ -312,6 +243,14 @@ export default function FeedScreen({
   // FeedScreen so overlays cover the full screen (not just the PostCard)
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
+  // A tapped row grows into the full-screen feed (TikTok style) through the shared morph.
+  const [viewerPost, setViewerPost] = useState<{
+    postId: string;
+    source: MorphSource | null;
+  } | null>(null);
+  const openPost = useCallback((postId: string, source: MorphSource | null) => {
+    setViewerPost({ postId, source });
+  }, []);
   const currentUserId = useAuthStore((s) => s.user?.id);
 
   // Video posts: the card in view plays (muted, looping) while the Feed is on screen and no
@@ -319,7 +258,7 @@ export default function FeedScreen({
   const [inViewId, setInViewId] = useState<string | null>(null);
   const [feedMuted, setFeedMuted] = useState(true);
   const toggleFeedMuted = useCallback(() => setFeedMuted((m) => !m), []);
-  const feedOnScreen = isActive && !profileUserId;
+  const feedOnScreen = isActive && !profileUserId && !viewerPost;
   const listExtra = useMemo(
     () => ({ topSpace, lockedText, inViewId, feedMuted, feedOnScreen, develop }),
     [topSpace, lockedText, inViewId, feedMuted, feedOnScreen, develop]
@@ -382,7 +321,7 @@ export default function FeedScreen({
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: bg }]}>
+    <View style={[styles.root, { backgroundColor: posts.length ? listBg : bg }]}>
       <ListGestureContext.Provider value={listGesture}>
         <FlashList
           // The app header is an intentional overlay. Prevent iOS from adding its own safe-area
@@ -394,45 +333,27 @@ export default function FeedScreen({
           data={posts}
           keyExtractor={(item) => item.id}
           extraData={listExtra}
-          renderItem={({ item, index }) =>
-            item.locked ? (
-              <LockedPostItem
+          renderItem={({ item }) => (
+            <View>
+              <FeedRow
                 item={item}
-                height={cardHeight}
-                text={lockedText}
+                width={screenWidth}
+                lockedHint={lockedText.hint}
+                onOpen={openPost}
                 onAvatarPress={handleAvatarPress}
-                onUnlockPress={() => onGoToCamera?.()}
-                topSpace={index === 0 ? topSpace : 0}
+                onCommentPress={setCommentPostId}
               />
-            ) : (
-              <>
-                <PostCard
-                  item={item}
-                  dark={dark}
-                  width={screenWidth}
-                  height={cardHeight}
-                  onAvatarPress={handleAvatarPress}
-                  onCommentPress={setCommentPostId}
-                  topSpace={index === 0 ? topSpace : 0}
-                  playing={shouldPlay({ screenActive: feedOnScreen, inView: inViewId === item.id })}
-                  soundOff={feedMuted}
-                  onToggleMuted={toggleFeedMuted}
+              {develop?.plan.has(item.id) ? (
+                <DevelopCover
+                  delay={develop.plan.get(item.id) ?? 0}
+                  words={develop.first === item.id ? develop.words : null}
                 />
-                {develop?.plan.has(item.id) ? (
-                  <DevelopCover
-                    delay={develop.plan.get(item.id) ?? 0}
-                    words={develop.first === item.id ? develop.words : null}
-                  />
-                ) : null}
-              </>
-            )
-          }
-          getItemType={(item) => (item.locked ? 'locked' : 'post')}
-          snapToInterval={cardHeight}
-          snapToAlignment="start"
-          // One flick moves one post, however hard, as on TikTok and Reels.
-          disableIntervalMomentum
-          decelerationRate="fast"
+              ) : null}
+            </View>
+          )}
+          ItemSeparatorComponent={RowGap}
+          // The list starts under the floating header (and the lock pill, when there is one).
+          contentContainerStyle={{ paddingTop: posts.length ? headerH + topSpace : 0 }}
           onEndReached={hasMore ? loadMore : undefined}
           onEndReachedThreshold={0.4}
           ListFooterComponent={
@@ -566,6 +487,19 @@ export default function FeedScreen({
         </Animated.View>
       ) : null}
 
+      {/* A tapped row, full screen: up and down through the feed, as before (TikTok style). */}
+      <PostViewer
+        from="feed"
+        userId=""
+        postId={viewerPost?.postId ?? null}
+        source={viewerPost?.source}
+        onClose={() => setViewerPost(null)}
+        onOpenProfile={(id) => {
+          setViewerPost(null);
+          if (id !== currentUserId) setProfileUserId(id);
+        }}
+      />
+
       {/* Full-screen profile — shown when another user's avatar is tapped */}
       {profileUserId ? (
         <UserProfileScreen
@@ -598,44 +532,8 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  avatarFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitial: {
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
-  },
-  lockedCard: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: SPACE.s32,
-    gap: SPACE.s16,
-  },
-  lockedWho: {
-    alignItems: 'center',
-    gap: SPACE.s8,
-  },
-  lockedAvatar: {
-    width: SIZE.z88,
-    height: SIZE.z88,
-    borderRadius: RADIUS.r44,
-    borderWidth: BORDER_WIDTH.w2,
-  },
-  lockedName: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.bold,
-  },
-  lockedTime: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
-    opacity: ALPHA.a70,
-  },
-  lockedHint: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.regular,
-    textAlign: 'center',
+  rowGap: {
+    height: SPACE.s3,
   },
   lockedButton: {
     borderRadius: RADIUS.r50,

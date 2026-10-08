@@ -1,7 +1,8 @@
 /**
  * Top of the feed, under the app header:
- * - locked → one card saying why (who tagged you, or that you haven't posted) and one button: to
- *   the camera when there's something to post, or to people search when there isn't;
+ * - locked → one small pill saying why and what to do, with one button: to the camera when
+ *   there's something to post, or to people search when there isn't (owner, 2026-10-08: the
+ *   blurred rows behind it are the feed; no big card);
  * - open → a live countdown to when the feed would lock (or, if you're tagged, to when it locks),
  *   in the camera banner's style (founder, 2026-10-05).
  * Lock state and open tags expire, so both come fresh from the server each session (never saved
@@ -14,7 +15,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useCoachAnchor } from '@/hooks/useCoachMarks';
 import { useSecondTick } from '@/hooks/useSecondTick';
-import { clockText, feedCountdown, lockExplainer } from '@/lib/feedLock';
+import { clockText, feedCountdown, lockPill } from '@/lib/feedLock';
 import { FEED_WINDOW_MS, ringProgress } from '@/lib/feedLayout';
 import { CountdownRing, FadeInItem, PressScale } from '@/components/Motion';
 import { FONTS } from '@/constants/fonts';
@@ -70,42 +71,37 @@ function LockedCard({
   const { openTags, loaded } = useOpenTags();
   // The tag clock ticks every second, like every tag countdown.
   const deviceNow = useSecondTick(openTags.length > 0);
-  const card = loaded
-    ? lockExplainer({ locked: true, unlockedUntil, openTags, serverOffsetMs, deviceNow })
+  const pill = loaded
+    ? lockPill({ locked: true, unlockedUntil, openTags, serverOffsetMs, deviceNow })
     : null;
-  // The first locked feed: a one-time tip on this card.
-  const lockTip = useCoachAnchor('feedLocked', card !== null);
-  if (!card) return null;
-  const toFriends = card.target === 'friends';
+  // The first locked feed: a one-time tip on this pill.
+  const lockTip = useCoachAnchor('feedLocked', pill !== null);
+  if (!pill) return null;
+  const toFriends = pill.target === 'friends';
   const onPress = toFriends ? onFindFriends : onPost;
 
   return (
     // Only the button takes touches, so the feed's scroll and swipe still start anywhere else.
     <FadeInItem>
-      <View
-        ref={lockTip}
-        pointerEvents="box-none"
-        style={[
-          styles.card,
-          {
-            backgroundColor: dark ? colors.glassOnDark : colors.glassOnLight,
-            borderColor: withAlpha(colors.accent, ALPHA.a35),
-          },
-        ]}
-      >
-        <Text style={[styles.headline, { color: colors.text }]} accessibilityRole="header">
-          {card.headline}
-        </Text>
-        <Text style={[styles.body, { color: withAlpha(colors.text, ALPHA.a75) }]}>{card.body}</Text>
+      <View ref={lockTip} pointerEvents="box-none" style={styles.pillRow}>
+        <BlurView
+          intensity={BLUR_INTENSITY.i40}
+          tint={dark ? 'dark' : 'light'}
+          style={[styles.timer, { borderColor: colors.text }]}
+        >
+          <Text style={[styles.timerText, { color: colors.text }]} numberOfLines={2}>
+            {pill.line}
+          </Text>
+        </BlurView>
         {onPress ? (
           <PressScale
-            style={[styles.button, { backgroundColor: colors.accent }]}
+            style={[styles.pillButton, { backgroundColor: colors.text }]}
             onPress={onPress}
             accessibilityRole="button"
-            accessibilityLabel={card.button}
+            accessibilityLabel={pill.button}
             accessibilityHint={toFriends ? 'Opens search' : 'Opens the camera'}
           >
-            <Text style={[styles.buttonText, { color: colors.offBlack }]}>{card.button}</Text>
+            <Text style={[styles.buttonText, { color: colors.bg }]}>{pill.button}</Text>
           </PressScale>
         ) : null}
       </View>
@@ -166,30 +162,20 @@ function OpenTimer({
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderWidth: BORDER_WIDTH.w1,
-    borderRadius: RADIUS.r16,
-    padding: SPACE.s16,
+  // The lock pill and its button, centred, wrapping under each other when words run long.
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
     gap: SPACE.s8,
   },
-  headline: {
-    fontSize: FONT_SIZE.f18,
-    lineHeight: LINE_HEIGHT.l24,
-    fontFamily: FONTS.bold,
-  },
-  body: {
-    fontSize: FONT_SIZE.f14,
-    lineHeight: LINE_HEIGHT.l20,
-    fontFamily: FONTS.regular,
-  },
-  button: {
-    alignSelf: 'flex-start',
-    minHeight: SIZE.z44,
+  pillButton: {
+    minHeight: SIZE.z36,
     justifyContent: 'center',
     borderRadius: RADIUS.pill,
-    paddingVertical: SPACE.s12,
-    paddingHorizontal: SPACE.s20,
-    marginTop: SPACE.s4,
+    paddingVertical: SPACE.s8,
+    paddingHorizontal: SPACE.s16,
   },
   buttonText: {
     fontSize: FONT_SIZE.f15,

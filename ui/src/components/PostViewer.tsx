@@ -14,13 +14,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { TabBarRoomContext, useChromeFade } from '@/hooks/useChrome';
-import { useAuthStore, useChromeStore } from '@/store';
+import { useAuthStore, useChromeStore, useFeedStore } from '@/store';
 import PostCard from '@/components/PostCard';
 import CommentSheet from '@/components/CommentSheet';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import { backdropOpacity, openablePosts, swipeCloses, viewerStartIndex } from '@/lib/viewer';
 import { shouldPlay } from '@/lib/videoPosts';
 import type { MorphSource } from '@/lib/morph';
+import type { FeedPost } from '@/api';
 import { MorphingImage, useMorphTransition } from '@/components/MorphTransition';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -38,8 +39,10 @@ import {
 } from '@/constants/tokens';
 
 interface PostViewerProps {
-  /** Whose posts: the profile the grid belongs to. */
+  /** Whose posts: the profile the grid belongs to ('' with `from: 'feed'`). */
   userId: string;
+  /** Which list it pages through: a profile's posts (sideways) or the feed (up and down). */
+  from?: 'profile' | 'feed';
   /** The tapped post; null keeps the viewer closed. */
   postId: string | null;
   onClose: () => void;
@@ -59,6 +62,7 @@ interface PostViewerProps {
  */
 export default function PostViewer({
   userId,
+  from = 'profile',
   postId,
   onClose,
   onOpenProfile,
@@ -85,6 +89,7 @@ export default function PostViewer({
       key={shown.opening}
       visible={!!postId}
       userId={userId}
+      from={from}
       startPostId={shown.postId}
       source={shown.source}
       onClose={onClose}
@@ -97,6 +102,7 @@ export default function PostViewer({
 function PostViewerModal({
   visible,
   userId,
+  from,
   startPostId,
   source,
   onClose,
@@ -105,6 +111,7 @@ function PostViewerModal({
 }: {
   visible: boolean;
   userId: string;
+  from: 'profile' | 'feed';
   startPostId: string;
   source: MorphSource | null;
   onClose: () => void;
@@ -130,7 +137,8 @@ function PostViewerModal({
             style={[StyleSheet.absoluteFill, styles.backdrop, morph.backdropStyle]}
           />
           <Reanimated.View style={[styles.root, morph.contentStyle]}>
-            <ViewerPages
+            <Pages
+              from={from}
               userId={userId}
               startPostId={startPostId}
               open={visible && morph.presented}
@@ -154,15 +162,7 @@ function PostViewerModal({
   );
 }
 
-function ViewerPages({
-  userId,
-  startPostId,
-  open,
-  onClose,
-  onOpenProfile,
-  commentsUp,
-  morphProgress,
-}: {
+type PagesProps = {
   userId: string;
   startPostId: string;
   /** Still open (videos pause while it fades out). */
@@ -173,6 +173,46 @@ function ViewerPages({
   commentsUp: boolean;
   /** When present, swipe-to-close directly scrubs the shared-geometry transition. */
   morphProgress?: SharedValue<number>;
+};
+
+/** The list the viewer pages through: a profile's posts, or the feed (owner, 2026-10-08). */
+function Pages({ from, ...props }: PagesProps & { from: 'profile' | 'feed' }): React.JSX.Element {
+  return from === 'feed' ? <FeedPages {...props} /> : <ProfilePages {...props} />;
+}
+
+function ProfilePages(props: PagesProps): React.JSX.Element {
+  const { posts: all, hasMore, loadMore } = useProfilePosts(props.userId);
+  const posts = useMemo(() => openablePosts(all), [all]);
+  return <ViewerPages {...props} posts={posts} hasMore={hasMore} loadMore={loadMore} />;
+}
+
+/** The feed, up and down like the feed itself; only posts it lets you open. */
+function FeedPages(props: PagesProps): React.JSX.Element {
+  const all = useFeedStore((s) => s.posts);
+  const hasMore = useFeedStore((s) => s.hasMore);
+  const posts = useMemo(() => openablePosts(all), [all]);
+  const loadMore = useCallback(() => void useFeedStore.getState().loadMore(), []);
+  return <ViewerPages {...props} posts={posts} hasMore={hasMore} loadMore={loadMore} vertical />;
+}
+
+function ViewerPages({
+  userId,
+  startPostId,
+  open,
+  onClose,
+  onOpenProfile,
+  commentsUp,
+  morphProgress,
+  posts,
+  hasMore,
+  loadMore,
+  vertical = false,
+}: PagesProps & {
+  posts: ReturnType<typeof openablePosts<FeedPost>>;
+  hasMore: boolean;
+  loadMore: () => void;
+  /** Pages up and down (the feed) instead of sideways; the ✕ and the back gesture close it. */
+  vertical?: boolean;
 }): React.JSX.Element {
   const { dark } = useAppTheme();
   const { width, height } = useWindowDimensions();
@@ -183,8 +223,6 @@ function ViewerPages({
   // A photo being pinched holds the list and the close swipe still.
   const zooming = useChromeStore((s) => s.zooming);
 
-  const { posts: all, hasMore, loadMore } = useProfilePosts(userId);
-  const posts = useMemo(() => openablePosts(all), [all]);
   // Where it opens is decided once; later pages loading in don't move it.
   const [startIndex] = useState(() => viewerStartIndex(posts, startPostId));
 
@@ -234,7 +272,7 @@ function ViewerPages({
   const list = useMemo(() => Gesture.Native(), []);
   const dy = useSharedValue(0);
   const swipe = Gesture.Pan()
-    .enabled(!zooming)
+    .enabled(!zooming && !vertical)
     .maxPointers(1)
     .activeOffsetY([SWIPE.slop, SWIPE.slop])
     .failOffsetX([-SWIPE.slop, SWIPE.slop])
@@ -287,7 +325,7 @@ function ViewerPages({
               keyExtractor={(item) => item.id}
               extraData={extra}
               initialScrollIndex={startIndex}
-              horizontal
+              horizontal={!vertical}
               renderItem={({ item }) => (
                 <PostCard
                   item={item}
@@ -304,8 +342,9 @@ function ViewerPages({
                   onToggleMuted={toggleMuted}
                 />
               )}
-              snapToInterval={width}
+              snapToInterval={vertical ? height : width}
               snapToAlignment="start"
+              disableIntervalMomentum
               decelerationRate="fast"
               showsVerticalScrollIndicator={false}
               onEndReached={hasMore ? loadMore : undefined}

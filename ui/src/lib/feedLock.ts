@@ -92,6 +92,31 @@ export function lockExplainer({
   };
 }
 
+/**
+ * The one small pill over a locked feed (owner, 2026-10-08: the real rows, blurred, with a pill
+ * saying why and what to do; no big card). Null while the feed is open.
+ */
+export function lockPill(
+  input: Parameters<typeof lockExplainer>[0]
+): { line: string; button: string; target: LockCard['target'] } | null {
+  const card = lockExplainer(input);
+  if (!card) return null;
+  if (input.openTags.length > 0) {
+    const { who, first } = whoTagged(input.openTags);
+    const ms = msLeft(first.expires_at, input.serverOffsetMs, input.deviceNow ?? Date.now());
+    const left = ms > 0 ? ` ${clockText(ms)} left.` : '';
+    return { line: `Locked. Answer ${who} to open it.${left}`, button: card.button, target: 'camera' };
+  }
+  if (input.unlockedUntil) {
+    return { line: 'Locked until a friend tags you.', button: 'Find friends', target: 'friends' };
+  }
+  return {
+    line: 'Locked. Post your first workout to open it.',
+    button: card.button,
+    target: 'camera',
+  };
+}
+
 /** The words on a friend's post while your feed is locked; a button only when you can post. */
 export function lockedPostText({
   tagged,
