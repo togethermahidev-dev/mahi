@@ -468,16 +468,20 @@ export default function FeedScreen({
             locked && posts.length > 0 && styles.lockBannerCentred,
             {
               top: headerH,
-              // Slides away with the header once the first post scrolls off.
-              transform: [
-                {
-                  translateY: headerOffset.interpolate({
-                    inputRange: [0, headerH],
-                    outputRange: [0, -(headerH + bannerH)],
-                    extrapolate: 'clamp',
-                  }),
-                },
-              ],
+              // Open: the timer slides away with the header once the first post scrolls off.
+              // Locked: the padlock line stays put while the blurred rows scroll behind it
+              // (owner, 2026-10-08).
+              transform: locked
+                ? []
+                : [
+                    {
+                      translateY: headerOffset.interpolate({
+                        inputRange: [0, headerH],
+                        outputRange: [0, -(headerH + bannerH)],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ],
             },
           ]}
         >
