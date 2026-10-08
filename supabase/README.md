@@ -73,7 +73,7 @@ bans clear requests. Tests
 `tests/tag_challenges_test.sql`, `tests/tag_feed_pushes_test.sql`, `tests/tag_slots_test.sql`), undo
 `rollbacks/20261008170000_private_accounts.rollback.sql`. Phones without the app update read
 `requested` as not following until the OTA.
-**Not pushed yet (pre-build review 2026-10-08):** `20261008180000_prebuild_hardening` —
+**Pushed 2026-10-08 (backup `20261008114607`, checked against prod):** `20261008180000_prebuild_hardening` —
 `get_user_posts` shows nobody else anything for a banned owner (`{"locked": true, "items": []}`, no
 padlock squares); `notify_on_follow` / `notify_on_like` send one notice per recipient, sender and kind
 a day (block, ban and approval skips stay); invite codes: 20 unknown codes an hour per caller (the
@@ -92,7 +92,7 @@ every phone has the Mahi points update. (`contract_messages` is live as migratio
 `20261007111029_contract_messages`; `contract_posting` and `private_bucket` became
 `20261008100000_security_hardening`.)
 
-Latest production migration: `20261008170000_private_accounts` (live 2026-10-08): public and
+Latest production migration: `20261008180000_prebuild_hardening` (live 2026-10-08; before it `20261008170000_private_accounts`): public and
 private accounts, Settings → Controls (workouts and tag settings), follow requests, tag acceptance
 without auto-follow, tagged people and taggers see their post (details above). Note on
 `20261008150000_security_hardening_live`: its header names the undo file
