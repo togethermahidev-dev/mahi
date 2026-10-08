@@ -14,6 +14,10 @@
 --    workouts setting lets the viewer in). Posts, files, likes, comments and comment likes follow it.
 --    get_feed keeps to followed accounts within the same setting; get_user_posts says why a profile
 --    is closed (restricted) instead of padlocks, unless the viewer's feed lock is the reason.
+--    A person tagged on a post (post_tags, or a started tag on it) always sees THAT post, its photo,
+--    comments and likes, and can like and comment (owner, 2026-10-08); blocks, bans and the feed
+--    lock still win, and the poster's other posts stay closed (can_view_post_for, used by
+--    can_view_post_id, can_view_post_object, posts_select and get_user_posts).
 --    Follower and following lists (follows_select, get_friends) follow the owner's setting too: a
 --    follows row shows to someone outside it only when BOTH people's lists are open to them, so a
 --    public account's following list can't reveal who follows a private account.
@@ -22,9 +26,11 @@
 --    follows and says who follows whom; search_tag_people and match_contacts say tag_mode.
 -- 6. Invites: a tag invite on a post makes both follows (as before); a general invite from a private
 --    account makes the claimer's follow a request (the inviter still follows the claimer).
--- 7. Notices: follow_request, follow_accepted; push words for them; tag request words without the
+-- 7. Notices: follow_request, follow_accepted; notifications.follow_request (an invite_joined whose
+--    claimer's follow is a request); push words for them; tag request words without the
 --    follow promise; the missed-tag push matches the app. Blocks and bans clear requests.
--- Test: supabase/tests/private_accounts_test.sql, supabase/tests/controls_test.sql
+-- Test: supabase/tests/private_accounts_test.sql, supabase/tests/controls_test.sql,
+--       supabase/tests/tagged_post_visibility_test.sql
 -- Undo: supabase/rollbacks/20261008170000_private_accounts.rollback.sql
 
 -- 1. Profile columns.
@@ -65,6 +71,10 @@ create table public.follow_request_notices (
 );
 alter table public.follow_request_notices enable row level security;
 revoke all on public.follow_request_notices from anon, authenticated;
+
+-- True on an invite_joined notice when the claimer's follow is a request waiting for the inviter
+-- (claim_invite); null on every other notice. Readable by the recipient like the rest of the row.
+alter table public.notifications add column follow_request boolean;
 
 alter table public.notifications drop constraint notifications_type_check;
 alter table public.notifications add constraint notifications_type_check
@@ -173,6 +183,89 @@ as $$
     )
   );
 $$;
+
+-- Whether the viewer is tagged on this post: its tag bubble (post_tags), or a started tag on it
+-- (a slot whose 48 hours are running).
+create function public.tagged_on_post(p_viewer uuid, p_post_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+           select 1 from public.post_tags pt where pt.post_id = p_post_id and pt.user_id = p_viewer)
+      or exists (
+           select 1 from public.tag_challenges c
+           where c.post_id = p_post_id and c.tagged_id = p_viewer and c.expires_at is not null);
+$$;
+
+-- One post: the owner's rule (can_view_post), or the viewer is tagged on this post. The tag
+-- exception skips only the workouts setting: a block either way, a banned owner or the viewer's
+-- feed lock still keep it shut.
+create function public.can_view_post_for(p_viewer uuid, p_owner uuid, p_post_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select public.can_view_post(p_viewer, p_owner) or (
+    p_viewer is not null
+    and public.tagged_on_post(p_viewer, p_post_id)
+    and exists (select 1 from public.profiles where id = p_owner and not is_banned)
+    and not exists (
+      select 1 from public.user_blocks b
+      where (b.blocker_id = p_viewer and b.blocked_id = p_owner)
+         or (b.blocker_id = p_owner and b.blocked_id = p_viewer)
+    )
+    and not public.viewer_is_locked(p_viewer)
+  );
+$$;
+revoke execute on function public.tagged_on_post(uuid, uuid), public.can_view_post_for(uuid, uuid, uuid)
+  from public, anon, authenticated;
+
+create or replace function public.can_view_post_id(p_post_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.posts p
+    where p.id = p_post_id
+      and auth.uid() is not null
+      and (p.user_id = auth.uid()
+           or (p.hidden_at is null and public.can_view_post_for(auth.uid(), p.user_id, p.id)))
+  );
+$$;
+
+create or replace function public.can_view_post_object(p_name text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select split_part(p_name, '/', 1) = auth.uid()::text
+      or public.is_staff()
+      or exists (
+        select 1 from public.posts p
+        where (p.image_path = p_name or p.pov_image_path = p_name)
+          and p.hidden_at is null
+          and public.can_view_post_for(auth.uid(), p.user_id, p.id)
+      );
+$$;
+
+drop policy posts_select on public.posts;
+create policy posts_select on public.posts
+  for select to authenticated
+  using (
+    user_id = (select auth.uid())
+    or public.is_staff()
+    or (hidden_at is null and public.can_view_post_id(id))
+  );
 
 -- Whether the caller may read the owner's follower and following lists: the owner, or anyone the
 -- owner's workouts setting lets in (feed lock aside) with no block. Reads follows as its owner, so
@@ -328,10 +421,28 @@ begin
     return jsonb_build_object('locked', true, 'items', '[]'::jsonb);
   end if;
 
-  -- Closed by the owner's setting: say why, and show no squares at all.
+  -- Closed by the owner's setting: say why, and show no padlock squares. Only the posts the
+  -- viewer is tagged on come back (usually none), so a notification can still open one; the
+  -- viewer's feed lock still padlocks them.
   select * into v_owner from public.profiles where id = p_user;
   if found and not v_owner.is_banned and v_uid <> p_user
      and not public.posts_visibility_allows(v_uid, p_user) then
+    v_hide := public.viewer_is_locked(v_uid);
+    select coalesce(
+             jsonb_agg(public.feed_item(s.p, v_uid, v_hide)
+                       order by (s.p).created_at desc, (s.p).id desc),
+             '[]'::jsonb)
+    into v_items
+    from (
+      select p
+      from public.posts p
+      where p.user_id = p_user
+        and p.hidden_at is null
+        and public.tagged_on_post(v_uid, p.id)
+        and (p_cursor_ts is null or (p.created_at, p.id) < (p_cursor_ts, p_cursor_id))
+      order by p.created_at desc, p.id desc
+      limit least(greatest(coalesce(p_limit, 30), 1), 60)
+    ) s;
     return jsonb_build_object(
       'locked', true,
       'restricted', case
@@ -340,7 +451,7 @@ begin
         ) then 'private'
         else public.effective_posts_visibility(p_user)
       end,
-      'items', '[]'::jsonb);
+      'items', v_items);
   end if;
   -- Otherwise only a ban or the viewer's own feed lock hides them: padlocks, as before.
   v_hide := not public.can_view_post(v_uid, p_user);
@@ -1368,8 +1479,8 @@ begin
     perform public.start_tag(v_c.id);
   end if;
 
-  insert into public.notifications (user_id, actor_id, type, post_id, challenge_id)
-  values (v_inv.inviter_id, v_uid, 'invite_joined', v_c.post_id, v_c.id);
+  insert into public.notifications (user_id, actor_id, type, post_id, challenge_id, follow_request)
+  values (v_inv.inviter_id, v_uid, 'invite_joined', v_c.post_id, v_c.id, v_follow = 'requested');
 
   return public.invite_result(v_inv) || jsonb_build_object('follow_status', v_follow);
 end;
@@ -1588,8 +1699,7 @@ begin
       when 'tag_missed' then
         v_actor || ' missed your tag. Tag them in your next post to get them going again.'
       when 'invite_joined' then
-        case when exists (select 1 from public.follow_requests r
-                          where r.requester_id = new.actor_id and r.target_id = new.user_id)
+        case when coalesce(new.follow_request, false)
              then v_actor || ' joined Mahi from your invite and wants to follow you.'
              else v_actor || ' joined Mahi from your invite. You follow each other now.' end
       when 'streak_lost' then 'You missed ' || v_actor || '''s tag. Your points are back to 0.'

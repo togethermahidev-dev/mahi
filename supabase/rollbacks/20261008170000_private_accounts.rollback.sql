@@ -1006,7 +1006,50 @@ end;
 $$;
 
 
+-- Posts read rule, and the two per-post checks, back to the owner rule only.
+drop policy posts_select on public.posts;
+create policy posts_select on public.posts
+  for select to authenticated
+  using (
+    user_id = auth.uid()
+    or public.is_staff()
+    or (hidden_at is null and public.can_view_posts_of(user_id))
+  );
+
+CREATE OR REPLACE FUNCTION public.can_view_post_id(p_post_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select exists (
+    select 1 from public.posts p
+    where p.id = p_post_id
+      and (p.user_id = auth.uid() or (p.hidden_at is null and public.can_view_posts_of(p.user_id)))
+  );
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.can_view_post_object(p_name text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select split_part(p_name, '/', 1) = auth.uid()::text
+      or public.is_staff()
+      or exists (
+        select 1 from public.posts p
+        where (p.image_path = p_name or p.pov_image_path = p_name)
+          and p.hidden_at is null
+          and public.can_view_post(auth.uid(), p.user_id)
+      );
+$function$
+;
+
 -- 4. New functions.
+drop function public.can_view_post_for(uuid, uuid, uuid);
+drop function public.tagged_on_post(uuid, uuid);
 drop function public.respond_follow_request(uuid, boolean, boolean);
 drop function public.remove_follower(uuid);
 drop function public.get_follow_requests();
@@ -1019,6 +1062,7 @@ drop function public.clear_follow_request_notice(uuid, uuid);
 
 -- 5. Notices of the new types, then the old type check.
 delete from public.notifications where type in ('follow_request', 'follow_accepted');
+alter table public.notifications drop column follow_request;
 alter table public.notifications drop constraint notifications_type_check;
 alter table public.notifications add constraint notifications_type_check
   check (type in ('like', 'comment', 'follow', 'tag', 'tag_answered', 'tag_missed', 'invite_joined',

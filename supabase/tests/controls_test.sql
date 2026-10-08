@@ -10,7 +10,7 @@
 -- * push words for the new notices and the missed tag
 -- Every check reads only this test's own people.
 begin;
-select plan(57);
+select plan(59);
 
 update public.app_config set feed_lock_enabled = false, tags_required = false,
   invite_links_enabled = true, max_open_invites = 10;
@@ -230,6 +230,11 @@ select ok(pg_temp.follows('r', 'n') and not pg_temp.follows('n', 'r')
   'r follows n; n''s follow waits for r');
 select is(pg_temp.push('r', 'invite_joined'),
   '@ctl_n joined Mahi from your invite and wants to follow you.', 'r is told n is waiting');
+select pg_temp.as_user('r');
+select is((select follow_request from public.notifications
+           where type = 'invite_joined' and actor_id = pg_temp.uid('n')), true,
+  'r''s notice row says the follow is a request');
+reset role;
 with c as (insert into public.tag_challenges (tagger_id) values (pg_temp.uid('r')) returning id)
 insert into pg_temp.ids select 'slot', c.id::text from c;
 insert into public.invites (token, code, inviter_id, challenge_id, expires_at)
@@ -243,6 +248,9 @@ reset role;
 select ok(pg_temp.follows('r', 'm') and pg_temp.follows('m', 'r')
           and not exists (select 1 from public.follow_requests where requester_id = pg_temp.uid('m')),
   'both follow, and the waiting request is cleared');
+select is((select follow_request from public.notifications
+           where type = 'invite_joined' and actor_id = pg_temp.uid('m')), false,
+  'that notice row says it is not a request');
 select pg_temp.as_user('k');
 select is(public.claim_invite((select val from pg_temp.ids where name = 'mate_o')) ->> 'follow_status',
   'following', 'a general invite from a public account: you follow each other');
