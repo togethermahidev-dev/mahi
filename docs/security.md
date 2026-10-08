@@ -66,6 +66,8 @@ means "trusted": always ask what a stranger with a fresh account could read or w
   The person's own email through PostHog `identify` is the one allowed exception.
 - **Unreleased features start off:** their switch is in `DEFAULT_OFF_FLAGS` and off in PostHog, and
   the iPhone side reads a missing switch as off.
+- **The sign-in session lives in the keychain** (`ui/src/lib/sessionStorage.ts`, build 13+); never put
+  tokens in AsyncStorage or any other plain storage.
 - Show only what the server returned. Never build a photo address from a stored path yourself;
   ask the server for a signed URL.
 
@@ -92,7 +94,6 @@ means "trusted": always ask what a stranger with a fresh account could read or w
 ## Known and accepted
 
 - `check-email` says whether an email has an account. Sign-up needs it.
-- The session is kept in AsyncStorage (Supabase's default for React Native).
 - Contacts are matched with unsalted SHA-256 hashes. The server doesn't keep them, and only the
   matched accounts come back.
 - Invite codes are 6 characters; guessing is limited by rate limits.
@@ -110,4 +111,5 @@ means "trusted": always ask what a stranger with a fresh account could read or w
 | Direct writes to `posts` skipped `create_post` (bans, reactive posting, 3 tags, own media) | Low (game rules) | Direct post inserts closed | Same migration |
 | A new account could set its own points and account age at sign-up | Low (game rules) | Profile insert limited to the sign-up columns | Same migration |
 | `message_reactions_json` callable signed out; `get_suggested_follows` trusted a passed-in id; `check-email` read only the first 50 accounts | Low | Revoked; uses `auth.uid()`; looks the email up directly | Same migration + function deploy |
+| The sign-in session sat in plain app storage (AsyncStorage) | Low | Kept in the keychain (expo-secure-store, readable after first unlock, this device only); an old session moves over on first read | Committed; needs build 13 (builds 10–12 keep AsyncStorage) |
 | Staff sign-in return path accepted a tab or newline (browsers drop them, turning it into another site's address) | Low | `safeNext` refuses control characters | Committed; live when the staff portal is hosted |

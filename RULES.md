@@ -133,7 +133,7 @@
 
 ## Auth
 - Supabase is the source of truth for auth
-- Sessions persist via AsyncStorage (`autoRefreshToken: true`, `persistSession: true` in `ui/src/lib/supabase.ts`)
+- Sessions persist in the keychain on build 13+ (`ui/src/lib/sessionStorage.ts`: expo-secure-store behind a native probe, readable after first unlock, this device only); builds 10–12 keep AsyncStorage, and an existing AsyncStorage session moves to the keychain on first read (`autoRefreshToken: true`, `persistSession: true` in `ui/src/lib/supabase.ts`)
 - `onAuthStateChange` in `App.tsx` drives all screen transitions — no manual `authDone` flags
 - User creation uses `complete-signup` Edge Function (admin API, `email_confirm: true`)
 - Profile data is inserted into `public.profiles` after successful `signInWithPassword` — only the sign-up columns (column grant from the 2026-10-08 security migration); points, ban and dates are the server's
