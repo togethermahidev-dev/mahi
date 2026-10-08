@@ -13,6 +13,12 @@ update public.profiles set is_banned = true where id = '00000000-0000-0000-0000-
 insert into public.user_blocks (blocker_id, blocked_id) values
   ('00000000-0000-0000-0000-0000000c1e0a', '00000000-0000-0000-0000-0000000c1e0c'),
   ('00000000-0000-0000-0000-0000000c1e0d', '00000000-0000-0000-0000-0000000c1e0b');
+-- Everyone follows a and the feed lock is off, so a's post is visible to them
+-- (20261008120000_comment_like_visibility: comment likes follow the post).
+update public.app_config set feed_lock_enabled = false;
+insert into public.follows (follower_id, following_id)
+select ('00000000-0000-0000-0000-0000000c1e0' || c)::uuid, '00000000-0000-0000-0000-0000000c1e0a'
+from unnest(array['b', 'c', 'd', 'e', 'f']) c;
 insert into public.posts (id, user_id, image_url, streak_day)
 values ('00000000-0000-0000-0000-0000000c1e99', '00000000-0000-0000-0000-0000000c1e0a', 'x', 1);
 insert into public.post_comments (id, post_id, user_id, content) values
