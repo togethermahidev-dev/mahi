@@ -2,9 +2,20 @@
 //
 // Body: { email, password, code }. The account is created only if verify-otp stamped a code for
 // this email in the last 30 minutes AND the code sent here is that same code, so knowing someone's
-// email is not enough to take the account in that window. The account is created already
-// confirmed; hook_require_verified_signup applies the same 30-minute check inside Supabase Auth.
-import { admin, INVALID_CODE, isValidEmail, json, normalizeEmail, sha256, VERIFIED_WINDOW_MS } from "../_shared/otp.ts";
+// email is not enough to take the account in that window. Tries here count against the code's
+// same five tries as verify-otp (tryVerifiedCode), so the code can't be guessed. The account is
+// created already confirmed and carries app_metadata.signup_via (signupUserAttributes);
+// hook_require_verified_signup refuses an email sign-up without that marker, which keeps the
+// public sign-up endpoint closed.
+import {
+  admin,
+  INVALID_CODE,
+  isValidEmail,
+  json,
+  normalizeEmail,
+  signupUserAttributes,
+  tryVerifiedCode,
+} from "../_shared/otp.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -19,19 +30,11 @@ Deno.serve(async (req: Request) => {
     const email = normalizeEmail(rawEmail);
     const db = admin();
 
-    const { data: rows, error: lookupError } = await db.from("otp_codes")
-      .select("code_hash")
-      .eq("email", email)
-      .eq("purpose", "signup")
-      .gt("verified_at", new Date(Date.now() - VERIFIED_WINDOW_MS).toISOString())
-      .order("verified_at", { ascending: false })
-      .limit(1);
-    if (lookupError) console.error("[complete-signup] lookup failed:", lookupError);
-    if (!rows?.[0] || rows[0].code_hash !== (await sha256(code))) {
+    if (!(await tryVerifiedCode(db, email, code))) {
       return json({ error: "Your code has expired. Go back and ask for a new one." }, 400);
     }
 
-    const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true });
+    const { data, error } = await db.auth.admin.createUser(signupUserAttributes(email, password));
     if (error || !data.user) {
       if (error?.code === "email_exists") {
         return json({ error: "This email already has an account. Log in instead." }, 409);

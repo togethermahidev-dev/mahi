@@ -7,6 +7,10 @@ export const MAX_ATTEMPTS = 5;
 export const CODE_TTL_MS = 10 * 60 * 1000;
 // complete-signup and hook_require_verified_signup both allow 30 minutes after verify-otp.
 export const VERIFIED_WINDOW_MS = 30 * 60 * 1000;
+// complete-signup puts this in the new user's app_metadata. hook_require_verified_signup refuses
+// an email sign-up without it (migration 20261008100000_security_hardening), so the public
+// sign-up endpoint, which can't set app_metadata, stays closed even inside the 30 minutes.
+export const SIGNUP_VIA = "complete-signup";
 export const INVALID_CODE = "Invalid or expired code";
 
 export function admin(): SupabaseClient {
@@ -141,13 +145,60 @@ export async function tryCode(db: SupabaseClient, email: string, code: string, p
     if (lookupError) console.error("[otp] lookup failed:", lookupError);
     return false;
   }
+  return await countTry(db, row, code, true, (hashMatches) =>
+    attemptPatch({ hashMatches, attempts: row.attempts, now: new Date() }));
+}
+
+// complete-signup's check of a sign-up code verify-otp already accepted (in the last 30 minutes).
+// Every try counts against the same five as verify-otp: the code stays usable while attempts is
+// at most MAX_ATTEMPTS, so guessing it here gets at most five tries in all. True on a match.
+export async function tryVerifiedCode(db: SupabaseClient, email: string, code: string) {
+  const { data: rows, error: lookupError } = await db.from("otp_codes")
+    .select("id, code_hash, attempts")
+    .eq("email", email)
+    .eq("purpose", "signup")
+    .gt("verified_at", new Date(Date.now() - VERIFIED_WINDOW_MS).toISOString())
+    .lte("attempts", MAX_ATTEMPTS)
+    .order("verified_at", { ascending: false })
+    .limit(1);
+  const row = rows?.[0];
+  if (lookupError || !row) {
+    if (lookupError) console.error("[otp] lookup failed:", lookupError);
+    return false;
+  }
+  return await countTry(db, row, code, false, () => ({ attempts: row.attempts + 1 }));
+}
+
+// Writes one try on a code row, only if nobody else counted a try on it since it was read (and,
+// for an open code, it wasn't retired meanwhile). True when the code matched AND this write won,
+// so a burst of parallel guesses gets one counted try, not many.
+async function countTry(
+  db: SupabaseClient,
+  row: { id: string; code_hash: string; attempts: number },
+  code: string,
+  mustBeOpen: boolean,
+  patch: (hashMatches: boolean) => Record<string, unknown>,
+) {
   const hashMatches = (await sha256(code)) === row.code_hash;
-  const { data: updated, error: updateError } = await db.from("otp_codes")
-    .update(attemptPatch({ hashMatches, attempts: row.attempts, now: new Date() }))
-    .eq("id", row.id)
-    .eq("used", false)
-    .eq("attempts", row.attempts)
-    .select("id");
+  let update = db.from("otp_codes").update(patch(hashMatches)).eq("id", row.id);
+  if (mustBeOpen) update = update.eq("used", false);
+  const { data: updated, error: updateError } = await update.eq("attempts", row.attempts).select("id");
   if (updateError) console.error("[otp] update failed:", updateError);
   return hashMatches && !updateError && !!updated?.length;
+}
+
+// What complete-signup asks the admin API for: a confirmed email user carrying SIGNUP_VIA.
+export function signupUserAttributes(email: string, password: string) {
+  return { email, password, email_confirm: true, app_metadata: { signup_via: SIGNUP_VIA } };
+}
+
+// reset-password: sets the new password, then signs the account out everywhere
+// (revoke_user_sessions, migration 20261008100000_security_hardening), so a session someone else
+// holds doesn't outlive the reset. A failed sign-out is logged; the password change stands.
+export async function setPasswordAndSignOut(db: SupabaseClient, userId: string, password: string) {
+  const { error } = await db.auth.admin.updateUserById(userId, { password });
+  if (error) return { error };
+  const { error: signOutError } = await db.rpc("revoke_user_sessions", { p_user: userId });
+  if (signOutError) console.error("[otp] sign-out after password change failed:", signOutError);
+  return { error: null };
 }
