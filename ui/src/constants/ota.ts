@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 18 — tab bar labels stay in line with the Camera tab selected (both Camera
+ *     pictures share one size) (2026-10-08)
  *   build 13 · 17 — tapping a locked row wiggles the padlock line (2026-10-08)
  *   build 13 · 16 — the locked feed's padlock line stays put while the rows scroll (2026-10-08)
  *   build 13 · 15 — the locked feed's padlock, pixel athlete and "Post your first workout" sit
@@ -121,4 +123,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 17;
+export const OTA_NUMBER = 18;
