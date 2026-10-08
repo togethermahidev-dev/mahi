@@ -11,6 +11,7 @@ import {
   nextLiveTagChange,
   offView,
   soonestTagId,
+  staleTaggerPhotos,
   widgetTimeline,
 } from '@/lib/liveTag';
 import { loadLiveTagWidgets, type LiveTagWidgetsModule } from '@/lib/widgetsModule';
@@ -30,7 +31,8 @@ const ONE_SECOND = 1000;
 /**
  * Taggers' photos saved for the widget and Live Activity this session, by username (owner,
  * 2026-10-07, #117). Widgets can't fetch, so the app saves a small copy in expo-widgets' shared
- * folder first; the files are overwritten on each save, so a changed photo is picked up.
+ * folder first; the files are overwritten on each save, so a changed photo is picked up, and
+ * deleted once the mate's tag closes, on sign-out or when either switch is off.
  */
 let photos: Record<string, string> = {};
 const saving = new Set<string>();
@@ -57,8 +59,12 @@ function savePhotos(
         })
       )
       .then(async (small) => {
-        await FileSystem.deleteAsync(target, { idempotent: true });
-        await FileSystem.copyAsync({ from: small.uri, to: target });
+        try {
+          await FileSystem.deleteAsync(target, { idempotent: true });
+          await FileSystem.copyAsync({ from: small.uri, to: target });
+        } finally {
+          FileSystem.deleteAsync(small.uri, { idempotent: true }).catch(() => {});
+        }
         photos = { ...photos, [name]: target };
         done();
       })
@@ -68,6 +74,37 @@ function savePhotos(
         FileSystem.deleteAsync(temp, { idempotent: true }).catch(() => {});
       });
   }
+}
+
+/** What the last clean-up kept, so the shared folder is only read again when that changes. */
+let lastCleanup = '';
+
+/**
+ * Deletes the saved photos of mates whose tags have closed, or all of them when signed out or
+ * switched off (`keep` null). Before the first read of the open tags nothing is deleted.
+ */
+function deleteOldPhotos(widgets: LiveTagWidgetsModule, keep: string[] | null) {
+  const dir = widgets.widgetsDirectory;
+  if (!dir) return;
+  const kept = keep ?? [];
+  // A photo saved since the last clean-up changes the key, so one that finished saving after its
+  // tag closed is still deleted.
+  const key = JSON.stringify([[...kept].sort(), Object.keys(photos).sort()]);
+  photos = Object.fromEntries(Object.entries(photos).filter(([u]) => kept.includes(u)));
+  if (key === lastCleanup) return;
+  lastCleanup = key;
+  const folder = dir.replace(/\/$/, '');
+  FileSystem.readDirectoryAsync(folder)
+    .then((names) =>
+      Promise.all(
+        staleTaggerPhotos(names, kept).map((n) =>
+          FileSystem.deleteAsync(`${folder}/${n}`, { idempotent: true })
+        )
+      )
+    )
+    .catch((err) =>
+      reportError(err, { flow: 'tags', action: 'liveTagPhotoCleanup', level: 'warning' })
+    );
 }
 
 function setWidget(
@@ -100,6 +137,9 @@ export function syncLiveTag(
   const serverOffsetMs = Math.round(rawOffset / ONE_SECOND) * ONE_SECOND;
   const loaded = openTagsLoaded && profile != null;
   const now = Date.now();
+  const mates = openTags.map((t) => t.username);
+  if (!enabled || !signedIn || !photosOn) deleteOldPhotos(widgets, null);
+  else if (loaded) deleteOldPhotos(widgets, mates);
   const input = profile && {
     tags: openTags,
     serverOffsetMs,

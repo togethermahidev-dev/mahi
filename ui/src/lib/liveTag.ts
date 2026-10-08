@@ -198,12 +198,26 @@ export function liveTagView({
  *  must be. */
 export const TAGGER_PHOTO = { px: SIZE.z96, quality: 0.8 };
 
-export function taggerPhotoFile(dir: string, username: string): string {
+function taggerPhotoName(username: string): string {
   const safe = username
     .toLowerCase()
     .replace(/[^a-z0-9._]/g, '')
     .replace(/^\.+/, '');
-  return `${dir.replace(/\/$/, '')}/tagger-${safe}.jpg`;
+  return `tagger-${safe}.jpg`;
+}
+
+export function taggerPhotoFile(dir: string, username: string): string {
+  return `${dir.replace(/\/$/, '')}/${taggerPhotoName(username)}`;
+}
+
+/**
+ * Which saved tagger photos to delete from the shared folder (`fileNames`, its listing): every
+ * `tagger-*.jpg` that isn't the photo of a mate in `keep` (the open tags' usernames; empty when
+ * signed out or switched off). A friend's photo never stays on the phone after their tag closes.
+ */
+export function staleTaggerPhotos(fileNames: string[], keep: string[]): string[] {
+  const wanted = new Set(keep.map(taggerPhotoName));
+  return fileNames.filter((f) => /^tagger-.*\.jpg$/.test(f) && !wanted.has(f));
 }
 
 /** Signed out or switched off: the widget shows this, with nothing personal in it. */

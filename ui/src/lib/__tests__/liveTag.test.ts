@@ -8,6 +8,7 @@ import {
   offView,
   openTagsAt,
   soonestTagId,
+  staleTaggerPhotos,
   taggerPhotoFile,
   widgetTimeline,
 } from '../liveTag';
@@ -348,5 +349,15 @@ describe('the tagger’s photo on the Live Activity and widget (owner, 2026-10-0
       'file:///group/ExpoWidgets/tagger-sam.b.jpg'
     );
     expect(taggerPhotoFile('file:///g/', '../x')).toBe('file:///g/tagger-x.jpg');
+  });
+  it('deletes the saved photos of mates with no open tag, and only tagger photos', () => {
+    const files = ['tagger-sam.jpg', 'tagger-sam.b.jpg', 'tagger-ali.jpg', 'other.json', 'x.jpg'];
+    expect(staleTaggerPhotos(files, ['sam', 'Sam.B'])).toEqual(['tagger-ali.jpg']);
+  });
+  it('deletes every tagger photo when nobody is kept (signed out or switched off)', () => {
+    expect(staleTaggerPhotos(['tagger-sam.jpg', 'tagger-ali.jpg', 'widget.json'], [])).toEqual([
+      'tagger-sam.jpg',
+      'tagger-ali.jpg',
+    ]);
   });
 });
