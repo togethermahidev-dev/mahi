@@ -78,13 +78,12 @@ every phone has the Mahi points update. (`contract_messages` is live as migratio
 `20261007111029_contract_messages`; `contract_posting` and `private_bucket` became
 `20261008100000_security_hardening`.)
 
-Latest production migration: `20261008170000_private_accounts` (live 2026-10-08), the
-doors the live Supabase check found open: follows change only through `set_following`, reports only
-through `report_*`, avatar addresses and files limited to the person's own folder, no table rights
-for signed-out callers (details above). Its header names the undo file
-`rollbacks/20261008140000_security_hardening_live.rollback.sql`; the file is
-`rollbacks/20261008150000_security_hardening_live.rollback.sql`. The migration is applied, so its
-header stays as it is.
+Latest production migration: `20261008170000_private_accounts` (live 2026-10-08): public and
+private accounts, Settings → Controls (workouts and tag settings), follow requests, tag acceptance
+without auto-follow, tagged people and taggers see their post (details above). Note on
+`20261008150000_security_hardening_live`: its header names the undo file
+`rollbacks/20261008140000_…`; the file is `rollbacks/20261008150000_security_hardening_live.rollback.sql`
+(the migration is applied, so its header stays as it is).
 
 Rules (enforced by `.claude/hooks/guard.cjs`):
 
