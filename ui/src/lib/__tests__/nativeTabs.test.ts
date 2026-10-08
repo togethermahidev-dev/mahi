@@ -21,18 +21,18 @@ describe('cameraBadge (a tag waiting shows on the Camera tab)', () => {
   it('shows nothing with no tag, before the first read, or on another tab', () => {
     expect(cameraBadge('camera', { count: 0, loaded: true })).toBeUndefined();
     expect(cameraBadge('camera', { count: 2, loaded: false })).toBeUndefined();
-    expect(cameraBadge('feed', { count: 2, loaded: true })).toBeUndefined();
+    expect(cameraBadge('profile', { count: 2, loaded: true })).toBeUndefined();
   });
 });
 
 describe('NATIVE_TABS', () => {
   // Owner, 2026-10-07: Messages leads and Profile sits last (swapped from 2026-10-06).
   it('follows the swipe order: Messages, Feed, Camera, then Profile', () => {
-    expect(NATIVE_TABS.map((t) => t.key)).toEqual(['messages', 'feed', 'camera', 'profile']);
+    expect(NATIVE_TABS.map((t) => t.key)).toEqual(['messages', 'camera', 'profile']);
   });
 
   it('labels each tab in sentence case', () => {
-    expect(NATIVE_TABS.map((t) => t.title)).toEqual(['Messages', 'Feed', 'Camera', 'Profile']);
+    expect(NATIVE_TABS.map((t) => t.title)).toEqual(['Messages', 'Camera', 'Profile']);
   });
 
   it('gives every tab an Apple icon for both states and a Material icon for Android', () => {
@@ -103,7 +103,7 @@ describe('cameraLift', () => {
 // Profile; no up/down swiping. The app still opens on Camera.
 describe('SWIPE_PAGES', () => {
   it('is Messages, Feed, Camera, Profile, left to right', () => {
-    expect(SWIPE_PAGES).toEqual(['messages', 'feed', 'camera', 'profile']);
+    expect(SWIPE_PAGES).toEqual(['messages', 'camera', 'profile']);
   });
 
   it('is the tab bar order', () => {
@@ -114,18 +114,16 @@ describe('SWIPE_PAGES', () => {
 describe('pageTab', () => {
   it('names the tab for the page showing', () => {
     expect(pageTab(0)).toBe('messages');
-    expect(pageTab(1)).toBe('feed');
-    expect(pageTab(2)).toBe('camera');
-    expect(pageTab(3)).toBe('profile');
+    expect(pageTab(1)).toBe('camera');
+    expect(pageTab(2)).toBe('profile');
   });
 });
 
 describe('tabPage', () => {
   it('finds the swipe page for every tab, Messages included', () => {
     expect(tabPage('messages')).toBe(0);
-    expect(tabPage('feed')).toBe(1);
-    expect(tabPage('camera')).toBe(2);
-    expect(tabPage('profile')).toBe(3);
+    expect(tabPage('camera')).toBe(1);
+    expect(tabPage('profile')).toBe(2);
   });
 });
 
@@ -140,22 +138,12 @@ describe('movesPages', () => {
   });
 });
 
-describe('tabIcons — a locked feed shows a padlock on its tab', () => {
-  const feed = NATIVE_TABS.find((t) => t.key === 'feed')!;
+// Owner, 2026-10-08: the feed lives behind the camera (one combined screen), so there is no Feed
+// tab to padlock; the Camera tab keeps its own icons whatever the feed's state.
+describe('tabIcons — no tab changes with the feed lock', () => {
   const camera = NATIVE_TABS.find((t) => t.key === 'camera')!;
-
-  it('the Feed tab is a padlock while the feed is locked, and keeps its title', () => {
-    expect(tabIcons(feed, true)).toEqual({ icon: 'lock', selectedIcon: 'lock.fill' });
-  });
-
-  it('back to its own icon when the feed opens', () => {
-    expect(tabIcons(feed, false)).toEqual({
-      icon: 'text.alignleft',
-      selectedIcon: 'text.alignleft',
-    });
-  });
-
-  it('other tabs never change', () => {
+  it('the Camera tab keeps its icons while the feed is locked', () => {
     expect(tabIcons(camera, true)).toEqual({ icon: 'camera', selectedIcon: 'camera.fill' });
+    expect(tabIcons(camera, false)).toEqual({ icon: 'camera', selectedIcon: 'camera.fill' });
   });
 });

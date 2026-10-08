@@ -17,7 +17,7 @@ export type RailGeometry = {
 
 export type Span = { top: number; bottom: number };
 
-export type RailTab = 'camera' | 'feed' | 'messages' | 'profile';
+export type RailTab = 'camera' | 'messages' | 'profile';
 
 /**
  * Whether the rail is on screen. It is seen on the Camera only (owner, 2026-10-02); Feed, Profile

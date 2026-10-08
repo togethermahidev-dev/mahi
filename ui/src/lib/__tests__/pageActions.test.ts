@@ -4,16 +4,9 @@ import { pageActions, pageForAction, pageTitle } from '../pageActions';
 // left by a sideways swipe. VoiceOver and Switch Control users get a named action for each page.
 describe('page actions for screen readers', () => {
   it('offers every other page, in the swipe order', () => {
-    expect(pageActions('feed').map((a) => a.label)).toEqual([
-      'Go to Messages',
-      'Go to Camera',
-      'Go to Profile',
-    ]);
-    expect(pageActions('camera').map((a) => a.label)).toEqual([
-      'Go to Messages',
-      'Go to Feed',
-      'Go to Profile',
-    ]);
+    // The feed lives behind the camera (owner, 2026-10-08): three pages, no Feed page.
+    expect(pageActions('camera').map((a) => a.label)).toEqual(['Go to Messages', 'Go to Profile']);
+    expect(pageActions('profile').map((a) => a.label)).toEqual(['Go to Messages', 'Go to Camera']);
   });
 
   it('never offers the page you are on', () => {
@@ -23,13 +16,12 @@ describe('page actions for screen readers', () => {
   it('turns an action back into its page', () => {
     expect(pageActions('profile').map((a) => pageForAction(a.name))).toEqual([
       'messages',
-      'feed',
       'camera',
     ]);
   });
 
   it('names the page it arrived on, for the screen reader to say', () => {
-    expect(pageTitle('feed')).toBe('Feed');
+    expect(pageTitle('camera')).toBe('Camera');
     expect(pageTitle('messages')).toBe('Messages');
   });
 

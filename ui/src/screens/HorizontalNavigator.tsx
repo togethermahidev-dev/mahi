@@ -22,8 +22,8 @@ import { BlurTargetView } from 'expo-blur';
 import { haptic } from '@/lib/haptics';
 import { usePageMorphStyle } from '@/components/MorphTransition';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import CameraScreen, { CAMERA_CONTROLS_TOP } from '@/screens/CameraScreen';
-import FeedScreen from '@/screens/FeedScreen';
+import { CAMERA_CONTROLS_TOP } from '@/screens/CameraScreen';
+import CameraFeedPage from '@/screens/CameraFeedPage';
 import ProfileScreen from '@/screens/ProfileScreen';
 import MessagesScreen from '@/screens/MessagesScreen';
 import NotificationsScreen from '@/screens/NotificationsScreen';
@@ -55,7 +55,6 @@ import { COLORS, LAYER, LAYOUT, MOTION, SIZE, SPRING } from '@/constants/tokens'
 // Profile. Sideways only — no up/down swiping. Camera remains the entry page.
 const PAGE_COUNT = SWIPE_PAGES.length;
 const CAMERA = tabPage('camera');
-const FEED = tabPage('feed');
 const PROFILE = tabPage('profile');
 const MESSAGES = tabPage('messages');
 const INITIAL_PAGE = tabPage(INITIAL_TAB);
@@ -179,7 +178,6 @@ export default function HorizontalNavigator({
   const reduceMotion = useReducedMotion();
   const morphStyles = {
     messages: usePageMorphStyle(pageMorph, entering, MESSAGES),
-    feed: usePageMorphStyle(pageMorph, entering, FEED),
     camera: usePageMorphStyle(pageMorph, entering, CAMERA),
     profile: usePageMorphStyle(pageMorph, entering, PROFILE),
   };
@@ -214,7 +212,7 @@ export default function HorizontalNavigator({
     setIndex(next);
     indexSV.value = next;
     haptic('tick');
-    if (next !== FEED) headerAnim.setValue(0);
+    if (next !== CAMERA) headerAnim.setValue(0);
   };
 
   const navigate = (next: number, how: 'slide' | 'morph' = 'slide') => {
@@ -462,63 +460,22 @@ export default function HorizontalNavigator({
                 <MessagesScreen onBack={() => navigate(CAMERA)} listGesture={messagesList} />
               </Animated.View>
             </DockRoom>
-            {/* Feed — its header slides away as the list scrolls down. */}
-            <DockRoom room={dockRoom}>
-              <Animated.View
-                style={[
-                  styles.page,
-                  morphStyles.feed,
-                  pageStyle,
-                  { backgroundColor: dark ? COLORS.bgDark : COLORS.white },
-                ]}
-                accessibilityActions={pageA11y('feed')}
-                onAccessibilityAction={onPageAction}
-              >
-                <FeedScreen
-                  onGoToCamera={() => navigate(CAMERA, 'morph')}
-                  onFindFriends={() => setSearchVisible(true)}
-                  headerAnim={headerAnim}
-                  onOverlayChange={setFeedOverlay}
-                  listGesture={feedList}
-                  isActive={index === FEED}
-                />
-                <RNAnimated.View
-                  pointerEvents="box-none"
-                  style={[
-                    styles.header,
-                    {
-                      transform: [
-                        {
-                          translateY: headerAnim.interpolate({
-                            inputRange: [0, headerH],
-                            outputRange: [0, -headerH],
-                            extrapolate: 'clamp',
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  {header(false)}
-                </RNAnimated.View>
-              </Animated.View>
-            </DockRoom>
-
-            {/* Camera — the entry page, always dark. */}
+            {/* Camera — the entry page, always dark — with the feed behind it (one screen). */}
             <Animated.View
               style={[styles.page, morphStyles.camera, pageStyle, { backgroundColor: COLORS.ink }]}
               accessibilityActions={pageA11y('camera')}
               onAccessibilityAction={onPageAction}
             >
-              <CameraScreen
-                onComposingChange={handleComposingChange}
-                onSeeFeed={() => navigate(FEED, 'morph')}
+              <CameraFeedPage
+                active={index === CAMERA}
+                header={header}
+                headerAnim={headerAnim}
+                feedList={feedList}
                 onFindFriends={() => setSearchVisible(true)}
                 onOpenProfile={setProfileUserId}
+                onComposingChange={handleComposingChange}
+                onOverlayChange={setFeedOverlay}
               />
-              <View pointerEvents="box-none" style={styles.header}>
-                {header(true)}
-              </View>
             </Animated.View>
 
             {/* Profile — the last page, always mounted; `isActive` re-syncs its posts when it comes into view. */}

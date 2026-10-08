@@ -21,7 +21,6 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useChromeFade } from '@/hooks/useChrome';
 import {
   CameraIcon,
-  FeedIcon,
   MessagesIcon,
   ProfileIcon,
   type IconProps,
@@ -58,12 +57,11 @@ export type { RailTab };
 
 const ICONS: Record<RailTab, React.ComponentType<IconProps>> = {
   camera: CameraIcon,
-  feed: FeedIcon,
   profile: ProfileIcon,
   messages: MessagesIcon,
 };
 
-// In the swipe order (Messages, Feed, Camera, Profile), like the pages and the phone's tab bar.
+// In the swipe order (Messages, Camera, Profile), like the pages and the phone's tab bar.
 const TABS = NATIVE_TABS.map((t) => ({ key: t.key, label: t.title, Icon: ICONS[t.key] }));
 
 // ─── Selector motion (the rail's morph) ───────────────────────────────────────

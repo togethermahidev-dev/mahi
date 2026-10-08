@@ -76,7 +76,7 @@ describe('rail selector', () => {
       expect(railShows(onCamera)).toBe(true);
     });
     it('is hidden on Feed, Messages and Profile', () => {
-      expect(railShows({ ...onCamera, tab: 'feed' })).toBe(false);
+      expect(railShows({ ...onCamera, tab: 'profile' })).toBe(false);
       expect(railShows({ ...onCamera, tab: 'messages' })).toBe(false);
       expect(railShows({ ...onCamera, tab: 'profile' })).toBe(false);
     });
@@ -90,7 +90,7 @@ describe('rail selector', () => {
   });
 
   describe('dockShows (the glass bar along the bottom of Feed, Profile and Messages)', () => {
-    const onFeed = { on: true, tab: 'feed', overlay: false, covered: false } as const;
+    const onFeed = { on: true, tab: 'profile', overlay: false, covered: false } as const;
 
     it('shows on Feed, Profile and Messages, so each page has a tap to every other', () => {
       expect(dockShows(onFeed)).toBe(true);

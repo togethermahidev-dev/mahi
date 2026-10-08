@@ -9,13 +9,14 @@ import type { AndroidSymbol } from 'expo-symbols';
 import type { SFSymbolName } from '@/lib/sfSymbols';
 import { FONTS } from '@/constants/fonts';
 
-export type TabKey = 'camera' | 'feed' | 'messages' | 'profile';
+export type TabKey = 'camera' | 'messages' | 'profile';
 
 /** Camera stays the app's landing page even though Messages leads the navigation order. */
 export const INITIAL_TAB: TabKey = 'camera';
 
 /**
- * The four tabs in the swipe order, Messages first and Profile last (owner, 2026-10-07).
+ * The three tabs in the swipe order, Messages first and Profile last (owner, 2026-10-07). The feed
+ * lives behind the camera on one combined screen (owner, 2026-10-08), so there is no Feed tab.
  * iPhone: Apple's icons, plain, then filled when selected. Android: Google's Material icons
  * (Android marks the selected tab with its own pill).
  */
@@ -32,14 +33,6 @@ export const NATIVE_TABS: readonly {
     icon: 'bubble.left',
     selectedIcon: 'bubble.left.fill',
     androidIcon: 'chat_bubble',
-  },
-  // Same three lines as the app's own Feed drawing; it has no filled version.
-  {
-    key: 'feed',
-    title: 'Feed',
-    icon: 'text.alignleft',
-    selectedIcon: 'text.alignleft',
-    androidIcon: 'notes',
   },
   {
     key: 'camera',
@@ -65,7 +58,8 @@ export function tabIcons(
   tab: (typeof NATIVE_TABS)[number],
   feedLocked: boolean
 ): { icon: SFSymbolName; selectedIcon: SFSymbolName } {
-  if (tab.key === 'feed' && feedLocked) return { icon: 'lock', selectedIcon: 'lock.fill' };
+  // No tab changes with the lock any more: the feed is behind the camera, with its own padlock.
+  void feedLocked;
   return { icon: tab.icon, selectedIcon: tab.selectedIcon };
 }
 
@@ -112,8 +106,8 @@ export function cameraLift(room: number, resting: number, gap: number): number {
 }
 
 /**
- * The swipe pages, left to right, in the tab bar's order (owner, 2026-10-07): Messages ⇄ Feed ⇄
- * Camera ⇄ Profile, sideways only — no up/down swiping.
+ * The swipe pages, left to right, in the tab bar's order: Messages ⇄ Camera (with the feed behind
+ * it) ⇄ Profile, sideways only.
  */
 export const SWIPE_PAGES: readonly TabKey[] = NATIVE_TABS.map((t) => t.key);
 

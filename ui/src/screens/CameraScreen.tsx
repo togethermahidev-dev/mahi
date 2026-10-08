@@ -1628,6 +1628,8 @@ interface CameraScreenProps {
   onComposingChange?: (open: boolean) => void;
   /** Go to the Feed page (the caught-up card's "See your feed", shown while the feed is open). */
   onSeeFeed?: () => void;
+  /** A post has just gone up (the feed shows it). */
+  onPosted?: () => void;
   /** Open people search (the caught-up card's "Find friends", shown while the feed is locked). */
   onFindFriends?: () => void;
   /** Open someone's profile (the answer toast's "Cheer @sam on", for the friend whose tag it answered). */
@@ -1637,6 +1639,7 @@ interface CameraScreenProps {
 export default function CameraScreen({
   onComposingChange,
   onSeeFeed,
+  onPosted,
   onFindFriends,
   onOpenProfile,
 }: CameraScreenProps = {}): React.JSX.Element {
@@ -2656,6 +2659,7 @@ export default function CameraScreen({
         return;
       }
       // Every other post says it worked: it opens the feed and says who it tagged.
+      onPosted?.();
       useToastStore.getState().show(
         postedToast({
           answered: result.answered.map((a) => a.username),

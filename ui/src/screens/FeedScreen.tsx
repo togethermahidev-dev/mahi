@@ -118,6 +118,8 @@ interface FeedScreenProps {
   listGesture?: NativeGesture;
   /** The Feed is the screen showing (video posts play only then). */
   isActive?: boolean;
+  /** Extra room at the top, under the header: the camera's small card sits there. */
+  topInset?: number;
 }
 
 export default function FeedScreen({
@@ -127,6 +129,7 @@ export default function FeedScreen({
   onOverlayChange,
   listGesture,
   isActive = true,
+  topInset = 0,
 }: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
   const headerH = appHeaderHeight(useSafeAreaInsets().top);
@@ -360,7 +363,7 @@ export default function FeedScreen({
           )}
           ItemSeparatorComponent={RowGap}
           // The list starts under the floating header (and the lock pill, when there is one).
-          contentContainerStyle={{ paddingTop: posts.length ? headerH + topSpace : 0 }}
+          contentContainerStyle={{ paddingTop: posts.length ? headerH + topInset + topSpace : 0 }}
           onEndReached={hasMore ? loadMore : undefined}
           onEndReachedThreshold={0.4}
           ListFooterComponent={
@@ -471,7 +474,7 @@ export default function FeedScreen({
             styles.lockBanner,
             locked && posts.length > 0 && styles.lockBannerCentred,
             {
-              top: headerH,
+              top: headerH + topInset,
               // Open: the timer slides away with the header once the first post scrolls off.
               // Locked: the padlock line stays put while the blurred rows scroll behind it
               // (owner, 2026-10-08).
