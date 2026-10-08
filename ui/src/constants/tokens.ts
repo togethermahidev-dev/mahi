@@ -570,8 +570,9 @@ export const MOTION = {
   morphContentAt: 0.72,
   /** The camera and the feed on one screen (owner, 2026-10-08): the camera slides up, leaving a
    *  strip this share of the page tall under the header (a quarter, when the feed is locked);
-   *  a swipe past this share of the way, or a flick faster than this (pt/ms), settles. */
-  cameraFeed: { stripShare: 0.2, openAt: 0.15, flick: 0.5, lockedShare: 0.25 },
+   *  a swipe past this share of the way, or a flick faster than this (pt/ms), settles; the first
+   *  swipe stops at the peek (this share of the way), the next goes the rest. */
+  cameraFeed: { stripShare: 0.2, openAt: 0.15, flick: 0.5, lockedShare: 0.25, peekShare: 0.3 },
   /** The pixel athlete's frame rate (ms per frame), and how many beats each exercise gets
    *  before the next one (runner → weightlifter → jumping jacks → push-ups). */
   pixelFrameMs: 400,
@@ -610,6 +611,8 @@ export const MOTION = {
     /** The lit leading edge is strongest early, then settles to this quieter strength. */
     edgePeak: 0.62,
     edgeRest: 0.24,
+    /** The first pull stops at this share of the way (a peek); the next goes the rest. */
+    peekShare: 0.3,
     /** The pill's "?", arrow and camera icon grow in from this scale as they morph. */
     glyphFromScale: 0.6,
     /** The standalone arrow gives two short downward jumps instead of showing an instruction pill. */

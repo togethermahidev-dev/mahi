@@ -25,7 +25,8 @@ import { PressScale } from '@/components/Motion';
 import { CameraIcon, FeedIcon, LockIcon } from '@/components/ScreenIcons';
 import { usePageSize } from '@/hooks/useChrome';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { cameraStrip, feedOpensOnRelease, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
+import { cameraStrip, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
+import { detentProgress, releaseDetent, type Detent } from '@/lib/detent';
 import { lockPill } from '@/lib/feedLock';
 import { useFeedStore } from '@/store';
 import { useOpenTags } from '@/hooks/useOpenTags';
@@ -82,24 +83,29 @@ export default function CameraFeedPage({
   const locked = useFeedStore((s) => s.loaded && s.locked);
   const gap = lockedGap(page.height);
 
-  // 0 = camera full screen, 1 = feed showing. `feedShown` is where it last settled.
+  // 0 = camera full screen, 1 = feed fully showing; the first swipe stops at the peek (owner,
+  // 2026-10-08: nudge first, then a tap or a second swipe goes the rest). A locked feed has one
+  // stage: its quarter lift is the whole way.
   const progress = useSharedValue(0);
   const startProgress = useSharedValue(0);
-  const [feedShown, setFeedShown] = useState(false);
+  const [detent, setDetent] = useState<Detent>('closed');
+  const feedShown = detent !== 'closed';
+  const feedOpen = detent === 'open';
+  const twoStage = !locked;
+  const peek = MOTION.cameraFeed.peekShare;
   // A third of the screen moves it all the way: quick to follow the finger (owner, 2026-10-08).
   const travel = page.height / 3;
 
   const settle = useCallback(
-    (open: boolean) => {
-      progress.value = withSpring(open ? 1 : 0, SPRING.pullBack, (finished) => {
-        if (finished) scheduleOnRN(setFeedShown, open);
-      });
+    (target: Detent) => {
+      setDetent(target);
+      progress.value = withSpring(detentProgress(target, peek), SPRING.pullBack);
       haptic('tick');
     },
-    [progress]
+    [progress, peek]
   );
-  const openFeed = useCallback(() => settle(true), [settle]);
-  const closeFeed = useCallback(() => settle(false), [settle]);
+  const openFeed = useCallback(() => settle('open'), [settle]);
+  const closeFeed = useCallback(() => settle('closed'), [settle]);
   // Leaving the page with the feed up: the camera is back when you return.
   useEffect(() => {
     if (!active && feedShown) closeFeed();
@@ -109,17 +115,21 @@ export default function CameraFeedPage({
   const lift = locked ? gap : strip.lift;
   const cardRadius = RADIUS.r24;
 
-  // Swipe the full camera up (it shrinks towards its card as the finger goes), or the small card
-  // down. Decided by direction and handed off explicitly, like the camera's own pull, so a
-  // sideways drag is always the page swipe to Messages / Profile (feedSwipe, cameraFeed.ts).
+  // Swipe the full camera up, or (once it has moved) the camera either way. Decided by direction
+  // and handed off explicitly, like the camera's own pull, so a sideways drag is always the page
+  // swipe to Messages / Profile (feedSwipe, cameraFeed.ts). Where it settles: releaseDetent.
   const touchX = useSharedValue(0);
   const touchY = useSharedValue(0);
   const decided = useSharedValue(false);
   const insetTop = insets.top;
   const makeSwipe = useCallback(
-    (open: boolean) =>
-      Gesture.Pan()
-        .enabled(open === feedShown)
+    (onCamera: boolean) => {
+      // Plain values for the worklets: where it starts, and which ways it may go.
+      const start: Detent = detent;
+      const open = start === 'open';
+      const either = start === 'peek';
+      return Gesture.Pan()
+        .enabled(onCamera ? start === 'closed' : start !== 'closed')
         .manualActivation(true)
         .onTouchesDown((e, manager) => {
           'worklet';
@@ -146,6 +156,7 @@ export default function CameraFeedPage({
             startY: touchY.value,
             insetTop,
             open,
+            either,
             dx: t.absoluteX - touchX.value,
             dy: t.absoluteY - touchY.value,
           });
@@ -164,18 +175,33 @@ export default function CameraFeedPage({
         })
         .onEnd((e) => {
           'worklet';
-          const settled = feedOpensOnRelease({
+          const target = releaseDetent({
+            start,
             progress: progress.value,
-            velocity: e.velocityY / 1000,
-            travel,
-            startedOpen: open,
+            // Towards open is up: a negative vertical velocity.
+            velocity: -e.velocityY / 1000,
+            peek,
+            twoStage,
           });
-          scheduleOnRN(settle, settled);
-        }),
-    [feedShown, insetTop, touchX, touchY, decided, progress, startProgress, travel, settle]
+          scheduleOnRN(settle, target);
+        });
+    },
+    [
+      detent,
+      insetTop,
+      touchX,
+      touchY,
+      decided,
+      progress,
+      startProgress,
+      travel,
+      peek,
+      twoStage,
+      settle,
+    ]
   );
-  const upSwipe = useMemo(() => makeSwipe(false), [makeSwipe]);
-  const cardSwipe = useMemo(() => makeSwipe(true), [makeSwipe]);
+  const upSwipe = useMemo(() => makeSwipe(true), [makeSwipe]);
+  const cardSwipe = useMemo(() => makeSwipe(false), [makeSwipe]);
 
   // One move for both: the camera slides up by `lift` (a quarter when locked, to the strip when
   // open), rounding its corners as it goes.
@@ -199,10 +225,10 @@ export default function CameraFeedPage({
   // The pill beside the bell: the camera's "?" / arrow becomes a camera icon at the same spot
   // while the feed (or the locked gap) is up; tap it to bring the camera back (owner, 2026-10-08).
   const fromScale = MOTION.pull.glyphFromScale;
-  const cameraPillStyle = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [{ scale: fromScale + (1 - fromScale) * progress.value }],
-  }));
+  const cameraPillStyle = useAnimatedStyle(() => {
+    const p = Math.min(1, progress.value / peek);
+    return { opacity: p, transform: [{ scale: fromScale + (1 - fromScale) * p }] };
+  });
   const onDarkCamera = !feedShown || locked;
   const pillBg = onDarkCamera ? COLORS.offWhite : dark ? COLORS.offWhite : COLORS.offBlack;
   const pillText = onDarkCamera ? COLORS.offBlack : dark ? COLORS.offBlack : COLORS.offWhite;
@@ -212,9 +238,9 @@ export default function CameraFeedPage({
       {/* The feed, behind: its rows start under the camera strip. */}
       <Reanimated.View
         style={[styles.layer, { backgroundColor: dark ? COLORS.bgDark : COLORS.white }, feedStyle]}
-        pointerEvents={feedShown && !locked ? 'auto' : 'none'}
-        accessibilityElementsHidden={!feedShown || locked}
-        importantForAccessibility={feedShown && !locked ? 'auto' : 'no-hide-descendants'}
+        pointerEvents={feedOpen && !locked ? 'auto' : 'none'}
+        accessibilityElementsHidden={!feedOpen || locked}
+        importantForAccessibility={feedOpen && !locked ? 'auto' : 'no-hide-descendants'}
       >
         <FeedScreen
           onGoToCamera={closeFeed}
@@ -222,7 +248,7 @@ export default function CameraFeedPage({
           headerAnim={headerAnim}
           onOverlayChange={onOverlayChange}
           listGesture={feedList}
-          isActive={active && feedShown && !locked}
+          isActive={active && feedOpen && !locked}
           topInset={rowsTop - headerH}
         />
       </Reanimated.View>
@@ -296,12 +322,19 @@ export default function CameraFeedPage({
               styles.cardTouch,
               locked
                 ? { left: 0, top: 0, width: page.width, height: page.height - gap }
-                : { left: 0, top: headerH, width: page.width, height: strip.bottom - headerH },
+                : {
+                    left: 0,
+                    top: headerH,
+                    width: page.width,
+                    // At the peek the camera still fills most of the screen; open, it's the strip.
+                    height: feedOpen ? strip.bottom - headerH : page.height - peek * lift - headerH,
+                  },
             ]}
-            onPress={closeFeed}
+            // At the peek, a tap goes the rest of the way; fully open, it brings the camera back.
+            onPress={detent === 'peek' ? openFeed : closeFeed}
             accessibilityRole="button"
-            accessibilityLabel="Back to the camera"
-            accessibilityHint="Or swipe it down"
+            accessibilityLabel={detent === 'peek' ? 'Show your feed' : 'Back to the camera'}
+            accessibilityHint="Or swipe it"
           >
             <View />
           </PressScale>

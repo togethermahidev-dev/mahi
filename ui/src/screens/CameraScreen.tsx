@@ -1969,8 +1969,10 @@ export default function CameraScreen({
   // drag its gesture along, which the UI thread cannot copy (13.19–13.20 crashed on launch).
   const pullOffset = pull.offset;
   const pullOpen = pull.openOffset;
+  // Gone by the peek (the first pull's stop).
+  const noticeEnd = pullOpen * MOTION.pull.peekShare;
   const noticeStyle = useAnimatedStyle(() => ({
-    opacity: pullOpen > 0 ? 1 - Math.min(1, Math.max(0, pullOffset.value / pullOpen)) * 2 : 1,
+    opacity: noticeEnd > 0 ? 1 - Math.min(1, Math.max(0, pullOffset.value / noticeEnd)) : 1,
   }));
   const cardX = pull.collapsed.x;
   const cardY = pull.collapsed.y;

@@ -26,15 +26,10 @@ import Reanimated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Path } from 'react-native-svg';
 import { haptic } from '@/lib/haptics';
-import {
-  drawerOffset,
-  drawerShouldOpen,
-  drawerShouldSettleOpen,
-  pullParallax,
-  verticalPull,
-} from '@/lib/cameraPull';
+import { drawerOffset, drawerShouldOpen, pullParallax, verticalPull } from '@/lib/cameraPull';
 import { loadSwiftUI } from '@/lib/expoUiModule';
 import { useCardMorphStyle } from '@/components/MorphTransition';
+import { detentProgress, releaseDetent, type Detent } from '@/lib/detent';
 import {
   ALPHA,
   COLORS,
@@ -74,7 +69,11 @@ export function useCameraPull(
   const startX = useSharedValue(0);
   const decided = useSharedValue(false);
   const felt = useSharedValue(false);
-  const [expanded, setExpanded] = useState(false);
+  // Closed, a short peek, or open (owner, 2026-10-08: nudge first, then a tap or a second pull
+  // goes the rest). The roadmap's buttons work once it's open.
+  const [detent, setDetent] = useState<Detent>('closed');
+  const expanded = detent === 'open';
+  const peek = MOTION.pull.peekShare;
 
   // Leaving the waiting state mid-pull puts everything back. The camera itself never tugs on
   // its own (owner, 2026-10-08: no shake when Mahi opens); the arrow's hops are the hint.
@@ -83,17 +82,22 @@ export function useCameraPull(
       offset.value = 0;
       // The drawer may disappear because a tag arrived while it was open.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setExpanded(false);
+      setDetent('closed');
     }
   }, [enabled, offset]);
 
+  // The pill (or a tap on the peek): closed or peeking → all the way open; open → closed.
   const toggle = useCallback(() => {
-    const next = !expanded;
-    setExpanded(next);
+    const next: Detent = detent === 'open' ? 'closed' : 'open';
+    setDetent(next);
     // SharedValues are deliberately mutable on the UI thread.
     // eslint-disable-next-line react-hooks/immutability
-    offset.value = withSpring(next ? openOffset : 0, SPRING.pullBack);
-  }, [expanded, offset, openOffset]);
+    offset.value = withSpring(detentProgress(next, peek) * openOffset, SPRING.pullBack);
+  }, [detent, offset, openOffset, peek]);
+
+  // Plain values for the worklets: where this drag starts.
+  const start: Detent = detent;
+  const moved = detent !== 'closed';
 
   const gesture = Gesture.Pan()
     .enabled(enabled)
@@ -123,7 +127,7 @@ export function useCameraPull(
       const dx = t.absoluteX - startX.value;
       const dy = t.absoluteY - startY.value;
       const decision =
-        expanded && dy < -SWIPE.slop && Math.abs(dy) > Math.abs(dx)
+        moved && dy < -SWIPE.slop && Math.abs(dy) > Math.abs(dx)
           ? 'activate'
           : verticalPull({ startY: startY.value, dx, dy, insetTop });
       if (decision === 'wait') return;
@@ -150,16 +154,17 @@ export function useCameraPull(
     })
     .onEnd((e) => {
       'worklet';
-      const open = drawerShouldSettleOpen(
-        offset.value,
-        openOffset,
-        startOffset.value > 0,
-        e.velocityY / 1000
-      );
-      // eslint-disable-next-line react-hooks/immutability
-      offset.value = withSpring(open ? openOffset : 0, SPRING.pullBack, (finished) => {
-        if (finished) scheduleOnRN(setExpanded, open);
+      const target = releaseDetent({
+        start,
+        progress: openOffset > 0 ? offset.value / openOffset : 0,
+        // Towards open is down: a positive vertical velocity.
+        velocity: e.velocityY / 1000,
+        peek,
+        twoStage: true,
       });
+      // eslint-disable-next-line react-hooks/immutability
+      offset.value = withSpring(detentProgress(target, peek) * openOffset, SPRING.pullBack);
+      scheduleOnRN(setDetent, target);
     });
 
   const cardStyle = useCardMorphStyle(
@@ -314,8 +319,10 @@ export function PullHandle({
   const fromScale = MOTION.pull.glyphFromScale;
   // A question mark at rest that morphs into the up-arrow as the camera nudges down (owner,
   // 2026-10-08): one fades and shrinks as the other grows and turns in.
+  // The morph is complete by the peek, so the peek shows a clean arrow.
+  const glyphEnd = openOffset * MOTION.pull.peekShare;
   const chevronStyle = useAnimatedStyle(() => {
-    const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
+    const progress = glyphEnd > 0 ? Math.min(1, offset.value / glyphEnd) : 0;
     return {
       opacity: progress,
       transform: [
@@ -325,7 +332,7 @@ export function PullHandle({
     };
   });
   const questionStyle = useAnimatedStyle(() => {
-    const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
+    const progress = glyphEnd > 0 ? Math.min(1, offset.value / glyphEnd) : 0;
     return { opacity: 1 - progress, transform: [{ scale: 1 - (1 - fromScale) * progress }] };
   });
 
