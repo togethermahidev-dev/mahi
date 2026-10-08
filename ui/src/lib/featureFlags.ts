@@ -33,7 +33,7 @@ export const FEATURE_FLAGS = [
   // Build 13 native features — kill switches, on for everyone (owner, 2026-10-07). Off = the
   // feature hides and the app behaves as before it.
   'contacts-finder', // Find friends in your contacts
-  'live-activity', // a mate's tag on the lock screen, Dynamic Island and home-screen widget
+  'live-activity', // (default OFF, not released yet) a mate's tag on the lock screen, Dynamic Island and home-screen widget
   'emoji-keyboard', // the emoji button and panel (search, suggestions) in a conversation
   'message-reactions', // hold a message to react, reaction badges, double tap for a heart
   'camera-pull-down', // the waiting camera gives a little when pulled down, with its handle and tip
@@ -44,18 +44,18 @@ export const FEATURE_FLAGS = [
   'camera-tab-badge', // a number on the Camera tab while a tag waits
   'miss-roll-down', // after a miss the counter rolls down to 0 before the miss moment
   'profile-points-card', // the profile's bar fills, numbers roll, and the last three mates answered
-  'widget-tagger-photo', // the tagger's photo on the widget and Live Activity
+  'widget-tagger-photo', // (default OFF, not released yet) the tagger's photo on the widget and Live Activity
   'app-clip', // the app takes the invite the App Clip handed over (off: drops it unread); the clip itself is off via App Store Connect
 
   'share-to-mahi', // share 1–2 photos from Photos to Mahi: they open as the post's shots (off: the share is ignored and deleted)
-  'control-post-workout', // Control Centre / lock screen "Post a workout" opens the camera (off: the control reads "Open Mahi" and just opens Mahi)
-  'spotlight', // Spotlight offers Post a workout, Your invites, Find friends in your contacts (off: the items are removed from the phone's index)
-  'siri-shortcuts', // "Post a workout in Mahi", "Open my invites in Mahi", "Find friends on Mahi" (off: they just open Mahi)
+  'control-post-workout', // (default OFF, not released yet) Control Centre / lock screen "Post a workout" opens the camera (off: the control reads "Open Mahi" and just opens Mahi)
+  'spotlight', // (default OFF, not released yet) Spotlight offers Post a workout, Your invites, Find friends in your contacts (off: the items are removed from the phone's index)
+  'siri-shortcuts', // (default OFF, not released yet) "Post a workout in Mahi", "Open my invites in Mahi", "Find friends on Mahi" (off: they just open Mahi)
   'shutter-sound', // Apple's shutter sound at the press, in step with the haptic; silent switch respected (off: today's camera sound)
-  'widget-background-refresh', // iOS wakes Mahi every 15 min or more to refresh the widget and Live Activity (off: the task is unregistered)
+  'widget-background-refresh', // (default OFF, not released yet) iOS wakes Mahi every 15 min or more to refresh the widget and Live Activity (off: the task is unregistered)
 
   // Sign-in
-  'auth-apple-signin', // Sign in with Apple on the welcome screen; build 13+ iPhones only (default ON, kill switch)
+  'auth-apple-signin', // Sign in with Apple on the welcome screen; build 13+ iPhones only (default OFF, not released yet)
   'auth-google-signin', // placeholder pill with nothing behind it yet
 ] as const;
 
@@ -76,6 +76,9 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * stays exactly as today.
  * `auth-google-signin`: the Google button is a placeholder that does nothing yet, so it must
  * never show on the first screen while flags load, nor on a build with no PostHog key.
+ * Sign in with Apple, the lock-screen tracker and widget (with its photo and background refresh),
+ * the Control Centre button, Siri and Spotlight: not released yet (owner, 2026-10-08), so none of
+ * them shows for a moment on cold start.
  */
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'push-core',
@@ -86,6 +89,13 @@ export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'purchases',
   'tag-slots',
   'auth-google-signin',
+  'auth-apple-signin',
+  'live-activity',
+  'widget-tagger-photo',
+  'widget-background-refresh',
+  'control-post-workout',
+  'siri-shortcuts',
+  'spotlight',
 ];
 
 /** Whether a flag reads as on before PostHog has answered (true for all but DEFAULT_OFF_FLAGS). */

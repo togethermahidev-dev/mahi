@@ -86,6 +86,13 @@ describe('default-off flags (video-posts)', () => {
       'purchases',
       'tag-slots',
       'auth-google-signin',
+      'auth-apple-signin',
+      'live-activity',
+      'widget-tagger-photo',
+      'widget-background-refresh',
+      'control-post-workout',
+      'siri-shortcuts',
+      'spotlight',
     ]);
   });
 
@@ -139,21 +146,14 @@ describe('default-off flags (video-posts)', () => {
 
   it('flagDefaultOn tells the two kinds apart', () => {
     expect(flagDefaultOn('video-posts')).toBe(false);
-    expect(flagDefaultOn('auth-apple-signin')).toBe(true);
+    expect(flagDefaultOn('shutter-sound')).toBe(true);
   });
 });
 
 // Build 13's native extras each have a kill switch, on for everyone (owner, 2026-10-07): they read
 // as on while flags load, and only an explicit false in PostHog turns one off.
 describe('build 13 native kill switches', () => {
-  const BUILD_13 = [
-    'share-to-mahi',
-    'control-post-workout',
-    'spotlight',
-    'siri-shortcuts',
-    'shutter-sound',
-    'widget-background-refresh',
-  ];
+  const BUILD_13 = ['share-to-mahi', 'shutter-sound'];
 
   it('are in the registry and on by default', () => {
     for (const key of BUILD_13) {
@@ -188,12 +188,31 @@ describe('build 13 kill switches', () => {
     'camera-tab-badge',
     'miss-roll-down',
     'profile-points-card',
-    'widget-tagger-photo',
   ];
   it('lists each one, on unless PostHog says off', () => {
     for (const key of KILL_SWITCHES) {
       expect(FEATURE_FLAGS as readonly string[]).toContain(key);
       expect(flagDefaultOn(key as FeatureFlag)).toBe(true);
+    }
+  });
+});
+
+// Owner, 2026-10-08: not released yet. Off until PostHog says true — while flags load and with no
+// PostHog key too — so none of them shows for a moment on cold start.
+describe('build 13 features held back', () => {
+  const HELD_BACK = [
+    'auth-apple-signin',
+    'live-activity',
+    'widget-tagger-photo',
+    'widget-background-refresh',
+    'control-post-workout',
+    'siri-shortcuts',
+    'spotlight',
+  ];
+  it('each is in the registry and off by default', () => {
+    for (const key of HELD_BACK) {
+      expect(FEATURE_FLAGS as readonly string[]).toContain(key);
+      expect(flagDefaultOn(key as FeatureFlag)).toBe(false);
     }
   });
 });

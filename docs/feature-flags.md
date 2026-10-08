@@ -164,10 +164,10 @@ restore and RevenueCat's paywall. No screen uses it yet. Needs the RevenueCat na
 `EXPO_PUBLIC_REVENUECAT_IOS_KEY` in the lane. On a build without RevenueCat, or with no key, it reads as off
 and RevenueCat is never started.)
 
-**Sign in with Apple**: `auth-apple-signin` (default on in code; the owner's kill switch). Shows Apple's
+**Sign in with Apple**: `auth-apple-signin` (**default off** since 2026-10-08; not released yet, see below). Shows Apple's
 own button on the welcome screen on iPhones with build 13+ (the `expo-apple-authentication` native module)
 where Apple says sign-in works; off hides it. Builds 10–12, Android and the web never show it. In PostHog
-it is at 0% (checked 2026-10-07): set it to 100% when build 13 ships.
+it is off (2026-10-08) until the owner releases it.
 
 **Sign-in placeholder**: `auth-google-signin` (**default off** since 2026-10-07, so it never flashes up while flags load) — a pill on the welcome screen with no sign-in behind it
 yet; tapping it does nothing. At 0% in PostHog (checked 2026-10-07).
@@ -203,6 +203,14 @@ removal rule applies as usual: take the switch out of the code, then delete it i
 | `shutter-sound` | Apple's shutter sound on capture |
 | `widget-background-refresh` | The widget refreshing while Mahi is closed |
 | `auth-apple-signin` | Sign in with Apple (already existed) |
+
+**Held back, not released yet (owner, 2026-10-08).** Seven of these are **default off** in code and turned
+off in PostHog: `auth-apple-signin`, `live-activity`, `widget-tagger-photo`, `widget-background-refresh`,
+`control-post-workout`, `siri-shortcuts`, `spotlight`. They stay off while flags load and on a build with
+no PostHog key; only PostHog saying true turns one on. The iPhone side (Control Centre button, Siri) also
+reads a switch the app hasn't written yet as off. What a switch can't hide, because Apple lists it from the
+build itself: the Mahi widget in the widget gallery, the "Post a workout" button in the Control Centre
+gallery (it reads "Open Mahi"), and the Siri phrases in the Shortcuts app (each just opens Mahi).
 
 **Build 13 native extras — kill switches, on for everyone** (owner, 2026-10-07). Default on in code; each
 must be **created in PostHog at 100% before build 13 ships** (a missing key reads as off). Builds 10–12

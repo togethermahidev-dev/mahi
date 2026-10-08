@@ -14,9 +14,10 @@ enum MahiLinks {
   static let pendingLinkKey = "mahi.pendingLink"
   static let pendingLinkNotification = "com.mahi.app.pendingLink"
 
-  /// A switch the app wrote (`switch.<flag>`); on until the app has said otherwise.
+  /// A switch the app wrote (`switch.<flag>`); off until the app has said otherwise (owner, 2026-10-08:
+  /// the Control Centre button and Siri are not released yet).
   static func isOn(_ switchKey: String) -> Bool {
-    UserDefaults(suiteName: appGroup)?.object(forKey: switchKey) as? Bool ?? true
+    UserDefaults(suiteName: appGroup)?.object(forKey: switchKey) as? Bool ?? false
   }
 
   static func leave(_ link: String, switchKey: String) {
