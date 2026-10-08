@@ -1,4 +1,4 @@
--- Gaps found by the live Supabase check (20261008140000_security_hardening_live):
+-- Gaps found by the live Supabase check (20261008150000_security_hardening_live):
 -- * follows change only through set_following (and the definer functions); no direct writes;
 --   no follow notification across a block or from a banned person
 -- * avatar_url points only at your own folder of the avatars bucket

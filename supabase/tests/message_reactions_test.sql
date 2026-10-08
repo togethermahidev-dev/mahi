@@ -109,7 +109,7 @@ select throws_ok($$delete from public.message_reactions where user_id = pg_temp.
 reset role;
 select set_config('role', 'anon', true), set_config('request.jwt.claims', '{}', true);
 select throws_ok($$select public.react_to_message((select id from held_hi), '👍')$$,
-  '42501', null, 'signed out cannot react (not callable by anon since 20261008140000)');
+  '42501', null, 'signed out cannot react (not callable by anon since 20261008150000)');
 reset role;
 
 -- 5. One emoji, not a sentence.

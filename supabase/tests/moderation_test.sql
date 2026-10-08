@@ -46,7 +46,7 @@ select has_table('public', 'moderation_actions', 'every staff action is logged')
 select has_table('public', 'moderation_scans', 'the AI check has a queue');
 
 -- 1. Reporting, only through the report calls (the old direct insert closed in
---    20261008140000_security_hardening_live).
+--    20261008150000_security_hardening_live).
 select pg_temp.as_user('b');
 select throws_ok($$insert into public.user_reports (reporter_id, reported_user_id, reason)
                    values (pg_temp.uid('b'), pg_temp.uid('a'), 'spam')$$,

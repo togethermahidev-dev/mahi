@@ -62,7 +62,7 @@
 - An invite link opened by someone already signed in never claims by itself: a confirm sheet (Accept /
   Not now) comes first; Not now writes nothing (2026-10-08, `docs/security.md`).
 - Profile follow/unfollow writes go only through `set_following` (the app has no write rights on `follows`
-  from `20261008140000_security_hardening_live`); the store may update optimistically,
+  from `20261008150000_security_hardening_live`); the store may update optimistically,
   but must reconcile from the RPC's committed state. Friends/follow lists always load fresh server data
   and subscribe to follow changes while open; never cache them on-device.
 

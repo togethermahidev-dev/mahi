@@ -39,7 +39,7 @@ select throws_ok($$update public.profiles set id = '00000000-0000-0000-0000-0000
 
 select lives_ok($$update public.profiles set avatar_url = 'https://pzepodsppqtvptzmwxzs.supabase.co/storage/v1/object/public/avatars/00000000-0000-0000-0000-00000000c01a/avatar.jpg'
                   where id = auth.uid()$$,
-  'you can change your photo (an address in your own avatar folder, 20261008140000)');
+  'you can change your photo (an address in your own avatar folder, 20261008150000)');
 select lives_ok($$update public.profiles set timezone = 'America/New_York' where id = auth.uid()$$,
   'and your time zone');
 select lives_ok(

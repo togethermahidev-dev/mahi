@@ -19,7 +19,7 @@ select is(public.username_available('  Taken_Name '), false, 'case and spaces do
 select is(public.username_available('free_name'), true, 'an unused name is free');
 select is(public.username_available(''), false, 'an empty name is never free');
 select throws_ok($$select count(*) from public.profiles$$, '42501', null,
-  'signed out: profiles stay unreadable (no table rights since 20261008140000)');
+  'signed out: profiles stay unreadable (no table rights since 20261008150000)');
 reset role;
 
 select * from finish();

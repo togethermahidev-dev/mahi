@@ -15,7 +15,7 @@ index and bucket was checked against these files; nothing else was missing.
 Every later migration through `20261008130000_security_followups` is live on production
 (checked 2026-10-08). The historical "not pushed" paragraphs below describe rollout dependencies
 that have since landed unless they are explicitly listed under `supabase/deferred/`.
-**Not pushed yet (2026-10-08, live Supabase check):** `20261008140000_security_hardening_live` —
+**Not pushed yet (2026-10-08, live Supabase check):** `20261008150000_security_hardening_live` —
 follows change only through `set_following` (direct insert/delete rules and grants gone;
 `notify_on_follow` skips blocked pairs and banned followers); `profiles.avatar_url` must be this
 project's public avatars address in the person's own folder; avatar files listable only by their
@@ -24,7 +24,7 @@ no table rights in `public` and authenticated no truncate/references/trigger (al
 tables); reports only through `report_*` (direct insert rule and grant gone); `answered_by_post` /
 `post_invites` internal. Phones on an app older than OTA 12.20 follow by writing the table, so
 their Follow button stops working once this is live: publish a newer production OTA first. Test
-`tests/security_hardening_live_test.sql`, undo `rollbacks/20261008140000_security_hardening_live.rollback.sql`.
+`tests/security_hardening_live_test.sql`, undo `rollbacks/20261008150000_security_hardening_live.rollback.sql`.
 **Pushed 2026-10-08 (security review):** `20261008100000_security_hardening` — posts
 and their photos follow the feed rule (own, staff, or `can_view_post`), the `posts` bucket is
 private, likes/comments/`toggle_like` only on posts you can see, `get_feed_posts` revoked, no
