@@ -3167,8 +3167,9 @@ export default function CameraScreen({
                 </Reanimated.View>
               ) : null}
               <PullHandle
-                top={appHeaderHeight(safeTop) + SPACE.s8}
-                openTop={appHeaderHeight(safeTop) + SPACE.s8}
+                // In the header row, beside the bell (the bell pill is 36 tall; this taps as 44).
+                top={safeTop - (SIZE.z44 - SIZE.z36) / 2}
+                openTop={safeTop - (SIZE.z44 - SIZE.z36) / 2}
                 offset={pull.offset}
                 openOffset={pull.openOffset}
                 expanded={pull.expanded}

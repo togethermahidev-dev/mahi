@@ -218,7 +218,9 @@ export default function FeedScreen({
   // Lock card / feed timer under the header. It floats over the first post (a list header would
   // knock the full-screen snapping out of step), so the first post keeps room for it.
   const [bannerH, setBannerH] = useState(0);
-  const topSpace = bannerH > 0 ? bannerH + SPACE.s8 : 0;
+  // Locked, the pill floats mid-feed over the frosted rows and takes no room (its wrapper spans
+  // the whole feed, so its height must not push the rows off the screen — 13.12).
+  const topSpace = !locked && bannerH > 0 ? bannerH + SPACE.s8 : 0;
 
   // Friends' posts while locked: a button only when reactive posting lets you post (a tag still
   // open on the server clock, or your first post).

@@ -45,6 +45,7 @@ import {
   SPRING,
   STROKE,
   SWIPE,
+  SPACE,
 } from '@/constants/tokens';
 
 /**
@@ -291,7 +292,8 @@ export function PullHandle({
       withSpring(0, SPRING.bounce)
     );
   }, [expanded, reduceMotion, jump]);
-  const arrowColor = expanded ? COLORS.accent : COLORS.offWhite;
+  // Dark arrow on the white pill; Mahi blue once open.
+  const arrowColor = expanded ? COLORS.accent : COLORS.offBlack;
   const jumpStyle = useAnimatedStyle(() => ({ transform: [{ translateY: jump.value }] }));
   const positionStyle = useAnimatedStyle(() => {
     const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
@@ -331,7 +333,7 @@ export function PullHandle({
             {swift ? (
               <NativeChevron swift={swift} breathe={!reduceMotion} color={arrowColor} />
             ) : (
-              <Svg width={SIZE.z36} height={ICON_SIZE.i24} viewBox="0 0 24 14">
+              <Svg width={ICON_SIZE.i24} height={ICON_SIZE.i16} viewBox="0 0 24 14">
                 <Path
                   d="M3 3l9 8 9-8"
                   stroke={arrowColor}
@@ -365,7 +367,7 @@ function NativeChevron({
     <Host matchContents>
       <Image
         systemName="chevron.compact.down"
-        size={SIZE.z36}
+        size={ICON_SIZE.i24}
         color={color}
         modifiers={
           breathe
@@ -378,21 +380,24 @@ function NativeChevron({
 }
 
 const styles = StyleSheet.create({
+  // A round header pill beside the bell (owner, 2026-10-08): the bell is 36 across, 24 in from
+  // the edge; this sits 8 to its left. The pull gesture itself still works anywhere on the camera.
   handleSpot: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    minHeight: SIZE.z44,
+    right: SPACE.s24 + SIZE.z36 + SPACE.s8,
+    width: SIZE.z44,
+    height: SIZE.z44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   arrowTarget: {
-    width: SIZE.z64,
-    height: SIZE.z64,
+    width: SIZE.z36,
+    height: SIZE.z36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: SIZE.z32,
+    borderRadius: RADIUS.r18,
     overflow: 'hidden',
+    backgroundColor: COLORS.offWhite,
   },
   handlePressed: {
     opacity: ALPHA.a80,
