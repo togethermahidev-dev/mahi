@@ -224,7 +224,7 @@ export default function ProfileScreen({
         dark={dark}
         displayName={displayName}
         username={profile?.username}
-        supportingText="Your workout story, in one place."
+        supportingText="Only you are accountable for showing up."
         avatar={
           <AvatarPicker
             avatarUrl={profile?.avatar_url ?? null}
