@@ -7,7 +7,9 @@ export type MorphSource = MorphRect & {
   borderRadius: number;
 };
 
+// A worklet: pageMorphFrame reads it on the UI thread (a plain function there crashed 13.08).
 export function morphNumber(from: number, to: number, progress: number): number {
+  'worklet';
   const p = Math.max(0, Math.min(1, progress));
   return from + (to - from) * p;
 }
