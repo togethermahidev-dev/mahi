@@ -41,6 +41,7 @@ means "trusted": always ask what a stranger with a fresh account could read or w
     lists are open to them (`can_see_follow_lists`: the owner, or someone the owner's workouts setting
     lets in, with no block). The policy calls that definer function and never reads `follows` itself
     (no recursion). Counts come from `get_follow_data`, which answers only for `auth.uid()`.
+    Suggestions count mates in common only through follows the caller may see.
   - One exception, per post (`tag_shows_post`): someone tagged on a post (`post_tags`, or a started
     tag on it), and the tagger of a tag the post answers (`tag_challenges.answered_post_id`), see that
     post, its photo, comments and likes (`can_view_post_for`, used by `can_view_post_id`,

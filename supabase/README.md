@@ -58,7 +58,8 @@ answers `status` and `is_private` (drop + create); new `respond_follow_request`,
 posts, files, likes, comments and comment likes follow; `get_feed` / `get_user_posts` (`restricted`);
 follow lists closed by the owner's setting (`follows_select`, `can_see_follow_lists`, `get_friends`);
 `create_post` / `invite_to_tag` / `search_tag_people` / `match_contacts` (`tag_mode`);
-`get_suggested_follows` adds `is_private` / `requested` (drop + create); `follow_requests` keyed by a random id; accepting a
+`get_suggested_follows` adds `is_private` / `requested` (drop + create), skips banned people and
+counts only follows the caller may see; `follow_requests` keyed by a random id; accepting a
 tag request no longer makes follows; `claim_invite` general invite from a private account = request;
 `follow_request` / `follow_accepted` notices and pushes (`notifications.follow_request` marks an
 `invite_joined` whose claimer's follow is a request; the app may update only `is_read` on
