@@ -3060,8 +3060,9 @@ export default function CameraScreen({
                 style={[
                   styles.revealOverlay,
                   {
-                    // Just under the arrow, so the roadmap and card fill the top half.
-                    paddingTop: appHeaderHeight(safeTop) + SPACE.s8 + SIZE.z64,
+                    // Just under the Mahi points pill (the arrow is in the header now), so the
+                    // roadmap and card fill the top half with no empty band (owner, 2026-10-08).
+                    paddingTop: openTagsTop(safeTop, fontScale),
                     paddingBottom: pageHeight - pull.openOffset + SPACE.s16,
                   },
                   pull.behindStyle,
