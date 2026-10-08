@@ -1,4 +1,9 @@
-import { buildErrorReport, scrubBreadcrumb, sentryEnvironment } from '@/lib/errorReport';
+import {
+  buildErrorReport,
+  scrubBreadcrumb,
+  scrubTransaction,
+  sentryEnvironment,
+} from '@/lib/errorReport';
 
 /** Shaped like supabase-js 2.x errors: real Error subclasses with extra fields. */
 function supabaseError(name: string, message: string, fields: Record<string, unknown>) {
@@ -178,5 +183,28 @@ describe('scrubBreadcrumb', () => {
   it('leaves other breadcrumbs alone', () => {
     const crumb = { category: 'ui.click', message: 'a?b', data: { url: 'x?y' } };
     expect(scrubBreadcrumb(crumb)).toEqual(crumb);
+  });
+});
+
+describe('scrubTransaction', () => {
+  it('drops the query from every span: description and url fields', () => {
+    const t = scrubTransaction({
+      transaction: 'app start',
+      spans: [
+        {
+          description: 'GET https://x.supabase.co/rest/v1/profiles?or=(username.ilike.*sam*)',
+          data: { url: 'https://x.supabase.co/rest/v1/profiles?or=sam', 'http.query': 'or=sam' },
+        },
+        { description: 'ui.load', data: { thing: 1 } },
+      ],
+    });
+    expect(t.spans?.[0].description).toBe('GET https://x.supabase.co/rest/v1/profiles');
+    expect(t.spans?.[0].data).toEqual({ url: 'https://x.supabase.co/rest/v1/profiles' });
+    expect(t.spans?.[1]).toEqual({ description: 'ui.load', data: { thing: 1 } });
+  });
+
+  it('leaves a transaction with no spans alone', () => {
+    const event: { transaction: string; spans?: never[] } = { transaction: 'x' };
+    expect(scrubTransaction(event)).toEqual({ transaction: 'x' });
   });
 });

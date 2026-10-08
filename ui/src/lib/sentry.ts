@@ -5,6 +5,7 @@ import { OTA_NUMBER } from '@/constants/ota';
 import {
   buildErrorReport,
   scrubBreadcrumb,
+  scrubTransaction,
   sentryEnvironment,
   type ErrorContext,
 } from '@/lib/errorReport';
@@ -23,6 +24,7 @@ export function initSentry() {
     attachStacktrace: true,
     // Network and navigation breadcrumbs lose their query (search text, link codes).
     beforeBreadcrumb: scrubBreadcrumb,
+    beforeSendTransaction: (event) => scrubTransaction(event),
     initialScope: {
       tags: {
         ota: String(OTA_NUMBER),

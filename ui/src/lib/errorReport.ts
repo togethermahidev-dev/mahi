@@ -168,3 +168,29 @@ export function scrubBreadcrumb<T extends Crumb>(crumb: T): T {
   }
   return crumb;
 }
+
+type Span = { description?: string; data?: Record<string, unknown> };
+
+/**
+ * Sentry's `beforeSendTransaction`: performance records keep each request's path but lose the
+ * query (search text, codes), as `scrubBreadcrumb` does for breadcrumbs (docs/security.md).
+ */
+export function scrubTransaction<T extends { spans?: Span[] }>(event: T): T {
+  if (!event.spans) return event;
+  return {
+    ...event,
+    spans: event.spans.map((span) => {
+      const out: Span = { ...span };
+      if (typeof span.description === 'string') {
+        out.description = span.description.replace(/\?[^\s]*$|#[^\s]*$/, '');
+      }
+      if (span.data) {
+        const { 'http.query': _q, 'http.fragment': _f, ...rest } = span.data;
+        out.data = Object.fromEntries(
+          Object.entries(rest).map(([k, v]) => [k, /url/i.test(k) ? withoutQuery(v) : v])
+        );
+      }
+      return out;
+    }),
+  };
+}
