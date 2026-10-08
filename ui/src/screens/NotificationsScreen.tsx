@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   View,
   Text,
   Image,
@@ -15,10 +16,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { refreshTint } from '@/lib/themeColors';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useAuthStore, useBlockStore, useTagStore } from '@/store';
+import {
+  useAuthStore,
+  useBlockStore,
+  useFollowRequestStore,
+  useFollowStore,
+  useTagStore,
+  useUserStore,
+} from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { getTagInviteRows, respondTagInvite, type NotificationWithActor } from '@/api';
 import ListState from '@/components/ListState';
+import CountBadge from '@/components/CountBadge';
+import FollowRequestsSheet from '@/components/FollowRequestsSheet';
+import { useFollowRequests } from '@/hooks/useFollowRequests';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { tagAcceptPopup } from '@/lib/accountControls';
 import {
   notificationAction,
   notificationSections,
@@ -62,7 +75,8 @@ interface NotificationsScreenProps {
 type InviteState = 'loading' | 'open' | 'accepted' | 'declined' | 'ended';
 
 const INVITE_STATE_TEXT: Record<Exclude<InviteState, 'loading' | 'open'>, string> = {
-  accepted: 'Accepted. You follow each other now.',
+  // Accepting no longer makes you follow each other (owner, 2026-10-08).
+  accepted: 'Accepted.',
   declined: 'Not now',
   ended: 'That invite has ended.',
 };
@@ -71,8 +85,7 @@ const INVITE_STATE_TEXT: Record<Exclude<InviteState, 'loading' | 'open'>, string
  * What Accept does, under an open tag request. True whether or not their post exists yet: the
  * 48 hours start once it does (respond_tag_invite → start_tag).
  */
-const ACCEPT_LINE =
-  'Accept and you’ll automatically follow each other. You’ll have 48 hours to answer their tag.';
+const ACCEPT_LINE = 'Accept and you’ll have 48 hours to answer their tag.';
 
 /** Read out with each row: where a tap goes. */
 function targetHint(target: NotificationTarget, username: string): string {
@@ -135,6 +148,44 @@ export default function NotificationsScreen({
     onClose();
   };
 
+  // Follow requests (switch `private-accounts`): a row at the top while you're private or any
+  // wait, opening the list. Read fresh while this page is open; never kept on the phone.
+  const privateAccountsOn = useFeatureFlag('private-accounts');
+  const isPrivate = useUserStore((s) => s.profile?.is_private === true);
+  const [requestsOpen, setRequestsOpen] = useState(false);
+  const { requests } = useFollowRequests(visible && privateAccountsOn && !requestsOpen);
+  const requestCount = requests?.length ?? 0;
+  const showRequestsRow = privateAccountsOn && (isPrivate || requestCount > 0);
+
+  // After a yes to a tag request: accepting no longer makes you follow each other, so offer to
+  // follow them back and, if their follow request waits, to accept it (the phone's own pop-up).
+  const offerFollowBack = (
+    actorId: string,
+    username: string,
+    answer: Parameters<typeof tagAcceptPopup>[0]
+  ) => {
+    const popup = tagAcceptPopup(answer);
+    if (!popup || !myId) return;
+    const toast = (m: string) => useToastStore.getState().show(m);
+    Alert.alert(
+      popup.title,
+      undefined,
+      popup.options.map((option) => ({
+        text: option.label,
+        style: option.key === 'not_now' ? ('cancel' as const) : undefined,
+        onPress: async () => {
+          if (option.key === 'follow_back') {
+            const { error } = await useFollowStore.getState().setFollow(myId, actorId, true);
+            if (error) toast(`Couldn’t follow @${username}. Try again.`);
+          } else if (option.key === 'accept_follow') {
+            const { error } = await useFollowRequestStore.getState().respond(myId, actorId, true);
+            if (error) toast('Couldn’t answer that request. Try again.');
+          }
+        },
+      }))
+    );
+  };
+
   // In-app invites ("@sam wants to tag you"): read where each is at, fresh, every time the list
   // shows them. Buttons appear only once the server has answered.
   const [inviteStates, setInviteStates] = useState<Record<string, InviteState>>({});
@@ -182,9 +233,14 @@ export default function NotificationsScreen({
   }, [visible, inviteKey]);
 
   // Your answer shows at once; if the server says no, it goes back (or ends) with a reason.
-  const answerInvite = async (challengeId: string, accept: boolean) => {
+  const answerInvite = async (
+    challengeId: string,
+    accept: boolean,
+    actorId: string,
+    username: string
+  ) => {
     setInviteStates((s) => ({ ...s, [challengeId]: accept ? 'accepted' : 'declined' }));
-    const { error } = await respondTagInvite(challengeId, accept);
+    const { data, error } = await respondTagInvite(challengeId, accept);
     if (error) {
       if (!isSlotRefusal(error.message)) {
         reportError(error, {
@@ -200,7 +256,10 @@ export default function NotificationsScreen({
     }
     track('tag_invite_answered', { challenge_id: challengeId, accepted: accept });
     // A yes can land a tag at once: the camera shows it.
-    if (accept) void useTagStore.getState().syncOpenTags();
+    if (accept) {
+      void useTagStore.getState().syncOpenTags();
+      offerFollowBack(actorId, username, { username, ...data });
+    }
   };
 
   // A tag row is still open while its tag (or, without one, a tag from the same person) has time.
@@ -221,7 +280,10 @@ export default function NotificationsScreen({
     const name = item.actor.display_name ?? item.actor.username;
     const initials = (name[0] ?? '?').toUpperCase();
     const username = item.actor.username;
-    const caption = notificationText(item.type, username);
+    // A mate who joined from your invite and whose follow still waits for your yes.
+    const caption = notificationText(item.type, username, {
+      followRequest: requests?.some((r) => r.requester_id === item.actor_id) ?? false,
+    });
     const time = relativeTime(item.created_at);
     const target = notificationTarget(item, myId ?? '', tagOpen(item));
     const action = notificationAction(target);
@@ -306,7 +368,9 @@ export default function NotificationsScreen({
               text={text}
               muted={muted}
               border={border}
-              onAnswer={(accept) => answerInvite(item.challenge_id as string, accept)}
+              onAnswer={(accept) =>
+                answerInvite(item.challenge_id as string, accept, item.actor_id, username)
+              }
             />
           ) : null}
         </View>
@@ -354,6 +418,33 @@ export default function NotificationsScreen({
           <View style={styles.headerSpacer} />
         </View>
 
+        {showRequestsRow ? (
+          <Pressable
+            style={({ pressed }) => [
+              styles.requestsRow,
+              { backgroundColor: surface, borderColor: border },
+              pressed && styles.pressed,
+            ]}
+            onPress={() => setRequestsOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              requestCount ? `Follow requests, ${requestCount}` : 'Follow requests'
+            }
+            accessibilityHint="Opens the people asking to follow you"
+          >
+            <View style={styles.rowText}>
+              <Text style={[styles.requestsTitle, { color: text }]}>Follow requests</Text>
+              <Text style={[styles.rowTime, { color: muted }]}>
+                Confirm or delete people asking to follow you
+              </Text>
+            </View>
+            <CountBadge count={requestCount} />
+            <Text style={[styles.rowChevron, { color: muted }]} accessibilityElementsHidden>
+              ›
+            </Text>
+          </Pressable>
+        ) : null}
+
         {/* Notification list: what needs your answer first, then the rest. */}
         {isLoading ? (
           <ListState kind="loading" dark={dark} />
@@ -369,7 +460,7 @@ export default function NotificationsScreen({
             data={listItems}
             keyExtractor={(entry) => (entry.kind === 'row' ? entry.item.id : entry.title)}
             getItemType={(entry) => entry.kind}
-            extraData={inviteStates}
+            extraData={{ inviteStates, requests }}
             contentContainerStyle={[
               styles.listContent,
               { paddingBottom: insets.bottom + SPACE.s12 },
@@ -410,6 +501,11 @@ export default function NotificationsScreen({
           />
         )}
       </View>
+      <FollowRequestsSheet
+        visible={requestsOpen}
+        onClose={() => setRequestsOpen(false)}
+        dark={dark}
+      />
     </Modal>
   );
 }
@@ -587,6 +683,22 @@ const styles = StyleSheet.create({
   },
   rowText: {
     flex: 1,
+  },
+  requestsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s12,
+    minHeight: SIZE.z56,
+    paddingVertical: SPACE.s12,
+    paddingHorizontal: SPACE.s16,
+    borderWidth: BORDER_WIDTH.w1,
+    borderRadius: RADIUS.r20,
+    marginHorizontal: SPACE.s16,
+    marginBottom: SPACE.s4,
+  },
+  requestsTitle: {
+    fontSize: FONT_SIZE.f15,
+    fontFamily: FONTS.semiBold,
   },
   rowContent: {
     gap: SPACE.s2,

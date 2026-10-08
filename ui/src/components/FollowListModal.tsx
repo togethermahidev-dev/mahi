@@ -23,6 +23,8 @@ import { getFollowList, getFriends, type FollowListUser } from '@/api';
 import { useAuthStore, useFollowStore, useBlockStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { reportError } from '@/lib/sentry';
+import { removeFollowerConfirm } from '@/lib/accountControls';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import ListState from '@/components/ListState';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
@@ -71,6 +73,8 @@ export default function FollowListModal({
     : withAlpha(COLORS.offBlack, ALPHA.a05);
 
   const [users, setUsers] = useState<FollowListUser[]>([]);
+  // Your own followers list: who of them you follow back (removing a friend ends open tags).
+  const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   /** The list couldn't be read: say so (never "No friends yet"), with Try again. */
   const [failed, setFailed] = useState(false);
@@ -110,15 +114,22 @@ export default function FollowListModal({
     });
   const dismissStyle = useAnimatedStyle(() => ({ transform: [{ translateX: dismissX.value }] }));
 
+  // Remove a follower (switch `private-accounts`): only on your own followers list.
+  const privateAccountsOn = useFeatureFlag('private-accounts');
+  const showRemove = privateAccountsOn && type === 'followers' && userId === currentUserId;
+
   const fetchList = useCallback(async () => {
-    const { data, error } =
-      type === 'friends' ? await getFriends(userId) : await getFollowList(userId, type);
+    const [{ data, error }, friends] = await Promise.all([
+      type === 'friends' ? getFriends(userId) : getFollowList(userId, type),
+      showRemove ? getFriends(userId) : Promise.resolve(null),
+    ]);
     if (error) reportError(error, { flow: 'follows', action: 'loadList', extra: { userId, type } });
+    if (friends?.data) setFriendIds(new Set(friends.data.map((f) => f.id)));
     setFailed(!!error || !data);
     const filtered = (data ?? []).filter((u) => !useBlockStore.getState().isBlocked(u.id));
     setUsers(filtered);
     setLoading(false);
-  }, [userId, type]);
+  }, [userId, type, showRemove]);
 
   // Fetch list + subscribe to realtime changes
   useEffect(() => {
@@ -164,6 +175,37 @@ export default function FollowListModal({
         text: 'Unfollow',
         style: 'destructive',
         onPress: () => void runUnfollow(targetUserId, handle),
+      },
+    ]);
+  };
+
+  const runRemove = useCallback(
+    async (followerId: string, handle: string) => {
+      if (!currentUserId) return;
+      setUsers((prev) => prev.filter((u) => u.id !== followerId));
+      const { error } = await useFollowStore.getState().removeFollower(currentUserId, followerId);
+      if (error) {
+        reportError(error, {
+          flow: 'follows',
+          action: 'removeFollower',
+          extra: { followerId, rpc: 'remove_follower' },
+        });
+        fetchList();
+        useToastStore.getState().show(`Couldn’t remove ${handle}. Try again.`);
+      }
+    },
+    [currentUserId, fetchList]
+  );
+
+  // Ask first, and say a friend's open tags end too.
+  const handleRemove = (item: FollowListUser) => {
+    const ask = removeFollowerConfirm(item.username, friendIds.has(item.id));
+    Alert.alert(ask.title, ask.message, [
+      { text: ask.cancel, style: 'cancel' },
+      {
+        text: ask.confirm,
+        style: 'destructive',
+        onPress: () => void runRemove(item.id, `@${item.username}`),
       },
     ]);
   };
@@ -301,6 +343,22 @@ export default function FollowListModal({
                             hitSlop={OFFSET.o8}
                           >
                             <Text style={[styles.unfollowBtnText, { color: text }]}>Following</Text>
+                          </Pressable>
+                        ) : null}
+                        {showRemove ? (
+                          <Pressable
+                            style={({ pressed }) => [
+                              styles.unfollowBtn,
+                              { backgroundColor: iconSurface, borderColor: border },
+                              pressed && { opacity: ALPHA.a75 },
+                            ]}
+                            onPress={() => handleRemove(item)}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Remove @${item.username ?? displayName}`}
+                            accessibilityHint="Asks before removing this follower"
+                            hitSlop={OFFSET.o8}
+                          >
+                            <Text style={[styles.unfollowBtnText, { color: text }]}>Remove</Text>
                           </Pressable>
                         ) : null}
                       </Pressable>

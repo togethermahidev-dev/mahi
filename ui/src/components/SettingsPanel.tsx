@@ -1,5 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Linking,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import {
   SafeAreaInsetsContext,
   SafeAreaProvider,
@@ -19,6 +30,25 @@ import { inviteBadgeCount, inviteSummary } from '@/lib/myInvites';
 import { WelcomeCardsModal } from '@/components/WelcomeCards';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import ThemeToggle from '@/components/ThemeToggle';
+import SegmentedControl from '@/components/SegmentedControl';
+import FollowListModal from '@/components/FollowListModal';
+import FollowRequestsSheet from '@/components/FollowRequestsSheet';
+import { useFollowRequests } from '@/hooks/useFollowRequests';
+import { useUserStore } from '@/store';
+import { useToastStore } from '@/store/toastStore';
+import {
+  ACCOUNT_OPTIONS,
+  TAG_OPTIONS,
+  accountSwitchPatch,
+  WORKOUT_OPTIONS,
+  accountDescription,
+  effectiveVisibility,
+  privacyConfirm,
+  tagDescription,
+  workoutOptionDisabled,
+  workoutsDescription,
+  type AccountControls,
+} from '@/lib/accountControls';
 import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
@@ -99,6 +129,8 @@ function Sheet({
   const [helpOpen, setHelpOpen] = useState(false);
   // Mahi sends no notifications while push is off: no row that leads nowhere until it's on.
   const pushOn = useFeatureFlag('push-core');
+  // Public and private accounts: the Controls section (switch `private-accounts`).
+  const controlsOn = useFeatureFlag('private-accounts');
   const [deleting, setDeleting] = useState(false);
 
   const handleLogout = () => {
@@ -288,6 +320,10 @@ function Sheet({
               </Pressable>
             </View>
 
+            {controlsOn ? (
+              <ControlsSection dark={dark} rowStyle={rowStyle} surface={surface} />
+            ) : null}
+
             <View style={styles.spacer} />
             <Text style={[styles.sectionLabel, { color: muted }]}>Preferences</Text>
             <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
@@ -364,6 +400,169 @@ function Sheet({
         </SafeAreaInsetsContext.Provider>
       ) : null}
     </View>
+  );
+}
+
+type RowStyle = (state: { pressed: boolean }, divided: boolean) => StyleProp<ViewStyle>;
+
+/**
+ * Settings → Controls (owner, 2026-10-08; server: 20261008170000_private_accounts): public or
+ * private, who sees your workouts, who can tag you, your followers and follow requests. Each
+ * change shows at once and the server's saved answer replaces it; the server enforces every rule.
+ * Hidden on a server without the columns (the profile has no `is_private`).
+ */
+function ControlsSection({
+  dark,
+  rowStyle,
+  surface,
+}: {
+  dark: boolean;
+  rowStyle: RowStyle;
+  surface: string;
+}): React.JSX.Element | null {
+  const { text, muted, border } = themeColors(dark);
+  const profile = useUserStore((s) => s.profile);
+  const isPrivate = profile?.is_private;
+  const [saving, setSaving] = useState(false);
+  const [followersOpen, setFollowersOpen] = useState(false);
+  const [requestsOpen, setRequestsOpen] = useState(false);
+  // The count beside "Follow requests": read fresh while Settings is open, never kept.
+  const { requests } = useFollowRequests(isPrivate === true && !requestsOpen);
+  const show = useToastStore((st) => st.show);
+
+  if (!profile || isPrivate === undefined) return null;
+  const visibility = effectiveVisibility(isPrivate, profile.posts_visibility ?? 'everyone');
+  const tagPermission = profile.tag_permission ?? 'approve';
+
+  const save = async (patch: Partial<AccountControls>) => {
+    setSaving(true);
+    const { error, acceptedRequests } = await useUserStore.getState().saveControls(patch);
+    setSaving(false);
+    if (error) {
+      reportError(error, {
+        flow: 'settings',
+        action: 'saveControls',
+        level: 'warning',
+        extra: { rpc: 'set_account_controls', keys: Object.keys(patch) },
+      });
+      show('Couldn’t save that. Try again.');
+      return;
+    }
+    if (acceptedRequests) {
+      show(
+        acceptedRequests === 1
+          ? '1 follow request accepted.'
+          : `${acceptedRequests} follow requests accepted.`
+      );
+    }
+  };
+
+  // Public ↔ private asks first: it changes who sees your workouts (and going public accepts
+  // every waiting request).
+  const chooseAccount = (toPrivate: boolean) => {
+    const ask = privacyConfirm(toPrivate);
+    Alert.alert(ask.title, ask.message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: ask.confirm, onPress: () => void save(accountSwitchPatch(toPrivate)) },
+    ]);
+  };
+
+  return (
+    <>
+      <View style={styles.spacer} />
+      <Text style={[styles.sectionLabel, { color: muted }]}>Controls</Text>
+      <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
+        <View style={[styles.control, styles.rowDivider, { borderBottomColor: border }]}>
+          <Text style={[styles.rowLabel, { color: text }]}>Account</Text>
+          <SegmentedControl
+            label="Account"
+            dark={dark}
+            disabled={saving}
+            options={ACCOUNT_OPTIONS}
+            value={isPrivate}
+            onChange={chooseAccount}
+          />
+          <Text style={[styles.rowDetail, { color: muted }]}>{accountDescription(isPrivate)}</Text>
+        </View>
+
+        <View style={[styles.control, styles.rowDivider, { borderBottomColor: border }]}>
+          <Text style={[styles.rowLabel, { color: text }]}>Who can see your workouts</Text>
+          <SegmentedControl
+            label="Who can see your workouts"
+            dark={dark}
+            disabled={saving}
+            options={WORKOUT_OPTIONS.map((o) => ({
+              ...o,
+              disabled: workoutOptionDisabled(isPrivate, o.value),
+            }))}
+            value={visibility}
+            onChange={(v) => void save({ posts_visibility: v })}
+          />
+          <Text style={[styles.rowDetail, { color: muted }]}>
+            {workoutsDescription(visibility)}
+          </Text>
+        </View>
+
+        <View style={[styles.control, styles.rowDivider, { borderBottomColor: border }]}>
+          <Text style={[styles.rowLabel, { color: text }]}>Who can tag you</Text>
+          <SegmentedControl
+            label="Who can tag you"
+            dark={dark}
+            disabled={saving}
+            options={TAG_OPTIONS}
+            value={tagPermission}
+            onChange={(v) => void save({ tag_permission: v })}
+          />
+          <Text style={[styles.rowDetail, { color: muted }]}>{tagDescription(tagPermission)}</Text>
+        </View>
+
+        <Pressable
+          style={(state) => rowStyle(state, isPrivate)}
+          onPress={() => setFollowersOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Followers"
+        >
+          <View style={styles.rowCopy}>
+            <Text style={[styles.rowLabel, { color: text }]}>Followers</Text>
+            <Text style={[styles.rowDetail, { color: muted }]}>
+              See who follows you, and remove anyone
+            </Text>
+          </View>
+          <Text style={[styles.chevron, { color: muted }]}>›</Text>
+        </Pressable>
+
+        {isPrivate ? (
+          <Pressable
+            style={(state) => rowStyle(state, false)}
+            onPress={() => setRequestsOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              requests?.length ? `Follow requests, ${requests.length}` : 'Follow requests'
+            }
+          >
+            <View style={styles.rowCopy}>
+              <Text style={[styles.rowLabel, { color: text }]}>Follow requests</Text>
+              <Text style={[styles.rowDetail, { color: muted }]}>People asking to follow you</Text>
+            </View>
+            <CountBadge count={requests?.length ?? 0} />
+            <Text style={[styles.chevron, { color: muted }]}>›</Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      <FollowListModal
+        visible={followersOpen}
+        onClose={() => setFollowersOpen(false)}
+        userId={profile.id}
+        type="followers"
+        dark={dark}
+      />
+      <FollowRequestsSheet
+        visible={requestsOpen}
+        onClose={() => setRequestsOpen(false)}
+        dark={dark}
+      />
+    </>
   );
 }
 
@@ -444,6 +643,12 @@ const styles = StyleSheet.create({
   },
   rowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  // A control with its title above and what the choice means below.
+  control: {
+    paddingVertical: SPACE.s14,
+    paddingHorizontal: SPACE.s16,
+    gap: SPACE.s8,
   },
   rowCopy: {
     flex: 1,

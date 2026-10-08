@@ -67,6 +67,7 @@ import FindMatesStep from '@/components/FindMatesStep';
 import MissMoment from '@/components/MissMoment';
 import InviteConfirmSheet from '@/components/InviteConfirmSheet';
 import PushPrimer from '@/components/PushPrimer';
+import PrivacyChoiceStep from '@/components/PrivacyChoiceStep';
 import { useCoachBlock } from '@/hooks/useCoachMarks';
 import { reportError, Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
@@ -159,7 +160,15 @@ export default function App(): React.JSX.Element {
   const [welcomeSettled, setWelcomeSettled] = useState(false);
   // "Find your mates" after the cards (new accounts only); then the notifications page may show.
   const [findMatesSettled, setFindMatesSettled] = useState(false);
-  const onboardingSettled = welcomeSettled && findMatesSettled;
+  // The public / private choice comes first, right after sign-up (switch `private-accounts`).
+  const [privacySettled, setPrivacySettled] = useState(false);
+  // Once the welcome cards may show they stay mounted, even if the choice turns up later (the
+  // switch loading after them): it then opens over them rather than cutting them off.
+  const [welcomeAllowed, setWelcomeAllowed] = useState(false);
+  useEffect(() => {
+    if (privacySettled) setWelcomeAllowed(true);
+  }, [privacySettled]);
+  const onboardingSettled = welcomeSettled && findMatesSettled && privacySettled;
   // One-time tips and the tag reminder start only once the welcome pages are closed.
   useCoachBlock(!onboardingSettled);
   const [fontsLoaded] = useFonts({
@@ -384,7 +393,10 @@ export default function App(): React.JSX.Element {
         {showCamera && <MainNavigator />}
         {introDone && (
           <>
-            <WelcomeCards userId={session.user.id} onSettled={setWelcomeSettled} />
+            <PrivacyChoiceStep onSettled={setPrivacySettled} />
+            {welcomeAllowed ? (
+              <WelcomeCards userId={session.user.id} onSettled={setWelcomeSettled} />
+            ) : null}
             <FindMatesStep
               userId={session.user.id}
               createdAt={session.user.created_at}

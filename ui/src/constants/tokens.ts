@@ -469,6 +469,21 @@ export const LAYOUT = {
   storyLoadAhead: 2,
 } as const;
 
+// ─── Segmented control (Settings → Controls, the sign-up privacy choice) ────────
+export const SEGMENTED = {
+  /** The whole control: tall enough for a two-line option ("Everyone, I approve first"). */
+  minHeight: SIZE.z44,
+  /** The track's corners, and the gap between it and the chosen option's thumb. */
+  radius: RADIUS.r14,
+  inset: SPACE.s3,
+  /** The chosen option's thumb, inset inside the track. */
+  thumbRadius: RADIUS.r12,
+  /** Lines an option's words wrap to before they are cut. */
+  labelLines: 2,
+  /** An option that can't be chosen (Everyone while private) is drawn at this opacity. */
+  disabledOpacity: ALPHA.a40,
+} as const;
+
 // ─── Floating nav rail: the pill outline and shadow (with SHADOW_BLUR / SIZE) ────
 export const NAV_RAIL = {
   /** Pill outline: white at this opacity on dark screens (owner: a clearly visible pill). */
