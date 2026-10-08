@@ -19,7 +19,9 @@ jest.mock('@/lib/appBuild', () => ({ APP_BUILD: 13 }));
 import { appUpdateProperties, syncAnalyticsIdentity } from '@/lib/analytics';
 
 it('identifies a person by their account id only, never their email', async () => {
-  await syncAnalyticsIdentity({ id: 'user-1', email: 'someone@example.com' });
+  // A signed-in Supabase user carries an email; only the id may reach PostHog.
+  const user = { id: 'user-1', email: 'someone@example.com' };
+  await syncAnalyticsIdentity(user);
   expect(identify).toHaveBeenCalledTimes(1);
   expect(identify.mock.calls[0][0]).toBe('user-1');
   expect(JSON.stringify(identify.mock.calls[0].slice(1))).not.toContain('someone@example.com');

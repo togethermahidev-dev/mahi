@@ -162,18 +162,3 @@ export async function getBlockedIds(
     error: null,
   };
 }
-
-/** Check if the current user has already reported a target user. */
-export async function hasReported(
-  reporterId: string,
-  reportedUserId: string
-): Promise<{ data: boolean; error: Error | null }> {
-  const { count, error } = await supabase
-    .from('user_reports')
-    .select('id', { count: 'exact', head: true })
-    .eq('reporter_id', reporterId)
-    .eq('reported_user_id', reportedUserId);
-
-  if (error) return { data: false, error: new Error(error.message, { cause: error }) };
-  return { data: (count ?? 0) > 0, error: null };
-}

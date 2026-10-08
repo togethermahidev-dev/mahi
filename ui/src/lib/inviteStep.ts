@@ -58,17 +58,11 @@ export function inviteStepCopy({
   availableFriends,
   friends,
   invites,
-  tagsOptional = false,
 }: {
   maxTags: number;
   availableFriends: number;
   friends: number;
   invites: number;
-  /**
-   * This post needs no tags (the first workout post): offer an accountability hand-off without
-   * making it part of completing the check-in.
-   */
-  tagsOptional?: boolean;
 }): { headline: string; why: string; button: string; canAdd: boolean; count: string } {
   const toInvite = Math.max(1, maxTags - Math.min(availableFriends, maxTags));
   const slots = slotCount({ maxTags, friends, invites });
@@ -76,10 +70,8 @@ export function inviteStepCopy({
   const how =
     'When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.';
   return {
-    headline: tagsOptional
-      ? 'Challenge friends when you’re ready'
-      : `Invite ${count(toInvite, 'friend', 'friends')} to show up`,
-    why: tagsOptional ? how : `Each answer challenges ${maxTags} friends. ${how}`,
+    headline: `Invite ${count(toInvite, 'friend', 'friends')} to show up`,
+    why: `Each answer challenges ${maxTags} friends. ${how}`,
     button: canAdd ? INVITE_BUTTON : `All ${maxTags} tags used`,
     canAdd,
     count: slots.text,

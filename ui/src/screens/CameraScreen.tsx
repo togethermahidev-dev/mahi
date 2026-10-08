@@ -1162,7 +1162,6 @@ function DualPhotoPreview({
           initialSelected={taggedUsers}
           initialInvites={inviteCount}
           singleShot={captionAtIndex !== null}
-          tagsOptional={firstWorkout}
           onCancel={() => {
             // If we came from the caption `@` bridge, return to the caption
             // sheet (the `@` stays in the text). Otherwise, close entirely.
@@ -1388,8 +1387,6 @@ interface TagSheetProps {
    * single-shot autocomplete, not multi-select.
    */
   singleShot?: boolean;
-  /** This post needs no tags (a first post that answers a tag). */
-  tagsOptional?: boolean;
 }
 
 function TagSheet({
@@ -1399,7 +1396,6 @@ function TagSheet({
   onCancel,
   onCommit,
   singleShot,
-  tagsOptional = false,
 }: TagSheetProps) {
   const [selected, setSelected] = useState<TaggedUser[]>(initialSelected);
   const [invites, setInvites] = useState(initialInvites);
@@ -1564,7 +1560,6 @@ function TagSheet({
             availableFriends={availableFriends}
             friends={selected.length}
             invites={invites}
-            tagsOptional={tagsOptional}
             onAdd={addInvite}
             onRemove={() => setInvites((n) => Math.max(0, n - 1))}
           />
@@ -1832,7 +1827,6 @@ export default function CameraScreen({
   // The first workout post may tag nobody; every later answer passes accountability onwards.
   const postRequiredTags = postTagsRequired(requiredTags, {
     firstPost: hasPosted === null ? null : !hasPosted,
-    answersTag: answersATag(openTags, serverOffsetMs),
   });
   // Offline at the gym: a failed read would otherwise leave the shutter spinning forever. Say so,
   // with Try again (re-reads the tags and the feed), instead of a spinner with no words.

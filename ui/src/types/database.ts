@@ -650,26 +650,6 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      get_feed_posts: {
-        Args: { p_cursor_id?: string; p_cursor_ts?: string; p_limit: number };
-        Returns: {
-          avatar_url: string;
-          caption: string;
-          comment_count: number;
-          created_at: string;
-          display_name: string;
-          id: string;
-          image_url: string;
-          like_count: number;
-          liked_by_me: boolean;
-          pov_image_url: string;
-          profile_id: string;
-          streak_day: number;
-          tagged_users: Json;
-          user_id: string;
-          username: string;
-        }[];
-      };
       get_follow_data: {
         Args: { p_current_user_id: string; p_target_user_id: string };
         Returns: {

@@ -619,32 +619,6 @@ export const COACH = {
   popoverWidth: 260,
 } as const;
 
-// ─── The shutter after sign-in: two halves snap shut, MAHI lands, the shutter fires open ─────
-export const SHUTTER = {
-  /** Wait for the sign-in sheet to finish closing before the shutter moves (ms). */
-  startDelayMs: 300,
-  /** The halves snap shut with this spring (a touch of overshoot, like a real shutter). */
-  close: { damping: 17, stiffness: 190, mass: 0.85 },
-  /** The cyan light along the seam where the halves meet: grows then fades (ms). */
-  seamMs: 280,
-  /** MAHI lands from this scale… */
-  wordmarkFrom: 0.86,
-  /** …its cyan echo slides out behind it after this long (ms), taking this long (ms)… */
-  echoDelayMs: 120,
-  echoMs: 380,
-  /** …and the tagline rises in after this long (ms). */
-  taglineDelayMs: 240,
-  /** How long the closed shutter holds before firing open (ms). */
-  holdMs: 1100,
-  /** The camera flash as it fires (ms each way)… */
-  flashMs: 120,
-  /** …then the halves fly apart, speeding up (ms), as MAHI grows to this and fades. */
-  openMs: 480,
-  wordmarkTo: 1.08,
-  /** With Reduce Motion on: a plain fade in and out (ms). */
-  fadeMs: 300,
-} as const;
-
 // ─── Hold-to-preview pop-up (iPhone, flag context-menu-preview) ─────────────────
 export const PREVIEW_MENU = {
   /** A post's preview: this share of the screen's width… */

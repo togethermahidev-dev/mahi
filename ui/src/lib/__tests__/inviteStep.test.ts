@@ -75,21 +75,3 @@ describe('inviteStepCopy', () => {
     expect(copy.count).toBe('3 of 3 tags · 3 links');
   });
 });
-
-// The first workout post needs no tags, so this offers a hand-off without blocking the workout.
-describe('inviteStepCopy — when this post needs no tags', () => {
-  it('invites friends to keep you going', () => {
-    const copy = inviteStepCopy({
-      maxTags: 3,
-      availableFriends: 0,
-      friends: 0,
-      invites: 0,
-      tagsOptional: true,
-    });
-    expect(copy.headline).toBe('Challenge friends when you’re ready');
-    expect(copy.button).toBe('Hold someone else accountable');
-    expect(copy.why).toBe(
-      'When someone accepts your invite, you’ll automatically follow each other. They’ll get 48 hours to answer with any workout. A walk counts.'
-    );
-  });
-});

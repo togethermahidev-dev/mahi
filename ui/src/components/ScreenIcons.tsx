@@ -1,7 +1,6 @@
 import React from 'react';
 import { Platform } from 'react-native';
-import Svg, { Path, Circle, Line, G, Rect, Text as SvgText } from 'react-native-svg';
-import { FONTS } from '@/constants/fonts';
+import Svg, { Path, Circle, Line, G, Rect } from 'react-native-svg';
 import { COLORS, ALPHA, STROKE } from '@/constants/tokens';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import {
@@ -20,7 +19,7 @@ export interface IconProps {
 /*
  * Each plain icon below has two looks: today's drawing, and on iPhone Apple's own icon (SF Symbol,
  * flag `ios-sf-symbols`, build 11+). The exported icons at the bottom pick one, so call sites don't
- * change. The brand "echo" icons (LikeIcon, CommentIcon, MessagesIcon) are always drawn.
+ * change. The brand "echo" icons (CommentIcon, MessagesIcon) are always drawn.
  * Mapping and rules: src/lib/sfSymbols.ts.
  */
 
@@ -106,60 +105,6 @@ function ProfileDrawing({ size, color }: IconProps) {
         strokeLinecap="round"
       />
       <Circle cx="12" cy="7" r="4" stroke={color} strokeWidth={STROKE.s1_8} />
-    </Svg>
-  );
-}
-
-/**
- * LikeIcon — medal with count inside the disc.
- * Mahi colorway: ribbon tails in #E05A5A (left) + #59c2d7 (right),
- * disc echo offset in #59c2d7, disc filled #59c2d7 when liked / outline when not.
- * Count number always visible inside the disc.
- */
-export function LikeIcon({
-  size,
-  color,
-  filled = false,
-  count = 0,
-}: IconProps & { filled?: boolean; count?: number }) {
-  const countStr = count > 999 ? '999+' : String(count);
-  const fontSize = countStr.length > 2 ? 5 : countStr.length > 1 ? 6 : 7;
-  const textColor = filled ? COLORS.white : color;
-
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* Ribbon tails — always visible */}
-      {/* Left ribbon — red */}
-      <Path d="M9 17 L7 24 L12 21 Z" fill={COLORS.dangerAlt} />
-      {/* Right ribbon — Mahi blue */}
-      <Path d="M15 17 L17 24 L12 21 Z" fill={COLORS.accent} />
-      {/* Centre ribbon strip */}
-      <Path d="M10.5 17 L11 24 L13 24 L13.5 17 Z" fill={color} opacity={ALPHA.a50} />
-
-      {/* Echo disc — always #59c2d7, offset (+1.5, +1.5) */}
-      <Circle cx={13.5} cy={11.5} r={8} fill={COLORS.accent} opacity={ALPHA.a35} />
-
-      {/* Main disc */}
-      <Circle
-        cx={12}
-        cy={10}
-        r={8}
-        fill={filled ? COLORS.accent : 'transparent'}
-        stroke={filled ? COLORS.accent : color}
-        strokeWidth={STROKE.s1_5}
-      />
-
-      {/* Count text inside disc */}
-      <SvgText
-        x={12}
-        y={10 + fontSize * 0.38}
-        textAnchor="middle"
-        fontSize={fontSize}
-        fill={textColor}
-        fontFamily={FONTS.bold}
-      >
-        {countStr}
-      </SvgText>
     </Svg>
   );
 }

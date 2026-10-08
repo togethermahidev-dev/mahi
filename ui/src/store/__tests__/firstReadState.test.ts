@@ -13,7 +13,6 @@ jest.mock('@/api', () => ({
   getInbox: jest.fn(),
   getRequests: jest.fn(),
   acceptRequest: jest.fn(),
-  deleteConversation: jest.fn(),
 }));
 jest.mock('@/lib/supabase', () => ({ supabase: { channel: jest.fn(), removeChannel: jest.fn() } }));
 jest.mock('@/lib/analytics', () => ({ track: jest.fn() }));

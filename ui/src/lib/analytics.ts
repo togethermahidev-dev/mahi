@@ -91,9 +91,7 @@ export function track<K extends keyof TagLoopEvents>(event: K, props: TagLoopEve
  * Call on every auth change; it only acts when the account actually changed. Waits for PostHog
  * to load its saved ids first, so a cold start compares against this phone's real ids.
  */
-export async function syncAnalyticsIdentity(
-  user: { id: string; email?: string | null } | null
-): Promise<void> {
+export async function syncAnalyticsIdentity(user: { id: string } | null): Promise<void> {
   try {
     await posthog.ready();
     const step = identityStep(user?.id ?? null, posthog.getDistinctId(), posthog.getAnonymousId());

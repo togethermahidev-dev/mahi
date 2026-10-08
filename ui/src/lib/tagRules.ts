@@ -12,16 +12,12 @@ export function requiredTagCount(
 }
 
 /**
- * Tags this post needs: the first workout post may tag nobody, whether the person arrived alone
- * or through a mate's tag. Tagging is an optional hand-off on that first check-in, never the price
- * of completing it. Every later answer needs `required` so accountability keeps moving.
+ * Tags this post needs: the first workout needs no tags, whether the person arrived alone or
+ * through a mate's tag. Every later answer needs `required` so accountability keeps moving.
  * `firstPost` is null until it's known, and then the usual rule holds. The server
- * (`20261008140000_free_first_post`) enforces the same.
+ * (`20261008140000_first_workout_no_tags`) enforces the same.
  */
-export function postTagsRequired(
-  required: number,
-  s: { firstPost: boolean | null; answersTag: boolean }
-): number {
+export function postTagsRequired(required: number, s: { firstPost: boolean | null }): number {
   return s.firstPost === true ? 0 : required;
 }
 
@@ -30,10 +26,7 @@ export function postTagsRequired(
  * on them blocks it: someone who tagged you can be tagged back (Maximus, 2026-10-07; the server's
  * taggable_friends rule, 20261007240000_tag_back).
  */
-export function cantTagReason(friend: {
-  has_open_tag: boolean;
-  tagged_you?: boolean;
-}): string | null {
+export function cantTagReason(friend: { has_open_tag: boolean }): string | null {
   if (friend.has_open_tag) return 'you tagged them, open until they answer';
   return null;
 }

@@ -2,7 +2,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { env } from '@/lib/env';
 
 const OTP_KEY = '@mahi:otp_state';
-const RESEND_COOLDOWN_MS = 60 * 1000; // 1 minute between resends
 export const OTP_LENGTH = 6; // must match send-otp / verify-otp
 
 const SUPABASE_URL = env.supabaseUrl;
@@ -68,16 +67,6 @@ export async function verifyOTP(email: string, code: string): Promise<void> {
       { status: res.status }
     );
   }
-}
-
-/**
- * Check if the user can resend the OTP (respects the 1-minute cooldown).
- */
-export async function canResend(): Promise<boolean> {
-  const raw = await AsyncStorage.getItem(OTP_KEY);
-  if (!raw) return true;
-  const state: OTPState = JSON.parse(raw);
-  return Date.now() - state.sentAt >= RESEND_COOLDOWN_MS;
 }
 
 /**
