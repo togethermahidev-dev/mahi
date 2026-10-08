@@ -7,6 +7,11 @@ The single entry point for continuing work on Mahi. Read this first. It encodes 
 
 ## State on 2026-10-08 (newest; overrides older notes below)
 
+Camera reveal correction: the arrow now stays directly below the header in both states. Waiting
+content is borderless and scrollable, with wrapping actions for large text. The compressed camera
+fades away at the end of the reveal so it no longer leaves an empty blurred rectangle below the
+actions; reversing the gesture brings it back. Device visual verification is still needed.
+
 **Fitness-first guidance:** The signed-out entry now shows an animated three-stage workout loop
 before account creation: Show up → Get tagged → Answer and pass accountability to 3 friends. The
 stages stagger in, an energy line connects them, and the current action has a quiet pulse; Reduce

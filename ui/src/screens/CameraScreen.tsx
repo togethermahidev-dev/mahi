@@ -13,6 +13,7 @@ import {
   TextInput,
   Pressable,
   FlatList,
+  ScrollView,
   Share,
   AccessibilityInfo,
   BackHandler,
@@ -185,12 +186,13 @@ import { cameraCornerTop } from '@/lib/pip';
 import PointCelebration, { type PointCelebrationContent } from '@/components/PointCelebration';
 import { PullHandle, useCameraPull } from '@/components/CameraPull';
 import { PressScale } from '@/components/Motion';
+import WorkoutRoadmap from '@/components/WorkoutRoadmap';
 import PointFlight, { type Flight } from '@/components/PointFlight';
 import RollingNumber from '@/components/RollingNumber';
 import AnswerStamp from '@/components/AnswerStamp';
 import { answeredStamp } from '@/lib/answerStamp';
 import { flightCard, pointMoment, pointsRoll, willFly } from '@/lib/pointMoments';
-import { openTagsTop } from '@/lib/pip';
+import { appHeaderHeight, openTagsTop } from '@/lib/pip';
 
 /**
  * The camera when there's no open tag to answer: says how Mahi works (reactive posting) and what
@@ -1942,7 +1944,7 @@ export default function CameraScreen({
   const { fontScale } = useWindowDimensions();
   // Standard interaction: this must never depend on a remote flag. If the flag is absent or was
   // switched off, the screen becomes the fixed dead-end card shown in the reported build.
-  const pullOn = cameraOn && waitingCard;
+  const pullOn = cameraOn && !offline && !(frontPhoto && rearPhoto) && captureState === 'idle';
   const pull = useCameraPull(pullOn, safeTop, pageWidth, pageHeight);
   const { expanded: pullExpanded, toggle: togglePull } = pull;
   useEffect(() => {
@@ -2957,7 +2959,11 @@ export default function CameraScreen({
 
   return (
     <GestureDetector gesture={doubleTapToFlip}>
-      <View ref={rootRef} collapsable={false} style={styles.root}>
+      <View
+        ref={rootRef}
+        collapsable={false}
+        style={[styles.root, { backgroundColor: themeColors(dark).bg }]}
+      >
         {/* The camera layer: pulled down a little while waiting (see CameraPull). */}
         <Reanimated.View style={[styles.cameraLayer, pull.cameraStyle, pull.cardStyle]}>
           <CameraView
@@ -3061,7 +3067,7 @@ export default function CameraScreen({
 
         {/* Reactive posting: nothing to answer (or no connection to find out), so no shutter. */}
         {/* While a point flies into the counter the frost waits, so the counter stays clear. */}
-        {(gate === 'closed' || offline) && !flight && heldPoints === null ? (
+        {(pullOn || gate === 'closed' || offline) && !flight && heldPoints === null ? (
           <GestureDetector gesture={pull.gesture}>
             <View style={StyleSheet.absoluteFill}>
               {/* The actions are physically behind the camera cover and only appear as it opens. */}
@@ -3069,8 +3075,8 @@ export default function CameraScreen({
                 style={[
                   styles.revealOverlay,
                   {
-                    paddingTop: openTagsTop(safeTop, fontScale),
-                    paddingBottom: pageHeight - pull.openOffset,
+                    paddingTop: openTagsTop(safeTop, fontScale) + SIZE.z64,
+                    paddingBottom: pageHeight - pull.openOffset + SPACE.s16,
                   },
                   pull.behindStyle,
                 ]}
@@ -3078,92 +3084,107 @@ export default function CameraScreen({
                 accessibilityElementsHidden={!pull.expanded}
                 importantForAccessibility={pull.expanded ? 'auto' : 'no-hide-descendants'}
               >
-                <View ref={waitingTip} style={styles.noTagsCard}>
-                  <Reanimated.View style={[styles.actionStage, pull.primaryStyle]}>
-                    {/* The words read as one; the button is its own element. */}
-                    <WaitingCardWords
-                      title={card.title}
-                      line={card.line}
-                      mates={waitingCard ? mates : undefined}
-                      points={null}
-                    />
-                    {card.button ? (
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.seeFeedButton,
-                          pressed && { opacity: ALPHA.a70 },
-                        ]}
-                        android_ripple={{ color: COLORS.offBlack }}
-                        onPress={card.button.onPress}
-                        disabled={card.button.busy}
-                        accessibilityRole="button"
-                        accessibilityLabel={card.button.label}
-                        accessibilityState={{ busy: card.button.busy }}
-                      >
-                        {card.button.busy ? (
-                          <ActivityIndicator color={COLORS.offBlack} />
-                        ) : (
-                          <Text style={styles.seeFeedText}>{card.button.label}</Text>
-                        )}
-                      </Pressable>
-                    ) : null}
-                  </Reanimated.View>
-                  {gate === 'closed' && !offline ? (
-                    <Reanimated.View style={[styles.actionStage, pull.secondaryStyle]}>
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.inviteMateButton,
-                          pressed && { opacity: ALPHA.a70 },
-                        ]}
-                        android_ripple={{ color: COLORS.accent }}
-                        onPress={() => void inviteMate()}
-                        disabled={invitingMate}
-                        accessibilityRole="button"
-                        accessibilityLabel={INVITE_BUTTON}
-                        accessibilityHint="Makes a link to share. When they join, you’ll follow each other."
-                        accessibilityState={{ busy: invitingMate }}
-                      >
-                        {invitingMate ? (
-                          <ActivityIndicator color={COLORS.accent} />
-                        ) : (
-                          <Text style={styles.inviteMateText}>{INVITE_BUTTON}</Text>
-                        )}
-                      </Pressable>
-                    </Reanimated.View>
-                  ) : null}
-                  {gate === 'closed' && !offline ? (
-                    <Reanimated.View style={[styles.tertiaryActions, pull.tertiaryStyle]}>
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.seeInvites,
-                          pressed && { opacity: ALPHA.a70 },
-                        ]}
-                        onPress={() => setInvitesOpen(true)}
-                        accessibilityRole="button"
-                        accessibilityLabel={
-                          myInviteCount ? `See your invites, ${myInviteCount}` : 'See your invites'
-                        }
-                        accessibilityHint="Shows the links you’ve sent and who joined"
-                      >
-                        <Text style={styles.seeInvitesText}>Your invites</Text>
-                        <CountBadge count={myInviteCount ?? 0} />
-                      </Pressable>
-                      {contactsFinder ? (
-                        <Pressable
-                          style={({ pressed }) => [
-                            styles.seeInvites,
-                            pressed && { opacity: ALPHA.a70 },
-                          ]}
-                          onPress={() => setFindMatesOpen(true)}
-                          accessibilityRole="button"
-                          accessibilityLabel="Find friends in your contacts"
-                        >
-                          <Text style={styles.seeInvitesText}>Contacts</Text>
-                        </Pressable>
+                <ScrollView
+                  style={styles.waitingScroll}
+                  contentContainerStyle={styles.waitingContent}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <WorkoutRoadmap
+                    firstWorkoutDone={hasPosted}
+                    tagged={answersATag(openTags, serverOffsetMs)}
+                    captured={hasPreview}
+                  />
+                  {gate === 'closed' || offline ? (
+                    <View ref={waitingTip} style={styles.noTagsCard}>
+                      <Reanimated.View style={[styles.actionStage, pull.primaryStyle]}>
+                        {/* The words read as one; the button is its own element. */}
+                        <WaitingCardWords
+                          title={card.title}
+                          line={card.line}
+                          mates={waitingCard ? mates : undefined}
+                          points={null}
+                        />
+                        {card.button ? (
+                          <Pressable
+                            style={({ pressed }) => [
+                              styles.seeFeedButton,
+                              pressed && { opacity: ALPHA.a70 },
+                            ]}
+                            android_ripple={{ color: COLORS.offBlack }}
+                            onPress={card.button.onPress}
+                            disabled={card.button.busy}
+                            accessibilityRole="button"
+                            accessibilityLabel={card.button.label}
+                            accessibilityState={{ busy: card.button.busy }}
+                          >
+                            {card.button.busy ? (
+                              <ActivityIndicator color={COLORS.offBlack} />
+                            ) : (
+                              <Text style={styles.seeFeedText}>{card.button.label}</Text>
+                            )}
+                          </Pressable>
+                        ) : null}
+                      </Reanimated.View>
+                      {gate === 'closed' && !offline ? (
+                        <Reanimated.View style={[styles.actionStage, pull.secondaryStyle]}>
+                          <Pressable
+                            style={({ pressed }) => [
+                              styles.inviteMateButton,
+                              pressed && { opacity: ALPHA.a70 },
+                            ]}
+                            android_ripple={{ color: COLORS.accent }}
+                            onPress={() => void inviteMate()}
+                            disabled={invitingMate}
+                            accessibilityRole="button"
+                            accessibilityLabel={INVITE_BUTTON}
+                            accessibilityHint="Makes a link to share. When they join, you’ll follow each other."
+                            accessibilityState={{ busy: invitingMate }}
+                          >
+                            {invitingMate ? (
+                              <ActivityIndicator color={COLORS.accent} />
+                            ) : (
+                              <Text style={styles.inviteMateText}>{INVITE_BUTTON}</Text>
+                            )}
+                          </Pressable>
+                        </Reanimated.View>
                       ) : null}
-                    </Reanimated.View>
+                      {gate === 'closed' && !offline ? (
+                        <Reanimated.View style={[styles.tertiaryActions, pull.tertiaryStyle]}>
+                          <Pressable
+                            style={({ pressed }) => [
+                              styles.seeInvites,
+                              pressed && { opacity: ALPHA.a70 },
+                            ]}
+                            onPress={() => setInvitesOpen(true)}
+                            accessibilityRole="button"
+                            accessibilityLabel={
+                              myInviteCount
+                                ? `See your invites, ${myInviteCount}`
+                                : 'See your invites'
+                            }
+                            accessibilityHint="Shows the links you’ve sent and who joined"
+                          >
+                            <Text style={styles.seeInvitesText}>Your invites</Text>
+                            <CountBadge count={myInviteCount ?? 0} />
+                          </Pressable>
+                          {contactsFinder ? (
+                            <Pressable
+                              style={({ pressed }) => [
+                                styles.seeInvites,
+                                pressed && { opacity: ALPHA.a70 },
+                              ]}
+                              onPress={() => setFindMatesOpen(true)}
+                              accessibilityRole="button"
+                              accessibilityLabel="Find friends in your contacts"
+                            >
+                              <Text style={styles.seeInvitesText}>Contacts</Text>
+                            </Pressable>
+                          ) : null}
+                        </Reanimated.View>
+                      ) : null}
+                    </View>
                   ) : null}
-                </View>
+                </ScrollView>
               </Reanimated.View>
               {/* This is the front camera sheet. Pulling its arrow uncovers the card above it. */}
               {pullOn ? (
@@ -3174,12 +3195,12 @@ export default function CameraScreen({
                     pull.frostStyle,
                     pull.cardStyle,
                   ]}
-                  pointerEvents={pull.expanded ? 'none' : 'auto'}
+                  pointerEvents="none"
                   accessibilityElementsHidden={pull.expanded}
                   importantForAccessibility={pull.expanded ? 'no-hide-descendants' : 'auto'}
                 >
                   <BlurView
-                    intensity={BLUR_INTENSITY.i60}
+                    intensity={waitingCard ? BLUR_INTENSITY.i60 : 0}
                     tint="dark"
                     style={StyleSheet.absoluteFill}
                     pointerEvents="none"
@@ -3191,8 +3212,8 @@ export default function CameraScreen({
                 </Reanimated.View>
               ) : null}
               <PullHandle
-                top={pageHeight * MOTION.pull.handleTopShare}
-                openTop={pull.openOffset - SIZE.z64}
+                top={appHeaderHeight(safeTop) + SPACE.s8}
+                openTop={appHeaderHeight(safeTop) + SPACE.s8}
                 offset={pull.offset}
                 openOffset={pull.openOffset}
                 expanded={pull.expanded}
@@ -3564,14 +3585,12 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s12,
     paddingHorizontal: SPACE.s12,
     borderRadius: RADIUS.r16,
-    backgroundColor: COLORS.surfaceDark2,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: SIZE.z4 },
-    shadowOpacity: ALPHA.a25,
-    shadowRadius: SHADOW_BLUR.b12,
-    elevation: ELEVATION.e8,
+    flexShrink: 0,
   },
+  waitingScroll: { width: '100%', flex: 1 },
+  waitingContent: { alignItems: 'center', paddingBottom: SPACE.s16 },
   noTagsWords: {
+    alignSelf: 'stretch',
     alignItems: 'center',
     gap: SPACE.s6,
   },
@@ -3583,6 +3602,7 @@ const styles = StyleSheet.create({
   tertiaryActions: {
     minHeight: SIZE.z44,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACE.s4,
@@ -3614,6 +3634,7 @@ const styles = StyleSheet.create({
     minHeight: SIZE.z36,
   },
   inviteMateText: {
+    textAlign: 'center',
     color: themeColors(true).muted,
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,

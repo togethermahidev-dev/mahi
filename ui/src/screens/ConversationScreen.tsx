@@ -13,14 +13,16 @@ import {
   Alert,
   useWindowDimensions,
 } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Reanimated, {
   useAnimatedStyle,
   useSharedValue,
+  useReducedMotion,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+import { useCardMorphStyle } from '@/components/MorphTransition';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import KeyboardInset from '@/components/KeyboardInset';
 import { EmojiKeyboardButton, EmojiPanel, useEmojiKeyboard } from '@/components/EmojiKeyboard';
@@ -52,6 +54,7 @@ import {
   TRACKING,
   SWIPE,
   VIEWER,
+  MOTION,
   withAlpha,
 } from '@/constants/tokens';
 
@@ -113,30 +116,55 @@ export default function ConversationScreen({
   const inputRef = useRef<TextInput>(null);
   const emoji = useEmojiKeyboard(inputRef);
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  const reduceMotion = useReducedMotion();
+  const progress = useSharedValue(0);
+  const full = { x: 0, y: 0, width, height, borderRadius: 0 };
+  const cardStyle = useCardMorphStyle(
+    progress,
+    1,
+    reduceMotion
+      ? full
+      : {
+          x: SPACE.s16,
+          y: height / 2 - SIZE.z44,
+          width: width - SPACE.s16 * 2,
+          height: SIZE.z88,
+          borderRadius: RADIUS.r24,
+        },
+    full
+  );
+  useEffect(() => {
+    progress.value = withSpring(1, MOTION.morph);
+  }, [progress]);
+  const close = () => {
+    Keyboard.dismiss();
+    progress.value = withTiming(0, { duration: VIEWER.closeMs }, (finished) => {
+      if (finished) scheduleOnRN(onBack);
+    });
+  };
   // The conversation owns its dismissal value. It can run alongside the vertical message list,
   // while a deliberate right swipe carries the whole screen back to the inbox.
-  const dismissX = useSharedValue(0);
   const dismiss = Gesture.Pan()
     .activeOffsetX([SWIPE.slop, SWIPE.slop])
     .failOffsetY([-SWIPE.slop, SWIPE.slop])
     .onUpdate((event) => {
       'worklet';
-      dismissX.value = Math.max(0, event.translationX);
+      progress.value = Math.max(0, Math.min(1, 1 - event.translationX / width));
     })
     .onEnd((event) => {
       'worklet';
       const shouldDismiss =
         event.translationX > VIEWER.closeDistance || event.velocityX > VIEWER.closeVelocity;
       if (shouldDismiss) {
-        dismissX.value = withTiming(width, { duration: VIEWER.closeMs }, (finished) => {
+        progress.value = withTiming(0, { duration: VIEWER.closeMs }, (finished) => {
           if (finished) scheduleOnRN(onBack);
         });
       } else {
-        dismissX.value = withSpring(0, VIEWER.snapBack);
+        progress.value = withSpring(1, VIEWER.snapBack);
       }
     });
-  const dismissStyle = useAnimatedStyle(() => ({ transform: [{ translateX: dismissX.value }] }));
+  const dismissStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
   // The glass dock along the bottom of Messages would sit on the message bar: it hides here.
   useCoverRail(true);
   // The keyboard covers the home-indicator strip, so that inset only applies while it is closed.
@@ -273,290 +301,301 @@ export default function ConversationScreen({
   const rows = useMemo<GroupedRow[]>(() => groupMessagesByDate(messages).reverse(), [messages]);
 
   return (
-    <Modal visible animationType="slide" transparent={false} onRequestClose={onBack}>
-      <GestureDetector gesture={dismiss}>
-        <Reanimated.View style={[styles.root, { backgroundColor: bg }, dismissStyle]}>
-          {/* Header */}
-          <View
+    <Modal visible animationType="none" transparent statusBarTranslucent onRequestClose={close}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <GestureDetector gesture={dismiss}>
+          <Reanimated.View
             style={[
-              styles.header,
-              { borderBottomColor: border, paddingTop: insets.top + SPACE.s8 },
+              styles.root,
+              { position: 'absolute', overflow: 'hidden', backgroundColor: bg },
+              cardStyle,
+              dismissStyle,
             ]}
           >
-            <Pressable
-              style={({ pressed }) => [
-                styles.backBtn,
-                { borderColor: border },
-                pressed && styles.pressed,
-              ]}
-              onPress={onBack}
-              accessibilityRole="button"
-              accessibilityLabel="Back"
-              hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
-            >
-              <Text style={[styles.backArrow, { color: text }]}>‹</Text>
-            </Pressable>
-            <Text style={[styles.headerName, { color: text }]} numberOfLines={1}>
-              {otherName}
-            </Text>
-            {/* Spacer to keep name centred */}
-            <View style={styles.backBtn} />
-          </View>
-
-          {/* Request banner — shown to the receiver before they accept */}
-          {isRequest && isReceiver ? (
-            <View
-              style={[styles.requestBanner, { borderBottomColor: border, backgroundColor: bg }]}
-            >
-              <Text style={[styles.requestText, { color: muted }]}>
-                @{convo.other_profile.username} wants to message you. Accept to chat.
-              </Text>
-              <View style={styles.requestActions}>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.requestBtn,
-                    { borderColor: text },
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={handleAccept}
-                  accessibilityRole="button"
-                  accessibilityLabel="Accept request"
-                >
-                  <Text style={[styles.requestBtnText, { color: text }]}>Accept</Text>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.requestBtn,
-                    styles.denyBtn,
-                    { borderColor: dangerText },
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={handleDeny}
-                  accessibilityRole="button"
-                  accessibilityLabel="Deny request"
-                >
-                  <Text style={[styles.requestBtnText, { color: dangerText }]}>Deny</Text>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.requestBtn,
-                    { borderColor: dangerText },
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={handleBlock}
-                  accessibilityRole="button"
-                  accessibilityLabel="Block"
-                >
-                  <Text style={[styles.requestBtnText, { color: dangerText }]}>Block</Text>
-                </Pressable>
-              </View>
-            </View>
-          ) : null}
-
-          {/* The sender of a request is told where it went, so silence doesn't read as being ignored. */}
-          {waiting ? (
-            <View
-              style={[styles.requestBanner, { borderBottomColor: border, backgroundColor: bg }]}
-            >
-              <Text style={[styles.requestText, { color: muted }]}>
-                Waiting for @{convo.other_profile.username} to accept
-              </Text>
-            </View>
-          ) : null}
-
-          {/* Message list */}
-          {isLoading ? (
-            <View style={styles.loadingWrap}>
-              <ActivityIndicator color={muted} />
-            </View>
-          ) : (
-            <FlatList
-              ref={flatListRef}
-              data={rows}
-              keyExtractor={(item) => (item.type === 'header' ? item.id : item.msg.id)}
-              inverted
-              contentContainerStyle={styles.listContent}
-              onEndReached={hasMore ? loadOlder : undefined}
-              onEndReachedThreshold={0.4}
-              ListFooterComponent={
-                isLoadingOlder ? (
-                  <View style={styles.olderWrap}>
-                    <ActivityIndicator color={muted} size="small" />
-                  </View>
-                ) : null
-              }
-              renderItem={({ item }) => {
-                if (item.type === 'header') {
-                  return (
-                    <View style={styles.dayHeader}>
-                      <Text style={[styles.dayHeaderText, { color: muted }]}>{item.label}</Text>
-                    </View>
-                  );
-                }
-                const msg = item.msg;
-                const isOwn = msg.sender_id === currentUserId;
-                const sending = msg.id.startsWith('temp_');
-                const actions = messageHoldActions({
-                  own: isOwn && !sending,
-                  canEdit: canStillEdit(msg.created_at) && canSend,
-                });
-                const reactions = reactionsOf(msg);
-                return (
-                  <View
-                    style={[
-                      styles.bubbleWrap,
-                      isOwn ? styles.bubbleWrapOwn : styles.bubbleWrapOther,
-                    ]}
-                  >
-                    <MessageHoldMenu
-                      enabled={!sending && (canReact || actions.length > 0)}
-                      canReact={canReact}
-                      mine={myReaction(reactions)}
-                      actions={actions}
-                      dark={dark}
-                      onReact={(emoji) => void onReact(msg.id, emoji)}
-                      onMore={() => setEmojiFor(msg.id)}
-                      onAction={(action) => void runHoldAction(msg, action)}
-                    >
-                      <View
-                        style={[
-                          styles.bubble,
-                          { backgroundColor: isOwn ? ownBubble : otherBubble },
-                        ]}
-                      >
-                        <Text style={[styles.bubbleText, { color: text }]}>{msg.content}</Text>
-                      </View>
-                    </MessageHoldMenu>
-                    {reactionsOn ? (
-                      <ReactionBadges
-                        messageId={msg.id}
-                        reactions={reactions}
-                        own={isOwn}
-                        dark={dark}
-                        onToggle={(emoji) => void onReact(msg.id, emoji)}
-                      />
-                    ) : null}
-                    {item.showTime || msg.edited_at ? (
-                      <Text style={[styles.bubbleTime, { color: muted }]}>
-                        {[
-                          item.showTime
-                            ? new Date(msg.created_at).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: false,
-                              })
-                            : null,
-                          msg.edited_at ? 'Edited' : null,
-                        ]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </Text>
-                    ) : null}
-                  </View>
-                );
-              }}
-              ListEmptyComponent={
-                !isLoading ? (
-                  <View style={styles.emptyWrap}>
-                    <Text style={[styles.emptyText, { color: muted }]}>
-                      Say hi to @{convo.other_profile.username}.
-                    </Text>
-                  </View>
-                ) : null
-              }
-            />
-          )}
-
-          {/* Input bar — the inset below it grows with the keyboard, so the bar rides on top. */}
-          {!canSend ? (
+            {/* Header */}
             <View
               style={[
-                styles.inputBar,
-                { borderTopColor: border, paddingBottom: Math.max(insets.bottom, SPACE.s10) },
+                styles.header,
+                { borderBottomColor: border, paddingTop: insets.top + SPACE.s8 },
               ]}
             >
-              <Text style={[styles.requestText, styles.lockedText, { color: muted }]}>
-                {isReceiver
-                  ? 'Accept the request to reply.'
-                  : `You can send more once @${convo.other_profile.username} accepts.`}
-              </Text>
-            </View>
-          ) : null}
-          {editing && canSend ? (
-            <View style={[styles.editBar, { borderTopColor: border, backgroundColor: bg }]}>
-              <Text style={[styles.requestText, { color: muted }]}>Editing message</Text>
-              <Pressable
-                onPress={cancelEdit}
-                accessibilityRole="button"
-                accessibilityLabel="Cancel edit"
-                hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
-              >
-                <Text style={[styles.requestBtnText, { color: text }]}>Cancel</Text>
-              </Pressable>
-            </View>
-          ) : null}
-          <View style={[{ backgroundColor: bg }, !canSend && styles.hidden]}>
-            <View
-              style={[
-                styles.inputBar,
-                {
-                  borderTopColor: border,
-                  // Android's emoji panel sits where the keyboard was: no home-indicator gap.
-                  paddingBottom:
-                    keyboardOpen || emoji.on ? SPACE.s10 : Math.max(insets.bottom, SPACE.s10),
-                },
-              ]}
-            >
-              <TextInput
-                ref={inputRef}
-                style={[styles.input, { color: text, borderColor: border }]}
-                placeholder="Message…"
-                placeholderTextColor={muted}
-                value={inputText}
-                onChangeText={setInputText}
-                multiline
-                // Return sends; long messages still wrap and grow the field.
-                submitBehavior="submit"
-                maxLength={1000}
-                returnKeyType="send"
-                enablesReturnKeyAutomatically
-                onSubmitEditing={handleSend}
-                onBlur={emoji.onBlur}
-                {...FREE_TEXT_PREDICTION}
-              />
-              <EmojiKeyboardButton emoji={emoji} color={muted} />
               <Pressable
                 style={({ pressed }) => [
-                  styles.sendBtn,
-                  { opacity: inputText.trim() ? 1 : ALPHA.a35 },
+                  styles.backBtn,
+                  { borderColor: border },
                   pressed && styles.pressed,
                 ]}
-                onPress={handleSend}
-                disabled={!inputText.trim() || sending}
+                onPress={close}
                 accessibilityRole="button"
-                accessibilityLabel={editing ? 'Save edit' : 'Send'}
-                accessibilityState={{ disabled: !inputText.trim() || sending }}
+                accessibilityLabel="Back"
+                hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
               >
-                <Text style={[styles.sendText, { color: text }]}>{editing ? 'Save' : 'Send'}</Text>
+                <Text style={[styles.backArrow, { color: text }]}>‹</Text>
               </Pressable>
+              <Text style={[styles.headerName, { color: text }]} numberOfLines={1}>
+                {otherName}
+              </Text>
+              {/* Spacer to keep name centred */}
+              <View style={styles.backBtn} />
             </View>
-            <EmojiPanel emoji={emoji} />
-            <KeyboardInset />
-          </View>
-          {/* Any emoji (the hold menu's "+"). */}
-          {emojiFor ? (
-            <EmojiKeyboardSheet
-              dark={dark}
-              onClose={() => setEmojiFor(null)}
-              onPick={(emoji) => {
-                const id = emojiFor;
-                setEmojiFor(null);
-                void onReact(id, emoji);
-              }}
-            />
-          ) : null}
-        </Reanimated.View>
-      </GestureDetector>
+
+            {/* Request banner — shown to the receiver before they accept */}
+            {isRequest && isReceiver ? (
+              <View
+                style={[styles.requestBanner, { borderBottomColor: border, backgroundColor: bg }]}
+              >
+                <Text style={[styles.requestText, { color: muted }]}>
+                  @{convo.other_profile.username} wants to message you. Accept to chat.
+                </Text>
+                <View style={styles.requestActions}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.requestBtn,
+                      { borderColor: text },
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={handleAccept}
+                    accessibilityRole="button"
+                    accessibilityLabel="Accept request"
+                  >
+                    <Text style={[styles.requestBtnText, { color: text }]}>Accept</Text>
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.requestBtn,
+                      styles.denyBtn,
+                      { borderColor: dangerText },
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={handleDeny}
+                    accessibilityRole="button"
+                    accessibilityLabel="Deny request"
+                  >
+                    <Text style={[styles.requestBtnText, { color: dangerText }]}>Deny</Text>
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.requestBtn,
+                      { borderColor: dangerText },
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={handleBlock}
+                    accessibilityRole="button"
+                    accessibilityLabel="Block"
+                  >
+                    <Text style={[styles.requestBtnText, { color: dangerText }]}>Block</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : null}
+
+            {/* The sender of a request is told where it went, so silence doesn't read as being ignored. */}
+            {waiting ? (
+              <View
+                style={[styles.requestBanner, { borderBottomColor: border, backgroundColor: bg }]}
+              >
+                <Text style={[styles.requestText, { color: muted }]}>
+                  Waiting for @{convo.other_profile.username} to accept
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Message list */}
+            {isLoading ? (
+              <View style={styles.loadingWrap}>
+                <ActivityIndicator color={muted} />
+              </View>
+            ) : (
+              <FlatList
+                ref={flatListRef}
+                data={rows}
+                keyExtractor={(item) => (item.type === 'header' ? item.id : item.msg.id)}
+                inverted
+                contentContainerStyle={styles.listContent}
+                onEndReached={hasMore ? loadOlder : undefined}
+                onEndReachedThreshold={0.4}
+                ListFooterComponent={
+                  isLoadingOlder ? (
+                    <View style={styles.olderWrap}>
+                      <ActivityIndicator color={muted} size="small" />
+                    </View>
+                  ) : null
+                }
+                renderItem={({ item }) => {
+                  if (item.type === 'header') {
+                    return (
+                      <View style={styles.dayHeader}>
+                        <Text style={[styles.dayHeaderText, { color: muted }]}>{item.label}</Text>
+                      </View>
+                    );
+                  }
+                  const msg = item.msg;
+                  const isOwn = msg.sender_id === currentUserId;
+                  const sending = msg.id.startsWith('temp_');
+                  const actions = messageHoldActions({
+                    own: isOwn && !sending,
+                    canEdit: canStillEdit(msg.created_at) && canSend,
+                  });
+                  const reactions = reactionsOf(msg);
+                  return (
+                    <View
+                      style={[
+                        styles.bubbleWrap,
+                        isOwn ? styles.bubbleWrapOwn : styles.bubbleWrapOther,
+                      ]}
+                    >
+                      <MessageHoldMenu
+                        enabled={!sending && (canReact || actions.length > 0)}
+                        canReact={canReact}
+                        mine={myReaction(reactions)}
+                        actions={actions}
+                        dark={dark}
+                        onReact={(emoji) => void onReact(msg.id, emoji)}
+                        onMore={() => setEmojiFor(msg.id)}
+                        onAction={(action) => void runHoldAction(msg, action)}
+                      >
+                        <View
+                          style={[
+                            styles.bubble,
+                            { backgroundColor: isOwn ? ownBubble : otherBubble },
+                          ]}
+                        >
+                          <Text style={[styles.bubbleText, { color: text }]}>{msg.content}</Text>
+                        </View>
+                      </MessageHoldMenu>
+                      {reactionsOn ? (
+                        <ReactionBadges
+                          messageId={msg.id}
+                          reactions={reactions}
+                          own={isOwn}
+                          dark={dark}
+                          onToggle={(emoji) => void onReact(msg.id, emoji)}
+                        />
+                      ) : null}
+                      {item.showTime || msg.edited_at ? (
+                        <Text style={[styles.bubbleTime, { color: muted }]}>
+                          {[
+                            item.showTime
+                              ? new Date(msg.created_at).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: false,
+                                })
+                              : null,
+                            msg.edited_at ? 'Edited' : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </Text>
+                      ) : null}
+                    </View>
+                  );
+                }}
+                ListEmptyComponent={
+                  !isLoading ? (
+                    <View style={styles.emptyWrap}>
+                      <Text style={[styles.emptyText, { color: muted }]}>
+                        Say hi to @{convo.other_profile.username}.
+                      </Text>
+                    </View>
+                  ) : null
+                }
+              />
+            )}
+
+            {/* Input bar — the inset below it grows with the keyboard, so the bar rides on top. */}
+            {!canSend ? (
+              <View
+                style={[
+                  styles.inputBar,
+                  { borderTopColor: border, paddingBottom: Math.max(insets.bottom, SPACE.s10) },
+                ]}
+              >
+                <Text style={[styles.requestText, styles.lockedText, { color: muted }]}>
+                  {isReceiver
+                    ? 'Accept the request to reply.'
+                    : `You can send more once @${convo.other_profile.username} accepts.`}
+                </Text>
+              </View>
+            ) : null}
+            {editing && canSend ? (
+              <View style={[styles.editBar, { borderTopColor: border, backgroundColor: bg }]}>
+                <Text style={[styles.requestText, { color: muted }]}>Editing message</Text>
+                <Pressable
+                  onPress={cancelEdit}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel edit"
+                  hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+                >
+                  <Text style={[styles.requestBtnText, { color: text }]}>Cancel</Text>
+                </Pressable>
+              </View>
+            ) : null}
+            <View style={[{ backgroundColor: bg }, !canSend && styles.hidden]}>
+              <View
+                style={[
+                  styles.inputBar,
+                  {
+                    borderTopColor: border,
+                    // Android's emoji panel sits where the keyboard was: no home-indicator gap.
+                    paddingBottom:
+                      keyboardOpen || emoji.on ? SPACE.s10 : Math.max(insets.bottom, SPACE.s10),
+                  },
+                ]}
+              >
+                <TextInput
+                  ref={inputRef}
+                  style={[styles.input, { color: text, borderColor: border }]}
+                  placeholder="Message…"
+                  placeholderTextColor={muted}
+                  value={inputText}
+                  onChangeText={setInputText}
+                  multiline
+                  // Return sends; long messages still wrap and grow the field.
+                  submitBehavior="submit"
+                  maxLength={1000}
+                  returnKeyType="send"
+                  enablesReturnKeyAutomatically
+                  onSubmitEditing={handleSend}
+                  onBlur={emoji.onBlur}
+                  {...FREE_TEXT_PREDICTION}
+                />
+                <EmojiKeyboardButton emoji={emoji} color={muted} />
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.sendBtn,
+                    { opacity: inputText.trim() ? 1 : ALPHA.a35 },
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={handleSend}
+                  disabled={!inputText.trim() || sending}
+                  accessibilityRole="button"
+                  accessibilityLabel={editing ? 'Save edit' : 'Send'}
+                  accessibilityState={{ disabled: !inputText.trim() || sending }}
+                >
+                  <Text style={[styles.sendText, { color: text }]}>
+                    {editing ? 'Save' : 'Send'}
+                  </Text>
+                </Pressable>
+              </View>
+              <EmojiPanel emoji={emoji} />
+              <KeyboardInset />
+            </View>
+            {/* Any emoji (the hold menu's "+"). */}
+            {emojiFor ? (
+              <EmojiKeyboardSheet
+                dark={dark}
+                onClose={() => setEmojiFor(null)}
+                onPick={(emoji) => {
+                  const id = emojiFor;
+                  setEmojiFor(null);
+                  void onReact(id, emoji);
+                }}
+              />
+            ) : null}
+          </Reanimated.View>
+        </GestureDetector>
+      </GestureHandlerRootView>
     </Modal>
   );
 }

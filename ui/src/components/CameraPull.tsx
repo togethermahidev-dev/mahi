@@ -181,7 +181,14 @@ export function useCameraPull(
   // The live camera and its frost crossfade for Reduce Motion; shared card geometry owns movement.
   const cameraStyle = useAnimatedStyle(() => {
     const progress = openOffset > 0 ? offset.value / openOffset : 0;
-    return { opacity: reduceMotion ? interpolate(progress, [0, 1], [1, 0]) : 1 };
+    return {
+      opacity: interpolate(
+        progress,
+        reduceMotion ? [0, 1] : [0, MOTION.pull.cameraFadeAt, 1],
+        reduceMotion ? [1, 0] : [1, 1, 1],
+        'clamp'
+      ),
+    };
   });
   // Reduce Motion: the frost thins instead.
   const frostStyle = useAnimatedStyle(() =>
@@ -189,7 +196,14 @@ export function useCameraPull(
       ? {
           opacity: interpolate(offset.value, [0, openOffset], [1, 0]),
         }
-      : { opacity: 1 }
+      : {
+          opacity: interpolate(
+            offset.value,
+            [0, openOffset * MOTION.pull.cameraFadeAt, openOffset],
+            [1, 1, 0],
+            'clamp'
+          ),
+        }
   );
   // The card behind the glass.
   const behindStyle = useAnimatedStyle(() => {

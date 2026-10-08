@@ -597,6 +597,7 @@ export const MOTION = {
     peekBackMs: 220,
     /** The standalone arrow gives two short downward jumps instead of showing an instruction pill. */
     arrowJumpY: 8,
+    cameraFadeAt: 0.65,
   },
   /** A pull past this share of its limit is felt once (a tick). */
   pullFeltAt: 0.6,
