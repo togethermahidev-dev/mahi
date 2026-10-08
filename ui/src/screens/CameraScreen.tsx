@@ -1901,17 +1901,22 @@ export default function CameraScreen({
   // it moves and shrinks with the card (its height share, so it stays inside the card).
   const pipLeft = Math.max(PIP_MARGIN, railRoom);
   const pipTop = previewPipRestTop(pageHeight, PIP_H) - lift;
+  // Only plain numbers and the shared value go into the worklet: capturing `pull` itself would
+  // drag its gesture along, which the UI thread cannot copy (13.19–13.20 crashed on launch).
+  const pullOffset = pull.offset;
+  const pullOpen = pull.openOffset;
+  const cardX = pull.collapsed.x;
+  const cardY = pull.collapsed.y;
+  const scaleW = pull.collapsed.width / pull.viewport.width;
+  const scaleH = pull.collapsed.height / pull.viewport.height;
   const pipFollowStyle = useAnimatedStyle(() => {
-    const p =
-      pull.openOffset > 0 ? Math.min(1, Math.max(0, pull.offset.value / pull.openOffset)) : 0;
-    const sw = pull.collapsed.width / pull.viewport.width;
-    const sh = pull.collapsed.height / pull.viewport.height;
-    const scale = 1 + p * (sh - 1);
+    const p = pullOpen > 0 ? Math.min(1, Math.max(0, pullOffset.value / pullOpen)) : 0;
+    const scale = 1 + p * (scaleH - 1);
     return {
       transformOrigin: 'top left',
       transform: [
-        { translateX: p * (pull.collapsed.x + pipLeft * (sw - sh)) },
-        { translateY: p * pull.collapsed.y },
+        { translateX: p * (cardX + pipLeft * (scaleW - scaleH)) },
+        { translateY: p * cardY },
         { scale },
       ],
     };
