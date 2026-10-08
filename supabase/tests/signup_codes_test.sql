@@ -1,11 +1,14 @@
 -- Sign-up codes: only the server can read them, and an email account can only be created
--- after its code was checked by the server in the last 30 minutes.
+-- after its code was checked by the server in the last 30 minutes. Email sign-ups here carry
+-- complete-signup's marker, as every real one does (20261008100000_security_hardening;
+-- security_hardening_test.sql covers sign-ups without it).
 begin;
 select plan(14);
 
 create function pg_temp.hook(p_provider text, p_email text) returns jsonb language sql as $$
   select public.hook_require_verified_signup(jsonb_build_object('user', jsonb_build_object(
-    'email', p_email, 'app_metadata', jsonb_build_object('provider', p_provider))));
+    'email', p_email,
+    'app_metadata', jsonb_build_object('provider', p_provider, 'signup_via', 'complete-signup'))));
 $$;
 
 insert into public.otp_codes (email, code_hash, expires_at, used, verified_at) values

@@ -10,6 +10,10 @@ insert into public.profiles (id, username) values
   ('00000000-0000-0000-0000-00000000e00b', 'like_b');
 insert into public.posts (id, user_id, image_url, streak_day)
 values ('00000000-0000-0000-0000-0000000e0b01', '00000000-0000-0000-0000-00000000e00b', 'x', 1);
+-- a can see b's post (likes only on posts you can see: 20261008100000_security_hardening).
+update public.app_config set feed_lock_enabled = false;
+insert into public.follows (follower_id, following_id)
+values ('00000000-0000-0000-0000-00000000e00a', '00000000-0000-0000-0000-00000000e00b');
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000e00a","role":"authenticated"}';

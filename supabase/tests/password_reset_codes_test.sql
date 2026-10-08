@@ -6,7 +6,8 @@ select plan(10);
 
 create function pg_temp.hook(p_email text) returns jsonb language sql as $$
   select public.hook_require_verified_signup(jsonb_build_object('user', jsonb_build_object(
-    'email', p_email, 'app_metadata', jsonb_build_object('provider', 'email'))));
+    'email', p_email,
+    'app_metadata', jsonb_build_object('provider', 'email', 'signup_via', 'complete-signup'))));
 $$;
 
 select is(

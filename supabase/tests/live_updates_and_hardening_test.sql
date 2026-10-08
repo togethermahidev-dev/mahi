@@ -34,11 +34,22 @@ create function pg_temp.as_user(p_id uuid) returns void language sql as $$
          set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true);
 $$;
 
+-- b may see a's posts (posts follow the feed rule since 20261008100000_security_hardening).
+-- (Triggers off for this follow, so it leaves no notification behind for the follow test below.)
+update public.app_config set feed_lock_enabled = false;
+set local session_replication_role = replica;
+insert into public.follows (follower_id, following_id)
+values ('00000000-0000-0000-0000-0000000aa01b', '00000000-0000-0000-0000-0000000aa01a');
+set local session_replication_role = origin;
 select pg_temp.as_user('00000000-0000-0000-0000-0000000aa01b');
 select is((select count(*)::int from public.post_tags
            where user_id = '00000000-0000-0000-0000-0000000aa01b'), 1,
   'someone else sees the tags on a visible post only');
 reset role;
+set local session_replication_role = replica;
+delete from public.follows
+where follower_id = '00000000-0000-0000-0000-0000000aa01b' and following_id = '00000000-0000-0000-0000-0000000aa01a';
+set local session_replication_role = origin;
 select pg_temp.as_user('00000000-0000-0000-0000-0000000aa01a');
 select is((select count(*)::int from public.post_tags
            where user_id = '00000000-0000-0000-0000-0000000aa01b'), 1,

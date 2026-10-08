@@ -6,7 +6,7 @@ select is(has_function_privilege('anon', 'public.get_feed_posts(integer, timesta
 select is(has_function_privilege('anon', 'public.get_follow_data(uuid, uuid)', 'execute'),
   false, 'signed out: no get_follow_data');
 select is(has_function_privilege('authenticated', 'public.get_feed_posts(integer, timestamptz, uuid)', 'execute'),
-  true, 'signed in: get_feed_posts');
+  false, 'signed in: no get_feed_posts either (it skipped the feed rule; 20261008100000_security_hardening)');
 select is(has_function_privilege('authenticated', 'public.get_follow_data(uuid, uuid)', 'execute'),
   true, 'signed in: get_follow_data');
 select * from finish();
