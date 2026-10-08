@@ -18,7 +18,8 @@ select is(public.username_available('taken_name'), false, 'a taken name is not f
 select is(public.username_available('  Taken_Name '), false, 'case and spaces do not hide a taken name');
 select is(public.username_available('free_name'), true, 'an unused name is free');
 select is(public.username_available(''), false, 'an empty name is never free');
-select is((select count(*) from public.profiles)::int, 0, 'signed out: profiles stay unreadable');
+select throws_ok($$select count(*) from public.profiles$$, '42501', null,
+  'signed out: profiles stay unreadable (no table rights since 20261008140000)');
 reset role;
 
 select * from finish();

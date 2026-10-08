@@ -45,16 +45,16 @@ select has_table('public', 'user_sanctions', 'warnings, suspensions and bans are
 select has_table('public', 'moderation_actions', 'every staff action is logged');
 select has_table('public', 'moderation_scans', 'the AI check has a queue');
 
--- 1. Reporting, as the app does it today (a direct insert) and through the new calls.
+-- 1. Reporting, only through the report calls (the old direct insert closed in
+--    20261008140000_security_hardening_live).
 select pg_temp.as_user('b');
-select lives_ok($$insert into public.user_reports (reporter_id, reported_user_id, reason)
-                  values (pg_temp.uid('b'), pg_temp.uid('a'), 'spam')$$,
-  'the app''s existing report still works');
 select throws_ok($$insert into public.user_reports (reporter_id, reported_user_id, reason)
                    values (pg_temp.uid('b'), pg_temp.uid('a'), 'spam')$$,
-  '23505', null, 'and a repeat is still "Already reported" (23505)');
+  '42501', null, 'a direct report is refused');
+select is((public.report_user(pg_temp.uid('a'), 'spam') ->> 'already_reported')::boolean, false,
+  'report_user files a report');
 select is((public.report_user(pg_temp.uid('a'), 'spam') ->> 'already_reported')::boolean, true,
-  'report_user sees the same report');
+  'and a repeat is "already reported"');
 select is((public.report_post('00000000-0000-0000-0000-0000000d0f01', 'sexual_content', 'not ok')
            ->> 'already_reported')::boolean, false, 'report_post files a report');
 select is((public.report_post('00000000-0000-0000-0000-0000000d0f01', 'spam')

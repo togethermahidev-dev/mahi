@@ -37,8 +37,9 @@ select throws_ok($$update public.profiles set username = 'cols_c' where id = aut
 select throws_ok($$update public.profiles set id = '00000000-0000-0000-0000-00000000c01c' where id = auth.uid()$$,
   '42501', null, 'nor your id');
 
-select lives_ok($$update public.profiles set avatar_url = 'a.jpg' where id = auth.uid()$$,
-  'you can change your photo');
+select lives_ok($$update public.profiles set avatar_url = 'https://pzepodsppqtvptzmwxzs.supabase.co/storage/v1/object/public/avatars/00000000-0000-0000-0000-00000000c01a/avatar.jpg'
+                  where id = auth.uid()$$,
+  'you can change your photo (an address in your own avatar folder, 20261008140000)');
 select lives_ok($$update public.profiles set timezone = 'America/New_York' where id = auth.uid()$$,
   'and your time zone');
 select lives_ok(
@@ -49,7 +50,8 @@ select lives_ok(
   'and your details');
 
 -- Row rules are as before: someone else's row is simply not yours to change.
-update public.profiles set avatar_url = 'mine.jpg' where id = '00000000-0000-0000-0000-00000000c01b';
+update public.profiles set avatar_url = 'https://pzepodsppqtvptzmwxzs.supabase.co/storage/v1/object/public/avatars/00000000-0000-0000-0000-00000000c01b/avatar.jpg'
+  where id = '00000000-0000-0000-0000-00000000c01b';
 select is((select avatar_url from public.profiles where id = '00000000-0000-0000-0000-00000000c01b'), null,
   'another person''s profile stays as it was');
 
@@ -62,7 +64,8 @@ reset role;
 
 select is((select streak_current from public.profiles where id = '00000000-0000-0000-0000-00000000c01a'), 1,
   'the streak is saved');
-select is((select avatar_url from public.profiles where id = '00000000-0000-0000-0000-00000000c01a'), 'a.jpg',
+select is((select avatar_url from public.profiles where id = '00000000-0000-0000-0000-00000000c01a'),
+  'https://pzepodsppqtvptzmwxzs.supabase.co/storage/v1/object/public/avatars/00000000-0000-0000-0000-00000000c01a/avatar.jpg',
   'the photo change is saved');
 select is((select timezone from public.profiles where id = '00000000-0000-0000-0000-00000000c01a'), 'America/New_York',
   'the time zone change is saved');

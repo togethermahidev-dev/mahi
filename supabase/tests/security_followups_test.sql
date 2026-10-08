@@ -51,8 +51,7 @@ insert into public.comment_likes (comment_id, user_id) values
 
 -- 2. Report copies.
 select pg_temp.as_user('c');
-insert into public.user_reports (reporter_id, reported_post_id, reason)
-values (pg_temp.uid('c'), '00000000-0000-0000-0000-0000000f7a01', 'other');
+select from public.report_post('00000000-0000-0000-0000-0000000f7a01', 'other');
 select throws_ok($$select snapshot from public.user_reports where reporter_id = pg_temp.uid('c')$$,
   '42501', null, 'a reporter cannot read the copy their report keeps');
 select is((select count(*)::int from public.user_reports where reporter_id = pg_temp.uid('c')), 1,

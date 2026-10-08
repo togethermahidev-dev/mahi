@@ -120,7 +120,8 @@ select ok(has_function_privilege('authenticated', 'public.toggle_comment_like(uu
 select ok(not has_function_privilege('anon', 'public.get_comment_likers(uuid)', 'execute'),
   'anon cannot list who liked');
 select set_config('role', 'anon', true);
-select is((select count(*)::int from public.comment_likes), 0, 'anon reads no likes');
+select throws_ok($$select count(*) from public.comment_likes$$, '42501', null,
+  'anon cannot read likes (no table rights since 20261008140000)');
 reset role;
 
 -- A deleted comment takes its likes with it.
