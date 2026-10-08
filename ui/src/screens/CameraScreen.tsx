@@ -67,7 +67,7 @@ import {
 } from '@/api';
 import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import OpenTagsBanner from '@/components/OpenTagsBanner';
-import { CameraIcon } from '@/components/ScreenIcons';
+import { CameraIcon, LockIcon } from '@/components/ScreenIcons';
 import {
   pointCelebration,
   pointsCount,
@@ -76,6 +76,7 @@ import {
   taggedClockLine,
 } from '@/lib/mahiPoints';
 import { useSecondTick } from '@/hooks/useSecondTick';
+import { matesOnClock } from '@/lib/openTagsBanner';
 import KeyboardInset from '@/components/KeyboardInset';
 import { EmojiKeyboardButton, EmojiPanel, useEmojiKeyboard } from '@/components/EmojiKeyboard';
 import { FREE_TEXT_PREDICTION } from '@/lib/emojiKeyboard';
@@ -316,6 +317,49 @@ function PointsCounter({
 }
 
 // ─── Waiting card words ───────────────────────────────────────────────────────
+
+/**
+ * On the front of the frosted camera while you can't post (owner, 2026-10-08: "why is it
+ * blurred?"): a padlock, why, and a live line — who is on your clock and how long they have, or
+ * what to do. Tap it (or pull down) to see the roadmap and buttons behind the camera.
+ */
+function WaitingNotice({
+  title,
+  line,
+  mates,
+  onPress,
+}: {
+  title: string;
+  line: string;
+  mates: { list: MateOnClock[]; offsetMs: number } | null | undefined;
+  onPress: () => void;
+}) {
+  const ticking = !!mates && mates.list.length > 0;
+  const deviceNow = useSecondTick(ticking);
+  const onClock = mates
+    ? matesOnClock({ mates: mates.list, serverOffsetMs: mates.offsetMs, deviceNow })
+    : null;
+  const words = onClock?.line ?? line;
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.waitingNotice, pressed && { opacity: ALPHA.a85 }]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${words}`}
+      accessibilityHint="Shows what you can do"
+    >
+      <View style={styles.waitingLock}>
+        <LockIcon size={ICON_SIZE.i20} color={COLORS.offWhite} />
+      </View>
+      <View style={styles.waitingWords}>
+        <Text style={styles.waitingTitle}>{title}</Text>
+        <Text style={styles.waitingLine} numberOfLines={3}>
+          {words}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
 
 // ─── Flip Icon ────────────────────────────────────────────────────────────────
 
@@ -1925,6 +1969,9 @@ export default function CameraScreen({
   // drag its gesture along, which the UI thread cannot copy (13.19–13.20 crashed on launch).
   const pullOffset = pull.offset;
   const pullOpen = pull.openOffset;
+  const noticeStyle = useAnimatedStyle(() => ({
+    opacity: pullOpen > 0 ? 1 - Math.min(1, Math.max(0, pullOffset.value / pullOpen)) * 2 : 1,
+  }));
   const cardX = pull.collapsed.x;
   const cardY = pull.collapsed.y;
   const scaleW = pull.collapsed.width / pull.viewport.width;
@@ -3222,6 +3269,20 @@ export default function CameraScreen({
                   />
                 </Reanimated.View>
               ) : null}
+              {/* Why it's frosted, and the live clock, on the front (fades as the drawer opens). */}
+              {pullOn && (gate === 'closed' || offline) ? (
+                <Reanimated.View
+                  style={[styles.waitingNoticeSpot, noticeStyle]}
+                  pointerEvents={pull.expanded ? 'none' : 'box-none'}
+                >
+                  <WaitingNotice
+                    title={card.title}
+                    line={card.line}
+                    mates={waitingCard ? mates : undefined}
+                    onPress={pull.toggle}
+                  />
+                </Reanimated.View>
+              ) : null}
               {feedShown ? null : (
                 <PullHandle
                   // In the header row, beside the bell (the bell pill is 36 tall; this taps as 44);
@@ -3612,6 +3673,47 @@ const styles = StyleSheet.create({
   roadmapInviteText: {
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.bold,
+  },
+  // The notice on the frosted camera: centred, dark glass, white words.
+  waitingNoticeSpot: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACE.s32,
+  },
+  waitingNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s12,
+    maxWidth: SIZE.z320,
+    paddingVertical: SPACE.s14,
+    paddingHorizontal: SPACE.s16,
+    borderRadius: RADIUS.r20,
+    backgroundColor: withAlpha(COLORS.ink, ALPHA.a60),
+  },
+  waitingLock: {
+    width: SIZE.z40,
+    height: SIZE.z40,
+    borderRadius: RADIUS.r20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: BORDER_WIDTH.w1,
+    borderColor: COLORS.offWhite,
+  },
+  waitingWords: {
+    flexShrink: 1,
+    gap: SPACE.s3,
+  },
+  waitingTitle: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f15,
+    fontFamily: FONTS.bold,
+  },
+  waitingLine: {
+    color: COLORS.offWhite,
+    fontSize: FONT_SIZE.f13,
+    lineHeight: LINE_HEIGHT.l18,
+    fontFamily: FONTS.regular,
   },
   noTagsCard: {
     width: '100%',

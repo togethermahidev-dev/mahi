@@ -84,8 +84,8 @@ export default function CameraFeedPage({
   const progress = useSharedValue(0);
   const startProgress = useSharedValue(0);
   const [feedShown, setFeedShown] = useState(false);
-  // Half a screen of travel moves it all the way.
-  const travel = page.height / 2;
+  // A third of the screen moves it all the way: quick to follow the finger (owner, 2026-10-08).
+  const travel = page.height / 3;
 
   const settle = useCallback(
     (open: boolean) => {

@@ -22,19 +22,21 @@ describe('feedTop — where the feed’s rows start', () => {
   });
 });
 
-describe('feedOpensOnRelease — an upward swipe past a quarter of the way, or a flick', () => {
+// Owner, 2026-10-08: the swipe up must feel as quick as the camera's pull down — a short drag
+// (15% of the way) or a light flick is enough.
+describe('feedOpensOnRelease — a short swipe or a light flick', () => {
   const travel = 500;
-  it('opens past a quarter of the travel', () => {
-    expect(feedOpensOnRelease({ progress: 0.3, velocity: 0, travel, startedOpen: false })).toBe(true);
+  it('opens past 15% of the travel', () => {
+    expect(feedOpensOnRelease({ progress: 0.16, velocity: 0, travel, startedOpen: false })).toBe(true);
     expect(feedOpensOnRelease({ progress: 0.1, velocity: 0, travel, startedOpen: false })).toBe(false);
   });
-  it('a flick up opens from anywhere; a flick down closes', () => {
-    expect(feedOpensOnRelease({ progress: 0.05, velocity: -2, travel, startedOpen: false })).toBe(true);
+  it('a light flick up opens from anywhere; a flick down closes', () => {
+    expect(feedOpensOnRelease({ progress: 0.05, velocity: -0.5, travel, startedOpen: false })).toBe(true);
     expect(feedOpensOnRelease({ progress: 0.9, velocity: 2, travel, startedOpen: true })).toBe(false);
   });
-  it('from open, closes only past a quarter of the way back', () => {
-    expect(feedOpensOnRelease({ progress: 0.8, velocity: 0, travel, startedOpen: true })).toBe(true);
-    expect(feedOpensOnRelease({ progress: 0.7, velocity: 0, travel, startedOpen: true })).toBe(false);
+  it('from open, closes past 15% of the way back', () => {
+    expect(feedOpensOnRelease({ progress: 0.9, velocity: 0, travel, startedOpen: true })).toBe(true);
+    expect(feedOpensOnRelease({ progress: 0.8, velocity: 0, travel, startedOpen: true })).toBe(false);
   });
 });
 

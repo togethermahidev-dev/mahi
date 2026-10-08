@@ -571,7 +571,7 @@ export const MOTION = {
   /** The camera and the feed on one screen (owner, 2026-10-08): the camera shrinks to this share
    *  of its width (its own shape) at the top-left; a swipe past this share of the way, or a
    *  flick faster than this (pt/ms), settles the other way. */
-  cameraFeed: { scale: 0.32, openAt: 0.25, flick: 1, lockedShare: 0.25 },
+  cameraFeed: { scale: 0.32, openAt: 0.15, flick: 0.5, lockedShare: 0.25 },
   /** The pixel athlete's frame rate (ms per frame), and how many beats each exercise gets
    *  before the next one (runner → weightlifter → jumping jacks → push-ups). */
   pixelFrameMs: 400,
