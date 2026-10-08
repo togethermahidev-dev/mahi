@@ -139,3 +139,32 @@ export function sentryEnvironment(channel: string | null | undefined, isDev: boo
   if (isDev || !channel) return 'development';
   return channel;
 }
+
+/** A Sentry breadcrumb, as far as `scrubBreadcrumb` needs it. */
+interface Crumb {
+  category?: string;
+  data?: Record<string, unknown>;
+}
+
+const NETWORK_CRUMBS = new Set(['fetch', 'xhr', 'http']);
+const withoutQuery = (v: unknown) => (typeof v === 'string' ? v.replace(/[?#].*$/, '') : v);
+
+/**
+ * Sentry's `beforeBreadcrumb`: network and navigation breadcrumbs keep the path but lose the
+ * query, so what someone searched for or a link's code never reaches a report.
+ */
+export function scrubBreadcrumb<T extends Crumb>(crumb: T): T {
+  const { category, data } = crumb;
+  if (!data || !category) return crumb;
+  if (NETWORK_CRUMBS.has(category)) {
+    const { 'http.query': _query, 'http.fragment': _fragment, ...rest } = data;
+    return { ...crumb, data: { ...rest, url: withoutQuery(rest.url) } };
+  }
+  if (category === 'navigation') {
+    return {
+      ...crumb,
+      data: { ...data, from: withoutQuery(data.from), to: withoutQuery(data.to) },
+    };
+  }
+  return crumb;
+}

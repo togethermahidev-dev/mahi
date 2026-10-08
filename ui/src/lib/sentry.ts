@@ -2,7 +2,12 @@ import * as Sentry from '@sentry/react-native';
 import * as Updates from 'expo-updates';
 import { env } from '@/lib/env';
 import { OTA_NUMBER } from '@/constants/ota';
-import { buildErrorReport, sentryEnvironment, type ErrorContext } from '@/lib/errorReport';
+import {
+  buildErrorReport,
+  scrubBreadcrumb,
+  sentryEnvironment,
+  type ErrorContext,
+} from '@/lib/errorReport';
 
 /**
  * On in every installed app (preview, TestFlight, App Store) when a DSN is baked in; off on a dev
@@ -16,6 +21,8 @@ export function initSentry() {
     enabled: !!env.sentryDsn && !__DEV__,
     tracesSampleRate: 1.0,
     attachStacktrace: true,
+    // Network and navigation breadcrumbs lose their query (search text, link codes).
+    beforeBreadcrumb: scrubBreadcrumb,
     initialScope: {
       tags: {
         ota: String(OTA_NUMBER),

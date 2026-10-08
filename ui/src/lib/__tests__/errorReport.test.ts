@@ -1,4 +1,4 @@
-import { buildErrorReport, sentryEnvironment } from '@/lib/errorReport';
+import { buildErrorReport, scrubBreadcrumb, sentryEnvironment } from '@/lib/errorReport';
 
 /** Shaped like supabase-js 2.x errors: real Error subclasses with extra fields. */
 function supabaseError(name: string, message: string, fields: Record<string, unknown>) {
@@ -143,5 +143,40 @@ describe('sentryEnvironment', () => {
     expect(sentryEnvironment('production', false)).toBe('production');
     expect(sentryEnvironment(null, false)).toBe('development');
     expect(sentryEnvironment('production', true)).toBe('development');
+  });
+});
+
+describe('scrubBreadcrumb', () => {
+  it('drops the query from network breadcrumbs, keeping the path', () => {
+    for (const category of ['fetch', 'xhr', 'http']) {
+      const b = scrubBreadcrumb({
+        category,
+        data: {
+          method: 'GET',
+          url: 'https://x.supabase.co/rest/v1/profiles?username=ilike.*sam*#top',
+          status_code: 200,
+          'http.query': 'username=ilike.*sam*',
+          'http.fragment': 'top',
+        },
+      });
+      expect(b.data).toEqual({
+        method: 'GET',
+        url: 'https://x.supabase.co/rest/v1/profiles',
+        status_code: 200,
+      });
+    }
+  });
+
+  it('drops the query from navigation breadcrumbs', () => {
+    const b = scrubBreadcrumb({
+      category: 'navigation',
+      data: { from: 'mahi://search?q=sam', to: 'Profile' },
+    });
+    expect(b.data).toEqual({ from: 'mahi://search', to: 'Profile' });
+  });
+
+  it('leaves other breadcrumbs alone', () => {
+    const crumb = { category: 'ui.click', message: 'a?b', data: { url: 'x?y' } };
+    expect(scrubBreadcrumb(crumb)).toEqual(crumb);
   });
 });
