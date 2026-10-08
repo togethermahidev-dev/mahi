@@ -12,7 +12,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import type { MorphRect, MorphSource } from '@/lib/morph';
-import { validMorphSource } from '@/lib/morph';
+import { pageMorphFrame, validMorphSource } from '@/lib/morph';
 import { ALPHA, COLORS, DURATION, MOTION } from '@/constants/tokens';
 
 type CardMorphGeometry = MorphRect & { borderRadius: number };
@@ -39,6 +39,22 @@ export function useCardMorphStyle(
       height: from.height + (to.height - from.height) * p,
       borderRadius: from.borderRadius + (to.borderRadius - from.borderRadius) * p,
     };
+  });
+}
+
+/**
+ * A page growing in from a tab tap (owner, 2026-10-08, Netflix-style): the page `entering` names
+ * reads the shared morph progress as its opacity, scale and corners; every other page is still.
+ */
+export function usePageMorphStyle(
+  progress: SharedValue<number>,
+  entering: SharedValue<number>,
+  page: number
+) {
+  return useAnimatedStyle<ViewStyle>(() => {
+    if (entering.value !== page) return { opacity: 1, transform: [{ scale: 1 }], borderRadius: 0 };
+    const f = pageMorphFrame(progress.value);
+    return { opacity: f.opacity, transform: [{ scale: f.scale }], borderRadius: f.borderRadius };
   });
 }
 

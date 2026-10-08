@@ -15,10 +15,12 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  useReducedMotion,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { BlurTargetView } from 'expo-blur';
 import { haptic } from '@/lib/haptics';
+import { usePageMorphStyle } from '@/components/MorphTransition';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CameraScreen, { CAMERA_CONTROLS_TOP } from '@/screens/CameraScreen';
 import FeedScreen from '@/screens/FeedScreen';
@@ -46,7 +48,7 @@ import { INITIAL_TAB, SWIPE_PAGES, pageTab, tabPage } from '@/lib/nativeTabs';
 import { pageActions, pageForAction, pageTitle } from '@/lib/pageActions';
 import { dockShows, railShows } from '@/lib/railSelector';
 import { horizontalRelease, horizontalSwipe, rubberBand, type Rect } from '@/lib/swipeRules';
-import { COLORS, LAYER, LAYOUT, SIZE, SPRING } from '@/constants/tokens';
+import { COLORS, LAYER, LAYOUT, MOTION, SIZE, SPRING } from '@/constants/tokens';
 
 // ─── Pages ────────────────────────────────────────────────────────────────────
 // One row, left to right, in the tab bar's order (owner, 2026-10-07): Messages ⇄ Feed ⇄ Camera ⇄
@@ -170,6 +172,17 @@ export default function HorizontalNavigator({
   }, [overlay, zooming, blockedSV]);
   // Where the strip sits, in pages (Camera is the entry page); fractional mid-swipe.
   const page = useSharedValue(INITIAL_PAGE);
+  // A tap on a tab (or a button that opens a page) grows the page in where it is, Netflix-style,
+  // from the shared morph value (owner, 2026-10-08); only a swipe slides the strip.
+  const pageMorph = useSharedValue(1);
+  const entering = useSharedValue(-1);
+  const reduceMotion = useReducedMotion();
+  const morphStyles = {
+    messages: usePageMorphStyle(pageMorph, entering, MESSAGES),
+    feed: usePageMorphStyle(pageMorph, entering, FEED),
+    camera: usePageMorphStyle(pageMorph, entering, CAMERA),
+    profile: usePageMorphStyle(pageMorph, entering, PROFILE),
+  };
   // A horizontal card carousel inside Profile owns its finger until release, so the same drag
   // never changes both the card and the whole app page.
   const profileCarouselActive = useSharedValue(false);
@@ -204,8 +217,18 @@ export default function HorizontalNavigator({
     if (next !== FEED) headerAnim.setValue(0);
   };
 
-  const navigate = (next: number) => {
+  const navigate = (next: number, how: 'slide' | 'morph' = 'slide') => {
+    const from = indexSV.value;
     settle(next);
+    if (how === 'morph' && !reduceMotion && from !== next) {
+      page.value = next;
+      entering.value = next;
+      pageMorph.value = 0;
+      pageMorph.value = withSpring(1, MOTION.morph, (finished) => {
+        if (finished) entering.value = -1;
+      });
+      return;
+    }
     page.value = withSpring(next, PAGE_SPRING);
   };
 
@@ -391,7 +414,7 @@ export default function HorizontalNavigator({
   const selectTab = (next: RailTab) => {
     const target = tabPage(next);
     // indexSV, not index: a drag along the rail can switch twice before the next render.
-    if (indexSV.value !== target) navigate(target);
+    if (indexSV.value !== target) navigate(target, 'morph');
   };
   if (tabBar) tabBar.selectRef.current = selectTab;
 
@@ -431,19 +454,20 @@ export default function HorizontalNavigator({
           <Animated.View style={[styles.strip, { width: width * PAGE_COUNT }, stripStyle]}>
             {/* Messages — the first page; its back button goes to Camera, the landing page. */}
             <DockRoom room={dockRoom}>
-              <View
-                style={[styles.page, pageStyle]}
+              <Animated.View
+                style={[styles.page, morphStyles.messages, pageStyle]}
                 accessibilityActions={pageA11y('messages')}
                 onAccessibilityAction={onPageAction}
               >
                 <MessagesScreen onBack={() => navigate(CAMERA)} listGesture={messagesList} />
-              </View>
+              </Animated.View>
             </DockRoom>
             {/* Feed — its header slides away as the list scrolls down. */}
             <DockRoom room={dockRoom}>
-              <View
+              <Animated.View
                 style={[
                   styles.page,
+                  morphStyles.feed,
                   pageStyle,
                   { backgroundColor: dark ? COLORS.bgDark : COLORS.white },
                 ]}
@@ -451,7 +475,7 @@ export default function HorizontalNavigator({
                 onAccessibilityAction={onPageAction}
               >
                 <FeedScreen
-                  onGoToCamera={() => navigate(CAMERA)}
+                  onGoToCamera={() => navigate(CAMERA, 'morph')}
                   onFindFriends={() => setSearchVisible(true)}
                   headerAnim={headerAnim}
                   onOverlayChange={setFeedOverlay}
@@ -477,30 +501,30 @@ export default function HorizontalNavigator({
                 >
                   {header(false)}
                 </RNAnimated.View>
-              </View>
+              </Animated.View>
             </DockRoom>
 
             {/* Camera — the entry page, always dark. */}
-            <View
-              style={[styles.page, pageStyle, { backgroundColor: COLORS.ink }]}
+            <Animated.View
+              style={[styles.page, morphStyles.camera, pageStyle, { backgroundColor: COLORS.ink }]}
               accessibilityActions={pageA11y('camera')}
               onAccessibilityAction={onPageAction}
             >
               <CameraScreen
                 onComposingChange={handleComposingChange}
-                onSeeFeed={() => navigate(FEED)}
+                onSeeFeed={() => navigate(FEED, 'morph')}
                 onFindFriends={() => setSearchVisible(true)}
                 onOpenProfile={setProfileUserId}
               />
               <View pointerEvents="box-none" style={styles.header}>
                 {header(true)}
               </View>
-            </View>
+            </Animated.View>
 
             {/* Profile — the last page, always mounted; `isActive` re-syncs its posts when it comes into view. */}
             <DockRoom room={dockRoom}>
-              <View
-                style={[styles.page, pageStyle]}
+              <Animated.View
+                style={[styles.page, morphStyles.profile, pageStyle]}
                 accessibilityActions={pageA11y('profile')}
                 onAccessibilityAction={onPageAction}
               >
@@ -508,10 +532,10 @@ export default function HorizontalNavigator({
                   isActive={index === PROFILE}
                   listGesture={profileList}
                   onSearch={() => setSearchVisible(true)}
-                  onOpenCamera={() => navigate(CAMERA)}
+                  onOpenCamera={() => navigate(CAMERA, 'morph')}
                   onCarouselTouchChange={setProfileCarouselActive}
                 />
-              </View>
+              </Animated.View>
             </DockRoom>
           </Animated.View>
         </Strip>

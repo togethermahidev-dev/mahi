@@ -563,6 +563,8 @@ export const MOTION = {
   morph: { damping: 14, stiffness: 180, mass: 0.8 },
   /** Shared geometry: destination content joins near the end; the moving image then disappears. */
   morphContentAt: 0.72,
+  /** A page growing in from a tab tap (owner, 2026-10-08): where it starts, before full size. */
+  pageMorph: { fromScale: 0.94, fromRadius: 28 },
   morphImageUntil: 0.94,
   /** A button press and release. */
   press: { damping: 18, stiffness: 420, mass: 0.6 },
