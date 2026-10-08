@@ -126,8 +126,8 @@ select throws_ok(
   '42501', null, 'a banned person still cannot comment');
 reset role;
 update public.profiles set is_banned = false where id = pg_temp.uid('b');
-select ok(not has_function_privilege('authenticated', 'public.get_feed_posts(integer, timestamp with time zone, uuid)', 'execute')
-  and not has_function_privilege('anon', 'public.get_feed_posts(integer, timestamp with time zone, uuid)', 'execute'),
+-- Revoked here, dropped by 20261008160000_drop_dead_functions.
+select hasnt_function('public', 'get_feed_posts', array['integer', 'timestamp with time zone', 'uuid'],
   'the old unchecked feed read is gone');
 
 -- 4. Posting only through create_post.
