@@ -248,6 +248,14 @@ export function useCameraPull(
     expanded,
     toggle,
     openOffset,
+    /** The small camera card's place when open (the pip window and the arrow follow it). */
+    collapsed: {
+      x: (viewportWidth - collapsedWidth) / 2,
+      y: openOffset,
+      width: collapsedWidth,
+      height: collapsedHeight,
+    },
+    viewport: { width: viewportWidth, height: viewportHeight },
   };
 }
 

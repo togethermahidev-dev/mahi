@@ -2899,6 +2899,25 @@ export default function CameraScreen({
     );
   }
 
+  // The pip window's place on the full camera, and where that maps to on the small camera card:
+  // it moves and shrinks with the card (its height share, so it stays inside the card).
+  const pipLeft = Math.max(PIP_MARGIN, railRoom);
+  const pipTop = previewPipRestTop(pageHeight, PIP_H) - lift;
+  const pipFollowStyle = useAnimatedStyle(() => {
+    const p =
+      pull.openOffset > 0 ? Math.min(1, Math.max(0, pull.offset.value / pull.openOffset)) : 0;
+    const sw = pull.collapsed.width / pull.viewport.width;
+    const sh = pull.collapsed.height / pull.viewport.height;
+    const scale = 1 + p * (sh - 1);
+    return {
+      transformOrigin: 'top left',
+      transform: [
+        { translateX: p * (pull.collapsed.x + pipLeft * (sw - sh)) },
+        { translateY: p * pull.collapsed.y },
+        { scale },
+      ],
+    };
+  });
   // The small window in the preview's photo-in-photo spot: what comes second, then the first photo.
   const guide = pipGuide({
     state: captureState,
@@ -2988,18 +3007,24 @@ export default function CameraScreen({
           />
         )}
 
+        {/* The pip window rides with the camera as it shrinks into its card (owner, 2026-10-08). */}
         {guide && (
-          <CapturePipGuide
-            guide={guide}
-            photoUri={guidePhotoUri}
-            photoIsVideo={guideIsVideo}
-            frame={{
-              left: Math.max(PIP_MARGIN, railRoom),
-              top: previewPipRestTop(pageHeight, PIP_H) - lift,
-              width: PIP_W,
-              height: PIP_H,
-            }}
-          />
+          <Reanimated.View
+            style={[StyleSheet.absoluteFill, pipFollowStyle]}
+            pointerEvents="box-none"
+          >
+            <CapturePipGuide
+              guide={guide}
+              photoUri={guidePhotoUri}
+              photoIsVideo={guideIsVideo}
+              frame={{
+                left: Math.max(PIP_MARGIN, railRoom),
+                top: previewPipRestTop(pageHeight, PIP_H) - lift,
+                width: PIP_W,
+                height: PIP_H,
+              }}
+            />
+          </Reanimated.View>
         )}
 
         {/* Capture progress overlay */}
@@ -3040,6 +3065,9 @@ export default function CameraScreen({
                   style={styles.waitingScroll}
                   contentContainerStyle={styles.waitingContent}
                   showsVerticalScrollIndicator={false}
+                  // Doesn't scroll: an upward swipe anywhere must reach the pull and close the
+                  // card (owner, 2026-10-08). The content is short (roadmap + buttons).
+                  scrollEnabled={false}
                 >
                   <WorkoutRoadmap
                     firstWorkoutDone={hasPosted}
@@ -3167,9 +3195,10 @@ export default function CameraScreen({
                 </Reanimated.View>
               ) : null}
               <PullHandle
-                // In the header row, beside the bell (the bell pill is 36 tall; this taps as 44).
+                // In the header row, beside the bell (the bell pill is 36 tall; this taps as 44);
+                // open, it rides down to the small camera card's top edge.
                 top={safeTop - (SIZE.z44 - SIZE.z36) / 2}
-                openTop={safeTop - (SIZE.z44 - SIZE.z36) / 2}
+                openTop={pull.openOffset + SPACE.s8 - (SIZE.z44 - SIZE.z36) / 2}
                 offset={pull.offset}
                 openOffset={pull.openOffset}
                 expanded={pull.expanded}
