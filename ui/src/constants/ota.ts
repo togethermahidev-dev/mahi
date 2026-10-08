@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 32 — locked panel: the reason on top, the padlock and the button side by side;
+ *     the pixel athlete is gone (2026-10-08)
  *   build 13 · 31 — the locked feed never asks someone who has posted for a first workout; the
  *     header stays when the camera lifts; the reason shows once (2026-10-08)
  *   build 13 · 30 — the swipe up to the feed uses the camera's own gesture (as reliable as the
@@ -149,4 +151,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 31;
+export const OTA_NUMBER = 32;
