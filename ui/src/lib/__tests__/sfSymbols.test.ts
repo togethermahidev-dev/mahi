@@ -41,6 +41,8 @@ describe('SF_SYMBOLS — which Apple icon replaces each drawing', () => {
       // Settings' light / dark switch: the mode you're in.
       themeLight: 'sun.max',
       themeDark: 'moon',
+      // The one padlock for every locked state (owner, 2026-10-08).
+      lock: 'lock',
       // Brand "echo" drawings (blue offset layer, like the MAHI logo) have no Apple match.
       like: null,
       comment: null,

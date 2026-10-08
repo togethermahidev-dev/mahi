@@ -28,6 +28,7 @@ export type ScreenIconKey =
   | 'keyboard'
   | 'themeLight'
   | 'themeDark'
+  | 'lock'
   | 'like'
   | 'comment'
   | 'messages';
@@ -53,6 +54,7 @@ export const SF_SYMBOLS: Record<ScreenIconKey, SFSymbolName | null> = {
   keyboard: 'keyboard', // the same button while emoji is up: back to letters
   themeLight: 'sun.max', // Settings' light / dark switch, in light mode
   themeDark: 'moon', // …and in dark mode
+  lock: 'lock', // the one padlock for every locked state (owner, 2026-10-08)
   like: null,
   comment: null,
   messages: null,

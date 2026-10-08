@@ -101,9 +101,10 @@ function DevelopCover({ delay, words }: { delay: number; words: string | null })
 
 // ─── FeedScreen ──────────────────────────────────────────────────────────────
 
-/** The gap between rows: the Mahi-blue list shows through it as the divider. */
+/** The divider between rows: a hairline in the theme's faint border colour. */
 function RowGap() {
-  return <View style={styles.rowGap} />;
+  const { colors } = useAppTheme();
+  return <View style={[styles.rowGap, { backgroundColor: colors.border }]} />;
 }
 
 interface FeedScreenProps {
@@ -134,8 +135,9 @@ export default function FeedScreen({
   // TikTok-style snap: each card fills the page (the screen, or the space above the tab bar).
   const { width: screenWidth, height: cardHeight } = usePageSize();
   const bg = dark ? COLORS.bgDark : COLORS.white;
-  // Rows sit on Mahi blue, which shows between them as the divider (owner, 2026-10-08).
-  const listBg = COLORS.accent;
+  // Rows sit on the page's own background with a barely-there hairline between them, like the
+  // Messages rows (owner, 2026-10-08: no blue lines).
+  const listBg = bg;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
   const { muted, accentText } = themeColors(dark);
   const skeletonFill = withAlpha(text, ALPHA.a10);
@@ -535,7 +537,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rowGap: {
-    height: SPACE.s3,
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: SPACE.s16,
   },
   lockedButton: {
     borderRadius: RADIUS.r50,

@@ -379,6 +379,36 @@ export function ProfileIcon(props: IconProps) {
   );
 }
 
+/** The one padlock for every locked state: a locked post, a locked feed. */
+function LockDrawing({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M7 11V8a5 5 0 0 1 10 0v3"
+        stroke={color}
+        strokeWidth={STROKE.s1_8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M5 13a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7z"
+        stroke={color}
+        strokeWidth={STROKE.s1_8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function LockIcon(props: IconProps) {
+  return (
+    <SymbolOr icon="lock" {...props}>
+      <LockDrawing {...props} />
+    </SymbolOr>
+  );
+}
+
 /** Settings' light / dark switch: a sun in light mode, a moon in dark. */
 export function ThemeIcon({ dark, ...props }: IconProps & { dark: boolean }) {
   return (

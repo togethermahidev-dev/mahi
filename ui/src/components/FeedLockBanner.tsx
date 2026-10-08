@@ -1,8 +1,9 @@
 /**
  * Top of the feed, under the app header:
- * - locked → one pill on a Mahi-blue gradient in the middle of the frosted rows: a padlock
- *   circle, the reason, and under it a round button with what to do — to the camera when there's
- *   something to post, or to people search when there isn't (owner, 2026-10-08; no big card);
+ * - locked → one card in the middle of the frosted rows: the app's padlock in a circle, the
+ *   reason, and under it a round button (with a little pixel athlete) saying what to do — to the
+ *   camera when there's something to post, or to people search when there isn't (owner,
+ *   2026-10-08: black / white, no gradient, no big card);
  * - open → a live countdown to when the feed would lock (or, if you're tagged, to when it locks),
  *   in the camera banner's style (founder, 2026-10-05).
  * Lock state and open tags expire, so both come fresh from the server each session (never saved
@@ -11,8 +12,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Path } from 'react-native-svg';
+import { LockIcon } from '@/components/ScreenIcons';
+import PixelAthlete from '@/components/PixelAthlete';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useCoachAnchor } from '@/hooks/useCoachMarks';
@@ -28,7 +29,6 @@ import {
   COLORS,
   FONT_SIZE,
   ICON_SIZE,
-  STROKE,
   LINE_HEIGHT,
   RADIUS,
   SIZE,
@@ -89,56 +89,30 @@ function LockedCard({
     // Only the button takes touches, so the feed's scroll and swipe still start anywhere else.
     <FadeInItem>
       <View ref={lockTip} pointerEvents="box-none" style={styles.lockWrap}>
-        <LinearGradient
-          colors={[colors.accent, colors.accentText]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.lockPill}
-        >
-          <View style={[styles.lockCircle, { backgroundColor: colors.offWhite }]}>
-            <LockGlyph color={colors.offBlack} />
+        <View style={[styles.lockPill, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+          <View style={[styles.lockCircle, { backgroundColor: colors.text }]}>
+            <LockIcon size={ICON_SIZE.i22} color={colors.bg} />
           </View>
-          <Text style={[styles.lockLine, { color: colors.offWhite }]} numberOfLines={3}>
+          <Text style={[styles.lockLine, { color: colors.text }]} numberOfLines={3}>
             {pill.line}
           </Text>
           {onPress ? (
             <PressScale
-              style={[styles.actionCircle, { backgroundColor: colors.offWhite }]}
+              style={[styles.actionCircle, { backgroundColor: colors.text }]}
               onPress={onPress}
               accessibilityRole="button"
               accessibilityLabel={pill.button}
               accessibilityHint={toFriends ? 'Opens search' : 'Opens the camera'}
             >
-              <Text style={[styles.actionText, { color: colors.offBlack }]} numberOfLines={2}>
+              <PixelAthlete size={SIZE.z40} color={colors.bg} />
+              <Text style={[styles.actionText, { color: colors.bg }]} numberOfLines={2}>
                 {pill.button}
               </Text>
             </PressScale>
           ) : null}
-        </LinearGradient>
+        </View>
       </View>
     </FadeInItem>
-  );
-}
-
-/** A padlock, as on the profile grid's locked squares. */
-function LockGlyph({ color }: { color: string }): React.JSX.Element {
-  return (
-    <Svg width={ICON_SIZE.i22} height={ICON_SIZE.i22} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M7 11V8a5 5 0 0 1 10 0v3"
-        stroke={color}
-        strokeWidth={STROKE.s2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M5 13a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7z"
-        stroke={color}
-        strokeWidth={STROKE.s2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
   );
 }
 
@@ -205,6 +179,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s20,
     paddingHorizontal: SPACE.s24,
     borderRadius: RADIUS.r28,
+    borderWidth: BORDER_WIDTH.w1,
     maxWidth: SIZE.z320,
   },
   lockCircle: {
@@ -227,9 +202,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACE.s12,
+    gap: SPACE.s4,
   },
   actionText: {
-    fontSize: FONT_SIZE.f14,
+    fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.bold,
     textAlign: 'center',
   },

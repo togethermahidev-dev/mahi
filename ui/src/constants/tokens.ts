@@ -568,6 +568,8 @@ export const MOTION = {
   morph: { damping: 14, stiffness: 180, mass: 0.8 },
   /** Shared geometry: destination content joins near the end; the moving image then disappears. */
   morphContentAt: 0.72,
+  /** The pixel athlete's frame rate (ms per frame). */
+  pixelFrameMs: 400,
   /** A page growing in from a tab tap (owner, 2026-10-08): where it starts, before full size. */
   pageMorph: { fromScale: 0.94, fromRadius: 28 },
   morphImageUntil: 0.94,
