@@ -1631,6 +1631,8 @@ interface CameraScreenProps {
   onSeeFeed?: () => void;
   /** A post has just gone up (the feed shows it). */
   onPosted?: () => void;
+  /** The feed is up over this camera: its pill becomes the feed page's camera pill. */
+  feedShown?: boolean;
   /** Open people search (the caught-up card's "Find friends", shown while the feed is locked). */
   onFindFriends?: () => void;
   /** Open someone's profile (the answer toast's "Cheer @sam on", for the friend whose tag it answered). */
@@ -1641,6 +1643,7 @@ export default function CameraScreen({
   onComposingChange,
   onSeeFeed,
   onPosted,
+  feedShown = false,
   onFindFriends,
   onOpenProfile,
 }: CameraScreenProps = {}): React.JSX.Element {
@@ -3219,17 +3222,19 @@ export default function CameraScreen({
                   />
                 </Reanimated.View>
               ) : null}
-              <PullHandle
-                // In the header row, beside the bell (the bell pill is 36 tall; this taps as 44);
-                // open, it rides down to the small camera card's top edge.
-                top={safeTop - (SIZE.z44 - SIZE.z36) / 2}
-                openTop={pull.openOffset + SPACE.s8 - (SIZE.z44 - SIZE.z36) / 2}
-                offset={pull.offset}
-                openOffset={pull.openOffset}
-                expanded={pull.expanded}
-                anchorRef={pullTip}
-                onPress={pull.toggle}
-              />
+              {feedShown ? null : (
+                <PullHandle
+                  // In the header row, beside the bell (the bell pill is 36 tall; this taps as 44);
+                  // open, it rides down to the small camera card's top edge.
+                  top={safeTop - (SIZE.z44 - SIZE.z36) / 2}
+                  openTop={pull.openOffset + SPACE.s8 - (SIZE.z44 - SIZE.z36) / 2}
+                  offset={pull.offset}
+                  openOffset={pull.openOffset}
+                  expanded={pull.expanded}
+                  anchorRef={pullTip}
+                  onPress={pull.toggle}
+                />
+              )}
             </View>
           </GestureDetector>
         ) : null}

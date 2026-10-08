@@ -9,7 +9,7 @@
  * Reduce Motion: the camera crossfades away instead of sliding.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View, Text } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import Reanimated, {
   interpolate,
@@ -46,7 +46,9 @@ import {
   STROKE,
   SWIPE,
   SPACE,
+  FONT_SIZE,
 } from '@/constants/tokens';
+import { FONTS } from '@/constants/fonts';
 
 /**
  * The pull gesture and the styles it drives. `enabled`: only while the waiting card shows.
@@ -309,9 +311,22 @@ export function PullHandle({
       transform: [{ translateY: (openTop - top) * progress }],
     };
   });
+  const fromScale = MOTION.pull.glyphFromScale;
+  // A question mark at rest that morphs into the up-arrow as the camera nudges down (owner,
+  // 2026-10-08): one fades and shrinks as the other grows and turns in.
   const chevronStyle = useAnimatedStyle(() => {
     const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
-    return { transform: [{ rotate: `${progress * 180}deg` }] };
+    return {
+      opacity: progress,
+      transform: [
+        { rotate: `${progress * 180}deg` },
+        { scale: fromScale + (1 - fromScale) * progress },
+      ],
+    };
+  });
+  const questionStyle = useAnimatedStyle(() => {
+    const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
+    return { opacity: 1 - progress, transform: [{ scale: 1 - (1 - fromScale) * progress }] };
   });
 
   return (
@@ -336,8 +351,11 @@ export function PullHandle({
         accessibilityState={{ expanded }}
       >
         {/* Two layers: the hop and the turn each own a transform, so neither overwrites the other. */}
-        <Reanimated.View style={jumpStyle}>
-          <Reanimated.View style={chevronStyle}>
+        <Reanimated.View style={[jumpStyle, styles.glyphBox]}>
+          <Reanimated.View style={[styles.glyph, questionStyle]}>
+            <Text style={styles.question}>?</Text>
+          </Reanimated.View>
+          <Reanimated.View style={[styles.glyph, chevronStyle]}>
             {swift ? (
               <NativeChevron swift={swift} breathe={!reduceMotion} color={arrowColor} />
             ) : (
@@ -406,6 +424,21 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r18,
     overflow: 'hidden',
     backgroundColor: COLORS.offWhite,
+  },
+  // The question mark and the arrow share one spot and morph into each other.
+  glyphBox: {
+    width: ICON_SIZE.i24,
+    height: ICON_SIZE.i24,
+  },
+  glyph: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  question: {
+    fontSize: FONT_SIZE.f18,
+    fontFamily: FONTS.bold,
+    color: COLORS.offBlack,
   },
   handlePressed: {
     opacity: ALPHA.a80,

@@ -610,6 +610,8 @@ export const MOTION = {
     /** The lit leading edge is strongest early, then settles to this quieter strength. */
     edgePeak: 0.62,
     edgeRest: 0.24,
+    /** The pill's "?", arrow and camera icon grow in from this scale as they morph. */
+    glyphFromScale: 0.6,
     /** The standalone arrow gives two short downward jumps instead of showing an instruction pill. */
     arrowJumpY: 8,
     cameraFadeAt: 0.65,

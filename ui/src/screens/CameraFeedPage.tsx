@@ -43,6 +43,7 @@ import {
   SIZE,
   SPACE,
   SPRING,
+  MOTION,
 } from '@/constants/tokens';
 
 export default function CameraFeedPage({
@@ -208,6 +209,13 @@ export default function CameraFeedPage({
     opacity: locked ? 0 : interpolate(progress.value, [0.5, 1], [0, 1], 'clamp'),
   }));
 
+  // The pill beside the bell: the camera's "?" / arrow becomes a camera icon at the same spot
+  // while the feed (or the locked gap) is up; tap it to bring the camera back (owner, 2026-10-08).
+  const fromScale = MOTION.pull.glyphFromScale;
+  const cameraPillStyle = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [{ scale: fromScale + (1 - fromScale) * progress.value }],
+  }));
   const onDarkCamera = !feedShown || locked;
   const pillBg = onDarkCamera ? COLORS.offWhite : dark ? COLORS.offWhite : COLORS.offBlack;
   const pillText = onDarkCamera ? COLORS.offBlack : dark ? COLORS.offBlack : COLORS.offWhite;
@@ -281,6 +289,7 @@ export default function CameraFeedPage({
             onComposingChange={onComposingChange}
             onSeeFeed={openFeed}
             onPosted={openFeed}
+            feedShown={feedShown}
             onFindFriends={onFindFriends}
             onOpenProfile={onOpenProfile}
           />
@@ -310,21 +319,45 @@ export default function CameraFeedPage({
         </GestureDetector>
       ) : null}
 
-      {/* One pill at the header's left: Feed on the camera, Camera on the feed. */}
-      <PressScale
-        style={[styles.pill, { top: insets.top, backgroundColor: pillBg }]}
-        onPress={feedShown ? closeFeed : openFeed}
-        accessibilityRole="button"
-        accessibilityLabel={feedShown ? 'Camera' : 'Feed'}
-        accessibilityHint={feedShown ? 'Brings the camera back' : 'Shows your feed'}
+      {/* Beside the bell: the camera icon that brings the camera back. */}
+      <Reanimated.View
+        style={[
+          styles.cameraPillSpot,
+          { top: insets.top - (SIZE.z44 - SIZE.z36) / 2 },
+          cameraPillStyle,
+        ]}
+        pointerEvents={feedShown ? 'auto' : 'none'}
       >
-        {feedShown ? (
-          <CameraIcon size={ICON_SIZE.i16} color={pillText} />
-        ) : (
-          <FeedIcon size={ICON_SIZE.i16} color={pillText} />
-        )}
-        <Text style={[styles.pillText, { color: pillText }]}>{feedShown ? 'Camera' : 'Feed'}</Text>
-      </PressScale>
+        <PressScale
+          style={styles.cameraPill}
+          onPress={closeFeed}
+          accessibilityRole="button"
+          accessibilityLabel="Camera"
+          accessibilityHint="Brings the camera back"
+        >
+          <CameraIcon size={ICON_SIZE.i20} color={COLORS.offBlack} />
+        </PressScale>
+      </Reanimated.View>
+
+      {/* At the header's left on the camera: Feed. */}
+      {feedShown ? null : (
+        <PressScale
+          style={[styles.pill, { top: insets.top, backgroundColor: pillBg }]}
+          onPress={feedShown ? closeFeed : openFeed}
+          accessibilityRole="button"
+          accessibilityLabel={feedShown ? 'Camera' : 'Feed'}
+          accessibilityHint={feedShown ? 'Brings the camera back' : 'Shows your feed'}
+        >
+          {feedShown ? (
+            <CameraIcon size={ICON_SIZE.i16} color={pillText} />
+          ) : (
+            <FeedIcon size={ICON_SIZE.i16} color={pillText} />
+          )}
+          <Text style={[styles.pillText, { color: pillText }]}>
+            {feedShown ? 'Camera' : 'Feed'}
+          </Text>
+        </PressScale>
+      )}
     </View>
   );
 }
@@ -393,6 +426,23 @@ const styles = StyleSheet.create({
   cardTouch: {
     position: 'absolute',
     borderRadius: RADIUS.r24,
+  },
+  // Same spot as the camera's own pill (CameraPull's handleSpot): 8 left of the bell.
+  cameraPillSpot: {
+    position: 'absolute',
+    right: SPACE.s24 + SIZE.z36 + SPACE.s8,
+    width: SIZE.z44,
+    height: SIZE.z44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraPill: {
+    width: SIZE.z36,
+    height: SIZE.z36,
+    borderRadius: RADIUS.r18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.offWhite,
   },
   // The quarter of the page under a lifted camera when the feed is locked.
   gap: {
