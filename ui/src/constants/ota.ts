@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 13 — the locked feed's rows show again (the mid-feed pill had pushed them off
+ *     screen since 13.08); the camera's pull arrow is a round pill beside the bell (2026-10-08)
  *   build 13 · 12 — locked feed rows are skeleton rows with mock counts, visibly blurred (not a
  *     flat block) (2026-10-08)
  *   build 13 · 11 — locked feed rows show real blur: the poster's photo, enlarged and blurred,
@@ -113,4 +115,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 12;
+export const OTA_NUMBER = 13;
