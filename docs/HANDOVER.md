@@ -7,6 +7,14 @@ The single entry point for continuing work on Mahi. Read this first. It encodes 
 
 ## State on 2026-10-08 (newest; overrides older notes below)
 
+**Fitness-first guidance:** The signed-out entry now shows an animated three-stage workout loop
+before account creation: Show up → Get tagged → Answer and pass accountability to 3 friends. The
+stages stagger in, an energy line connects them, and the current action has a quiet pulse; Reduce
+Motion stays still. Onboarding cards use the same numbered verbs, first-camera guidance says exactly
+which two photos come next, and locked-feed actions say “first workout” / “accountability partners”
+instead of generic social language. Entry actions use interactive Liquid Glass on supported iOS,
+bounded ripple on Android and shared spring compression everywhere else.
+
 **Camera waiting drawer fixed:** The locked/waiting camera is the front layer. A compact labelled
 handle sits around its upper third; the camera gives a short two-beat vertical tug to teach the
 depth, then stays still. Pulling uncovers a deliberately compact accountability card behind it and

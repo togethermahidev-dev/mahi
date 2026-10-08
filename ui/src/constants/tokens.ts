@@ -402,6 +402,8 @@ export const SCALE = {
   s0_68: 0.68,
   /** Full-screen content beginning or ending a restrained continuity morph. */
   s0_96: 0.96,
+  /** Quiet instructional pulse: visible without reading as celebration. */
+  s1_06: 1.06,
   s1_1: 1.1,
   s1_3: 1.3,
   s4: 4,

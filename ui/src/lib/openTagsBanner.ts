@@ -61,11 +61,10 @@ export function openTagsBanner({
     return firstPost
       ? {
           parts: [
-            { text: 'Show up with your first workout to earn ' },
-            { text: 'your first point', accent: true },
-            { text: '.' },
+            { text: 'Your move: ' },
+            { text: 'show up for your first workout', accent: true },
           ],
-          note: ANY_WORKOUT,
+          note: 'Take a workout photo, then a selfie. Any movement counts.',
           firstPost: true,
         }
       : null;

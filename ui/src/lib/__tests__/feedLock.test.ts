@@ -67,9 +67,9 @@ describe('lockExplainer', () => {
 
   it('never posted: asks for a first workout, and says any workout counts', () => {
     expect(lockExplainer({ ...base, unlockedUntil: null, openTags: [] })).toEqual({
-      headline: 'Start by showing up.',
-      body: 'Your first workout earns your first point and opens your feed. Any workout counts.',
-      button: 'Show up now',
+      headline: 'Your first move: show up.',
+      body: 'Post one workout to earn your first point and open your feed. Any movement counts.',
+      button: 'Start first workout',
       target: 'camera',
     });
   });
@@ -77,9 +77,9 @@ describe('lockExplainer', () => {
   it('posted before but no open tag: says how it opens, and offers Find friends', () => {
     const card = lockExplainer({ ...base, openTags: [] });
     expect(card).toEqual({
-      headline: 'Your feed is locked.',
-      body: 'It opens when a friend tags you and you post your answer. More friends means more tags.',
-      button: 'Find friends',
+      headline: 'Ready for your next workout?',
+      body: 'A friend’s tag unlocks your next check-in. Find accountability partners who will call you to show up.',
+      button: 'Find accountability partners',
       target: 'friends',
     });
   });
@@ -183,7 +183,7 @@ describe('lockedPostText', () => {
   it('never posted: the first post is always allowed', () => {
     expect(lockedPostText({ tagged: false, postedBefore: false })).toEqual({
       hint: 'Show up with your first workout to see it',
-      button: 'Show up now',
+      button: 'Start first workout',
     });
   });
 

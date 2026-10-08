@@ -18,6 +18,13 @@
   product's centre.
 - “Free post” and “opening check-in” are not UI language. User-facing
   copy says “Start by showing up” and “your first workout”; it sounds like a commitment, not a perk.
+- A newcomer must be able to repeat the loop before signing up: **Show up → Get tagged → Answer
+  with a workout → Hold 3 friends accountable.** Entry, onboarding, camera and locked-feed states
+  use those same verbs. Lead with the next physical action; explain points and feed access second.
+- Guidance should feel like training, not documentation: numbered stages assemble in sequence, the
+  current stage gets one restrained pulse, and connecting motion shows accountability passing on.
+  Use native Liquid Glass interaction on supported iOS, bounded ripple on Android, and a still,
+  fully readable version with Reduce Motion.
 
 ## Repo layout
 

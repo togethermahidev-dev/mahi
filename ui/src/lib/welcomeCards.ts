@@ -13,18 +13,18 @@ export interface WelcomeCard {
 export const WELCOME_CARDS: readonly WelcomeCard[] = [
   {
     icon: 'camera',
-    title: 'Start by showing up.',
-    body: 'Show up with your first workout and earn your first Mahi point. Take a back-camera photo, then a selfie. Any workout counts, even 10 minutes.',
+    title: '1. Show up',
+    body: 'Post your first workout to earn your first Mahi point and open your feed. Take a workout photo, then a selfie. Any movement counts.',
   },
   {
     icon: 'people',
-    title: 'A tag is a call to show up.',
-    body: 'After you’ve shown up once, you can only post by answering a friend’s tag. You have 48 hours, and your workout answer is your next post. Follow each other to become accountability partners.',
+    title: '2. Get tagged',
+    body: 'After your first workout, a friend’s tag unlocks your next check-in. You have 48 hours to train. Posting the workout answers their tag.',
   },
   {
     icon: 'feed',
-    title: 'Answer, then pass it on.',
-    body: 'Each answer earns a point, opens your feed and challenges friends to show up next. Miss a tag and your points go back to 0, but your best stays.',
+    title: '3. Pass it on',
+    body: 'Choose 3 friends to hold accountable. Your answer earns a point, opens your feed and calls them to show up next. Your best always stays.',
   },
 ];
 
@@ -53,8 +53,8 @@ export function welcomeCardsFor(taggedBy: string | null): readonly WelcomeCard[]
   return [
     {
       icon: 'camera',
-      title: `@${taggedBy} tagged you.`,
-      body: 'Show up with any workout in the next 48 hours. Your answer is your first workout and earns your first point.',
+      title: `1. Show up for @${taggedBy}`,
+      body: 'They called you to train. Post any workout in the next 48 hours to answer their tag, earn your first point and open your feed.',
     },
     ...WELCOME_CARDS.slice(1),
   ];

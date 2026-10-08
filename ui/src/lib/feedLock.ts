@@ -78,16 +78,16 @@ export function lockExplainer({
   // Nothing to post yet: the way out is more friends, since more friends means more tags.
   if (unlockedUntil) {
     return {
-      headline: 'Your feed is locked.',
-      body: 'It opens when a friend tags you and you post your answer. More friends means more tags.',
-      button: 'Find friends',
+      headline: 'Ready for your next workout?',
+      body: 'A friend’s tag unlocks your next check-in. Find accountability partners who will call you to show up.',
+      button: 'Find accountability partners',
       target: 'friends',
     };
   }
   return {
-    headline: 'Start by showing up.',
-    body: 'Your first workout earns your first point and opens your feed. Any workout counts.',
-    button: 'Show up now',
+    headline: 'Your first move: show up.',
+    body: 'Post one workout to earn your first point and open your feed. Any movement counts.',
+    button: 'Start first workout',
     target: 'camera',
   };
 }
@@ -103,7 +103,7 @@ export function lockedPostText({
 }): { hint: string; button?: string } {
   if (tagged) return { hint: 'Opens when you post your answer', button: 'Post your answer' };
   if (!postedBefore)
-    return { hint: 'Show up with your first workout to see it', button: 'Show up now' };
+    return { hint: 'Show up with your first workout to see it', button: 'Start first workout' };
   return { hint: 'Opens when a friend tags you' };
 }
 

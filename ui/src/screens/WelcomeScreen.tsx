@@ -1,11 +1,23 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated, Dimensions, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Animated,
+  Dimensions,
+  ScrollView,
+  Platform,
+} from 'react-native';
+import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { useReducedMotion } from 'react-native-reanimated';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAppleSignIn } from '@/hooks/useAppleSignIn';
 import LoginSheet from '@/components/LoginSheet';
 import CreateAccountSheet from '@/components/CreateAccountSheet';
+import AccountabilityLoop from '@/components/AccountabilityLoop';
+import { PressScale } from '@/components/Motion';
 import { useInviteStore } from '@/store';
 import { welcomeInvite } from '@/lib/welcomeCards';
 import { FONTS } from '@/constants/fonts';
@@ -27,6 +39,56 @@ const { height } = Dimensions.get('window');
 
 interface Props {
   onAuthComplete: () => void;
+}
+
+function EntryAction({
+  label,
+  primary,
+  sheetBg,
+  sheetText,
+  onPress,
+}: {
+  label: string;
+  primary?: boolean;
+  sheetBg: string;
+  sheetText: string;
+  onPress: () => void;
+}) {
+  const glass = Platform.OS === 'ios' && isLiquidGlassAvailable();
+  const content = (
+    <Text style={[styles.buttonText, { color: primary ? sheetBg : sheetText }]}>{label}</Text>
+  );
+  return (
+    <PressScale
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      android_ripple={{ color: primary ? sheetBg : sheetText, foreground: true }}
+      style={styles.entryAction}
+      onPress={onPress}
+    >
+      {glass ? (
+        <GlassView
+          style={[styles.buttonSurface, !primary && styles.buttonOutline]}
+          glassEffectStyle="regular"
+          isInteractive
+          tintColor={primary ? sheetText : undefined}
+        >
+          {content}
+        </GlassView>
+      ) : (
+        <View
+          style={[
+            styles.buttonSurface,
+            primary
+              ? { backgroundColor: sheetText }
+              : [styles.buttonOutline, { borderColor: sheetText }],
+          ]}
+        >
+          {content}
+        </View>
+      )}
+    </PressScale>
+  );
 }
 
 export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Element {
@@ -103,29 +165,19 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
             </Text>
           </View>
           <View style={styles.buttons}>
-            <Pressable
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                styles.button,
-                { backgroundColor: sheetText },
-                pressed && { opacity: ALPHA.a80 },
-              ]}
+            <EntryAction
+              label="Create an account"
+              primary
+              sheetBg={sheetBg}
+              sheetText={sheetText}
               onPress={() => setShowSignup(true)}
-            >
-              <Text style={[styles.buttonText, { color: sheetBg }]}>Create an account</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                styles.button,
-                styles.buttonOutline,
-                { borderColor: sheetText },
-                pressed && { opacity: ALPHA.a80 },
-              ]}
+            />
+            <EntryAction
+              label="Log in"
+              sheetBg={sheetBg}
+              sheetText={sheetText}
               onPress={() => setShowLogin(true)}
-            >
-              <Text style={[styles.buttonText, { color: sheetText }]}>Log in</Text>
-            </Pressable>
+            />
           </View>
         </ScrollView>
       </Animated.View>
@@ -143,6 +195,7 @@ export default function WelcomeScreen({ onAuthComplete }: Props): React.JSX.Elem
           showsVerticalScrollIndicator={false}
           alwaysBounceVertical={false}
         >
+          <AccountabilityLoop />
           {invite ? (
             <View style={styles.invite} accessible>
               <Text style={[styles.inviteWho, { color: sheetText }]}>{invite.who}</Text>
@@ -250,6 +303,21 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s20,
     borderRadius: RADIUS.r50,
     alignItems: 'center',
+  },
+  entryAction: {
+    width: '72%',
+    minHeight: SIZE.z56,
+    alignSelf: 'center',
+    borderRadius: RADIUS.r50,
+    overflow: 'hidden',
+  },
+  buttonSurface: {
+    flex: 1,
+    minHeight: SIZE.z56,
+    borderRadius: RADIUS.r50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   // Apple's own button: its size is set here, its colours and words by Apple.
   appleButton: { width: '72%', height: SIZE.z56, alignSelf: 'center' },

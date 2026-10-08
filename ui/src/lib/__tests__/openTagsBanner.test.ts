@@ -15,9 +15,9 @@ const tag = (username: string, expiresIn: number) => ({ username, expires_at: at
 describe('openTagsBanner — someone who downloaded Mahi themselves (Type B)', () => {
   it('makes the first workout and first point clear', () => {
     const b = openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow, firstPost: true });
-    expect(b && bannerText(b)).toBe('Show up with your first workout to earn your first point.');
+    expect(b && bannerText(b)).toBe('Your move: show up for your first workout');
     expect(b?.firstPost).toBe(true);
-    expect(b?.note).toBe('Any workout counts, even 10 minutes.');
+    expect(b?.note).toBe('Take a workout photo, then a selfie. Any movement counts.');
   });
 
   it('shows nothing to someone who has posted and has no tag', () => {

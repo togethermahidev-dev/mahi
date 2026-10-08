@@ -12,9 +12,9 @@ import {
 describe('welcome cards', () => {
   it('has the three owner-approved cards, in order', () => {
     expect(WELCOME_CARDS.map((c) => c.title)).toEqual([
-      'Start by showing up.',
-      'A tag is a call to show up.',
-      'Answer, then pass it on.',
+      '1. Show up',
+      '2. Get tagged',
+      '3. Pass it on',
     ]);
   });
 
@@ -23,19 +23,19 @@ describe('welcome cards', () => {
   // and says what a miss costs.
   it('card 1: the first check-in needs no tag and any workout counts', () => {
     expect(WELCOME_CARDS[0].body).toBe(
-      'Show up with your first workout and earn your first Mahi point. Take a back-camera photo, then a selfie. Any workout counts, even 10 minutes.'
+      'Post your first workout to earn your first Mahi point and open your feed. Take a workout photo, then a selfie. Any movement counts.'
     );
   });
 
   it('card 2 says that answering the tag is the next post', () => {
     expect(WELCOME_CARDS[1].body).toBe(
-      'After you’ve shown up once, you can only post by answering a friend’s tag. You have 48 hours, and your workout answer is your next post. Follow each other to become accountability partners.'
+      'After your first workout, a friend’s tag unlocks your next check-in. You have 48 hours to train. Posting the workout answers their tag.'
     );
   });
 
   it('card 3 makes passing accountability on the outcome', () => {
     expect(WELCOME_CARDS[2].body).toBe(
-      'Each answer earns a point, opens your feed and challenges friends to show up next. Miss a tag and your points go back to 0, but your best stays.'
+      'Choose 3 friends to hold accountable. Your answer earns a point, opens your feed and calls them to show up next. Your best always stays.'
     );
   });
 
@@ -75,8 +75,8 @@ describe('welcome cards', () => {
       const cards = welcomeCardsFor('sam');
       expect(cards[0]).toEqual({
         icon: 'camera',
-        title: '@sam tagged you.',
-        body: 'Show up with any workout in the next 48 hours. Your answer is your first workout and earns your first point.',
+        title: '1. Show up for @sam',
+        body: 'They called you to train. Post any workout in the next 48 hours to answer their tag, earn your first point and open your feed.',
       });
       expect(cards.slice(1)).toEqual(WELCOME_CARDS.slice(1));
     });
