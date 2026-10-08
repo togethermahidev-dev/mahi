@@ -49,6 +49,8 @@ import {
 import Svg, { Path } from 'react-native-svg';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { AVATAR_MAX_EDGE, sharedPhotoResize } from '@/lib/sharedPhoto';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 import { reportError } from '@/lib/sentry';
@@ -141,12 +143,19 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
    * Steps: read file → base64 → ArrayBuffer → Supabase Storage → DB update → notify parent.
    */
   const processAndUpload = useCallback(
-    async (uri: string) => {
-      setLocalUri(uri); // optimistic preview
+    async (picked: { uri: string; width: number; height: number }) => {
+      setLocalUri(picked.uri); // optimistic preview
       setUploading(true);
-      let step = 'read';
+      let step = 'resize';
       let bytes: number | undefined;
       try {
+        // Brought down to AVATAR_MAX_EDGE: every list downloads this photo for a small circle.
+        const resize = sharedPhotoResize(picked.width, picked.height, AVATAR_MAX_EDGE);
+        const uri = resize.length
+          ? (await manipulateAsync(picked.uri, resize, { compress: 0.8, format: SaveFormat.JPEG }))
+              .uri
+          : picked.uri;
+        step = 'read';
         // Read as Base64 (matches the pattern used in CameraScreen.tsx)
         const base64 = await FileSystem.readAsStringAsync(uri, {
           encoding: FileSystem.EncodingType.Base64,
@@ -238,7 +247,7 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
       return;
     }
     if (!result.canceled && result.assets[0]) {
-      await processAndUpload(result.assets[0].uri);
+      await processAndUpload(result.assets[0]);
     }
   }, [cameraPermission, requestCameraPermission, ensurePermission, processAndUpload]);
 
@@ -264,7 +273,7 @@ function useAvatarUpload(userId: string, onUpdate: (url: string) => void) {
       return;
     }
     if (!result.canceled && result.assets[0]) {
-      await processAndUpload(result.assets[0].uri);
+      await processAndUpload(result.assets[0]);
     }
   }, [libraryPermission, requestLibraryPermission, ensurePermission, processAndUpload]);
 

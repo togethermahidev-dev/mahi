@@ -72,6 +72,7 @@ import { useCoachBlock } from '@/hooks/useCoachMarks';
 import { reportError, Sentry } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { syncAnalyticsIdentity } from '@/lib/analytics';
+import { clearSavedMedia } from '@/lib/savedMedia';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastHost } from '@/components/ToastHost';
 
@@ -251,6 +252,7 @@ export default function App(): React.JSX.Element {
         useIdentityStore.getState().reset();
         // Logs RevenueCat out only if it was configured (flag `purchases`); otherwise a no-op.
         usePurchasesStore.getState().reset();
+        void clearSavedMedia();
         Sentry.setUser(null);
         // Forgets the account only if this phone was carrying one: a signed-out launch keeps
         // its one anonymous id instead of counting as a new person every time.

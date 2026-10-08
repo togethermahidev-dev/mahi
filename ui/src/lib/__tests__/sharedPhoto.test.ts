@@ -4,6 +4,7 @@ import {
   isShareLink,
   sharedFilePaths,
   sharedPhotoResize,
+  AVATAR_MAX_EDGE,
   sharedPhotos,
 } from '../sharedPhoto';
 
@@ -101,5 +102,11 @@ describe('sharedPhotoResize', () => {
     expect(SHARED_PHOTO_MAX_EDGE).toBe(4032);
     expect(sharedPhotoResize(6048, 8064)).toEqual([{ resize: { height: 4032 } }]);
     expect(sharedPhotoResize(8064, 6048)).toEqual([{ resize: { width: 4032 } }]);
+  });
+
+  it('a profile photo comes down to full-screen size: 1080 across', () => {
+    expect(AVATAR_MAX_EDGE).toBe(1080);
+    expect(sharedPhotoResize(3024, 3024, AVATAR_MAX_EDGE)).toEqual([{ resize: { height: 1080 } }]);
+    expect(sharedPhotoResize(800, 800, AVATAR_MAX_EDGE)).toEqual([]);
   });
 });

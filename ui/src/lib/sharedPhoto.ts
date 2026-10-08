@@ -18,6 +18,12 @@ export const MAX_SHARED_PHOTOS = 2;
 /** The long edge of a 12 MP camera photo: a bigger shared photo is brought down to it. */
 export const SHARED_PHOTO_MAX_EDGE = 4032;
 
+/**
+ * A profile photo's long edge: sharp full screen, and about a fifth of the bytes of the phone's
+ * own crop (avatars averaged 513 KB, up to 1.2 MB, to fill small circles; 2026-10-08).
+ */
+export const AVATAR_MAX_EDGE = 1080;
+
 const SHARE_LINK = /^mahi:\/\/dataUrl=/i;
 
 /** True for the link the share extension opens Mahi with. */
@@ -101,13 +107,12 @@ export function sharedPhotoProblem(reason: 'none' | 'not-photo' | 'too-many'): s
   return 'Share one or two photos to post them on Mahi.';
 }
 
-/** expo-image-manipulator actions that bring a huge photo down to the camera's size (or none). */
+/** expo-image-manipulator actions that bring a photo down to `maxEdge` (or none). */
 export function sharedPhotoResize(
   width: number | null,
-  height: number | null
+  height: number | null,
+  maxEdge: number = SHARED_PHOTO_MAX_EDGE
 ): { resize: { width?: number; height?: number } }[] {
-  if (!width || !height || Math.max(width, height) <= SHARED_PHOTO_MAX_EDGE) return [];
-  return height >= width
-    ? [{ resize: { height: SHARED_PHOTO_MAX_EDGE } }]
-    : [{ resize: { width: SHARED_PHOTO_MAX_EDGE } }];
+  if (!width || !height || Math.max(width, height) <= maxEdge) return [];
+  return height >= width ? [{ resize: { height: maxEdge } }] : [{ resize: { width: maxEdge } }];
 }

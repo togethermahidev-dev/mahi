@@ -7,6 +7,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { reportError } from '@/lib/sentry';
+import { forgetSavedMedia, withSavedMedia } from '@/lib/savedMedia';
 import {
   mediaTypeArgs,
   mediaTypeOrPhoto,
@@ -129,6 +130,7 @@ async function toPosts(items: FeedItem[]): Promise<FeedPost[]> {
       signedMedia.set(d.path, { url: d.signedUrl, reuseUntil: now + SIGNED_URL_REUSE_MS });
     }
   }
+  const shown = await withSavedMedia(urls);
   return items.map((i) => ({
     id: i.id,
     user_id: i.user_id,
@@ -141,8 +143,8 @@ async function toPosts(items: FeedItem[]): Promise<FeedPost[]> {
     client_id: null,
     image_path: i.image_path,
     pov_image_path: i.pov_image_path,
-    image_url: (i.image_path && urls.get(i.image_path)) || '',
-    pov_image_url: (i.pov_image_path && urls.get(i.pov_image_path)) || null,
+    image_url: (i.image_path && shown.get(i.image_path)) || '',
+    pov_image_url: (i.pov_image_path && shown.get(i.pov_image_path)) || null,
     rear_media_type: mediaTypeOrPhoto(i.rear_media_type),
     front_media_type: mediaTypeOrPhoto(i.front_media_type),
     like_count: i.like_count,
@@ -283,6 +285,7 @@ export async function uploadPostMedia(opts: {
 export async function removePostPhotos(paths: string[]): Promise<void> {
   for (const path of paths) signedMedia.delete(path);
   if (!paths.length) return;
+  await forgetSavedMedia(paths);
   const { error } = await supabase.storage.from('posts').remove(paths);
   if (error) {
     reportError(error, {
