@@ -51,10 +51,10 @@ spacing or similar value by hand anywhere in `web/app`, the same way the app's d
 
 ## How to deploy
 
-The site does **not** deploy on every push. Netlify skips every build unless `web/DEPLOY.md`
+The site does **not** deploy on every push. Netlify skips every build unless the repo's `README.md` or `web/DEPLOY.md`
 changed (`web/scripts/netlify-ignore.sh` decides). To deploy:
 
-1. On GitHub, signed in as the Mahi owner account **togethermahidev-dev**, open `web/DEPLOY.md`
+1. On GitHub, signed in as the Mahi owner account **togethermahidev-dev**, open `README.md` (the repo's front page) or `web/DEPLOY.md`
    on the branch Netlify deploys (normally `main`).
 2. Click the pencil (edit), change the date on the **Last deploy requested:** line, and commit
    straight to that branch.

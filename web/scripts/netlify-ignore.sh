@@ -2,13 +2,13 @@
 # Netlify's "ignore" rule for the waitlist site (see netlify.toml). Netlify runs it from web/
 # before every build. Exit 0 = SKIP the build, exit 1 = BUILD.
 #
-# Builds only when web/DEPLOY.md changed since the last deployed commit — the owner's deploy
-# button (web/README.md, "How to deploy"). Also builds when there's nothing to compare with:
+# Builds only when web/DEPLOY.md or the repo's README.md changed since the last deployed commit —
+# the owner's deploy buttons (README.md, web/README.md "How to deploy"). Also builds when there's nothing to compare with:
 # the first deploy, after "Clear cache and deploy", or a manual "Trigger deploy" of the commit
 # that's already live.
 set -u
 
-TRIGGER="web/DEPLOY.md"
+TRIGGERS="web/DEPLOY.md README.md"
 LAST="${CACHED_COMMIT_REF:-}"
 THIS="${COMMIT_REF:-}"
 
@@ -24,10 +24,11 @@ if ! git cat-file -e "${LAST}^{commit}" 2>/dev/null; then
   exit 1
 fi
 
-if git diff --quiet "$LAST" "$THIS" -- "$TRIGGER"; then
-  echo "netlify-ignore: ${TRIGGER} hasn't changed since the last deploy, so skipping this build."
+# shellcheck disable=SC2086 # two paths, split on purpose
+if git diff --quiet "$LAST" "$THIS" -- $TRIGGERS; then
+  echo "netlify-ignore: neither ${TRIGGERS} changed since the last deploy, so skipping this build."
   exit 0
 fi
 
-echo "netlify-ignore: ${TRIGGER} changed, so building."
+echo "netlify-ignore: ${TRIGGERS} changed, so building."
 exit 1
