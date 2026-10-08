@@ -404,7 +404,7 @@ All tables use Row Level Security (RLS). Writes for posting and messaging go thr
 | `invites.ts` | `getInvitePreview`, `claimInvite` |
 | `social.ts` | `toggleLike` (single-RPC atomic toggle), `getComments`, `addComment`, comment likes: `getCommentLikes`, `toggleCommentLike`, `getCommentLikers` |
 | `follows.ts` | `setFollowing` (atomic mutation + committed state), `getFollowData`, `getFollowList`, `getFriends`, `getSuggestedFollows` |
-| `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `createOrGetConversation`, `deleteConversation`, `getMessages`, `markConversationRead` |
+| `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `declineRequest`, `sendMessage`, `createOrGetConversation`, `startConversation`, `editMessage`, `unsendMessage`, `reactToMessage`, `getMessageReactions`, `getMessages`, `markConversationRead` |
 | `notifications.ts` | `getNotifications`, `getUnreadCount`, `markAsRead`, `markAllAsRead` |
 | `moderation.ts` | `blockUser`, `unblockUser`, `getBlockedUsers`, `getBlockedIds`, `reportContent` (`report_*` RPCs; direct report inserts are closed) |
 | `profile.ts` | `getProfile`, `searchProfiles`, `updateAvatarUrl`, `updateTimezone` (sign-up inserts the profile row directly) |
