@@ -431,7 +431,7 @@ function ControlsSection({
   const show = useToastStore((st) => st.show);
 
   if (!profile || isPrivate === undefined) return null;
-  const visibility = effectiveVisibility(isPrivate, profile.posts_visibility ?? 'everyone');
+  const visibility = effectiveVisibility(isPrivate, profile.posts_visibility ?? 'followers');
   const tagPermission = profile.tag_permission ?? 'approve';
 
   const save = async (patch: Partial<AccountControls>) => {
@@ -482,7 +482,9 @@ function ControlsSection({
             value={isPrivate}
             onChange={chooseAccount}
           />
-          <Text style={[styles.rowDetail, { color: muted }]}>{accountDescription(isPrivate)}</Text>
+          <Text style={[styles.rowDetail, { color: muted }]}>
+            {accountDescription(isPrivate, visibility)}
+          </Text>
         </View>
 
         <View style={[styles.control, styles.rowDivider, { borderBottomColor: border }]}>

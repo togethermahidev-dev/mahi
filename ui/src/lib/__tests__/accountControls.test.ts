@@ -1,5 +1,6 @@
 import {
   ACCOUNT_OPTIONS,
+  privacyChoicePatch,
   accountSwitchPatch,
   TAG_OPTIONS,
   WORKOUT_OPTIONS,
@@ -19,11 +20,22 @@ import {
 describe('Controls wording', () => {
   it('the account choice says what each means', () => {
     expect(ACCOUNT_OPTIONS.map((o) => o.label)).toEqual(['Public', 'Private']);
-    expect(accountDescription(false)).toBe(
+    expect(accountDescription(false, 'everyone')).toBe(
       'Anyone on Mahi can see your profile and workouts and follow you.'
     );
-    expect(accountDescription(true)).toBe(
+    expect(accountDescription(true, 'followers')).toBe(
       'Only people you approve can follow you and see your workouts. Your name and photo still show.'
+    );
+  });
+
+  // Owner, 2026-10-08: workouts default to Followers until someone chooses, so a public account
+  // may not show its workouts to everyone. The words never claim it does.
+  it('a public account whose workouts are for followers or friends says only the profile', () => {
+    expect(accountDescription(false, 'followers')).toBe(
+      'Anyone on Mahi can see your profile and follow you.'
+    );
+    expect(accountDescription(false, 'friends')).toBe(
+      'Anyone on Mahi can see your profile and follow you.'
     );
   });
 
@@ -86,6 +98,24 @@ describe('accountSwitchPatch', () => {
   });
   it('going private leaves the workouts setting to the server', () => {
     expect(accountSwitchPatch(true)).toEqual({ is_private: true });
+  });
+});
+
+// The sign-up choice saves who sees workouts with it: Public means everyone, Private followers.
+describe('privacyChoicePatch', () => {
+  it('Public opens workouts to everyone', () => {
+    expect(privacyChoicePatch(false, 'approve')).toEqual({
+      is_private: false,
+      posts_visibility: 'everyone',
+      tag_permission: 'approve',
+    });
+  });
+  it('Private keeps them for followers', () => {
+    expect(privacyChoicePatch(true, 'friends')).toEqual({
+      is_private: true,
+      posts_visibility: 'followers',
+      tag_permission: 'friends',
+    });
   });
 });
 

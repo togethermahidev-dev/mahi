@@ -54,7 +54,17 @@ export const TAG_OPTIONS: readonly Option<TagPermission>[] = [
 const describe = <T>(options: readonly Option<T>[], value: T): string =>
   options.find((o) => o.value === value)?.description ?? '';
 
-export const accountDescription = (isPrivate: boolean) => describe(ACCOUNT_OPTIONS, isPrivate);
+/**
+ * What the account choice means right now. Workouts default to Followers until someone chooses
+ * (owner, 2026-10-08), so a public account whose workouts aren't for everyone says only that
+ * anyone can see the profile and follow.
+ */
+export function accountDescription(isPrivate: boolean, visibility: PostsVisibility): string {
+  if (!isPrivate && visibility !== 'everyone') {
+    return 'Anyone on Mahi can see your profile and follow you.';
+  }
+  return describe(ACCOUNT_OPTIONS, isPrivate);
+}
 export const workoutsDescription = (v: PostsVisibility) => describe(WORKOUT_OPTIONS, v);
 export const tagDescription = (v: TagPermission) => describe(TAG_OPTIONS, v);
 
@@ -66,6 +76,21 @@ export function workoutOptionDisabled(isPrivate: boolean, v: PostsVisibility): b
 /** Who really sees your workouts (the server's `effective_posts_visibility`). */
 export function effectiveVisibility(isPrivate: boolean, v: PostsVisibility): PostsVisibility {
   return workoutOptionDisabled(isPrivate, v) ? 'followers' : v;
+}
+
+/**
+ * What the choice after sign-up saves: Public opens workouts to everyone (as its card says),
+ * Private keeps them for followers; who can tag you goes with it.
+ */
+export function privacyChoicePatch(
+  isPrivate: boolean,
+  tagPermission: TagPermission
+): AccountControls {
+  return {
+    is_private: isPrivate,
+    posts_visibility: isPrivate ? 'followers' : 'everyone',
+    tag_permission: tagPermission,
+  };
 }
 
 /**

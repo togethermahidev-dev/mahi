@@ -168,7 +168,7 @@ and RevenueCat is never started.)
 yet — create it switched off). Needs migration `20261008170000_private_accounts`. On: Settings →
 Controls between Friends and Preferences — Account (Public | Private: "Anyone on Mahi can see your
 profile and workouts and follow you." / "Only people you approve can follow you and see your
-workouts. Your name and photo still show.", each switch asked about first; going public also sets
+workouts. Your name and photo still show."; public with workouts for followers or friends says "Anyone on Mahi can see your profile and follow you."; each switch asked about first; going public also sets
 workouts back to Everyone), Who can see your workouts (Everyone | Followers | Friends; Everyone can't
 be picked while private), Who can tag you (Everyone | Everyone, I approve first | Friends only),
 Followers (with Remove, asked about first: "They won't be told", and a friend's open tags end) and

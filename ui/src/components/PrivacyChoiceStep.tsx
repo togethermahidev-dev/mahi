@@ -18,6 +18,7 @@ import { reportError } from '@/lib/sentry';
 import {
   ACCOUNT_OPTIONS,
   TAG_OPTIONS,
+  privacyChoicePatch,
   showPrivacyChoice,
   tagDescription,
   type TagPermission,
@@ -69,7 +70,7 @@ export default function PrivacyChoiceStep({
     setSaving(true);
     const { error } = await useUserStore
       .getState()
-      .saveControls({ is_private: isPrivate, tag_permission: tagPermission });
+      .saveControls(privacyChoicePatch(isPrivate, tagPermission));
     setSaving(false);
     if (error) {
       reportError(error, {
