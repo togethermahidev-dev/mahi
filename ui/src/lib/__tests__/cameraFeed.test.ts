@@ -4,7 +4,7 @@
  * of the pull down, which slides it down to show the roadmap behind. Tap the strip, the Camera
  * pill or swipe it down and the camera is back. Pure geometry and release rules, unit-tested.
  */
-import { cameraStrip, feedOpensOnRelease, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
+import { cameraStrip, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
 import { SWIPE } from '@/constants/tokens';
 
 const page = { width: 400, height: 800 };
@@ -19,24 +19,6 @@ describe('cameraStrip — the camera slid up while the feed is showing', () => {
 describe('feedTop — where the feed’s rows start', () => {
   it('is just under the camera strip', () => {
     expect(feedTop(cameraStrip(page, 100))).toBe(260 + 8);
-  });
-});
-
-// Owner, 2026-10-08: the swipe up must feel as quick as the camera's pull down — a short drag
-// (15% of the way) or a light flick is enough.
-describe('feedOpensOnRelease — a short swipe or a light flick', () => {
-  const travel = 500;
-  it('opens past 15% of the travel', () => {
-    expect(feedOpensOnRelease({ progress: 0.16, velocity: 0, travel, startedOpen: false })).toBe(true);
-    expect(feedOpensOnRelease({ progress: 0.1, velocity: 0, travel, startedOpen: false })).toBe(false);
-  });
-  it('a light flick up opens from anywhere; a flick down closes', () => {
-    expect(feedOpensOnRelease({ progress: 0.05, velocity: -0.5, travel, startedOpen: false })).toBe(true);
-    expect(feedOpensOnRelease({ progress: 0.9, velocity: 2, travel, startedOpen: true })).toBe(false);
-  });
-  it('from open, closes past 15% of the way back', () => {
-    expect(feedOpensOnRelease({ progress: 0.9, velocity: 0, travel, startedOpen: true })).toBe(true);
-    expect(feedOpensOnRelease({ progress: 0.8, velocity: 0, travel, startedOpen: true })).toBe(false);
   });
 });
 

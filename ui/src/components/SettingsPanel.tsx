@@ -615,9 +615,6 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: ALPHA.a70,
   },
-  pressedMore: {
-    opacity: ALPHA.a60,
-  },
   content: {
     flexGrow: 1,
     paddingTop: SPACE.s20,
@@ -671,27 +668,6 @@ const styles = StyleSheet.create({
   // The space between one card and the next title: the cards stack, they don't spread to fill.
   spacer: {
     height: SPACE.s24,
-  },
-  logoutBtn: {
-    marginHorizontal: SPACE.s20,
-    marginBottom: SPACE.s8,
-    paddingVertical: SPACE.s14,
-    borderRadius: RADIUS.r20,
-    borderWidth: BORDER_WIDTH.w1,
-    alignItems: 'center',
-  },
-  logoutText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f15,
-  },
-  deleteBtn: {
-    marginHorizontal: SPACE.s24,
-    paddingVertical: SPACE.s14,
-    alignItems: 'center',
-  },
-  deleteText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f15,
   },
   versionText: {
     fontFamily: FONTS.regular,

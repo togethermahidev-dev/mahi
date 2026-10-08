@@ -600,8 +600,6 @@ export const MOTION = {
     collapsedInset: 16,
     /** Release after this share of the reveal and the camera completes opening. */
     openAt: 0.24,
-    /** The arrow sits roughly a third of the way down the camera. */
-    handleTopShare: 0.32,
     /** How far a release velocity projects when choosing the nearest drawer detent. */
     projectionMs: 180,
     /** The lit leading edge is strongest early, then settles to this quieter strength. */
@@ -615,8 +613,6 @@ export const MOTION = {
     arrowJumpY: 8,
     cameraFadeAt: 0.65,
   },
-  /** A pull past this share of its limit is felt once (a tick). */
-  pullFeltAt: 0.6,
   /** The pull handle breathes out to this scale once, this fast (ms) each way, when it shows. */
   pullHandleScale: 1.12,
   pullHandleMs: 700,

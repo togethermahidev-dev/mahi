@@ -14,15 +14,6 @@ export function morphNumber(from: number, to: number, progress: number): number 
   return from + (to - from) * p;
 }
 
-export function morphRect(from: MorphRect, to: MorphRect, progress: number): MorphRect {
-  return {
-    x: morphNumber(from.x, to.x, progress),
-    y: morphNumber(from.y, to.y, progress),
-    width: morphNumber(from.width, to.width, progress),
-    height: morphNumber(from.height, to.height, progress),
-  };
-}
-
 export function validMorphSource(source: MorphSource | null | undefined): source is MorphSource {
   return !!source?.uri && source.width > 0 && source.height > 0;
 }

@@ -1,11 +1,4 @@
-import {
-  clockText,
-  feedCountdown,
-  lockExplainer,
-  lockPill,
-  lockedPostText,
-  timeLeftText,
-} from '../feedLock';
+import { clockText, feedCountdown, lockExplainer, lockPill, timeLeftText } from '../feedLock';
 
 const HOUR = 3600 * 1000;
 const MIN = 60 * 1000;
@@ -176,38 +169,6 @@ describe('feedCountdown', () => {
   it('says nothing when locked or when there is no window', () => {
     expect(feedCountdown({ ...base, locked: true, unlockedUntil: at(HOUR) })).toBeNull();
     expect(feedCountdown({ ...base, unlockedUntil: null })).toBeNull();
-  });
-});
-
-describe('lockedPostText', () => {
-  it('tagged: opens when you post your answer', () => {
-    expect(lockedPostText({ tagged: true, postedBefore: true })).toEqual({
-      hint: 'Opens when you post your answer',
-      button: 'Post your answer',
-    });
-  });
-
-  it('never posted: the first post is always allowed', () => {
-    expect(lockedPostText({ tagged: false, postedBefore: false })).toEqual({
-      hint: 'Show up with your first workout to see it',
-      button: 'Start first workout',
-    });
-  });
-
-  it('never posted: the button says the same as the lock card above it', () => {
-    const card = lockExplainer({
-      locked: true,
-      unlockedUntil: null,
-      openTags: [],
-      serverOffsetMs: 0,
-    });
-    expect(lockedPostText({ tagged: false, postedBefore: false }).button).toBe(card?.button);
-  });
-
-  it('posted before, no open tag: no button, since there is nothing to post yet', () => {
-    const text = lockedPostText({ tagged: false, postedBefore: true });
-    expect(text).toEqual({ hint: 'Opens when a friend tags you' });
-    expect(text).not.toHaveProperty('button');
   });
 });
 

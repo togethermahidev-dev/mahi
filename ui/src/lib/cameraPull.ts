@@ -56,22 +56,6 @@ export function drawerShouldOpen(offset: number, openOffset: number): boolean {
   return openOffset > 0 && offset >= openOffset * MOTION.pull.openAt;
 }
 
-/** Hysteresis: a short committed pull opens or closes without making the drawer feel twitchy. */
-export function drawerShouldSettleOpen(
-  offset: number,
-  openOffset: number,
-  startedOpen: boolean,
-  velocityY = 0
-): boolean {
-  'worklet';
-  const projected = Math.max(
-    0,
-    Math.min(openOffset, offset + velocityY * MOTION.pull.projectionMs)
-  );
-  if (!startedOpen) return drawerShouldOpen(projected, openOffset);
-  return projected > openOffset * (1 - MOTION.pull.openAt);
-}
-
 /** Where the layer behind the camera sits for a camera `offset` down. */
 export function pullParallax(offset: number): { translateY: number; scale: number } {
   'worklet';
@@ -80,12 +64,6 @@ export function pullParallax(offset: number): { translateY: number; scale: numbe
     translateY: Math.max(0, offset) * MOTION.pull.parallax,
     scale: MOTION.pull.fromScale + (1 - MOTION.pull.fromScale) * share,
   };
-}
-
-/** The one tick per pull: once the camera passes its mark, if not yet felt this pull. */
-export function pullFelt(offset: number, felt: boolean): boolean {
-  'worklet';
-  return !felt && offset > MOTION.pull.limit * MOTION.pullFeltAt;
 }
 
 /**

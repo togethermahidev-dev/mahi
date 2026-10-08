@@ -3767,11 +3767,6 @@ const styles = StyleSheet.create({
   },
   waitingScroll: { width: '100%', flex: 1 },
   waitingContent: { alignItems: 'center', paddingBottom: SPACE.s16 },
-  noTagsWords: {
-    alignSelf: 'stretch',
-    alignItems: 'center',
-    gap: SPACE.s6,
-  },
   actionStage: {
     alignSelf: 'stretch',
     alignItems: 'center',
@@ -3801,23 +3796,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f15,
     fontFamily: FONTS.bold,
   },
-  // The second choice on the no-tag card: the same pill, outlined in the theme's black or white.
-  inviteMateButton: {
-    borderWidth: BORDER_WIDTH.w1,
-    alignSelf: 'stretch',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: RADIUS.pill,
-    paddingVertical: SPACE.s8,
-    paddingHorizontal: SPACE.s24,
-    minHeight: SIZE.z36,
-  },
-  inviteMateText: {
-    textAlign: 'center',
-    color: themeColors(true).muted,
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
-  },
   // A quiet text link under the card's buttons, with a full-size tap area.
   seeInvites: {
     alignSelf: 'center',
@@ -3832,26 +3810,6 @@ const styles = StyleSheet.create({
     color: withAlpha(COLORS.offWhite, ALPHA.a80),
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.semiBold,
-  },
-  postedTitle: {
-    color: COLORS.white,
-    fontSize: FONT_SIZE.f18,
-    lineHeight: LINE_HEIGHT.l24,
-    fontFamily: FONTS.bold,
-    textAlign: 'center',
-  },
-  postedSub: {
-    color: withAlpha(COLORS.offWhite, ALPHA.a80),
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l18,
-    fontFamily: FONTS.regular,
-    textAlign: 'center',
-  },
-  waitingPoints: {
-    color: COLORS.accent,
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
-    textAlign: 'center',
   },
   controlsRow: {
     position: 'absolute',

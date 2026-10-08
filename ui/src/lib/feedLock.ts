@@ -109,7 +109,11 @@ export function lockPill(
     const { who, first } = whoTagged(input.openTags);
     const ms = msLeft(first.expires_at, input.serverOffsetMs, input.deviceNow ?? Date.now());
     const left = ms > 0 ? ` ${clockText(ms)} left.` : '';
-    return { line: `Locked. Answer ${who} to open it.${left}`, button: card.button, target: 'camera' };
+    return {
+      line: `Locked. Answer ${who} to open it.${left}`,
+      button: card.button,
+      target: 'camera',
+    };
   }
   if (input.unlockedUntil || input.postedBefore) {
     return { line: 'Locked until a friend tags you.', button: 'Find friends', target: 'friends' };
@@ -119,21 +123,6 @@ export function lockPill(
     button: card.button,
     target: 'camera',
   };
-}
-
-/** The words on a friend's post while your feed is locked; a button only when you can post. */
-export function lockedPostText({
-  tagged,
-  postedBefore,
-}: {
-  /** You have an open tag to answer. */
-  tagged: boolean;
-  postedBefore: boolean;
-}): { hint: string; button?: string } {
-  if (tagged) return { hint: 'Opens when you post your answer', button: 'Post your answer' };
-  if (!postedBefore)
-    return { hint: 'Show up with your first workout to see it', button: 'Start first workout' };
-  return { hint: 'Opens when a friend tags you' };
 }
 
 /** A live countdown, "05:12:33": hours, minutes and seconds, two digits each; a part second

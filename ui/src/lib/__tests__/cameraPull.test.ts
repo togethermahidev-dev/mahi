@@ -3,8 +3,6 @@ import {
   cameraDrag,
   drawerOffset,
   drawerShouldOpen,
-  drawerShouldSettleOpen,
-  pullFelt,
   pullOffset,
   pullParallax,
   verticalPull,
@@ -70,15 +68,6 @@ describe('camera pull-down (the waiting camera gives a little)', () => {
     });
   });
 
-  describe('pullFelt: the one tick per pull', () => {
-    it('is felt once the pull passes its mark, and only once', () => {
-      const mark = MOTION.pull.limit * MOTION.pullFeltAt;
-      expect(pullFelt(mark - 1, false)).toBe(false);
-      expect(pullFelt(mark + 1, false)).toBe(true);
-      expect(pullFelt(mark + 1, true)).toBe(false);
-    });
-  });
-
   describe('full camera drawer', () => {
     const open = 600;
 
@@ -92,16 +81,6 @@ describe('camera pull-down (the waiting camera gives a little)', () => {
     it('opens only after the commitment threshold', () => {
       expect(drawerShouldOpen(open * MOTION.pull.openAt - 1, open)).toBe(false);
       expect(drawerShouldOpen(open * MOTION.pull.openAt, open)).toBe(true);
-    });
-
-    it('closes an open drawer after the same committed distance upwards', () => {
-      expect(drawerShouldSettleOpen(open * (1 - MOTION.pull.openAt) + 1, open, true)).toBe(true);
-      expect(drawerShouldSettleOpen(open * (1 - MOTION.pull.openAt) - 1, open, true)).toBe(false);
-    });
-
-    it('respects an intentional flick toward either detent', () => {
-      expect(drawerShouldSettleOpen(40, open, false, 1)).toBe(true);
-      expect(drawerShouldSettleOpen(open - 40, open, true, -1)).toBe(false);
     });
   });
 });

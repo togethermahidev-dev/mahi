@@ -27,7 +27,7 @@ import FeedRow from '@/components/FeedRow';
 import PostViewer from '@/components/PostViewer';
 import type { MorphSource } from '@/lib/morph';
 import CommentSheet from '@/components/CommentSheet';
-import { lockExplainer as lockCardFor, lockedPostText } from '@/lib/feedLock';
+import { lockExplainer as lockCardFor } from '@/lib/feedLock';
 import { feedLockMoment, haptic } from '@/lib/haptics';
 import { developPlan, developWords } from '@/lib/feedDevelop';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
@@ -232,10 +232,6 @@ export default function FeedScreen({
   const { openTags, loaded: tagsLoaded } = useOpenTags();
   const tagged = answersATag(openTags, serverOffsetMs);
   const postedBefore = unlockedUntil !== null;
-  const lockedText = useMemo(
-    () => lockedPostText({ tagged, postedBefore }),
-    [tagged, postedBefore]
-  );
 
   // A locked feed shows one main button: the lock card's. When that card already offers Find
   // friends, the empty state drops its own; otherwise its Find friends is a plain text link.
@@ -270,8 +266,8 @@ export default function FeedScreen({
   const toggleFeedMuted = useCallback(() => setFeedMuted((m) => !m), []);
   const feedOnScreen = isActive && !profileUserId && !viewerPost;
   const listExtra = useMemo(
-    () => ({ topSpace, lockedText, inViewId, feedMuted, feedOnScreen, develop }),
-    [topSpace, lockedText, inViewId, feedMuted, feedOnScreen, develop]
+    () => ({ topSpace, inViewId, feedMuted, feedOnScreen, develop }),
+    [topSpace, inViewId, feedMuted, feedOnScreen, develop]
   );
 
   // Notify parent when a fullscreen overlay (profile) opens/closes

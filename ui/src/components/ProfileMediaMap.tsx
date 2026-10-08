@@ -29,7 +29,7 @@ import { sharePost } from '@/lib/sharePost';
 import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
 import { useProfilePostsStore, useSocialStore, useUserStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
-import { VideoIcon } from '@/components/ScreenIcons';
+import { LockIcon, VideoIcon } from '@/components/ScreenIcons';
 import PreviewMenu, { PostPreviewImage } from '@/components/PreviewMenu';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import ListState from '@/components/ListState';
@@ -64,28 +64,6 @@ function CameraIcon({ color, size = SIZE.z48 }: { color: string; size?: number }
       />
       <Path
         d="M6 18a4 4 0 0 1 4-4h2l3-4h18l3 4h2a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V18z"
-        stroke={color}
-        strokeWidth={STROKE.s2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-/** A padlock, drawn like CameraIcon: the square for a post that opens once you answer a tag. */
-function LockIcon({ color }: { color: string }) {
-  return (
-    <Svg width={ICON_SIZE.i22} height={ICON_SIZE.i22} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M7 11V8a5 5 0 0 1 10 0v3"
-        stroke={color}
-        strokeWidth={STROKE.s2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M5 13a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7z"
         stroke={color}
         strokeWidth={STROKE.s2}
         strokeLinecap="round"
@@ -195,7 +173,7 @@ function WorkoutCard({
     >
       {locked ? (
         <View style={[styles.lockedTile, { width, height: mediaHeight, backgroundColor: tileBg }]}>
-          <LockIcon color={muted} />
+          <LockIcon size={ICON_SIZE.i22} color={muted} />
         </View>
       ) : tile.video && !tile.uri ? (
         <View style={[styles.videoTile, { width, height: mediaHeight }]}>
@@ -367,7 +345,7 @@ export default function ProfileMediaMap({
                 kind="empty"
                 dark={dark}
                 title={restrictedText(restricted, username ?? '')}
-                icon={<LockIcon color={muted} />}
+                icon={<LockIcon size={ICON_SIZE.i22} color={muted} />}
               />
             </>
           ) : (

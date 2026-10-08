@@ -242,10 +242,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
   },
-  buttonText: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
-  },
   // The camera's open-tags pill (OpenTagsBanner): frosted, an accent outline, the time in bold
   // accent. The digits keep their width, so the pill doesn't wobble as they tick.
   timerWrap: {

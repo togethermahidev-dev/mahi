@@ -25,7 +25,9 @@ describe('from the peek', () => {
   });
   it('swiping back returns to the camera', () => {
     expect(releaseDetent({ ...base, start: 'peek', progress: 0.1 })).toBe('closed');
-    expect(releaseDetent({ ...base, start: 'peek', progress: 0.28, velocity: -0.6 })).toBe('closed');
+    expect(releaseDetent({ ...base, start: 'peek', progress: 0.28, velocity: -0.6 })).toBe(
+      'closed'
+    );
   });
   it('a small wobble stays at the peek', () => {
     expect(releaseDetent({ ...base, start: 'peek', progress: 0.35 })).toBe('peek');
@@ -35,7 +37,9 @@ describe('from the peek', () => {
 describe('from fully open', () => {
   it('back past a little returns straight to the camera', () => {
     expect(releaseDetent({ ...base, start: 'open', progress: 0.8 })).toBe('closed');
-    expect(releaseDetent({ ...base, start: 'open', progress: 0.95, velocity: -0.6 })).toBe('closed');
+    expect(releaseDetent({ ...base, start: 'open', progress: 0.95, velocity: -0.6 })).toBe(
+      'closed'
+    );
   });
   it('a small wobble stays open', () => {
     expect(releaseDetent({ ...base, start: 'open', progress: 0.9 })).toBe('open');
@@ -44,6 +48,8 @@ describe('from fully open', () => {
 
 describe('one stage (a locked feed: the quarter lift is the whole way)', () => {
   it('goes straight to open', () => {
-    expect(releaseDetent({ ...base, twoStage: false, start: 'closed', progress: 0.2 })).toBe('open');
+    expect(releaseDetent({ ...base, twoStage: false, start: 'closed', progress: 0.2 })).toBe(
+      'open'
+    );
   });
 });

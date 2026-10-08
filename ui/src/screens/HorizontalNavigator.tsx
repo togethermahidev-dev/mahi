@@ -589,11 +589,4 @@ const styles = StyleSheet.create({
   page: {
     overflow: 'hidden',
   },
-  header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: LAYER.header,
-  },
 });

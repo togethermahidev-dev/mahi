@@ -13,9 +13,7 @@ jest.mock('expo-file-system/legacy', () => ({
   makeDirectoryAsync: async () => {},
   readDirectoryAsync: async (dir: string) => {
     if (readFails) throw new Error('no folder');
-    return [...files.keys()]
-      .filter((f) => f.startsWith(dir))
-      .map((f) => f.slice(dir.length));
+    return [...files.keys()].filter((f) => f.startsWith(dir)).map((f) => f.slice(dir.length));
   },
   downloadAsync: async (url: string, to: string) => {
     downloads.push(url);

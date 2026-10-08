@@ -25,26 +25,6 @@ export function feedTop(strip: CameraStrip): number {
 }
 
 /**
- * On release, does the feed end up open? Past a share of the way (from wherever it started), or
- * a flick in that direction. `velocity` in pt/ms, negative = upward (towards open).
- */
-export function feedOpensOnRelease(input: {
-  /** 0 = camera full screen, 1 = feed showing. */
-  progress: number;
-  velocity: number;
-  /** How far the camera travels, in points (to turn the flick into a direction). */
-  travel: number;
-  startedOpen: boolean;
-}): boolean {
-  'worklet';
-  const { openAt, flick } = MOTION.cameraFeed;
-  void input.travel;
-  if (input.velocity <= -flick) return true;
-  if (input.velocity >= flick) return false;
-  return input.startedOpen ? input.progress > 1 - openAt : input.progress >= openAt;
-}
-
-/**
  * Whether a drag on the camera moves the feed: up on the full camera, down on the small card.
  * Decided by direction, like the camera's pull (cameraPull.ts): a sideways drag is the page swipe
  * to Messages / Profile, the other direction belongs to the camera's own pull, and a drag from
