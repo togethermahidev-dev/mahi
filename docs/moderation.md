@@ -300,8 +300,9 @@ table only the person can read); other people's profiles simply come back withou
 - A removed message disappears from a conversation that's already open only when it reloads.
 - Staff see a message only when it's reported; there's no list of a person's messages.
 - Videos and profile photos aren't checked automatically.
-- The `posts` storage bucket is still public, so a hidden post's photo link keeps working for
-  anyone who already has it, until `supabase/deferred/private_bucket.sql` goes in.
+- A hidden post's photo link already handed out keeps working until it expires (signed links
+  last minutes). The bucket is private from `20261008100000_security_hardening`; before that
+  migration is pushed, public links work for anyone who has them.
 
 ## Added 2026-10-06 (applied to production the same day)
 
@@ -323,5 +324,5 @@ table only the person can read); other people's profiles simply come back withou
   before keeps its snapshot. Edited messages are not re-checked automatically (messages never were).
   Test `tests/message_requests_test.sql`.
 
-Undo files for each are in `supabase/rollbacks/`. The `posts` bucket stays public on purpose
-(older builds need it; `supabase/deferred/private_bucket.sql` waits for the update gate).
+Undo files for each are in `supabase/rollbacks/`. The `posts` bucket goes private with
+`20261008100000_security_hardening` (every app since 2026-09-17 signs its photos).

@@ -183,8 +183,12 @@ Live on production since 2026-10-06 (migrations `20261006100000_moderation` thro
 - Hidden posts, removed comments and removed messages are kept but left out for everyone else
   (feed, profiles, comments, counts, `get_messages`, the inbox's last message and unread count).
 - Suspending or banning someone signs them out (`20261006160000_sign_out_on_ban`).
-- Signed-in reads: `get_feed_posts` and `get_follow_data` answer signed-in callers only
-  (`20261006170000_signed_in_reads`).
+- Signed-in reads: `get_follow_data` answers signed-in callers only
+  (`20261006170000_signed_in_reads`); `get_feed_posts` is revoked entirely
+  (`20261008100000_security_hardening`).
+- Posts and their photos follow the feed rule: own posts, staff, or a visible post `can_view_post`
+  allows; likes and comments only on those; posting only through `create_post`; staff need a
+  confirmed email (`20261008100000_security_hardening`, `20261008110000_staff_confirmed_email`).
 - The automatic check: function `moderate-content` (`--no-verify-jwt`, called by the database through
   Vault secrets) sends new posts and comments to OpenAI's free moderation model and flags them; it only
   hides by itself if `app_config.ai_auto_hide` is on (starts off). Idle until an OpenAI key is set.
@@ -374,7 +378,7 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | `public.post_comments` | Comments on posts. Ordered oldest-first. RLS: authenticated read-all, insert/delete own only. |
 | `public.comment_likes` | One row per user-comment like (flag `comment-likes`). Unique `(comment_id, user_id)`, cascades with the comment and the profile. RLS: read where the comment is readable, insert own only and not across a block (`comment_like_allowed`), delete own only. Read through `get_comment_likes(post)` (count + liked by me per comment) and `get_comment_likers(comment)` (newest first, without people blocked either way or banned); written through `toggle_comment_like`. Migration `20261002130000_comment_likes`. |
 | `public.follows` | Follow relationships. Unique constraint `(follower_id, following_id)`, self-follow check constraint. RLS: authenticated read-all, insert/delete own only (`auth.uid() = follower_id`). Explicit UPDATE deny policy. |
-| `public.post_tags` | User-tag junction table: which users were mentioned on which post. Composite PK `(post_id, user_id)`. RLS: authenticated read-all, insert only when the caller owns the referenced post. Aggregated into `tagged_users` by the `get_feed_posts` RPC. |
+| `public.post_tags` | User-tag junction table: which users were mentioned on which post. Composite PK `(post_id, user_id)`. RLS: authenticated read on posts the reader can see; no direct writes (`create_post` / `start_tag` add tags). |
 | `public.conversations` | Messaging thread — one row per pair, ordered participants constraint; a request until accepted (`declined_at` when declined) — see [Messages](#messages) |
 | `public.messages` | Individual messages within a conversation; `edited_at` / `unsent_at` set only by the server |
 | `public.notifications` | Activity feed (likes, comments, follows, tags, tag answered / missed, `streak_lost`, invites) |

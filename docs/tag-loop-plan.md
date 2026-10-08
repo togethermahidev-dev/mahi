@@ -389,10 +389,9 @@ deadlines and their pushes, and answers any tags the poster holds.
 (`ui/src/lib/appVersion.ts`, unit-tested, flip-tested); a failed check never blocks. No separate
 `get_app_status()` RPC — `app_config` is already readable.
 
-*Contract step parked:* `supabase/deferred/contract_posting.sql` sits outside `migrations/` so a push
-can't apply it early. It becomes a migration only after the create_post build is in both stores and
-`min_app_version` is raised to that build's `version` (bump `version` in `app.config.js` for that
-release — it is still `0.1.0`).
+*Contract step built 2026-10-08:* the parked `supabase/deferred/contract_posting.sql` became part of
+`supabase/migrations/20261008100000_security_hardening.sql` (security review; not pushed yet). Every app
+since 2026-09-17 posts through `create_post`.
 
 
 **Goal:** once the Phase 2 build is the minimum supported version, nothing can post around the rules.
@@ -412,7 +411,7 @@ works.
 
 ### Phase 4 — Feed lock and private photos
 
-*Expand step built 2026-09-17, live 2026-09-23; founder's lock and no-tag-back rules added by `20260928120000_tag_lock_rules` (live 2026-09-28); `private_bucket` still deferred:* `supabase/migrations/20260917114517_feed_lock.sql`
+*Expand step built 2026-09-17, live 2026-09-23; founder's lock and no-tag-back rules added by `20260928120000_tag_lock_rules` (live 2026-09-28); `private_bucket` built 2026-10-08 as part of `20261008100000_security_hardening` (not pushed yet), which also makes the `posts` table follow `can_view_post`:* `supabase/migrations/20260917114517_feed_lock.sql`
 (+ rollback, `supabase/tests/feed_lock_test.sql`, 20 checks, flip-tested by disabling the lock rule).
 Differences from the design below:
 
@@ -425,8 +424,8 @@ Differences from the design below:
 - Server switches: `app_config.unlock_window` (24 h), `feed_lock_enabled`.
 - The live photo read policy (`posts_storage_select`: any signed-in user) and the public bucket are
   unchanged here, so older builds keep working. Their replacement, plus gating likes/comments and
-  revoking `get_feed_posts`, is parked in `supabase/deferred/private_bucket.sql` (applies cleanly on
-  top of everything in the local replay).
+  revoking `get_feed_posts`, was parked in `supabase/deferred/private_bucket.sql` and is now in
+  `20261008100000_security_hardening`.
 - Found and fixed on the way: the live `toggle_like` never checked the caller, so anyone could like
   or unlike as another user — `20260917105130_secure_toggle_like.sql` (+ test, red on the live
   schema, green after). Safe to ship ahead of everything else.
@@ -766,12 +765,12 @@ written, so the order below is the order they are created and applied.
 | 2 | `timezone_postdate` | P0 | expand |
 | 3 | `push` | P1 | expand |
 | 4 | `tag_challenges` | P2 | expand |
-| 5 | `contract_posting` | P3 | contract |
+| 5 | `contract_posting` (in `20261008100000_security_hardening`) | P3 | contract |
 | 6 | `feed_lock` | P4 | expand |
 | 7 | `points_streak` (streak half replaced by `reactive_posting`, 2026-10-01) | P5 | expand |
 | 8 | `messages` | P6 | expand |
 | 9 | `invites` | P7 | expand |
-| 10 | `private_bucket`, `contract_messages` | once the version gate covers the P4 and P6 builds | contract |
+| 10 | `private_bucket` (in `20261008100000_security_hardening`), `contract_messages` (`20261007111029`) | once the version gate covers the P4 and P6 builds | contract |
 
 Every migration that replaces a live function ends with `NOTIFY pgrst, 'reload schema';`.
 

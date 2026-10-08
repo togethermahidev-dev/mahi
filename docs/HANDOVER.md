@@ -148,8 +148,8 @@ without the owner's go in the same session.
   (55b90b6). `check-email` source now in the repo (eac0aeb). Sign-in placeholders
   `auth-apple-signin` / `auth-google-signin` set to 0% in PostHog. Twelve 100% switches are being
   removed from the code. Found, not fixed (owner): send-push, moderate-content and didit functions
-  not deployed; the update gate is off while old messaging is removed; post photos are public by
-  link (deferred `private_bucket.sql` waits on the gate); leaked-password protection off;
+  not deployed; the update gate is off while old messaging is removed; post photos were public by
+  link (now private in `20261008100000_security_hardening`, not pushed yet); leaked-password protection off;
   `messages_test.sql` fails since `contract_messages` (it writes conversations directly).
 - **OTA 12.23 is live on preview** (EAS group `6127092f-5dce-44a0-b839-cadb60becb80`, commit 4454e3e):
   the feed shows the people you follow, newest first, and only your latest post among them; older

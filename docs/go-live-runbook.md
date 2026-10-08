@@ -173,8 +173,9 @@ is in the stores yet. Still to do, in order:
    It refuses if a migration would set the minimum app version higher than the version you're
    shipping — which would put every user behind an update screen with no update to install.
    CI runs it too.
-5. **The held-back steps** in `supabase/deferred/` (`contract_posting`, `contract_messages`,
-   `private_bucket`) — only once that build is in both stores.
+5. **The held-back steps** in `supabase/deferred/` (`contract_messages`, `contract_points`) — only
+   once that build is in both stores. (`contract_posting` and `private_bucket` became
+   `20261008100000_security_hardening`.)
 
 ---
 

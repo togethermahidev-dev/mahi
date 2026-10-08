@@ -15,6 +15,17 @@ index and bucket was checked against these files; nothing else was missing.
 Every later migration through `20261007105647_explicit_mutual_follow_wording` is live on production
 (checked 2026-10-07). The historical "not pushed" paragraphs below describe rollout dependencies
 that have since landed unless they are explicitly listed under `supabase/deferred/`.
+**Not pushed yet (2026-10-08, security review):** `20261008100000_security_hardening` — posts
+and their photos follow the feed rule (own, staff, or `can_view_post`), the `posts` bucket is
+private, likes/comments/`toggle_like` only on posts you can see, `get_feed_posts` revoked, no
+direct writes to `posts` / `post_tags`, no tag notification across a block or from a banned
+person, profile inserts limited to the sign-up columns, email sign-ups need complete-signup's
+`app_metadata.signup_via` marker, `revoke_user_sessions` (server only), `message_reactions_json`
+internal, `get_suggested_follows` answers for `auth.uid()`. Then
+`20261008110000_staff_confirmed_email` — staff rows of unconfirmed accounts removed and
+`staff_role` / `is_staff` require a confirmed email. Deploy `complete-signup` before the push and
+`reset-password` / `check-email` after it. Tests `tests/security_hardening_test.sql`,
+`tests/staff_confirmed_email_test.sql`; undo in `rollbacks/`.
 **Not pushed yet (2026-10-07, after `20261007270000_contact_match`):** `20261007280000_message_reactions`
 — reactions on messages: the `message_reactions` table (one per person per message; the same emoji
 again takes it off, a different one replaces it), `react_to_message` and `get_message_reactions`
@@ -59,10 +70,10 @@ audit log; hidden posts and removed comments left out of feeds; the automatic ch
 sent; the last-call reminder kept for early-morning deadlines). Contract and owner steps:
 [docs/moderation.md](../docs/moderation.md). Tests `tests/moderation_test.sql`,
 `tests/follow_back_test.sql`, `tests/push_deadline_wording_test.sql`.
-Still held back: `deferred/contract_posting.sql`,
-`deferred/contract_messages.sql`, `deferred/private_bucket.sql` — they shut old paths and wait for a
-store build covered by the version gate — and `deferred/contract_points.sql`, which drops the
-profile's `points` column once every phone has the Mahi points update.
+Still held back: `deferred/contract_points.sql`, which drops the profile's `points` column once
+every phone has the Mahi points update. (`deferred/contract_messages.sql` is already migration
+`20261007111029_contract_messages`; `contract_posting` and `private_bucket` became
+`20261008100000_security_hardening`.)
 
 Rules (enforced by `.claude/hooks/guard.cjs`):
 
@@ -100,10 +111,11 @@ The build plan is [docs/tag-loop-plan.md](../docs/tag-loop-plan.md).
 |---|---|
 | `send-otp` | Makes a 6-digit sign-up code (`purpose = 'signup'`) **server-side**, stores `sha256(code)` + expiry in `otp_codes`, emails it via Resend from `noreply@mahitechnology.com`. Limits: 1/min and 5/hour per email, 5/min and 30/hour per network address (`auth_rate_limits`). |
 | `verify-otp` | Checks a typed sign-up code (5 tries, one atomic update per try) and stamps `verified_at` on a match. |
-| `complete-signup` | Creates the confirmed auth user only for a sign-up code `verify-otp` accepted in the last 30 minutes. |
+| `complete-signup` | Creates the confirmed auth user only for a sign-up code `verify-otp` accepted in the last 30 minutes; its tries count against the code's same 5 (`tryVerifiedCode`). The user carries `app_metadata.signup_via = 'complete-signup'`, which the sign-up hook requires. |
+| `check-email` | Sign-up form hint: `{ exists }` for an email, from `auth_user_id_by_email`. Never blocks sign-up. Deploy with `--no-verify-jwt`. |
 | `send-push` | Push outbox sender, called by pg_cron every minute once the Vault secrets `send_push_url` and `send_push_secret` exist. **Not deployed yet** — the owner's steps are in `docs/go-live-runbook.md` ("Switching push notifications on"). Deploy with `--no-verify-jwt`; the gate is the `X-Internal-Secret` header (`SEND_PUSH_SECRET`). |
 | `send-reset-code` | Password reset: same as `send-otp` but stores the code with `purpose = 'reset'`. Answers and works the same whether or not the email has an account. |
-| `reset-password` | Checks a reset code (5 tries), then sets the new password with the admin API. Same password rule as sign-up. |
+| `reset-password` | Checks a reset code (5 tries), then sets the new password with the admin API and signs every session out (`revoke_user_sessions`). Same password rule as sign-up. |
 | `delete-account` | Deletes the caller's photos (`posts/{id}/`, `avatars/{id}/`), then their auth user; every table cascades. Deployed **with** JWT verification. |
 | `didit-session` | Identity check, step 1: for the signed-in caller (token checked), creates a Didit session (`POST https://verification.didit.me/v3/session/`, `vendor_data` = user id), stores a `pending` row and returns the session token. Already approved → no new session; at most 5 a day. **Not deployed.** Deploy **with** JWT verification. Secrets `DIDIT_API_KEY`, `DIDIT_WORKFLOW_ID`. |
 | `didit-webhook` | Identity check, step 2: Didit calls it on each status change. Checks the HMAC signature (`X-Signature` or `X-Signature-V2`, `X-Timestamp` within 5 minutes) with `DIDIT_WEBHOOK_SECRET`, then records the status (repeats and late events are harmless; statuses only, no personal details). **Not deployed.** Deploy with `--no-verify-jwt`. |
@@ -116,12 +128,14 @@ Sign-up and reset codes share `otp_codes`, kept apart by `purpose` (migration
 font come from `functions/_shared/emailTokens.ts`, generated from the app's tokens by
 `pnpm tokens:email` — never edit it by hand; `pnpm test:scripts` fails when it drifts. The
 Before User Created auth hook `hook_require_verified_signup` (migration `20260923230000_signup_codes`)
-refuses email sign-ups without a fresh `verified_at`, which closes the public sign-up endpoint. It is
+refuses email sign-ups without a fresh `verified_at` and (from `20261008100000_security_hardening`)
+without `app_metadata.signup_via = 'complete-signup'`, which closes the public sign-up endpoint.
+(Supabase Auth does not run this hook for admin-API users, so complete-signup never meets it.) It is
 switched on in the Dashboard (Authentication → Hooks), not by the migration.
 
 Required function secrets: `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY` (`send-push` adds `SEND_PUSH_SECRET`).
 All functions except `delete-account` and `didit-session` run `verify_jwt: false` (deploy with
 `--no-verify-jwt`); those two keep JWT verification on. `didit-webhook` is reached by Didit at
 `https://pzepodsppqtvptzmwxzs.supabase.co/functions/v1/didit-webhook` once deployed. Deployed versions (checked against prod 2026-10-01): `send-otp` v18, `verify-otp` v2,
-`complete-signup` v7, `send-reset-code` v1, `reset-password` v1, `delete-account` v1. `check-email` is live but
-not in this repo. Deploys are the owner's; the CLI needs `SUPABASE_ACCESS_TOKEN` set to a Mahi token.
+`complete-signup` v7, `send-reset-code` v1, `reset-password` v1, `delete-account` v1. `check-email` is live (its
+source is in `functions/check-email`). Deploys are the owner's; the CLI needs `SUPABASE_ACCESS_TOKEN` set to a Mahi token.
