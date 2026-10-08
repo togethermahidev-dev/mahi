@@ -1897,6 +1897,25 @@ export default function CameraScreen({
   // switched off, the screen becomes the fixed dead-end card shown in the reported build.
   const pullOn = cameraOn && !offline && !(frontPhoto && rearPhoto) && captureState === 'idle';
   const pull = useCameraPull(pullOn, safeTop, pageWidth, pageHeight);
+  // The pip window's place on the full camera, and where that maps to on the small camera card:
+  // it moves and shrinks with the card (its height share, so it stays inside the card).
+  const pipLeft = Math.max(PIP_MARGIN, railRoom);
+  const pipTop = previewPipRestTop(pageHeight, PIP_H) - lift;
+  const pipFollowStyle = useAnimatedStyle(() => {
+    const p =
+      pull.openOffset > 0 ? Math.min(1, Math.max(0, pull.offset.value / pull.openOffset)) : 0;
+    const sw = pull.collapsed.width / pull.viewport.width;
+    const sh = pull.collapsed.height / pull.viewport.height;
+    const scale = 1 + p * (sh - 1);
+    return {
+      transformOrigin: 'top left',
+      transform: [
+        { translateX: p * (pull.collapsed.x + pipLeft * (sw - sh)) },
+        { translateY: p * pull.collapsed.y },
+        { scale },
+      ],
+    };
+  });
   const { expanded: pullExpanded, toggle: togglePull } = pull;
   useEffect(() => {
     if (!pullExpanded) return;
@@ -2899,25 +2918,6 @@ export default function CameraScreen({
     );
   }
 
-  // The pip window's place on the full camera, and where that maps to on the small camera card:
-  // it moves and shrinks with the card (its height share, so it stays inside the card).
-  const pipLeft = Math.max(PIP_MARGIN, railRoom);
-  const pipTop = previewPipRestTop(pageHeight, PIP_H) - lift;
-  const pipFollowStyle = useAnimatedStyle(() => {
-    const p =
-      pull.openOffset > 0 ? Math.min(1, Math.max(0, pull.offset.value / pull.openOffset)) : 0;
-    const sw = pull.collapsed.width / pull.viewport.width;
-    const sh = pull.collapsed.height / pull.viewport.height;
-    const scale = 1 + p * (sh - 1);
-    return {
-      transformOrigin: 'top left',
-      transform: [
-        { translateX: p * (pull.collapsed.x + pipLeft * (sw - sh)) },
-        { translateY: p * pull.collapsed.y },
-        { scale },
-      ],
-    };
-  });
   // The small window in the preview's photo-in-photo spot: what comes second, then the first photo.
   const guide = pipGuide({
     state: captureState,
