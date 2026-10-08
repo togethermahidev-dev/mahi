@@ -75,7 +75,6 @@ import {
   postedToast,
   taggedClockLine,
 } from '@/lib/mahiPoints';
-import { matesOnClock } from '@/lib/openTagsBanner';
 import { useSecondTick } from '@/hooks/useSecondTick';
 import KeyboardInset from '@/components/KeyboardInset';
 import { EmojiKeyboardButton, EmojiPanel, useEmojiKeyboard } from '@/components/EmojiKeyboard';
@@ -316,59 +315,6 @@ function PointsCounter({
 }
 
 // ─── Waiting card words ───────────────────────────────────────────────────────
-
-/**
- * The words on the camera's no-tag card. While your own tags are running it says who is on the
- * clock and ticks (usability walkthrough, 2026-10-07), in its own component so only these words
- * re-render each second. `mates` is null while the server is asked: a spinner, never words that
- * then change. `points` is the "4 Mahi points · Best 6" row (the points pill sits under the
- * card's blur).
- */
-function WaitingCardWords({
-  title,
-  line,
-  mates,
-  points,
-}: {
-  title: string;
-  line: string;
-  mates: { list: MateOnClock[]; offsetMs: number } | null | undefined;
-  points: string | null;
-}) {
-  // Behind the camera these words sit on the page's own background, so they follow the theme.
-  const { colors } = useAppTheme();
-  const ticking = !!mates && mates.list.length > 0;
-  const deviceNow = useSecondTick(ticking);
-  if (mates === null) {
-    return (
-      <View
-        style={styles.noTagsWords}
-        accessible
-        accessibilityRole="progressbar"
-        accessibilityLabel="Checking your tags"
-      >
-        <ActivityIndicator color={COLORS.accent} />
-      </View>
-    );
-  }
-  const onClock = mates
-    ? matesOnClock({ mates: mates.list, serverOffsetMs: mates.offsetMs, deviceNow })
-    : null;
-  const t = onClock?.title ?? title;
-  const l = onClock?.line ?? line;
-  return (
-    <View
-      style={styles.noTagsWords}
-      accessible
-      accessibilityRole="text"
-      accessibilityLabel={`${t}. ${l}${points ? ` ${points}.` : ''}`}
-    >
-      <Text style={[styles.postedTitle, { color: colors.text }]}>{t}</Text>
-      <Text style={[styles.postedSub, { color: colors.muted }]}>{l}</Text>
-      {points ? <Text style={styles.waitingPoints}>{points}</Text> : null}
-    </View>
-  );
-}
 
 // ─── Flip Icon ────────────────────────────────────────────────────────────────
 
@@ -3103,13 +3049,6 @@ export default function CameraScreen({
                   {gate === 'closed' || offline ? (
                     <View ref={waitingTip} style={styles.noTagsCard}>
                       <Reanimated.View style={[styles.actionStage, pull.primaryStyle]}>
-                        {/* The words read as one; the button is its own element. */}
-                        <WaitingCardWords
-                          title={card.title}
-                          line={card.line}
-                          mates={waitingCard ? mates : undefined}
-                          points={null}
-                        />
                         {card.button ? (
                           <Pressable
                             style={({ pressed }) => [
@@ -3562,11 +3501,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: SPACE.s32,
   },
+  // No side padding: the roadmap carousel runs edge to edge; the buttons keep their own room.
   revealOverlay: {
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingHorizontal: SPACE.s32,
   },
   cameraPullCover: {
     backgroundColor: withAlpha(COLORS.ink, ALPHA.a35),
@@ -3599,7 +3538,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACE.s8,
     paddingVertical: SPACE.s12,
-    paddingHorizontal: SPACE.s12,
+    paddingHorizontal: SPACE.s32,
     borderRadius: RADIUS.r16,
     flexShrink: 0,
   },

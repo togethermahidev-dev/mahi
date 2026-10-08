@@ -40,7 +40,7 @@ export default function WorkoutRoadmap({
   }
   const { steps } = map;
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { borderColor: colors.border }]}>
       <Text style={[styles.hint, { color: colors.muted }]}>
         {`Your next step: ${steps[current][0]}`}
       </Text>
@@ -92,14 +92,22 @@ export default function WorkoutRoadmap({
 }
 
 const styles = StyleSheet.create({
-  root: { width: '100%', gap: SPACE.s8, marginBottom: SPACE.s16 },
+  // Edge to edge, a hairline above and below (owner, 2026-10-08).
+  root: {
+    width: '100%',
+    gap: SPACE.s8,
+    marginBottom: SPACE.s16,
+    paddingTop: SPACE.s12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   hint: {
     color: COLORS.offWhite,
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f12,
     textAlign: 'center',
   },
-  track: { gap: SPACE.s16, paddingVertical: SPACE.s12 },
+  track: { gap: SPACE.s16, paddingVertical: SPACE.s12, paddingHorizontal: SPACE.s16 },
   step: { width: SIZE.z200, alignItems: 'center', gap: SPACE.s8 },
   circle: {
     width: SIZE.z64,
