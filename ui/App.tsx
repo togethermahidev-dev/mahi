@@ -64,6 +64,7 @@ import {
 } from '@/lib/appleSignIn';
 import FindMatesStep from '@/components/FindMatesStep';
 import MissMoment from '@/components/MissMoment';
+import InviteConfirmSheet from '@/components/InviteConfirmSheet';
 import PushPrimer from '@/components/PushPrimer';
 import { useCoachBlock } from '@/hooks/useCoachMarks';
 import { reportError, Sentry } from '@/lib/sentry';
@@ -390,6 +391,7 @@ export default function App(): React.JSX.Element {
             <PushPrimer welcomeSettled={onboardingSettled} />
             <AccountStanding userId={session.user.id} />
             <MissMoment userId={session.user.id} />
+            <InviteConfirmSheet userId={session.user.id} />
           </>
         )}
         {!introDone && (
