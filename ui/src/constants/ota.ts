@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 01 — post photos download once per phone instead of on every open; profile photos
+ *     uploaded at 1080 px (2026-10-08)
  *   build 12 · 38 — "friends" instead of "mates" everywhere; invite buttons say "Hold someone else
  *     accountable"; fixes from the new-user walkthrough (joined invites say you follow each other,
  *     ended links say so, who you just tagged after the +1, plain "and 2 more", VoiceOver and
@@ -86,4 +88,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 0;
+export const OTA_NUMBER = 1;
