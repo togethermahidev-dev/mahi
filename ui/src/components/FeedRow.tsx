@@ -35,7 +35,6 @@ import { FONTS } from '@/constants/fonts';
 import {
   ALPHA,
   BLUR_INTENSITY,
-  BLUR_RADIUS,
   BORDER_WIDTH,
   FONT_SIZE,
   ICON_SIZE,
@@ -43,30 +42,20 @@ import {
   RADIUS,
   SIZE,
   SPACE,
+  withAlpha,
 } from '@/constants/tokens';
 
 /**
- * A locked row: the real row under frost, like the camera's cover over the live camera (owner,
- * 2026-10-08). A blur needs a picture behind it, and the server sends none for a locked post, so
- * the poster's profile photo (the one picture we have) fills the row and both preview windows,
- * enlarged and heavily blurred: colour, no face. The name is there but frosted to a smudge.
- * Nothing can be read, and VoiceOver says only "Locked post".
+ * A locked row (owner, 2026-10-08): a skeleton of a row — a blank circle, name and caption bars,
+ * mock like and comment counts, two blank previews — softly blurred. Nothing here is the real post
+ * (the server sends no photo or caption while your feed is locked): it only has to look like a
+ * feed behind glass, so the frost is light enough to see the shapes through it. VoiceOver says
+ * only "Locked post".
  */
-function LockedRow({ item }: { item: FeedPost }): React.JSX.Element {
+function LockedRow({ seed }: { seed: string }): React.JSX.Element {
   const { dark, colors } = useAppTheme();
-  const name = item.profiles.display_name ?? item.profiles.username;
-  const initials = (item.profiles.username ?? '?')[0].toUpperCase();
-  const photo = item.profiles.avatar_url;
-  const blurred = (style: object) =>
-    photo ? (
-      <Image
-        source={{ uri: photo, cache: 'force-cache' }}
-        style={style}
-        resizeMode="cover"
-        blurRadius={BLUR_RADIUS.heavy}
-        accessibilityElementsHidden
-      />
-    ) : null;
+  const shape = { backgroundColor: withAlpha(colors.text, ALPHA.a25) };
+  const { likes, comments } = mockCounts(seed);
   return (
     <View
       style={[styles.row, { backgroundColor: colors.bg }]}
@@ -74,42 +63,44 @@ function LockedRow({ item }: { item: FeedPost }): React.JSX.Element {
       accessibilityLabel="Locked post"
       importantForAccessibility="yes"
     >
-      {blurred([StyleSheet.absoluteFill, styles.lockedWash])}
-      {item.profiles.avatar_url ? (
-        <Image
-          source={{ uri: item.profiles.avatar_url, cache: 'force-cache' }}
-          style={styles.avatar}
-          accessibilityElementsHidden
-        />
-      ) : (
-        <View style={[styles.avatar, styles.avatarFallback, { borderColor: colors.text }]}>
-          <Text style={[styles.avatarInitial, { color: colors.text }]}>{initials}</Text>
+      <View style={[styles.avatar, shape]} />
+      <View style={styles.words}>
+        <View style={[styles.bar, styles.barName, shape]} />
+        <View style={[styles.bar, styles.barLine, shape]} />
+        <View style={styles.counts}>
+          <View style={styles.count}>
+            <HeartIcon size={ICON_SIZE.i16} color={colors.muted} />
+            <Text style={[styles.countText, { color: colors.muted }]}>
+              {likes}
+            </Text>
+          </View>
+          <View style={styles.count}>
+            <CommentIcon size={ICON_SIZE.i16} color={colors.muted} />
+            <Text style={[styles.countText, { color: colors.muted }]}>
+              {comments}
+            </Text>
+          </View>
         </View>
-      )}
-      <View style={styles.words} accessibilityElementsHidden>
-        <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-          {name}
-        </Text>
-        <Text style={[styles.line, { color: colors.muted }]} numberOfLines={1}>
-          {relativeTime(item.created_at)}
-        </Text>
       </View>
       <View style={styles.thumbs}>
-        <View style={[styles.thumb, { backgroundColor: colors.border }]}>
-          {blurred(StyleSheet.absoluteFill)}
-        </View>
-        <View style={[styles.thumb, { backgroundColor: colors.border }]}>
-          {blurred(StyleSheet.absoluteFill)}
-        </View>
+        <View style={[styles.thumb, shape]} />
+        <View style={[styles.thumb, shape]} />
       </View>
       <BlurView
-        intensity={BLUR_INTENSITY.i100}
+        intensity={BLUR_INTENSITY.i40}
         tint={dark ? 'dark' : 'light'}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
     </View>
   );
+}
+
+/** Mock counts for a locked row, steady per post so rows don't flicker, varied so they look real. */
+function mockCounts(seed: string): { likes: number; comments: number } {
+  let h = 0;
+  for (const c of seed) h = (h * 31 + c.charCodeAt(0)) % 997;
+  return { likes: 2 + (h % 23), comments: h % 6 };
 }
 
 export default function FeedRow({
@@ -173,7 +164,7 @@ export default function FeedRow({
     else if (action === 'view-profile') onAvatarPress(item.profiles.id);
   };
 
-  if (item.locked) return <LockedRow item={item} />;
+  if (item.locked) return <LockedRow seed={item.id} />;
 
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
@@ -347,8 +338,11 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r10,
     overflow: 'hidden',
   },
-  // The profile photo, enlarged and faint, behind a locked row: colour for the frost to work on.
-  lockedWash: {
-    opacity: ALPHA.a60,
+  // The skeleton's bars where a name and a caption would be.
+  bar: {
+    height: SIZE.z10,
+    borderRadius: RADIUS.r4,
   },
+  barName: { width: SIZE.z120 },
+  barLine: { width: SIZE.z160 },
 });
