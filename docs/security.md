@@ -50,9 +50,10 @@ means "trusted": always ask what a stranger with a fresh account could read or w
 - The service role key stays on the server. Never `EXPO_PUBLIC_*` or `NEXT_PUBLIC_*`.
 - **Codes** (sign-up, reset): store only the hash, expire in 10 minutes, and count tries on EVERY
   endpoint that checks a code (5 tries).
-- **Accounts are created only by `complete-signup`.** It marks the account
-  (`app_metadata.signup_via = 'complete-signup'`) and the Before User Created hook refuses email
-  sign-ups without the mark, so the public sign-up address can't be used to grab an email.
+- **Accounts are created only by `complete-signup`.** It stamps the checked code
+  (`otp_codes.signup_claimed_at`) right before creating the account, and the Before User Created
+  hook refuses an email sign-up without a stamp from the last 5 minutes, so the public sign-up
+  address can't be used to grab an email (20261008130000).
 - **A password change signs out every session** (reset-password, and any future change-password).
 
 ## The app
@@ -104,12 +105,13 @@ means "trusted": always ask what a stranger with a fresh account could read or w
 
 | Finding | How bad | Fix | State |
 |---|---|---|---|
-| Any signed-in person could read every post row (caption, photo path, location) and every file; the feed lock and follows were checked only inside the feed functions | High | Posts policy applies `can_view_post`; posts bucket private with the same rule on files; `get_feed_posts` closed | Built; goes live when the owner pushes the 2026-10-08 security migration |
-| Anyone could tag any non-friend on their post by writing to `post_tags`, and push-notify them | Medium | Direct writes to `post_tags` closed; tag notification skips blocked pairs and banned people | Same migration |
-| Someone polling the public sign-up address could take an email while its owner was part-way through sign-up; a password reset didn't sign them out | Medium | Sign-up hook requires the `complete-signup` mark; `complete-signup` counts code tries; `reset-password` signs out every session | Migration + three function deploys (order matters: `complete-signup` first) |
+| Any signed-in person could read every post row (caption, photo path, location) and every file; the feed lock and follows were checked only inside the feed functions | High | Posts policy applies `can_view_post`; posts bucket private with the same rule on files; `get_feed_posts` closed | Live 2026-10-08 (20261008100000) |
+| Anyone could tag any non-friend on their post by writing to `post_tags`, and push-notify them | Medium | Direct writes to `post_tags` closed; tag notification skips blocked pairs and banned people | Live 2026-10-08 |
+| Someone polling the public sign-up address could take an email while its owner was part-way through sign-up; a password reset didn't sign them out | Medium | Sign-up hook requires `complete-signup`'s stamp on the checked code; `complete-signup` counts code tries; `reset-password` signs out every session | Database live 2026-10-08; needs the `complete-signup` and `reset-password` deploys |
 | An invite link made a signed-in new account Friends with the sender with no confirm | Low–medium | Confirm sheet (Accept / Not now) before claiming; unread badge ignores blocked people | Next OTA |
-| Direct writes to `posts` skipped `create_post` (bans, reactive posting, 3 tags, own media) | Low (game rules) | Direct post inserts closed | Same migration |
-| A new account could set its own points and account age at sign-up | Low (game rules) | Profile insert limited to the sign-up columns | Same migration |
-| `message_reactions_json` callable signed out; `get_suggested_follows` trusted a passed-in id; `check-email` read only the first 50 accounts | Low | Revoked; uses `auth.uid()`; looks the email up directly | Same migration + function deploy |
+| Direct writes to `posts` skipped `create_post` (bans, reactive posting, 3 tags, own media) | Low (game rules) | Direct post inserts closed | Live 2026-10-08 |
+| A new account could set its own points and account age at sign-up | Low (game rules) | Profile insert limited to the sign-up columns | Live 2026-10-08 |
+| `message_reactions_json` callable signed out; `get_suggested_follows` trusted a passed-in id; `check-email` read only the first 50 accounts | Low | Revoked; uses `auth.uid()`; looks the email up directly | Database live 2026-10-08; `check-email` needs its deploy |
 | The sign-in session sat in plain app storage (AsyncStorage) | Low | Kept in the keychain (expo-secure-store, readable after first unlock, this device only); an old session moves over on first read | Committed; needs build 13 (builds 10–12 keep AsyncStorage) |
 | Staff sign-in return path accepted a tab or newline (browsers drop them, turning it into another site's address) | Low | `safeNext` refuses control characters | Committed; live when the staff portal is hosted |
+| Second review: reporting a post or comment you can't see showed you its copy; comment-like lists ignored the post's rule; comments and likes were readable on any post | Medium | Report copies staff-only; `get_comment_likes` / `get_comment_likers` and the comment and like read rules follow the post | Live 2026-10-08 (20261008120000, 20261008130000) |
