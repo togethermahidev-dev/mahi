@@ -42,12 +42,12 @@ after it. Tests `tests/security_hardening_test.sql`, `tests/staff_confirmed_emai
 `tests/comment_like_visibility_test.sql`, `tests/security_followups_test.sql`; undo in `rollbacks/`.
 `posthog_reader` (from `20261007160000_founder_stats`) is created no-login; on production it has
 LOGIN (checked 2026-10-08).
-**Not pushed yet (2026-10-08):** `20261008160000_drop_dead_functions` — drops `get_feed_posts`
+**Pushed 2026-10-08:** `20261008160000_drop_dead_functions` — drops `get_feed_posts`
 (revoked from everyone by `20261008100000`; the app reads `get_feed`) and `format_wait` (pushes use
 `format_duration`); nothing calls either. Test `tests/drop_dead_functions_test.sql` (also updated:
 `tests/signed_in_reads_test.sql`, `tests/security_hardening_test.sql`), undo
 `rollbacks/20261008160000_drop_dead_functions.rollback.sql`.
-**Not pushed yet (2026-10-08):** `20261008170000_private_accounts` — public and private accounts
+**Pushed 2026-10-08 (backup `20261008111227`, checked against prod):** `20261008170000_private_accounts` — public and private accounts
 and Controls (decisions #119–#124): `profiles.is_private` / `posts_visibility` / `tag_permission` /
 `privacy_chosen_at` (existing profiles stamped, stay public; workouts start at `followers` for
 existing and new profiles, so nobody is opened up; changed only through
@@ -78,7 +78,7 @@ every phone has the Mahi points update. (`contract_messages` is live as migratio
 `20261007111029_contract_messages`; `contract_posting` and `private_bucket` became
 `20261008100000_security_hardening`.)
 
-Latest production migration: `20261008150000_security_hardening_live` (live 2026-10-08), the
+Latest production migration: `20261008170000_private_accounts` (live 2026-10-08), the
 doors the live Supabase check found open: follows change only through `set_following`, reports only
 through `report_*`, avatar addresses and files limited to the person's own folder, no table rights
 for signed-out callers (details above). Its header names the undo file
