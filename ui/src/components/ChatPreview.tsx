@@ -16,7 +16,7 @@ import {
 import { themeColors } from '@/hooks/useAppTheme';
 
 /**
- * A chat's hold-to-preview pop-up (flag `context-menu-preview`): the latest few messages, read
+ * A chat's hold-to-preview pop-up (standard, no switch): the latest few messages, read
  * fresh from the server each time it opens — a loading state first, nothing kept on the phone,
  * and reading them here doesn't mark them read.
  */

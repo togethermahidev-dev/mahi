@@ -225,14 +225,15 @@ export function syncLiveTag(
 }
 
 /**
- * Keeps a mate's tag in view without opening Mahi (build 13+, on for everyone; switch `live-activity` turns it off): the Live
- * Activity on the lock screen and Dynamic Island, and the home-screen widget. Watches the open
- * tags, the points and sign-in; while Mahi is open it also looks again at each 6-hour mark and
+ * Keeps a mate's tag in view without opening Mahi (build 13+; held back behind the default-off
+ * switch `live-activity` until the owner releases it, owner 2026-10-08): the Live Activity on the
+ * lock screen and Dynamic Island, and the home-screen widget. Watches the open tags, the points
+ * and sign-in; while Mahi is open it also looks again at each 6-hour mark and
  * deadline. With Mahi closed the widget's timeline and the activity's own timer carry on. Does
  * nothing on builds without expo-widgets. Mounted once, in App.tsx.
  */
 export function useLiveTag(): void {
-  // On for everyone on a build that has it; `live-activity` is the owner's off switch (2026-10-07).
+  // Default off and held back (owner 2026-10-08): only an explicit `live-activity` on turns it on.
   const enabled = useFeatureFlag('live-activity');
   // The tagger's photo on the widget and Live Activity (kill switch, on for everyone).
   const photosOn = useFeatureFlag('widget-tagger-photo');

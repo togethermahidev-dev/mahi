@@ -1806,8 +1806,8 @@ export default function CameraScreen({
   // Null until the profile has loaded: the counter shows a dash, never a 0 that then changes.
   const pointsCountNow = profile ? profile.streak_current : null;
 
-  // Reactive posting: your first post, then only while a friend's tag is open. The server's
-  // permanent "has posted before" mark decides (deleting every post never gives the free post
+  // Reactive posting: your first workout, then only while a friend's tag is open. The server's
+  // permanent "has posted before" mark decides (deleting every post never gives the first workout
   // back); a post of yours in the feed counts straight away. Nothing here is kept on the device.
   const feedLoaded = useFeedStore((s) => s.loaded);
   const unlockedUntil = useFeedStore((s) => s.unlockedUntil);

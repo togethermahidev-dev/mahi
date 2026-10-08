@@ -1,9 +1,10 @@
 /**
  * The "Invite 3 friends" step in the tag sheet (owner's call 2026-10-01; standard since 2026-10-07).
- * Every later answer fills its tag slots; the first workout post may pass accountability on but does
- * not have to. An invite link fills any required slot friends can't (the server rule in
- * tagRules.ts). A newcomer invited by a friend can't tag that friend back, so they start with no
- * one to tag — the sheet then leads with a plain invite step instead of an empty list.
+ * Every answer after the first workout fills its tag slots; the first workout needs no tags, so the
+ * camera doesn't offer the tag sheet then. An invite link fills any required slot friends can't (the
+ * server rule in tagRules.ts). When friends can't fill the slots, the sheet leads with a plain
+ * invite step instead of a short list. Someone who tagged you can be tagged back
+ * (20261007240000_tag_back).
  *
  * Pure (it imports only the pure tagSlots words) so it runs under the node-only jest harness.
  */

@@ -214,7 +214,7 @@ describe('pointsMilestone (the post toast lines worth a small celebration)', () 
 });
 
 describe('pointCelebration — the moment a post earns a point', () => {
-  it('a free first post: the first point, the links to send, the open feed, how Mahi works', () => {
+  it('a first workout: the first point, the links to send, the open feed, how Mahi works', () => {
     expect(
       pointCelebration({
         answered: [],

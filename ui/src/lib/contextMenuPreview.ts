@@ -1,6 +1,6 @@
 /**
- * Hold to preview (flag `context-menu-preview`, default off; needs build 11): on an iPhone, press
- * and hold a profile grid square, a Messages row or a feed post and the content pops out over a
+ * Hold to preview (standard for everyone since 2026-10-06, no switch; needs build 11): on an
+ * iPhone, press and hold a profile grid square, a Messages row or a feed post and the content pops out over a
  * blurred background with a short menu below (Apple's context menu, via @expo/ui's SwiftUI
  * ContextMenu). Pure rules, unit-tested; the native side (is @expo/ui in this build?) lives in
  * `src/lib/expoUiModule.ts`, kept apart so these stay testable under node.

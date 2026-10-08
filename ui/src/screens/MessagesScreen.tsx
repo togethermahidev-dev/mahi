@@ -73,7 +73,7 @@ function ConvoRow({
   border: string;
   surface: string;
   accent: string;
-  /** Hold to preview (flag context-menu-preview, iPhone, build 11). */
+  /** Hold to preview (standard, no switch; iPhone, build 11). */
   menuOn: boolean;
   dark: boolean;
   currentUserId: string | undefined;

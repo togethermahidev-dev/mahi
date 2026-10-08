@@ -41,7 +41,7 @@ describe('reactivePostingGate — whether the camera lets you post', () => {
   });
 });
 
-describe('hasPostedBefore — whether your free first post is used', () => {
+describe('hasPostedBefore — whether your first workout is posted', () => {
   it('stays used after you delete every post (the server’s permanent mark wins)', () => {
     expect(hasPostedBefore({ profileMark: true, feedLoaded: true, unlockedUntil: null })).toBe(
       true

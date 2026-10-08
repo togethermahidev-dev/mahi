@@ -27,7 +27,7 @@ export function reactivePostingGate(input: {
 }
 
 /**
- * Whether your free first post is used. The server's permanent `profiles.has_posted_before` mark
+ * Whether your first workout is posted. The server's permanent `profiles.has_posted_before` mark
  * decides (deleting every post never gives it back); a post of yours in the feed counts too, so
  * the camera knows straight after your first post. null until both are read.
  */

@@ -619,7 +619,7 @@ export const COACH = {
   popoverWidth: 260,
 } as const;
 
-// ─── Hold-to-preview pop-up (iPhone, flag context-menu-preview) ─────────────────
+// ─── Hold-to-preview pop-up (iPhone, standard, no switch) ───────────────────────
 export const PREVIEW_MENU = {
   /** A post's preview: this share of the screen's width… */
   postWidth: 0.86,

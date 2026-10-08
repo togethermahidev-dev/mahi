@@ -109,7 +109,7 @@ function WorkoutCard({
   width: number;
   mediaHeight: number;
   onPress: () => void;
-  /** Hold to preview (flag context-menu-preview, iPhone, build 11). */
+  /** Hold to preview (standard, no switch; iPhone, build 11). */
   menuOn: boolean;
 }) {
   const [imgError, setImgError] = useState(false);
@@ -261,7 +261,7 @@ export default function ProfileMediaMap({
   const { posts, hasMore, loadMore, refresh } = useProfilePosts(userId);
   // Loading, failed and empty are three states. The store keeps the last good read's time, so:
   // nothing read yet for this person → loading; a read that ended without one → failed.
-  // Deleting every post never gives the free first post back (the server's permanent mark).
+  // Deleting every post never gives the first workout back (the server's permanent mark).
   const postedBefore = useUserStore((s) => s.profile?.has_posted_before === true);
   const storeUserId = useProfilePostsStore((s) => s.userId);
   const isSyncing = useProfilePostsStore((s) => s.isSyncing);

@@ -6,7 +6,7 @@ import type { MenuAction, MenuItem } from '@/lib/contextMenuPreview';
 import { COLORS, ICON_SIZE } from '@/constants/tokens';
 
 /**
- * Hold to preview (flag `context-menu-preview`, iPhone, build 11): press and hold `children` and
+ * Hold to preview (standard, no switch; iPhone, build 11): press and hold `children` and
  * Apple's context menu lifts the preview over a blurred background with `items` below.
  *
  * Render this only when `useContextMenuPreview()` is true — it needs @expo/ui's native views.

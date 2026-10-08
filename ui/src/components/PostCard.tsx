@@ -85,7 +85,7 @@ import { themeColors } from '@/hooks/useAppTheme';
  * One post, full screen (TikTok-style): photo or video, the second shot in a draggable small
  * window, who posted, tags, caption, double-tap and a button to like, a comments button.
  * Press and hold to see the whole photo: everything over it fades away (the glass bar too) until
- * the finger lifts. With hold to preview on (flag context-menu-preview, iPhone, build 11) a hold
+ * the finger lifts. Where hold to preview runs (standard, no switch; iPhone, build 11) a hold
  * instead pops the photo out with Like / Unlike, Comment, Share and View profile (owner: it
  * replaces hold to view). Used by the Feed and by the post viewer that opens from a profile grid.
  */
@@ -382,7 +382,7 @@ export default function PostCard({
     onCommentPress(item.id);
   }, [item.id, onCommentPress]);
 
-  // ── Hold to preview (flag context-menu-preview) ──────────────────────────
+  // ── Hold to preview (standard, no switch) ────────────────────────────────
   const screen = useWindowDimensions();
   // Sizes from the window and the text size: small phones, tall phones and large text.
   const layout = feedLayout(screen);
