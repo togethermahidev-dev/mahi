@@ -49,7 +49,8 @@ LOGIN (checked 2026-10-08).
 `rollbacks/20261008160000_drop_dead_functions.rollback.sql`.
 **Not pushed yet (2026-10-08):** `20261008170000_private_accounts` — public and private accounts
 and Controls (decisions #119–#124): `profiles.is_private` / `posts_visibility` / `tag_permission` /
-`privacy_chosen_at` (existing profiles stamped, stay public; changed only through
+`privacy_chosen_at` (existing profiles stamped, stay public; workouts start at `followers` for
+existing and new profiles, so nobody is opened up; changed only through
 `set_account_controls`); `follow_requests` (+ internal `follow_request_notices`); `set_following`
 answers `status` and `is_private` (drop + create); new `respond_follow_request`, `remove_follower`,
 `get_follow_requests`, `set_account_controls`; `get_follow_data` answers only for the caller and adds

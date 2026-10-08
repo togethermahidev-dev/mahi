@@ -29,6 +29,8 @@ means "trusted": always ask what a stranger with a fresh account could read or w
 - **Follows, requests and Controls (20261008170000).**
   - Privacy settings (`is_private`, `posts_visibility`, `tag_permission`, `privacy_chosen_at`) have no
     column update grant; they change only through `set_account_controls`, which validates them.
+    Workouts start at `followers` for every existing and new profile, so the change opens nobody up;
+    only the person choosing `everyone` does.
   - `follow_requests` is read by its two people only and written only by `set_following`,
     `respond_follow_request`, `set_account_controls`, `claim_invite`, blocks and bans. Accepting
     re-checks bans and blocks; answers are idempotent (`delete … returning`); one "wants to follow
