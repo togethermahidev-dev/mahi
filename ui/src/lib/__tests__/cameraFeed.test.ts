@@ -49,12 +49,12 @@ describe('feedSwipe — when a drag on the camera moves the feed', () => {
   });
 });
 
-// Owner, 2026-10-08: a locked feed doesn't open; the camera lifts a quarter of the screen and the
-// gap underneath says why and what to do.
+// Owner, 2026-10-08: a locked feed doesn't open; the camera lifts just enough for the gap
+// underneath to say why and what to do — about a sixth of the page (less than the first quarter).
 describe('lockedGap — how far the camera lifts when the feed is locked', () => {
-  it('a quarter of the page', () => {
-    expect(lockedGap(800)).toBe(200);
-    expect(lockedGap(874)).toBe(219);
+  it('about a sixth of the page', () => {
+    expect(lockedGap(800)).toBe(128);
+    expect(lockedGap(874)).toBe(140);
   });
 });
 

@@ -27,8 +27,6 @@ import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Path } from 'react-native-svg';
 import { haptic } from '@/lib/haptics';
 import { cameraDrag, drawerOffset, drawerShouldOpen, pullParallax } from '@/lib/cameraPull';
-import { loadSwiftUI } from '@/lib/expoUiModule';
-import { useCardMorphStyle } from '@/components/MorphTransition';
 import { detentProgress, releaseDetent, type Detent } from '@/lib/detent';
 import {
   ALPHA,
@@ -203,18 +201,32 @@ export function useCameraPull(
       scheduleOnRN(setDetent, target);
     });
 
-  const cardStyle = useCardMorphStyle(
-    offset,
-    openOffset,
-    { x: 0, y: 0, width: viewportWidth, height: viewportHeight, borderRadius: 0 },
-    {
-      x: (viewportWidth - collapsedWidth) / 2,
-      y: openOffset,
-      width: collapsedWidth,
-      height: collapsedHeight,
-      borderRadius: RADIUS.r24,
+  // To the peek the camera only slides down, so the roadmap shows in the gap above it; past the
+  // peek it shrinks into the portrait card (owner, 2026-10-08: the peek looked stuck when the
+  // camera started shrinking straight away and covered everything). Numbers only (worklet rule).
+  const peekY = openOffset * MOTION.pull.peekShare;
+  const cardX = (viewportWidth - collapsedWidth) / 2;
+  const cardRadius = RADIUS.r24;
+  const cardStyle = useAnimatedStyle(() => {
+    const o = reduceMotion ? 0 : Math.max(0, Math.min(openOffset, offset.value));
+    if (o <= peekY) {
+      return {
+        left: 0,
+        top: o,
+        width: viewportWidth,
+        height: viewportHeight,
+        borderRadius: peekY > 0 ? (o / peekY) * cardRadius : 0,
+      };
     }
-  );
+    const q = openOffset > peekY ? (o - peekY) / (openOffset - peekY) : 1;
+    return {
+      left: q * cardX,
+      top: peekY + q * (openOffset - peekY),
+      width: viewportWidth + q * (collapsedWidth - viewportWidth),
+      height: viewportHeight + q * (collapsedHeight - viewportHeight),
+      borderRadius: cardRadius,
+    };
+  });
   // The live camera and its frost crossfade for Reduce Motion; shared card geometry owns movement.
   const cameraStyle = useAnimatedStyle(() => {
     const progress = openOffset > 0 ? offset.value / openOffset : 0;
@@ -322,7 +334,6 @@ export function PullHandle({
   onPress?: () => void;
 }): React.JSX.Element {
   const reduceMotion = useReducedMotion();
-  const swift = loadSwiftUI();
   const jump = useSharedValue(0);
   useEffect(() => {
     if (reduceMotion) return;
@@ -399,52 +410,21 @@ export function PullHandle({
             <Text style={styles.question}>?</Text>
           </Reanimated.View>
           <Reanimated.View style={[styles.glyph, chevronStyle]}>
-            {swift ? (
-              <NativeChevron swift={swift} breathe={!reduceMotion} color={arrowColor} />
-            ) : (
-              <Svg width={ICON_SIZE.i24} height={ICON_SIZE.i16} viewBox="0 0 24 14">
-                <Path
-                  d="M3 3l9 8 9-8"
-                  stroke={arrowColor}
-                  strokeWidth={STROKE.s2}
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            )}
+            {/* The app's own arrow: Apple's native one came up blank while it faded in. */}
+            <Svg width={ICON_SIZE.i24} height={ICON_SIZE.i16} viewBox="0 0 24 14">
+              <Path
+                d="M3 3l9 8 9-8"
+                stroke={arrowColor}
+                strokeWidth={STROKE.s2}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
           </Reanimated.View>
         </Reanimated.View>
       </Pressable>
     </Reanimated.View>
-  );
-}
-
-/** Apple's chevron, breathing once as it appears (Reduce Motion: still). */
-function NativeChevron({
-  swift,
-  breathe,
-  color,
-}: {
-  swift: NonNullable<ReturnType<typeof loadSwiftUI>>;
-  breathe: boolean;
-  color: string;
-}): React.JSX.Element {
-  const { Host, Image } = swift.ui;
-  const { symbolEffect } = swift.modifiers;
-  return (
-    <Host matchContents>
-      <Image
-        systemName="chevron.compact.down"
-        size={ICON_SIZE.i24}
-        color={color}
-        modifiers={
-          breathe
-            ? [symbolEffect({ effect: 'breathe' }, { options: { repeat: 'nonRepeating' } })]
-            : []
-        }
-      />
-    </Host>
   );
 }
 

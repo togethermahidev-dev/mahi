@@ -569,10 +569,10 @@ export const MOTION = {
   /** Shared geometry: destination content joins near the end; the moving image then disappears. */
   morphContentAt: 0.72,
   /** The camera and the feed on one screen (owner, 2026-10-08): the camera slides all the way up
-   *  (a quarter of the page, when the feed is locked);
+   *  (about a sixth of the page, when the feed is locked: just room for why and one button);
    *  a swipe past this share of the way, or a flick faster than this (pt/ms), settles; the first
    *  swipe stops at the peek (this share of the way), the next goes the rest. */
-  cameraFeed: { openAt: 0.15, flick: 0.5, lockedShare: 0.25, peekShare: 0.3 },
+  cameraFeed: { openAt: 0.15, flick: 0.5, lockedShare: 0.16, peekShare: 0.3 },
   /** A "no": the padlock line wiggles sideways this far (pt), this fast (ms a beat), when a
    *  locked row is tapped (owner, 2026-10-08). */
   shake: { x: 6, ms: 60 },

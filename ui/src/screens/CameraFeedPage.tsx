@@ -77,7 +77,7 @@ export default function CameraFeedPage({
   // with the feed behind it — the mirror of the pull down (owner, 2026-10-08).
   const strip = useMemo(() => cameraStrip(page, headerH), [page, headerH]);
   const rowsTop = feedTop(strip);
-  // A locked feed doesn't open: the camera lifts a quarter of the page and the gap underneath says
+  // A locked feed doesn't open: the camera lifts a little (lockedGap) and the gap underneath says
   // why and what to do (owner, 2026-10-08). No feed rows show.
   const locked = useFeedStore((s) => s.loaded && s.locked);
   const gap = lockedGap(page.height);
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: SPACE.s24,
-    gap: SPACE.s14,
+    gap: SPACE.s10,
   },
   gapRow: {
     flexDirection: 'row',
