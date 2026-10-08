@@ -406,7 +406,7 @@ All tables use Row Level Security (RLS). Writes for posting and messaging go thr
 | `follows.ts` | `setFollowing` (atomic mutation + committed state), `getFollowData`, `getFollowList`, `getFriends`, `getSuggestedFollows` |
 | `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `sendMessage`, `createOrGetConversation`, `deleteConversation`, `getMessages`, `markConversationRead` |
 | `notifications.ts` | `getNotifications`, `getUnreadCount`, `markAsRead`, `markAllAsRead` |
-| `moderation.ts` | `blockUser`, `unblockUser`, `getBlockedUsers`, `getBlockedIds`, `reportUser`, `hasReported` |
+| `moderation.ts` | `blockUser`, `unblockUser`, `getBlockedUsers`, `getBlockedIds`, `reportContent` (`report_*` RPCs; direct report inserts are closed), `hasReported` |
 | `profile.ts` | `getProfile`, `searchProfiles`, `updateAvatarUrl`, `updateTimezone` (sign-up inserts the profile row directly) |
 | `auth.ts` | `signIn`, `signOut`, `completeSignup`, `sendResetCode`, `resetPassword`, `deleteAccount` (Edge Functions) |
 | `push.ts` | `registerPushToken`, `unregisterPushToken` |

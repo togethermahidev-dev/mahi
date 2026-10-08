@@ -1,41 +1,10 @@
 /**
  * Follows API
  *
- * Follow / unfollow users, check status, get counts.
+ * Follow / unfollow users (only through set_following), check status, get counts.
  */
 
 import { supabase } from '@/lib/supabase';
-
-/** Follow a user. Idempotent — duplicates are silently ignored. */
-export async function followUser(
-  followerId: string,
-  followingId: string
-): Promise<{ data: null; error: Error | null }> {
-  const { error } = await supabase
-    .from('follows')
-    .upsert(
-      { follower_id: followerId, following_id: followingId },
-      { onConflict: 'follower_id,following_id', ignoreDuplicates: true }
-    );
-
-  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
-  return { data: null, error: null };
-}
-
-/** Unfollow a user. */
-export async function unfollowUser(
-  followerId: string,
-  followingId: string
-): Promise<{ data: null; error: Error | null }> {
-  const { error } = await supabase
-    .from('follows')
-    .delete()
-    .eq('follower_id', followerId)
-    .eq('following_id', followingId);
-
-  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
-  return { data: null, error: null };
-}
 
 export type FollowMutationData = FollowData & {
   /** The signed-in user's committed following count after this mutation. */

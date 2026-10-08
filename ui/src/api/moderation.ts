@@ -163,32 +163,6 @@ export async function getBlockedIds(
   };
 }
 
-/** Report a user or post. Uses insert — duplicate user reports are caught by
- *  the unique constraint and surfaced as an error so the UI can show feedback. */
-export async function reportUser(opts: {
-  reporterId: string;
-  reportedUserId?: string;
-  reportedPostId?: string;
-  reason: ReportReason;
-  description?: string;
-}): Promise<{ data: null; error: Error | null }> {
-  const { reporterId, reportedUserId, reportedPostId, reason, description } = opts;
-  const { error } = await supabase.from('user_reports').insert({
-    reporter_id: reporterId,
-    reported_user_id: reportedUserId ?? null,
-    reported_post_id: reportedPostId ?? null,
-    reason,
-    description: description ?? null,
-  });
-
-  if (error) {
-    // Unique constraint violation = already reported this user
-    if (error.code === '23505') return { data: null, error: new Error('Already reported') };
-    return { data: null, error: new Error(error.message, { cause: error }) };
-  }
-  return { data: null, error: null };
-}
-
 /** Check if the current user has already reported a target user. */
 export async function hasReported(
   reporterId: string,

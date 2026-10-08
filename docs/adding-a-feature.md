@@ -34,10 +34,12 @@ npx supabase gen types typescript --project-id <id> > ui/src/types/database.ts
 
 ## 2. API — copy `ui/src/api/follows.ts`
 
-Create `ui/src/api/bookmarks.ts`. Mirror `followUser` / `unfollowUser`: idempotent `upsert` + `delete`,
-returning the **standard contract** `{ data: T | null, error: Error | null }` (wrap any Postgrest error
-via `new Error(error.message)`). If you added an RPC, mirror `getFollowData` (call `supabase.rpc(...)`,
-unwrap `data[0]`). Pure and stateless — no React, no Zustand.
+Create `ui/src/api/bookmarks.ts`. For a write through an RPC (§1), mirror `setFollowing`: one
+`supabase.rpc(...)` call that writes and hands back the committed state, unwrapping `data[0]`. Only the
+plain owner-only direct write that §1 allows uses `.insert` / `.delete` on the table. Either way return
+the **standard contract** `{ data: T | null, error: Error | null }` (wrap any Postgrest error via
+`new Error(error.message, { cause: error })`). Reads mirror `getFollowData`. Pure and stateless — no
+React, no Zustand.
 
 Barrel-export it: add `export * from './bookmarks';` to `ui/src/api/index.ts`.
 
