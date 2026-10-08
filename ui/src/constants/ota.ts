@@ -7,6 +7,9 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 07 — the feed is rows (tap to open full screen, hold to preview); a locked feed
+ *     is frosted rows with one lock pill; the pulled-down camera is a portrait card with the
+ *     roadmap above it; black / white cards and buttons, blue arrow (2026-10-08)
  *   build 13 · 06 — Camera tab in Mahi blue, larger when selected; the camera's pull arrow stays
  *     under the header and the card behind scrolls; workout roadmap; conversations open from their
  *     row (2026-10-08)
@@ -100,4 +103,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 6;
+export const OTA_NUMBER = 7;
