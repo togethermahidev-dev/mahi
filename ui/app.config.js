@@ -137,7 +137,7 @@ const config = {
     usesAppleSignIn: true,
     // One build number for every lane (eas.json appVersionSource "local"). Moved only by
     // `pnpm release:prepare`, never by hand or by EAS.
-    buildNumber: '12',
+    buildNumber: '13',
     // Invite and shared-post links open the app when it is installed.
     // Needs apple-app-site-association served from that domain.
     associatedDomains: ['applinks:togethermahi.com', 'applinks:www.togethermahi.com'],
@@ -163,7 +163,7 @@ const config = {
   runtimeVersion: { policy: 'appVersion' },
   android: {
     // Same number as ios.buildNumber, every lane. Moved only by `pnpm release:prepare`.
-    versionCode: 12,
+    versionCode: 13,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: ACCENT,
