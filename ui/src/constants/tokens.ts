@@ -568,8 +568,10 @@ export const MOTION = {
   morph: { damping: 14, stiffness: 180, mass: 0.8 },
   /** Shared geometry: destination content joins near the end; the moving image then disappears. */
   morphContentAt: 0.72,
-  /** The pixel athlete's frame rate (ms per frame). */
+  /** The pixel athlete's frame rate (ms per frame), and how many beats each exercise gets
+   *  before the next one (runner → weightlifter → jumping jacks → push-ups). */
   pixelFrameMs: 400,
+  pixelBeatsPerExercise: 6,
   /** A "no": the padlock line wiggles sideways this far (pt), this fast (ms a beat), when a
    *  locked row is tapped (owner, 2026-10-08). */
   shake: { x: 6, ms: 60 },
