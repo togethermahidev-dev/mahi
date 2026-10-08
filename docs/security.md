@@ -32,7 +32,9 @@ means "trusted": always ask what a stranger with a fresh account could read or w
   - `follow_requests` is read by its two people only and written only by `set_following`,
     `respond_follow_request`, `set_account_controls`, `claim_invite`, blocks and bans. Accepting
     re-checks bans and blocks; answers are idempotent (`delete … returning`); one "wants to follow
-    you" per pair a day and 100 new requests a day per person.
+    you" per pair a day and 100 new requests a day per person. Its key is a random id, because a
+    live (realtime) delete sends the key to every listener and must not name who asked whom; follow
+    back goes only with an accepted request; a ban clears the person's requests, notices and unsent pushes.
   - Follower and following lists: a `follows` row shows to someone outside it only when both people's
     lists are open to them (`can_see_follow_lists`: the owner, or someone the owner's workouts setting
     lets in, with no block). The policy calls that definer function and never reads `follows` itself
