@@ -1,20 +1,22 @@
 import React, { useEffect, useRef } from 'react';
 import { useReducedMotion } from 'react-native-reanimated';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { COLORS, FONT_SIZE, RADIUS, SIZE, SPACE } from '@/constants/tokens';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ALPHA, COLORS, FONT_SIZE, RADIUS, SIZE, SPACE } from '@/constants/tokens';
 import { FONTS } from '@/constants/fonts';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { roadmap } from '@/lib/workoutRoadmap';
-
+import { roadmap, stepAction, type StepAction } from '@/lib/workoutRoadmap';
 
 export default function WorkoutRoadmap({
   firstWorkoutDone,
   tagged,
   captured = false,
+  onStep,
 }: {
   firstWorkoutDone: boolean | null;
   tagged: boolean;
   captured?: boolean;
+  /** A step's circle was tapped: what that step does (owner, 2026-10-08). */
+  onStep?: (action: StepAction) => void;
 }) {
   const scroll = useRef<ScrollView>(null);
   const reduceMotion = useReducedMotion();
@@ -56,35 +58,29 @@ export default function WorkoutRoadmap({
         contentContainerStyle={styles.track}
       >
         {steps.map(([title, body], index) => (
-          <View
+          <Pressable
             key={title}
-            style={styles.step}
-            accessible
+            style={({ pressed }) => [styles.step, pressed && { opacity: ALPHA.a70 }]}
+            onPress={() => onStep?.(stepAction({ firstWorkoutDone, tagged, captured }, index))}
+            disabled={!onStep}
+            accessibilityRole="button"
             accessibilityLabel={`Step ${index + 1}, ${index < current ? 'completed' : index === current ? 'current' : 'up next'}. ${title}. ${body}`}
           >
             <View
               style={[
                 styles.circle,
                 {
-                  backgroundColor:
-                    index === current
-                      ? COLORS.accent
-                      : colors.text,
+                  backgroundColor: index === current ? COLORS.accent : colors.text,
                 },
               ]}
             >
-              <Text
-                style={[
-                  styles.number,
-                  index !== current && { color: colors.bg },
-                ]}
-              >
+              <Text style={[styles.number, index !== current && { color: colors.bg }]}>
                 {index < current ? '✓' : index + 1}
               </Text>
             </View>
             <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
             <Text style={[styles.body, { color: colors.muted }]}>{body}</Text>
-          </View>
+          </Pressable>
         ))}
       </ScrollView>
     </View>

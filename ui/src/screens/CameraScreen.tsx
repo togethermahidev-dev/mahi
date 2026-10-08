@@ -186,6 +186,7 @@ import PointCelebration, { type PointCelebrationContent } from '@/components/Poi
 import { PullHandle, useCameraPull } from '@/components/CameraPull';
 import { PressScale } from '@/components/Motion';
 import WorkoutRoadmap from '@/components/WorkoutRoadmap';
+import type { StepAction } from '@/lib/workoutRoadmap';
 import PointFlight, { type Flight } from '@/components/PointFlight';
 import RollingNumber from '@/components/RollingNumber';
 import AnswerStamp from '@/components/AnswerStamp';
@@ -1872,6 +1873,19 @@ export default function CameraScreen({
     };
   }, [waitingCard, invitesOpen]);
 
+  // A roadmap circle: posting steps go back to the camera (close the drawer), waiting for a tag
+  // goes to finding friends; a later step says what comes first (owner, 2026-10-08).
+  const onRoadmapStep = (action: StepAction) => {
+    if (action.kind === 'camera') {
+      if (pull.expanded) pull.toggle();
+    } else if (action.kind === 'friends') {
+      if (onFindFriends) onFindFriends();
+      else void inviteMate();
+    } else if (action.kind === 'later') {
+      useToastStore.getState().show(`First: ${action.first.toLowerCase()}.`);
+    }
+  };
+
   const inviteMate = async () => {
     if (invitingMate) return;
     setInvitingMate(true);
@@ -3083,7 +3097,34 @@ export default function CameraScreen({
                     firstWorkoutDone={hasPosted}
                     tagged={answersATag(openTags, serverOffsetMs)}
                     captured={hasPreview}
+                    onStep={onRoadmapStep}
                   />
+                  {/* Invite friends: the phone's own share sheet (its Copy copies the link). */}
+                  {!offline ? (
+                    <View style={styles.roadmapInvite}>
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.roadmapInviteButton,
+                          { backgroundColor: onBg.text },
+                          pressed && { opacity: ALPHA.a70 },
+                        ]}
+                        onPress={() => void inviteMate()}
+                        disabled={invitingMate}
+                        accessibilityRole="button"
+                        accessibilityLabel="Invite friends"
+                        accessibilityHint="Makes a link and opens your share sheet. When they join, you’ll follow each other."
+                        accessibilityState={{ busy: invitingMate }}
+                      >
+                        {invitingMate ? (
+                          <ActivityIndicator color={onBg.bg} />
+                        ) : (
+                          <Text style={[styles.roadmapInviteText, { color: onBg.bg }]}>
+                            Invite friends
+                          </Text>
+                        )}
+                      </Pressable>
+                    </View>
+                  ) : null}
                   {gate === 'closed' || offline ? (
                     <View ref={waitingTip} style={styles.noTagsCard}>
                       <Reanimated.View style={[styles.actionStage, pull.primaryStyle]}>
@@ -3111,32 +3152,6 @@ export default function CameraScreen({
                           </Pressable>
                         ) : null}
                       </Reanimated.View>
-                      {gate === 'closed' && !offline ? (
-                        <Reanimated.View style={[styles.actionStage, pull.secondaryStyle]}>
-                          <Pressable
-                            style={({ pressed }) => [
-                              styles.inviteMateButton,
-                              { borderColor: onBg.text },
-                              pressed && { opacity: ALPHA.a70 },
-                            ]}
-                            android_ripple={{ color: COLORS.accent }}
-                            onPress={() => void inviteMate()}
-                            disabled={invitingMate}
-                            accessibilityRole="button"
-                            accessibilityLabel={INVITE_BUTTON}
-                            accessibilityHint="Makes a link to share. When they join, you’ll follow each other."
-                            accessibilityState={{ busy: invitingMate }}
-                          >
-                            {invitingMate ? (
-                              <ActivityIndicator color={COLORS.accent} />
-                            ) : (
-                              <Text style={[styles.inviteMateText, { color: onBg.text }]}>
-                                {INVITE_BUTTON}
-                              </Text>
-                            )}
-                          </Pressable>
-                        </Reanimated.View>
-                      ) : null}
                       {gate === 'closed' && !offline ? (
                         <Reanimated.View style={[styles.tertiaryActions, pull.tertiaryStyle]}>
                           <Pressable
@@ -3572,6 +3587,27 @@ const styles = StyleSheet.create({
   },
   // Reactive posting closed: one card in the middle, in the app's card style (the locked feed's
   // card, and the camera's open-tags pill: frosted, an accent outline, the accent for the icon).
+  // Under the roadmap: Invite friends (the share sheet).
+  roadmapInvite: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: SPACE.s8,
+    paddingHorizontal: SPACE.s32,
+    marginBottom: SPACE.s8,
+  },
+  roadmapInviteButton: {
+    flex: 1,
+    maxWidth: SIZE.z320,
+    minHeight: SIZE.z44,
+    borderRadius: RADIUS.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACE.s16,
+  },
+  roadmapInviteText: {
+    fontSize: FONT_SIZE.f15,
+    fontFamily: FONTS.bold,
+  },
   noTagsCard: {
     width: '100%',
     maxWidth: SIZE.z320,
