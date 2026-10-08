@@ -76,3 +76,8 @@ export function feedSwipe({
   if (toward > SWIPE.slop && ay > ax) return 'activate';
   return 'wait';
 }
+
+/** A locked feed: the camera lifts this far (a quarter of the page) to show why and what to do. */
+export function lockedGap(pageHeight: number): number {
+  return Math.round(pageHeight * MOTION.cameraFeed.lockedShare);
+}

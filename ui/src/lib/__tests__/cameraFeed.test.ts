@@ -3,7 +3,7 @@
  * into a small card at the top while the feed takes the screen; tap the card, the Camera pill or
  * swipe it down and the camera is back. Pure geometry and release rules, unit-tested.
  */
-import { cameraCard, feedOpensOnRelease, feedSwipe, feedTop } from '@/lib/cameraFeed';
+import { cameraCard, feedOpensOnRelease, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
 import { SWIPE } from '@/constants/tokens';
 
 const page = { width: 400, height: 800 };
@@ -61,5 +61,14 @@ describe('feedSwipe — when a drag on the camera moves the feed', () => {
   it('waits while the finger has barely moved, and never takes a drag from the status bar', () => {
     expect(feedSwipe({ ...base, open: false, dx: 1, dy: -1 })).toBe('wait');
     expect(feedSwipe({ startY: 20, insetTop: 50, open: false, dx: 0, dy: -s })).toBe('fail');
+  });
+});
+
+// Owner, 2026-10-08: a locked feed doesn't open; the camera lifts a quarter of the screen and the
+// gap underneath says why and what to do.
+describe('lockedGap — how far the camera lifts when the feed is locked', () => {
+  it('a quarter of the page', () => {
+    expect(lockedGap(800)).toBe(200);
+    expect(lockedGap(874)).toBe(219);
   });
 });

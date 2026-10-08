@@ -22,10 +22,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CameraScreen from '@/screens/CameraScreen';
 import FeedScreen from '@/screens/FeedScreen';
 import { PressScale } from '@/components/Motion';
-import { CameraIcon, FeedIcon } from '@/components/ScreenIcons';
+import { CameraIcon, FeedIcon, LockIcon } from '@/components/ScreenIcons';
 import { usePageSize } from '@/hooks/useChrome';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { cameraCard, feedOpensOnRelease, feedSwipe, feedTop } from '@/lib/cameraFeed';
+import { cameraCard, feedOpensOnRelease, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
+import { lockPill } from '@/lib/feedLock';
+import { useFeedStore } from '@/store';
+import { useOpenTags } from '@/hooks/useOpenTags';
+import { useSecondTick } from '@/hooks/useSecondTick';
+import PixelAthlete from '@/components/PixelAthlete';
 import { appHeaderHeight } from '@/lib/pip';
 import { haptic } from '@/lib/haptics';
 import { FONTS } from '@/constants/fonts';
@@ -69,6 +74,10 @@ export default function CameraFeedPage({
   const headerH = appHeaderHeight(insets.top);
   const card = useMemo(() => cameraCard(page, headerH), [page, headerH]);
   const rowsTop = feedTop(card);
+  // A locked feed doesn't open: the camera lifts a quarter of the page and the gap underneath says
+  // why and what to do (owner, 2026-10-08). No feed rows show.
+  const locked = useFeedStore((s) => s.loaded && s.locked);
+  const gap = lockedGap(page.height);
 
   // 0 = camera full screen, 1 = feed showing. `feedShown` is where it last settled.
   const progress = useSharedValue(0);
@@ -169,6 +178,13 @@ export default function CameraFeedPage({
 
   const cameraStyle = useAnimatedStyle(() => {
     const p = progress.value;
+    if (locked) {
+      return {
+        transformOrigin: 'top left',
+        borderRadius: p * cardRadius,
+        transform: [{ translateX: 0 }, { translateY: -p * gap }, { scale: 1 }],
+      };
+    }
     return {
       transformOrigin: 'top left',
       borderRadius: p * cardRadius,
@@ -180,26 +196,30 @@ export default function CameraFeedPage({
     };
   });
   const feedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.35], [0, 1], 'clamp'),
+    opacity: locked ? 0 : interpolate(progress.value, [0, 0.35], [0, 1], 'clamp'),
+  }));
+  const gapStyle = useAnimatedStyle(() => ({
+    opacity: locked ? interpolate(progress.value, [0, 0.5], [0, 1], 'clamp') : 0,
   }));
   const cameraHeaderStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.5], [1, 0], 'clamp'),
+    opacity: locked ? 1 : interpolate(progress.value, [0, 0.5], [1, 0], 'clamp'),
   }));
   const feedHeaderStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0.5, 1], [0, 1], 'clamp'),
+    opacity: locked ? 0 : interpolate(progress.value, [0.5, 1], [0, 1], 'clamp'),
   }));
 
-  const pillBg = feedShown ? (dark ? COLORS.offWhite : COLORS.offBlack) : COLORS.offWhite;
-  const pillText = feedShown ? (dark ? COLORS.offBlack : COLORS.offWhite) : COLORS.offBlack;
+  const onDarkCamera = !feedShown || locked;
+  const pillBg = onDarkCamera ? COLORS.offWhite : dark ? COLORS.offWhite : COLORS.offBlack;
+  const pillText = onDarkCamera ? COLORS.offBlack : dark ? COLORS.offBlack : COLORS.offWhite;
 
   return (
     <View style={styles.root}>
       {/* The feed, behind: its rows start under the camera card. */}
       <Reanimated.View
         style={[styles.layer, { backgroundColor: dark ? COLORS.bgDark : COLORS.white }, feedStyle]}
-        pointerEvents={feedShown ? 'auto' : 'none'}
-        accessibilityElementsHidden={!feedShown}
-        importantForAccessibility={feedShown ? 'auto' : 'no-hide-descendants'}
+        pointerEvents={feedShown && !locked ? 'auto' : 'none'}
+        accessibilityElementsHidden={!feedShown || locked}
+        importantForAccessibility={feedShown && !locked ? 'auto' : 'no-hide-descendants'}
       >
         <FeedScreen
           onGoToCamera={closeFeed}
@@ -207,7 +227,7 @@ export default function CameraFeedPage({
           headerAnim={headerAnim}
           onOverlayChange={onOverlayChange}
           listGesture={feedList}
-          isActive={active && feedShown}
+          isActive={active && feedShown && !locked}
           topInset={rowsTop - headerH}
         />
         <RNAnimated.View
@@ -233,6 +253,22 @@ export default function CameraFeedPage({
         </RNAnimated.View>
       </Reanimated.View>
 
+      {/* Locked: the quarter under the lifted camera says why and what to do. */}
+      {locked ? (
+        <Reanimated.View
+          style={[
+            styles.gap,
+            { height: gap, backgroundColor: dark ? COLORS.bgDark : COLORS.white },
+            gapStyle,
+          ]}
+          pointerEvents={feedShown ? 'box-none' : 'none'}
+          accessibilityElementsHidden={!feedShown}
+          importantForAccessibility={feedShown ? 'auto' : 'no-hide-descendants'}
+        >
+          <LockedGap onPost={closeFeed} onFindFriends={onFindFriends} />
+        </Reanimated.View>
+      ) : null}
+
       {/* The camera, in front: full screen, or a small card at the top-left. */}
       <GestureDetector gesture={upSwipe}>
         <Reanimated.View
@@ -254,13 +290,15 @@ export default function CameraFeedPage({
         </Reanimated.View>
       </GestureDetector>
 
-      {/* The small card takes taps and a swipe down while the feed is showing. */}
+      {/* The small card (or, locked, the lifted camera) takes taps and a swipe down. */}
       {feedShown ? (
         <GestureDetector gesture={cardSwipe}>
           <PressScale
             style={[
               styles.cardTouch,
-              { left: card.x, top: card.y, width: card.width, height: card.height },
+              locked
+                ? { left: 0, top: 0, width: page.width, height: page.height - gap }
+                : { left: card.x, top: card.y, width: card.width, height: card.height },
             ]}
             onPress={closeFeed}
             accessibilityRole="button"
@@ -291,6 +329,49 @@ export default function CameraFeedPage({
   );
 }
 
+/** Why the feed is locked and the one thing to do, under the lifted camera. */
+function LockedGap({
+  onPost,
+  onFindFriends,
+}: {
+  onPost: () => void;
+  onFindFriends: () => void;
+}): React.JSX.Element | null {
+  const { colors } = useAppTheme();
+  const { openTags, loaded } = useOpenTags();
+  const unlockedUntil = useFeedStore((s) => s.unlockedUntil);
+  const serverOffsetMs = useFeedStore((s) => s.serverOffsetMs);
+  // The tag clock ticks every second, like every tag countdown.
+  const deviceNow = useSecondTick(openTags.length > 0);
+  const pill = loaded
+    ? lockPill({ locked: true, unlockedUntil, openTags, serverOffsetMs, deviceNow })
+    : null;
+  if (!pill) return null;
+  const toFriends = pill.target === 'friends';
+  return (
+    <View style={styles.gapInner}>
+      <View style={styles.gapWhy} accessible accessibilityLabel={pill.line}>
+        <View style={[styles.gapLock, { backgroundColor: colors.text }]}>
+          <LockIcon size={ICON_SIZE.i20} color={colors.bg} />
+        </View>
+        <Text style={[styles.gapLine, { color: colors.text }]} numberOfLines={2}>
+          {pill.line}
+        </Text>
+      </View>
+      <PressScale
+        style={[styles.gapButton, { backgroundColor: colors.text }]}
+        onPress={toFriends ? onFindFriends : onPost}
+        accessibilityRole="button"
+        accessibilityLabel={pill.button}
+        accessibilityHint={toFriends ? 'Opens search' : 'Back to the camera'}
+      >
+        <PixelAthlete size={SIZE.z28} color={colors.bg} />
+        <Text style={[styles.gapButtonText, { color: colors.bg }]}>{pill.button}</Text>
+      </PressScale>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -312,6 +393,51 @@ const styles = StyleSheet.create({
   cardTouch: {
     position: 'absolute',
     borderRadius: RADIUS.r24,
+  },
+  // The quarter of the page under a lifted camera when the feed is locked.
+  gap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  gapInner: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: SPACE.s24,
+    gap: SPACE.s14,
+  },
+  gapWhy: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s12,
+  },
+  gapLock: {
+    width: SIZE.z40,
+    height: SIZE.z40,
+    borderRadius: RADIUS.r20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gapLine: {
+    flex: 1,
+    fontSize: FONT_SIZE.f15,
+    fontFamily: FONTS.semiBold,
+  },
+  gapButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s8,
+    minHeight: SIZE.z44,
+    borderRadius: RADIUS.pill,
+    paddingVertical: SPACE.s8,
+    paddingLeft: SPACE.s12,
+    paddingRight: SPACE.s16,
+  },
+  gapButtonText: {
+    fontSize: FONT_SIZE.f14,
+    fontFamily: FONTS.bold,
   },
   pill: {
     position: 'absolute',
