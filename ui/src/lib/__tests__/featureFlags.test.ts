@@ -88,8 +88,6 @@ describe('default-off flags (video-posts)', () => {
       'auth-google-signin',
       'auth-apple-signin',
       'live-activity',
-      'widget-tagger-photo',
-      'widget-background-refresh',
       'control-post-workout',
       'siri-shortcuts',
       'spotlight',
@@ -153,7 +151,7 @@ describe('default-off flags (video-posts)', () => {
 // Build 13's native extras each have a kill switch, on for everyone (owner, 2026-10-07): they read
 // as on while flags load, and only an explicit false in PostHog turns one off.
 describe('build 13 native kill switches', () => {
-  const BUILD_13 = ['share-to-mahi', 'shutter-sound'];
+  const BUILD_13 = ['share-to-mahi', 'shutter-sound', 'widget-background-refresh'];
 
   it('are in the registry and on by default', () => {
     for (const key of BUILD_13) {
@@ -188,6 +186,7 @@ describe('build 13 kill switches', () => {
     'camera-tab-badge',
     'miss-roll-down',
     'profile-points-card',
+    'widget-tagger-photo',
   ];
   it('lists each one, on unless PostHog says off', () => {
     for (const key of KILL_SWITCHES) {
@@ -203,8 +202,6 @@ describe('build 13 features held back', () => {
   const HELD_BACK = [
     'auth-apple-signin',
     'live-activity',
-    'widget-tagger-photo',
-    'widget-background-refresh',
     'control-post-workout',
     'siri-shortcuts',
     'spotlight',

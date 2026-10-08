@@ -44,7 +44,7 @@ export const FEATURE_FLAGS = [
   'camera-tab-badge', // a number on the Camera tab while a tag waits
   'miss-roll-down', // after a miss the counter rolls down to 0 before the miss moment
   'profile-points-card', // the profile's bar fills, numbers roll, and the last three mates answered
-  'widget-tagger-photo', // (default OFF, not released yet) the tagger's photo on the widget and Live Activity
+  'widget-tagger-photo', // the tagger's photo on the widget and Live Activity
   'app-clip', // the app takes the invite the App Clip handed over (off: drops it unread); the clip itself is off via App Store Connect
 
   'share-to-mahi', // share 1–2 photos from Photos to Mahi: they open as the post's shots (off: the share is ignored and deleted)
@@ -52,7 +52,7 @@ export const FEATURE_FLAGS = [
   'spotlight', // (default OFF, not released yet) Spotlight offers Post a workout, Your invites, Find friends in your contacts (off: the items are removed from the phone's index)
   'siri-shortcuts', // (default OFF, not released yet) "Post a workout in Mahi", "Open my invites in Mahi", "Find friends on Mahi" (off: they just open Mahi)
   'shutter-sound', // Apple's shutter sound at the press, in step with the haptic; silent switch respected (off: today's camera sound)
-  'widget-background-refresh', // (default OFF, not released yet) iOS wakes Mahi every 15 min or more to refresh the widget and Live Activity (off: the task is unregistered)
+  'widget-background-refresh', // iOS wakes Mahi every 15 min or more to refresh the widget and Live Activity (off: the task is unregistered)
 
   // Sign-in
   'auth-apple-signin', // Sign in with Apple on the welcome screen; build 13+ iPhones only (default OFF, not released yet)
@@ -76,8 +76,8 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * stays exactly as today.
  * `auth-google-signin`: the Google button is a placeholder that does nothing yet, so it must
  * never show on the first screen while flags load, nor on a build with no PostHog key.
- * Sign in with Apple, the lock-screen tracker and widget (with its photo and background refresh),
- * the Control Centre button, Siri and Spotlight: not released yet (owner, 2026-10-08), so none of
+ * Sign in with Apple, the lock-screen tracker and widget, the Control Centre button, Siri and
+ * Spotlight: not released yet (owner, 2026-10-08), so none of
  * them shows for a moment on cold start.
  */
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
@@ -91,8 +91,6 @@ export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'auth-google-signin',
   'auth-apple-signin',
   'live-activity',
-  'widget-tagger-photo',
-  'widget-background-refresh',
   'control-post-workout',
   'siri-shortcuts',
   'spotlight',
