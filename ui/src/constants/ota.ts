@@ -7,6 +7,7 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 16 — the locked feed's padlock line stays put while the rows scroll (2026-10-08)
  *   build 13 · 15 — the locked feed's padlock, pixel athlete and "Post your first workout" sit
  *     in one black / white line (2026-10-08)
  *   build 13 · 14 — feed rows with hairline dividers (no blue lines); the lock card is black /
@@ -119,4 +120,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 15;
+export const OTA_NUMBER = 16;
