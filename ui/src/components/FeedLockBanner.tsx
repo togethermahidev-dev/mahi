@@ -1,9 +1,9 @@
 /**
  * Top of the feed, under the app header:
- * - locked → one card in the middle of the frosted rows: the app's padlock in a circle, the
- *   reason, and under it a round button (with a little pixel athlete) saying what to do — to the
- *   camera when there's something to post, or to people search when there isn't (owner,
- *   2026-10-08: black / white, no gradient, no big card);
+ * - locked → one line in the middle of the frosted rows: the app's padlock in a circle, then a
+ *   pill with a little pixel athlete and what to do ("Post your first workout") — to the camera
+ *   when there's something to post, or to people search when there isn't (owner, 2026-10-08:
+ *   black / white, all in line, no big card);
  * - open → a live countdown to when the feed would lock (or, if you're tagged, to when it locks),
  *   in the camera banner's style (founder, 2026-10-05).
  * Lock state and open tags expire, so both come fresh from the server each session (never saved
@@ -90,22 +90,23 @@ function LockedCard({
     <FadeInItem>
       <View ref={lockTip} pointerEvents="box-none" style={styles.lockWrap}>
         <View style={[styles.lockPill, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-          <View style={[styles.lockCircle, { backgroundColor: colors.text }]}>
+          <View
+            style={[styles.lockCircle, { backgroundColor: colors.text }]}
+            accessible
+            accessibilityLabel={pill.line}
+          >
             <LockIcon size={ICON_SIZE.i22} color={colors.bg} />
           </View>
-          <Text style={[styles.lockLine, { color: colors.text }]} numberOfLines={3}>
-            {pill.line}
-          </Text>
           {onPress ? (
             <PressScale
-              style={[styles.actionCircle, { backgroundColor: colors.text }]}
+              style={[styles.actionPill, { backgroundColor: colors.text }]}
               onPress={onPress}
               accessibilityRole="button"
               accessibilityLabel={pill.button}
               accessibilityHint={toFriends ? 'Opens search' : 'Opens the camera'}
             >
-              <PixelAthlete size={SIZE.z40} color={colors.bg} />
-              <Text style={[styles.actionText, { color: colors.bg }]} numberOfLines={2}>
+              <PixelAthlete size={SIZE.z28} color={colors.bg} />
+              <Text style={[styles.actionText, { color: colors.bg }]} numberOfLines={1}>
                 {pill.button}
               </Text>
             </PressScale>
@@ -173,41 +174,35 @@ const styles = StyleSheet.create({
   lockWrap: {
     alignItems: 'center',
   },
+  // One line: the padlock circle, then the action pill (black / white with the theme).
   lockPill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACE.s12,
-    paddingVertical: SPACE.s20,
-    paddingHorizontal: SPACE.s24,
-    borderRadius: RADIUS.r28,
+    gap: SPACE.s10,
+    padding: SPACE.s8,
+    borderRadius: RADIUS.pill,
     borderWidth: BORDER_WIDTH.w1,
-    maxWidth: SIZE.z320,
   },
   lockCircle: {
-    width: SIZE.z56,
-    height: SIZE.z56,
-    borderRadius: RADIUS.r28,
+    width: SIZE.z44,
+    height: SIZE.z44,
+    borderRadius: RADIUS.r22,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  lockLine: {
-    fontSize: FONT_SIZE.f15,
-    lineHeight: LINE_HEIGHT.l20,
-    fontFamily: FONTS.semiBold,
-    textAlign: 'center',
-  },
-  actionCircle: {
-    width: SIZE.z120,
-    height: SIZE.z120,
+  actionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s8,
+    minHeight: SIZE.z44,
     borderRadius: RADIUS.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: SPACE.s12,
-    gap: SPACE.s4,
+    paddingVertical: SPACE.s8,
+    paddingLeft: SPACE.s12,
+    paddingRight: SPACE.s16,
   },
   actionText: {
-    fontSize: FONT_SIZE.f13,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
-    textAlign: 'center',
   },
   buttonText: {
     fontSize: FONT_SIZE.f15,
