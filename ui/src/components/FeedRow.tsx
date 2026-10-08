@@ -47,21 +47,40 @@ import {
 } from '@/constants/tokens';
 
 /**
- * A locked row: the shape of a row with nothing in it (a blank circle, two bars, two blank
- * previews), frosted over. Nothing here is the real post.
+ * A locked row: the real row under full frost, like the camera's cover over the live camera
+ * (owner, 2026-10-08). The person's photo and name are there (the server sends who posted) but
+ * frosted to a smudge; the previews are blank, since the server sends no photo or caption. Nothing
+ * can be read, and VoiceOver says only "Locked post".
  */
-function LockedRow(): React.JSX.Element {
+function LockedRow({ item }: { item: FeedPost }): React.JSX.Element {
   const { dark, colors } = useAppTheme();
+  const name = item.profiles.display_name ?? item.profiles.username;
+  const initials = (item.profiles.username ?? '?')[0].toUpperCase();
   return (
     <View
       style={[styles.row, { backgroundColor: colors.bg }]}
       accessible
       accessibilityLabel="Locked post"
+      importantForAccessibility="yes"
     >
-      <View style={[styles.avatar, { backgroundColor: colors.border }]} />
-      <View style={styles.words}>
-        <View style={[styles.bar, styles.barName, { backgroundColor: colors.border }]} />
-        <View style={[styles.bar, styles.barLine, { backgroundColor: colors.border }]} />
+      {item.profiles.avatar_url ? (
+        <Image
+          source={{ uri: item.profiles.avatar_url, cache: 'force-cache' }}
+          style={styles.avatar}
+          accessibilityElementsHidden
+        />
+      ) : (
+        <View style={[styles.avatar, styles.avatarFallback, { borderColor: colors.text }]}>
+          <Text style={[styles.avatarInitial, { color: colors.text }]}>{initials}</Text>
+        </View>
+      )}
+      <View style={styles.words} accessibilityElementsHidden>
+        <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+          {name}
+        </Text>
+        <Text style={[styles.line, { color: colors.muted }]} numberOfLines={1}>
+          {relativeTime(item.created_at)}
+        </Text>
       </View>
       <View style={styles.thumbs}>
         <View style={[styles.thumb, { backgroundColor: colors.border }]} />
@@ -138,7 +157,7 @@ export default function FeedRow({
     else if (action === 'view-profile') onAvatarPress(item.profiles.id);
   };
 
-  if (item.locked) return <LockedRow />;
+  if (item.locked) return <LockedRow item={item} />;
 
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
@@ -312,13 +331,6 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r10,
     overflow: 'hidden',
   },
-  // The locked stand-in's bars where a name and a line would be.
-  bar: {
-    height: SIZE.z10,
-    borderRadius: RADIUS.r4,
-  },
-  barName: { width: SIZE.z120 },
-  barLine: { width: SIZE.z160 },
   frost: {
     backgroundColor: withAlpha(COLORS.accent, ALPHA.a20),
   },
