@@ -174,6 +174,49 @@ describe('live while open', () => {
     expect(getFollowRequests).toHaveBeenCalledTimes(1);
   });
 
+  // Every follow request deleted anywhere reaches the unfiltered DELETE listener, so a burst of
+  // them re-reads once now and once when the burst has passed, not once each.
+  describe('a burst of deletes', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    it('re-reads at most once every 1.5 seconds', () => {
+      getFollowRequests.mockResolvedValue({ data: [], error: null });
+      useFollowRequestStore.getState().subscribe('me');
+      const onDelete = made[0].handlers[1];
+
+      for (let i = 0; i < 5; i++) onDelete();
+      expect(getFollowRequests).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(1499);
+      expect(getFollowRequests).toHaveBeenCalledTimes(1);
+      jest.advanceTimersByTime(1);
+      expect(getFollowRequests).toHaveBeenCalledTimes(2);
+
+      // Quiet since: nothing more.
+      jest.advanceTimersByTime(5000);
+      expect(getFollowRequests).toHaveBeenCalledTimes(2);
+    });
+
+    it('a single delete re-reads once', () => {
+      getFollowRequests.mockResolvedValue({ data: [], error: null });
+      useFollowRequestStore.getState().subscribe('me');
+      made[0].handlers[1]();
+      jest.advanceTimersByTime(5000);
+      expect(getFollowRequests).toHaveBeenCalledTimes(1);
+    });
+
+    it('sign-out drops a re-read that was waiting', () => {
+      getFollowRequests.mockResolvedValue({ data: [], error: null });
+      useFollowRequestStore.getState().subscribe('me');
+      made[0].handlers[1]();
+      made[0].handlers[1]();
+      useFollowRequestStore.getState().reset();
+      jest.advanceTimersByTime(5000);
+      expect(getFollowRequests).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('two screens share one channel; it closes when the last one leaves', () => {
     const a = useFollowRequestStore.getState().subscribe('me');
     const b = useFollowRequestStore.getState().subscribe('me');

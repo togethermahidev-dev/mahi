@@ -8,6 +8,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { reportError } from '@/lib/sentry';
 import { track } from '@/lib/analytics';
+import { WAIT } from '@/constants/tokens';
 import { useFollowStore } from './followStore';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -45,6 +46,33 @@ interface FollowRequestState {
 
 /** One channel per signed-in user, shared by every screen showing the list (ref-counted). */
 const requestChannels = new Map<string, { channel: RealtimeChannel; refCount: number }>();
+
+/**
+ * Every follow request deleted anywhere reaches the unfiltered DELETE listener, so deletes
+ * re-read at most once every `WAIT.requestsReread`: once at the first, then once more after the
+ * wait if others came meanwhile.
+ */
+let rereadTimer: ReturnType<typeof setTimeout> | null = null;
+let rereadAgain = false;
+function throttledReread(load: () => void) {
+  if (rereadTimer) {
+    rereadAgain = true;
+    return;
+  }
+  load();
+  rereadTimer = setTimeout(() => {
+    rereadTimer = null;
+    if (rereadAgain) {
+      rereadAgain = false;
+      throttledReread(load);
+    }
+  }, WAIT.requestsReread);
+}
+function stopReread() {
+  if (rereadTimer) clearTimeout(rereadTimer);
+  rereadTimer = null;
+  rereadAgain = false;
+}
 
 export const useFollowRequestStore = create<FollowRequestState>((set, get) => ({
   requests: null,
@@ -126,11 +154,11 @@ export const useFollowRequestStore = create<FollowRequestState>((set, get) => ({
           () => void get().load()
         )
         // Supabase can't filter DELETE events (they carry only the row's key), so a request
-        // taken back or answered elsewhere arrives only here; any delete re-reads.
+        // taken back or answered elsewhere arrives only here; deletes re-read, throttled.
         .on(
           'postgres_changes',
           { event: 'DELETE', schema: 'public', table: 'follow_requests' },
-          () => void get().load()
+          () => throttledReread(() => void get().load())
         )
         .subscribe(),
       refCount: 0,
@@ -145,6 +173,7 @@ export const useFollowRequestStore = create<FollowRequestState>((set, get) => ({
       if (entry.refCount <= 0) {
         supabase.removeChannel(entry.channel);
         requestChannels.delete(key);
+        stopReread();
       }
     };
   },
@@ -152,6 +181,7 @@ export const useFollowRequestStore = create<FollowRequestState>((set, get) => ({
   reset: () => {
     for (const { channel } of requestChannels.values()) supabase.removeChannel(channel);
     requestChannels.clear();
+    stopReread();
     set({ requests: null, failed: false });
   },
 }));

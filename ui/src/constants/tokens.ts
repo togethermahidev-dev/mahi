@@ -421,6 +421,8 @@ export const WAIT = {
   toastLong: 5000,
   /** A tip waits this long after its page settles (a swipe, a sheet closing) before it shows. */
   coachMark: 700,
+  /** Follow requests deleted anywhere re-read the list at most this often (unfilterable DELETE). */
+  requestsReread: 1500,
 } as const;
 
 // ─── Swipes: when a drag counts, and when it moves or closes something ───────

@@ -573,16 +573,19 @@ export type Database = {
       follow_requests: {
         Row: {
           created_at: string;
+          id: string;
           requester_id: string;
           target_id: string;
         };
         Insert: {
           created_at?: string;
+          id?: string;
           requester_id: string;
           target_id: string;
         };
         Update: {
           created_at?: string;
+          id?: string;
           requester_id?: string;
           target_id?: string;
         };
