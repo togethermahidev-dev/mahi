@@ -26,6 +26,8 @@ export type ScreenIconKey =
   | 'more'
   | 'emoji'
   | 'keyboard'
+  | 'themeLight'
+  | 'themeDark'
   | 'like'
   | 'comment'
   | 'messages';
@@ -49,6 +51,8 @@ export const SF_SYMBOLS: Record<ScreenIconKey, SFSymbolName | null> = {
   more: 'ellipsis', // the '…' menu on posts and comments
   emoji: 'face.smiling', // the composers' emoji button
   keyboard: 'keyboard', // the same button while emoji is up: back to letters
+  themeLight: 'sun.max', // Settings' light / dark switch, in light mode
+  themeDark: 'moon', // …and in dark mode
   like: null,
   comment: null,
   messages: null,

@@ -8,7 +8,8 @@
  *
  * History (newest first):
  *   build 13 · 03 — pulling the waiting camera down shrinks it into a small card and shows a
- *     compact accountability card with two actions; camera pills press like glass (2026-10-08)
+ *     compact accountability card with two actions; camera pills press like glass; Settings cards
+ *     stack under their titles; a line sun / moon for light and dark (2026-10-08)
  *   build 13 · 02 — the waiting camera pulls down to open the card behind it (tap the arrow to
  *     close); profile line "Only you are accountable for showing up." (2026-10-08)
  *   build 13 · 01 — post photos download once per phone instead of on every open; profile photos

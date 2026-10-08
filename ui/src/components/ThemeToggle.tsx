@@ -1,9 +1,8 @@
 /**
  * ThemeToggle
  *
- * Toggles between Light ↔ Dark on each press.
- *   Blue Cloud + Sun — Light mode  (bright, daytime)
- *   Moon            — Dark mode   (night)
+ * Toggles between Light ↔ Dark on each press. Shows the mode you're in as a line sun or moon,
+ * like the app's other icons (Apple's own sun and moon where SF Symbols are on).
  *
  * A spring pulse animation plays on every tap (not with Reduce Motion on).
  * It taps as 48 across whatever size it is drawn (Google's 48, more than Apple's 44).
@@ -13,76 +12,11 @@
 import React, { useRef } from 'react';
 import { Pressable, Animated, StyleSheet } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
-import Svg, { Path, Circle, G } from 'react-native-svg';
 import { useThemeStore } from '@/store';
-import type { ThemeMode } from '@/store/themeStore';
-import { COLORS, ICON_SIZE, SCALE, SPRING, STROKE } from '@/constants/tokens';
+import { COLORS, ICON_SIZE, SCALE, SPRING } from '@/constants/tokens';
+import { ThemeIcon } from '@/components/ScreenIcons';
 import { haptic } from '@/lib/haptics';
 import { TAP_AREA, tapSlop } from '@/lib/tapArea';
-
-// ─── SVG Icons ────────────────────────────────────────────────────────────────
-
-interface IconProps {
-  color: string;
-  size: number;
-}
-
-/** Blue Cloud with Sun peeking — Light mode. */
-function CloudSunIcon({ size }: IconProps) {
-  const blue = COLORS.info;
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* Sun peeking behind the cloud — top-right */}
-      <G>
-        <Circle
-          cx="17"
-          cy="8"
-          r="2.4"
-          fill={COLORS.gold}
-          stroke={COLORS.gold}
-          strokeWidth={STROKE.s1_2}
-        />
-        {/* Sun rays */}
-        <Path
-          d="M17 3.5v1.4 M17 11.1v1.4 M21.5 8h-1.4 M13.9 8h-1.4 M20.18 4.82l-0.99 0.99 M14.82 11.19l-0.99 0.99 M20.18 11.18l-0.99 -0.99 M14.82 4.81l-0.99 -0.99"
-          stroke={COLORS.gold}
-          strokeWidth={STROKE.s1_4}
-          strokeLinecap="round"
-        />
-      </G>
-      {/* Cloud — fills the bottom-left, slightly overlapping the sun */}
-      <Path
-        d="M7 19h10.5a3.5 3.5 0 0 0 0.6 -6.95 A5 5 0 0 0 8.1 11.2 A4 4 0 0 0 7 19z"
-        fill={blue}
-        stroke={blue}
-        strokeWidth={STROKE.s1_4}
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-/** Crescent Moon — Dark mode. */
-function MoonIcon({ color, size }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M20.5 14.3A8 8 0 0 1 9.7 3.5a0.6 0.6 0 0 0 -0.82 -0.72 9.5 9.5 0 1 0 12.34 12.34 0.6 0.6 0 0 0 -0.72 -0.82z"
-        fill={color}
-        stroke={color}
-        strokeWidth={STROKE.s1_4}
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-// ─── Mode → Icon map ──────────────────────────────────────────────────────────
-
-const MODE_ICON: Record<ThemeMode, (props: IconProps) => React.JSX.Element> = {
-  light: CloudSunIcon,
-  dark: MoonIcon,
-};
 
 // ─── ThemeToggle ──────────────────────────────────────────────────────────────
 
@@ -100,8 +34,6 @@ export default function ThemeToggle({
   const cycleMode = useThemeStore((s) => s.cycleMode);
   const scale = useRef(new Animated.Value(1)).current;
   const reduceMotion = useReducedMotion();
-
-  const Icon = MODE_ICON[mode];
 
   const handlePress = () => {
     // A switch is felt as one (the same as every other pick in the app).
@@ -135,7 +67,7 @@ export default function ThemeToggle({
       style={styles.button}
     >
       <Animated.View style={{ transform: [{ scale }] }}>
-        <Icon color={color} size={size} />
+        <ThemeIcon dark={mode === 'dark'} color={color} size={size} />
       </Animated.View>
     </Pressable>
   );

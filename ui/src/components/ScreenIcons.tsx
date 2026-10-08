@@ -133,6 +133,36 @@ export function CommentIcon({ size, color }: IconProps) {
   );
 }
 
+/** A sun: a ring with eight short rays. */
+function SunDrawing({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="4" stroke={color} strokeWidth={STROKE.s1_8} />
+      <Path
+        d="M12 2.5v2 M12 19.5v2 M2.5 12h2 M19.5 12h2 M5.28 5.28l1.42 1.42 M17.3 17.3l1.42 1.42 M5.28 18.72l1.42 -1.42 M17.3 6.7l1.42 -1.42"
+        stroke={color}
+        strokeWidth={STROKE.s1_8}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+/** A crescent moon outline. */
+function MoonDrawing({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M20.5 13.2A8.5 8.5 0 1 1 10.8 3.5a6.6 6.6 0 0 0 9.7 9.7z"
+        stroke={color}
+        strokeWidth={STROKE.s1_8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 function SettingsDrawing({ size, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -345,6 +375,15 @@ export function ProfileIcon(props: IconProps) {
   return (
     <SymbolOr icon="profile" {...props}>
       <ProfileDrawing {...props} />
+    </SymbolOr>
+  );
+}
+
+/** Settings' light / dark switch: a sun in light mode, a moon in dark. */
+export function ThemeIcon({ dark, ...props }: IconProps & { dark: boolean }) {
+  return (
+    <SymbolOr icon={dark ? 'themeDark' : 'themeLight'} {...props}>
+      {dark ? <MoonDrawing {...props} /> : <SunDrawing {...props} />}
     </SymbolOr>
   );
 }

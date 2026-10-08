@@ -38,6 +38,9 @@ describe('SF_SYMBOLS — which Apple icon replaces each drawing', () => {
       // The composers' emoji button and, while emoji is up, its way back to letters.
       emoji: 'face.smiling',
       keyboard: 'keyboard',
+      // Settings' light / dark switch: the mode you're in.
+      themeLight: 'sun.max',
+      themeDark: 'moon',
       // Brand "echo" drawings (blue offset layer, like the MAHI logo) have no Apple match.
       like: null,
       comment: null,

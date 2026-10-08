@@ -668,9 +668,9 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f22,
   },
+  // The space between one card and the next title: the cards stack, they don't spread to fill.
   spacer: {
-    flex: 1,
-    minHeight: SIZE.z48,
+    height: SPACE.s24,
   },
   logoutBtn: {
     marginHorizontal: SPACE.s20,
