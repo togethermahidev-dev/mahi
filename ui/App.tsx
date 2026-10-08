@@ -211,7 +211,8 @@ export default function App(): React.JSX.Element {
 
       if (s?.user) {
         hydrateForUser(s.user.id, setProfileStatus);
-        Sentry.setUser({ id: s.user.id, email: s.user.email });
+        // The account id only: no email goes to Sentry (docs/security.md).
+        Sentry.setUser({ id: s.user.id });
         void syncAnalyticsIdentity(s.user);
         // Re-evaluate feature flags for the now-identified user.
         posthog

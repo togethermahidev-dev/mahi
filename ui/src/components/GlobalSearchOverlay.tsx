@@ -208,7 +208,6 @@ export default function GlobalSearchOverlay({
         });
       }
       const filtered = (data ?? []).filter((u) => !useBlockStore.getState().isBlocked(u.id));
-      console.log('[GlobalSearch] query:', value, '| results:', filtered.length);
       setResults(filtered);
       setFailed(!!error || !data);
       setSearched(true);
@@ -388,7 +387,6 @@ export default function GlobalSearchOverlay({
                       else onClose();
                       return;
                     }
-                    console.log('[GlobalSearch] tap profile |', item.id, '| user:', item.username);
                     Sentry.addBreadcrumb({
                       category: 'search',
                       message: `Profile tapped: ${item.username}`,

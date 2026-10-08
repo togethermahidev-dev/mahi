@@ -99,7 +99,8 @@ export async function syncAnalyticsIdentity(
     const step = identityStep(user?.id ?? null, posthog.getDistinctId(), posthog.getAnonymousId());
     if (step === 'reset' || step === 'reset_then_identify') posthog.reset();
     if (user && (step === 'identify' || step === 'reset_then_identify')) {
-      posthog.identify(user.id, { email: user.email ?? null });
+      // The account id only: no email or other personal details go to PostHog (docs/security.md).
+      posthog.identify(user.id);
     }
     // Every event says which app update sent it (a reset clears this, so it's set each time).
     await posthog.register(appUpdateProperties());
@@ -116,8 +117,11 @@ export function appUpdateProperties(): {
   app_build: number | null;
   ota: number;
   app_update: string;
+  $geoip_disable: true;
 } {
   return {
+    // No city or postcode worked out from the phone's network address (docs/security.md).
+    $geoip_disable: true,
     app_build: APP_BUILD,
     ota: OTA_NUMBER,
     app_update: `${APP_BUILD ?? '?'}.${String(OTA_NUMBER).padStart(2, '0')}`,

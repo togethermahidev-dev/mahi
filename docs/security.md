@@ -63,8 +63,8 @@ means "trusted": always ask what a stranger with a fresh account could read or w
   fill something in. Anything that writes (claim an invite, follow, post, delete, accept) needs an
   on-screen confirm that says what will happen (for invites: "you'll automatically follow each
   other"). Not now = nothing written.
-- **No personal data to PostHog or Sentry:** no phone numbers, contacts, tokens, codes or messages.
-  The person's own email through PostHog `identify` is the one allowed exception.
+- **No personal data to PostHog or Sentry:** the account id only. No email, phone number, contacts,
+  tokens, codes, search text or messages, and no city or postcode (`$geoip_disable`).
 - **Unreleased features start off:** their switch is in `DEFAULT_OFF_FLAGS` and off in PostHog, and
   the iPhone side reads a missing switch as off.
 - **The sign-in session lives in the keychain** (`ui/src/lib/sessionStorage.ts`, build 13+); never put
