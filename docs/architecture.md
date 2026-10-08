@@ -439,8 +439,8 @@ Three pages; the feed lives behind the camera on the middle one.
 One gesture on it (`cameraDrag`, `ui/src/lib/cameraPull.ts`) decides the direction: down moves the
 roadmap drawer (`useCameraPull`), up moves the feed (`feedDrag`, passed `CameraFeedPage` →
 `CameraScreen` → `useCameraPull`). Both are two-stage (`releaseDetent`, `ui/src/lib/detent.ts`):
-closed → peek → open. Swiping up slides the camera up to a strip under the header with the feed's
-rows behind it (`cameraStrip`, `ui/src/lib/cameraFeed.ts`); a locked feed lifts a quarter
+closed → peek → open. Swiping up slides the camera all the way up and the feed fills the page under
+its header (`cameraStrip`, `ui/src/lib/cameraFeed.ts`); the camera pill brings it back; a locked feed lifts a quarter
 (`lockedGap`) and shows `LockedGap` (the reason, the padlock and one button). The pill beside the bell
 morphs between a question mark, the up-arrow and a camera icon (decision #148). A post opens the
 feed (`onPosted`).

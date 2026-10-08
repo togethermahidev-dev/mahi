@@ -107,8 +107,8 @@
   one screen (`CameraFeedPage`, decision #147). Camera is the landing page. Change the order only in
   `NATIVE_TABS` (`ui/src/lib/nativeTabs.ts`) and the page strip in `HorizontalNavigator`, which must match.
 - The camera is the front sheet both ways, two-stage (decisions #147–#150): pull it down and it slides
-  down to a portrait card with the roadmap behind it; swipe it up and it slides up to a strip with the
-  feed behind it (a locked feed: a one-stage quarter lift with the reason and one button). The first
+  down to a portrait card with the roadmap behind it; swipe it up and it slides all the way up, the feed
+  filling the page (a locked feed: a one-stage quarter lift with the reason and one button). The first
   swipe stops at a peek (`MOTION.pull.peekShare` / `MOTION.cameraFeed.peekShare`); a second swipe or a
   tap goes the rest; back returns to the camera. Where it settles: `releaseDetent` (`ui/src/lib/detent.ts`).
 - One gesture on the camera decides both directions (`cameraDrag` in `ui/src/lib/cameraPull.ts`), so the
