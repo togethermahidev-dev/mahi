@@ -11,7 +11,8 @@ import { useAuthStore, useInviteStore, useUserStore } from '@/store';
 
 /**
  * Wires invite links into the app: one that opened it cold, one that arrived while it was
- * running, and the claim once somebody is signed in. Mounted once, at the top.
+ * running, and the claim once somebody is signed in and has said yes to it. Mounted once, at the
+ * top.
  */
 export function useInviteLink(): void {
   const userId = useAuthStore((s) => s.user?.id);
@@ -59,12 +60,15 @@ export function useInviteLink(): void {
   }, []);
 
   // Claim once the account's profile exists — a brand-new account's profile is saved just after
-  // sign-in, and claiming before it would be refused — or when a link arrives while signed in.
+  // sign-in, and claiming before it would be refused — and only once the person has said yes:
+  // the sign-up card showed the invite, or Accept on InviteConfirmSheet (a link that arrives while
+  // signed in is asked about there first; claimPending does nothing without that yes).
   const profileId = useUserStore((s) => s.profile?.id);
+  const confirmedToken = useInviteStore((s) => s.confirmedToken);
   useEffect(() => {
-    if (!userId || profileId !== userId) return;
-    useInviteStore.getState().claimPending();
-  }, [userId, profileId]);
+    if (!userId || profileId !== userId || !confirmedToken) return;
+    void useInviteStore.getState().claimPending();
+  }, [userId, profileId, confirmedToken]);
 
   // An invite kept through a dropped connection is tried again each time Mahi comes back to the
   // front.

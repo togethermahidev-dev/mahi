@@ -1,5 +1,6 @@
 /**
- * Claiming an invite after sign-up. A refusal (used, ended, your own, not valid, an older
+ * Claiming an invite, only once the person has said yes (the sign-up card, or Accept on the
+ * sheet a signed-in person sees). A refusal (used, ended, your own, not valid, an older
  * account) says why and lets the invite go; anything else (no connection) keeps it, so Try again
  * has something to try with.
  */
@@ -31,7 +32,55 @@ beforeEach(async () => {
   await useInviteStore.getState().setPending('ABC234');
 });
 
+const claimed = {
+  data: { inviter: { id: 'u1', username: 'sam' }, expires_at: null, tag: false },
+  error: null,
+};
+
+describe('consent: nothing is claimed until the person has said yes', () => {
+  it('a link that arrives while signed in is never claimed on its own', async () => {
+    mockClaim.mockResolvedValue(claimed);
+    expect(await useInviteStore.getState().claimPending()).toBe(false);
+    expect(mockClaim).not.toHaveBeenCalled();
+    expect(useInviteStore.getState().pendingToken).toBe('ABC234');
+  });
+
+  it('Accept claims it, once', async () => {
+    mockClaim.mockResolvedValue(claimed);
+    expect(await useInviteStore.getState().accept()).toBe(true);
+    expect(mockClaim).toHaveBeenCalledTimes(1);
+    expect(mockClaim).toHaveBeenCalledWith('ABC234');
+    expect(useInviteStore.getState().pendingToken).toBeNull();
+    expect(useToastStore.getState().message).toBe('You and @sam follow each other now.');
+  });
+
+  it('Not now lets the invite go without claiming it', async () => {
+    useInviteStore.getState().decline();
+    expect(useInviteStore.getState().pendingToken).toBeNull();
+    expect(useInviteStore.getState().preview).toBeNull();
+    expect(await useInviteStore.getState().claimPending()).toBe(false);
+    expect(mockClaim).not.toHaveBeenCalled();
+  });
+
+  it('after sign-up with the invite card shown, it is claimed as before', async () => {
+    mockClaim.mockResolvedValue(claimed);
+    useInviteStore.getState().confirm('ABC234');
+    expect(await useInviteStore.getState().claimPending()).toBe(true);
+    expect(mockClaim).toHaveBeenCalledTimes(1);
+  });
+
+  it('a yes to one invite does not carry to a different link', async () => {
+    mockClaim.mockResolvedValue(claimed);
+    useInviteStore.getState().confirm('ABC234');
+    await useInviteStore.getState().setPending('XYZ789');
+    expect(await useInviteStore.getState().claimPending()).toBe(false);
+    expect(mockClaim).not.toHaveBeenCalled();
+  });
+});
+
 describe('claimPending', () => {
+  beforeEach(() => useInviteStore.getState().confirm('ABC234'));
+
   it('a dropped connection keeps the invite and offers Try again', async () => {
     mockClaim.mockResolvedValue({ data: null, error: new Error('Network request failed') });
     expect(await useInviteStore.getState().claimPending()).toBe(false);
@@ -81,6 +130,7 @@ describe('claimPending', () => {
       'invites are for new accounts',
     ]) {
       await useInviteStore.getState().setPending('ABC234');
+      useInviteStore.getState().confirm('ABC234');
       mockClaim.mockResolvedValue({ data: null, error: new Error(message) });
       await useInviteStore.getState().claimPending();
       expect(useInviteStore.getState().pendingToken).toBeNull();

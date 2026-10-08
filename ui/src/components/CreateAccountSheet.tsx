@@ -100,6 +100,14 @@ export default function CreateAccountSheet({
   const invitePreview = useInviteStore((s) => s.preview);
   const pendingInvite = useInviteStore((s) => s.pendingToken);
   const inviteChecked = useInviteStore((s) => s.previewChecked);
+  // The invite the card below has said (step 1, or step 3 for Apple): who sent it and that you'll
+  // follow each other. Creating the account with it shown is the yes to it, so it's claimed once
+  // the profile is saved. Any other invite is asked about after sign-up (InviteConfirmSheet).
+  const inviteOnCard = invitePreview?.open && step === (apple ? 3 : 1) ? pendingInvite : null;
+  const shownInvite = useRef<string | null>(null);
+  useEffect(() => {
+    if (inviteOnCard) shownInvite.current = inviteOnCard;
+  }, [inviteOnCard]);
   const [codeInput, setCodeInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -413,6 +421,10 @@ export default function CreateAccountSheet({
         }
         userId = signInData.session.user.id;
       }
+
+      // The invite the card showed is said yes to before the profile exists, so the claim (which
+      // waits for the profile) goes ahead as soon as it's saved.
+      if (shownInvite.current) useInviteStore.getState().confirm(shownInvite.current);
 
       // 3. Insert profile row (auth.uid() is now set via RLS)
       const dob = `${dobYYYY}-${dobMM.padStart(2, '0')}-${dobDD.padStart(2, '0')}`;

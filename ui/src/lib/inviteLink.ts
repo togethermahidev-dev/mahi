@@ -89,6 +89,39 @@ export function invitePreviewLine({ open, tag }: { open: boolean; tag?: boolean 
     : `${follow} Their tag starts when you join — you’ll have 48 hours to post back.`;
 }
 
+/**
+ * The line under "@sam invited you" on the sheet a signed-in person sees when an invite link
+ * arrives: the same promise as the sign-up card, said before Accept.
+ */
+export function inviteAcceptLine({ tag }: { tag?: boolean }): string {
+  const follow = 'Accept and you’ll automatically follow each other.';
+  return tag === false
+    ? follow
+    : `${follow} Their tag starts when you accept — you’ll have 48 hours to post back.`;
+}
+
+/**
+ * What to do with an invite that is waiting while someone is signed in (`ready`: the account's
+ * profile exists). `ask`: show the sheet. `used`: it can't be taken, say so and let it go.
+ * `unreadable`: who sent it couldn't be found, let it go. `wait`: nothing yet — no invite, the
+ * lookup is still out, a claim is on its way, or the person has already said yes.
+ */
+export type InviteAsk = 'ask' | 'used' | 'unreadable' | 'wait';
+
+export function inviteAsk(s: {
+  ready: boolean;
+  pendingToken: string | null;
+  confirmedToken: string | null;
+  previewChecked: boolean;
+  preview: { open: boolean } | null;
+  isClaiming: boolean;
+}): InviteAsk {
+  if (!s.ready || !s.pendingToken || s.isClaiming) return 'wait';
+  if (s.confirmedToken === s.pendingToken || !s.previewChecked) return 'wait';
+  if (!s.preview) return 'unreadable';
+  return s.preview.open ? 'ask' : 'used';
+}
+
 /** Why an invite couldn't be used, in plain words (the server's refusal in `message`). */
 export function claimFailText(message: string, inviter: string | null): string {
   if (message.includes('new accounts')) {
@@ -103,11 +136,23 @@ export function claimFailText(message: string, inviter: string | null): string {
 
 /**
  * Whether to try a kept invite again now: Mahi has come back to the front, someone is signed in,
- * an invite is still waiting (a dropped connection kept it) and no claim is on its way.
+ * an invite is still waiting (a dropped connection kept it), the person said yes to that invite
+ * and no claim is on its way.
  */
 export function claimOnReturn(
   appState: string,
-  s: { signedIn: boolean; pendingToken: string | null; isClaiming: boolean }
+  s: {
+    signedIn: boolean;
+    pendingToken: string | null;
+    confirmedToken: string | null;
+    isClaiming: boolean;
+  }
 ): boolean {
-  return appState === 'active' && s.signedIn && !!s.pendingToken && !s.isClaiming;
+  return (
+    appState === 'active' &&
+    s.signedIn &&
+    !!s.pendingToken &&
+    s.confirmedToken === s.pendingToken &&
+    !s.isClaiming
+  );
 }

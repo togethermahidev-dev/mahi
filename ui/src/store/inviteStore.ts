@@ -16,12 +16,25 @@ interface InviteState {
   preview: InvitePreview | null;
   /** The preview lookup for the pending token has come back (null preview = not a real invite). */
   previewChecked: boolean;
+  /**
+   * The invite the person has said yes to: the sign-up card showed it before the account was made,
+   * or they pressed Accept on the sheet a signed-in person sees. Nothing is claimed without it,
+   * because claiming makes both people follow each other (and may start a tag).
+   */
+  confirmedToken: string | null;
   isClaiming: boolean;
 
   /** Hold a token and look up who sent it. Passing null forgets the pending one. */
   setPending: (token: string | null) => Promise<void>;
+  /** The person has said yes to this invite (the sign-up card showed it). */
+  confirm: (token: string) => void;
+  /** Accept on the sheet: say yes to the pending invite and claim it. */
+  accept: () => Promise<boolean>;
+  /** Not now on the sheet: let the invite go. Nothing is claimed. */
+  decline: () => void;
   /**
-   * Claim the pending invite. Does nothing without one. The server refuses accounts older
+   * Claim the pending invite. Does nothing without one, or until the person has said yes to it
+   * (`confirmedToken`). The server refuses accounts older
    * than a day; then, as for a used or expired invite, a note says why and the invite goes.
    * Any other failure (no connection) keeps it, with Try again.
    */
@@ -32,14 +45,23 @@ interface InviteState {
 /** What claim_invite says when it refuses an invite for good (anything else may work next time). */
 const SERVER_REFUSALS = ['new accounts', 'been used', 'expired', 'your own', 'not valid'];
 
-const initial = { pendingToken: null, preview: null, previewChecked: false, isClaiming: false };
+const initial = {
+  pendingToken: null,
+  preview: null,
+  previewChecked: false,
+  confirmedToken: null,
+  isClaiming: false,
+};
+
+/** Forget the invite and any yes to it. */
+const cleared = { pendingToken: null, preview: null, previewChecked: false, confirmedToken: null };
 
 export const useInviteStore = create<InviteState>((set, get) => ({
   ...initial,
 
   setPending: async (token) => {
     if (!token) {
-      set({ pendingToken: null, preview: null, previewChecked: false });
+      set(cleared);
       return;
     }
     set({ pendingToken: token, preview: null, previewChecked: false });
@@ -55,9 +77,20 @@ export const useInviteStore = create<InviteState>((set, get) => ({
     if (get().pendingToken === token) set({ preview: data, previewChecked: true });
   },
 
+  confirm: (token) => set({ confirmedToken: token }),
+
+  accept: async () => {
+    const token = get().pendingToken;
+    if (!token) return false;
+    set({ confirmedToken: token });
+    return get().claimPending();
+  },
+
+  decline: () => set(cleared),
+
   claimPending: async () => {
     const token = get().pendingToken;
-    if (!token || get().isClaiming) return false;
+    if (!token || get().confirmedToken !== token || get().isClaiming) return false;
     set({ isClaiming: true });
 
     const inviter = get().preview?.username ?? null;
@@ -86,12 +119,12 @@ export const useInviteStore = create<InviteState>((set, get) => ({
       // The server said no (an older account, used, ended, a mistyped code): say why instead of
       // nothing at all, and let the invite go. Signing in carries on as normal.
       Sentry.addBreadcrumb({ category: 'invites', message: `claim_invite refused: ${message}` });
-      set({ pendingToken: null, preview: null, previewChecked: false });
+      set(cleared);
       useToastStore.getState().show(claimFailText(message, inviter));
       return false;
     }
 
-    set({ pendingToken: null, preview: null, previewChecked: false });
+    set(cleared);
     track('invite_claimed', { inviter_id: data.inviter.id });
     // A tag that started is live from this moment, so the camera's countdown should show it.
     useTagStore.getState().syncOpenTags();

@@ -6,6 +6,8 @@ import {
   claimFailText,
   claimOnReturn,
   invitePreviewLine,
+  inviteAcceptLine,
+  inviteAsk,
 } from '@/lib/inviteLink';
 
 const TOKEN = '48bafaef17afd63e5c8c6390e2dee7f5';
@@ -146,7 +148,12 @@ describe('claimFailText', () => {
 });
 
 describe('claimOnReturn (a kept invite is tried again when Mahi comes back to the front)', () => {
-  const kept = { signedIn: true, pendingToken: 'ABC234', isClaiming: false };
+  const kept = {
+    signedIn: true,
+    pendingToken: 'ABC234',
+    confirmedToken: 'ABC234',
+    isClaiming: false,
+  };
 
   it('tries again when the app comes back with an invite still kept', () => {
     expect(claimOnReturn('active', kept)).toBe(true);
@@ -159,5 +166,55 @@ describe('claimOnReturn (a kept invite is tried again when Mahi comes back to th
     expect(claimOnReturn('active', { ...kept, pendingToken: null })).toBe(false);
     expect(claimOnReturn('active', { ...kept, signedIn: false })).toBe(false);
     expect(claimOnReturn('active', { ...kept, isClaiming: true })).toBe(false);
+  });
+  it('never claims an invite nobody said yes to (a link opened while signed in)', () => {
+    expect(claimOnReturn('active', { ...kept, confirmedToken: null })).toBe(false);
+    expect(claimOnReturn('active', { ...kept, confirmedToken: 'OTHER2' })).toBe(false);
+  });
+});
+
+describe('inviteAcceptLine (said on the sheet before a signed-in person accepts)', () => {
+  it('an invite for a friend: following each other, and no tag', () => {
+    expect(inviteAcceptLine({ tag: false })).toBe(
+      'Accept and you’ll automatically follow each other.'
+    );
+  });
+
+  it('a tag invite: following each other, then the 48 hours', () => {
+    const line =
+      'Accept and you’ll automatically follow each other. Their tag starts when you accept — you’ll have 48 hours to post back.';
+    expect(inviteAcceptLine({ tag: true })).toBe(line);
+    expect(inviteAcceptLine({})).toBe(line);
+  });
+});
+
+describe('inviteAsk (an invite link that arrives while someone is signed in)', () => {
+  const waiting = {
+    ready: true,
+    pendingToken: 'ABC234',
+    confirmedToken: null,
+    previewChecked: true,
+    preview: { open: true },
+    isClaiming: false,
+  };
+
+  it('asks before anything is claimed', () => {
+    expect(inviteAsk(waiting)).toBe('ask');
+  });
+
+  it('waits for the account, the invite and who sent it', () => {
+    expect(inviteAsk({ ...waiting, ready: false })).toBe('wait');
+    expect(inviteAsk({ ...waiting, pendingToken: null })).toBe('wait');
+    expect(inviteAsk({ ...waiting, previewChecked: false, preview: null })).toBe('wait');
+    expect(inviteAsk({ ...waiting, isClaiming: true })).toBe('wait');
+  });
+
+  it('does not ask again once said yes to (the sign-up card, or Accept)', () => {
+    expect(inviteAsk({ ...waiting, confirmedToken: 'ABC234' })).toBe('wait');
+  });
+
+  it('a used invite, or one that could not be read, is let go instead of asked about', () => {
+    expect(inviteAsk({ ...waiting, preview: { open: false } })).toBe('used');
+    expect(inviteAsk({ ...waiting, preview: null })).toBe('unreadable');
   });
 });
