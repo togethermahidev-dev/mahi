@@ -26,9 +26,9 @@ select throws_ok(
     values ('odd@example.invalid', 'x', now(), 'other')$$,
   '23514', null, 'only sign-up and reset codes can be stored');
 
-insert into public.otp_codes (email, code_hash, expires_at, used, verified_at, purpose) values
-  ('reset-only@example.invalid', 'x', now() + interval '10 minutes', true, now() - interval '1 minute', 'reset'),
-  ('signup-ok@example.invalid', 'x', now() + interval '10 minutes', true, now() - interval '1 minute', 'signup');
+insert into public.otp_codes (email, code_hash, expires_at, used, verified_at, purpose, signup_claimed_at) values
+  ('reset-only@example.invalid', 'x', now() + interval '10 minutes', true, now() - interval '1 minute', 'reset', now()),
+  ('signup-ok@example.invalid', 'x', now() + interval '10 minutes', true, now() - interval '1 minute', 'signup', now());
 
 select is(pg_temp.hook('reset-only@example.invalid') #>> '{error,http_code}', '403',
   'a checked reset code does not allow an email sign-up');

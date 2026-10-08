@@ -27,11 +27,12 @@ create extension if not exists "uuid-ossp" with schema extensions;
 
 -- auth
 -- email_confirmed_at: live it is set when the email is confirmed (every Mahi account is: sign-up
--- confirms it). Here it defaults to confirmed; a test that needs an unconfirmed account sets null.
+-- confirms it). Like production, a row inserted without it is unconfirmed; tests that make staff
+-- set it (staff need a confirmed email, 20261008110000_staff_confirmed_email).
 create table auth.users (
   id uuid primary key,
   email text,
-  email_confirmed_at timestamptz default now(),
+  email_confirmed_at timestamptz,
   created_at timestamptz not null default now()
 );
 create function auth.uid() returns uuid language sql stable as $$

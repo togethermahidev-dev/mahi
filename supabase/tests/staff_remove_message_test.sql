@@ -22,6 +22,8 @@ insert into public.conversations (id, participant_one, participant_two, status, 
 insert into public.messages (id, conversation_id, sender_id, content, created_at) values
   ('00000000-0000-0000-0000-0000000e1e11', '00000000-0000-0000-0000-0000000e1e01', pg_temp.uid('a'), 'first', now() - interval '2 minutes'),
   ('00000000-0000-0000-0000-0000000e1e12', '00000000-0000-0000-0000-0000000e1e01', pg_temp.uid('a'), 'nasty', now() - interval '1 minute');
+-- Staff need a confirmed email (20261008110000_staff_confirmed_email).
+update auth.users set email_confirmed_at = now() where id in (pg_temp.uid('s'));
 insert into public.staff_users (user_id, role) values (pg_temp.uid('s'), 'moderator');
 
 select pg_temp.as_user('b');

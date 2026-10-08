@@ -166,7 +166,12 @@ export async function tryVerifiedCode(db: SupabaseClient, email: string, code: s
     if (lookupError) console.error("[otp] lookup failed:", lookupError);
     return false;
   }
-  return await countTry(db, row, code, false, () => ({ attempts: row.attempts + 1 }));
+  // The right code also stamps the row as claimed: hook_require_verified_signup lets an email
+  // account be created only within minutes of this stamp (20261008130000_security_followups).
+  return await countTry(db, row, code, false, (hashMatches) => ({
+    attempts: row.attempts + 1,
+    ...(hashMatches ? { signup_claimed_at: new Date().toISOString() } : {}),
+  }));
 }
 
 // Writes one try on a code row, only if nobody else counted a try on it since it was read (and,

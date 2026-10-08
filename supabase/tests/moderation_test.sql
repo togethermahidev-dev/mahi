@@ -35,6 +35,8 @@ insert into public.conversations (id, participant_one, participant_two, status, 
   ('00000000-0000-0000-0000-0000000d0e01', pg_temp.uid('a'), pg_temp.uid('b'), 'active', pg_temp.uid('a'));
 insert into public.messages (id, conversation_id, sender_id, content) values
   ('00000000-0000-0000-0000-0000000d0e11', '00000000-0000-0000-0000-0000000d0e01', pg_temp.uid('a'), 'hello');
+-- Staff need a confirmed email (20261008110000_staff_confirmed_email).
+update auth.users set email_confirmed_at = now() where id in (pg_temp.uid('s'), pg_temp.uid('x'));
 insert into public.staff_users (user_id, role) values
   (pg_temp.uid('s'), 'moderator'), (pg_temp.uid('x'), 'admin');
 
@@ -73,11 +75,14 @@ select throws_ok($$insert into public.user_reports (reporter_id, reported_post_i
                    values (pg_temp.uid('b'), '00000000-0000-0000-0000-0000000d0f02', 'spam', 'actioned')$$,
   '42501', null, 'the app cannot set a report''s status');
 select is((select count(*)::int from public.user_reports), 4, 'b sees their own four reports');
+-- The copy is staff-only since 20261008130000_security_followups, so read it as the server.
+reset role;
 select is(
   (select row(target_type, target_owner_id, snapshot ->> 'content', status, source)::text
    from public.user_reports where target_id = '00000000-0000-0000-0000-0000000d0c01'),
   row('comment', pg_temp.uid('a'), 'from a', 'open', 'user')::text,
   'a comment report knows whose it is and keeps what it said');
+select pg_temp.as_user('b');
 select throws_ok($$select public.staff_get_queue()$$, '42501', 'staff only', 'b is not staff');
 select is(public.my_staff_role(), null, 'and has no staff role');
 reset role;

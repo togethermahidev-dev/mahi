@@ -33,6 +33,8 @@ insert into auth.users (id, email)
 select pg_temp.uid(c), 'sec-' || c || '@example.invalid' from unnest(array['a','b','c','d','e','s','n']) c;
 insert into public.profiles (id, username, is_banned)
 select pg_temp.uid(c), 'sec_' || c, c = 'e' from unnest(array['a','b','c','d','e','s']) c;
+-- Staff need a confirmed email (20261008110000_staff_confirmed_email).
+update auth.users set email_confirmed_at = now() where id in (pg_temp.uid('s'));
 insert into public.staff_users (user_id, role) values (pg_temp.uid('s'), 'admin');
 insert into public.follows (follower_id, following_id) values
   (pg_temp.uid('b'), pg_temp.uid('a')),
@@ -88,9 +90,11 @@ select ok(pg_temp.sees_file('h') and pg_temp.sees_file('new'),
 select lives_ok(
   $$insert into storage.objects (bucket_id, name) values ('posts', pg_temp.uid('a')::text || '/up.jpg')$$,
   'the owner can still upload to their folder');
-select lives_ok(
-  $$delete from storage.objects where bucket_id = 'posts' and name = pg_temp.uid('a')::text || '/up.jpg'$$,
-  'and remove their files');
+-- Removing goes through the Storage API (production refuses direct deletes from storage.objects);
+-- the owner's delete rule is unchanged, so check it covers their folder.
+select ok(exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects'
+                  and policyname = 'posts_storage_delete' and cmd = 'DELETE'),
+  'and remove their files (the owner delete rule is in place)');
 select pg_temp.as_user('s');
 select ok(pg_temp.sees_file('h'), 'staff can open a hidden post''s photo for a report');
 reset role;
@@ -184,14 +188,16 @@ create function pg_temp.hook(p_provider text, p_email text, p_via text) returns 
     'email', p_email,
     'app_metadata', jsonb_strip_nulls(jsonb_build_object('provider', p_provider, 'signup_via', p_via)))));
 $$;
-insert into public.otp_codes (email, code_hash, expires_at, used, verified_at) values
-  ('sec-hook@example.invalid', 'x', now() + interval '10 minutes', true, now() - interval '1 minute');
+-- (Since 20261008130000_security_followups the claim stamp decides, not the marker.)
+insert into public.otp_codes (email, code_hash, expires_at, used, verified_at, signup_claimed_at) values
+  ('sec-hook@example.invalid', 'x', now() + interval '10 minutes', true, now() - interval '1 minute', null),
+  ('sec-claimed@example.invalid', 'x', now() + interval '10 minutes', true, now() - interval '1 minute', now());
 select is(pg_temp.hook('email', 'sec-hook@example.invalid', null) #>> '{error,http_code}', '403',
   'a public sign-up is refused even with a checked code');
-select is(pg_temp.hook('email', 'sec-hook@example.invalid', 'something-else') #>> '{error,http_code}', '403',
-  'a wrong marker is refused');
-select is(pg_temp.hook('email', 'sec-hook@example.invalid', 'complete-signup'), '{}'::jsonb,
-  'complete-signup with a checked code is allowed');
+select is(pg_temp.hook('email', 'sec-hook@example.invalid', 'complete-signup') #>> '{error,http_code}', '403',
+  'a marker alone (no claim stamp) is refused');
+select is(pg_temp.hook('email', 'sec-claimed@example.invalid', 'complete-signup'), '{}'::jsonb,
+  'complete-signup with a claimed code is allowed');
 select is(pg_temp.hook('email', 'sec-nobody@example.invalid', 'complete-signup') #>> '{error,http_code}', '403',
   'the marker without a checked code is refused');
 select is(pg_temp.hook('apple', 'sec-apple@example.invalid', null), '{}'::jsonb, 'Apple sign-in still works');

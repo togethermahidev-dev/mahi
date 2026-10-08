@@ -121,7 +121,10 @@ Deno.test("checked code: the right code counts a try and passes", async () => {
   const row = { id: "r1", code_hash: await sha256("111111"), attempts: 1 };
   const { db, calls } = fakeDb([{ data: [row], error: null }, { data: [{ id: "r1" }], error: null }]);
   assertEquals(await tryVerifiedCode(db, "a@b.co", "111111"), true);
-  assertEquals(calls.find((c) => c[0] === "update"), ["update", { attempts: 2 }]);
+  const update = calls.find((c) => c[0] === "update")?.[1] as Record<string, unknown>;
+  assertEquals(update.attempts, 2);
+  // The stamp hook_require_verified_signup needs (20261008130000_security_followups).
+  assert(typeof update.signup_claimed_at === "string", "the right code stamps the code as claimed");
 });
 
 Deno.test("checked code: the right code loses to a parallel try that was counted first", async () => {

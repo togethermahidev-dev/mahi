@@ -1,7 +1,7 @@
 -- Sign-up codes: only the server can read them, and an email account can only be created
--- after its code was checked by the server in the last 30 minutes. Email sign-ups here carry
--- complete-signup's marker, as every real one does (20261008100000_security_hardening;
--- security_hardening_test.sql covers sign-ups without it).
+-- after its code was checked by the server in the last 30 minutes. The rows here carry
+-- complete-signup's claim stamp where a real sign-up would (20261008130000_security_followups;
+-- security_followups_test.sql covers sign-ups without it).
 begin;
 select plan(14);
 
@@ -11,10 +11,10 @@ create function pg_temp.hook(p_provider text, p_email text) returns jsonb langua
     'app_metadata', jsonb_build_object('provider', p_provider, 'signup_via', 'complete-signup'))));
 $$;
 
-insert into public.otp_codes (email, code_hash, expires_at, used, verified_at) values
-  ('fresh@example.invalid', 'x', now() + interval '10 minutes', true, now() - interval '1 minute'),
-  ('stale@example.invalid', 'x', now() - interval '10 minutes', true, now() - interval '31 minutes'),
-  ('unchecked@example.invalid', 'x', now() + interval '10 minutes', false, null);
+insert into public.otp_codes (email, code_hash, expires_at, used, verified_at, signup_claimed_at) values
+  ('fresh@example.invalid', 'x', now() + interval '10 minutes', true, now() - interval '1 minute', now()),
+  ('stale@example.invalid', 'x', now() - interval '10 minutes', true, now() - interval '31 minutes', now()),
+  ('unchecked@example.invalid', 'x', now() + interval '10 minutes', false, null, now());
 
 select is(pg_temp.hook('email', 'fresh@example.invalid'), '{}'::jsonb,
   'email sign-up with a code checked a minute ago is allowed');

@@ -20,6 +20,8 @@ insert into auth.users (id, email)
 select pg_temp.uid(c), 'so-' || c || '@example.invalid' from unnest(array['a','b','c','x']) c;
 insert into public.profiles (id, username)
 select pg_temp.uid(c), 'so_test_' || c from unnest(array['a','b','c','x']) c;
+-- Staff need a confirmed email (20261008110000_staff_confirmed_email).
+update auth.users set email_confirmed_at = now() where id in (pg_temp.uid('x'));
 insert into public.staff_users (user_id, role) values (pg_temp.uid('x'), 'admin');
 insert into auth.sessions (id, user_id)
 select gen_random_uuid(), pg_temp.uid(c) from unnest(array['a','b','c']) c;
