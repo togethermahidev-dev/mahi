@@ -571,8 +571,20 @@ export const MOTION = {
   /** The camera and the feed on one screen (owner, 2026-10-08): the camera slides all the way up
    *  (about a sixth of the page, when the feed is locked: just room for why and one button);
    *  a swipe past this share of the way, or a flick faster than this (pt/ms), settles; the first
-   *  swipe stops at the peek (this share of the way), the next goes the rest. */
-  cameraFeed: { openAt: 0.15, flick: 0.5, lockedShare: 0.16, peekShare: 0.3 },
+   *  swipe stops at the peek (this share of the way), the next goes the rest.
+   *  Camera to feed morph (owner, 2026-10-09): on the way up the camera shrinks to this scale,
+   *  fading from this share of the way; the feed grows in from this scale, starting this share of
+   *  the page lower. Their corners are the tab morph's (pageMorph.fromRadius). */
+  cameraFeed: {
+    openAt: 0.15,
+    flick: 0.5,
+    lockedShare: 0.16,
+    peekShare: 0.3,
+    cameraToScale: 0.6,
+    cameraFadeFrom: 0.7,
+    feedFromScale: 0.88,
+    feedFromY: 0.08,
+  },
   /** The round button beside the bell (owner, 2026-10-09): its icon scrolls up and out of the
    *  circle as the next rises in, done by the feed's peek. While a photo is being taken or
    *  reviewed, or the post is going up (no roadmap button), the circle fades in over this share

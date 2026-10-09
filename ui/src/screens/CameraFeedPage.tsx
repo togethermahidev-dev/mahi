@@ -1,8 +1,9 @@
 /**
  * The camera and the feed on one screen (owner, 2026-10-08). The camera is full screen; swipe it
- * up (or tap FEED over the shutter, src/components/FeedCue.tsx) and it shrinks into a small card
- * at the top-left while the feed's rows take the screen under it. Tap the card, the Camera pill,
- * or swipe the card down and the camera grows back. A post swipes the camera down into the feed by
+ * up (or tap FEED over the shutter, src/components/FeedCue.tsx) and, following the finger, it
+ * minimises into a rounded card going up and out while the feed maximises in from below to full
+ * screen (camera to feed morph, owner 2026-10-09: src/lib/cameraFeedMorph.ts). Tap what's left of
+ * the camera, the Camera circle, or swipe down and the camera grows back. A post swipes the camera down into the feed by
  * itself. Geometry and release rules: src/lib/cameraFeed.ts. The round button beside the bell says
  * where you are, its icons scrolling in and out of the circle: src/lib/bellPill.ts.
  *
@@ -28,6 +29,7 @@ import { CameraIcon, FeedIcon, LockIcon } from '@/components/ScreenIcons';
 import { usePageSize } from '@/hooks/useChrome';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { cameraStrip, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
+import { cameraFeedMorph } from '@/lib/cameraFeedMorph';
 import { bellIcons, bellPillOpacity, bellScroll, feedSideIcon } from '@/lib/bellPill';
 import { detentProgress, releaseDetent, type Detent } from '@/lib/detent';
 import { lockedGapContent, lockPill } from '@/lib/feedLock';
@@ -120,6 +122,8 @@ export default function CameraFeedPage({
   // Numbers only for the worklets (see the rule above).
   const lift = locked ? gap : strip.lift;
   const cardRadius = RADIUS.r24;
+  const pageH = page.height;
+  const reduceMotion = useReducedMotion();
 
   // Swipe the full camera up, or (once it has moved) the camera either way. Decided by direction
   // and handed off explicitly, like the camera's own pull, so a sideways drag is always the page
@@ -220,15 +224,28 @@ export default function CameraFeedPage({
   );
   const cardSwipe = useMemo(() => makeSwipe(false), [makeSwipe]);
 
-  // One move for both: the camera slides up by `lift` (a quarter when locked, to the strip when
-  // open), rounding its corners as it goes.
+  // Locked: the camera slides up by `lift` (a sixth of the page), rounding its corners. Open: the
+  // camera to feed morph (owner, 2026-10-09, cameraFeedMorph.ts) — the camera minimises into a
+  // rounded card going up and out as the feed maximises in from below to exactly full screen.
   const cameraStyle = useAnimatedStyle(() => {
     const p = progress.value;
-    return { borderRadius: p * cardRadius, transform: [{ translateY: -p * lift }] };
+    if (locked) return { borderRadius: p * cardRadius, transform: [{ translateY: -p * lift }] };
+    const c = cameraFeedMorph(p, pageH, reduceMotion).camera;
+    return {
+      opacity: c.opacity,
+      borderRadius: c.borderRadius,
+      transform: [{ translateY: c.translateY }, { scale: c.scale }],
+    };
   });
-  const feedStyle = useAnimatedStyle(() => ({
-    opacity: locked ? 0 : interpolate(progress.value, [0, 0.35], [0, 1], 'clamp'),
-  }));
+  const feedStyle = useAnimatedStyle(() => {
+    if (locked) return { opacity: 0 };
+    const f = cameraFeedMorph(progress.value, pageH, reduceMotion).feed;
+    return {
+      opacity: f.opacity,
+      borderRadius: f.borderRadius,
+      transform: [{ translateY: f.translateY }, { scale: f.scale }],
+    };
+  });
   const gapStyle = useAnimatedStyle(() => ({
     opacity: locked ? interpolate(progress.value, [0, 0.5], [0, 1], 'clamp') : 0,
   }));
@@ -244,7 +261,6 @@ export default function CameraFeedPage({
   // the swipe. On the camera the camera's own circle (the roadmap button, CameraPull's PullHandle)
   // is the one; this one takes over as the camera starts to lift. Tap: the camera comes back.
   const [pullHandle, setPullHandle] = useState(false);
-  const reduceMotion = useReducedMotion();
   const iconTravel = SIZE.z36;
   const feedIcon = feedSideIcon(feedLocked);
   const bellStyle = useAnimatedStyle(() => ({
@@ -260,10 +276,16 @@ export default function CameraFeedPage({
   });
 
   return (
-    <View style={styles.root}>
-      {/* The feed, behind: its rows start under the camera strip. */}
+    // Black behind the two cards while they're squashed, so their rounded edges read.
+    <View style={[styles.root, !locked && styles.morphBackdrop]}>
+      {/* The feed, behind: a card growing to full screen as the camera minimises. */}
       <Reanimated.View
-        style={[styles.layer, { backgroundColor: dark ? COLORS.bgDark : COLORS.white }, feedStyle]}
+        style={[
+          styles.layer,
+          styles.feedCard,
+          { backgroundColor: dark ? COLORS.bgDark : COLORS.white },
+          feedStyle,
+        ]}
         pointerEvents={feedOpen && !locked ? 'auto' : 'none'}
         accessibilityElementsHidden={!feedOpen || locked}
         importantForAccessibility={feedOpen && !locked ? 'auto' : 'no-hide-descendants'}
@@ -295,7 +317,7 @@ export default function CameraFeedPage({
         </Reanimated.View>
       ) : null}
 
-      {/* The camera, in front: full screen, or slid up to a strip under the header. */}
+      {/* The camera, in front: full screen, or minimised up and out (locked: lifted a little). */}
       <GestureDetector gesture={upSwipe}>
         <Reanimated.View
           style={[styles.layer, styles.camera, cameraStyle]}
@@ -479,8 +501,15 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: 'hidden',
   },
+  morphBackdrop: {
+    backgroundColor: COLORS.ink,
+  },
   layer: {
     ...StyleSheet.absoluteFill,
+  },
+  // Its rounded corners clip the feed while it grows in.
+  feedCard: {
+    overflow: 'hidden',
   },
   camera: {
     backgroundColor: COLORS.ink,

@@ -462,8 +462,10 @@ Three pages; the feed lives behind the camera on the middle one.
 One gesture on it (`cameraDrag`, `ui/src/lib/cameraPull.ts`) decides the direction: down moves the
 roadmap drawer (`useCameraPull`), up moves the feed (`feedDrag`, passed `CameraFeedPage` →
 `CameraScreen` → `useCameraPull`). Both are two-stage (`releaseDetent`, `ui/src/lib/detent.ts`):
-closed → peek → open. Swiping up slides the camera all the way up and the feed fills the page under
-its header (`cameraStrip`, `ui/src/lib/cameraFeed.ts`); the camera pill brings it back; a locked feed lifts about a sixth of the page
+closed → peek → open. Swiping up morphs, following the finger: the camera minimises into a rounded
+card going up and out while the feed maximises in from below to exactly full screen
+(`cameraFeedMorph`, `ui/src/lib/cameraFeedMorph.ts`, decision #174; Reduce Motion: slide and fade,
+no scaling); the camera pill brings it back; a locked feed lifts about a sixth of the page
 (`lockedGap`) and shows `LockedGap` (the reason, the padlock and one button). The circle beside the bell
 says where you are: a camera on the camera (turning into the up-arrow as the roadmap opens), the
 feed icon or a padlock once the feed is up, the icons scrolling in and out of the circle with the
