@@ -5,7 +5,49 @@ The single entry point for continuing work on Mahi. Read this first. It encodes 
 
 ---
 
-## State on 2026-10-08, evening (newest; overrides everything below)
+## State on 2026-10-09 (newest; overrides everything below)
+
+Preview lane / TestFlight at **OTA 13.35** on build 13 (published 13:50 UTC from `d8703ec`; the
+production app lane is untouched). It carries the owner's **core workflow** (`docs/core-workflow.md`,
+RULES.md "Core loop", decisions #151–#167):
+- Onboarding: intro → welcome cards ("1. Show up & tag mates · 2. Get tagged · 3. Pass it on") →
+  private or public ("You can change this later in Settings."; switch `private-accounts`) →
+  notifications ("Don't miss your tag 🔔", Turn on / Not now; switch `push-core`) → camera. Not now
+  puts a 🔕 banner with Turn on at the top of the feed. The contacts step left onboarding (Find your
+  mates stays in Settings, Your invites and the camera).
+- First post: Post → "Hold up ✋" → Tag mates → tag 1 mate (friends first; no friends → contacts →
+  WhatsApp / Messages / Snap / IG, Snap and IG through the share sheet). Answers still tag 3; posting
+  only when tagged stays. The tag screen's Post is the confirmation (no pop-up).
+- Posts say "Replying to @a, @b." and show grey "Invited ⏳" initials for link invites nobody has
+  joined from yet. Deleting a post takes its point back. New words on the first-point screen, the
+  locked camera ("Scroll up to access feed.") and the locked feed when tagged ("You've been tagged.
+  Post your Mahi to access your feed"). The selfie matches the preview. "Invite a mate" on Profile.
+- The `tag-slots` switch left the code (it was never in PostHog).
+
+**Database, live on production** (pushed on the owner's go, about 13:55 UTC):
+`20261009100000_first_post_tag_and_post_points` — a first post tags `app_config.first_post_tags` (1),
+`posts.earned_point` and `delete_post` taking the point back, `feed_item` adding `answered_taggers`
+and `pending_invites` (initials only), and the "joined Mahi from your tag 🎉" push. Backup
+`supabase/backups/20261009135113_*`. Checked against prod after: `first_post_tags = 1`,
+`posts.earned_point` backfilled on 16 of 45 posts, `name_initials` not callable by the app. Then
+`20261009110000_tag_join_push_username` (backup `supabase/backups/20261009140044_*`): that push says
+the @username, "@sam joined Mahi from your tag 🎉" (decision #166; listed live, checked against
+prod). Rollback order is in `.claude/steps-core-workflow.md` (local).
+
+**Waiting — owner phone checks** (preview, a new account, `private-accounts` on; `push-core` on for
+the notifications page):
+- Order: intro → cards → private/public → notifications → camera; the camera asks only after.
+- First post: Post → Hold up ✋ → Tag mates → pick 1 → Post → first-point screen.
+- No friends: contacts → WhatsApp / Messages / Snap / IG; the post shows a grey "Invited ⏳" circle;
+  when they join it becomes their photo and you get "joined Mahi from your tag 🎉".
+- Selfie matches the preview (photo and video).
+- Locked camera: "Scroll up to access feed." Answer → Tag 3 friends.
+- "Replying to @a, @b." on an answer. Deleting a post drops your points.
+- Feed banner after "Not now" on notifications; its Turn on.
+
+Nothing above has been checked on a phone yet.
+
+## State on 2026-10-08, evening
 
 Preview lane / TestFlight at **OTA 13.32** on build 13 (build 13 on preview + TestFlight; production
 untouched). Today, in order: photo saving by file name (egress fix, 13.01); Codex's camera drawer,

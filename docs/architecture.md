@@ -2,15 +2,18 @@
 
 ## Overview
 
-Mahi Fitness is a React Native **show-up fitness accountability app**, not a social-media app. Everyone starts with one two-photo first workout, with or without a tag to answer and with no tags of its own; after that, posting is only possible as the answer to a friend's live tag. The answer is the post. Later answers tag 3 friends, who have 48 hours to show up in turn. Each answer earns one Mahi point; the friends-only Feed opens after accountable check-ins (the tag loop — [tag-loop-plan.md](./tag-loop-plan.md), [decisions.md](./decisions.md)). Messaging, profiles, follows, likes and comments support accountability rather than define the product loop.
+Mahi Fitness is a React Native **show-up fitness accountability app**, not a social-media app. Everyone starts with one two-photo first post, with or without a tag to answer, which tags exactly 1 mate; after that, posting is only possible as the answer to a friend's live tag. The answer is the post. Later answers tag 3 friends, who have 48 hours to show up in turn. The first post and each answer earn one Mahi point; the friends-only Feed opens after accountable check-ins (the tag loop — [tag-loop-plan.md](./tag-loop-plan.md), [decisions.md](./decisions.md)). The owner's 24-step core workflow ([core-workflow.md](./core-workflow.md), 2026-10-09) is the source of truth for onboarding, posting, tags, points and the feed. Messaging, profiles, follows, likes and comments support accountability rather than define the product loop.
 
 ## Reactive posting
 
 The posting rule since 2026-10-01 ([decisions.md](./decisions.md#reactive-posting-2026-10-01) #1, #10, #27–#30; Mahi points #47–#50):
 
 - **Reactive posting** — you post only when a friend has tagged you and you can still answer (48 hours,
-  `app_config.tag_window`, plus 10 minutes `answer_grace`). Your very first post is the one exception and
-  requires no outgoing tags. The
+  `app_config.tag_window`, plus 10 minutes `answer_grace`). Your very first post is the one exception, and
+  it tags exactly 1 person — a friend, a tag request or one invite link — including for someone who
+  joined from a tag link (`app_config.first_post_tags` = 1, `20261009100000_first_post_tag_and_post_points`;
+  0 brings back the old no-tags rule). The app uses its own constant, `FIRST_POST_TAGS` in
+  `ui/src/lib/tagRules.ts` (with `postTagsRequired` / `maxTagsFor`), and never reads the server value. The
   server enforces it: `create_post` checks `public.reactive_posting_open(user)` and raises
   `reactive posting: not tagged` otherwise (migration `20261001120000_reactive_posting.sql`, test
   `supabase/tests/reactive_posting_test.sql`). The app's copy of the rule is `reactivePostingGate()` in
@@ -30,7 +33,10 @@ The posting rule since 2026-10-01 ([decisions.md](./decisions.md#reactive-postin
   (`20261002170000_mahi_points.sql`, test `supabase/tests/mahi_points_test.sql`). App wording:
   `ui/src/lib/mahiPoints.ts` ("N points", hidden at 0 on posts); the word streak is never shown. No daily
   streak, rest days, training days or calendar. The old separate points (tagger point, 3-a-day cap,
-  `point_events`) are gone.
+  `point_events`) are gone. The first post earns a point too (`20261007180000_first_post_point`).
+  `posts.earned_point` marks a post that earned one; deleting it takes 1 off (never below 0, and not
+  after a miss already reset you; the best never changes) and `delete_post` returns the new numbers
+  (`pointsAfterDelete`).
 - **Feed** — every post opens the feed for 24 hours. Tagged within those 24 hours → it locks when they
   end; not tagged → it stays open until you're tagged, then locks. Miss a tag and it stays locked until
   a friend tags you again (you can't post without a tag); a cancelled tag no longer locks. Wording:
@@ -45,42 +51,45 @@ for the permission, the database decides what is sent and when, one function sen
 for iPhone (build 10 has `expo-notifications` and the push entitlement).
 
 - **Asking** (flag `push-core`, default off). `PushPrimer` (`ui/src/components/PushPrimer.tsx`, rendered in
-  `App.tsx` beside the welcome cards) is a full-screen page: "When do you post on Mahi?", one line of
-  why, and a card "Please turn on notifications" (with "Never between 10pm and 7am", #11) and one
-  button, **Continue**, which always brings up the phone's own question (Apple's guidance for a page
-  before a permission question: one button, no way to cancel; owner 2026-10-06). It shows once per device — remembered once answered — to someone the phone has not
-  asked yet, and only when the welcome cards are out of the way (`WelcomeCards` reports `onSettled`) and
-  the phone's camera question has been answered (`usePushPrimer` re-reads the camera permission each time
-  the app comes back to the front). It replaces the old pop-up. Someone who told the phone "Don't allow"
-  (or left the page with Android's back button) sees, while they hold an open tag, one line under the camera's open-tags pill
-  (`PushNudge`, inside `OpenTagsBanner`): "Turn on notifications so you never miss a tag". A tap opens
-  Mahi in the phone's Settings — or, if the phone was never asked, brings up its question (Settings has
-  no notifications row until it has). The × hides it until the next tag. The rules are pure and tested:
-  `shouldShowPushPrimer`, `pushNudge`, `nudgeDismissMark` in `ui/src/lib/pushPrimer.ts`. State lives in
-  `pushStore` (`permission`, `primerAnswered`, `nudgeDismissedThrough`); `usePushRegistration` refreshes
-  it on sign-in and on every return to the front, and registers the device once allowed — so switching
-  notifications on in Settings is picked up without a restart. Events: `push_primer_answered`,
-  `push_nudge`, `push_opened`.
+  `App.tsx`) is the last onboarding page (core workflow step 10, owner 2026-10-09): "Don't miss your tag
+  🔔", "Turn on notifications so you know when a mate tags you." and two buttons, **Turn on** (brings up
+  the phone's own question) and **Not now** (closes the page). Words: `PUSH_PRIMER` in
+  `ui/src/lib/pushPrimer.ts`. It shows once per device — remembered once answered — to someone the phone
+  has not asked yet, and only once the earlier onboarding pages are out of the way (`WelcomeCards` and
+  `PrivacyChoiceStep` report `onSettled`); the camera asks for its own permission only after onboarding.
+  Someone who said Not now or told the phone "Don't allow" (or left the page with Android's back button)
+  sees `PushBanner` (`ui/src/components/PushBanner.tsx`) at the top of the feed: "🔕 You won't know when
+  you're tagged and could miss the deadline." with **Turn on** and no close button (decision #161). A
+  tap brings up the phone's question if it never asked (Settings has no notifications row until it
+  has), else opens Mahi in the phone's Settings; the banner goes once notifications are on. The camera's
+  old reminder line (`PushNudge`) is gone. The rules are pure and tested: `pushPrimerPending`,
+  `shouldShowPushPrimer`, `pushBanner` in `ui/src/lib/pushPrimer.ts`. State lives in `pushStore`
+  (`permission`, `primerAnswered`); `usePushRegistration` refreshes it on sign-in and on every return to
+  the front, and registers the device once allowed — so switching notifications on in Settings is picked
+  up without a restart. Events: `push_primer_answered`, `push_nudge` (the banner's Turn on),
+  `push_opened`.
 - **What is sent** (title "Mahi"; several due in the same minute for one person become one push ending
-  "(+N more)"). The words live in `push_on_notification`, `queue_tag_pushes`,
+  "(+N more)"). The words live in `push_on_notification` (latest `20261009110000_tag_join_push_username`), `queue_tag_pushes`,
   `schedule_feed_lock_pushes` (`20261002190000_tag_and_feed_pushes.sql`) and `send_message`; the
   notifications list says the same through `notificationText()` (`ui/src/lib/notificationText.ts`), minus
   what goes out of date ("just", the hours left).
 
   | Push | Words | Tap opens |
   | --- | --- | --- |
-  | Tagged | You've just been tagged by @sam. 48 hours left to post your Mahi! | Camera |
+  | Tagged | @sam tagged you. Post any workout by {deadline}. (filled in when sent, e.g. Thu 10:40pm) | Camera |
   | Reminders, 24 h and 2 h before the deadline | 24 hours left to post your Mahi! @sam is waiting. | Camera |
   | Feed about to lock | Your feed locks in 1 hour. Post your answer to @sam to keep it open. | Camera |
   | Feed locked | Your feed is locked. Post your answer to @sam to open it. | Camera |
   | Your tag was answered | @sam answered your tag in 3h | Notifications list |
-  | Your tag was missed | @sam missed your tag | Notifications list |
+  | Your tag was missed | @sam missed your tag. Tag them in your next post to get them going again. | Notifications list |
   | You missed a tag | You missed @sam's tag. Your points are back to 0. | Notifications list |
   | Like / comment | @sam liked your post · @sam commented on your post | Notifications list |
   | Follow | @sam started following you | Their profile |
-  | Tag request | @sam wants to tag you. Accept to follow each other. | Their profile |
-  | Tag request accepted | @sam accepted your tag request. You follow each other now. | Their profile |
-  | Joined from your invite | @sam joined Mahi from your invite. You follow each other now. | Their profile |
+  | Tag request | @sam wants to tag you. | Their profile |
+  | Tag request accepted | @sam accepted your tag request. | Their profile |
+  | Joined from your invite | @sam joined Mahi from your invite. You follow each other now. (from a private account's link: … and wants to follow you.) | Their profile |
+  | Joined from your tag link | @sam joined Mahi from your tag 🎉 (`20261009110000_tag_join_push_username`) | Their profile |
+  | Follow request / accepted | @sam wants to follow you · @sam accepted your follow request | Notifications list · their profile |
   | Message (one per sender per chat per minute) | Sam sent you a message | Messages |
 
   A push can't tick, so each states the time left at the moment it is sent. The hours in the tag push
@@ -217,7 +226,21 @@ Rebuilt like PingMee-v2 (migration `20261006190000_message_requests`, live 2026-
 Migrations `20261006180000_post_caption_edits` and `20261006200000_maximus_answers` are live. The
 owner can change the caption for one hour through `update_post_caption` and may delete the post
 through `delete_post`. Deletion removes its media and never restores the first workout:
-`profiles.has_posted_before` stays true. Changed captions are checked again.
+`profiles.has_posted_before` stays true. Changed captions are checked again. Since
+`20261009100000_first_post_tag_and_post_points`, deleting a post that earned a point (`posts.earned_point`)
+takes that point back (see Mahi points above); the app takes the new numbers from `delete_post`'s answer
+(`deletePost` in `ui/src/api/posts.ts`, `pointsAfterDelete`).
+
+## Who a post answered and invited
+
+`feed_item` (every feed and profile post, `20261009100000_first_post_tag_and_post_points`) carries
+`answered_taggers` (every tag the post answered, oldest first) and `pending_invites` (link invites on the
+post nobody has joined from yet, as initials only from the internal `name_initials`; never a name, number
+or token). Both are empty while the post is locked for the viewer. `ui/src/lib/postPeople.ts` turns them
+into "Replying to @joe, @sam." (`replyingTo`, `replyingToText`; names open profiles) and grey initials
+circles labelled "Invited ⏳" (`pendingInvites`), drawn by `PostCard`; the timing follows without a name
+("Answered in 2h.", `ui/src/lib/answerTiming.ts`). When the invited person joins, the circle becomes their
+photo and username.
 
 ## Shared post links
 
@@ -374,7 +397,7 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | Table | Purpose |
 |---|---|
 | `public.profiles` | User profile — display name, avatar, Mahi points (`streak_current`) and best (`streak_highest`) |
-| `public.posts` | Workout posts made under reactive posting. Owners edit captions for one hour through `update_post_caption` and delete through `delete_post`; direct table mutation remains denied. Media uses short-lived signed URLs. No daily limit: one post per tag answered |
+| `public.posts` | Workout posts made under reactive posting. Owners edit captions for one hour through `update_post_caption` and delete through `delete_post` (which takes back the point when `earned_point` is set); direct table mutation remains denied. Media uses short-lived signed URLs. No daily limit: one post per tag answered |
 | `public.post_likes` | One row per user-post like. Unique constraint `(post_id, user_id)`. RLS: readable only on posts the reader can see (`can_view_post_id`, staff see all); insert own only on a visible post, delete own only. |
 | `public.post_comments` | Comments on posts. Ordered oldest-first. RLS: readable only on posts the reader can see (`can_view_post_id`; your own comments and staff always), removed comments hidden; insert own only on a visible post, delete own only. |
 | `public.comment_likes` | One row per user-comment like (flag `comment-likes`). Unique `(comment_id, user_id)`, cascades with the comment and the profile. RLS: read where the comment is readable, insert own only and not across a block (`comment_like_allowed`), delete own only. Read through `get_comment_likes(post)` (count + liked by me per comment) and `get_comment_likers(comment)` (newest first, without people blocked either way or banned); written through `toggle_comment_like`. Migration `20261002130000_comment_likes`. |
@@ -388,10 +411,10 @@ import rules. To add a feature, follow [adding-a-feature.md](./adding-a-feature.
 | `public.invites` | Invite links and 6-character codes |
 | `public.push_tokens` / `public.push_outbox` | Push devices and the push queue (sender not deployed yet — [Push notifications](#push-notifications)) |
 | `public.conversation_reads` | Unread counts |
-| `public.app_config` | One row of numeric rules (tag window, unlock window, caps, `min_app_version`, `invite_links_enabled`) |
+| `public.app_config` | One row of numeric rules (tag window, unlock window, caps, `min_app_version`, `invite_links_enabled`, `first_post_tags` = 1) |
 | `public.otp_codes` / `public.auth_rate_limits` | Hashed sign-up and reset codes (`purpose` = `signup` / `reset`) and send limits |
 
-All tables use Row Level Security (RLS). Writes for posting and messaging go through one `SECURITY DEFINER` function each: `create_post` (checks reactive posting with `reactive_posting_open`, dates the post, adds the Mahi point, saves tags and deadlines, queues pushes, answers waiting tags) and `send_message`. Follow/unfollow goes through `set_following`, which returns the committed follow state and counts; accepting an in-app tag request or claiming an invite link creates both directional follow rows in the same server transaction, while declining creates neither. The feed reads through `get_feed` (server-side lock), profiles through `get_user_posts`. Every migration through `20261008150000_security_hardening_live` is live on production (checked 2026-10-08); see `supabase/README.md`. The old paths are closed: direct conversation writes (`20261007111029_contract_messages`), the public photo bucket and `get_feed_posts` (`20261008100000_security_hardening`; `20261008160000_drop_dead_functions`, not pushed yet, drops `get_feed_posts`).
+All tables use Row Level Security (RLS). Writes for posting and messaging go through one `SECURITY DEFINER` function each: `create_post` (checks reactive posting with `reactive_posting_open`, dates the post, adds the Mahi point, saves tags and deadlines, queues pushes, answers waiting tags) and `send_message`. Follow/unfollow goes through `set_following`, which returns the committed follow state and counts; accepting an in-app tag request or claiming an invite link creates both directional follow rows in the same server transaction, while declining creates neither. The feed reads through `get_feed` (server-side lock), profiles through `get_user_posts`. Every migration through `20261009110000_tag_join_push_username` is live on production (checked against prod 2026-10-09); see `supabase/README.md`. The old paths are closed: direct conversation writes (`20261007111029_contract_messages`), the public photo bucket and `get_feed_posts` (`20261008100000_security_hardening`; `20261008160000_drop_dead_functions` drops `get_feed_posts`).
 
 ---
 
@@ -509,9 +532,9 @@ Top bar placed from the safe area, `pointerEvents: 'box-none'` so touches pass t
 | `AvatarViewer` | `ui/src/components/AvatarViewer.tsx` | A profile picture as a circle (`avatarCircleSize`, `VIEWER.avatarShare` of the short side): pinch or double tap to zoom (`clampZoom`, `clampPan`); a tap on the dark space (`avatarTapCloses`), a drag away in any direction, × or back closes it |
 | `MessagesScreen` | `ui/src/screens/MessagesScreen.tsx` | Inbox from `useMessages()`; requests open `MessageRequestsScreen` (page sheet; Deny asks first) |
 | `ConversationScreen` | `ui/src/screens/ConversationScreen.tsx` | Thread; real-time via `useConversation`; request banner (Accept / Deny with confirm) |
-| `NotificationsScreen` | `ui/src/screens/NotificationsScreen.tsx` | Activity list (page sheet); each row's words come from `notificationText()` and match the push for the same thing (a tag: "You've been tagged by @x. 48 hours to post your Mahi!"; `streak_lost`: "You missed @x's tag. Your points are back to 0.") |
+| `NotificationsScreen` | `ui/src/screens/NotificationsScreen.tsx` | Activity list (page sheet); each row's words come from `notificationText()` and match the push for the same thing (a tag: "@x tagged you. Post your answer."; `streak_lost`: "You missed @x's tag. Your points are back to 0."; a join from your tag link, which carries the tag's `challenge_id`: "@x joined Mahi from your tag 🎉") |
 
-App-level overlays in `App.tsx`: `WelcomeCards` (flag `onboarding-welcome-cards` — one-time 3-card carousel in a Modal, once per account per device, and again from Settings → Help; rules in `ui/src/lib/welcomeCards.ts`), `PushPrimer` (flag `push-core` — the one-time "turn on notifications" page, after the cards; see [Push notifications](#push-notifications)), `UpdateRequiredScreen` (forced-update gate), `ToastHost`.
+App-level overlays in `App.tsx`, in onboarding order (core workflow steps 7–10, 2026-10-09): `WelcomeCards` (no switch — one-time 3-card carousel in a Modal, "1. Show up & tag mates · 2. Get tagged · 3. Pass it on", once per account per device, and again from Settings → Help; rules in `ui/src/lib/welcomeCards.ts`), `PrivacyChoiceStep` (flag `private-accounts` — public or private, "You can change this later in Settings.", until the server has a choice; words in `ui/src/lib/accountControls.ts`), `PushPrimer` (flag `push-core` — the notifications page, last; see [Push notifications](#push-notifications)), then the camera, which asks for its own permission only after them. The contacts step (`FindMatesStep`) left onboarding on 2026-10-09; Find your mates (`FindMatesSheet`) opens from Settings, Your invites and the camera. Also `UpdateRequiredScreen` (forced-update gate) and `ToastHost`. `PushBanner` sits at the top of the feed (`FeedScreen`).
 
 ---
 
@@ -529,11 +552,11 @@ deleted; `20261001170000_drop_rest_days` removes the last columns and table from
 
 ## Caption + Tagging
 
-Users attach an optional caption. The first workout post can go immediately and shows no tagging step. Every later answer must fill its accountability slots (3, `tagStore.maxTags` from `app_config`) with friends or invite links so the show-up loop continues. The flow lives inside the `DualPhotoPreview` modal in `CameraScreen.tsx` and renders in `FeedScreen.tsx`.
+Users attach an optional caption. A first post tags exactly 1 mate (`FIRST_POST_TAGS`, `maxTagsFor`, `postTagsRequired` in `ui/src/lib/tagRules.ts`): its Post with nobody tagged shows the "Hold up ✋" card (`HOLD_UP` in `ui/src/lib/tagSlots.ts`) whose Tag mates opens the tag screen. An answer opens the tag screen straight after the two photos and must fill its slots (3, `tagStore.maxTags` from `app_config`). Both use `TagSlotsSheet` (`ui/src/components/TagSlotsSheet.tsx`, words `tagScreenWords`: "Tag 1 mate" / "Tag 3 friends"): friends on Mahi first, search anyone on Mahi, and the phone's contacts when no friend can take the tag; anyone not on Mahi gets a link by WhatsApp, Messages, Snap or IG (Snap and IG through the share sheet until a native build adds their kits, decision #156). The tag screen's Post is the confirmation — no separate pop-up (decision #157). The `tag-slots` switch was removed on 2026-10-09 (decision #167). The flow lives inside the `DualPhotoPreview` modal in `CameraScreen.tsx` and renders in `FeedScreen.tsx`.
 
 ### Preview UI (`DualPhotoPreview`)
 
-Above the Post button sits the caption (`'+ Add a caption'`) and location (`'+ Add location'` / `'Location on'`). Later answers also show the accountability pill (`tagPillLabel` — `'+ Challenge friends'`, `'@username'`, `'@user1 +N'`). Their Post button reads `Challenge N more` until every slot is filled; the sheet asks “Who are you holding accountable?” and “Pick 3 friends you want to see show up on Mahi.” On the first workout post, the challenge control is absent and the button reads `Post` immediately. The draggable pip may paint over the pill row.
+Above the Post button sits the caption (`'+ Add a caption'`) and location (`'+ Add location'` / `'Location on'`). Beside them the tag pill (`tagPillLabel` — `'Tag 1 mate'` on a first post, `'+ Hold friends accountable'` on an answer, then `'@username'`, `'@user1 +N'` or `'N links'`) opens the tag screen. An answer's Post button reads `Challenge N friends to post` / `Challenge N more friends to post` (`postButtonLabel`) until every slot is filled; a first post's reads `Post`, and with nobody tagged it shows "Hold up ✋". The draggable pip may paint over the pill row.
 
 ### Sheet state machine
 
@@ -618,7 +641,8 @@ App launch
         → navigator mounts underneath the closed iris; iris opens → onComplete sets introDone=true
         → <TabsNavigator /> on build 12+ (tab bar + swipe pages), else <HorizontalNavigator />
                                    + <WelcomeCards /> (after introDone; once per account per device)
-                                   + <PushPrimer /> (once per device, after the cards; flag push-core)
+                                   + <PrivacyChoiceStep /> (after the cards; flag private-accounts)
+                                   + <PushPrimer /> (last; once per device; flag push-core)
 
     → no session:
         every per-user store reset(), posthog.reset()
