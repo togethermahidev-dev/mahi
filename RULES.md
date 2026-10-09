@@ -1,26 +1,33 @@
 # mahi-fitness — Project Rules for Claude
 
-## Product identity and core loop (2026-10-08)
+## Core loop (owner, 2026-10-09 — docs/core-workflow.md is the source of truth)
 
 - Mahi is a **show-up fitness accountability app**, not a social-media app. Profiles, follows,
-  messages, likes and comments support real accountability; they are not the primary loop.
-- Everyone starts with exactly one first workout post. It needs no incoming tag and no outgoing tags.
-  After that, a person can post only by answering a live tag. Answering the tag **is** their next
-  workout post; never present answering and posting as separate jobs.
+  messages, likes and comments support real accountability; they are not the primary loop. The
+  tag-and-answer loop is the product's centre.
+- The first post tags exactly 1 person: a friend on Mahi, someone on Mahi by a tag request, or one
+  invite link sent from the phone. This includes people who joined from a tag link. Server:
+  `create_post` with `app_config.first_post_tags` (1; 0 brings back the old rule). The app uses its
+  own constant and never reads that setting.
+- After the first post, you can post only while a tag on you is open. The camera says "Waiting for
+  your next tag". Answering the tag **is** the next workout post; never present answering and
+  posting as separate jobs.
+- Every answer tags 3. One post answers every open tag; the countdown shows the earliest deadline.
+- Each post earns at most 1 point. Deleting a post takes its point back (`delete_post`); Best never
+  drops.
+- A tagger loses nothing when their mates don't answer.
+- The tag screen's Post button is the confirmation; there is no separate pop-up. Its footer says
+  your mate(s) get 48 hours and the caption can be edited for 1 hour.
 - The feed is earned, not browsed by default: it stays locked until the first post, then reopens
   through accountable check-ins under the feed-lock rules below.
-- Tags are calls to show up. A later answer passes accountability onwards by tagging friends for
-  their own workout response. UI copy should say who is waiting, what workout action is due and how
+- Tags are calls to show up. An answer passes accountability onwards by tagging friends for their
+  own workout response. UI copy should say who is waiting, what workout action is due and how
   long remains; avoid social-media framing such as posting for reach, content or engagement.
-- The first-workout UI does not show a tagging step: that moment is only about showing up. Later
-  answers ask “Who are you holding accountable?” and require 3 friends before posting. Profiles
-  and follows help people find accountability partners; the viral tag-and-answer loop remains the
-  product's centre.
 - “Free post” and “opening check-in” are not UI language. User-facing
   copy says “Start by showing up” and “your first workout”; it sounds like a commitment, not a perk.
-- A newcomer must be able to repeat the loop before signing up: **Show up → Get tagged → Answer
-  with a workout → Hold 3 friends accountable.** Entry, onboarding, camera and locked-feed states
-  use those same verbs. Lead with the next physical action; explain points and feed access second.
+- A newcomer must be able to repeat the loop before signing up: **Show up & tag mates → Get tagged
+  → Pass it on.** Entry, onboarding, camera and locked-feed states use those same verbs. Lead with
+  the next physical action; explain points and feed access second.
 - Guidance should feel like training, not documentation: numbered stages assemble in sequence, the
   current stage gets one restrained pulse, and connecting motion shows accountability passing on.
   Use native Liquid Glass interaction on supported iOS, bounded ripple on Android, and a still,
@@ -63,11 +70,13 @@
   `decline_message_request`, `edit_message` (own message, 15 minutes), `unsend_message`; read with `get_inbox`,
   `get_messages`, `get_conversation_with`. Never insert, update or delete `messages` or `conversations` from the app
   (direct conversation writes are closed on the server by `20261007111029_contract_messages`, live).
-- Owners can delete their posts through `delete_post`; deletion never restores the one first-post
-  post (`profiles.has_posted_before` is permanent). Captions remain editable for one hour through
-  `update_post_caption` (an edited caption is checked by moderation again).
-- The preview's Post tap always asks for confirmation: captions are editable for one hour, and
-  posting opens the feed and starts the clock for any challenged friends. Never bypass this alert.
+- Owners can delete their posts through `delete_post`. Deleting takes back the point that post
+  earned (`posts.earned_point`; points never go below 0, Best never drops) and never restores the
+  first post (`profiles.has_posted_before` is permanent). Captions remain editable for one hour
+  through `update_post_caption` (an edited caption is checked by moderation again).
+- The tag screen's Post button is the confirmation (owner, 2026-10-09); there is no separate
+  pop-up. Its footer says the tagged mates get 48 hours and the caption can be edited for 1 hour.
+  A post never goes without the person seeing that footer.
 
 ## Follows, tag requests and invite links (2026-10-07; public/private accounts 2026-10-08)
 
@@ -134,6 +143,8 @@
 - Mahi doesn't use Docker: no `supabase start`, no local stack. Database types come from the Supabase MCP
   generator (`generate_typescript_types`), not `supabase gen types --local`.
 - Production writes only with the owner's permission, through `scripts/db.sh try` → `backup` → `push`.
+- Migration names say what changes in the database (e.g. `delete_post_point`), never who asked for it.
+  The guard refuses names with people's names or words like answers/round.
 
 ## Architecture & Adding Features
 
@@ -192,7 +203,7 @@
   the user taps Post on the preview screen. Microphone permission is never requested (the native
   usage string in `app.config.js` goes at the next native build)
 - Photo preview renders in a `Modal` that slides in from the right — never use `absoluteFillObject` inside the camera slot (conflicts with the swipe page's `overflow: hidden` and AppHeader overlay)
-- Optimistic updates (`addPending`, the Mahi points increment) fire at Post confirmation, not at shutter
+- Optimistic updates (`addPending`, the Mahi points increment) fire at the tag screen's Post (the confirmation), not at shutter
 - Upload order: `uploadPostPhotos` (`posts/{userId}/{clientId}_rear.jpg` / `_pov.jpg`, upsert) →
   `createPost` = the `create_post` RPC, one server call that dates the post, records the Mahi points and
   saves tags, deadlines and pushes. A retry with the same `clientId` returns the same post
@@ -202,6 +213,8 @@
   the camera mirrors it with `reactivePostingGate()` (`ui/src/lib/reactivePosting.ts`), fed by the feed store's
   `unlockedUntil` (null until the first post) and the open tags — a spinner while loading, "No tags to answer" when closed; the server error maps to
   the same toast. No daily limit
+- Tags on a post: the first post tags exactly 1 (Hold up ✋ → the tag screen, single pick); an answer tags 3. A wrong
+  count is refused with `tag or invite N people` (detail `{required, max}`)
 
 ## Auth
 
@@ -249,11 +262,12 @@
 ## Reactive posting and Mahi points
 
 - You can post only while you have an open tag you can still answer (48 hours + 10 minutes grace); your very
-  first post is the exception and requires no outgoing tags. No daily limit — the one-a-day unique index is dropped (`20261001120000_reactive_posting`)
+  first post is the exception and tags exactly 1 (`app_config.first_post_tags`). No daily limit — the one-a-day unique index is dropped (`20261001120000_reactive_posting`)
 - Server rule: `public.reactive_posting_open(user)`, checked inside `create_post`. App rule: `reactivePostingGate()`
   in `ui/src/lib/reactivePosting.ts`
-- Mahi points (founder, 2026-10-02: "This is not streaks"): +1 per post that answers at least one tag, only for
-  the person answering, no daily cap; a missed tag puts them back to 0; Best is never lowered. People only ever
+- Mahi points (founder, 2026-10-02: "This is not streaks"): +1 for the first post and for each post that answers at
+  least one tag, only for the person posting, no daily cap; deleting a post takes its point back; a missed tag puts
+  them back to 0, even while logged out; Best is never lowered. People only ever
   see "points" and "Best" — never the word streak. There is no daily streak (parked)
 - The database keeps the old names: `profiles.streak_current` = Mahi points, `streak_highest` = Best,
   `posts.streak_day` = the points after that post, `break_missed_streaks` (run from the `mark_missed_tags` cron
@@ -280,7 +294,7 @@
 - Font: Inter only, through `FONTS` in `ui/src/constants/fonts.ts` (`Inter_400Regular`, `Inter_600SemiBold`,
   `Inter_700Bold`, loaded in `App.tsx`; no italic, no `fontWeight`/`fontStyle` — the face is the weight). The
   native tab bar titles use it too. `fonts.test.ts` fails on a typed-out font name, text without an Inter face,
-  or a character Inter can't draw (✕ → ×, no emoji in UI copy)
+  or a character Inter can't draw (✕ → ×). Emoji pass: the phone's emoji font draws them; only the owner's own words use them (🔔 🔕 ✋ ⏳ 🎉, core workflow 2026-10-09)
 - Every colour, text size, spacing, radius, shadow, size, offset, icon size, letter spacing, line height and
   border width comes from `ui/src/constants/tokens.ts` (`withAlpha` for opacity). So do the shared values:
   `ALPHA` (see-through amounts, also shadow strength), `STROKE` (icon line widths), `BLUR_INTENSITY`,

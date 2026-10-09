@@ -76,3 +76,6 @@ docs/design-gaps.md
 
 # Android build caches (made by Gradle; never committed)
 .gradle/
+
+# local planning notes (2026-10-09)
+docs/core-workflow-contract.md

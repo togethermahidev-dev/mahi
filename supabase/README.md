@@ -103,6 +103,8 @@ Rules (enforced by `.claude/hooks/guard.cjs`):
 
 - Create migrations with `supabase migration new <name>` (14-digit timestamp prefix, newest last).
   Never edit a migration once it has been pushed; add a new one.
+- The name says what changes in the database (e.g. `delete_post_point`), never who asked for it: no
+  people's names, no words like answers or round (owner, 2026-10-09).
 - Each migration has an undo script in `rollbacks/<same name>.rollback.sql` and a pgTAP test in
   `tests/`.
 - Production changes only through `scripts/db.sh` (no Docker needed; the free plan has no automatic
@@ -118,6 +120,14 @@ Rules (enforced by `.claude/hooks/guard.cjs`):
   - `scripts/db.sh test` — runs `tests/*.sql` with `psql`; every file is `begin; … rollback;`.
 - The script reads the database password from `~/.pgpass` (the owner adds it; never committed):
   `aws-1-eu-west-2.pooler.supabase.com:5432:postgres:postgres.pzepodsppqtvptzmwxzs:<password>`
+
+Badly named files (kept: they have run on production, and renaming one breaks the history check):
+
+- `20261006200000_maximus_answers.sql` — one-day wait before re-inviting the same person
+  (`enforce_tag_invite_cooldown` trigger), `profiles.has_posted_before` with its
+  `remember_post_created` trigger, `reactive_posting_open` reading that mark, and `delete_post`.
+- `20261007160000_founder_stats.sql` — the `stats` views (activity, daily actions, active people,
+  retention, activation, lifecycle) and the read-only `posthog_reader` role that can see only them.
 
 The build plan is [docs/tag-loop-plan.md](../docs/tag-loop-plan.md).
 
