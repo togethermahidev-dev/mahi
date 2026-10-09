@@ -50,7 +50,7 @@ export default function ListState({
   icon,
   art,
 }: ListStateProps): React.JSX.Element {
-  const { text, muted, border, accentText } = themeColors(dark);
+  const { text, muted, border } = themeColors(dark);
   const surface = dark ? COLORS.surfaceDark : COLORS.white;
   const softSurface = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a08)
@@ -72,13 +72,13 @@ export default function ListState({
   return (
     <View style={styles.wrap}>
       <View style={[styles.card, { backgroundColor: surface, borderColor: border }]}>
+        {/* No default marker (owner, 2026-10-09: the circle with a dot "isn't needed"); a list
+            that has its own picture or icon still shows it. */}
         {art ? (
           <View style={styles.art}>{art}</View>
-        ) : (
-          <View style={[styles.marker, { backgroundColor: softSurface }]}>
-            {icon ?? <View style={[styles.markerDot, { backgroundColor: accentText }]} />}
-          </View>
-        )}
+        ) : icon ? (
+          <View style={[styles.marker, { backgroundColor: softSurface }]}>{icon}</View>
+        ) : null}
         {title ? (
           <Text style={[styles.title, { color: text }]} accessibilityRole="header">
             {title}
@@ -135,11 +135,6 @@ const styles = StyleSheet.create({
   },
   art: {
     marginBottom: SPACE.s16,
-  },
-  markerDot: {
-    width: SIZE.z10,
-    height: SIZE.z10,
-    borderRadius: RADIUS.r50,
   },
   title: {
     fontSize: FONT_SIZE.f18,
