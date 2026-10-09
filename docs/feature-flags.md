@@ -50,7 +50,7 @@ if (!videoOn) return null;
   found 2026-10-01, when seven new features stayed hidden on the test phones until their flags were created.
   This pure logic is unit-tested in [`ui/src/lib/__tests__/featureFlags.test.ts`](../ui/src/lib/__tests__/featureFlags.test.ts).
 - **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `push-core`, `video-posts`,
-  `ios-sf-symbols`, `camera-tap-focus`, `identity-verification`, `purchases`, `tag-slots`,
+  `ios-sf-symbols`, `camera-tap-focus`, `identity-verification`, `purchases`,
   `auth-google-signin`, `auth-apple-signin`, `live-activity`, `control-post-workout`, `siri-shortcuts`,
   `spotlight` and `private-accounts`): off
   while flags load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns
@@ -72,12 +72,7 @@ camera's open-tags pill, "Turn on notifications so you never miss a tag", which 
 phone's Settings (or the phone's question if it was never asked). Works on build 10; needs `send-push`
 live to be worth switching on. The server queues pushes whether it is on or off. Off = nobody is asked;
 phones that already allowed still register.)
-`tag-slots` (**default off**; added 2026-10-03; its migration `20261003120000_tag_slots` is live). On:
-one "Tag 3 friends" screen. Three slots at the top, each showing where it's at (tagged, invite sent,
-accepted, link ready, shared, joined). Search finds anyone on Mahi: a friend is tagged; someone who isn't
-a friend gets an in-app invite ("@x wants to tag you", Accept / Not now in their notifications). A share
-row (WhatsApp, Messages, Copy or more) makes a personal link on tap and fills a slot. Live while open; nothing kept on the phone.
-Off = today's tag sheet (with the invite step). The caption's `@` still picks one friend either way.
+`tag-slots`: removed 2026-10-09 (decision #167). The slot tag screen is now how every first post (1 mate) and answer (3 friends) is tagged.
 **Find your mates:** switch `contacts-finder` (**default on**, a kill switch); on for everyone on build 13+ (expo-contacts), needs migration `20261007270000_contact_match`. "Find your mates" — once
 after sign-up for a new account (after the welcome cards, before the notifications page), and from
 Settings → Mates, Your invites and the camera's waiting card. Asks for contacts with a plain why first;
