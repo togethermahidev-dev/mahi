@@ -246,6 +246,12 @@ export function smsInviteUrl(phone: string, text: string, platform: 'ios' | 'and
   return platform === 'ios' ? `sms:${phone}&body=${body}` : `sms:${phone}?body=${body}`;
 }
 
+/** Opens WhatsApp to one contact with the invite already written. */
+export function whatsappInviteUrl(phone: string, text: string): string {
+  const digits = phone.replace(/[^0-9]/g, '');
+  return `whatsapp://send?phone=${digits}&text=${encodeURIComponent(text)}`;
+}
+
 /** An account this new gets the step after sign-up (the same day as invite_claim's rule). */
 const NEW_ACCOUNT_MS = 24 * 60 * 60 * 1000;
 

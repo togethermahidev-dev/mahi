@@ -13,6 +13,7 @@ import {
   normalisePhone,
   showFindMatesStep,
   smsInviteUrl,
+  whatsappInviteUrl,
   type DeviceContact,
   type MatchedAccount,
 } from '../contactMatch';
@@ -211,6 +212,14 @@ describe('smsInviteUrl', () => {
       'sms:+447700900666&body=Join%20me%20%26%20go'
     );
     expect(smsInviteUrl('+447700900666', 'Hi', 'android')).toBe('sms:+447700900666?body=Hi');
+  });
+});
+
+describe('whatsappInviteUrl', () => {
+  it('targets the selected contact and fills the invite text', () => {
+    expect(whatsappInviteUrl('+44 7700 900666', 'Join me & go')).toBe(
+      'whatsapp://send?phone=447700900666&text=Join%20me%20%26%20go'
+    );
   });
 });
 

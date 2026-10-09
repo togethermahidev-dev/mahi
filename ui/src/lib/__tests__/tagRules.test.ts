@@ -1,4 +1,10 @@
-import { cantTagReason, postTagsRequired, requiredTagCount } from '../tagRules';
+import {
+  FIRST_POST_TAGS,
+  cantTagReason,
+  maxTagsFor,
+  postTagsRequired,
+  requiredTagCount,
+} from '../tagRules';
 
 describe('requiredTagCount', () => {
   const rules = { tagCount: 3, tagsRequired: true, inviteLinksEnabled: false };
@@ -19,9 +25,11 @@ describe('requiredTagCount', () => {
   });
 });
 
-describe('postTagsRequired — the first workout post needs no tags', () => {
-  it('asks for nothing on your first workout, answering a tag or not', () => {
-    expect(postTagsRequired(3, { firstPost: true })).toBe(0);
+describe('postTagsRequired — the first post tags exactly one mate', () => {
+  it('asks for one on your first post, whatever the server says answers need', () => {
+    expect(FIRST_POST_TAGS).toBe(1);
+    expect(postTagsRequired(3, { firstPost: true })).toBe(1);
+    expect(postTagsRequired(0, { firstPost: true })).toBe(1);
   });
 
   it('keeps the rule for every post after the first', () => {
@@ -30,6 +38,21 @@ describe('postTagsRequired — the first workout post needs no tags', () => {
 
   it('keeps the rule while it isn’t known yet whether you have posted', () => {
     expect(postTagsRequired(3, { firstPost: null })).toBe(3);
+  });
+});
+
+describe('maxTagsFor — how many people the camera lets you tag', () => {
+  it('one on the first post', () => {
+    expect(maxTagsFor(true, 3)).toBe(1);
+  });
+
+  it('the tag count on an answer, never below one', () => {
+    expect(maxTagsFor(false, 3)).toBe(3);
+    expect(maxTagsFor(false, 0)).toBe(1);
+  });
+
+  it('the answer rule while it isn’t known yet whether you have posted', () => {
+    expect(maxTagsFor(null, 3)).toBe(3);
   });
 });
 

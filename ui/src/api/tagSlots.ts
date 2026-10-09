@@ -1,5 +1,5 @@
 /**
- * Tag slots API (flag `tag-slots`; server: migration 20261003120000_tag_slots).
+ * Tag slots API (core since 2026-10-09; server: migration 20261003120000_tag_slots).
  *
  * A slot is filled on the tag screen before posting: a link made the moment you tap invite, or
  * an in-app invite for someone on Mahi who isn't your friend yet. `create_post` takes the slots

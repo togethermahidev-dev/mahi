@@ -280,8 +280,12 @@ export default function NotificationsScreen({
     const name = item.actor.display_name ?? item.actor.username;
     const initials = (name[0] ?? '?').toUpperCase();
     const username = item.actor.username;
-    // A mate who joined from your invite and whose follow waits as a request (the row says so).
-    const caption = notificationText(item.type, username, { followRequest: item.follow_request });
+    // A mate who joined from your invite and whose follow waits as a request (the row says so);
+    // a join from a tag link carries the tag's challenge_id.
+    const caption = notificationText(item.type, username, {
+      followRequest: item.follow_request,
+      fromTag: !!item.challenge_id,
+    });
     const time = relativeTime(item.created_at);
     const target = notificationTarget(item, myId ?? '', tagOpen(item));
     const action = notificationAction(target);

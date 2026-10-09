@@ -99,15 +99,16 @@ import { inviteBadgeCount } from '@/lib/myInvites';
 import { getTagSlots } from '@/api/tagSlots';
 import { inviteAMate, noteInviteSent } from '@/lib/inviteAMate';
 import {
+  HOLD_UP,
   inviteBlockedReason,
   postButtonLabel,
-  postConfirmText,
   postRefusal,
   type ScreenSlot,
   INVITE_BUTTON,
 } from '@/lib/tagSlots';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useCoachAnchor } from '@/hooks/useCoachMarks';
+import { useCoachStore } from '@/store/coachStore';
 import { useScreenReader } from '@/hooks/useScreenReader';
 import CoachMarkHost from '@/components/CoachMark';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
@@ -143,8 +144,8 @@ import {
 import { loadAppleExtras } from '@/lib/appleExtrasModule';
 import { answersATag, hasPostedBefore, reactivePostingGate } from '@/lib/reactivePosting';
 import { nudgeLabel } from '@/lib/tagNudge';
-import { cantTagReason, postTagsRequired } from '@/lib/tagRules';
-import { inviteList, inviteShareMessage, markInvite, type InviteItem } from '@/lib/inviteShare';
+import { cantTagReason, maxTagsFor, postTagsRequired } from '@/lib/tagRules';
+import { inviteShareMessage, markInvite, type InviteItem } from '@/lib/inviteShare';
 import { tagSheetStep } from '@/lib/inviteStep';
 import {
   captureLabel as captureLabelFor,
@@ -319,6 +320,9 @@ function PointsCounter({
 
 // ─── Waiting card words ───────────────────────────────────────────────────────
 
+/** Under the waiting card's words: the feed is a swipe away (core workflow step 16). */
+const WAITING_FEED_LINE = 'Scroll up to access feed.';
+
 /**
  * On the front of the frosted camera while you can't post (owner, 2026-10-08: "why is it
  * blurred?"): a padlock, why, and a live line — who is on your clock and how long they have, or
@@ -346,7 +350,7 @@ function WaitingNotice({
       style={({ pressed }) => [styles.waitingNotice, pressed && { opacity: ALPHA.a85 }]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${title}. ${words}`}
+      accessibilityLabel={`${title}. ${words}. ${WAITING_FEED_LINE}`}
       accessibilityHint="Shows what you can do"
     >
       <View style={styles.waitingLock}>
@@ -357,6 +361,7 @@ function WaitingNotice({
         <Text style={styles.waitingLine} numberOfLines={3}>
           {words}
         </Text>
+        <Text style={styles.waitingLine}>{WAITING_FEED_LINE}</Text>
       </View>
     </Pressable>
   );
@@ -478,19 +483,28 @@ function GlassPill({ active, children }: { active?: boolean; children: React.Rea
   return <View style={fill}>{children}</View>;
 }
 
-/** `others`: slots filled by an invite or a link (flag `tag-slots`). */
-function tagPillLabel(tagged: TaggedUser[], others = 0): string {
-  if (tagged.length === 0 && others === 0) return '+ Hold friends accountable';
+/** `others`: slots filled by an invite or a link. `max`: 1 on a first post. */
+function tagPillLabel(tagged: TaggedUser[], others: number, max: number): string {
+  if (tagged.length === 0 && others === 0) {
+    return max === 1 ? 'Tag 1 mate' : '+ Hold friends accountable';
+  }
   if (tagged.length === 0) return others === 1 ? '1 link' : `${others} links`;
   const more = tagged.length - 1 + others;
   return more > 0 ? `@${tagged[0].username} +${more}` : `@${tagged[0].username}`;
+}
+
+/** The tags a post goes with, when the tag screen's Post sends it. */
+interface PostTags {
+  taggedUsers: TaggedUser[];
+  slots: ScreenSlot[];
 }
 
 interface DualPhotoPreviewProps {
   frontPhoto: CapturedPhoto | null;
   rearPhoto: CapturedPhoto | null;
   onDiscard: () => void;
-  onPost: (front: CapturedPhoto, rear: CapturedPhoto) => void;
+  /** `tags`: posted from the tag screen, with the tags it just set (state may not have caught up). */
+  onPost: (front: CapturedPhoto, rear: CapturedPhoto, tags?: PostTags) => void;
   isUploading: boolean;
   caption: string;
   onCaptionChange: (v: string) => void;
@@ -499,14 +513,14 @@ interface DualPhotoPreviewProps {
   /** Slots filled by an invite link for someone not on Mahi. */
   inviteCount: number;
   onInviteCountChange: (n: number) => void;
-  /** Flag `tag-slots`: the tag screen fills slots before posting (links, in-app invites). */
-  slotsOn: boolean;
   slots: ScreenSlot[];
   onSlotsChange: (slots: ScreenSlot[]) => void;
   /** Tags this post needs before POST unlocks (server enforces the same rule). */
   requiredTags: number;
-  /** The one first workout: show-up only, with no outgoing accountability step. */
-  firstWorkout: boolean;
+  /** The most people this post can tag: 1 on a first post, else the tag count. */
+  maxTags: number;
+  /** Your first post (known): Post with nobody tagged shows "Hold up". */
+  firstPost: boolean;
   /** Usernames whose open tags this post answers, soonest first (empty: it answers none). */
   answering: string[];
   /** Per-post location toggle. Default OFF — explicit opt-in, never silent. */
@@ -529,23 +543,27 @@ function DualPhotoPreview({
   onTaggedUsersChange,
   inviteCount,
   onInviteCountChange,
-  slotsOn,
   slots,
   onSlotsChange,
   requiredTags,
-  firstWorkout,
+  maxTags,
+  firstPost,
   answering,
   locationEnabled,
   onToggleLocation,
 }: DualPhotoPreviewProps) {
-  const maxTags = useTagStore((s) => s.maxTags);
   const insets = useSafeAreaInsets();
   // An invite fills a slot just as a friend does.
   const tagsMissing = Math.max(0, requiredTags - taggedUsers.length - inviteCount - slots.length);
-  const postLabel = postButtonLabel(
-    tagsMissing,
-    taggedUsers.length + inviteCount + slots.length > 0
-  );
+  // A first post says Post; with nobody tagged, Post shows "Hold up" instead of a count.
+  const postLabel = firstPost
+    ? 'Post'
+    : postButtonLabel(tagsMissing, taggedUsers.length + inviteCount + slots.length > 0);
+  // "Hold up ✋": a first post's Post with nobody tagged. A card in the preview, not a page.
+  const [holdUp, setHoldUp] = useState(false);
+  useEffect(() => {
+    if (!frontPhoto) setHoldUp(false);
+  }, [frontPhoto]);
   // The live camera and the finished post are the same visual object: resolve the captured frame
   // into its controls with a restrained scale/crossfade instead of pushing in a separate page.
   const previewScale = useRef(new Animated.Value(SCALE.s0_96)).current;
@@ -640,6 +658,7 @@ function DualPhotoPreview({
   const hasPhotos = frontPhoto !== null && rearPhoto !== null;
   type ActiveSheet = 'none' | 'caption' | 'tag';
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>('none');
+  const openedTagStepForCapture = useRef(false);
   // When non-null, the tag sheet was opened by typing `@` at this index in
   // the caption. On commit we splice `username ` right after that `@`, then
   // reopen the caption sheet. When null, the tag sheet was opened via the
@@ -648,12 +667,38 @@ function DualPhotoPreview({
   // One-time tip on the tag pill, the first time the preview is up with no sheet over it.
   const tagTip = useCoachAnchor(
     'tagMates',
-    !firstWorkout && modalOpen && activeSheet === 'none' && !isUploading
+    modalOpen && activeSheet === 'none' && !holdUp && !isUploading
   );
 
   // Reduce Motion keeps only the crossfade; otherwise the captured frame settles into the post.
   const reduceMotion = useReducedMotion();
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!hasPhotos) {
+      openedTagStepForCapture.current = false;
+      return;
+    }
+    // Answers only: a first post gets "Hold up" when Post is tapped instead.
+    if (
+      !firstPost &&
+      requiredTags > 0 &&
+      taggedUsers.length + inviteCount + slots.length === 0 &&
+      activeSheet === 'none' &&
+      !openedTagStepForCapture.current
+    ) {
+      openedTagStepForCapture.current = true;
+      setActiveSheet('tag');
+    }
+  }, [
+    activeSheet,
+    firstPost,
+    hasPhotos,
+    inviteCount,
+    requiredTags,
+    slots.length,
+    taggedUsers.length,
+  ]);
 
   useEffect(() => {
     if (hasPhotos) {
@@ -872,6 +917,18 @@ function DualPhotoPreview({
     ]);
   };
 
+  // The tag screen's Post is the confirmation: no pop-up. An answer gets its stamp first; the
+  // photo lifts away after a beat.
+  const submit = (tags?: PostTags) => {
+    const front = frozenFront.current;
+    const rear = frozenRear.current;
+    if (!front || !rear) return;
+    const words = stampOn ? answeredStamp(answering) : null;
+    if (!words) return onPost(front, rear, tags);
+    setStamp(words);
+    setTimeout(() => onPost(front, rear, tags), MOTION.stampHoldMs);
+  };
+
   const primaryShot = primaryFacing === 'rear' ? frozenRear.current : frozenFront.current;
   const pipShot = primaryFacing === 'rear' ? frozenFront.current : frozenRear.current;
   const primaryUri = primaryShot?.uri;
@@ -987,41 +1044,35 @@ function DualPhotoPreview({
                 width: pillRowW,
               }}
             >
-              {!firstWorkout ? (
-                <View
-                  ref={tagTip}
-                  collapsable={false}
-                  style={{ flex: 1, marginRight: pillGap / 2 }}
+              <View ref={tagTip} collapsable={false} style={{ flex: 1, marginRight: pillGap / 2 }}>
+                <PressScale
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    taggedUsers.length + slots.length > 0
+                      ? `Tagged: ${tagPillLabel(taggedUsers, slots.length, maxTags)}`
+                      : tagPillLabel(taggedUsers, 0, maxTags)
+                  }
+                  accessibilityHint="Opens the tag screen"
+                  accessibilityState={{ disabled: isUploading }}
+                  hitSlop={SLOP_PILL}
+                  disabled={isUploading}
+                  onPress={() => setActiveSheet('tag')}
+                  style={{ flex: 1 }}
                 >
-                  <PressScale
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      taggedUsers.length + slots.length > 0
-                        ? `Holding accountable: ${tagPillLabel(taggedUsers, slots.length)}`
-                        : 'Choose who you’re holding accountable'
-                    }
-                    accessibilityHint="Opens your accountability list"
-                    accessibilityState={{ disabled: isUploading }}
-                    hitSlop={SLOP_PILL}
-                    disabled={isUploading}
-                    onPress={() => setActiveSheet('tag')}
-                    style={{ flex: 1 }}
-                  >
-                    <GlassPill>
-                      <Text
-                        style={[
-                          styles.captionPillText,
-                          taggedUsers.length + slots.length > 0 && { color: COLORS.white },
-                        ]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        {tagPillLabel(taggedUsers, slots.length)}
-                      </Text>
-                    </GlassPill>
-                  </PressScale>
-                </View>
-              ) : null}
+                  <GlassPill>
+                    <Text
+                      style={[
+                        styles.captionPillText,
+                        taggedUsers.length + slots.length > 0 && { color: COLORS.white },
+                      ]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {tagPillLabel(taggedUsers, slots.length, maxTags)}
+                    </Text>
+                  </GlassPill>
+                </PressScale>
+              </View>
 
               <PressScale
                 accessibilityRole="button"
@@ -1030,7 +1081,7 @@ function DualPhotoPreview({
                 hitSlop={SLOP_PILL}
                 disabled={isUploading}
                 onPress={() => setActiveSheet('caption')}
-                style={{ flex: 1, marginLeft: !firstWorkout ? pillGap / 2 : 0 }}
+                style={{ flex: 1, marginLeft: pillGap / 2 }}
               >
                 <GlassPill>
                   <Text
@@ -1083,47 +1134,52 @@ function DualPhotoPreview({
             <PressScale
               accessibilityRole="button"
               accessibilityLabel={postLabel}
-              accessibilityHint={tagsMissing > 0 ? 'Opens the tag list' : undefined}
+              accessibilityHint={tagsMissing > 0 && !firstPost ? 'Opens the tag screen' : undefined}
               accessibilityState={{ disabled: isUploading, busy: isUploading }}
               style={[styles.postButton, isUploading && { opacity: ALPHA.a50 }]}
               disabled={isUploading}
               onPress={() => {
                 if (tagsMissing > 0) {
                   haptic('warning');
-                  setActiveSheet('tag');
+                  if (firstPost) setHoldUp(true);
+                  else setActiveSheet('tag');
                   return;
                 }
-                if (frozenFront.current && frozenRear.current) {
-                  const confirm = postConfirmText({
-                    answering,
-                    anyTagged: taggedUsers.length + inviteCount + slots.length > 0,
-                  });
-                  Alert.alert(
-                    confirm.title,
-                    confirm.body,
-                    [
-                      { text: 'Keep editing', style: 'cancel' },
-                      {
-                        text: 'Post',
-                        onPress: () => {
-                          const front = frozenFront.current!;
-                          const rear = frozenRear.current!;
-                          // An answer gets its stamp first; the photo lifts away after a beat.
-                          const words = stampOn ? answeredStamp(answering) : null;
-                          if (!words) return onPost(front, rear);
-                          setStamp(words);
-                          setTimeout(() => onPost(front, rear), MOTION.stampHoldMs);
-                        },
-                      },
-                    ],
-                    { cancelable: true }
-                  );
-                }
+                submit();
               }}
             >
               <Text style={styles.postButtonText}>{postLabel}</Text>
             </PressScale>
           </View>
+
+          {holdUp ? (
+            <View style={styles.holdUpLayer}>
+              {/* Tapping beside the card puts it away; the card's button is what VoiceOver reads. */}
+              <Pressable
+                style={StyleSheet.absoluteFill}
+                onPress={() => setHoldUp(false)}
+                accessible={false}
+                importantForAccessibility="no"
+              />
+              <View style={styles.holdUpCard} accessibilityViewIsModal>
+                <Text style={styles.holdUpTitle} accessibilityRole="header">
+                  {HOLD_UP.title}
+                </Text>
+                <Text style={styles.holdUpLine}>{HOLD_UP.line}</Text>
+                <PressScale
+                  accessibilityRole="button"
+                  accessibilityHint="Opens the tag screen"
+                  style={styles.holdUpButton}
+                  onPress={() => {
+                    setHoldUp(false);
+                    setActiveSheet('tag');
+                  }}
+                >
+                  <Text style={styles.holdUpButtonText}>{HOLD_UP.button}</Text>
+                </PressScale>
+              </View>
+            </View>
+          ) : null}
         </Animated.View>
 
         <CaptionSheet
@@ -1133,34 +1189,36 @@ function DualPhotoPreview({
             onCaptionChange(committed);
             setActiveSheet('none');
           }}
-          onOpenTagAt={
-            !firstWorkout
-              ? (atIndex, currentText) => {
-                  // User typed `@` mid-caption. Commit the current text (with the
-                  // `@` still in place) and hand off to TagSheet in single-shot mode.
-                  onCaptionChange(currentText);
-                  setCaptionAtIndex(atIndex);
-                  setActiveSheet('tag');
-                }
-              : undefined
-          }
+          onOpenTagAt={(atIndex, currentText) => {
+            // User typed `@` mid-caption. Commit the current text (with the
+            // `@` still in place) and hand off to TagSheet in single-shot mode.
+            onCaptionChange(currentText);
+            setCaptionAtIndex(atIndex);
+            setActiveSheet('tag');
+          }}
         />
 
-        {slotsOn ? (
-          <TagSlotsSheet
-            visible={activeSheet === 'tag' && captionAtIndex === null}
-            maxTags={maxTags}
-            initialFriends={taggedUsers}
-            onClose={(friends, filledSlots) => {
-              onTaggedUsersChange(friends);
-              onSlotsChange(filledSlots);
-              setActiveSheet('none');
-            }}
-          />
-        ) : null}
+        <TagSlotsSheet
+          visible={activeSheet === 'tag' && captionAtIndex === null}
+          maxTags={maxTags}
+          requiredTags={requiredTags}
+          initialFriends={taggedUsers}
+          onClose={(friends, filledSlots) => {
+            onTaggedUsersChange(friends);
+            onSlotsChange(filledSlots);
+            setActiveSheet('none');
+          }}
+          onPost={(friends, filledSlots) => {
+            onTaggedUsersChange(friends);
+            onSlotsChange(filledSlots);
+            setActiveSheet('none');
+            submit({ taggedUsers: friends, slots: filledSlots });
+          }}
+        />
 
+        {/* The caption's `@` picks one friend here. */}
         <TagSheet
-          visible={activeSheet === 'tag' && (!slotsOn || captionAtIndex !== null)}
+          visible={activeSheet === 'tag' && captionAtIndex !== null}
           initialSelected={taggedUsers}
           initialInvites={inviteCount}
           singleShot={captionAtIndex !== null}
@@ -1752,10 +1810,10 @@ export default function CameraScreen({
   const profile = useUserStore((s) => s.profile);
   const setProfile = useUserStore((s) => s.setProfile);
   const requiredTags = useTagStore((s) => s.requiredTags);
+  const tagCount = useTagStore((s) => s.maxTags);
   const { openTags, serverOffsetMs, loaded: tagsLoaded } = useOpenTags();
-  // Flag `tag-slots`: slots filled on the tag screen before posting. Read fresh from the server
-  // whenever a preview opens — never kept on the phone (they expire).
-  const tagSlotsOn = useFeatureFlag('tag-slots');
+  // Slots filled on the tag screen before posting. Read fresh from the server whenever a preview
+  // opens — never kept on the phone (they expire).
   const [slots, setSlots] = useState<ScreenSlot[]>([]);
   // The last post's invite links and which are sent. In memory only — links expire.
   const [postInvites, setPostInvites] = useState<InviteItem[]>([]);
@@ -1842,10 +1900,10 @@ export default function CameraScreen({
     serverOffsetMs,
   });
   const blocked = gate !== 'open';
-  // The first workout post may tag nobody; every later answer passes accountability onwards.
-  const postRequiredTags = postTagsRequired(requiredTags, {
-    firstPost: hasPosted === null ? null : !hasPosted,
-  });
+  // The first post tags 1 mate; every answer passes accountability on to the tag count.
+  const firstPostKnown = hasPosted === null ? null : !hasPosted;
+  const postRequiredTags = postTagsRequired(requiredTags, { firstPost: firstPostKnown });
+  const postMaxTags = maxTagsFor(firstPostKnown, tagCount);
   // Offline at the gym: a failed read would otherwise leave the shutter spinning forever. Say so,
   // with Try again (re-reads the tags and the feed), instead of a spinner with no words.
   const tagsError = useTagStore((s) => s.openTagsError);
@@ -2072,11 +2130,19 @@ export default function CameraScreen({
       focusAt(e.x, e.y);
     });
 
+  // The phone's camera question waits until onboarding has settled (intro, welcome cards,
+  // privacy, notifications) and nothing else is over the pages: App.tsx holds a coach block
+  // (`useCoachBlock(!onboardingSettled)`) until then. Asked once by itself; the card's button
+  // asks again after that.
+  const coachBlocked = useCoachStore((s) => s.blocks > 0);
+  const askedCamera = useRef(false);
   useEffect(() => {
+    if (coachBlocked || askedCamera.current) return;
     if (cameraPermission && !cameraPermission.granted && cameraPermission.canAskAgain) {
+      askedCamera.current = true;
       requestCameraPermission();
     }
-  }, [cameraPermission?.status]);
+  }, [cameraPermission?.status, coachBlocked]);
 
   // Query the physical lenses for the active camera. On iOS this resolves to the
   // device's lens ids (incl. ultra-wide on capable devices); on Android it
@@ -2470,7 +2536,7 @@ export default function CameraScreen({
   };
 
   // Upload both photos, create post
-  const uploadPhotos = async (front: CapturedPhoto, rear: CapturedPhoto) => {
+  const uploadPhotos = async (front: CapturedPhoto, rear: CapturedPhoto, tags?: PostTags) => {
     if (!userId || !profile) return;
     if (uploadingRef.current) return;
     uploadingRef.current = true;
@@ -2489,11 +2555,10 @@ export default function CameraScreen({
       setHeldPoints(profile.streak_current);
     }
     const captionValue = caption || null;
-    // The first workout is only about showing up. Passing accountability on begins with later
-    // answers, so stale draft slots can never turn the first workout into a tagging step.
-    const taggedUsersSnapshot = firstPostNow ? [] : taggedUsers;
-    const inviteCountSnapshot = firstPostNow ? 0 : inviteCount;
-    const slotsSnapshot = firstPostNow ? [] : tagSlotsOn ? slots : [];
+    // From the tag screen's Post, its tags (this render's state hasn't caught up yet).
+    const taggedUsersSnapshot = tags?.taggedUsers ?? taggedUsers;
+    const inviteCountSnapshot = inviteCount;
+    const slotsSnapshot = tags?.slots ?? slots;
     // Snapshot the location opt-in for THIS post before we reset UI state below.
     const locationEnabledSnapshot = locationEnabled;
 
@@ -2708,7 +2773,8 @@ export default function CameraScreen({
             firstPost: firstPostNow,
             tagged: taggedNow,
           });
-      const invitesToSend = tagSlotsOn ? [] : inviteList(result.invites);
+      // Links were shared on the tag screen: nothing is left to send.
+      const invitesToSend: InviteItem[] = [];
       useTagStore.getState().syncOpenTags();
       if (moment === 'fly') {
         // The invite list waits until the card has gone: one thing at a time. So do the words
@@ -2811,8 +2877,7 @@ export default function CameraScreen({
   }, [hasPreview]);
   // Slots made earlier (still open on the server) fill this post's slots too.
   useEffect(() => {
-    if (!hasPreview || !tagSlotsOn) return;
-    if (hasPosted === false) return;
+    if (!hasPreview) return;
     let stale = false;
     getTagSlots().then(({ data, error }) => {
       if (error) reportError(error, { flow: 'tags', action: 'loadSlotsForPost', level: 'warning' });
@@ -2821,7 +2886,7 @@ export default function CameraScreen({
     return () => {
       stale = true;
     };
-  }, [hasPosted, hasPreview, tagSlotsOn]);
+  }, [hasPreview]);
   const onComposingRef = useRef(onComposingChange);
   onComposingRef.current = onComposingChange;
   useEffect(() => {
@@ -3023,6 +3088,8 @@ export default function CameraScreen({
             ref={cameraRef}
             style={StyleSheet.absoluteFill}
             facing={facing}
+            // The saved selfie matches the mirrored preview (front camera only; photo and video).
+            mirror={facing === 'front'}
             // Flash: off / on / auto as set; on the selfie side "on" lights the screen instead.
             flash={flashMode(flashChoice, facing)}
             // 0.5× ultra-wide is a back-camera-only physical lens (iOS). Only pass
@@ -3552,11 +3619,11 @@ export default function CameraScreen({
           onTaggedUsersChange={setTaggedUsers}
           inviteCount={inviteCount}
           onInviteCountChange={setInviteCount}
-          slotsOn={tagSlotsOn}
           slots={slots}
           onSlotsChange={setSlots}
           requiredTags={postRequiredTags}
-          firstWorkout={hasPosted === false}
+          maxTags={postMaxTags}
+          firstPost={hasPosted === false}
           answering={answersATag(openTags, serverOffsetMs) ? openTags.map((t) => t.username) : []}
           locationEnabled={locationEnabled}
           onToggleLocation={handleToggleLocation}
@@ -3991,6 +4058,48 @@ const styles = StyleSheet.create({
   postButtonText: {
     color: COLORS.ink,
     fontSize: FONT_SIZE.f17,
+    fontFamily: FONTS.semiBold,
+  },
+  // "Hold up ✋" over the preview: a dim layer and one card, black and white.
+  holdUpLayer: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a50),
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACE.s24,
+  },
+  holdUpCard: {
+    width: '100%',
+    maxWidth: SIZE.z320,
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.r24,
+    padding: SPACE.s24,
+    gap: SPACE.s12,
+    alignItems: 'center',
+  },
+  holdUpTitle: {
+    color: COLORS.ink,
+    fontSize: FONT_SIZE.f20,
+    fontFamily: FONTS.bold,
+  },
+  holdUpLine: {
+    color: COLORS.ink,
+    fontSize: FONT_SIZE.f15,
+    lineHeight: LINE_HEIGHT.l22,
+    fontFamily: FONTS.regular,
+    textAlign: 'center',
+  },
+  holdUpButton: {
+    alignSelf: 'stretch',
+    marginTop: SPACE.s4,
+    backgroundColor: COLORS.ink,
+    borderRadius: RADIUS.r50,
+    paddingVertical: SPACE.s16,
+    alignItems: 'center',
+  },
+  holdUpButtonText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f16,
     fontFamily: FONTS.semiBold,
   },
   captionPill: {

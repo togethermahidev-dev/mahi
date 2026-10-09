@@ -8,8 +8,14 @@
 export function notificationText(
   type: string,
   username: string,
-  /** `followRequest`: their follow to you is a request still waiting (a private account). */
-  opts: { followRequest?: boolean | null } = {}
+  opts: {
+    /** Their follow to you is a request still waiting (a private account). */
+    followRequest?: boolean | null;
+    /** An invite_joined row that came from a tag link (the row has the tag's challenge_id). */
+    fromTag?: boolean;
+    /** Shown instead of @username where a row says a name, when known. */
+    firstName?: string | null;
+  } = {}
 ): string {
   const who = `@${username}`;
   switch (type) {
@@ -28,6 +34,8 @@ export function notificationText(
     case 'streak_lost':
       return `You missed ${who}'s tag. Your points are back to 0.`;
     case 'invite_joined':
+      // Core workflow step 15: the same words as the push for a tag-link join.
+      if (opts.fromTag) return `${opts.firstName?.trim() || who} joined Mahi from your tag 🎉`;
       return opts.followRequest
         ? `${who} joined Mahi from your invite and wants to follow you.`
         : `${who} joined Mahi from your invite. You follow each other now.`;

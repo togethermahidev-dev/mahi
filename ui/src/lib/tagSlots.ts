@@ -1,12 +1,13 @@
 /**
- * Tag slots (flag `tag-slots`, owner 2026-10-03): every slot of a post is filled on the tag
+ * Tag slots (core since 2026-10-09; owner 2026-10-03): every slot of a post is filled on the tag
  * screen — a friend tagged, an in-app invite for someone on Mahi who isn't a friend yet, or a
  * link shared the moment you tap. Each slot says where it's at; the server is the source
  * (`get_tag_slots`, migration 20261003120000_tag_slots) and the screen shows your own taps at
  * once. Nothing here is kept on the phone: slots expire.
  *
- * Pure and import-free so it runs under the node-only jest harness.
+ * Pure (type imports only) so it runs under the node-only jest harness.
  */
+import type { InviteVia } from './myInvites';
 
 export type SlotKind = 'friend' | 'request' | 'link';
 export type SlotState =
@@ -77,32 +78,6 @@ export function postButtonLabel(missing: number, anyTagged: boolean): string {
     : `Challenge ${missing} ${mates} to post`;
 }
 
-/**
- * The question before a post goes (usability walkthrough, 2026-10-07): what posting does. An answer
- * names whose tag ("Answer @sam?") and that it earns a point; any post with mates in it says they
- * get 48 hours. `answering`: the open tags this post answers, soonest first.
- */
-export function postConfirmText({
-  answering,
-  anyTagged,
-}: {
-  answering: string[];
-  anyTagged: boolean;
-}): { title: string; body: string } {
-  const mates = anyTagged ? 'Your friends get 48 hours to answer you.' : null;
-  if (answering.length > 0) {
-    const more = answering.length > 1 ? ` and ${answering.length - 1} more` : '';
-    return {
-      title: `Answer @${answering[0]}${more}?`,
-      body: ['This earns a Mahi point.', mates].filter(Boolean).join(' '),
-    };
-  }
-  return {
-    title: 'Happy with your post?',
-    body: [mates, 'Posting opens your feed for 24 hours.'].filter(Boolean).join(' '),
-  };
-}
-
 export function inviteBlockedReason({
   filled,
   maxTags,
@@ -110,8 +85,64 @@ export function inviteBlockedReason({
   filled: number;
   maxTags: number;
 }): string | null {
-  if (filled >= maxTags) return `All ${maxTags} tags used`;
+  if (filled >= maxTags)
+    return maxTags === 1 ? 'You’ve picked your mate' : `All ${maxTags} tags used`;
   return null;
+}
+
+/**
+ * The tag screen's words (core workflow, 2026-10-09). Its Post button is the confirmation, so the
+ * footer says what posting starts. `maxTags`: 1 on a first post, the tag count on an answer.
+ */
+export function tagScreenWords(maxTags: number): { title: string; prompt: string; footer: string } {
+  const one = maxTags === 1;
+  const who = one ? '1 mate' : `${maxTags} friends`;
+  return {
+    title: `Tag ${who}`,
+    prompt: `Pick ${who} you want to see show up on Mahi.`,
+    footer: `${one ? 'Your mate gets' : 'Your mates get'} 48 hours to answer. You can edit your caption for 1 hour.`,
+  };
+}
+
+/** The card inside the preview when a first post is posted with nobody tagged. */
+export const HOLD_UP = {
+  title: 'Hold up ✋',
+  line: 'Tag a friend to post your first Mahi. They’ll get a link to show up as well.',
+  button: 'Tag mates',
+} as const;
+
+/** Where a link can be sent from the tag screen. Snap and IG open the phone's share sheet. */
+export type ShareTarget = 'whatsapp' | 'messages' | 'snapchat' | 'instagram' | 'more';
+
+export const SHARE_TARGETS: readonly { target: ShareTarget; label: string }[] = [
+  { target: 'whatsapp', label: 'WhatsApp' },
+  { target: 'messages', label: 'Messages' },
+  { target: 'snapchat', label: 'Snap' },
+  { target: 'instagram', label: 'IG' },
+  // The phone's own sheet: Copy and every other app.
+  { target: 'more', label: 'More…' },
+];
+
+/**
+ * How a send is recorded: Snap and IG go through the share sheet until a native build adds their
+ * kits, so they are `share`; WhatsApp or Messages straight to a picked contact is `contact`.
+ */
+export function shareTargetVia(target: ShareTarget, toContact: boolean): InviteVia {
+  if (target === 'whatsapp' || target === 'messages') return toContact ? 'contact' : target;
+  return 'share';
+}
+
+/**
+ * Someone from your contacts who is on Mahi: tagged when you follow each other (and your tag on
+ * them isn't still open), otherwise sent a tag request. The server refuses a non-friend in a
+ * post's tagged people.
+ */
+export function contactPersonAction(
+  account: { is_following: boolean; follows_you: boolean },
+  openTag: boolean
+): 'tag' | 'invite' | 'none' {
+  if (!(account.is_following && account.follows_you)) return 'invite';
+  return openTag ? 'none' : 'tag';
 }
 
 /**

@@ -65,6 +65,7 @@ it('the twelve switches made standard on 2026-10-07 are gone', () => {
     'notifications-core',
     'onboarding-welcome-cards',
     'tag-challenges',
+    'tag-slots',
     'tags-invite-step',
   ];
   for (const key of removed) {
@@ -77,7 +78,7 @@ describe('default-off flags (video-posts)', () => {
     expect(FEATURE_FLAGS).toContain('video-posts');
   });
 
-  it('only the push, video, build-11, tag-slots and build-13 flags default off', () => {
+  it('only the push, video, build-11 and build-13 flags default off', () => {
     expect(DEFAULT_OFF_FLAGS).toEqual([
       'push-core',
       'video-posts',
@@ -85,7 +86,6 @@ describe('default-off flags (video-posts)', () => {
       'camera-tap-focus',
       'identity-verification',
       'purchases',
-      'tag-slots',
       'auth-google-signin',
       'auth-apple-signin',
       'live-activity',
@@ -112,13 +112,6 @@ describe('default-off flags (video-posts)', () => {
 
   // Finding mates from contacts needs build 13 and migration 20261007270000_contact_match, and the
   // after-sign-up step must never pop up while flags load: off until PostHog says true.
-
-  // The new tag screen needs its server change applied first, and must never swap in front of
-  // someone while flags load: off until PostHog says true.
-  it('keeps tag-slots off until switched on', () => {
-    expect(FEATURE_FLAGS).toContain('tag-slots');
-    expect(flagDefaultOn('tag-slots')).toBe(false);
-  });
 
   // The full-screen notifications page must never flash up while flags load, or before push is
   // set up on the server: off until PostHog says true.

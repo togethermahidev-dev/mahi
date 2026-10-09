@@ -14,14 +14,26 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import { haptic } from '@/lib/haptics';
 import { reportError } from '@/lib/sentry';
 import { track } from '@/lib/analytics';
 import { noteInviteSent } from '@/lib/inviteAMate';
-import type { InviteVia } from '@/lib/myInvites';
 import { useAuthStore } from '@/store';
 import KeyboardInset from '@/components/KeyboardInset';
+import InviteChannelIcon from '@/components/InviteChannelIcon';
+import { loadContacts, readDeviceContacts } from '@/lib/contactsModule';
+import { matchContacts } from '@/api/contacts';
+import {
+  buildMatchPlan,
+  buildRows,
+  contactsAccess,
+  smsInviteUrl,
+  whatsappInviteUrl,
+  type InviteContact,
+  type MatchedAccount,
+} from '@/lib/contactMatch';
 import {
   cancelTagSlot,
   getTagSlots,
@@ -33,16 +45,22 @@ import {
   type TaggedUser,
 } from '@/api';
 import {
+  SHARE_TARGETS,
+  contactPersonAction,
   inviteBlockedReason,
   isSlotRefusal,
   mergeSlots,
   personAction,
+  postButtonLabel,
   shareAppUrl,
+  shareTargetVia,
   slotErrorText,
   slotLabel,
   slotShareMessage,
   slotStateText,
+  tagScreenWords,
   type ScreenSlot,
+  type ShareTarget,
 } from '@/lib/tagSlots';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -50,6 +68,8 @@ import {
   ALPHA,
   BORDER_WIDTH,
   FONT_SIZE,
+  ICON_SIZE,
+  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
@@ -60,14 +80,15 @@ import {
 import { themeColors } from '@/lib/themeColors';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
-type ShareTarget = 'whatsapp' | 'messages' | 'more';
+/** Someone to tag or ask: a friend, anyone found on Mahi, or a contact who is on Mahi. */
+type Person = Pick<TagPerson, 'id' | 'username' | 'display_name' | 'avatar_url'>;
 
-const SHARE_TARGETS: { target: ShareTarget; label: string }[] = [
-  { target: 'whatsapp', label: 'WhatsApp' },
-  { target: 'messages', label: 'Messages' },
-  // The phone's own sheet: Copy, Instagram and every other app.
-  { target: 'more', label: 'More…' },
-];
+type ContactChoice =
+  | { kind: 'mahi'; id: string; name: string; account: MatchedAccount }
+  | { kind: 'invite'; id: string; name: string; contact: InviteContact };
+
+/** A row of the contacts list: anyone on Mahi matching the search, then your contacts. */
+type ContactListRow = ContactChoice | { kind: 'person'; id: string; person: TagPerson };
 
 const emptySlot = (challengeId: string, over: Partial<ScreenSlot>): ScreenSlot => ({
   challenge_id: challengeId,
@@ -87,25 +108,40 @@ const emptySlot = (challengeId: string, over: Partial<ScreenSlot>): ScreenSlot =
   ...over,
 });
 
+const asTagged = (p: Person): TaggedUser => ({
+  user_id: p.id,
+  username: p.username,
+  display_name: p.display_name,
+  avatar_url: p.avatar_url,
+});
+
 /**
- * The tag screen (flag `tag-slots`, owner 2026-10-03). Three slots at the top, each filled by a
- * friend you tag, an in-app invite for someone on Mahi who isn't your friend, or a link shared
- * the moment you tap. Each slot says where it's at, fresh from the server when the screen opens
- * and live while it stays open; your own taps show at once. Friends first: invites wait until
- * every friend you could tag is tagged (the server's rule too). The tag sheet is always dark.
+ * The tag screen (core workflow, 2026-10-09). A first post tags 1 mate, an answer tags the tag
+ * count (`maxTags`). Each slot is filled by a friend you tag, an in-app tag request for someone
+ * on Mahi who isn't your friend, or a link shared the moment you tap. Slots say where they're at,
+ * fresh from the server when the screen opens and live while it stays open. With no friend to
+ * tag, your contacts come next: hashes find who is on Mahi, and anyone else gets a link sent
+ * from your phone. Contact details stay on the phone, in memory only.
  *
- * Closing (Done, ✕ or a swipe down) keeps everything: links and invites already exist.
+ * Its Post button is the confirmation (no separate pop-up). Closing (✕ or a swipe down) keeps
+ * everything: links and requests already exist.
  */
 export default function TagSlotsSheet({
   visible,
   maxTags,
+  requiredTags,
   initialFriends,
   onClose,
+  onPost,
 }: {
   visible: boolean;
   maxTags: number;
+  /** Tags this post needs before it can go (the server enforces the same). */
+  requiredTags: number;
   initialFriends: TaggedUser[];
   onClose: (friends: TaggedUser[], slots: ScreenSlot[]) => void;
+  /** The Post button: posts with these tags. */
+  onPost: (friends: TaggedUser[], slots: ScreenSlot[]) => void;
 }): React.JSX.Element {
   const { dark, colors } = useAppTheme();
   const userId = useAuthStore((s) => s.user?.id);
@@ -121,10 +157,20 @@ export default function TagSlotsSheet({
   // The first read failed: say so, with Try again (bumping this reads again).
   const [loadFailed, setLoadFailed] = useState(false);
   const [loadTry, setLoadTry] = useState(0);
+  const [contactState, setContactState] = useState<
+    'idle' | 'ask' | 'loading' | 'ready' | 'denied' | 'error'
+  >('idle');
+  const [contactChoices, setContactChoices] = useState<ContactChoice[]>([]);
+  // The contact (not on Mahi) whose send buttons are open under their name.
+  const [sendingTo, setSendingTo] = useState<string | null>(null);
   const pendingCount = useRef(0);
 
+  const single = maxTags === 1;
+  const words = tagScreenWords(maxTags);
   const filled = friends.length + slots.length;
   const blocked = inviteBlockedReason({ filled, maxTags });
+  const missing = Math.max(0, requiredTags - filled);
+  const making = slots.some((s) => s.pending);
 
   const refreshSlots = useCallback(async () => {
     const { data, error } = await getTagSlots();
@@ -143,6 +189,9 @@ export default function TagSlotsSheet({
     setNotice(null);
     setLoadFailed(false);
     setLoaded(false);
+    setContactState('idle');
+    setContactChoices([]);
+    setSendingTo(null);
     let stale = false;
     (async () => {
       const [slotRes, friendRes] = await Promise.all([getTagSlots(), searchTagPeople('', 100)]);
@@ -162,6 +211,115 @@ export default function TagSlotsSheet({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, loadTry]);
+
+  const loadContactFallback = useCallback(async () => {
+    setContactState('loading');
+    try {
+      const rows = await readDeviceContacts();
+      if (!rows) {
+        setContactState('denied');
+        return;
+      }
+      const plan = await buildMatchPlan(rows, (value) =>
+        digestStringAsync(CryptoDigestAlgorithm.SHA256, value)
+      );
+      const byId = new Map<string, MatchedAccount>();
+      for (const batch of plan.batches) {
+        const { data, error } = await matchContacts(batch);
+        if (error || !data) throw error ?? new Error('match_contacts returned no data');
+        for (const account of data) {
+          const seen = byId.get(account.id);
+          byId.set(
+            account.id,
+            seen
+              ? {
+                  ...account,
+                  matched_hashes: [...seen.matched_hashes, ...account.matched_hashes],
+                }
+              : account
+          );
+        }
+      }
+      const matches = [...byId.values()];
+      const choices: ContactChoice[] = buildRows({
+        contacts: rows,
+        matches,
+        contactIdsByHash: plan.contactIdsByHash,
+        query: '',
+      }).flatMap((row): ContactChoice[] => {
+        if (row.kind === 'account') {
+          const name = row.account.display_name || row.contactName || row.account.username;
+          return [
+            { kind: 'mahi' as const, id: `mahi:${row.account.id}`, name, account: row.account },
+          ];
+        }
+        if (row.kind === 'contact') {
+          return [
+            {
+              kind: 'invite' as const,
+              id: `contact:${row.contact.id}`,
+              name: row.contact.name,
+              contact: row.contact,
+            },
+          ];
+        }
+        return [];
+      });
+      track('contacts_matched', { count_on_mahi: matches.length, count_total: rows.length });
+      setContactChoices(choices);
+      setContactState('ready');
+    } catch (error) {
+      reportError(error, { flow: 'tags', action: 'loadContactFallback' });
+      setContactState('error');
+    }
+  }, []);
+
+  // Contacts are the fallback only: if at least one Mahi friend can take this tag, the phone's
+  // contacts are neither requested nor read.
+  useEffect(() => {
+    if (!visible || !loaded || friendList === null) return;
+    const eligible = friendList.some((person) => person.is_friend && !person.has_open_tag);
+    if (eligible) {
+      setContactState('idle');
+      setContactChoices([]);
+      return;
+    }
+    const sdk = loadContacts();
+    if (!sdk) {
+      setContactState('denied');
+      return;
+    }
+    let stale = false;
+    void sdk
+      .getPermissionsAsync()
+      .then((permission) => {
+        if (stale) return;
+        const access = contactsAccess(permission);
+        if (access === 'granted') void loadContactFallback();
+        else setContactState(access);
+      })
+      .catch((error) => {
+        reportError(error, { flow: 'tags', action: 'readContactPermission', level: 'warning' });
+        if (!stale) setContactState('error');
+      });
+    return () => {
+      stale = true;
+    };
+  }, [friendList, loadContactFallback, loaded, visible]);
+
+  const askForContacts = async () => {
+    const sdk = loadContacts();
+    if (!sdk) return setContactState('denied');
+    try {
+      const answer = await sdk.requestPermissionsAsync();
+      track('contacts_permission', { granted: answer.granted });
+      if (answer.granted) await loadContactFallback();
+      else setContactState('denied');
+    } catch (error) {
+      reportError(error, { flow: 'tags', action: 'requestContactPermission' });
+      setContactState('error');
+    }
+  };
 
   // Live while open: someone joins, accepts, says not now — your slots read again.
   useEffect(() => {
@@ -220,11 +378,14 @@ export default function TagSlotsSheet({
     setNotice(text);
   };
 
-  const close = () =>
-    onClose(
-      friends,
-      slots.filter((s) => !s.pending)
-    );
+  const madeSlots = () => slots.filter((s) => !s.pending);
+  const close = () => onClose(friends, madeSlots());
+
+  const post = () => {
+    if (making) return;
+    if (missing > 0) return say(postButtonLabel(missing, filled > 0));
+    onPost(friends, madeSlots());
+  };
 
   const addPending = (over: Partial<ScreenSlot>): string => {
     pendingCount.current += 1;
@@ -244,26 +405,26 @@ export default function TagSlotsSheet({
     );
   const dropSlot = (id: string) => setSlots((list) => list.filter((s) => s.challenge_id !== id));
 
-  const tagFriend = (p: TagPerson) => {
+  const tagFriend = (p: Person) => {
     if (friends.some((f) => f.user_id === p.id)) {
       setFriends((list) => list.filter((f) => f.user_id !== p.id));
       return;
     }
-    if (filled >= maxTags) return say(`All ${maxTags} tags used`);
+    // One tag (a first post): a tap swaps the friend picked; a link or request must be taken
+    // back first.
+    if (single && slots.length === 0) {
+      haptic('selection');
+      setNotice(null);
+      setFriends([asTagged(p)]);
+      return;
+    }
+    if (filled >= maxTags) return say(blocked ?? `All ${maxTags} tags used`);
     haptic('selection');
     setNotice(null);
-    setFriends((list) => [
-      ...list,
-      {
-        user_id: p.id,
-        username: p.username,
-        display_name: p.display_name,
-        avatar_url: p.avatar_url,
-      },
-    ]);
+    setFriends((list) => [...list, asTagged(p)]);
   };
 
-  const sendTagInvite = async (p: TagPerson) => {
+  const sendTagInvite = async (p: Person) => {
     if (blocked) return say(blocked);
     haptic('selection');
     setNotice(null);
@@ -287,7 +448,8 @@ export default function TagSlotsSheet({
     track('tag_invite_sent', { challenge_id: data.challenge_id });
   };
 
-  const invitePerson = (p: TagPerson) => {
+  const invitePerson = (p: Person) => {
+    if (blocked) return say(blocked);
     Alert.alert(
       `Send a tag request to @${p.username}?`,
       // Accepting no longer makes you follow each other (owner, 2026-10-08).
@@ -299,21 +461,35 @@ export default function TagSlotsSheet({
     );
   };
 
-  // One share; only a share sheet that closed with the link sent somewhere counts as shared.
-  const share = async (slot: ScreenSlot, target: ShareTarget) => {
-    if (!slot.url || !slot.code) return;
+  /**
+   * One share; only a send that went somewhere counts. `contact`: sent straight to a picked
+   * contact (WhatsApp or Messages to their number); their name goes with the link either way, so
+   * the post can show their initials.
+   */
+  const share = async (
+    slot: ScreenSlot,
+    target: ShareTarget,
+    contact?: InviteContact
+  ): Promise<boolean> => {
+    if (!slot.url || !slot.code) return false;
     const message = slotShareMessage(slot.url, slot.code);
+    const platform = Platform.OS === 'ios' ? 'ios' : 'android';
     let shared = false;
     // How it really went: the share sheet when the app asked for isn't on this phone.
-    let via: InviteVia = target === 'more' ? 'share' : target;
+    let via = shareTargetVia(target, !!contact);
     try {
-      if (target === 'more') {
-        shared = (await Share.share({ message })).action === Share.sharedAction;
-      } else {
-        await Linking.openURL(
-          shareAppUrl(target, message, Platform.OS === 'ios' ? 'ios' : 'android')
-        );
+      if (target === 'whatsapp' || target === 'messages') {
+        const url = contact
+          ? target === 'whatsapp'
+            ? whatsappInviteUrl(contact.phone, message)
+            : smsInviteUrl(contact.phone, message, platform)
+          : shareAppUrl(target, message, platform);
+        await Linking.openURL(url);
         shared = true;
+      } else {
+        // Snap and IG have no kit in this build: the phone's sheet, with the link for a preview.
+        const content = target === 'more' ? { message } : { message, url: slot.url };
+        shared = (await Share.share(content)).action === Share.sharedAction;
       }
     } catch {
       // The app isn't on this phone: the phone's own sheet instead.
@@ -326,12 +502,18 @@ export default function TagSlotsSheet({
           action: 'shareLink',
           extra: { challengeId: slot.challenge_id, target },
         });
-        return say('Couldn’t open sharing. Try again.');
+        say('Couldn’t open sharing. Try again.');
+        return false;
       }
     }
-    if (!shared) return;
+    if (!shared) return false;
     replaceSlot(slot.challenge_id, { state: 'shared' });
-    noteInviteSent(slot.token, via);
+    noteInviteSent(
+      slot.token,
+      via,
+      contact?.name ?? null,
+      contact && via === 'contact' ? contact.phone : null
+    );
     void markInviteShared(slot.challenge_id).then(({ error }) => {
       if (error) {
         reportError(error, {
@@ -342,10 +524,14 @@ export default function TagSlotsSheet({
         });
       }
     });
-    track('invite_shared', { via: target, challenge_id: slot.challenge_id });
+    track('invite_shared', {
+      via: target === 'whatsapp' || target === 'messages' ? target : 'more',
+      challenge_id: slot.challenge_id,
+    });
+    return true;
   };
 
-  const shareNewLink = async (target: ShareTarget) => {
+  const shareNewLink = async (target: ShareTarget, contact?: InviteContact) => {
     if (blocked) return say(blocked);
     haptic('selection');
     setNotice(null);
@@ -360,7 +546,8 @@ export default function TagSlotsSheet({
     }
     const made = { ...data, pending: false };
     replaceSlot(tempId, made);
-    await share(emptySlot(data.challenge_id, made), target);
+    const sent = await share(emptySlot(data.challenge_id, made), target, contact);
+    if (sent && contact) setSendingTo(null);
   };
 
   // A link or a tag request may already be with someone: ask before taking it back (the bigger
@@ -396,7 +583,131 @@ export default function TagSlotsSheet({
     }
   };
 
-  const listed = query.trim() ? results : (friendList ?? []);
+  // What tapping someone does: tag, untag, send a tag request, or nothing (with why).
+  const pressPerson = (p: TagPerson) => {
+    const inSlot = slots.some((s) => s.user_id === p.id);
+    if (inSlot) return;
+    const { action } = personAction(
+      p,
+      friends.some((f) => f.user_id === p.id)
+    );
+    if (action === 'tag' || action === 'untag') tagFriend(p);
+    else if (action === 'invite') invitePerson(p);
+  };
+
+  const pressContact = (item: ContactChoice) => {
+    if (item.kind === 'invite') {
+      if (blocked) return say(blocked);
+      setSendingTo((id) => (id === item.id ? null : item.id));
+      return;
+    }
+    const a = item.account;
+    const person: Person = {
+      id: a.id,
+      username: a.username,
+      display_name: a.display_name,
+      avatar_url: a.avatar_url,
+    };
+    if (friends.some((f) => f.user_id === a.id)) return tagFriend(person);
+    const openTag = (friendList ?? []).some((f) => f.id === a.id && f.has_open_tag);
+    const action = contactPersonAction(a, openTag);
+    if (action === 'tag') tagFriend(person);
+    else if (action === 'invite') invitePerson(person);
+  };
+
+  const eligibleFriends = (friendList ?? []).filter(
+    (person) => person.is_friend && !person.has_open_tag
+  );
+  const contactsMode = loaded && eligibleFriends.length === 0;
+  const q = query.trim();
+  const listed = q ? results : (friendList ?? []);
+  const contactRows: ContactListRow[] = q
+    ? [
+        ...results.map((person) => ({ kind: 'person' as const, id: person.id, person })),
+        ...contactChoices.filter((c) => c.name.toLowerCase().includes(q.toLowerCase())),
+      ]
+    : contactChoices;
+
+  const shareButtons = (onSend: (target: ShareTarget) => void, to?: string) => (
+    <View style={styles.shareRow}>
+      {SHARE_TARGETS.map(({ target, label }) => (
+        <Pressable
+          key={target}
+          accessibilityRole="button"
+          accessibilityLabel={to ? `Send ${to} a link by ${label}` : `Send a link by ${label}`}
+          accessibilityState={{ disabled: !!blocked }}
+          style={({ pressed }) => [
+            styles.shareButton,
+            { backgroundColor: withAlpha(colors.text, ALPHA.a10) },
+            blocked ? styles.shareButtonOff : null,
+            pressed && styles.pressed,
+          ]}
+          onPress={() => onSend(target)}
+        >
+          {target === 'more' ? null : (
+            <InviteChannelIcon channel={target} size={ICON_SIZE.i16} color={colors.text} />
+          )}
+          <Text style={[styles.shareButtonText, { color: colors.text }]} numberOfLines={1}>
+            {label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+
+  const contactRow = (row: ContactListRow) => {
+    if (row.kind === 'person') {
+      const p = row.person;
+      const tagged = friends.some((f) => f.user_id === p.id);
+      const inSlot = slots.find((s) => s.user_id === p.id);
+      const { action, note } = inSlot
+        ? { action: 'none' as const, note: slotStateText(inSlot.state).toLowerCase() }
+        : personAction(p, tagged);
+      return (
+        <ListRow
+          name={p.display_name ?? p.username}
+          handle={`@${p.username}${note ? ` · ${note}` : ''}`}
+          avatarUrl={p.avatar_url}
+          end={tagged ? 'Tagged ✓' : action === 'invite' ? 'Ask' : action === 'tag' ? 'Tag' : null}
+          disabled={action === 'none'}
+          onPress={() => pressPerson(p)}
+        />
+      );
+    }
+    if (row.kind === 'mahi') {
+      const a = row.account;
+      const tagged = friends.some((f) => f.user_id === a.id);
+      const inSlot = slots.find((s) => s.user_id === a.id);
+      const openTag = (friendList ?? []).some((f) => f.id === a.id && f.has_open_tag);
+      const action = inSlot ? 'none' : contactPersonAction(a, openTag);
+      return (
+        <ListRow
+          name={row.name}
+          handle={`@${a.username} · ${inSlot ? slotStateText(inSlot.state).toLowerCase() : 'on Mahi'}`}
+          avatarUrl={a.avatar_url}
+          end={tagged ? 'Tagged ✓' : action === 'invite' ? 'Ask' : action === 'tag' ? 'Tag' : null}
+          disabled={action === 'none' && !tagged}
+          onPress={() => pressContact(row)}
+        />
+      );
+    }
+    const open = sendingTo === row.id;
+    return (
+      <View>
+        <ListRow
+          name={row.name}
+          handle={open ? 'Send them a link' : null}
+          end={open ? null : 'Invite'}
+          onPress={() => pressContact(row)}
+        />
+        {open ? (
+          <View style={styles.contactSend}>
+            {shareButtons((target) => void shareNewLink(target, row.contact), row.name)}
+          </View>
+        ) : null}
+      </View>
+    );
+  };
 
   return (
     // The system page sheet: swipe down (or ✕) closes; onRequestClose fires for both.
@@ -409,7 +720,7 @@ export default function TagSlotsSheet({
       <View style={[styles.panel, { backgroundColor: colors.bg }]}>
         <View style={styles.headerRow}>
           <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-            Who are you holding accountable?
+            {words.title}
           </Text>
           <View style={styles.headerEnd}>
             <Text style={[styles.counter, { color: colors.muted }]}>
@@ -427,9 +738,7 @@ export default function TagSlotsSheet({
           </View>
         </View>
 
-        <Text style={[styles.prompt, { color: colors.muted }]}>
-          Pick {maxTags} friends you want to see show up on Mahi.
-        </Text>
+        <Text style={[styles.prompt, { color: colors.muted }]}>{words.prompt}</Text>
 
         {!loaded ? (
           <View style={styles.loading}>
@@ -440,33 +749,28 @@ export default function TagSlotsSheet({
             {slots.length > 0 ? (
               <View style={styles.slotRow}>
                 {slots.map((slot) => {
-                  if (slot) {
-                    const linkIndex = slots
-                      .filter((s) => s.kind === 'link')
-                      .findIndex((s) => s.challenge_id === slot.challenge_id);
-                    const canReshare =
-                      slot.kind === 'link' &&
-                      (slot.state === 'link_ready' || slot.state === 'shared');
-                    return (
-                      <SlotCircle
-                        key={slot.challenge_id}
-                        name={slotLabel(slot, Math.max(linkIndex, 0))}
-                        state={
-                          slot.pending && slot.kind === 'link'
-                            ? 'Making link…'
-                            : slotStateText(slot.state)
-                        }
-                        avatarUrl={slot.avatar_url}
-                        initial={slot.username ? (slot.display_name ?? slot.username)[0] : '↗'}
-                        busy={slot.pending}
-                        onPress={
-                          canReshare && !slot.pending ? () => share(slot, 'more') : undefined
-                        }
-                        onRemove={slot.pending ? undefined : () => confirmRemove(slot)}
-                      />
-                    );
-                  }
-                  return null;
+                  const linkIndex = slots
+                    .filter((s) => s.kind === 'link')
+                    .findIndex((s) => s.challenge_id === slot.challenge_id);
+                  const canReshare =
+                    slot.kind === 'link' &&
+                    (slot.state === 'link_ready' || slot.state === 'shared');
+                  return (
+                    <SlotCircle
+                      key={slot.challenge_id}
+                      name={slotLabel(slot, Math.max(linkIndex, 0))}
+                      state={
+                        slot.pending && slot.kind === 'link'
+                          ? 'Making link…'
+                          : slotStateText(slot.state)
+                      }
+                      avatarUrl={slot.avatar_url}
+                      initial={slot.username ? (slot.display_name ?? slot.username)[0] : '↗'}
+                      busy={slot.pending}
+                      onPress={canReshare && !slot.pending ? () => share(slot, 'more') : undefined}
+                      onRemove={slot.pending ? undefined : () => confirmRemove(slot)}
+                    />
+                  );
                 })}
               </View>
             ) : null}
@@ -476,24 +780,7 @@ export default function TagSlotsSheet({
                 {blocked ??
                   'Want to see someone else show up? Send a link. When they join, you’ll automatically follow each other.'}
               </Text>
-              <View style={styles.shareRow}>
-                {SHARE_TARGETS.map(({ target, label }) => (
-                  <Pressable
-                    key={target}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Send a link by ${label}`}
-                    accessibilityState={{ disabled: !!blocked }}
-                    style={({ pressed }) => [
-                      styles.shareButton,
-                      blocked ? styles.shareButtonOff : null,
-                      pressed && styles.pressed,
-                    ]}
-                    onPress={() => shareNewLink(target)}
-                  >
-                    <Text style={styles.shareButtonText}>{label}</Text>
-                  </Pressable>
-                ))}
-              </View>
+              {shareButtons((target) => void shareNewLink(target))}
             </View>
 
             {notice ? (
@@ -521,72 +808,191 @@ export default function TagSlotsSheet({
               ]}
               value={query}
               onChangeText={setQuery}
-              placeholder="Search friends or anyone on Mahi"
+              placeholder={
+                contactsMode && contactState === 'ready'
+                  ? 'Search contacts or anyone on Mahi'
+                  : 'Search friends or anyone on Mahi'
+              }
               placeholderTextColor={colors.muted}
               autoCapitalize="none"
               autoCorrect={false}
               autoComplete="off"
               returnKeyType="search"
               clearButtonMode="while-editing"
-              keyboardAppearance="dark"
+              keyboardAppearance={dark ? 'dark' : 'light'}
             />
 
-            <FlatList
-              data={listed}
-              numColumns={4}
-              keyExtractor={(p) => p.id}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
-              style={styles.list}
-              contentContainerStyle={styles.peopleGrid}
-              columnWrapperStyle={styles.peopleRow}
-              ListEmptyComponent={
-                searching ? null : (
-                  <Text style={[styles.empty, { color: colors.muted }]}>
-                    {query.trim()
-                      ? 'No one found.'
-                      : 'No accountability partners yet. Follow each other, or send a link.'}
+            {!contactsMode ? (
+              <FlatList
+                data={listed}
+                numColumns={4}
+                keyExtractor={(p) => p.id}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                style={styles.list}
+                contentContainerStyle={styles.peopleGrid}
+                columnWrapperStyle={styles.peopleRow}
+                ListEmptyComponent={
+                  searching ? null : (
+                    <Text style={[styles.empty, { color: colors.muted }]}>
+                      {q ? 'No one found.' : 'No friends yet. Follow each other, or send a link.'}
+                    </Text>
+                  )
+                }
+                renderItem={({ item }) => {
+                  const tagged = friends.some((f) => f.user_id === item.id);
+                  // Someone already in a slot (invited, joined, accepted) says where it's at.
+                  const inSlot = slots.find((s) => s.user_id === item.id);
+                  const { action, note } = inSlot
+                    ? { action: 'none' as const, note: slotStateText(inSlot.state).toLowerCase() }
+                    : personAction(item, tagged);
+                  return (
+                    <PersonRow
+                      person={item}
+                      picked={tagged || !!inSlot}
+                      note={note}
+                      action={action}
+                      onPress={() => pressPerson(item)}
+                    />
+                  );
+                }}
+              />
+            ) : contactState === 'ready' || q ? (
+              <FlatList
+                data={contactRows}
+                keyExtractor={(row) => row.id}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                style={styles.list}
+                contentContainerStyle={styles.contactList}
+                ListHeaderComponent={
+                  q ? null : (
+                    <Text style={[styles.cardEyebrow, { color: colors.muted }]}>
+                      From your contacts
+                    </Text>
+                  )
+                }
+                ListEmptyComponent={
+                  searching ? null : (
+                    <Text style={[styles.empty, { color: colors.muted }]}>
+                      {q ? 'No one found.' : 'No contacts to show.'}
+                    </Text>
+                  )
+                }
+                renderItem={({ item }) => contactRow(item)}
+              />
+            ) : (
+              <View style={styles.contactState}>
+                {contactState === 'loading' || contactState === 'idle' ? (
+                  <ActivityIndicator color={colors.text} />
+                ) : contactState === 'ask' ? (
+                  <>
+                    <Text style={[styles.contactCopy, { color: colors.muted }]}>
+                      You don’t have a friend on Mahi to tag yet. Pick someone from your contacts
+                      and we’ll write the invite for you.
+                    </Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => void askForContacts()}
+                      style={({ pressed }) => [
+                        styles.contactButton,
+                        { backgroundColor: colors.text },
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <Text style={[styles.contactButtonText, { color: colors.bg }]}>
+                        Choose from contacts
+                      </Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <Text style={[styles.contactCopy, { color: colors.muted }]}>
+                    Contacts aren’t available. Send a link above instead.
                   </Text>
-                )
-              }
-              renderItem={({ item }) => {
-                const tagged = friends.some((f) => f.user_id === item.id);
-                // Someone already in a slot (invited, joined, accepted) says where it's at.
-                const inSlot = slots.find((s) => s.user_id === item.id);
-                const { action, note } = inSlot
-                  ? { action: 'none' as const, note: slotStateText(inSlot.state).toLowerCase() }
-                  : personAction(item, tagged);
-                return (
-                  <PersonRow
-                    person={item}
-                    picked={tagged || !!inSlot}
-                    note={note}
-                    action={action}
-                    onPress={() => {
-                      if (action === 'tag' || action === 'untag') tagFriend(item);
-                      else if (action === 'invite') invitePerson(item);
-                    }}
-                  />
-                );
-              }}
-            />
+                )}
+              </View>
+            )}
           </>
         )}
 
+        <Text style={[styles.footer, { color: colors.muted }]}>{words.footer}</Text>
         <Pressable
           accessibilityRole="button"
+          accessibilityState={{ disabled: making || missing > 0, busy: making }}
           style={({ pressed }) => [
             styles.done,
             { backgroundColor: colors.text },
+            (making || missing > 0) && styles.doneOff,
             pressed && styles.pressed,
           ]}
-          onPress={close}
+          onPress={post}
         >
-          <Text style={[styles.doneText, { color: colors.bg }]}>Done</Text>
+          <Text style={[styles.doneText, { color: colors.bg }]}>
+            {missing > 0 ? postButtonLabel(missing, filled > 0) : 'Post'}
+          </Text>
         </Pressable>
         <KeyboardInset />
       </View>
     </Modal>
+  );
+}
+
+/** One person in the contacts list: their picture or initial, name, a line, and what a tap does. */
+function ListRow({
+  name,
+  handle,
+  avatarUrl,
+  end,
+  disabled,
+  onPress,
+}: {
+  name: string;
+  handle: string | null;
+  avatarUrl?: string | null;
+  end: string | null;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  const { dark, colors } = useAppTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={[name, handle, end].filter(Boolean).join(', ')}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.contactRow,
+        disabled && styles.rowOff,
+        pressed && styles.pressed,
+      ]}
+    >
+      <View
+        style={[
+          styles.contactAvatar,
+          { backgroundColor: dark ? COLORS.surfaceDark2 : COLORS.surfaceLight },
+        ]}
+      >
+        {avatarUrl ? (
+          <Image source={{ uri: avatarUrl, cache: 'force-cache' }} style={styles.contactAvatar} />
+        ) : (
+          <Text style={[styles.contactInitial, { color: colors.text }]}>
+            {(name[0] ?? '?').toUpperCase()}
+          </Text>
+        )}
+      </View>
+      <View style={styles.contactNameWrap}>
+        <Text style={[styles.contactName, { color: colors.text }]} numberOfLines={1}>
+          {name}
+        </Text>
+        {handle ? (
+          <Text style={[styles.contactHandle, { color: colors.muted }]} numberOfLines={1}>
+            {handle}
+          </Text>
+        ) : null}
+      </View>
+      {end ? <Text style={[styles.contactTag, { color: colors.text }]}>{end}</Text> : null}
+    </Pressable>
   );
 }
 
@@ -758,6 +1164,55 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  cardEyebrow: {
+    fontSize: FONT_SIZE.f12,
+    fontFamily: FONTS.semiBold,
+    paddingBottom: SPACE.s4,
+  },
+  contactState: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: SPACE.s16,
+  },
+  contactCopy: {
+    fontSize: FONT_SIZE.f15,
+    lineHeight: LINE_HEIGHT.l22,
+    fontFamily: FONTS.regular,
+    textAlign: 'center',
+  },
+  contactButton: {
+    minHeight: SIZE.z52,
+    borderRadius: RADIUS.r50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACE.s16,
+  },
+  contactButtonText: {
+    fontSize: FONT_SIZE.f16,
+    fontFamily: FONTS.semiBold,
+  },
+  contactList: { paddingBottom: SPACE.s8 },
+  contactSend: { paddingVertical: SPACE.s8 },
+  contactRow: {
+    minHeight: SIZE.z64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: withAlpha(COLORS.offWhite, ALPHA.a12),
+  },
+  contactAvatar: {
+    width: SIZE.z40,
+    height: SIZE.z40,
+    borderRadius: RADIUS.r20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contactInitial: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.semiBold },
+  contactNameWrap: { flex: 1, gap: SPACE.s2 },
+  contactName: { fontSize: FONT_SIZE.f15, fontFamily: FONTS.semiBold },
+  contactHandle: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular },
+  contactTag: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.semiBold },
   slotRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: SPACE.s8 },
   slot: { width: SIZE.z88, alignItems: 'center', gap: SPACE.s4 },
   slotCircle: {
@@ -806,13 +1261,16 @@ const styles = StyleSheet.create({
   shareRow: { flexDirection: 'row', gap: SPACE.s8 },
   shareButton: {
     flex: 1,
-    paddingVertical: SPACE.s10,
-    borderRadius: RADIUS.r50,
+    minHeight: SIZE.z44,
+    paddingVertical: SPACE.s6,
+    borderRadius: RADIUS.r12,
     backgroundColor: withAlpha(COLORS.offWhite, ALPHA.a10),
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.s2,
   },
   shareButtonOff: { opacity: ALPHA.a35 },
-  shareButtonText: { color: COLORS.offWhite, fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
+  shareButtonText: { color: COLORS.offWhite, fontSize: FONT_SIZE.f12, fontFamily: FONTS.semiBold },
   notice: { color: COLORS.amber, fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular },
   retry: { alignSelf: 'flex-start', minHeight: SIZE.z44, justifyContent: 'center' },
   retryText: { color: COLORS.offWhite, fontSize: FONT_SIZE.f15, fontFamily: FONTS.semiBold },
@@ -881,6 +1339,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   gridCheckText: { color: COLORS.offBlack, fontSize: FONT_SIZE.f12, fontFamily: FONTS.bold },
+  footer: {
+    fontSize: FONT_SIZE.f12,
+    lineHeight: LINE_HEIGHT.l18,
+    fontFamily: FONTS.regular,
+    textAlign: 'center',
+  },
+  doneOff: { opacity: ALPHA.a50 },
   done: {
     backgroundColor: COLORS.offWhite,
     borderRadius: RADIUS.r50,

@@ -1,4 +1,7 @@
 import {
+  HOLD_UP,
+  SHARE_TARGETS,
+  contactPersonAction,
   inviteBlockedReason,
   isSlotRefusal,
   mateInviteErrorText,
@@ -7,13 +10,14 @@ import {
   postRefusal,
   personAction,
   postButtonLabel,
-  postConfirmText,
   shareAppUrl,
+  shareTargetVia,
   slotErrorText,
   slotLabel,
   slotShareMessage,
   slotStateText,
   tagInviteState,
+  tagScreenWords,
   type ScreenSlot,
 } from '../tagSlots';
 
@@ -69,6 +73,10 @@ describe('inviteBlockedReason', () => {
 
   it('blocks once every slot is filled', () => {
     expect(inviteBlockedReason({ filled: 3, maxTags: 3 })).toBe('All 3 tags used');
+  });
+
+  it('a first post’s one tag reads as your mate picked', () => {
+    expect(inviteBlockedReason({ filled: 1, maxTags: 1 })).toBe('You’ve picked your mate');
   });
 });
 
@@ -307,29 +315,76 @@ describe('postButtonLabel', () => {
   });
 });
 
-// Usability walkthrough 2026-10-07: the "are you sure" before posting says what posting does.
-describe('postConfirmText', () => {
-  it('a post that answers nothing: your friends get 48 hours, and the feed opens', () => {
-    expect(postConfirmText({ answering: [], anyTagged: true })).toEqual({
-      title: 'Happy with your post?',
-      body: 'Your friends get 48 hours to answer you. Posting opens your feed for 24 hours.',
+// Core workflow 2026-10-09: the tag screen's Post is the confirmation, so its words say what
+// posting starts.
+describe('tagScreenWords', () => {
+  it('a first post tags one mate', () => {
+    expect(tagScreenWords(1)).toEqual({
+      title: 'Tag 1 mate',
+      prompt: 'Pick 1 mate you want to see show up on Mahi.',
+      footer: 'Your mate gets 48 hours to answer. You can edit your caption for 1 hour.',
     });
   });
 
-  it('answering a tag: names whose, and says it earns a point', () => {
-    expect(postConfirmText({ answering: ['sam'], anyTagged: true })).toEqual({
-      title: 'Answer @sam?',
-      body: 'This earns a Mahi point. Your friends get 48 hours to answer you.',
+  it('an answer tags the tag count', () => {
+    expect(tagScreenWords(3)).toEqual({
+      title: 'Tag 3 friends',
+      prompt: 'Pick 3 friends you want to see show up on Mahi.',
+      footer: 'Your mates get 48 hours to answer. You can edit your caption for 1 hour.',
     });
-    expect(postConfirmText({ answering: ['sam', 'ali'], anyTagged: true }).title).toBe(
-      'Answer @sam and 1 more?'
-    );
+  });
+});
+
+describe('the first post’s hold up card', () => {
+  it('says why and offers the tag screen', () => {
+    expect(HOLD_UP).toEqual({
+      title: 'Hold up ✋',
+      line: 'Tag a friend to post your first Mahi. They’ll get a link to show up as well.',
+      button: 'Tag mates',
+    });
+  });
+});
+
+describe('share targets', () => {
+  it('WhatsApp, Messages, Snap, IG, then the phone’s own sheet', () => {
+    expect(SHARE_TARGETS.map((t) => t.label)).toEqual([
+      'WhatsApp',
+      'Messages',
+      'Snap',
+      'IG',
+      'More…',
+    ]);
   });
 
-  it('a first answer that tags nobody promises no 48 hours', () => {
-    expect(postConfirmText({ answering: ['sam'], anyTagged: false })).toEqual({
-      title: 'Answer @sam?',
-      body: 'This earns a Mahi point.',
-    });
+  it('Snap and IG go through the share sheet, so they are recorded as share', () => {
+    expect(shareTargetVia('snapchat', false)).toBe('share');
+    expect(shareTargetVia('instagram', true)).toBe('share');
+    expect(shareTargetVia('more', false)).toBe('share');
+  });
+
+  it('WhatsApp and Messages to a picked contact are recorded as contact', () => {
+    expect(shareTargetVia('whatsapp', false)).toBe('whatsapp');
+    expect(shareTargetVia('messages', false)).toBe('messages');
+    expect(shareTargetVia('whatsapp', true)).toBe('contact');
+    expect(shareTargetVia('messages', true)).toBe('contact');
+  });
+});
+
+// The server refuses a non-friend in tagged users: someone from your contacts on Mahi is tagged
+// only when you follow each other, otherwise they get a tag request.
+describe('contactPersonAction', () => {
+  const account = { is_following: true, follows_you: true };
+
+  it('tags a friend', () => {
+    expect(contactPersonAction(account, false)).toBe('tag');
+  });
+
+  it('a friend you already tagged can’t be tagged again', () => {
+    expect(contactPersonAction(account, true)).toBe('none');
+  });
+
+  it('anyone else gets a tag request', () => {
+    expect(contactPersonAction({ is_following: true, follows_you: false }, false)).toBe('invite');
+    expect(contactPersonAction({ is_following: false, follows_you: true }, false)).toBe('invite');
   });
 });

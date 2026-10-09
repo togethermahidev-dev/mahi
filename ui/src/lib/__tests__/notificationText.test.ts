@@ -38,6 +38,23 @@ describe('notification list wording', () => {
     );
   });
 
+  // A mate who joined from your tag link: the row has the tag's challenge_id (core workflow 15).
+  it('a join from your tag says so, by first name when known', () => {
+    expect(notificationText('invite_joined', 'sam', { fromTag: true })).toBe(
+      '@sam joined Mahi from your tag 🎉'
+    );
+    expect(
+      notificationText('invite_joined', 'sam', {
+        fromTag: true,
+        firstName: 'Sam',
+        followRequest: true,
+      })
+    ).toBe('Sam joined Mahi from your tag 🎉');
+    expect(notificationText('invite_joined', 'sam', { fromTag: true, firstName: ' ' })).toBe(
+      '@sam joined Mahi from your tag 🎉'
+    );
+  });
+
   it('a follow request and its yes match their pushes', () => {
     expect(notificationText('follow_request', 'sam')).toBe('@sam wants to follow you');
     expect(notificationText('follow_accepted', 'sam')).toBe('@sam accepted your follow request');

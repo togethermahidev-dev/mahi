@@ -12,13 +12,23 @@ export function requiredTagCount(
 }
 
 /**
- * Tags this post needs: the first workout needs no tags, whether the person arrived alone or
- * through a mate's tag. Every later answer needs `required` so accountability keeps moving.
- * `firstPost` is null until it's known, and then the usual rule holds. The server
- * (`20261008140000_first_workout_no_tags`) enforces the same.
+ * The first post tags exactly one mate (core workflow, 2026-10-09). A constant, never read from
+ * app_config, so this app also works on a server that still allows 0–3 on a first post.
+ */
+export const FIRST_POST_TAGS = 1;
+
+/**
+ * Tags this post needs: the first post tags `FIRST_POST_TAGS`, whether the person arrived alone or
+ * through a mate's tag; every answer needs `required`. `firstPost` is null until it's known, and
+ * then the answer rule holds. The server's create_post enforces the same.
  */
 export function postTagsRequired(required: number, s: { firstPost: boolean | null }): number {
-  return s.firstPost === true ? 0 : required;
+  return s.firstPost === true ? FIRST_POST_TAGS : required;
+}
+
+/** The most people the camera lets you tag: one on the first post, otherwise the tag count. */
+export function maxTagsFor(firstPost: boolean | null, tagCount: number): number {
+  return firstPost === true ? FIRST_POST_TAGS : Math.max(tagCount, 1);
 }
 
 /**
