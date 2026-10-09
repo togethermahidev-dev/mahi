@@ -20,6 +20,8 @@ import type { Database } from '@/types';
 import type { AnswerTiming } from '@/lib/answerTiming';
 import { pointsAfterDelete } from '@/lib/mahiPoints';
 import type { ProfileRestriction } from '@/lib/accountControls';
+import type { OpenTag } from '@/api/tags';
+import { tagsFromFeed } from '@/lib/feedLockReason';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
@@ -66,6 +68,8 @@ export type FeedPage = {
   unlockedUntil: string | null;
   /** server clock − device clock at read time. */
   serverOffsetMs: number;
+  /** Your open tags, from the same read (why a locked feed is locked); null from an older server. */
+  openTags: OpenTag[] | null;
 };
 
 /** One post as get_feed / get_user_posts return it (public.feed_item). */
@@ -193,6 +197,7 @@ export async function getFeed(
     unlocked_until: string | null;
     server_now: string;
     items: FeedItem[];
+    open_tags?: unknown;
   };
   try {
     return {
@@ -201,6 +206,7 @@ export async function getFeed(
         locked: page.locked,
         unlockedUntil: page.unlocked_until,
         serverOffsetMs: new Date(page.server_now).getTime() - requestedAt,
+        openTags: tagsFromFeed(page.open_tags),
       },
       error: null,
     };

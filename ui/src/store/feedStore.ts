@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { track } from '@/lib/analytics';
 import { reportError } from '@/lib/sentry';
 import { getFeed, type FeedPost, type FeedCursor } from '@/api';
+import { useTagStore } from './tagStore';
 
 const PAGE_SIZE = 20;
 
@@ -79,6 +80,16 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         serverOffsetMs: data.serverOffsetMs,
         loaded: true,
       });
+      // The feed read also says who tagged you (2026-10-09), so a locked feed and the camera know
+      // why even if the separate tags read failed. Fresh server data, never a saved copy.
+      if (data.openTags) {
+        useTagStore.setState({
+          openTags: data.openTags,
+          serverOffsetMs: data.serverOffsetMs,
+          openTagsLoaded: true,
+          openTagsError: false,
+        });
+      }
     } else if (error) {
       reportError(error, { flow: 'feed', action: 'loadFeed', extra: { rpc: 'get_feed', force } });
       set({ error });
