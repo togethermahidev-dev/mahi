@@ -189,8 +189,8 @@ select is(
 -- 6. Once invite links are switched on, every slot must be filled. N's only friend is A, whose
 --    tag N is answering: since 20261007240000_tag_back N may tag A back in that answer.
 update public.app_config set invite_links_enabled = true;
--- N had a post before (since deleted): only a first post that answers a tag may leave slots
--- empty (20261007190000_first_answer_no_tags, tested in first_answer_no_tags_test).
+-- N had a post before (since deleted): only a first post may leave slots empty (first_post_tags = 0
+-- above, the 20261008140000_first_workout_no_tags rule; the one-tag first post is first_post_one_tag_test).
 update public.profiles set has_posted_before = true where id = '00000000-0000-0000-0000-00000000d00c';
 select pg_temp.as_user('00000000-0000-0000-0000-00000000d00c');
 select is(

@@ -73,7 +73,7 @@ Manages the authenticated user's profile including the Mahi points counters (sto
   contact_number: string | null;
   fitness_goals: string[] | null;
   avatar_url: string | null;
-  streak_current: number;           // Mahi points: +1 per answering post; back to 0 after a missed tag
+  streak_current: number;           // Mahi points: +1 for the first post and each answering post (deleting a post takes its point back); back to 0 after a missed tag
   streak_highest: number;           // Best points, never lowered
   is_private?: boolean;             // Settings → Controls (missing from a server without them)
   posts_visibility?: 'everyone' | 'followers' | 'friends';
@@ -88,7 +88,7 @@ const current = useUserStore.getState().profile;
 setProfile({ ...current, streak_current: streakResult.streak_current, ... });
 ```
 
-**No training days or rest days.** Mahi points count posts that answer a tag,
+**No training days or rest days.** Mahi points count your first post and posts that answer a tag (deleting a post takes its point back),
 not days (there is no daily streak); the server keeps `streak_current` and `streak_highest` and the app only reads them.
 `fitness_routine`, `streak_lowest` and `streak_last_upload_date` are gone (`20261001170000_drop_rest_days`).
 
@@ -332,7 +332,7 @@ Persists sign-up form state across app backgrounding mid-flow. Cleared on comple
 | `useNotificationsStore` | `notificationsStore.ts` | Activity items, `unreadCount`, realtime `subscribe`/`unsubscribe`, `markRead`/`markAllRead`; tracks `tag_missed` and `streak_lost` as they arrive |
 | `useSuggestStore` | `suggestStore.ts` | "Suggested for you" list, `followSuggested` |
 | `useBlockStore` | `blockStore.ts` | Blocked ids both ways (`isBlocked`), `block`/`unblock`; refreshes feed, messages and follows |
-| `usePushStore` | `pushStore.ts` | Whether this device's push token is registered, what the phone says about notifications, and whether the "turn on notifications" page and the camera's reminder line have been answered or dismissed on this device |
+| `usePushStore` | `pushStore.ts` | Whether this device's push token is registered, what the phone says about notifications, and whether the "turn on notifications" page has been answered on this device |
 | `useTagStore` | `tagStore.ts` | Open tags (memory only, they expire), `serverOffsetMs`, `openTagsLoaded`, `requiredTags`/`maxTags` from `app_config` |
 | `useInviteStore` | `inviteStore.ts` | The invite token/code the app was opened with (memory only) and its claim |
 | `useToastStore` | `toastStore.ts` | One toast message for failed mutations (imported directly, not from the barrel) |

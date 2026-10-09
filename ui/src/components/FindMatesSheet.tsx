@@ -68,8 +68,6 @@ interface FindMatesSheetProps {
   visible: boolean;
   onClose: () => void;
   dark: boolean;
-  /** 'welcome': the step right after sign-up, full screen with "Not now". Else a page sheet. */
-  mode?: 'sheet' | 'welcome';
 }
 
 /**
@@ -82,38 +80,27 @@ export default function FindMatesSheet({
   visible,
   onClose,
   dark,
-  mode = 'sheet',
 }: FindMatesSheetProps): React.JSX.Element {
   const bg = dark ? COLORS.bgDark : COLORS.white;
-  const welcome = mode === 'welcome';
   return (
     <Modal
       visible={visible}
-      animationType={welcome ? 'fade' : 'slide'}
-      presentationStyle={welcome ? 'fullScreen' : 'pageSheet'}
+      animationType="slide"
+      presentationStyle="pageSheet"
       onRequestClose={onClose}
-      statusBarTranslucent={welcome}
     >
       {/* Its own native window: gesture-handler needs its own root (a profile opened from a row
           swipes closed with a pan). It mounts on open, so every open starts fresh. */}
       <GestureHandlerRootView style={styles.root}>
         <SafeAreaProvider style={{ backgroundColor: bg }}>
-          <FindMates onClose={onClose} dark={dark} welcome={welcome} />
+          <FindMates onClose={onClose} dark={dark} />
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </Modal>
   );
 }
 
-function FindMates({
-  onClose,
-  dark,
-  welcome,
-}: {
-  onClose: () => void;
-  dark: boolean;
-  welcome: boolean;
-}) {
+function FindMates({ onClose, dark }: { onClose: () => void; dark: boolean }) {
   const insets = useSafeAreaInsets();
   const userId = useAuthStore((s) => s.user?.id);
   const show = useToastStore((s) => s.show);
@@ -490,29 +477,23 @@ function FindMates({
     );
   };
 
-  // The step after sign-up ends with "Not now" (or "Done" once there's a list); the sheet has back.
-  const closeLabel = view === 'results' ? 'Done' : 'Not now';
   const header = (
     <View
       style={[styles.header, { borderBottomColor: border, paddingTop: insets.top + SPACE.s16 }]}
     >
-      {welcome ? (
-        <View style={styles.spacer} />
-      ) : (
-        <Pressable
-          onPress={onClose}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          style={({ pressed }) => [
-            styles.backBtn,
-            { borderColor: border },
-            pressed && styles.pressed,
-          ]}
-          hitSlop={OFFSET.o8}
-        >
-          <Text style={[styles.backArrow, { color: text }]}>{'‹'}</Text>
-        </Pressable>
-      )}
+      <Pressable
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+        style={({ pressed }) => [
+          styles.backBtn,
+          { borderColor: border },
+          pressed && styles.pressed,
+        ]}
+        hitSlop={OFFSET.o8}
+      >
+        <Text style={[styles.backArrow, { color: text }]}>{'‹'}</Text>
+      </Pressable>
       <Text
         style={[styles.headerTitle, { color: text }]}
         numberOfLines={1}
@@ -520,19 +501,7 @@ function FindMates({
       >
         From your contacts
       </Text>
-      {welcome ? (
-        <Pressable
-          onPress={onClose}
-          accessibilityRole="button"
-          accessibilityLabel={closeLabel}
-          style={({ pressed }) => [styles.closeText, pressed && styles.pressed]}
-          hitSlop={OFFSET.o8}
-        >
-          <Text style={[styles.closeLabel, { color: accentText }]}>{closeLabel}</Text>
-        </Pressable>
-      ) : (
-        <View style={styles.spacer} />
-      )}
+      <View style={styles.spacer} />
     </View>
   );
 
@@ -711,16 +680,6 @@ const styles = StyleSheet.create({
   spacer: {
     width: SIZE.z64,
     height: SIZE.z36,
-  },
-  closeText: {
-    width: SIZE.z64,
-    minHeight: SIZE.z36,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-  },
-  closeLabel: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.semiBold,
   },
   pressed: {
     opacity: ALPHA.a70,

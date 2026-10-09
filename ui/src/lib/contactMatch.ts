@@ -251,31 +251,3 @@ export function whatsappInviteUrl(phone: string, text: string): string {
   const digits = phone.replace(/[^0-9]/g, '');
   return `whatsapp://send?phone=${digits}&text=${encodeURIComponent(text)}`;
 }
-
-/** An account this new gets the step after sign-up (the same day as invite_claim's rule). */
-const NEW_ACCOUNT_MS = 24 * 60 * 60 * 1000;
-
-/** AsyncStorage key for "this account has seen the find-your-mates step on this device". */
-export function findMatesSeenKey(userId: string): string {
-  return `@mahi:find_mates_seen:${userId}`;
-}
-
-/**
- * The step after sign-up: once per account and device, only for an account made in the last day
- * (people already here find it in Settings and Your invites), only where the feature is available.
- */
-export function showFindMatesStep({
-  available,
-  createdAt,
-  seen,
-  now,
-}: {
-  available: boolean;
-  createdAt: string | undefined;
-  seen: boolean;
-  now: number;
-}): boolean {
-  if (!available || seen) return false;
-  const made = Date.parse(createdAt ?? '');
-  return Number.isFinite(made) && now - made < NEW_ACCOUNT_MS;
-}

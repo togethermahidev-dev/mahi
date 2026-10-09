@@ -1,6 +1,8 @@
 /**
- * Mahi points (founder, 2026-10-02): each post that answers at least one tag earns 1 point;
- * missing a tag's 48 hours puts your points back to 0; your best is never lowered. Not a streak
+ * Mahi points (founder, 2026-10-02; core workflow, owner 2026-10-09): your first post and each
+ * post that answers at least one tag earn 1 point; deleting a post takes back the point it
+ * earned (unless a miss already reset you); missing a tag's 48 hours puts your points back to 0;
+ * your best is never lowered. Not a streak
  * ("streaks are a daily thing") — the word streak is never shown. The server keeps the number in
  * profiles.streak_current / streak_highest and posts.streak_day (names kept for older apps).
  */
@@ -69,11 +71,12 @@ export function pointsMilestone(points: number | null, bestBefore: number | null
 }
 
 /**
- * The toast after every post. A post that answers no tag (the first post) opens the feed for 24
- * hours (#29) and says who it tagged; one that answers at least one tag earns one point (#47),
- * however many it answers. `points` is the total after the post (null when the server sent none);
- * `bestBefore` the best before it. Points count answers since the last miss, so a reset shows as
- * 1 with a best above 0 ("Welcome back"); round numbers and nearing the best get their own words.
+ * The toast after a post that gets no full-screen moment or +1 flight (in practice a retry the
+ * server had already saved). A post that answers no tag opens the feed for 24 hours (#29) and says
+ * who it tagged; one that answers at least one tag earns one point (#47), however many it answers.
+ * `points` is the total after the post (null when the server sent none); `bestBefore` the best
+ * before it. A miss puts points back to 0, so a fresh start shows as 1 with a best above 0
+ * ("Welcome back"); round numbers and nearing the best get their own words.
  * No speed, no streak.
  */
 export function postedToast({

@@ -50,9 +50,10 @@ import {
 } from '@/constants/tokens';
 
 /**
- * Camera overlay: what to do next (see `openTagsBanner` for the words). A first post, either kind,
- * promises the first point; a tag shows who and a ticking clock. Nothing when there's nothing to
- * do. (The "turn on notifications" banner lives at the top of the feed: PushBanner.)
+ * Camera overlay: what to do next (see `openTagsBanner` for the words). A first post says "Post
+ * your first Mahi." and who will see it, or, after a mate's tag, who tagged you, a ticking clock and
+ * the first point; a later tag shows who and a ticking clock. Nothing when there's nothing to do.
+ * (The "turn on notifications" banner lives at the top of the feed: PushBanner.)
  */
 export default function OpenTagsBanner({
   openTags,

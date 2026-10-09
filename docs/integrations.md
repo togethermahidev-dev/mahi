@@ -77,11 +77,11 @@ specified in [tag-loop-plan.md](./tag-loop-plan.md); their SQL is in `supabase/m
 
 **Current app paths:** posting is `create_post` (one transaction: the reactive-posting check
 `reactive_posting_open` — raises `reactive posting: not tagged` — then post, Mahi points, tags, deadlines,
-pushes, invites); the feed is `get_feed` (server-side lock, `feed-lock-explainer` reads its
-unlock window); profiles read `get_user_posts`; chat sends through `send_message`. The entries below
+pushes, invites); the feed is `get_feed` (server-side lock; the app reads its unlock window);
+profiles read `get_user_posts`; chat sends through `send_message`. The entries below
 describe older functions, now retired and kept for history: `get_feed_posts` was revoked from every app
 role by `20261008100000_security_hardening` and is dropped by `20261008160000_drop_dead_functions`
-(not pushed yet).
+(live 2026-10-08).
 
 **`get_feed_posts(p_limit int, p_cursor_ts timestamptz, p_cursor_id uuid)`** — `SECURITY DEFINER STABLE` (legacy; the app now reads `get_feed`)
 - Replaces the old `posts` table select + `FEED_SELECT` constant.
@@ -100,7 +100,7 @@ role by `20261008100000_security_hardening` and is dropped by `20261008160000_dr
 **`reactive_posting_open(p_user uuid)`** / **`break_missed_streaks(p_user uuid default null)`** — internals, not granted to `authenticated` (`20261001120000_reactive_posting.sql`)
 - `reactive_posting_open`: true when the person has never posted or has an open tag they can still answer (48 hours + `app_config.answer_grace`, 10 minutes). `create_post` raises `reactive posting: not tagged` otherwise.
 - `break_missed_streaks`: every run-out, unanswered, uncancelled tag not yet counted puts its person's `streak_current` back to 0 (once per tag); run by the `mark_missed_tags` cron and inside `create_post` for the caller. `streak_highest` is never lowered.
-- The Mahi points move inside `create_post`: +1 per post that answers at least one tag, written to `posts.streak_day`. `record_upload_streak` and `streak_logs` are gone (the function dropped by `reactive_posting`, the table by `20261001120100_drop_rest_days`).
+- The Mahi points move inside `create_post`: +1 for the first post and for each post that answers at least one tag, written to `posts.streak_day`; `posts.earned_point` marks a post that earned one, and `delete_post` takes it back unless a later missed tag already reset the points (`20261009100000_first_post_tag_and_post_points`). `record_upload_streak` and `streak_logs` are gone (the function dropped by `reactive_posting`, the table by `20261001170000_drop_rest_days`).
 
 **`get_follow_data(p_current_user_id uuid, p_target_user_id uuid)`** — `STABLE SECURITY INVOKER`
 - Returns `{ is_following: boolean, follower_count: bigint, following_count: bigint }` in a single query.

@@ -167,7 +167,7 @@ Thin wrapper over `useConversationStore` (`open` on mount, `close` on unmount).
 
 Mounted once in `HorizontalNavigator`. When signed in, and again each time the app comes back to the
 front, it calls `usePushStore.refresh()`: that reads the phone's permission and what this device
-remembers (page answered, line dismissed) and registers the push token once permission is granted —
+remembers (whether the notifications page was answered) and registers the push token once permission is granted —
 so switching notifications on in Settings is picked up without a restart. Re-registers when the OS
 rotates the token. It never asks for the permission; that is `usePushPrimer`. Sign-out unregisters
 the token in `api/auth.ts signOut()` before the session ends.
@@ -177,16 +177,18 @@ the token in `api/auth.ts signOut()` before the session ends.
 ## `usePushPrimer` — `ui/src/hooks/usePushPrimer.ts`
 
 ```ts
-const { visible, answer } = usePushPrimer(welcomeSettled);
+const { visible, pending, answer } = usePushPrimer(pagesBeforeSettled);
 ```
 
-Drives the one-time "turn on notifications" page (`PushPrimer`, in `App.tsx`). `visible` follows
-`shouldShowPushPrimer` (`ui/src/lib/pushPrimer.ts`): flag `push-core` on, the phone not asked yet, the
-page not answered on this device, the welcome cards out of the way (`welcomeSettled`) and the
-phone's camera question answered (re-read whenever the app returns to the front) — then a short
-beat, so it never opens while another page is closing. `answer(true)` brings up the phone's own
-question and registers the device if allowed (the page's one button, "Continue"); `answer(false)` is
-only Android's back button. Either way the page is remembered as answered.
+Drives the one-time "turn on notifications" page (`PushPrimer`, in `App.tsx`), the last onboarding
+page. `visible` follows `shouldShowPushPrimer` (`ui/src/lib/pushPrimer.ts`): flag `push-core` on, the
+phone not asked yet, the page not answered on this device, and the earlier onboarding pages (the
+welcome cards and the privacy choice) out of the way (`pagesBeforeSettled`). Then it waits a short
+beat, so it never opens while another page is closing. `pending` says the page still has to show on
+this device (onboarding isn't done until it has). `answer(true)` (Turn on) brings up the phone's own
+question and registers the device if allowed. `answer(false)` is Not now (also Android's back
+button); after it, the feed's banner (`PushBanner`) offers it again. Either way the page is
+remembered as answered.
 
 ---
 

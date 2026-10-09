@@ -12,7 +12,6 @@ import type { PushData } from './pushRoute';
 
 // Device-wide, not per account: the phone's permission belongs to the phone.
 const PRIMER_ANSWERED_KEY = '@mahi:push_primer_answered';
-const NUDGE_DISMISSED_KEY = '@mahi:push_nudge_dismissed_through';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -39,7 +38,7 @@ export async function requestPushPermission(): Promise<boolean> {
   return isGranted(await Notifications.requestPermissionsAsync());
 }
 
-/** Whether Mahi's notifications page has been answered on this device (Continue, or Android's back). */
+/** Whether Mahi's notifications page has been answered on this device (Turn on, Not now, or Android's back). */
 export async function wasPushPrimerAnswered(): Promise<boolean> {
   try {
     return (await AsyncStorage.getItem(PRIMER_ANSWERED_KEY)) === '1';
@@ -53,23 +52,6 @@ export async function markPushPrimerAnswered(): Promise<void> {
     await AsyncStorage.setItem(PRIMER_ANSWERED_KEY, '1');
   } catch {
     // Only means the page may show once more.
-  }
-}
-
-/** The tags the camera's "turn on notifications" line was dismissed for (see nudgeDismissMark). */
-export async function getPushNudgeDismissed(): Promise<string | null> {
-  try {
-    return await AsyncStorage.getItem(NUDGE_DISMISSED_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export async function markPushNudgeDismissed(through: string): Promise<void> {
-  try {
-    await AsyncStorage.setItem(NUDGE_DISMISSED_KEY, through);
-  } catch {
-    // Only means the line may show again for the same tag.
   }
 }
 

@@ -100,7 +100,7 @@ describe('postedMoments — what a confirmed post feels like', () => {
     ]);
   });
 
-  it('tags sent without a points change (a first post answers no tag)', () => {
+  it('tags sent without a points change', () => {
     expect(postedMoments({ tags: 3, pointsBefore: 0, pointsAfter: 0 })).toEqual(['tagSent']);
   });
 

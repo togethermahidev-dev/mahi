@@ -145,7 +145,7 @@ export interface LiveTagInput {
   best: number;
   /** Taggers' photos saved for the widget, by username (none when the switch is off). */
   photos?: Record<string, string>;
-  /** False for someone who has never posted: their first post needs no tag. */
+  /** False for someone who has never posted: they can post without a friend's tag, so they're asked for their first workout, never told to wait. */
   postedBefore?: boolean;
 }
 

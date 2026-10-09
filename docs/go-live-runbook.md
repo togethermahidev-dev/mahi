@@ -200,7 +200,7 @@ FCM credentials and its own first build.
 | Jobs `send-push` (every minute), `push-receipts` (every 15 minutes) | Active, and doing nothing: they skip until both Vault secrets exist |
 | `push_tokens` | 0 rows — no phone has registered |
 | `push_outbox` | 18 rows, none ever sent, 15 already due (likes, follows, tags, reminders, a message since 2026-10-01) |
-| Latest migration | Now `20261008150000_security_hardening_live` (2026-10-08): step 2's migrations are applied |
+| Latest migration | Now `20261009110000_tag_join_push_username` (checked against prod 2026-10-09): step 2's migrations are applied |
 | PostHog `push-core` | Does not exist, so it reads as off |
 
 The 18 queued pushes are old news. They are not sent when push goes live: step 2's migration
@@ -238,10 +238,8 @@ scripts/db.sh push --dry-run          # expect exactly: 20261002190000_tag_and_f
 scripts/db.sh push
 ```
 
-The push sends every waiting migration, so the tag slots change (2026-10-03, switch `tag-slots`)
-goes with this one; it is built on top of it. It changes nothing for the app on phones until
-`tag-slots` is turned on — except that a post can no longer fill a slot with an invite while a
-friend is free to tag (the owner's friends-first rule).
+The tag slots change (`20261003120000_tag_slots`) is already live, and its `tag-slots` switch was
+removed on 2026-10-09: the tag screen is always on.
 
 **Expect** from `try`: only `ok` lines (nothing is kept — it rolls itself back). Any `not ok` or
 `ERROR`: stop and send the output. (Checked against prod 2026-10-03: all ten files passed.)
@@ -285,7 +283,7 @@ registered, nothing reaches anyone yet.
 
 ### 5. The app update
 
-The page and the reminder line ship as an OTA update (`/version-control` skill; JavaScript only).
+The notifications page and the feed's banner ship as an OTA update (`/version-control` skill; JavaScript only).
 Publish it to preview and open the app twice on the phone so it lands. Nothing shows yet:
 `push-core` is still off.
 
@@ -293,15 +291,16 @@ Publish it to preview and open the app twice on the phone so it lands. Nothing s
 
 1. In PostHog create the flag `push-core` (boolean, active) for **everyone, 100%** — never for
    one account first (owner, 2026-10-07: switches go on for everyone).
-2. Force-quit and reopen Mahi. The page "When do you post on Mahi?" appears (after the welcome
-   cards if you haven't closed them). Tap **Allow**, then **Allow** on the phone's own question.
+2. Force-quit and reopen Mahi. The page "Don’t miss your tag 🔔" appears (after the welcome
+   cards and the private-or-public page if you haven't finished them). Tap **Turn on**, then
+   **Allow** on the phone's own question.
 3. Check a phone registered (a read-only query, with the `psql` connection from step 4):
    `select count(*) from public.push_tokens;` → 1.
 4. Between 07:00 and 22:00 (quiet hours hold pushes until 07:00), from a second account like one
    of your posts. Within about a minute your phone shows **Mahi — @them liked your post**. Tap it:
    the notifications list opens.
-5. From the second account, post and tag yourself: **You've just been tagged by @them. 48 hours
-   left to post your Mahi!** Tap it: the camera opens.
+5. From the second account, post and tag yourself: **@them tagged you. Post any workout by
+   <day and time>.** (for example "Thu 10:40pm"). Tap it: the camera opens.
 6. Check it was recorded (read-only, same connection):
    `select kind, body, sent_at, error from public.push_outbox order by id desc limit 5;`
    → `sent_at` filled, `error` empty. `InvalidCredentials` means the Apple push key (step 1);

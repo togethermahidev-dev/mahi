@@ -126,7 +126,7 @@ describe('liveTagView — what the Live Activity and widget show', () => {
     ).toMatchObject({ points: '1 Mahi point', best: 'Best: 1' });
   });
 
-  // Walkthrough 2026-10-07: a first post needs no tag, so a brand-new person isn't told to wait.
+  // Walkthrough 2026-10-07: a first post needs no friend's tag to answer, so a brand-new person isn't told to wait.
   it('with no open tag and no post yet, says the first workout earns the first point', () => {
     const v = liveTagView({
       tags: [],

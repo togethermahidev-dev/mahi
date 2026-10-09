@@ -16,7 +16,9 @@ Every later migration through `20261008150000_security_hardening_live` is live o
 (checked against prod 2026-10-08, backup `20261008093204`).
 **Pushed 2026-10-08:** `20261008140000_first_workout_no_tags` — the first workout needs no tags,
 whether or not it answers a tag (`create_post`: `when v_first_post then 0`); later posts still need
-a live tag and 3 friends. Test `tests/first_workout_no_tags_test.sql`.
+a live tag and 3 friends. Test `tests/first_workout_no_tags_test.sql`. Replaced on 2026-10-09 by
+`20261009100000_first_post_tag_and_post_points`: the first post tags exactly 1
+(`app_config.first_post_tags`; 0 brings this rule back).
 **Pushed 2026-10-08 (live Supabase check):** `20261008150000_security_hardening_live` —
 follows change only through `set_following` (direct insert/delete rules and grants gone;
 `notify_on_follow` skips blocked pairs and banned followers); `profiles.avatar_url` must be this
@@ -92,9 +94,17 @@ every phone has the Mahi points update. (`contract_messages` is live as migratio
 `20261007111029_contract_messages`; `contract_posting` and `private_bucket` became
 `20261008100000_security_hardening`.)
 
-Latest production migration: `20261008180000_prebuild_hardening` (live 2026-10-08; before it `20261008170000_private_accounts`): public and
-private accounts, Settings → Controls (workouts and tag settings), follow requests, tag acceptance
-without auto-follow, tagged people and taggers see their post (details above). Note on
+Latest production migration: `20261009110000_tag_join_push_username` (live, checked against prod
+2026-10-09): the joined-from-your-tag push names the person by @username. Before it
+`20261009100000_first_post_tag_and_post_points` (live 2026-10-09; before that
+`20261008180000_prebuild_hardening`): the first post tags exactly 1 (`app_config.first_post_tags`;
+0 brings back the old rule), deleting a post takes its point back (`posts.earned_point`), the feed
+shows who a post answered (`answered_taggers`) and Invited initials for unjoined link slots
+(`pending_invites`), and it adds the joined-from-your-tag push. Tests
+`tests/first_post_one_tag_test.sql`, `tests/delete_post_point_test.sql`,
+`tests/feed_tag_people_test.sql`, `tests/tag_joined_push_test.sql`; undo
+`rollbacks/20261009100000_first_post_tag_and_post_points.rollback.sql` and
+`rollbacks/20261009110000_tag_join_push_username.rollback.sql`. Note on
 `20261008150000_security_hardening_live`: its header names the undo file
 `rollbacks/20261008140000_…`; the file is `rollbacks/20261008150000_security_hardening_live.rollback.sql`
 (the migration is applied, so its header stays as it is).
