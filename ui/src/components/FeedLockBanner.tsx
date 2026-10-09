@@ -11,7 +11,6 @@
  */
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { LockIcon } from '@/components/ScreenIcons';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useUserStore } from '@/store';
@@ -33,13 +32,12 @@ import { MOTION } from '@/constants/tokens';
 import { FONTS } from '@/constants/fonts';
 import {
   ALPHA,
-  BLUR_INTENSITY,
   BORDER_WIDTH,
   COLORS,
   FONT_SIZE,
   ICON_SIZE,
-  LINE_HEIGHT,
   RADIUS,
+  SHADOW_BLUR,
   SIZE,
   SPACE,
   withAlpha,
@@ -160,7 +158,6 @@ function OpenTimer({
   unlockedUntil,
   serverOffsetMs,
 }: FeedLockBannerProps): React.JSX.Element | null {
-  const { dark, colors } = useAppTheme();
   const { openTags, loaded } = useOpenTags();
   // Ticks every second while there is a clock to show.
   const counting = loaded && !locked && !!unlockedUntil;
@@ -168,7 +165,10 @@ function OpenTimer({
   // Wait for this session's open tags, so the pill doesn't swap once they land.
   if (!loaded) return null;
   const timer = feedCountdown({ locked, unlockedUntil, openTags, serverOffsetMs, deviceNow });
-  if (!timer) return null;
+  // Only the ring and the clock, clear on the right (owner, 2026-10-09: the words couldn't be read
+  // over some posts). No clock (open until a friend tags you): nothing shows. The full sentence is
+  // still what a screen reader hears.
+  if (!timer || timer.ms === null) return null;
 
   return (
     <FadeInItem>
@@ -179,29 +179,15 @@ function OpenTimer({
         accessibilityRole="text"
         accessibilityLabel={timer.spoken}
       >
-        <BlurView
-          intensity={BLUR_INTENSITY.i40}
-          tint={dark ? 'dark' : 'light'}
-          style={[styles.timer, { borderColor: colors.accent }]}
-        >
-          {/* A ring that drains over the 24 hours: time left at a glance, never a warning. */}
-          {timer.ms !== null ? (
-            <CountdownRing
-              progress={ringProgress(timer.ms, FEED_WINDOW_MS)}
-              color={colors.accent}
-              track={withAlpha(colors.text, ALPHA.a15)}
-            />
-          ) : null}
-          <Text style={[styles.timerText, { color: colors.text }]} numberOfLines={2}>
-            {timer.label}
-            {timer.ms !== null ? (
-              <Text style={[styles.clock, { color: colors.accentText }]}>
-                {' '}
-                {clockText(timer.ms)}
-              </Text>
-            ) : null}
-          </Text>
-        </BlurView>
+        {/* A ring that drains over the 24 hours: time left at a glance, never a warning. */}
+        <View style={styles.shadowed}>
+          <CountdownRing
+            progress={ringProgress(timer.ms, FEED_WINDOW_MS)}
+            color={COLORS.white}
+            track={withAlpha(COLORS.white, ALPHA.a30)}
+          />
+        </View>
+        <Text style={[styles.clock, styles.shadowed]}>{clockText(timer.ms)}</Text>
       </View>
     </FadeInItem>
   );
@@ -242,31 +228,25 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
   },
-  // The camera's open-tags pill (OpenTagsBanner): frosted, an accent outline, the time in bold
-  // accent. The digits keep their width, so the pill doesn't wobble as they tick.
+  // The feed timer: the ring and the clock side by side on the right, white with a soft shadow so
+  // they read over any post (owner, 2026-10-09). The digits keep their width as they tick.
   timerWrap: {
-    alignSelf: 'center',
-  },
-  timer: {
-    minHeight: SIZE.z36,
-    borderRadius: RADIUS.r18,
-    borderWidth: BORDER_WIDTH.w1,
-    paddingHorizontal: SPACE.s16,
-    paddingVertical: SPACE.s8,
-    justifyContent: 'center',
+    alignSelf: 'flex-end',
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.s8,
-    overflow: 'hidden',
-  },
-  timerText: {
-    fontSize: FONT_SIZE.f14,
-    lineHeight: LINE_HEIGHT.l18,
-    fontFamily: FONTS.semiBold,
-    textAlign: 'center',
+    paddingHorizontal: SPACE.s16,
   },
   clock: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
     fontVariant: ['tabular-nums'],
+  },
+  shadowed: {
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: SIZE.z1 },
+    shadowOpacity: ALPHA.a50,
+    shadowRadius: SHADOW_BLUR.b3,
   },
 });
