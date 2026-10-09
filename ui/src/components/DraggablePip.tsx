@@ -56,19 +56,34 @@ export default function DraggablePip({
   const startX = useSharedValue(zone.left);
   const startY = useSharedValue(zone.bottom);
   const scale = useSharedValue(1);
+  // Whether the user has dragged it on this post: until then it follows its start corner.
+  const moved = useSharedValue(false);
 
   useEffect(() => {
     x.set(zone.left);
     y.set(zone.bottom);
     scale.set(1);
+    moved.set(false);
     // Only a new post moves it back; a changed zone keeps where the user put it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
+
+  // The zone changes once the name row under it has been measured (or the text size changes):
+  // not yet dragged, it moves to the new start corner; dragged, it stays put unless that spot is
+  // now outside the zone (over the name row), when it moves just inside.
+  const { left, right, top, bottom } = zone;
+  useEffect(() => {
+    const z = { left, right, top, bottom };
+    const p = moved.get() ? clampToZone(x.get(), y.get(), z) : { x: left, y: bottom };
+    x.set(p.x);
+    y.set(p.y);
+  }, [left, right, top, bottom, moved, x, y]);
 
   const pan = Gesture.Pan()
     .activateAfterLongPress(DURATION.d150)
     .onStart(() => {
       'worklet';
+      moved.set(true);
       startX.set(x.get());
       startY.set(y.get());
       scale.set(withSpring(SCALE.s1_1, SPRING.lift));

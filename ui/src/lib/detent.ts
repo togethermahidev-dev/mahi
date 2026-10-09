@@ -1,46 +1,36 @@
 /**
- * Two-stage swipes for the camera sheet (owner, 2026-10-08): the first swipe nudges it to a short
- * peek; a second swipe, or a tap, goes the rest. Swiping back from fully open returns straight to
- * the camera. Used by the pull down (roadmap) and the swipe up (feed). Pure, unit-tested; a
- * worklet, so the gestures call it on the UI thread.
+ * Where the camera sheet settles (owner, 2026-10-09: "It gets stuck when it shouldn't"): one
+ * swipe goes all the way — open, or back to the camera. Used by the pull down (roadmap), the swipe
+ * up to the feed and the pull down from the feed's first post. Pure, unit-tested; a worklet, so
+ * the gestures call it on the UI thread. (Until 13.39 the swipe up stopped at a peek first.)
  */
 import { MOTION } from '@/constants/tokens';
 
-export type Detent = 'closed' | 'peek' | 'open';
+export type Detent = 'closed' | 'open';
 
-/** Where each stop sits, as a share of the full travel. */
-export function detentProgress(detent: Detent, peek: number): number {
+/** Where each end sits, as a share of the full travel. */
+export function detentProgress(detent: Detent): number {
   'worklet';
-  return detent === 'closed' ? 0 : detent === 'peek' ? peek : 1;
+  return detent === 'open' ? 1 : 0;
 }
 
 /**
  * Where the sheet settles when the finger lifts. `progress` is 0 (camera) to 1 (fully open);
- * `velocity` in pt/ms, positive = towards open. `twoStage` false: no peek, straight to open.
+ * `velocity` in pt/ms, positive = towards open.
  */
 export function releaseDetent({
   start,
   progress,
   velocity,
-  peek,
-  twoStage,
 }: {
   start: Detent;
   progress: number;
   velocity: number;
-  peek: number;
-  twoStage: boolean;
 }): Detent {
   'worklet';
   const { openAt, flick } = MOTION.cameraFeed;
-  const onward: Detent = twoStage ? 'peek' : 'open';
   if (start === 'closed') {
-    return velocity >= flick || progress >= openAt / 2 ? onward : 'closed';
-  }
-  if (start === 'peek') {
-    if (velocity >= flick || progress >= peek + openAt) return 'open';
-    if (velocity <= -flick || progress <= peek - openAt) return 'closed';
-    return 'peek';
+    return velocity >= flick || progress >= openAt / 2 ? 'open' : 'closed';
   }
   return velocity <= -flick || progress <= 1 - openAt ? 'closed' : 'open';
 }

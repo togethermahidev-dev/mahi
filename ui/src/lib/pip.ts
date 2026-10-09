@@ -8,8 +8,10 @@ import { BORDER_WIDTH, LAYOUT, LINE_HEIGHT, OFFSET, SIZE, SPACE } from '@/consta
 export const PIP_W = SIZE.z90;
 export const PIP_H = SIZE.z120;
 
-/** Space kept free at the bottom for the avatar, caption and their padding. */
+/** Space kept free at the bottom for the avatar, caption and their padding, until measured. */
 const BOTTOM_CONTENT_H = SIZE.z200;
+/** Gap between the small photo and the name row under it. */
+const TEXT_GAP = SPACE.s12;
 /** Space kept free on the right for the like / comment buttons. */
 const SIDE_ACTIONS_W = SIZE.z70;
 const EDGE = SPACE.s8;
@@ -36,13 +38,24 @@ export function openTagsTop(topInset: number, fontScale: number): number {
   return cameraCornerTop(topInset) + Math.ceil(counter) + SPACE.s8;
 }
 
-/** The area the photo may move in. `top` is the highest the photo may go. */
-export function pipZone(screen: { width: number; height: number }, top: number): PipZone {
+/**
+ * The area the photo may move in. `top` is the highest the photo may go. `textTop` is where the
+ * post's name row starts (measured; the caption and tags are under it): the photo's lowest spot
+ * ends TEXT_GAP above it, so it never covers the name, its line or the caption at any text size
+ * (owner, 2026-10-09). Until measured, a fixed room is kept.
+ */
+export function pipZone(
+  screen: { width: number; height: number },
+  top: number,
+  textTop?: number | null
+): PipZone {
+  const lowest =
+    textTop != null ? textTop - TEXT_GAP - PIP_H : screen.height - BOTTOM_CONTENT_H - PIP_H;
   return {
     left: EDGE,
     right: screen.width - PIP_W - SIDE_ACTIONS_W,
     top,
-    bottom: screen.height - BOTTOM_CONTENT_H - PIP_H,
+    bottom: Math.max(top, lowest),
   };
 }
 

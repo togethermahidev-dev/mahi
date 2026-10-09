@@ -119,8 +119,9 @@ you can put it behind a feature flag and turn them off for everyone so that the 
 style one as we previously had it." Create it in PostHog switched off.) Off = the feed is full-screen posts,
 one per screen, as before 2026-10-08: each post is one page tall and a flick moves exactly one post; the
 see-through header, the notifications banner and the feed timer float over the first post and slide away
-as you scroll; likes, comments, faces, the small second photo, videos and pull to refresh work on the post
-itself (a tap doesn't open another viewer). A locked feed is frosted full-screen stand-ins under the one
+as you scroll; likes, comments, faces, the small second photo and videos work on the post itself (a tap
+doesn't open another viewer). No pull to refresh: the feed refreshes each time it opens, and a pull down at
+the first post brings the camera back, with a "Switch to camera" pill there (decision #176). A locked feed is frosted full-screen stand-ins under the one
 lock pill; after you post, `feed-develop` still clears them one by one. On = the Messages-sized rows, where
 a tap grows the post into the full-screen view. Off while flags load too, so rows never show first.
 Geometry: [`ui/src/lib/feedListLayout.ts`](../ui/src/lib/feedListLayout.ts).

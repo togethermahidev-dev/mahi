@@ -31,9 +31,18 @@ async function savedFiles(): Promise<Set<string>> {
   return saved;
 }
 
-async function save(name: string, url: string, into: Set<string>): Promise<void> {
+// One copy downloads at a time, in the order asked (feed order): a feed read used to start every
+// new file at once — 40 photos of 3–4 MB sharing the line with the two on screen, which stayed
+// blank while the feed came in (OTA 13.39, 2026-10-09).
+let queue: Promise<void> = Promise.resolve();
+
+function save(name: string, url: string, into: Set<string>): void {
   if (downloading.has(name)) return;
   downloading.add(name);
+  queue = queue.then(() => download(name, url, into));
+}
+
+async function download(name: string, url: string, into: Set<string>): Promise<void> {
   const part = `${DIR}${name}.part`;
   try {
     const { status } = await FileSystem.downloadAsync(url, part);
@@ -60,7 +69,7 @@ export async function withSavedMedia(urls: Map<string, string>): Promise<Map<str
       shown.set(path, `${DIR}${name}`);
     } else {
       shown.set(path, url);
-      void save(name, url, files);
+      save(name, url, files);
     }
   }
   return shown;

@@ -12,6 +12,7 @@ import {
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeGesture } from 'react-native-gesture-handler';
+import type { SharedValue } from 'react-native-reanimated';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { refreshTint } from '@/lib/themeColors';
 import { usePageSize } from '@/hooks/useChrome';
@@ -29,6 +30,7 @@ import PostCard from '@/components/PostCard';
 import PostViewer from '@/components/PostViewer';
 import type { MorphSource } from '@/lib/morph';
 import CommentSheet from '@/components/CommentSheet';
+import SwitchCameraPill from '@/components/SwitchCameraPill';
 import { lockExplainer as lockCardFor } from '@/lib/feedLock';
 import { feedLockMoment, haptic } from '@/lib/haptics';
 import { developPlan, developWords } from '@/lib/feedDevelop';
@@ -159,6 +161,11 @@ interface FeedScreenProps {
   isActive?: boolean;
   /** Extra room at the top, under the header: the camera's small card sits there. */
   topInset?: number;
+  /** Full-screen posts: told whether the list is at its first post (the pull down to the camera
+   *  works only there, src/lib/feedPull.ts). */
+  onTopChange?: (atTop: boolean) => void;
+  /** The "Switch to camera" pill shows (switchPillShown) and fades with this morph (0–1). */
+  switchPill?: { shown: boolean; morph: SharedValue<number> };
 }
 
 export default function FeedScreen({
@@ -169,6 +176,8 @@ export default function FeedScreen({
   listGesture,
   isActive = true,
   topInset = 0,
+  onTopChange,
+  switchPill,
 }: FeedScreenProps = {}): React.JSX.Element {
   const { dark } = useAppTheme();
   const headerH = appHeaderHeight(useSafeAreaInsets().top);
@@ -203,7 +212,9 @@ export default function FeedScreen({
   // Loading only until this session's first page arrives or the read fails, so a failed first
   // read shows an error instead of spinning for ever.
   const firstLoad = !loaded && !error && posts.length === 0;
-  // The pull-to-refresh spinner turns only for a pull; the first load has its own spinner.
+  // Rows only: the pull-to-refresh spinner turns only for a pull; the first load has its own
+  // spinner. Full-screen posts refresh each time the feed opens instead: a pull down at the first
+  // post brings the camera back (owner, 2026-10-09).
   const [pulling, setPulling] = useState(false);
   const onPull = useCallback(async () => {
     setPulling(true);
@@ -377,8 +388,24 @@ export default function FeedScreen({
   const [localHeaderAnim] = useState(() => new Animated.Value(0));
   const headerOffset = headerAnim ?? localHeaderAnim;
 
+  // At the first post or not, told to the camera page only when it changes.
+  const atTop = useRef(true);
+  const tellTop = useCallback(
+    (top: boolean) => {
+      if (atTop.current === top) return;
+      atTop.current = top;
+      onTopChange?.(top);
+    },
+    [onTopChange]
+  );
+  // A new list (the layout switched) starts at its top.
+  useEffect(() => {
+    tellTop(true);
+  }, [rowsOn, tellTop]);
+
   const handleScroll = (e: any) => {
     const y = e.nativeEvent.contentOffset.y;
+    tellTop(atListTop(y));
 
     // Show header on first card, hide on all others
     const target = atListTop(y) ? 0 : headerH;
@@ -455,9 +482,18 @@ export default function FeedScreen({
                 <ActivityIndicator color={muted} />
               </View>
             ) : error && posts.length > 0 ? (
-              <Text style={[styles.errorText, { color: muted }]}>
-                Couldn’t load more. Pull down to try again.
-              </Text>
+              rowsOn ? (
+                <Text style={[styles.errorText, { color: muted }]}>
+                  Couldn’t load more. Pull down to try again.
+                </Text>
+              ) : (
+                // Full screen: the pull down at the top is the camera's, so this is a tap.
+                <Pressable onPress={loadMore} accessibilityRole="button">
+                  <Text style={[styles.errorText, { color: muted }]}>
+                    Couldn’t load more. Tap to try again.
+                  </Text>
+                </Pressable>
+              )
             ) : null
           }
           showsVerticalScrollIndicator={false}
@@ -466,8 +502,14 @@ export default function FeedScreen({
           onViewableItemsChanged={handleViewableChange}
           viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
           refreshControl={
-            <RefreshControl refreshing={pulling} onRefresh={onPull} {...refreshTint(dark)} />
+            rowsOn ? (
+              <RefreshControl refreshing={pulling} onRefresh={onPull} {...refreshTint(dark)} />
+            ) : undefined
           }
+          // Full screen: no bounce past the first post, so a pull down there moves only the camera
+          // morph (CameraFeedPage), never the list.
+          bounces={rowsOn}
+          overScrollMode={rowsOn ? 'auto' : 'never'}
           ListEmptyComponent={
             // Each starts below the header, which floats over the list and grows with the notch.
             firstLoad ? (
@@ -607,6 +649,16 @@ export default function FeedScreen({
             onFindFriends={onFindFriends}
           />
         </Animated.View>
+      ) : null}
+
+      {/* At the first post: "Switch to camera", under the header and the banners. */}
+      {switchPill && onGoToCamera && posts.length > 0 ? (
+        <SwitchCameraPill
+          shown={switchPill.shown}
+          morph={switchPill.morph}
+          onPress={onGoToCamera}
+          style={{ top: headerH + topInset + topSpace }}
+        />
       ) : null}
 
       {/* A tapped row, full screen: up and down through the feed, as before (TikTok style). */}

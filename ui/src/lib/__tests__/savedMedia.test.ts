@@ -7,6 +7,9 @@ const files = new Map<string, string>();
 let downloadStatus = 200;
 let readFails = false;
 const downloads: string[] = [];
+// Set to hold each download open until the test lets it finish.
+let hold = false;
+const held: (() => void)[] = [];
 
 jest.mock('expo-file-system/legacy', () => ({
   cacheDirectory: 'file:///cache/',
@@ -17,6 +20,7 @@ jest.mock('expo-file-system/legacy', () => ({
   },
   downloadAsync: async (url: string, to: string) => {
     downloads.push(url);
+    if (hold) await new Promise<void>((r) => held.push(r));
     files.set(to, url);
     return { status: downloadStatus, uri: to };
   },
@@ -40,6 +44,8 @@ beforeEach(async () => {
   downloads.length = 0;
   downloadStatus = 200;
   readFails = false;
+  hold = false;
+  held.length = 0;
 });
 
 it('a photo not on the phone yet: shows the link and saves a copy for next time', async () => {
@@ -96,4 +102,32 @@ it('a phone that cannot read its folder still shows the links', async () => {
   readFails = true;
   const urls = await withSavedMedia(new Map([['u1/a_rear.jpg', 'https://x/sign/a?token=1']]));
   expect(urls.get('u1/a_rear.jpg')).toBe('https://x/sign/a?token=1');
+});
+
+// 2026-10-09 (OTA 13.39, the first post's photo and small photo black while the feed came in):
+// every new photo of a feed read was downloaded to the phone at once — 40 files of 3–4 MB sharing
+// the line with the two photos actually on screen. Copies are saved one at a time, in feed order.
+it('saves copies one at a time, in feed order, so the photos on screen are not starved', async () => {
+  hold = true;
+  await withSavedMedia(
+    new Map([
+      ['u1/a_rear.jpg', 'https://x/a'],
+      ['u1/a_front.jpg', 'https://x/b'],
+      ['u2/c_rear.jpg', 'https://x/c'],
+    ])
+  );
+  await flush();
+  expect(downloads).toEqual(['https://x/a']);
+  held.shift()!();
+  await flush();
+  await flush();
+  expect(downloads).toEqual(['https://x/a', 'https://x/b']);
+  held.shift()!();
+  await flush();
+  await flush();
+  expect(downloads).toEqual(['https://x/a', 'https://x/b', 'https://x/c']);
+  held.shift()!();
+  await flush();
+  await flush();
+  expect(files.has(`${DIR}u2_c_rear.jpg`)).toBe(true);
 });

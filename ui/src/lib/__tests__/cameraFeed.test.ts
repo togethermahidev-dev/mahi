@@ -57,14 +57,3 @@ describe('lockedGap — how far the camera lifts when the feed is locked', () =>
     expect(lockedGap(874)).toBe(140);
   });
 });
-
-// From the peek (two-stage, owner 2026-10-08) the camera can go either way: on, or back.
-describe('feedSwipe — from the peek, either way', () => {
-  const s = SWIPE.slop + 1;
-  it('takes an upward or a downward drag, never a sideways one', () => {
-    const peek = { startY: 300, insetTop: 50, open: false, either: true };
-    expect(feedSwipe({ ...peek, dx: 0, dy: -s })).toBe('activate');
-    expect(feedSwipe({ ...peek, dx: 0, dy: s })).toBe('activate');
-    expect(feedSwipe({ ...peek, dx: s, dy: 0 })).toBe('fail');
-  });
-});

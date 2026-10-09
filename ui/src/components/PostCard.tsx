@@ -207,7 +207,12 @@ export default function PostCard({
   const postingVideo = 'isPending' in item && (rearKind === 'video' || frontKind === 'video');
 
   // ── Draggable PiP (FaceTime-style) — safe zone clears the header + tagged pills ──
-  const pipSafeZone = pipZone({ width, height }, headerH + OFFSET.o120 + topSpace);
+  // …and stays above the name row (owner, 2026-10-09: "make sure the pip window doesn't cover the
+  // users name row"): where the row starts on the card is the shade's top plus its place in it.
+  const [shadeY, setShadeY] = useState<number | null>(null);
+  const [nameRowY, setNameRowY] = useState<number | null>(null);
+  const textTop = shadeY != null && nameRowY != null ? shadeY + nameRowY : null;
+  const pipSafeZone = pipZone({ width, height }, headerH + OFFSET.o120 + topSpace, textTop);
 
   // ── Double-tap medal burst animation ─────────────────────────────────────
   const medalScale = useRef(new Animated.Value(0)).current;
@@ -538,8 +543,12 @@ export default function PostCard({
                     tabRoom > 0 && { paddingBottom: Math.max(SPACE.s80, tabRoom + SPACE.s16) },
                   ]}
                   pointerEvents="box-none"
+                  onLayout={(e) => setShadeY(e.nativeEvent.layout.y)}
                 >
-                  <View style={styles.identityRow}>
+                  <View
+                    style={styles.identityRow}
+                    onLayout={(e) => setNameRowY(e.nativeEvent.layout.y)}
+                  >
                     <PressScale
                       style={styles.avatarRow}
                       onPress={() => onAvatarPress(item.profiles.id)}

@@ -570,11 +570,14 @@ export const MOTION = {
   morphContentAt: 0.72,
   /** The camera and the feed on one screen (owner, 2026-10-08): the camera slides all the way up
    *  (about a sixth of the page, when the feed is locked: just room for why and one button);
-   *  a swipe past this share of the way, or a flick faster than this (pt/ms), settles; the first
-   *  swipe stops at the peek (this share of the way), the next goes the rest.
+   *  one swipe goes all the way (owner, 2026-10-09: no peek stop): it settles open or back
+   *  closed by the share of the way gone (openAt) or a flick faster than this (pt/ms). The feed
+   *  fades in, FEED over the shutter fades out and the bell circle's icons finish scrolling by
+   *  peekShare of the way (once the first swipe's stop; now only where those cues finish).
    *  Camera to feed morph (owner, 2026-10-09): on the way up the camera shrinks to this scale,
    *  fading from this share of the way; the feed grows in from this scale, starting this share of
-   *  the page lower. Their corners are the tab morph's (pageMorph.fromRadius). */
+   *  the page lower. Their corners are the tab morph's (pageMorph.fromRadius). The "Switch to
+   *  camera" pill at the top of the feed fades out over the first pillFadeShare of a swipe back. */
   cameraFeed: {
     openAt: 0.15,
     flick: 0.5,
@@ -584,9 +587,10 @@ export const MOTION = {
     cameraFadeFrom: 0.7,
     feedFromScale: 0.88,
     feedFromY: 0.08,
+    pillFadeShare: 0.2,
   },
   /** The round button beside the bell (owner, 2026-10-09): its icon scrolls up and out of the
-   *  circle as the next rises in, done by the feed's peek. While a photo is being taken or
+   *  circle as the next rises in, done by cameraFeed.peekShare of the way. While a photo is being taken or
    *  reviewed, or the post is going up (no roadmap button), the circle fades in over this share
    *  of that scroll. */
   bellPill: { fadeShare: 0.25 },

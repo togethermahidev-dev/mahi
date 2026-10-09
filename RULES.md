@@ -115,11 +115,17 @@
   Messages, Camera, Profile — three pages. The feed has no page or tab: it lives behind the camera on
   one screen (`CameraFeedPage`, decision #147). Camera is the landing page. Change the order only in
   `NATIVE_TABS` (`ui/src/lib/nativeTabs.ts`) and the page strip in `HorizontalNavigator`, which must match.
-- The camera is the front sheet both ways, two-stage (decisions #147–#150): pull it down and it slides
-  down to a portrait card with the roadmap behind it; swipe it up and it slides all the way up, the feed
-  filling the page (a locked feed: a one-stage small lift (about a sixth of the page) with the reason and one button). The swipe up
-  stops at a peek first (`MOTION.cameraFeed.peekShare`); a second swipe or a tap goes the rest; the pull
-  down goes all the way in one swipe (a drawer peek has nothing to show); back returns to the camera. Where it settles: `releaseDetent` (`ui/src/lib/detent.ts`).
+- The camera is the front sheet both ways (decisions #147–#150, #175): pull it down and it slides
+  down to a portrait card with the roadmap behind it; swipe it up and it morphs all the way up, the feed
+  filling the page (a locked feed: a small lift (about a sixth of the page) with the reason and one button).
+  Every one of these is one swipe: no peek stop (the peeks looked stuck); it settles open or back by
+  distance or flick. Where it settles: `releaseDetent` (`ui/src/lib/detent.ts`).
+- Back from the open full-screen feed: at its first post a pull down runs the same morph backwards
+  (`feedPullDown`, `ui/src/lib/feedPull.ts`, decision #176), a "Switch to camera" pill floats there, and
+  the circle beside the bell works from anywhere. The pull is a pan on the feed card that runs
+  alongside the list's own Native gesture (like the page swipe) and only activates at the top with a
+  downward drag; the full-screen list doesn't bounce or pull to refresh — it refreshes each time the
+  feed opens. Rows (`feed-rows` on) keep pull to refresh and have no pull down.
 - One gesture on the camera decides both directions (`cameraDrag` in `ui/src/lib/cameraPull.ts`), so the
   swipe up is as reliable as the pull down. Never add a second vertical pan beside it: nested pans
   compete and the outer one loses (13.23–13.29).

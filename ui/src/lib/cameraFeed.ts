@@ -33,7 +33,6 @@ export function feedSwipe({
   startY,
   insetTop,
   open,
-  either = false,
   dx,
   dy,
 }: {
@@ -41,8 +40,6 @@ export function feedSwipe({
   insetTop: number;
   /** The feed is showing (the camera is the small card). */
   open: boolean;
-  /** At the peek: either way (on to the feed, or back to the camera) is the camera's. */
-  either?: boolean;
   dx: number;
   dy: number;
 }): SwipeDecision {
@@ -51,7 +48,6 @@ export function feedSwipe({
   const ax = Math.abs(dx);
   const ay = Math.abs(dy);
   if (ax > SWIPE.slop && ax >= ay) return 'fail';
-  if (either) return ay > SWIPE.slop && ay > ax ? 'activate' : 'wait';
   const toward = open ? dy : -dy;
   if (toward < -SWIPE.slop) return 'fail';
   if (toward > SWIPE.slop && ay > ax) return 'activate';

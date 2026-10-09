@@ -79,11 +79,10 @@ export function useCameraPull(
   const startX = useSharedValue(0);
   const decided = useSharedValue(false);
   const felt = useSharedValue(false);
-  // Closed, a short peek, or open (owner, 2026-10-08: nudge first, then a tap or a second pull
-  // goes the rest). The roadmap's buttons work once it's open.
+  // Closed or open: one pull goes all the way (owner, 2026-10-08, 13.33). The roadmap's buttons
+  // work once it's open.
   const [detent, setDetent] = useState<Detent>('closed');
   const expanded = detent === 'open';
-  const peek = MOTION.pull.peekShare;
 
   // Leaving the waiting state mid-pull puts everything back. The camera itself never tugs on
   // its own (owner, 2026-10-08: no shake when Mahi opens); the arrow's hops are the hint.
@@ -96,14 +95,14 @@ export function useCameraPull(
     }
   }, [enabled, offset]);
 
-  // The pill (or a tap on the peek): closed or peeking → all the way open; open → closed.
+  // The pill: closed → all the way open; open → closed.
   const toggle = useCallback(() => {
     const next: Detent = detent === 'open' ? 'closed' : 'open';
     setDetent(next);
     // SharedValues are deliberately mutable on the UI thread.
     // eslint-disable-next-line react-hooks/immutability
-    offset.value = withSpring(detentProgress(next, peek) * openOffset, SPRING.pullBack);
-  }, [detent, offset, openOffset, peek]);
+    offset.value = withSpring(detentProgress(next) * openOffset, SPRING.pullBack);
+  }, [detent, offset, openOffset]);
 
   // Plain values for the worklets: where this drag starts.
   const start: Detent = detent;
@@ -191,14 +190,12 @@ export function useCameraPull(
         start,
         progress: openOffset > 0 ? offset.value / openOffset : 0,
         // Towards open is down: a positive vertical velocity.
+        // One swipe, all the way: a drawer peek showed nothing and looked stuck (owner,
+        // 2026-10-08, 13.33); the feed went the same way on 2026-10-09.
         velocity: e.velocityY / 1000,
-        peek,
-        // One swipe, all the way: a drawer peek shows nothing (the roadmap needs almost all of the
-        // drawer's room), so it looked stuck (owner, 2026-10-08, 13.33). The feed keeps its peek.
-        twoStage: false,
       });
       // eslint-disable-next-line react-hooks/immutability
-      offset.value = withSpring(detentProgress(target, peek) * openOffset, SPRING.pullBack);
+      offset.value = withSpring(detentProgress(target) * openOffset, SPRING.pullBack);
       scheduleOnRN(setDetent, target);
     });
 

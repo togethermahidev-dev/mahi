@@ -40,6 +40,21 @@ describe('draggable photo-in-photo', () => {
     });
   });
 
+  // Owner, 2026-10-09: "make sure the pip window doesn't cover the users name row". Once the
+  // post's name row has been measured, the small photo's lowest spot ends a gap above it, so it
+  // never covers the name, the line under it or the caption, at any text size.
+  it('sits a gap above the measured name row, wherever the text puts it', () => {
+    expect(pipZone(screen, 228, 600).bottom).toBe(600 - 12 - PIP_H);
+    // Large text pushes the name row up: the small photo moves up with it.
+    expect(pipZone(screen, 228, 480).bottom).toBe(480 - 12 - PIP_H);
+    // A short caption lets it sit lower than the old fixed room.
+    expect(pipZone(screen, 228, 700).bottom).toBe(700 - 12 - PIP_H);
+  });
+
+  it('never above its top, even when the text runs very high', () => {
+    expect(pipZone(screen, 228, 300).bottom).toBe(228);
+  });
+
   it('a drag stays inside the safe zone', () => {
     const zone = pipZone(screen, 228);
     expect(clampToZone(-50, 5000, zone)).toEqual({ x: zone.left, y: zone.bottom });
