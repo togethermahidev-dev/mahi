@@ -54,7 +54,8 @@ import {
   SIDE_EDGE,
   type Rect,
 } from '@/lib/swipeRules';
-import { COLORS, LAYER, LAYOUT, MOTION, SIZE, SPRING } from '@/constants/tokens';
+import { COLORS, LAYER, LAYOUT, MOTION, SIZE, SPRING, SWIPE } from '@/constants/tokens';
+import { track } from '@/lib/analytics';
 
 // ─── Pages ────────────────────────────────────────────────────────────────────
 // One row, left to right, in the tab bar's order (owner, 2026-10-07): Messages ⇄ Feed ⇄ Camera ⇄
@@ -64,6 +65,23 @@ const CAMERA = tabPage('camera');
 const PROFILE = tabPage('profile');
 const MESSAGES = tabPage('messages');
 const INITIAL_PAGE = tabPage(INITIAL_TAB);
+
+// TEMPORARY swipe check (owner, 2026-10-09: "still a bit difficult to swipe left to messages and
+// right to profile" from the camera). Plain numbers only, so the swipe's worklets can read them.
+// Remove with the report functions once the numbers are read.
+const CAMERA_PAGE = INITIAL_PAGE;
+const SWIPE_CHECK_MIN = SWIPE.slop / 2;
+const PAGE_RESULTS = ['none', 'activate', 'fail_edge', 'fail_vertical', 'fail_fingers'];
+function reportPageSwipe(result: number, dx: number, dy: number, startX: number): void {
+  track('swipe_check', {
+    by: 'page',
+    result: PAGE_RESULTS[result] ?? 'none',
+    dx,
+    dy,
+    start_x: startX,
+    moved: false,
+  });
+}
 
 /** The snap to a page. Runs even with Reduce Motion on, as it always has. */
 const PAGE_SPRING = { ...SPRING.page, reduceMotion: ReduceMotion.Never };
@@ -199,6 +217,11 @@ export default function HorizontalNavigator({
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
   const decided = useSharedValue(false);
+  // TEMPORARY swipe check (2026-10-09): the last move and how the page swipe decided.
+  const lastDx = useSharedValue(0);
+  const lastDy = useSharedValue(0);
+  const lastResult = useSharedValue(0);
+  const swipeStartPage = useSharedValue(0);
   const base = useSharedValue(0);
   // Where the rail is on screen. A touch that starts there belongs to the rail.
   const railRectSV = useSharedValue<Rect | null>(null);
@@ -346,6 +369,10 @@ export default function HorizontalNavigator({
       startX.value = t.absoluteX;
       startY.value = t.absoluteY;
       decided.value = false;
+      lastDx.value = 0;
+      lastDy.value = 0;
+      lastResult.value = 0;
+      swipeStartPage.value = indexSV.value;
       // A touch in a system strip, or with something open over the pages, is let go at once.
       const first = horizontalSwipe({
         startX: t.absoluteX,
@@ -361,6 +388,7 @@ export default function HorizontalNavigator({
       });
       if (first === 'fail') {
         decided.value = true;
+        lastResult.value = 2;
         manager.fail();
       }
     })
@@ -368,9 +396,12 @@ export default function HorizontalNavigator({
       'worklet';
       const t = e.allTouches[0];
       if (decided.value || !t) return;
+      lastDx.value = t.absoluteX - startX.value;
+      lastDy.value = t.absoluteY - startY.value;
       // A second finger (a pinch) is never a page swipe.
       if (e.numberOfTouches > 1) {
         decided.value = true;
+        lastResult.value = 4;
         manager.fail();
         return;
       }
@@ -387,8 +418,22 @@ export default function HorizontalNavigator({
       });
       if (decision === 'wait') return;
       decided.value = true;
+      lastResult.value = decision === 'activate' ? 1 : 3;
       if (decision === 'activate') manager.activate();
       else manager.fail();
+    })
+    .onFinalize(() => {
+      'worklet';
+      // TEMPORARY swipe check: only touches that started on the camera and moved.
+      if (swipeStartPage.value !== CAMERA_PAGE) return;
+      if (Math.abs(lastDx.value) + Math.abs(lastDy.value) < SWIPE_CHECK_MIN) return;
+      scheduleOnRN(
+        reportPageSwipe,
+        lastResult.value,
+        Math.round(lastDx.value),
+        Math.round(lastDy.value),
+        Math.round(startX.value)
+      );
     })
     .onStart(() => {
       'worklet';

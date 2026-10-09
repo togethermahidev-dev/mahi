@@ -28,6 +28,20 @@ export type TagLoopEvents = {
    * arrives, so once per missed tag; `stats.tags_daily` has the number of record.
    */
   tag_missed: { challenge_id: string | null };
+  /**
+   * TEMPORARY (2026-10-09, remove after reading): how a swipe that starts on the camera ends.
+   * `by`: 'page' (the sideways page swipe's own outcome) or 'camera' (the camera's up/down drag
+   * took it). dx/dy in points; `result` for the page: activate / fail_edge / fail_vertical /
+   * fail_fingers / none (it never decided). No personal data.
+   */
+  swipe_check: {
+    by: 'page' | 'camera';
+    result: string;
+    dx: number;
+    dy: number;
+    start_x: number;
+    moved: boolean;
+  };
   /** The person who missed the tag lost their Mahi points — their side of the same miss. */
   streak_lost: { challenge_id: string | null };
   /** An invite link actually reached the share sheet and was sent (`via`: where, on the tag screen). */
