@@ -240,12 +240,17 @@ describe('lockPill — posted before, no post in the feed now', () => {
 // Owner, 2026-10-09: a locked feed lifted the camera over an empty grey panel. While the tags
 // load, or when they couldn't be read, the panel still says something; it is never blank.
 describe('lockedGapContent — the panel under a lifted, locked camera', () => {
-  const pill = { line: 'Locked until a friend tags you.', button: 'Find friends', target: 'friends' as const };
+  const pill = {
+    line: 'Locked until a friend tags you.',
+    button: 'Find friends',
+    target: 'friends' as const,
+  };
   it('says why and what to do once the tags are read', () => {
     expect(lockedGapContent({ pill, loaded: true, error: false })).toEqual({
       line: 'Locked until a friend tags you.',
       button: 'Find friends',
       action: 'friends',
+      padlock: true,
     });
   });
   it('says it is checking while the tags load (no button)', () => {
@@ -253,6 +258,7 @@ describe('lockedGapContent — the panel under a lifted, locked camera', () => {
       line: 'Checking your tags…',
       button: null,
       action: null,
+      padlock: true,
     });
   });
   it('offers Try again when the tags could not be read', () => {
@@ -260,6 +266,38 @@ describe('lockedGapContent — the panel under a lifted, locked camera', () => {
       line: 'Couldn’t reach Mahi.',
       button: 'Try again',
       action: 'retry',
+      padlock: true,
     });
+  });
+});
+
+// Owner, 2026-10-09 (second screenshot): before the feed itself has loaded, the swipe up showed an
+// empty grey feed. Until it loads, the panel says so, and offers Try again if the read failed.
+describe('lockedGapContent — before the feed has loaded', () => {
+  it('says the feed is loading (no button, no padlock)', () => {
+    expect(lockedGapContent({ pill: null, loaded: false, error: false, feed: 'loading' })).toEqual({
+      line: 'Loading your feed…',
+      button: null,
+      action: null,
+      padlock: false,
+    });
+  });
+  it('offers Try again when the feed could not be read', () => {
+    expect(lockedGapContent({ pill: null, loaded: false, error: false, feed: 'error' })).toEqual({
+      line: 'Couldn’t load your feed.',
+      button: 'Try again',
+      action: 'retryFeed',
+      padlock: false,
+    });
+  });
+  it('a loaded, locked feed keeps its padlock', () => {
+    const pill = {
+      line: 'Locked until a friend tags you.',
+      button: 'Find friends',
+      target: 'friends' as const,
+    };
+    expect(lockedGapContent({ pill, loaded: true, error: false, feed: 'loaded' }).padlock).toBe(
+      true
+    );
   });
 });

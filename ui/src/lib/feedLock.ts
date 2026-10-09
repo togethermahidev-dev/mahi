@@ -196,12 +196,31 @@ export function lockedGapContent({
   pill,
   loaded,
   error,
+  feed = 'loaded',
 }: {
   pill: ReturnType<typeof lockPill>;
   loaded: boolean;
   error: boolean;
-}): { line: string; button: string | null; action: LockCard['target'] | 'retry' | null } {
-  if (loaded && pill) return { line: pill.line, button: pill.button, action: pill.target };
-  if (error) return { line: 'Couldn’t reach Mahi.', button: 'Try again', action: 'retry' };
-  return { line: 'Checking your tags…', button: null, action: null };
+  /** The feed read itself (2026-10-09): until it's in, the panel says that instead. */
+  feed?: 'loading' | 'error' | 'loaded';
+}): {
+  line: string;
+  button: string | null;
+  action: LockCard['target'] | 'retry' | 'retryFeed' | null;
+  padlock: boolean;
+} {
+  if (feed === 'loading')
+    return { line: 'Loading your feed…', button: null, action: null, padlock: false };
+  if (feed === 'error')
+    return {
+      line: 'Couldn’t load your feed.',
+      button: 'Try again',
+      action: 'retryFeed',
+      padlock: false,
+    };
+  if (loaded && pill)
+    return { line: pill.line, button: pill.button, action: pill.target, padlock: true };
+  if (error)
+    return { line: 'Couldn’t reach Mahi.', button: 'Try again', action: 'retry', padlock: true };
+  return { line: 'Checking your tags…', button: null, action: null, padlock: true };
 }

@@ -65,7 +65,10 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     const gen = ++generation;
     set({ isSyncing: true, error: null });
 
-    const { data, error } = await getFeed(PAGE_SIZE);
+    let { data, error } = await getFeed(PAGE_SIZE);
+    // One retry for a dropped connection (iOS "the network connection was lost", 2026-10-09: one
+    // failed read left the feed empty until something else reloaded it).
+    if (error && gen === generation) ({ data, error } = await getFeed(PAGE_SIZE));
     if (gen !== generation) return;
     if (data) {
       // The moment a post opens the feed up. `loaded` keeps the first read of a session,

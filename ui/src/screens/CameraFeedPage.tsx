@@ -81,7 +81,12 @@ export default function CameraFeedPage({
   const rowsTop = feedTop(strip);
   // A locked feed doesn't open: the camera lifts a little (lockedGap) and the gap underneath says
   // why and what to do (owner, 2026-10-08). No feed rows show.
-  const locked = useFeedStore((s) => s.loaded && s.locked);
+  const feedLocked = useFeedStore((s) => s.loaded && s.locked);
+  // Until the feed itself has loaded there is nothing to open onto, so the swipe up lifts the
+  // camera the same small way and the gap says loading / Try again (owner, 2026-10-09: an empty
+  // grey feed). `locked` below means "the gap, not the feed".
+  const feedState = useFeedStore((s) => (s.loaded ? 'loaded' : s.error ? 'error' : 'loading'));
+  const locked = feedLocked || feedState !== 'loaded';
   const gap = lockedGap(page.height);
 
   // 0 = camera full screen, 1 = feed fully showing; the first swipe stops at the peek (owner,
@@ -241,7 +246,7 @@ export default function CameraFeedPage({
   const [pullHandle, setPullHandle] = useState(false);
   const reduceMotion = useReducedMotion();
   const iconTravel = SIZE.z36;
-  const feedIcon = feedSideIcon(locked);
+  const feedIcon = feedSideIcon(feedLocked);
   const bellStyle = useAnimatedStyle(() => ({
     opacity: bellPillOpacity({ progress: progress.value, peek, feedShown, handle: pullHandle }),
   }));
@@ -286,7 +291,7 @@ export default function CameraFeedPage({
           accessibilityElementsHidden={!feedShown}
           importantForAccessibility={feedShown ? 'auto' : 'no-hide-descendants'}
         >
-          <LockedGap onPost={closeFeed} onFindFriends={onFindFriends} />
+          <LockedGap onPost={closeFeed} onFindFriends={onFindFriends} feed={feedState} />
         </Reanimated.View>
       ) : null}
 
@@ -400,9 +405,12 @@ export default function CameraFeedPage({
 function LockedGap({
   onPost,
   onFindFriends,
+  feed,
 }: {
   onPost: () => void;
   onFindFriends: () => void;
+  /** The feed read itself: until it's in, the gap says loading / Try again. */
+  feed: 'loading' | 'error' | 'loaded';
 }): React.JSX.Element {
   const { colors } = useAppTheme();
   const { openTags, loaded } = useOpenTags();
@@ -417,19 +425,23 @@ function LockedGap({
     ? lockPill({ locked: true, unlockedUntil, openTags, serverOffsetMs, deviceNow, postedBefore })
     : null;
   // Never blank (owner, 2026-10-09): checking while the tags load, Try again if they couldn't.
-  const gap = lockedGapContent({ pill, loaded, error: tagsError });
+  const gap = lockedGapContent({ pill, loaded, error: tagsError, feed });
   const onPress =
     gap.action === 'friends'
       ? onFindFriends
       : gap.action === 'retry'
         ? () => void useTagStore.getState().syncOpenTags()
-        : onPost;
+        : gap.action === 'retryFeed'
+          ? () => void useFeedStore.getState().sync(true)
+          : onPost;
   const hint =
     gap.action === 'friends'
       ? 'Opens search'
       : gap.action === 'retry'
         ? 'Checks your tags again'
-        : 'Back to the camera';
+        : gap.action === 'retryFeed'
+          ? 'Loads your feed again'
+          : 'Back to the camera';
   return (
     // The reason on top; the padlock and the button side by side under it (owner, 2026-10-08).
     <View style={styles.gapInner}>
@@ -437,13 +449,15 @@ function LockedGap({
         {gap.line}
       </Text>
       <View style={styles.gapRow}>
-        <View
-          style={[styles.gapLock, { backgroundColor: colors.text }]}
-          accessible
-          accessibilityLabel="Locked"
-        >
-          <LockIcon size={ICON_SIZE.i20} color={colors.bg} />
-        </View>
+        {gap.padlock ? (
+          <View
+            style={[styles.gapLock, { backgroundColor: colors.text }]}
+            accessible
+            accessibilityLabel="Locked"
+          >
+            <LockIcon size={ICON_SIZE.i20} color={colors.bg} />
+          </View>
+        ) : null}
         {gap.button ? (
           <PressScale
             style={[styles.gapButton, { backgroundColor: colors.text }]}
