@@ -286,6 +286,11 @@ function checkMigration(rel, cwd, config) {
     return ask(
       'Editing an existing migration. Never edit one that has been pushed; add a new migration instead.'
     );
+  const banned = (config.migrationNameBanned || []).find((w) => name.slice(15, -4).split('_').includes(w));
+  if (banned)
+    return deny(
+      `Migration names say what changes in the database (e.g. delete_post_point), never who asked for it or a batch name. '${banned}' isn't allowed.`
+    );
   const versions = fs
     .readdirSync(path.join(cwd, config.migrationsDir))
     .map((n) => MIGRATION_NAME.exec(n))

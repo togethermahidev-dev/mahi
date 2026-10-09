@@ -90,6 +90,25 @@ test('migration files', () => {
   );
 });
 
+test('new migration names say what changes, never a person or a batch', () => {
+  const cwd = tmpProject();
+  fs.writeFileSync(path.join(cwd, 'supabase/migrations/20260625080000_maximus_answers.sql'), '');
+  const write = (name) =>
+    decide({ tool_name: 'Write', tool_input: { file_path: `supabase/migrations/${name}`, content: '' } }, { cwd });
+  const denied = write('20261009100000_maximus_answers.sql');
+  assert.strictEqual(verdict(denied), 'deny');
+  assert.match(denied.reason, /'maximus' isn't allowed/);
+  assert.strictEqual(verdict(write('20261009100000_round_5.sql')), 'deny');
+  assert.strictEqual(verdict(write('20261009100000_first_post_tag_and_post_points.sql')), 'allow');
+  assert.strictEqual(verdict(write('20261009100000_tag_rounding.sql')), 'allow');
+  // An existing file with a banned word is not blocked; editing it still only asks.
+  assert.strictEqual(verdict(write('20260625080000_maximus_answers.sql')), 'ask');
+  assert.strictEqual(
+    verdict(decide({ tool_name: 'Read', tool_input: { file_path: 'supabase/migrations/20260625080000_maximus_answers.sql' } }, { cwd })),
+    'allow'
+  );
+});
+
 test('build numbers live in app.config.js, never in EAS', () => {
   assert.strictEqual(verdict(bash('npx eas build:version:set --platform ios')), 'deny');
   assert.notStrictEqual(verdict(bash('eas build:version:get --platform all --profile preview')), 'deny');
