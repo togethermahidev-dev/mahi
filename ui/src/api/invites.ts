@@ -43,14 +43,6 @@ export type InviteClaim = {
   server_now: string;
 };
 
-/** One link, as `create_post` hands it back for the share sheet. */
-export type PostInvite = {
-  token: string;
-  code: string;
-  url: string;
-  claimed: boolean;
-};
-
 /** Who sent this invite. Null for an unknown, used or expired-beyond-recognition token. */
 export async function getInvitePreview(
   token: string
@@ -99,11 +91,6 @@ export async function cancelInvite(
 }
 
 /**
- * Say a link went out, and where: how, and to whom when known (server:
- * 20261007290000_invite_sent_to). Your own links only; the same call twice changes nothing more,
- * and it never counts as a resend.
- */
-/**
  * Take back a link for a mate that never went anywhere (the share sheet was closed): it is deleted,
  * so it doesn't show in "Your invites" nor count towards the open-invite cap. False when it had
  * already gone out, or isn't yours.
@@ -118,6 +105,11 @@ export async function discardUnsentInvite(
   };
 }
 
+/**
+ * Say a link went out, and where: how, and to whom when known (server:
+ * 20261007290000_invite_sent_to). Your own links only; the same call twice changes nothing more,
+ * and it never counts as a resend.
+ */
 export async function recordInviteSent(
   token: string,
   via: InviteVia,

@@ -17,7 +17,6 @@ import {
   type MediaType,
 } from '@/lib/videoPosts';
 import type { Database } from '@/types';
-import type { PostInvite } from './invites';
 import type { AnswerTiming } from '@/lib/answerTiming';
 import { pointsAfterDelete } from '@/lib/mahiPoints';
 import type { ProfileRestriction } from '@/lib/accountControls';
@@ -258,8 +257,6 @@ export type CreatePostResult = {
   streak: PointsResult;
   /** Tags this post answered, oldest first. */
   answered: AnsweredTag[];
-  /** A link per slot filled by an invite, to share. Same links on a retry. */
-  invites: PostInvite[];
   /** True when the same clientId had already been posted (a retry). */
   replayed: boolean;
 };
@@ -329,9 +326,7 @@ export async function createPost(opts: {
   taggedUserIds?: string[];
   latitude?: number | null;
   longitude?: number | null;
-  /** Slots filled by an invite link instead of a friend already on Mahi. */
-  inviteCount?: number;
-  /** Slots filled on the tag screen before posting (flag `tag-slots`). */
+  /** Slots filled on the tag screen before posting (links and in-app requests). */
   slotIds?: string[];
   /** Each shot is a photo unless said otherwise. */
   rearMediaType?: MediaType;
@@ -342,7 +337,8 @@ export async function createPost(opts: {
     p_image_path: opts.imagePath,
     p_pov_image_path: opts.povImagePath ?? null,
     p_caption: opts.caption ?? null,
-    p_invite_count: opts.inviteCount ?? 0,
+    // Links go out from the tag screen as slots, so none are set aside here; 0 keeps today's call.
+    p_invite_count: 0,
     p_tagged_ids: opts.taggedUserIds ?? [],
     p_latitude: opts.latitude ?? null,
     p_longitude: opts.longitude ?? null,

@@ -17,7 +17,7 @@ export const FEATURE_FLAGS = [
   'camera-tap-focus', // tap the live camera to focus and expose there (build 11+, default OFF)
 
   // Tag loop (see docs/tag-loop-plan.md)
-  'push-core', // the "turn on notifications" page and the camera's reminder line (default OFF; server keeps queueing when off)
+  'push-core', // the "Don't miss your tag 🔔" page and the feed's turn-on-notifications banner (default OFF; server keeps queueing when off)
 
   // Posts
   'video-posts', // each shot can be a photo or a video of up to 15 s; feed plays them (default OFF)

@@ -58,8 +58,8 @@ export type TagLoopEvents = {
   push_opened: { route: string };
   /** The notifications page was answered; `granted` is what the phone's own question got. */
   push_primer_answered: { choice: 'allow' | 'not_now'; granted: boolean };
-  /** The camera's "turn on notifications" line was tapped ('settings' or 'ask') or dismissed. */
-  push_nudge: { action: 'settings' | 'ask' | 'dismiss' };
+  /** The feed's notifications banner's Turn on: 'settings' opens Settings, 'ask' the phone's question. */
+  push_nudge: { action: 'settings' | 'ask' };
 
   // Core actions (founder metrics). Sent from the store, once the server has the row; the row's
   // id rides along so a duplicate can be spotted. Supabase stays the number of record.
