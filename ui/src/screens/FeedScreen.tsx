@@ -5,7 +5,6 @@ import {
   Text,
   RefreshControl,
   StyleSheet,
-  Animated,
   Pressable,
   ActivityIndicator,
 } from 'react-native';
@@ -38,6 +37,7 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { feedListLayout } from '@/lib/feedListLayout';
 import { BlurView } from 'expo-blur';
 import Reanimated, {
+  Easing,
   ReduceMotion,
   useAnimatedProps,
   useAnimatedStyle,
@@ -49,6 +49,13 @@ import Reanimated, {
 import { shouldPlay } from '@/lib/videoPosts';
 import { appHeaderHeight } from '@/lib/pip';
 import { atListTop } from '@/lib/swipeRules';
+import {
+  HEADER_START,
+  feedChromeOpacity,
+  feedTimerSpot,
+  headerScroll,
+  headerSlide,
+} from '@/lib/feedHeader';
 import type { FeedPost } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -153,7 +160,9 @@ interface FeedScreenProps {
   onGoToCamera?: () => void;
   /** Open people search (the empty feed's "Find friends" button). */
   onFindFriends?: () => void;
-  headerAnim?: Animated.Value;
+  /** The header's slide away, 0 (shown) to 1 (hidden), set from the list's scrolling here and
+   *  drawn by the camera page (src/lib/feedHeader.ts). */
+  headerHide?: SharedValue<number>;
   onOverlayChange?: (active: boolean) => void;
   /** The list's scrolling as a gesture, so the sideways page swipe can run alongside it. */
   listGesture?: NativeGesture;
@@ -171,7 +180,7 @@ interface FeedScreenProps {
 export default function FeedScreen({
   onGoToCamera,
   onFindFriends,
-  headerAnim,
+  headerHide,
   onOverlayChange,
   listGesture,
   isActive = true,
@@ -384,9 +393,33 @@ export default function FeedScreen({
     []
   );
 
-  // ── Scroll-driven header hide/show ───────────────────────────────────────
-  const [localHeaderAnim] = useState(() => new Animated.Value(0));
-  const headerOffset = headerAnim ?? localHeaderAnim;
+  // ── Scroll-driven header hide/show (src/lib/feedHeader.ts) ───────────────
+  // One animation per change of direction, on the UI thread, picking up from wherever the header
+  // is. (It used to start a new 150 ms animation on every scroll event — sixty a second through a
+  // page move — and each restart jumped the header back to a stale start: the glitch.) Reduce
+  // Motion: the header fades in place instead (headerSlide), so the timing itself always runs.
+  const localHeaderHide = useSharedValue(0);
+  const hide = headerHide ?? localHeaderHide;
+  const headerState = useRef(HEADER_START);
+  const lastY = useRef(0);
+  const showHeader = useCallback(
+    (shown: boolean) => {
+      hide.set(
+        withTiming(shown ? 0 : 1, {
+          duration: MOTION.feedHeader.ms,
+          easing: Easing.out(Easing.cubic),
+          reduceMotion: ReduceMotion.Never,
+        })
+      );
+    },
+    [hide]
+  );
+  // The feed opening or closing (or leaving this page) always brings the header back, wherever the
+  // list is: the camera side keeps the bell circle where it always was (it slides with the header).
+  useEffect(() => {
+    headerState.current = { shown: true, anchorY: lastY.current };
+    showHeader(true);
+  }, [isActive, showHeader]);
 
   // At the first post or not, told to the camera page only when it changes.
   const atTop = useRef(true);
@@ -398,23 +431,40 @@ export default function FeedScreen({
     },
     [onTopChange]
   );
-  // A new list (the layout switched) starts at its top.
+  // A new list (the layout switched) starts at its top, header shown.
   useEffect(() => {
     tellTop(true);
-  }, [rowsOn, tellTop]);
+    lastY.current = 0;
+    headerState.current = HEADER_START;
+    showHeader(true);
+  }, [rowsOn, tellTop, showHeader]);
 
   const handleScroll = (e: any) => {
     const y = e.nativeEvent.contentOffset.y;
+    lastY.current = y;
     tellTop(atListTop(y));
-
-    // Show header on first card, hide on all others
-    const target = atListTop(y) ? 0 : headerH;
-    Animated.timing(headerOffset, {
-      toValue: target,
-      duration: DURATION.d150,
-      useNativeDriver: true,
-    }).start();
+    // Down hides the header, up (or the top) shows it; it animates only when that flips.
+    const next = headerScroll(headerState.current, y);
+    if (next.shown !== headerState.current.shown) showHeader(next.shown);
+    headerState.current = next;
   };
+
+  // The notifications banner leaves with the header, all the way off the top.
+  const pushDistance = headerH + topInset + pushH;
+  const pushStyle = useAnimatedStyle(() => {
+    const s = headerSlide(hide.get(), pushDistance, reduceMotion);
+    return { opacity: s.opacity, transform: [{ translateY: s.translateY }] };
+  });
+  // The timer stays put while you page (owner, 2026-10-09: out of the header); it fades in with
+  // the feed opening, like the header.
+  const morph = switchPill?.morph;
+  const timerStyle = useAnimatedStyle(() => ({
+    opacity: morph ? feedChromeOpacity(morph.get()) : 1,
+  }));
+  const timerSpot = useMemo(
+    () => feedTimerSpot({ headerH, topInset, pushSpace }),
+    [headerH, topInset, pushSpace]
+  );
 
   return (
     <View style={[styles.root, { backgroundColor: posts.length ? listBg : bg }]}>
@@ -592,53 +642,30 @@ export default function FeedScreen({
       </ListGestureContext.Provider>
 
       {/* Notifications off: the banner at the top; it slides away with the header. */}
-      <Animated.View
+      <Reanimated.View
         pointerEvents="box-none"
         onLayout={(e) => setPushH(e.nativeEvent.layout.height)}
-        style={[
-          styles.lockBanner,
-          {
-            top: headerH + topInset,
-            transform: [
-              {
-                translateY: headerOffset.interpolate({
-                  inputRange: [0, headerH],
-                  outputRange: [0, -(headerH + pushH)],
-                  extrapolate: 'clamp',
-                }),
-              },
-            ],
-          },
-        ]}
+        style={[styles.lockBanner, { top: headerH + topInset }, pushStyle]}
       >
         <PushBanner />
-      </Animated.View>
+      </Reanimated.View>
 
       {loaded ? (
-        <Animated.View
+        // Locked: the padlock line stays put mid-feed while the blurred rows scroll behind it
+        // (owner, 2026-10-08). Open: the timer floats on its own on the right, under the header's
+        // area, and stays put while the header comes and goes (owner, 2026-10-09).
+        <Reanimated.View
           pointerEvents="box-none"
           onLayout={(e) => setBannerH(e.nativeEvent.layout.height)}
-          style={[
-            styles.lockBanner,
-            locked && posts.length > 0 && styles.lockBannerCentred,
-            {
-              top: headerH + topInset + pushSpace,
-              // Open: the timer slides away with the header once the first post scrolls off.
-              // Locked: the padlock line stays put while the blurred rows scroll behind it
-              // (owner, 2026-10-08).
-              transform: locked
-                ? []
-                : [
-                    {
-                      translateY: headerOffset.interpolate({
-                        inputRange: [0, headerH],
-                        outputRange: [0, -(headerH + pushSpace + bannerH)],
-                        extrapolate: 'clamp',
-                      }),
-                    },
-                  ],
-            },
-          ]}
+          style={
+            locked
+              ? [
+                  styles.lockBanner,
+                  posts.length > 0 && styles.lockBannerCentred,
+                  { top: headerH + topInset + pushSpace },
+                ]
+              : [styles.timerSpot, timerSpot, timerStyle]
+          }
         >
           <FeedLockBanner
             shake={lockShake}
@@ -648,10 +675,10 @@ export default function FeedScreen({
             onPost={() => onGoToCamera?.()}
             onFindFriends={onFindFriends}
           />
-        </Animated.View>
+        </Reanimated.View>
       ) : null}
 
-      {/* At the first post: "Switch to camera", under the header and the banners. */}
+      {/* At the first post: "Switch to camera", under the header, the banner and the timer. */}
       {switchPill && onGoToCamera && posts.length > 0 ? (
         <SwitchCameraPill
           shown={switchPill.shown}
@@ -725,6 +752,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: SPACE.s16,
+  },
+  // The open feed's timer: its own spot on the right (feedTimerSpot).
+  timerSpot: {
+    position: 'absolute',
   },
   // A locked feed: the lock pill floats in the middle of the frosted rows.
   lockBannerCentred: {

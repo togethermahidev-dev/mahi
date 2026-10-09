@@ -228,14 +228,13 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
   },
-  // The feed timer: the ring and the clock side by side on the right, white with a soft shadow so
-  // they read over any post (owner, 2026-10-09). The digits keep their width as they tick.
+  // The feed timer: the ring and the clock side by side, white with a soft shadow so they read
+  // over any post (owner, 2026-10-09). The digits keep their width as they tick. The feed places
+  // it on the right, apart from the header (feedTimerSpot, src/lib/feedHeader.ts).
   timerWrap: {
-    alignSelf: 'flex-end',
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.s8,
-    paddingHorizontal: SPACE.s16,
   },
   clock: {
     color: COLORS.white,

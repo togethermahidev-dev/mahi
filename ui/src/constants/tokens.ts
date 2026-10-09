@@ -589,6 +589,10 @@ export const MOTION = {
     feedFromY: 0.08,
     pillFadeShare: 0.2,
   },
+  /** The feed's see-through header (owner, 2026-10-09): it slides away once you've paged this far
+   *  (pt) down and comes back once you've gone this far up (or reach the top), over this long
+   *  (ms); it fades in over the last share of the camera to feed morph from fadeFrom. */
+  feedHeader: { hideAfter: 24, ms: DURATION.d200, fadeFrom: 0.5 },
   /** The round button beside the bell (owner, 2026-10-09): its icon scrolls up and out of the
    *  circle as the next rises in, done by cameraFeed.peekShare of the way. While a photo is being taken or
    *  reviewed, or the post is going up (no roadmap button), the circle fades in over this share

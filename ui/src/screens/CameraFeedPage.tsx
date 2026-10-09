@@ -37,6 +37,7 @@ import { detentProgress, releaseDetent, type Detent } from '@/lib/detent';
 import { dragProgress, feedPullDown, switchPillShown } from '@/lib/feedPull';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { lockedGapContent, lockPill } from '@/lib/feedLock';
+import { feedChromeOpacity, headerSlide } from '@/lib/feedHeader';
 import { useFeedStore, useTagStore, useUserStore } from '@/store';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useSecondTick } from '@/hooks/useSecondTick';
@@ -57,7 +58,6 @@ import {
 export default function CameraFeedPage({
   active,
   header,
-  headerAnim,
   feedList,
   onFindFriends,
   onOpenProfile,
@@ -68,8 +68,8 @@ export default function CameraFeedPage({
   active: boolean;
   /** The app header: dark on the camera, light on the feed. */
   header: (onCamera: boolean) => React.ReactNode;
-  /** The feed's header slides away as its rows scroll. */
-  headerAnim: RNAnimated.Value;
+  /** No longer used: the feed's header slides away by `headerHide` below (2026-10-09). */
+  headerAnim?: RNAnimated.Value;
   /** The feed list's scrolling as a gesture, so the sideways page swipe can run alongside it. */
   feedList: NativeGesture;
   onFindFriends: () => void;
@@ -343,9 +343,16 @@ export default function CameraFeedPage({
   const cameraHeaderStyle = useAnimatedStyle(() => ({
     opacity: locked ? 1 : interpolate(progress.value, [0, 0.5], [1, 0], 'clamp'),
   }));
-  const feedHeaderStyle = useAnimatedStyle(() => ({
-    opacity: locked ? 0 : interpolate(progress.value, [0.5, 1], [0, 1], 'clamp'),
-  }));
+  // The feed's header fades in with the morph and slides away as you page down (FeedScreen sets
+  // headerHide from the list's scrolling; src/lib/feedHeader.ts). One view, on the UI thread.
+  const headerHide = useSharedValue(0);
+  const feedHeaderStyle = useAnimatedStyle(() => {
+    const s = headerSlide(headerHide.get(), headerH, reduceMotion);
+    return {
+      opacity: locked ? 0 : feedChromeOpacity(progress.value) * s.opacity,
+      transform: [{ translateY: s.translateY }],
+    };
+  });
 
   // The circle beside the bell says where you are (owner, 2026-10-09): a camera on the camera, the
   // feed on the feed, a padlock when it's locked; the icons scroll in and out of the circle with
@@ -354,14 +361,22 @@ export default function CameraFeedPage({
   const [pullHandle, setPullHandle] = useState(false);
   const iconTravel = SIZE.z36;
   const feedIcon = feedSideIcon(feedLocked);
-  const bellStyle = useAnimatedStyle(() => ({
-    opacity: bellPillOpacity({
-      progress: progress.value,
-      peek,
-      feedShown: feedOpen,
-      handle: pullHandle,
-    }),
-  }));
+  // On the full-screen feed it slides away and comes back with the header (the same headerHide
+  // and Reduce Motion fade), off the top while hidden so it takes no taps. headerHide is 0 off the
+  // feed (FeedScreen shows the header as the feed opens and closes), so the camera side is as before.
+  const bellStyle = useAnimatedStyle(() => {
+    const s = headerSlide(headerHide.get(), headerH, reduceMotion);
+    return {
+      opacity:
+        bellPillOpacity({
+          progress: progress.value,
+          peek,
+          feedShown: feedOpen,
+          handle: pullHandle,
+        }) * s.opacity,
+      transform: [{ translateY: s.translateY }],
+    };
+  });
   const bellCameraStyle = useAnimatedStyle(() => {
     const at = bellIcons(bellScroll(progress.value, peek), iconTravel, reduceMotion);
     return { opacity: at.cameraOpacity, transform: [{ translateY: at.cameraY }] };
@@ -391,7 +406,7 @@ export default function CameraFeedPage({
           <FeedScreen
             onGoToCamera={closeFeed}
             onFindFriends={onFindFriends}
-            headerAnim={headerAnim}
+            headerHide={headerHide}
             onOverlayChange={onOverlayChange}
             listGesture={feedList}
             isActive={active && feedOpen && !locked}
@@ -444,28 +459,13 @@ export default function CameraFeedPage({
         {header(true)}
       </Reanimated.View>
 
-      {/* The feed's header sits over the camera strip once the feed is up. */}
-      <RNAnimated.View
-        pointerEvents="box-none"
-        style={[
-          styles.header,
-          {
-            transform: [
-              {
-                translateY: headerAnim.interpolate({
-                  inputRange: [0, headerH],
-                  outputRange: [0, -headerH],
-                  extrapolate: 'clamp',
-                }),
-              },
-            ],
-          },
-        ]}
+      {/* The feed's header sits over the feed once it is up; it slides away as you page down. */}
+      <Reanimated.View
+        style={[styles.header, feedHeaderStyle]}
+        pointerEvents={feedOpen ? 'box-none' : 'none'}
       >
-        <Reanimated.View style={feedHeaderStyle} pointerEvents={feedOpen ? 'box-none' : 'none'}>
-          {header(false)}
-        </Reanimated.View>
-      </RNAnimated.View>
+        {header(false)}
+      </Reanimated.View>
 
       {/* Locked: the lifted camera takes a tap or a swipe down back to the camera. (Open, the
           camera has gone off the top: the pull down at the first post, the pill and the bell
