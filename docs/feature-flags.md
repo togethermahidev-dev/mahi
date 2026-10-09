@@ -60,25 +60,28 @@ if (!videoOn) return null;
 
 ## The flags
 
-30 keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone. Nor do the twelve switches removed on 2026-10-07 — see [Removed from code 2026-10-07](#removed-from-code-2026-10-07).)
+28 keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone. Nor do the twelve switches removed on 2026-10-07 — see [Removed from code 2026-10-07](#removed-from-code-2026-10-07).)
 
 **Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
 are switched in the `app_config` table):
-`push-core` (**default off; not in PostHog yet**. On: a full-screen page, once per device after the
-welcome cards and the phone's camera question — "When do you post on Mahi?", one line of why, and a card
-"Please turn on notifications" with one button, Continue, which brings up the phone's own question
-(Apple's guidance; no "Not now" since 2026-10-06). Someone who said "Don't allow" sees, while they hold an open tag, one dismissible line under the
-camera's open-tags pill, "Turn on notifications so you never miss a tag", which opens Mahi in the
-phone's Settings (or the phone's question if it was never asked). Works on build 10; needs `send-push`
-live to be worth switching on. The server queues pushes whether it is on or off. Off = nobody is asked;
-phones that already allowed still register.)
+`push-core` (**default off; not in PostHog yet**. On: the last onboarding page, once per device, after the
+welcome cards and the private-or-public page, before the camera asks for anything — "Don't miss your tag 🔔",
+"Turn on notifications so you know when a mate tags you.", with Turn on (brings up the phone's own
+question) and Not now (words owner 2026-10-09; Android's back button counts as Not now). After Not now, or
+"Don't allow" on the phone's question, a banner sits at the top of the feed, tag or no tag: "🔕 You won't
+know when you're tagged and could miss the deadline." with Turn on, which brings up the phone's question if
+it has never asked, else opens Mahi in the phone's Settings. It goes once notifications are on. Works on
+build 10; needs `send-push` live to be worth switching on. The server queues pushes whether it is on or
+off. Off = nobody is asked and no banner; phones that already allowed still register.)
 `tag-slots`: removed 2026-10-09 (decision #167). The slot tag screen is now how every first post (1 mate) and answer (3 friends) is tagged.
-**Find your mates:** switch `contacts-finder` (**default on**, a kill switch); on for everyone on build 13+ (expo-contacts), needs migration `20261007270000_contact_match`. "Find your mates" — once
-after sign-up for a new account (after the welcome cards, before the notifications page), and from
-Settings → Mates, Your invites and the camera's waiting card. Asks for contacts with a plain why first;
-a no gets "Invite by link instead". Contacts on Mahi can be followed; everyone else with a number gets
-"Invite", which opens a text with a mate link. Only hashes of numbers and emails reach the server;
-nothing is kept on the phone. Builds 10–12 never show it, switch or not.
+**Find friends in your contacts:** switch `contacts-finder` (**default on**, a kill switch); on for everyone on build 13+ (expo-contacts), needs migration `20261007270000_contact_match`. Opens from
+Settings → Friends, Your invites and the camera's waiting card ("Contacts"). The sign-up step left
+onboarding on 2026-10-09: someone with no friend to tag now gets their contacts on the tag screen itself
+(a first post or an answer), with links to send by WhatsApp, Messages, Snap or IG; that list is part of the
+tag screen and does not read the switch. Asks for contacts with a plain why first; a no gets "Invite by
+link instead". Contacts on Mahi can be followed; everyone else with a number gets "Invite", which opens a
+text with a mate link. Only hashes of numbers and emails reach the server; nothing is kept on the phone.
+Builds 10–12 never show it, switch or not.
 
 **Lock screen and widget:** `live-activity` (**default off** since 2026-10-08, held back until the owner
 releases it; off in PostHog; needs build 13, which carries `expo-widgets`). On: while you have a tag to answer, a Live
@@ -193,7 +196,7 @@ removal rule applies as usual: take the switch out of the code, then delete it i
 
 | Switch | What it turns off |
 |---|---|
-| `contacts-finder` | Find your mates from the phone's contacts (camera, Settings, Your invites, welcome step) |
+| `contacts-finder` | Find friends in your contacts (camera's waiting card, Settings, Your invites); the tag screen's own contacts list does not read it |
 | `live-activity` | A mate's tag on the lock screen, Dynamic Island and home-screen widget |
 | `emoji-keyboard` | The emoji button and panel in a conversation |
 | `message-reactions` | Hold a message to react, reaction badges, double tap for a heart |
@@ -235,14 +238,14 @@ don't have the native parts, so the switches do nothing there.
 - `control-post-workout`: "Post a workout" in Control Centre, on the lock screen or on the Action button
   (iOS 18+). On: a tap opens Mahi on the camera. Off: the app writes the switch to the App Group, the
   button then reads "Open Mahi", and a tap just opens Mahi where it was.
-- `spotlight`: Spotlight offers "Post a workout", "Your invites" and "Find your mates" (the app's own
+- `spotlight`: Spotlight offers "Post a workout", "Your invites" and "Find friends in your contacts" (the app's own
   actions; nothing about the person is indexed). On: the app puts them in the phone's index at launch; a
-  tap opens the camera, or the invites list / Find your mates over the Camera page. Off: the app takes
+  tap opens the camera, or the invites list / Find friends in your contacts over the Camera page. Off: the app takes
   them out of the index at its next launch; a tap on one still showing just opens Mahi.
   `mahi://invites` and `mahi://find-mates` also work as plain links, with no switch.
 - `siri-shortcuts`: App Shortcuts, ready in Siri, the Shortcuts app and Spotlight with nothing to set
-  up — "Post a workout in Mahi", "Open my invites in Mahi", "Find my mates in Mahi". On: each opens
-  Mahi on the camera, the invites list or Find your mates. Off: they still show (Apple lists them from
+  up — "Post a workout in Mahi", "Open my invites in Mahi", "Find friends on Mahi". On: each opens
+  Mahi on the camera, the invites list or Find friends in your contacts. Off: they still show (Apple lists them from
   the build), but each just opens Mahi; the app writes the switch to the App Group so the intent leaves
   nothing to act on.
 - `shutter-sound`: Apple's own camera shutter sound (the Camera app's) at the press, in step with the

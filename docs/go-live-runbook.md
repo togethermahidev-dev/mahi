@@ -185,8 +185,8 @@ For the owner to run, in this order. Written 2026-10-02; nothing here has been r
 notifications module and Apple's push permission: checked 2026-10-02 in the build file itself
 (EAS build `2b2d870f`, 2026-09-30, commit `a98e627` — it carries `ExpoNotifications` and is signed
 with `aps-environment: production`; `expo-notifications` has been in `package.json` since
-`dcc1b79`, 2026-09-17). The app side — the "turn on notifications" page and the camera's reminder
-line — is JavaScript only, so it goes out as an OTA update. Android is separate: it needs Google's
+`dcc1b79`, 2026-09-17). The app side — the "Don't miss your tag 🔔" page and the feed's
+turn-on-notifications banner — is JavaScript only, so it goes out as an OTA update. Android is separate: it needs Google's
 FCM credentials and its own first build.
 
 **What is on production today** (checked against prod 2026-10-02, read-only):
@@ -309,7 +309,7 @@ Publish it to preview and open the app twice on the phone so it lands. Nothing s
 
 ### 7. Everyone
 
-Edit `push-core` in PostHog: remove the email condition, 100% of everyone. Update the
+Step 6 already switched `push-core` on for everyone at 100%; nothing changes in PostHog. Update the
 `push-core` line in the `#feature-flags` summary and post in `#push-notifications`.
 
 ### Settings you can change later
