@@ -4,7 +4,8 @@
  * 'fail'. Pages move sideways only (founder, 2026-10-05: no up/down swiping).
  *
  * - A swipe that starts in a strip the phone owns (status bar, home bar, and for sideways swipes
- *   the side edges where Android's back gesture lives) is left to the phone.
+ *   the side edges where Android's back gesture lives; an iPhone passes `edge: 0`) is left to
+ *   the phone.
  * - The finger must move SWIPE.slop px, mostly along the swipe's own axis; the other axis fails it.
  * - `blocked`: a pop-up screen is open, so the page underneath must not move.
  * - `exclude`: a sideways swipe never starts inside this rectangle (the nav rail owns its touches).
@@ -26,6 +27,8 @@ type Touch = {
   blocked: boolean;
   /** Screen rectangle a sideways swipe may not start in, or null. */
   exclude?: Rect | null;
+  /** Side strip left to the phone; SIDE_EDGE (Android's back gesture) unless given. */
+  edge?: number;
 };
 
 export type Rect = { x: number; y: number; width: number; height: number };
@@ -35,8 +38,8 @@ function inRect(x: number, y: number, r: Rect | null | undefined): boolean {
   return !!r && x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height;
 }
 
-/** Side strip left to the system back gesture. */
-const EDGE = 24;
+/** Side strip left to Android's back gesture. An iPhone has none on Mahi's pages, so passes 0. */
+export const SIDE_EDGE = 24;
 /** Minimum strip kept for the home bar / gesture nav, even on phones reporting no inset. */
 const MIN_BOTTOM_ZONE = 24;
 
@@ -50,7 +53,8 @@ function inSystemStrip(t: Touch): boolean {
 export function horizontalSwipe(t: Touch): SwipeDecision {
   'worklet';
   if (t.blocked || inSystemStrip(t)) return 'fail';
-  if (t.startX < EDGE || t.startX > t.width - EDGE) return 'fail';
+  const edge = t.edge ?? SIDE_EDGE;
+  if (t.startX < edge || t.startX > t.width - edge) return 'fail';
   if (inRect(t.startX, t.startY, t.exclude)) return 'fail';
   const ax = Math.abs(t.dx);
   const ay = Math.abs(t.dy);

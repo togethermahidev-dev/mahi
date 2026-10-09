@@ -28,6 +28,12 @@ describe('swipe rules', () => {
       expect(h({ startX: 10, dx: 40 })).toBe('fail');
       expect(h({ startX: 395, dx: -40 })).toBe('fail');
     });
+    // An iPhone has no back gesture on Mahi's pages (no navigation stack): its side edges are
+    // ordinary screen (owner, 2026-10-09: the swipe to Messages from the left edge did nothing).
+    it('with no side strip (iPhone), a swipe from the very edge is taken', () => {
+      expect(h({ startX: 5, dx: 40, edge: 0 })).toBe('activate');
+      expect(h({ startX: 395, dx: -40, edge: 0 })).toBe('activate');
+    });
     it('leaves the status bar and home bar strips to the phone', () => {
       expect(h({ startY: 20, dx: 40 })).toBe('fail');
       expect(h({ startY: 790, dx: 40 })).toBe('fail');

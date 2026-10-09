@@ -1,3 +1,4 @@
+import { horizontalSwipe } from '../swipeRules';
 import { MOTION, SWIPE } from '@/constants/tokens';
 import {
   cameraDrag,
@@ -92,7 +93,17 @@ describe('cameraDrag — which way a drag on the camera goes', () => {
   const base = { startY: 300, insetTop: 50, moved: false, feedOn: true };
   it('a short upward drag is the feed', () => {
     expect(cameraDrag({ ...base, dx: 0, dy: -h })).toBe('feed');
-    expect(cameraDrag({ ...base, dx: h - 2, dy: -h })).toBe('feed');
+    expect(cameraDrag({ ...base, dx: 3, dy: -h })).toBe('feed');
+  });
+  // Owner, 2026-10-09: "from camera I can't swipe across to messages". A right thumb's swipe
+  // toward Messages arcs up-right; the camera took it at half the slop before the page swipe
+  // could. A diagonal start now waits for the full slop, so the page swipe gets its turn.
+  it('a diagonal start waits for the full slop instead of taking the feed', () => {
+    expect(cameraDrag({ ...base, dx: h - 2, dy: -h })).toBe('wait');
+    expect(cameraDrag({ ...base, dx: 9, dy: -11 })).toBe('wait');
+  });
+  it('a diagonal that stays vertical past the full slop is still the feed', () => {
+    expect(cameraDrag({ ...base, dx: 12, dy: -(SWIPE.slop + 1) })).toBe('feed');
   });
   it('a short downward drag is the drawer', () => {
     expect(cameraDrag({ ...base, dx: 0, dy: h })).toBe('drawer');
@@ -107,5 +118,29 @@ describe('cameraDrag — which way a drag on the camera goes', () => {
     expect(cameraDrag({ ...base, dx: h, dy: 2 })).toBe('fail');
     expect(cameraDrag({ ...base, dx: 2, dy: -3 })).toBe('wait');
     expect(cameraDrag({ ...base, startY: 20, dx: 0, dy: -h })).toBe('fail');
+  });
+});
+
+// The race on the phone: both gestures see every move; whichever claims first wins.
+describe('cameraDrag vs the page swipe — a thumb arc toward Messages', () => {
+  const screen = { width: 390, height: 760, insets: { top: 50, bottom: 34 }, blocked: false };
+  const claimFirst = (arc: [number, number][], startX: number) => {
+    for (const [dx, dy] of arc) {
+      const cam = cameraDrag({ startY: 500, insetTop: 50, moved: false, feedOn: true, dx, dy });
+      const page = horizontalSwipe({ ...screen, startX, startY: 500, dx, dy });
+      if (cam === 'feed' || cam === 'drawer') return 'camera';
+      if (page === 'activate') return 'page';
+      if (cam === 'fail' && page === 'fail') return 'none';
+    }
+    return 'none';
+  };
+  it('a rightward arc (to Messages) moves the page', () => {
+    expect(claimFirst([[4, -5], [9, -11], [16, -14], [24, -16]], 120)).toBe('page');
+  });
+  it('a leftward, flatter swipe (to Profile) still moves the page', () => {
+    expect(claimFirst([[-4, -1], [-12, -2], [-24, -4]], 300)).toBe('page');
+  });
+  it('a clear swipe up is still the camera’s', () => {
+    expect(claimFirst([[1, -6], [2, -12], [3, -24]], 200)).toBe('camera');
   });
 });

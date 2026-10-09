@@ -47,7 +47,13 @@ import { TabBarRoomContext, usePageSize } from '@/hooks/useChrome';
 import { INITIAL_TAB, SWIPE_PAGES, pageTab, tabPage } from '@/lib/nativeTabs';
 import { pageActions, pageForAction, pageTitle } from '@/lib/pageActions';
 import { dockShows, railShows } from '@/lib/railSelector';
-import { horizontalRelease, horizontalSwipe, rubberBand, type Rect } from '@/lib/swipeRules';
+import {
+  horizontalRelease,
+  horizontalSwipe,
+  rubberBand,
+  SIDE_EDGE,
+  type Rect,
+} from '@/lib/swipeRules';
 import { COLORS, LAYER, LAYOUT, MOTION, SIZE, SPRING } from '@/constants/tokens';
 
 // ─── Pages ────────────────────────────────────────────────────────────────────
@@ -325,6 +331,8 @@ export default function HorizontalNavigator({
   const messagesList = useMemo(() => Gesture.Native(), []);
 
   const safeInsets = { top: insets.top, bottom: insets.bottom };
+  // Android keeps its side edges for the phone's back gesture; an iPhone's edges are screen.
+  const sideEdge = Platform.OS === 'android' ? SIDE_EDGE : 0;
 
   // Take clear sideways swipes (see swipeRules); up/down ones are left to the lists. Runs on the
   // UI thread.
@@ -347,6 +355,7 @@ export default function HorizontalNavigator({
         width,
         height,
         insets: safeInsets,
+        edge: sideEdge,
         blocked: blockedSV.value || profileCarouselActive.value,
         exclude: railRectSV.value,
       });
@@ -373,6 +382,7 @@ export default function HorizontalNavigator({
         width,
         height,
         insets: safeInsets,
+        edge: sideEdge,
         blocked: blockedSV.value || profileCarouselActive.value,
       });
       if (decision === 'wait') return;
