@@ -7,6 +7,9 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 40 — one swipe to the feed (no halfway stop); pull down from the first post or tap
+ *     Switch to camera to go back; the small photo clears the name row; first photos load sooner
+ *     (2026-10-09)
  *   build 13 · 39 — full-screen feed again (one post per screen; rows behind feed-rows, off); the
  *     camera minimises as the feed grows to full screen, following the finger (2026-10-09)
  *   build 13 · 38 — before the feed loads, the swipe up says loading / Try again instead of an
@@ -169,4 +172,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 39;
+export const OTA_NUMBER = 40;
