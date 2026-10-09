@@ -65,8 +65,9 @@ export const COACH_TIPS = {
     page: 'feed',
     icon: 'feed',
   },
+  // A first post tags 1 mate and an answer tags 3 (core workflow, 2026-10-09); one tip for both.
   tagMates: {
-    title: 'Tag 3 friends',
+    title: 'Tag your mates',
     body: 'Each gets 48 hours to post back.',
     page: 'compose',
     icon: 'people',

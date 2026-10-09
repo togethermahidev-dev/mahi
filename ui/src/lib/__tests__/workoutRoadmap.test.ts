@@ -10,16 +10,28 @@ it('shows nothing while it is not known whether you have posted', () => {
   expect(roadmap({ firstWorkoutDone: null, tagged: false, captured: false })).toBeNull();
 });
 
+// Core workflow (2026-10-09): the first post tags 1 mate; answers tag 3.
+it("the steps in the core workflow's words", () => {
+  const r = roadmap({ firstWorkoutDone: false, tagged: false, captured: false });
+  expect(r?.steps[0]).toEqual(['Show up and tag a mate', 'Post any workout and tag 1 mate.']);
+  expect(titles(r)).toEqual([
+    'Show up and tag a mate',
+    'Wait for a tag',
+    'Answer with live proof of your workout',
+    'Hold 3 friends accountable',
+  ]);
+});
+
 it('before a first post: four steps, the first one current', () => {
   const r = roadmap({ firstWorkoutDone: false, tagged: false, captured: false });
-  expect(titles(r)?.[0]).toBe('Show up once');
+  expect(titles(r)?.[0]).toBe('Show up and tag a mate');
   expect(r?.steps).toHaveLength(4);
   expect(r?.current).toBe(0);
 });
 
 it('after a first post: no first-workout step at all', () => {
   const r = roadmap({ firstWorkoutDone: true, tagged: false, captured: false });
-  expect(titles(r)).not.toContain('Show up once');
+  expect(titles(r)).not.toContain('Show up and tag a mate');
   expect(r?.steps).toHaveLength(3);
   expect(titles(r)?.[r!.current]).toBe('Wait for a tag');
 });
@@ -47,7 +59,7 @@ describe('stepAction — what tapping a step’s circle does', () => {
   });
   it('a later step says what has to come first', () => {
     expect(stepAction(waiting, 1)).toEqual({ kind: 'later', first: 'Wait for a tag' });
-    expect(stepAction(first, 2)).toEqual({ kind: 'later', first: 'Show up once' });
+    expect(stepAction(first, 2)).toEqual({ kind: 'later', first: 'Show up and tag a mate' });
   });
   it('a step already done does nothing', () => {
     expect(stepAction({ ...tagged, captured: true }, 1)).toEqual({ kind: 'done' });

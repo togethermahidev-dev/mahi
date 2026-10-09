@@ -1,6 +1,8 @@
 /**
  * The camera's open-tags message: what to do next, in the founder's words (Maximus, 2026-10-07).
- * - Downloaded Mahi themselves, never posted: their first workout needs no tags.
+ * - Downloaded Mahi themselves, never posted (core workflow step 11, owner 2026-10-09): "Post your
+ *   first Mahi." and who will see it: "Only people you approve see your posts." (private) or
+ *   "Anyone can see your Mahi." (public); nothing more until the account's privacy is known.
  * - A mate tagged them, never posted: "You were tagged by @sam. You have 47:59:59 to post your
  *   Mahi and get your first point."
  * - Tagged after that: "@sam is waiting on you · 41:20:00 left", and what answering earns and a
@@ -48,6 +50,7 @@ export function openTagsBanner({
   deviceNow = Date.now(),
   firstPost = false,
   points = null,
+  isPrivate = null,
 }: {
   openTags: { username: string; expires_at: string }[];
   serverOffsetMs: number;
@@ -56,18 +59,22 @@ export function openTagsBanner({
   firstPost?: boolean;
   /** Your Mahi points now (null until loaded): what a miss would cost. */
   points?: number | null;
+  /** The account is private (null until the profile has loaded): who sees a first post. */
+  isPrivate?: boolean | null;
 }): OpenTagsBannerContent | null {
   if (openTags.length === 0) {
-    return firstPost
-      ? {
-          parts: [
-            { text: 'Your move: ' },
-            { text: 'show up for your first workout', accent: true },
-          ],
-          note: 'Take a workout photo, then a selfie. Any movement counts.',
-          firstPost: true,
-        }
-      : null;
+    if (!firstPost) return null;
+    const who =
+      isPrivate === null || isPrivate === undefined
+        ? null
+        : isPrivate
+          ? 'Only people you approve see your posts.'
+          : 'Anyone can see your Mahi.';
+    return {
+      parts: [{ text: 'Post your first Mahi.' }],
+      ...(who ? { note: who } : {}),
+      firstPost: true,
+    };
   }
   const first = soonest(openTags);
   const others = openTags.length - 1;

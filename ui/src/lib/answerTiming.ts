@@ -25,12 +25,15 @@ function took(seconds: number): string {
   return `${Math.floor(seconds / HOUR)}h`;
 }
 
-export function answerTimingLine(post: {
+type TimingInput = {
   answered?: AnswerTiming | null;
   first_post?: boolean;
   response?: { tagger_username: string; seconds: number } | null;
-}): string | null {
-  const a: AnswerTiming | null =
+};
+
+/** The oldest tag the post answered, from the new field or, on an older server, the old one. */
+function answeredTag(post: TimingInput): AnswerTiming | null {
+  return (
     post.answered ??
     (post.answered === undefined && post.response
       ? {
@@ -38,16 +41,32 @@ export function answerTimingLine(post: {
           seconds_taken: post.response.seconds,
           seconds_to_spare: null,
         }
-      : null);
-  if (a) {
-    const who = `Answered @${a.tagger_username}`;
-    const spare = a.seconds_to_spare;
-    if (spare !== null && spare > 0 && spare < HOUR) {
-      return spare < MINUTE
-        ? `${who} with seconds to spare`
-        : `${who} with ${Math.floor(spare / MINUTE)} min to spare`;
-    }
-    return `${who} in ${took(Math.max(0, a.seconds_taken))}`;
+      : null)
+  );
+}
+
+/** "in 2h", "with 20 min to spare" in the last hour, "with seconds to spare". */
+function timing(a: AnswerTiming): string {
+  const spare = a.seconds_to_spare;
+  if (spare !== null && spare > 0 && spare < HOUR) {
+    return spare < MINUTE
+      ? 'with seconds to spare'
+      : `with ${Math.floor(spare / MINUTE)} min to spare`;
   }
+  return `in ${took(Math.max(0, a.seconds_taken))}`;
+}
+
+export function answerTimingLine(post: TimingInput): string | null {
+  const a = answeredTag(post);
+  if (a) return `Answered @${a.tagger_username} ${timing(a)}`;
   return post.first_post ? 'First Mahi' : null;
+}
+
+/**
+ * The timing after "Replying to @joe, @sam." (core workflow step 21), which already names the
+ * people: "Answered in 2h.", "Answered with 20 min to spare."; null when nothing was answered.
+ */
+export function answerTimingTail(post: TimingInput): string | null {
+  const a = answeredTag(post);
+  return a ? `Answered ${timing(a)}.` : null;
 }

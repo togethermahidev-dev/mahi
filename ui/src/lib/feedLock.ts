@@ -47,6 +47,17 @@ function whoTagged(openTags: OpenTags): { who: string; first: OpenTags[number] }
   return { who, first };
 }
 
+/** Tagged and locked out (core workflow step 17): "You've been tagged. Post your Mahi to access
+ *  your feed". */
+const TAGGED_HEADLINE = 'You’ve been tagged.';
+const TAGGED_LINE = 'Post your Mahi to access your feed.';
+
+/** " 41:30:00 left." on the tag that runs out first; '' once its time is up. */
+function tagClock(openTags: OpenTags, serverOffsetMs: number, deviceNow: number): string {
+  const ms = msLeft(whoTagged(openTags).first.expires_at, serverOffsetMs, deviceNow);
+  return ms > 0 ? ` ${clockText(ms)} left.` : '';
+}
+
 /** The card at the top of a locked feed; null when the feed is open. */
 export function lockExplainer({
   locked,
@@ -63,13 +74,12 @@ export function lockExplainer({
   if (!locked) return null;
 
   if (openTags.length > 0) {
-    const { who, first } = whoTagged(openTags);
-    // A ticking clock, like every tag countdown (owner, 2026-10-07).
-    const ms = msLeft(first.expires_at, serverOffsetMs, deviceNow);
-    const left = ms > 0 ? clockText(ms) : null;
+    // Core workflow step 17 (owner, 2026-10-09), then a ticking clock for the tag that runs out
+    // first, like every tag countdown (owner, 2026-10-07).
+    const left = tagClock(openTags, serverOffsetMs, deviceNow);
     return {
-      headline: `${who} tagged you.`,
-      body: `Your feed is locked until you post your answer.${left ? ` ${left} left.` : ''}`,
+      headline: TAGGED_HEADLINE,
+      body: `${TAGGED_LINE}${left}`,
       button: 'Post your answer',
       target: 'camera',
     };
@@ -106,11 +116,9 @@ export function lockPill(
   const card = lockExplainer(input);
   if (!card) return null;
   if (input.openTags.length > 0) {
-    const { who, first } = whoTagged(input.openTags);
-    const ms = msLeft(first.expires_at, input.serverOffsetMs, input.deviceNow ?? Date.now());
-    const left = ms > 0 ? ` ${clockText(ms)} left.` : '';
+    const left = tagClock(input.openTags, input.serverOffsetMs, input.deviceNow ?? Date.now());
     return {
-      line: `Locked. Answer ${who} to open it.${left}`,
+      line: `${TAGGED_HEADLINE} ${TAGGED_LINE}${left}`,
       button: card.button,
       target: 'camera',
     };

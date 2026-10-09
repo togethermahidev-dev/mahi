@@ -30,13 +30,10 @@ describe('coach tips — the words', () => {
       bell: ['A friend tagged you', 'Tap to answer.', 'feed'],
       twoPhotos: ['Two photos', 'What you see, then a selfie.', 'camera'],
       waiting: ['You’ll post again when a friend tags you', 'Check back each day.', 'camera'],
-      pullDown: [
-        'Pull down to open',
-        'Your actions are behind the camera.',
-        'camera',
-      ],
+      pullDown: ['Pull down to open', 'Your actions are behind the camera.', 'camera'],
       feedLocked: ['Your feed opens when you post', 'Answer tags to keep it open.', 'feed'],
-      tagMates: ['Tag 3 friends', 'Each gets 48 hours to post back.', 'compose'],
+      // Core workflow (2026-10-09): a first post tags 1, an answer tags 3, so the tip says neither.
+      tagMates: ['Tag your mates', 'Each gets 48 hours to post back.', 'compose'],
     });
   });
 

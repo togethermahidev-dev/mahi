@@ -19,6 +19,7 @@ import FollowListModal from '@/components/FollowListModal';
 import MyInvitesSheet from '@/components/MyInvitesSheet';
 import { getMyInvites } from '@/api/invites';
 import { inviteSummary } from '@/lib/myInvites';
+import { inviteAMate } from '@/lib/inviteAMate';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import TouchCarousel from '@/components/TouchCarousel';
 import ProfileIdentityCard from '@/components/ProfileIdentityCard';
@@ -107,6 +108,8 @@ export default function ProfileScreen({
   // kept on the phone). Null while reading or after a failed read: the row says so instead.
   const [invitesLine, setInvitesLine] = useState<string | null>(null);
   const [invitesRead, setInvitesRead] = useState(false);
+  // "Invite a mate" (core workflow step 24): one link at a time, so a double tap can't make two.
+  const [inviting, setInviting] = useState(false);
   const [viewerPost, setViewerPost] = useState<{
     postId: string;
     source?: MorphSource;
@@ -372,6 +375,37 @@ export default function ProfileScreen({
         }}
       />
 
+      {/* Invite a mate, from your profile at any time (core workflow step 24): a link made on
+          tap, then the phone's share sheet. */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.quickAction,
+          { backgroundColor: surface, borderColor: border },
+          (pressed || inviting) && { opacity: ALPHA.a75 },
+        ]}
+        onPress={() => {
+          if (inviting) return;
+          setInviting(true);
+          void inviteAMate().finally(() => setInviting(false));
+        }}
+        disabled={inviting}
+        accessibilityRole="button"
+        accessibilityLabel="Invite a mate"
+        accessibilityHint="Makes an invite link and opens sharing"
+        accessibilityState={{ busy: inviting }}
+      >
+        <View style={[styles.quickIcon, { backgroundColor: iconSurface }]}>
+          <Text style={[styles.quickPlus, { color: toggleColor }]}>+</Text>
+        </View>
+        <View style={styles.quickCopy}>
+          <Text style={[styles.quickTitle, { color: text }]}>Invite a mate</Text>
+          <Text style={[styles.quickSubtitle, { color: muted }]}>
+            {inviting ? 'Making your link…' : 'Send them a link to join you'}
+          </Text>
+        </View>
+        <Text style={[styles.quickChevron, { color: muted }]}>›</Text>
+      </Pressable>
+
       {/* Suggested follows — syncs on mount, renders null when empty */}
       <SuggestedFollowsStrip onPressUser={setProfileUserId} excludeUserId={userId} />
 
@@ -614,6 +648,11 @@ const styles = StyleSheet.create({
     lineHeight: LINE_HEIGHT.l14,
     fontFamily: FONTS.regular,
     marginTop: SPACE.s3,
+  },
+  quickPlus: {
+    fontSize: FONT_SIZE.f20,
+    lineHeight: LINE_HEIGHT.l22,
+    fontFamily: FONTS.semiBold,
   },
   quickChevron: {
     fontSize: FONT_SIZE.f20,

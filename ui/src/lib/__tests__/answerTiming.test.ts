@@ -1,4 +1,4 @@
-import { answerTimingLine } from '../answerTiming';
+import { answerTimingLine, answerTimingTail } from '../answerTiming';
 
 const MIN = 60;
 const HOUR = 60 * MIN;
@@ -59,5 +59,32 @@ describe('the on-time line under a poster’s name', () => {
         ...answered(HOUR, 20 * MIN),
       })
     ).toBe('Answered @sam with 20 min to spare');
+  });
+});
+
+// Core workflow step 21 (2026-10-09): "Replying to @joe, @sam." names the people, so the timing
+// that follows it names no one.
+describe('the timing after "Replying to …"', () => {
+  it('says how fast, without a name', () => {
+    expect(answerTimingTail(answered(2 * HOUR + 40 * MIN, 30 * HOUR))).toBe('Answered in 2h.');
+    expect(answerTimingTail(answered(30, 47 * HOUR))).toBe('Answered in under a minute.');
+  });
+
+  it('in the last hour, the time to spare', () => {
+    expect(answerTimingTail(answered(47 * HOUR + 40 * MIN, 20 * MIN))).toBe(
+      'Answered with 20 min to spare.'
+    );
+    expect(answerTimingTail(answered(48 * HOUR - 10, 10))).toBe('Answered with seconds to spare.');
+  });
+
+  it('an older server: the time from the old field', () => {
+    expect(answerTimingTail({ response: { tagger_username: 'ali', seconds: 3 * HOUR } })).toBe(
+      'Answered in 3h.'
+    );
+  });
+
+  it('nothing answered: nothing', () => {
+    expect(answerTimingTail({ answered: null, first_post: true })).toBeNull();
+    expect(answerTimingTail({})).toBeNull();
   });
 });

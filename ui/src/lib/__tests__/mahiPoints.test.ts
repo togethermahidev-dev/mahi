@@ -1,4 +1,5 @@
 import {
+  pointsAfterDelete,
   mahiPointsCount,
   missMoment,
   pointCelebration,
@@ -214,7 +215,8 @@ describe('pointsMilestone (the post toast lines worth a small celebration)', () 
 });
 
 describe('pointCelebration — the moment a post earns a point', () => {
-  it('a first workout: the first point, the links to send, the open feed, how Mahi works', () => {
+  // Core workflow step 14 (owner, 2026-10-09): the first-point screen in the owner's words.
+  it("a first workout: the first point, the link to send, then the owner's words", () => {
     expect(
       pointCelebration({
         answered: [],
@@ -227,11 +229,24 @@ describe('pointCelebration — the moment a post earns a point', () => {
       title: 'Your first Mahi point!',
       total: 'You have 1 Mahi point.',
       lines: [
-        'Send your 3 links next. Each friend gets 48 hours once they join. Your feed is open for 24 hours.',
-        'From now on you post when a friend tags you. Answer each tag within 48 hours for another point.',
-        'Miss a tag and your points go back to 0. Your best stays.',
+        'Send your 3 links next. Each friend gets 48 hours once they join.',
+        'Your feed is now open! If you get tagged, you have 48 hours to reply with a Mahi of you exercising to get another point. Miss the 48 hours and your points go back to 0.',
       ],
     });
+  });
+
+  it("a first post that tagged no one (an older server): only the owner's words", () => {
+    expect(
+      pointCelebration({
+        answered: [],
+        points: 1,
+        bestBefore: 0,
+        firstPost: true,
+        tagged: { friends: 0, links: 0 },
+      })?.lines
+    ).toEqual([
+      'Your feed is now open! If you get tagged, you have 48 hours to reply with a Mahi of you exercising to get another point. Miss the 48 hours and your points go back to 0.',
+    ]);
   });
 
   it('a first post that answers a friend: names them', () => {
@@ -244,7 +259,7 @@ describe('pointCelebration — the moment a post earns a point', () => {
     });
     expect(c?.title).toBe('Your first Mahi point!');
     expect(c?.lines[0]).toBe(
-      'You answered @sam’s tag. Your 3 friends have 48 hours to answer you. Your feed is open for 24 hours.'
+      'You answered @sam’s tag. Your 3 friends have 48 hours to answer you.'
     );
   });
 
@@ -257,9 +272,7 @@ describe('pointCelebration — the moment a post earns a point', () => {
       firstPost: true,
       tagged: { friends: 3, links: 0, names: ['a', 'b', 'c'] },
     });
-    expect(c?.lines[0]).toBe(
-      '@a, @b and @c now have 48 hours to answer you. Your feed is open for 24 hours.'
-    );
+    expect(c?.lines[0]).toBe('@a, @b and @c now have 48 hours to answer you.');
   });
 
   it('names and links together keep the links line', () => {
@@ -271,7 +284,7 @@ describe('pointCelebration — the moment a post earns a point', () => {
       tagged: { friends: 1, links: 2, names: ['a'] },
     });
     expect(c?.lines[0]).toBe(
-      '@a now has 48 hours to answer you. Send your 2 links next. Each friend gets 48 hours once they join. Your feed is open for 24 hours.'
+      '@a now has 48 hours to answer you. Send your 2 links next. Each friend gets 48 hours once they join.'
     );
   });
 
@@ -442,5 +455,29 @@ describe('answeredMatesLine', () => {
     expect(answeredMatesLine(['sam'])).toBe('Your last answer: @sam');
     expect(answeredMatesLine(['sam', 'jo', 'al'])).toBe('Your last answers: @sam, @jo and @al');
     expect(answeredMatesLine([])).toBeNull();
+  });
+});
+
+// Core workflow step 23 (2026-10-09): deleting a post takes its point back; delete_post returns
+// the new points, which the app shows at once. An older server sends none: re-read the profile.
+describe('pointsAfterDelete — the points delete_post returns', () => {
+  it('reads the new points and best', () => {
+    expect(pointsAfterDelete({ streak: { streak_current: 3, streak_highest: 7 } })).toEqual({
+      streak_current: 3,
+      streak_highest: 7,
+    });
+    expect(pointsAfterDelete({ streak: { streak_current: 0, streak_highest: 0 } })).toEqual({
+      streak_current: 0,
+      streak_highest: 0,
+    });
+  });
+
+  it('nothing usable (an older server, or a bad answer): null', () => {
+    expect(pointsAfterDelete(null)).toBeNull();
+    expect(pointsAfterDelete({ image_path: 'a.jpg' })).toBeNull();
+    expect(pointsAfterDelete({ streak: null })).toBeNull();
+    expect(pointsAfterDelete({ streak: { streak_current: '3', streak_highest: 7 } })).toBeNull();
+    expect(pointsAfterDelete({ streak: { streak_current: -1, streak_highest: 7 } })).toBeNull();
+    expect(pointsAfterDelete({ streak: { streak_current: 2 } })).toBeNull();
   });
 });

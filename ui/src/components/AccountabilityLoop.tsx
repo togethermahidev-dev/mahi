@@ -26,7 +26,7 @@ import {
 } from '@/constants/tokens';
 
 const STEPS = [
-  { number: '1', title: 'Show up', body: 'Post your first workout. Any movement counts.' },
+  { number: '1', title: 'Show up', body: 'Post your first workout and tag 1 mate.' },
   { number: '2', title: 'Get tagged', body: 'A friend calls you to train. You have 48 hours.' },
   {
     number: '3',

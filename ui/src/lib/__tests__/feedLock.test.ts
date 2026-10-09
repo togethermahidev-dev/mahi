@@ -38,31 +38,31 @@ describe('lockExplainer', () => {
       serverOffsetMs: HOUR,
       openTags: [tag('alex', 46 * HOUR), tag('sam', 42 * HOUR + 30 * MIN)],
     });
+    // Core workflow step 17 (owner, 2026-10-09): "You've been tagged. Post your Mahi to access
+    // your feed", with the clock of the tag that runs out first.
     expect(card).toEqual({
-      headline: '@sam and 1 other tagged you.',
-      body: 'Your feed is locked until you post your answer. 41:30:00 left.',
+      headline: 'You’ve been tagged.',
+      body: 'Post your Mahi to access your feed. 41:30:00 left.',
       button: 'Post your answer',
       target: 'camera',
     });
   });
 
-  it('one tag: just the friend', () => {
-    expect(lockExplainer({ ...base, openTags: [tag('sam', 41 * HOUR + MIN)] })?.headline).toBe(
-      '@sam tagged you.'
+  it('one tag or several: the same words, the soonest clock', () => {
+    expect(lockExplainer({ ...base, openTags: [tag('sam', 41 * HOUR + MIN)] })?.body).toBe(
+      'Post your Mahi to access your feed. 41:01:00 left.'
     );
-  });
-
-  it('three tags: "and 2 others"', () => {
     const card = lockExplainer({
       ...base,
       openTags: [tag('a', 30 * HOUR), tag('sam', 10 * HOUR), tag('b', 20 * HOUR)],
     });
-    expect(card?.headline).toBe('@sam and 2 others tagged you.');
+    expect(card?.headline).toBe('You’ve been tagged.');
+    expect(card?.body).toBe('Post your Mahi to access your feed. 10:00:00 left.');
   });
 
   it('drops the time when the deadline has passed', () => {
     const card = lockExplainer({ ...base, openTags: [tag('sam', -MIN)] });
-    expect(card?.body).toBe('Your feed is locked until you post your answer.');
+    expect(card?.body).toBe('Post your Mahi to access your feed.');
   });
 
   it('never posted: asks for a first workout, and says any workout counts', () => {
@@ -189,12 +189,18 @@ describe('lockPill', () => {
     });
   });
 
-  it('tagged: answer the friend, with the time left', () => {
+  it('tagged: post your Mahi to open it, with the time left', () => {
     expect(lockPill({ ...base, openTags: [tag('sam', 41 * HOUR + MIN)] })).toEqual({
-      line: 'Locked. Answer @sam to open it. 41:01:00 left.',
+      line: 'You’ve been tagged. Post your Mahi to access your feed. 41:01:00 left.',
       button: 'Post your answer',
       target: 'camera',
     });
+  });
+
+  it('tagged, past the deadline: no clock', () => {
+    expect(lockPill({ ...base, openTags: [tag('sam', -MIN)] })?.line).toBe(
+      'You’ve been tagged. Post your Mahi to access your feed.'
+    );
   });
 
   it('posted, no tag: it opens when a friend tags you', () => {

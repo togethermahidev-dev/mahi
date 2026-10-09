@@ -143,6 +143,25 @@ export function taggedClockLine({
   return line || null;
 }
 
+/** The first-point screen in the owner's words (core workflow step 14, 2026-10-09). */
+export const FIRST_POINT_WORDS =
+  'Your feed is now open! If you get tagged, you have 48 hours to reply with a Mahi of you exercising to get another point. Miss the 48 hours and your points go back to 0.';
+
+/**
+ * The points `delete_post` returns after taking back the point the post earned (core workflow
+ * step 23, 20261009100000_first_post_tag_and_post_points). Null when the answer has none (an
+ * older server) or it isn't two whole numbers from 0: then re-read the profile instead.
+ */
+export function pointsAfterDelete(
+  data: unknown
+): { streak_current: number; streak_highest: number } | null {
+  const streak = (data as { streak?: unknown } | null)?.streak as
+    { streak_current?: unknown; streak_highest?: unknown } | null | undefined;
+  const whole = (n: unknown): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0;
+  if (!streak || !whole(streak.streak_current) || !whole(streak.streak_highest)) return null;
+  return { streak_current: streak.streak_current, streak_highest: streak.streak_highest };
+}
+
 /**
  * The full-screen moment after a post that earns a Mahi point (owner, 2026-10-07: "gamified, and
  * say what it means"). Every first post earns the first point (`20261007180000_first_post_point`),
@@ -179,18 +198,13 @@ export function pointCelebration({
 
   if (firstPost) {
     const answeredLine = answered.length > 0 ? `You answered @${answered[0]}’s tag${more}.` : null;
-    // The first post also opens the feed (the toast that used to say so is replaced by this).
-    const first = [answeredLine, mates, 'Your feed is open for 24 hours.']
-      .filter(Boolean)
-      .join(' ');
+    // Who it answered and who it tagged, then the owner's words (core workflow step 14), which
+    // also say the feed is open (the toast that used to say so is replaced by this).
+    const first = [answeredLine, mates].filter(Boolean).join(' ');
     return {
       title: 'Your first Mahi point!',
       total,
-      lines: [
-        ...(first ? [first] : []),
-        'From now on you post when a friend tags you. Answer each tag within 48 hours for another point.',
-        'Miss a tag and your points go back to 0. Your best stays.',
-      ],
+      lines: [...(first ? [first] : []), FIRST_POINT_WORDS],
     };
   }
   const keepGoing = 'Keep answering every tag to grow your points.';

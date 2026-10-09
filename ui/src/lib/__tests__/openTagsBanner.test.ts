@@ -13,11 +13,44 @@ const at = (ms: number) => new Date(deviceNow + ms).toISOString();
 const tag = (username: string, expiresIn: number) => ({ username, expires_at: at(expiresIn) });
 
 describe('openTagsBanner — someone who downloaded Mahi themselves (Type B)', () => {
-  it('makes the first workout and first point clear', () => {
-    const b = openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow, firstPost: true });
-    expect(b && bannerText(b)).toBe('Your move: show up for your first workout');
+  // Core workflow step 11 (owner, 2026-10-09), with the private wording from the owner's answer.
+  it('a private account: post your first Mahi, and only people you approve see it', () => {
+    const b = openTagsBanner({
+      openTags: [],
+      serverOffsetMs: 0,
+      deviceNow,
+      firstPost: true,
+      isPrivate: true,
+    });
+    expect(b && bannerText(b)).toBe('Post your first Mahi.');
     expect(b?.firstPost).toBe(true);
-    expect(b?.note).toBe('Take a workout photo, then a selfie. Any movement counts.');
+    expect(b?.note).toBe('Only people you approve see your posts.');
+  });
+
+  it('a public account: anyone can see it', () => {
+    const b = openTagsBanner({
+      openTags: [],
+      serverOffsetMs: 0,
+      deviceNow,
+      firstPost: true,
+      isPrivate: false,
+    });
+    expect(b && bannerText(b)).toBe('Post your first Mahi.');
+    expect(b?.note).toBe('Anyone can see your Mahi.');
+  });
+
+  it('privacy not known yet: just the first line, never a guess', () => {
+    const b = openTagsBanner({ openTags: [], serverOffsetMs: 0, deviceNow, firstPost: true });
+    expect(b && bannerText(b)).toBe('Post your first Mahi.');
+    expect(b?.note).toBeUndefined();
+    const nullPrivacy = openTagsBanner({
+      openTags: [],
+      serverOffsetMs: 0,
+      deviceNow,
+      firstPost: true,
+      isPrivate: null,
+    });
+    expect(nullPrivacy?.note).toBeUndefined();
   });
 
   it('shows nothing to someone who has posted and has no tag', () => {

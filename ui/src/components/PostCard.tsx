@@ -42,7 +42,8 @@ import PostVideo, { SoundButton } from '@/components/PostVideo';
 import PreviewMenu, { PostPreviewImage } from '@/components/PreviewMenu';
 import EditPostCaptionSheet from '@/components/EditPostCaptionSheet';
 import { relativeTime } from '@/lib/relativeTime';
-import { answerTimingLine } from '@/lib/answerTiming';
+import { answerTimingLine, answerTimingTail } from '@/lib/answerTiming';
+import { pendingInvites, replyingTo, replyingToText } from '@/lib/postPeople';
 import { pointsBadgeText } from '@/lib/mahiPoints';
 import { mediaTypeOrPhoto } from '@/lib/videoPosts';
 import {
@@ -129,7 +130,14 @@ export default function PostCard({
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
   // The poster's Mahi points after this post (one number per card, so none by the name).
   const points = pointsBadgeText(item.streak_day);
-  const onTime = answerTimingLine(item);
+  // Who this post replies to (core workflow step 21): "Replying to @joe, @sam." with the timing
+  // after it, which names no one. A post that replied to no one keeps its line ("First Mahi").
+  const replyTo = replyingTo(item);
+  const replyLine = replyingToText(replyTo.map((p) => p.username));
+  const replyTail = replyLine ? answerTimingTail(item) : null;
+  const onTime = replyLine ? null : answerTimingLine(item);
+  // Link invites nobody has joined from yet: grey initials circles (core workflow step 13).
+  const invites = pendingInvites(item);
   const reduceMotion = useReducedMotion();
 
   const [rearIsPrimary, setRearIsPrimary] = useState(true);
@@ -154,7 +162,7 @@ export default function PostCard({
   const removeOwnPost = useCallback(async () => {
     if (deleting) return;
     setDeleting(true);
-    const { error } = await deletePost(item.id);
+    const { error, streak } = await deletePost(item.id);
     setDeleting(false);
     if (error) {
       reportError(error, { flow: 'posts', action: 'deletePost', extra: { postId: item.id } });
@@ -163,8 +171,14 @@ export default function PostCard({
     }
     useFeedStore.getState().removePost(item.id);
     useProfilePostsStore.getState().removePost(item.id);
-    // Re-read your profile: points may change, and the camera reads its "has posted before" mark.
-    if (item.user_id) void useUserStore.getState().refresh(item.user_id);
+    // Deleting takes back the point the post earned (core workflow step 23): the server returns
+    // the new points; an older server doesn't, so re-read the profile.
+    const me = useUserStore.getState().profile;
+    if (streak && me && me.id === item.user_id) {
+      useUserStore.getState().setProfile({ ...me, ...streak });
+    } else if (item.user_id) {
+      void useUserStore.getState().refresh(item.user_id);
+    }
     useToastStore.getState().show('Post deleted.');
   }, [deleting, item.id, item.user_id]);
   const likedByMe = useSocialStore((s) => s.likedByMe[item.id] ?? item.liked_by_me);
@@ -550,6 +564,34 @@ export default function PostCard({
                       )}
                       <View style={styles.userInfo}>
                         <Text style={styles.usernameOverlay}>{name}</Text>
+                        {replyLine ? (
+                          <View style={styles.onTimeRow}>
+                            <ClockIcon size={ICON_SIZE.i14} color={COLORS.accent} />
+                            <Text
+                              style={[styles.timeOverlay, styles.onTimeText]}
+                              numberOfLines={2}
+                              accessibilityLabel={[replyLine, replyTail].filter(Boolean).join(' ')}
+                            >
+                              Replying to{' '}
+                              {replyTo.map((person, index) => (
+                                <Text
+                                  key={person.user_id ?? person.username}
+                                  style={person.user_id ? styles.replyPerson : undefined}
+                                  onPress={
+                                    person.user_id
+                                      ? () => onAvatarPress(person.user_id as string)
+                                      : undefined
+                                  }
+                                  accessibilityRole={person.user_id ? 'link' : undefined}
+                                >
+                                  @{person.username}
+                                  {index < replyTo.length - 1 ? ', ' : '.'}
+                                </Text>
+                              ))}
+                              {replyTail ? ` ${replyTail}` : ''}
+                            </Text>
+                          </View>
+                        ) : null}
                         {onTime ? (
                           <View style={styles.onTimeRow}>
                             <ClockIcon size={ICON_SIZE.i14} color={COLORS.accent} />
@@ -597,21 +639,42 @@ export default function PostCard({
                       numberOfLines={layout.captionLines}
                     />
                   ) : null}
-                  {item.tagged_users.length > 0 ? (
-                    <Text style={styles.taggedText} numberOfLines={1}>
-                      With{' '}
-                      {item.tagged_users.map((user, index) => (
-                        <Text
-                          key={user.user_id}
-                          style={styles.taggedPerson}
-                          onPress={() => onAvatarPress(user.user_id)}
-                          accessibilityRole="link"
+                  {item.tagged_users.length > 0 || invites.length > 0 ? (
+                    <View style={styles.taggedRow}>
+                      <Text style={styles.taggedText} numberOfLines={1}>
+                        With{' '}
+                        {item.tagged_users.map((user, index) => (
+                          <Text
+                            key={user.user_id}
+                            style={styles.taggedPerson}
+                            onPress={() => onAvatarPress(user.user_id)}
+                            accessibilityRole="link"
+                          >
+                            @{user.username}
+                            {index < item.tagged_users.length - 1 ? ', ' : ''}
+                          </Text>
+                        ))}
+                      </Text>
+                      {/* Invited by link, not joined yet: initials only, never a name or number.
+                          The real avatar and username replace it once they join. */}
+                      {invites.map((invite) => (
+                        <View
+                          key={invite.key}
+                          style={styles.invitedChip}
+                          accessible
+                          accessibilityLabel={
+                            invite.initials ? `Invited, ${invite.initials}` : 'Invited'
+                          }
                         >
-                          @{user.username}
-                          {index < item.tagged_users.length - 1 ? ', ' : ''}
-                        </Text>
+                          <View style={styles.invitedCircle}>
+                            {invite.initials ? (
+                              <Text style={styles.invitedInitials}>{invite.initials}</Text>
+                            ) : null}
+                          </View>
+                          <Text style={styles.taggedText}>Invited ⏳</Text>
+                        </View>
                       ))}
-                    </Text>
+                    </View>
                   ) : null}
                 </LinearGradient>
               </Reanimated.View>
@@ -711,7 +774,7 @@ function showOwnPostMenu(
   const confirmDelete = () =>
     showNativeMenu({
       title: 'Delete post?',
-      message: 'This can’t be undone.',
+      message: 'Deleting removes the point it earned. This can’t be undone.',
       actions: [{ text: 'Delete post', destructive: true, run: onDelete }],
     });
   showNativeMenu({
@@ -817,6 +880,39 @@ const styles = StyleSheet.create({
   taggedPerson: {
     color: COLORS.white,
     fontFamily: FONTS.semiBold,
+  },
+  /** A name in "Replying to @joe, @sam." that opens their profile. */
+  replyPerson: {
+    color: COLORS.white,
+    fontFamily: FONTS.semiBold,
+  },
+  /** "With @a, @b" then each pending invite, wrapping onto a second line when it must. */
+  taggedRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: SPACE.s10,
+    rowGap: SPACE.s6,
+  },
+  invitedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s6,
+  },
+  /** The grey circle for a mate invited by link: the same see-through white as a photo-less
+   *  avatar, so it reads as "no picture yet". */
+  invitedCircle: {
+    width: SIZE.z24,
+    height: SIZE.z24,
+    borderRadius: RADIUS.pill,
+    backgroundColor: withAlpha(COLORS.white, ALPHA.a30),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  invitedInitials: {
+    fontSize: FONT_SIZE.f11,
+    fontFamily: FONTS.bold,
+    color: COLORS.white,
   },
   imageContainer: {
     position: 'relative',

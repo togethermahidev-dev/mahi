@@ -6,9 +6,10 @@
  * dropped. Nothing shows until the server has said whether you have posted (never a guess that
  * then changes).
  */
-// Short and direct under each circle (owner, 2026-10-08).
+// Short and direct under each circle (owner, 2026-10-08). The first post tags 1 mate; answers
+// tag 3 (core workflow, 2026-10-09).
 export const ROADMAP_STEPS: readonly (readonly [title: string, body: string])[] = [
-  ['Show up once', 'Post any workout.'],
+  ['Show up and tag a mate', 'Post any workout and tag 1 mate.'],
   ['Wait for a tag', 'A friend’s tag unlocks your next post.'],
   ['Answer with live proof of your workout', 'Photo and selfie before time’s up.'],
   ['Hold 3 friends accountable', 'Tag 3 friends to go next.'],

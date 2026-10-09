@@ -19,6 +19,7 @@ import {
 import type { Database } from '@/types';
 import type { PostInvite } from './invites';
 import type { AnswerTiming } from '@/lib/answerTiming';
+import { pointsAfterDelete } from '@/lib/mahiPoints';
 import type { ProfileRestriction } from '@/lib/accountControls';
 
 type PostRow = Database['public']['Tables']['posts']['Row'];
@@ -30,6 +31,11 @@ export type TaggedUser = {
   display_name: string | null;
   avatar_url: string | null;
 };
+
+/** Whose tag a post answered (20261009100000_first_post_tag_and_post_points). */
+export type AnsweredTagger = { user_id: string; username: string };
+/** A link invite on a post nobody has joined from: two initials, or null when no name is known. */
+export type PendingInvite = { initials: string | null };
 
 export type FeedPost = PostRow & {
   profiles: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
@@ -43,6 +49,10 @@ export type FeedPost = PostRow & {
   answered?: AnswerTiming | null;
   /** The poster's first ever post. */
   first_post?: boolean;
+  /** Every tag this post answered, oldest first: "Replying to @joe, @sam." (missing: older server). */
+  answered_taggers?: AnsweredTagger[];
+  /** Link invites on this post nobody has joined from yet: initials only (missing: older server). */
+  pending_invites?: PendingInvite[];
   /** The server hid this post's photos and caption (viewer hasn't posted in 24 h). */
   locked: boolean;
 };
@@ -83,6 +93,9 @@ type FeedItem = {
   /** Absent from servers before 20261007250000_answer_timing. */
   answered?: AnswerTiming | null;
   first_post?: boolean;
+  /** Absent from servers before 20261009100000_first_post_tag_and_post_points. */
+  answered_taggers?: AnsweredTagger[];
+  pending_invites?: PendingInvite[];
   profile: Pick<ProfileRow, 'id' | 'username' | 'display_name' | 'avatar_url'>;
 };
 
@@ -154,6 +167,8 @@ async function toPosts(items: FeedItem[]): Promise<FeedPost[]> {
     response: i.response,
     answered: i.answered,
     first_post: i.first_post,
+    answered_taggers: i.answered_taggers ?? [],
+    pending_invites: i.pending_invites ?? [],
     locked: i.locked,
     profiles: i.profile,
   }));
@@ -354,13 +369,21 @@ export async function updatePostCaption(
 }
 
 /** Delete the caller's post, then remove its media after the database confirms deletion. */
-export async function deletePost(postId: string): Promise<{ error: Error | null }> {
+/**
+ * Delete your post. `streak`: your points after the post's point was taken back (core workflow
+ * step 23); missing from an older server, which then needs a profile re-read.
+ */
+export async function deletePost(postId: string): Promise<{
+  error: Error | null;
+  streak?: { streak_current: number; streak_highest: number };
+}> {
   const { data, error } = await supabase.rpc('delete_post', { p_post: postId });
   if (error) return { error: new Error(error.message, { cause: error }) };
+  const streak = pointsAfterDelete(data);
   const paths = [
     (data as { image_path?: string | null } | null)?.image_path,
     (data as { pov_image_path?: string | null } | null)?.pov_image_path,
   ].filter((path): path is string => !!path);
   if (paths.length) await removePostPhotos(paths);
-  return { error: null };
+  return streak ? { error: null, streak } : { error: null };
 }
