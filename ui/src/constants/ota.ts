@@ -7,6 +7,10 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 35 — core workflow: the first post tags 1 mate (Hold up, contacts when no
+ *     friends, WhatsApp / Messages / Snap / IG); onboarding is cards → private or public →
+ *     notifications; Replying to and Invited circles on posts; the selfie matches the preview;
+ *     the tag screen's Post is the confirmation (2026-10-09)
  *   build 13 · 34 — the pull down goes all the way in one swipe (its peek looked stuck)
  *     (2026-10-08)
  *   build 13 · 33 — the feed goes all the way up; a divider on every row; the pull down slides to
@@ -156,4 +160,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 34;
+export const OTA_NUMBER = 35;
