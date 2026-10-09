@@ -35,6 +35,7 @@ Owner, 2026-10-09. This is the product's source of truth; RULES.md summarises it
     8. When the invited mate joins, the grey circle turns into their real profile picture, and the label changes to their username.
 14. "Your first Mahi point" screen: "Your feed is now open! If you get tagged, you have 48 hours to reply with a Mahi of you exercising to get another point. Miss the 48 hours and your points go back to 0."
 15. When someone joins from a link: notification "Joe joined Mahi from your tag 🎉". Their 48 hours start from when they download and sign up, not from when the link was sent.
+    Owner, 2026-10-09: "Joe" is an example; the push and the list say the @username ("@sam joined Mahi from your tag 🎉").
 16. Camera locked: "Waiting for your next tag," with the roadmap behind it and the feed underneath: "Scroll up to access feed."
 17. Feed: open for 24 hours after a post for everyone. It locks only if you get tagged within those 24 hours. When a user is tagged: "You've been tagged. Post your Mahi to access your feed" → the user posts and tags friends internally or externally via link. After the 24 hours, the feed locks the next time you get tagged (e.g. 72 hours later).
 18. A tag arrives: push "@joe tagged you. Post any workout by Thu 10:40pm." (Push not live yet.) → camera unlocks with the countdown.
@@ -76,7 +77,7 @@ means the server does it today. App files are in `ui/src/` unless they say `App.
 | 12 Two taps | None | `screens/CameraScreen.tsx` (front camera mirror), `components/CapturePipGuide.tsx`, `components/CoachMark.tsx` | None |
 | 13 First post and tag | `create_post` first post tags `first_post_tags` = 1 (new); `feed_item` `pending_invites` initials (new); `search_tag_people`, `invite_to_tag`, `make_invite_link`, `record_invite_sent`, `match_contacts` (already live) | `screens/CameraScreen.tsx`, `components/TagSlotsSheet.tsx`, `lib/tagRules.ts`, `lib/contactMatch.ts`, `components/PostCard.tsx`, `components/FeedRow.tsx`, `components/PostViewer.tsx` | `app_config.first_post_tags` (0 = old rule); `contacts-finder` |
 | 14 First point | `create_post` first post earns 1 point (already live, `20261007180000_first_post_point`) | `lib/mahiPoints.ts`, `components/PointCelebration.tsx` | None |
-| 15 Joined from your tag | `push_on_notification` tag-link wording (new); 48 hours from sign-up (already live) | `lib/notificationText.ts` | `push-core` for the push |
+| 15 Joined from your tag | `push_on_notification` tag-link wording with the @username (new; `20261009110000_tag_join_push_username`); 48 hours from sign-up (already live) | `lib/notificationText.ts` | `push-core` for the push |
 | 16 Camera locked | `reactive_posting_open` (already live) | `screens/CameraScreen.tsx` (`WaitingNotice`), `screens/CameraFeedPage.tsx` | None |
 | 17 Feed | `viewer_unlocked_until` feed lock (already live) | `lib/feedLock.ts`, `components/FeedLockBanner.tsx` | None |
 | 18 A tag arrives | `push_on_notification` tag push (already live) | `screens/CameraScreen.tsx`, `lib/openTagsBanner.ts` | `push-core` (off) |

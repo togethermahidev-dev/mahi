@@ -1,7 +1,7 @@
 -- Someone joins Mahi from a tag link (core workflow, 2026-10-09): the tagger's push reads
--- "Joe joined Mahi from your tag 🎉" — first name, else display name, else @username. A general
--- invite link keeps its two wordings.
--- Migration: 20261009100000_first_post_tag_and_post_points.
+-- "@sam joined Mahi from your tag 🎉" — always the @username, like every other push ("Joe" in the
+-- owner's words was an example). A general invite link keeps its two wordings.
+-- Migrations: 20261009100000_first_post_tag_and_post_points, 20261009110000_tag_join_push_username.
 begin;
 select plan(9);
 
@@ -58,17 +58,17 @@ create function pg_temp.push(p_to text) returns text language sql as $$
   order by n.created_at desc limit 1
 $$;
 
--- 1. Tag links: the joiner's first name, else display name, else @username.
+-- 1. Tag links: the joiner's @username, even when a first or display name is set.
 select pg_temp.post_with_link('i');
 select pg_temp.post_with_link('k');
 select pg_temp.post_with_link('l');
 reset role;
 select lives_ok($$select pg_temp.claim('p', 'i')$$, 'Joe joins from i''s tag');
 reset role;
-select is(pg_temp.push('i'), 'Joe joined Mahi from your tag 🎉', 'the push names him by first name');
-select lives_ok($$select pg_temp.claim('q', 'k')$$, 'Quinn, with no first name, joins from k''s tag');
+select is(pg_temp.push('i'), '@tjp_p joined Mahi from your tag 🎉', 'with a first name set: still the username');
+select lives_ok($$select pg_temp.claim('q', 'k')$$, 'Quinn, with only a display name, joins from k''s tag');
 reset role;
-select is(pg_temp.push('k'), 'Quinn Q joined Mahi from your tag 🎉', 'no first name: the display name');
+select is(pg_temp.push('k'), '@tjp_q joined Mahi from your tag 🎉', 'with a display name set: still the username');
 select pg_temp.claim('r', 'l');
 reset role;
 select is(pg_temp.push('l'), '@tjp_r joined Mahi from your tag 🎉', 'no name at all: the username');
