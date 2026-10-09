@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 39 — full-screen feed again (one post per screen; rows behind feed-rows, off); the
+ *     camera minimises as the feed grows to full screen, following the finger (2026-10-09)
  *   build 13 · 38 — before the feed loads, the swipe up says loading / Try again instead of an
  *     empty grey feed; a dropped feed read retries once (2026-10-09)
  *   build 13 · 37 — the circle beside the bell shows camera / feed / padlock, icons scrolling with
@@ -167,4 +169,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 38;
+export const OTA_NUMBER = 39;
