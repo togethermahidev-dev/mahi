@@ -19,6 +19,7 @@ import { useFeed } from '@/hooks/useFeed';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { answersATag } from '@/lib/reactivePosting';
 import FeedLockBanner from '@/components/FeedLockBanner';
+import PushBanner from '@/components/PushBanner';
 import { Skeleton } from '@/components/Motion';
 import { useSocialStore, useAuthStore, useChromeStore, useFeedStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
@@ -225,7 +226,11 @@ export default function FeedScreen({
   const [bannerH, setBannerH] = useState(0);
   // Locked, the pill floats mid-feed over the frosted rows and takes no room (its wrapper spans
   // the whole feed, so its height must not push the rows off the screen — 13.12).
-  const topSpace = !locked && bannerH > 0 ? bannerH + SPACE.s8 : 0;
+  // Notifications off: the "turn on notifications" banner sits above it, at the very top, and
+  // always keeps its room (switch `push-core`).
+  const [pushH, setPushH] = useState(0);
+  const pushSpace = pushH > 0 ? pushH + SPACE.s8 : 0;
+  const topSpace = (!locked && bannerH > 0 ? bannerH + SPACE.s8 : 0) + pushSpace;
 
   // Friends' posts while locked: a button only when reactive posting lets you post (a tag still
   // open on the server clock, or your first post).
@@ -462,6 +467,29 @@ export default function FeedScreen({
         />
       </ListGestureContext.Provider>
 
+      {/* Notifications off: the banner at the top; it slides away with the header. */}
+      <Animated.View
+        pointerEvents="box-none"
+        onLayout={(e) => setPushH(e.nativeEvent.layout.height)}
+        style={[
+          styles.lockBanner,
+          {
+            top: headerH + topInset,
+            transform: [
+              {
+                translateY: headerOffset.interpolate({
+                  inputRange: [0, headerH],
+                  outputRange: [0, -(headerH + pushH)],
+                  extrapolate: 'clamp',
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <PushBanner />
+      </Animated.View>
+
       {loaded ? (
         <Animated.View
           pointerEvents="box-none"
@@ -470,7 +498,7 @@ export default function FeedScreen({
             styles.lockBanner,
             locked && posts.length > 0 && styles.lockBannerCentred,
             {
-              top: headerH + topInset,
+              top: headerH + topInset + pushSpace,
               // Open: the timer slides away with the header once the first post scrolls off.
               // Locked: the padlock line stays put while the blurred rows scroll behind it
               // (owner, 2026-10-08).
@@ -480,7 +508,7 @@ export default function FeedScreen({
                     {
                       translateY: headerOffset.interpolate({
                         inputRange: [0, headerH],
-                        outputRange: [0, -(headerH + bannerH)],
+                        outputRange: [0, -(headerH + pushSpace + bannerH)],
                         extrapolate: 'clamp',
                       }),
                     },

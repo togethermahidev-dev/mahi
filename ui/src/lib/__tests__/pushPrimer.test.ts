@@ -1,8 +1,8 @@
 import {
-  PUSH_NUDGE_TEXT,
+  PUSH_BANNER,
   PUSH_PRIMER,
-  nudgeDismissMark,
-  pushNudge,
+  pushBanner,
+  pushPrimerPending,
   shouldShowPushPrimer,
 } from '../pushPrimer';
 
@@ -11,40 +11,35 @@ describe('the notifications page (push primer)', () => {
     flagOn: true,
     permission: 'undetermined' as const,
     primerAnswered: false,
-    welcomeSettled: true,
-    cameraSettled: true,
+    pagesBeforeSettled: true,
   };
 
-  it('says what the founder asked for, in sentence case, with quiet hours (#11)', () => {
+  // Owner, 2026-10-09 (core workflow, step 10).
+  it('says what the owner asked for, with Turn on and Not now', () => {
     expect(PUSH_PRIMER).toEqual({
-      headline: 'When do you post on Mahi?',
-      why: 'When a friend tags you. Turn on notifications so you know the moment your 48 hours start.',
-      cardTitle: 'Please turn on notifications',
-      cardBody:
-        'Mahi only pings you when it matters: a friend tags you, your time is running out, or your feed is about to lock. Never between 10pm and 7am.',
-      continue: 'Continue',
+      headline: 'Don’t miss your tag 🔔',
+      line: 'Turn on notifications so you know when a mate tags you.',
+      turnOn: 'Turn on',
+      notNow: 'Not now',
     });
   });
 
-  it("has one button, Continue, that always leads to the phone's question (Apple's guidance)", () => {
-    const buttons = Object.keys(PUSH_PRIMER).filter((k) => !/headline|why|card/.test(k));
-    expect(buttons).toEqual(['continue']);
+  it('shows once the welcome cards and the privacy choice are out of the way', () => {
+    expect(shouldShowPushPrimer(ready)).toBe(true);
   });
 
-  it('shows once everything else is out of the way', () => {
+  it('never shows over an earlier onboarding page', () => {
+    expect(shouldShowPushPrimer({ ...ready, pagesBeforeSettled: false })).toBe(false);
+  });
+
+  // The camera now asks for its permission after onboarding, so the page no longer waits on it.
+  it("does not wait on the phone's camera question", () => {
+    expect(Object.keys(ready)).not.toContain('cameraSettled');
     expect(shouldShowPushPrimer(ready)).toBe(true);
   });
 
   it('stays hidden while the push-core switch is off', () => {
     expect(shouldShowPushPrimer({ ...ready, flagOn: false })).toBe(false);
-  });
-
-  it('never shows over the welcome cards', () => {
-    expect(shouldShowPushPrimer({ ...ready, welcomeSettled: false })).toBe(false);
-  });
-
-  it("never shows over the phone's camera question", () => {
-    expect(shouldShowPushPrimer({ ...ready, cameraSettled: false })).toBe(false);
   });
 
   it('shows once per device: not after it has been answered', () => {
@@ -60,64 +55,59 @@ describe('the notifications page (push primer)', () => {
     expect(shouldShowPushPrimer({ ...ready, permission: null })).toBe(false);
     expect(shouldShowPushPrimer({ ...ready, primerAnswered: null })).toBe(false);
   });
+
+  // The last onboarding page: onboarding is done once it has nothing left to show.
+  describe('pushPrimerPending', () => {
+    const base = { flagOn: true, permission: 'undetermined' as const, primerAnswered: false };
+
+    it('is pending for someone the phone has not asked and who has not answered the page', () => {
+      expect(pushPrimerPending(base)).toBe(true);
+    });
+
+    it('is not pending once answered, with the switch off, or once the phone has asked', () => {
+      expect(pushPrimerPending({ ...base, primerAnswered: true })).toBe(false);
+      expect(pushPrimerPending({ ...base, flagOn: false })).toBe(false);
+      expect(pushPrimerPending({ ...base, permission: 'granted' })).toBe(false);
+      expect(pushPrimerPending({ ...base, permission: 'denied' })).toBe(false);
+    });
+
+    it("never holds onboarding back when the phone can't be read", () => {
+      expect(pushPrimerPending({ ...base, permission: null })).toBe(false);
+      expect(pushPrimerPending({ ...base, primerAnswered: null })).toBe(false);
+    });
+  });
 });
 
-describe('the "turn on notifications" line on the camera (push nudge)', () => {
-  const tag = (created_at: string) => ({ created_at });
-  const base = {
-    flagOn: true,
-    permission: 'denied' as const,
-    primerAnswered: true,
-    openTags: [tag('2026-10-02T10:00:00Z')],
-    dismissedThrough: null,
-  };
+describe('the "turn on notifications" banner at the top of the feed', () => {
+  const base = { flagOn: true, permission: 'denied' as const, primerAnswered: true };
 
-  it('has the one line', () => {
-    expect(PUSH_NUDGE_TEXT).toBe('Turn on notifications so you never miss a tag');
+  it("has the owner's words and one button", () => {
+    expect(PUSH_BANNER).toEqual({
+      text: '🔕 You won’t know when you’re tagged and could miss the deadline.',
+      turnOn: 'Turn on',
+    });
   });
 
   it('after "Don\'t allow" on the phone\'s question, sends them to Settings', () => {
-    expect(pushNudge(base)).toBe('settings');
+    expect(pushBanner(base)).toBe('settings');
   });
 
-  it("after the page closed without the phone asking (Android back), asks the phone's question", () => {
-    expect(pushNudge({ ...base, permission: 'undetermined' })).toBe('ask');
+  it("after Not now (the phone never asked), asks the phone's question", () => {
+    expect(pushBanner({ ...base, permission: 'undetermined' })).toBe('ask');
   });
 
-  it('only shows while they hold an open tag', () => {
-    expect(pushNudge({ ...base, openTags: [] })).toBeNull();
+  it('shows without an open tag', () => {
+    expect(pushBanner(base)).not.toBeNull();
   });
 
   it('is not shown before the notifications page has been answered', () => {
-    expect(pushNudge({ ...base, permission: 'undetermined', primerAnswered: false })).toBeNull();
+    expect(pushBanner({ ...base, permission: 'undetermined', primerAnswered: false })).toBeNull();
+    expect(pushBanner({ ...base, permission: 'undetermined', primerAnswered: null })).toBeNull();
   });
 
   it('is not shown once notifications are on, or with the switch off', () => {
-    expect(pushNudge({ ...base, permission: 'granted' })).toBeNull();
-    expect(pushNudge({ ...base, flagOn: false })).toBeNull();
-    expect(pushNudge({ ...base, permission: null })).toBeNull();
-  });
-
-  it('stays dismissed for the tags that were open when it was dismissed', () => {
-    const mark = nudgeDismissMark(base.openTags);
-    expect(mark).toBe('2026-10-02T10:00:00Z');
-    expect(pushNudge({ ...base, dismissedThrough: mark })).toBeNull();
-  });
-
-  it('comes back with the next tag', () => {
-    expect(
-      pushNudge({
-        ...base,
-        openTags: [tag('2026-10-02T10:00:00Z'), tag('2026-10-03T09:00:00Z')],
-        dismissedThrough: '2026-10-02T10:00:00Z',
-      })
-    ).toBe('settings');
-  });
-
-  it('marks the newest open tag when dismissed, whatever the order', () => {
-    expect(
-      nudgeDismissMark([tag('2026-10-03T09:00:00+00:00'), tag('2026-10-02T10:00:00+00:00')])
-    ).toBe('2026-10-03T09:00:00+00:00');
-    expect(nudgeDismissMark([])).toBeNull();
+    expect(pushBanner({ ...base, permission: 'granted' })).toBeNull();
+    expect(pushBanner({ ...base, flagOn: false })).toBeNull();
+    expect(pushBanner({ ...base, permission: null })).toBeNull();
   });
 });

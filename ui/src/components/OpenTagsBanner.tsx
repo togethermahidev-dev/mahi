@@ -4,7 +4,6 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSecondTick } from '@/hooks/useSecondTick';
-import PushNudge from '@/components/PushNudge';
 import { CountdownRing, FadeInItem } from '@/components/Motion';
 import Reanimated, {
   Easing,
@@ -52,8 +51,8 @@ import {
 
 /**
  * Camera overlay: what to do next (see `openTagsBanner` for the words). A first post, either kind,
- * promises the first point; a tag shows who and a ticking clock. Under it, the "turn on
- * notifications" line for someone tagged with them off. Nothing when there's nothing to do.
+ * promises the first point; a tag shows who and a ticking clock. Nothing when there's nothing to
+ * do. (The "turn on notifications" banner lives at the top of the feed: PushBanner.)
  */
 export default function OpenTagsBanner({
   openTags,
@@ -88,7 +87,16 @@ export default function OpenTagsBanner({
 
   // What a miss would cost: "Miss it and your 4 points go back to 0" (null until loaded).
   const points = useUserStore((s) => s.profile?.streak_current ?? null);
-  const banner = openTagsBanner({ openTags, serverOffsetMs, deviceNow, firstPost, points });
+  // The first-post line says who will see it (core workflow step 11); null until known.
+  const isPrivate = useUserStore((s) => s.profile?.is_private ?? null);
+  const banner = openTagsBanner({
+    openTags,
+    serverOffsetMs,
+    deviceNow,
+    firstPost,
+    points,
+    isPrivate,
+  });
 
   // The last 6 hours: the soonest tag's face in a draining ring; one gentle tap as the last hour
   // begins, only while the camera is on screen.
@@ -163,7 +171,7 @@ export default function OpenTagsBanner({
   const clockColor = banner.urgent ? COLORS.warning : colors.accent;
 
   return (
-    // box-none: touches pass through to the camera except on the notifications line.
+    // box-none: touches pass through to the camera.
     <View style={[styles.wrap, { top }]} pointerEvents="box-none">
       <FadeInItem style={styles.fadeRoom}>
         <View
@@ -209,8 +217,6 @@ export default function OpenTagsBanner({
           </BlurView>
         </View>
       </FadeInItem>
-      {/* Tagged with notifications off: one line to turn them on (flag push-core). */}
-      {isFirstPost ? null : <PushNudge openTags={openTags} />}
     </View>
   );
 }

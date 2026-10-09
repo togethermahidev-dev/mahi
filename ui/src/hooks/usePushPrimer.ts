@@ -1,72 +1,31 @@
 import { useEffect, useState } from 'react';
-import { AppState } from 'react-native';
-import { Camera } from 'expo-camera';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
-import { PUSH_PRIMER_DELAY_MS, shouldShowPushPrimer } from '@/lib/pushPrimer';
+import { PUSH_PRIMER_DELAY_MS, pushPrimerPending, shouldShowPushPrimer } from '@/lib/pushPrimer';
 import { usePushStore } from '@/store';
-import { reportError } from '@/lib/sentry';
 import { useCoachBlock } from '@/hooks/useCoachMarks';
-
-/**
- * Whether the phone's own camera question is out of the way (answered either way). The camera
- * screen asks it as soon as it opens; answering it brings the app back to the front, which is
- * when this looks again.
- */
-function useCameraSettled(recheck: boolean): boolean {
-  const [settled, setSettled] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const check = () => {
-      Camera.getCameraPermissionsAsync()
-        .then((p) => {
-          if (!cancelled) setSettled(p.status !== 'undetermined');
-        })
-        .catch((err) => {
-          reportError(err, { flow: 'camera', action: 'getCameraPermissions', level: 'warning' });
-          // Can't tell: don't hold the page back for ever.
-          if (!cancelled) setSettled(true);
-        });
-    };
-    check();
-    const foreground = AppState.addEventListener('change', (state) => {
-      if (state === 'active') check();
-    });
-    return () => {
-      cancelled = true;
-      foreground.remove();
-    };
-  }, [recheck]);
-
-  return settled;
-}
 
 export interface UsePushPrimerResult {
   /** Show the notifications page now. */
   visible: boolean;
-  /** One of the page's two buttons was tapped. Resolves once the page can close. */
+  /** The page still has to show on this device (onboarding isn't done until it has). */
+  pending: boolean;
+  /** Turn on (true) or Not now (false) was tapped. Resolves once the page can close. */
   answer: (allow: boolean) => Promise<void>;
 }
 
 /**
- * The full-screen "turn on notifications" page: once per device, behind `push-core`, only when
- * the phone has not been asked yet, and only once the welcome cards and the phone's camera
- * question are out of the way (rules: src/lib/pushPrimer.ts).
+ * The full-screen "turn on notifications" page, the last onboarding page: once per device, behind
+ * `push-core`, only when the phone has not been asked yet, and only once the earlier onboarding
+ * pages are out of the way (rules: src/lib/pushPrimer.ts).
  */
-export function usePushPrimer(welcomeSettled: boolean): UsePushPrimerResult {
+export function usePushPrimer(pagesBeforeSettled: boolean): UsePushPrimerResult {
   const flagOn = useFeatureFlag('push-core');
   const permission = usePushStore((s) => s.permission);
   const primerAnswered = usePushStore((s) => s.primerAnswered);
   const answer = usePushStore((s) => s.answerPrimer);
-  const cameraSettled = useCameraSettled(welcomeSettled);
 
-  const wanted = shouldShowPushPrimer({
-    flagOn,
-    permission,
-    primerAnswered,
-    welcomeSettled,
-    cameraSettled,
-  });
+  const pending = pushPrimerPending({ flagOn, permission, primerAnswered });
+  const wanted = shouldShowPushPrimer({ flagOn, permission, primerAnswered, pagesBeforeSettled });
 
   // No one-time tip shows while the page is on its way or up.
   useCoachBlock(wanted);
@@ -82,5 +41,5 @@ export function usePushPrimer(welcomeSettled: boolean): UsePushPrimerResult {
     };
   }, [wanted]);
 
-  return { visible: wanted && delayPassed, answer };
+  return { visible: wanted && delayPassed, pending, answer };
 }

@@ -30,8 +30,7 @@ export const ACCOUNT_OPTIONS: readonly Option<boolean>[] = [
   {
     value: true,
     label: 'Private',
-    description:
-      'Only people you approve can follow you and see your workouts. Your name and photo still show.',
+    description: 'Only people you approve see your posts. Your name and photo still show.',
   },
 ];
 
@@ -78,18 +77,20 @@ export function effectiveVisibility(isPrivate: boolean, v: PostsVisibility): Pos
   return workoutOptionDisabled(isPrivate, v) ? 'followers' : v;
 }
 
+/** The line under the choice after sign-up (owner, 2026-10-09). "Settings" is the screen's name. */
+export const PRIVACY_CHOICE_LEDE = 'You can change this later in Settings.';
+
 /**
  * What the choice after sign-up saves: Public opens workouts to everyone (as its card says),
- * Private keeps them for followers; who can tag you goes with it.
+ * Private keeps them for followers. Who can tag you isn't asked there (owner, 2026-10-09), so the
+ * server's default stays.
  */
 export function privacyChoicePatch(
-  isPrivate: boolean,
-  tagPermission: TagPermission
-): AccountControls {
+  isPrivate: boolean
+): Pick<AccountControls, 'is_private' | 'posts_visibility'> {
   return {
     is_private: isPrivate,
     posts_visibility: isPrivate ? 'followers' : 'everyone',
-    tag_permission: tagPermission,
   };
 }
 

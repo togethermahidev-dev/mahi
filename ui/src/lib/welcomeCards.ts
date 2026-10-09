@@ -13,18 +13,18 @@ export interface WelcomeCard {
 export const WELCOME_CARDS: readonly WelcomeCard[] = [
   {
     icon: 'camera',
-    title: '1. Show up',
-    body: 'Post your first workout to earn your first Mahi point and open your feed. Take a workout photo, then a selfie. Any movement counts.',
+    title: '1. Show up & tag mates',
+    body: 'Post your first Mahi: a workout photo, then a selfie. Tag 1 mate to post it. It earns your first point and opens your feed.',
   },
   {
     icon: 'people',
     title: '2. Get tagged',
-    body: 'After your first workout, a friend’s tag unlocks your next check-in. You have 48 hours to train. Posting the workout answers their tag.',
+    body: 'When a mate tags you, you have 48 hours to post a Mahi of you exercising. That’s your next point. Miss it and your points go back to 0.',
   },
   {
     icon: 'feed',
     title: '3. Pass it on',
-    body: 'Choose 3 friends to hold accountable. Your answer earns a point, opens your feed and calls them to show up next. Your best always stays.',
+    body: 'Your answer tags 3 friends. They get 48 hours to show up too. Your best always stays.',
   },
 ];
 
@@ -44,17 +44,17 @@ export function cardButtonLabel(index: number, count: number, replay = false): s
 }
 
 /**
- * The cards for this person (usability walkthrough, 2026-10-07). Someone a mate tagged (by a tag
- * link, before their first post) starts with who and how long: "@sam tagged you." / "Post any
- * workout in the next 48 hours to answer and earn your first point." Everyone else: WELCOME_CARDS.
+ * The cards for this person (usability walkthrough, 2026-10-07; words owner 2026-10-09). Someone a
+ * mate tagged (by a tag link, before their first post) starts with who and how long. Everyone
+ * else: WELCOME_CARDS.
  */
 export function welcomeCardsFor(taggedBy: string | null): readonly WelcomeCard[] {
   if (!taggedBy) return WELCOME_CARDS;
   return [
     {
       icon: 'camera',
-      title: `1. Show up for @${taggedBy}`,
-      body: 'They called you to train. Post any workout in the next 48 hours to answer their tag, earn your first point and open your feed.',
+      title: `1. Show up for @${taggedBy} & tag a mate`,
+      body: 'They tagged you. Post any workout in the next 48 hours, tag 1 mate, and earn your first point.',
     },
     ...WELCOME_CARDS.slice(1),
   ];

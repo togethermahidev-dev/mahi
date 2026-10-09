@@ -68,7 +68,7 @@ function CardIllustration({ icon, color }: { icon: WelcomeCard['icon']; color: s
  * One-time welcome carousel, shown over the signed-in app until this account has closed it
  * on this device. Settings → Help shows the same cards again (WelcomeCardsModal).
  * `onSettled` says whether the cards are out of the way (seen before, or just
- * closed), so the notifications page never opens on top of them.
+ * closed), so the next onboarding page (the privacy choice) never opens on top of them.
  */
 export default function WelcomeCards({
   userId,

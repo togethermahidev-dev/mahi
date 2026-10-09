@@ -12,30 +12,29 @@ import {
 describe('welcome cards', () => {
   it('has the three owner-approved cards, in order', () => {
     expect(WELCOME_CARDS.map((c) => c.title)).toEqual([
-      '1. Show up',
+      '1. Show up & tag mates',
       '2. Get tagged',
       '3. Pass it on',
     ]);
   });
 
-  // Design review 2026-10-05 (Q1): a newcomer read "post when a friend tags you" and waited for a
-  // tag that couldn't come, so card 1 says the first post needs no tag and any workout counts,
-  // and says what a miss costs.
-  it('card 1: the first check-in needs no tag and any workout counts', () => {
+  // Owner, 2026-10-09 (core workflow, step 8): the first post tags 1 mate; a tag gives 48 hours;
+  // your answer tags 3.
+  it('card 1: the first Mahi is a workout photo, then a selfie, and tags 1 mate', () => {
     expect(WELCOME_CARDS[0].body).toBe(
-      'Post your first workout to earn your first Mahi point and open your feed. Take a workout photo, then a selfie. Any movement counts.'
+      'Post your first Mahi: a workout photo, then a selfie. Tag 1 mate to post it. It earns your first point and opens your feed.'
     );
   });
 
-  it('card 2 says that answering the tag is the next post', () => {
+  it('card 2: a tag gives you 48 hours, and a miss sends your points back to 0', () => {
     expect(WELCOME_CARDS[1].body).toBe(
-      'After your first workout, a friend’s tag unlocks your next check-in. You have 48 hours to train. Posting the workout answers their tag.'
+      'When a mate tags you, you have 48 hours to post a Mahi of you exercising. That’s your next point. Miss it and your points go back to 0.'
     );
   });
 
-  it('card 3 makes passing accountability on the outcome', () => {
+  it('card 3: your answer tags 3 friends', () => {
     expect(WELCOME_CARDS[2].body).toBe(
-      'Choose 3 friends to hold accountable. Your answer earns a point, opens your feed and calls them to show up next. Your best always stays.'
+      'Your answer tags 3 friends. They get 48 hours to show up too. Your best always stays.'
     );
   });
 
@@ -75,8 +74,8 @@ describe('welcome cards', () => {
       const cards = welcomeCardsFor('sam');
       expect(cards[0]).toEqual({
         icon: 'camera',
-        title: '1. Show up for @sam',
-        body: 'They called you to train. Post any workout in the next 48 hours to answer their tag, earn your first point and open your feed.',
+        title: '1. Show up for @sam & tag a mate',
+        body: 'They tagged you. Post any workout in the next 48 hours, tag 1 mate, and earn your first point.',
       });
       expect(cards.slice(1)).toEqual(WELCOME_CARDS.slice(1));
     });

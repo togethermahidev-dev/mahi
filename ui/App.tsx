@@ -63,7 +63,6 @@ import {
   profileStep,
   type ProfileStatus,
 } from '@/lib/appleSignIn';
-import FindMatesStep from '@/components/FindMatesStep';
 import MissMoment from '@/components/MissMoment';
 import InviteConfirmSheet from '@/components/InviteConfirmSheet';
 import PushPrimer from '@/components/PushPrimer';
@@ -157,20 +156,15 @@ export default function App(): React.JSX.Element {
   const [splashDone, setSplashDone] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [introDone, setIntroDone] = useState(false);
-  // The welcome cards are out of the way, so the notifications page may show.
+  // Onboarding, in order (owner, 2026-10-09): intro animation → welcome cards → public or private
+  // (switch `private-accounts`) → turn on notifications (switch `push-core`) → camera. Each page
+  // opens once the one before is out of the way, and says when it is settled itself.
   const [welcomeSettled, setWelcomeSettled] = useState(false);
-  // "Find your mates" after the cards (new accounts only); then the notifications page may show.
-  const [findMatesSettled, setFindMatesSettled] = useState(false);
-  // The public / private choice comes first, right after sign-up (switch `private-accounts`).
   const [privacySettled, setPrivacySettled] = useState(false);
-  // Once the welcome cards may show they stay mounted, even if the choice turns up later (the
-  // switch loading after them): it then opens over them rather than cutting them off.
-  const [welcomeAllowed, setWelcomeAllowed] = useState(false);
-  useEffect(() => {
-    if (privacySettled) setWelcomeAllowed(true);
-  }, [privacySettled]);
-  const onboardingSettled = welcomeSettled && findMatesSettled && privacySettled;
-  // One-time tips and the tag reminder start only once the welcome pages are closed.
+  const [pushSettled, setPushSettled] = useState(false);
+  // Every onboarding page is done.
+  const onboardingSettled = welcomeSettled && privacySettled && pushSettled;
+  // One-time tips, the tag reminder and the camera's permission question wait until then.
   useCoachBlock(!onboardingSettled);
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -297,7 +291,8 @@ export default function App(): React.JSX.Element {
       setShowCamera(false);
       setIntroDone(false);
       setWelcomeSettled(false);
-      setFindMatesSettled(false);
+      setPrivacySettled(false);
+      setPushSettled(false);
     }
   }, [session]);
 
@@ -395,17 +390,9 @@ export default function App(): React.JSX.Element {
         {showCamera && <MainNavigator />}
         {introDone && (
           <>
-            <PrivacyChoiceStep onSettled={setPrivacySettled} />
-            {welcomeAllowed ? (
-              <WelcomeCards userId={session.user.id} onSettled={setWelcomeSettled} />
-            ) : null}
-            <FindMatesStep
-              userId={session.user.id}
-              createdAt={session.user.created_at}
-              after={welcomeSettled}
-              onSettled={setFindMatesSettled}
-            />
-            <PushPrimer welcomeSettled={onboardingSettled} />
+            <WelcomeCards userId={session.user.id} onSettled={setWelcomeSettled} />
+            <PrivacyChoiceStep after={welcomeSettled} onSettled={setPrivacySettled} />
+            <PushPrimer after={welcomeSettled && privacySettled} onSettled={setPushSettled} />
             <AccountStanding userId={session.user.id} />
             <MissMoment userId={session.user.id} />
             <InviteConfirmSheet userId={session.user.id} />

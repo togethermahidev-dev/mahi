@@ -1,5 +1,6 @@
 import {
   ACCOUNT_OPTIONS,
+  PRIVACY_CHOICE_LEDE,
   privacyChoicePatch,
   accountSwitchPatch,
   TAG_OPTIONS,
@@ -23,8 +24,9 @@ describe('Controls wording', () => {
     expect(accountDescription(false, 'everyone')).toBe(
       'Anyone on Mahi can see your profile and workouts and follow you.'
     );
+    // Owner, 2026-10-09 (core workflow, step 9).
     expect(accountDescription(true, 'followers')).toBe(
-      'Only people you approve can follow you and see your workouts. Your name and photo still show.'
+      'Only people you approve see your posts. Your name and photo still show.'
     );
   });
 
@@ -102,20 +104,26 @@ describe('accountSwitchPatch', () => {
 });
 
 // The sign-up choice saves who sees workouts with it: Public means everyone, Private followers.
+// Who can tag you is no longer asked there (owner, 2026-10-09): the server default stays.
 describe('privacyChoicePatch', () => {
   it('Public opens workouts to everyone', () => {
-    expect(privacyChoicePatch(false, 'approve')).toEqual({
+    expect(privacyChoicePatch(false)).toEqual({
       is_private: false,
       posts_visibility: 'everyone',
-      tag_permission: 'approve',
     });
   });
   it('Private keeps them for followers', () => {
-    expect(privacyChoicePatch(true, 'friends')).toEqual({
+    expect(privacyChoicePatch(true)).toEqual({
       is_private: true,
       posts_visibility: 'followers',
-      tag_permission: 'friends',
     });
+  });
+  it('says the choice can be changed later', () => {
+    expect(PRIVACY_CHOICE_LEDE).toBe('You can change this later in Settings.');
+  });
+  it('never sends who can tag you', () => {
+    expect(privacyChoicePatch(false)).not.toHaveProperty('tag_permission');
+    expect(privacyChoicePatch(true)).not.toHaveProperty('tag_permission');
   });
 });
 

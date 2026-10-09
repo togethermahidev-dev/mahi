@@ -13,15 +13,12 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useUserStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
-import SegmentedControl from '@/components/SegmentedControl';
 import { reportError } from '@/lib/sentry';
 import {
   ACCOUNT_OPTIONS,
-  TAG_OPTIONS,
+  PRIVACY_CHOICE_LEDE,
   privacyChoicePatch,
   showPrivacyChoice,
-  tagDescription,
-  type TagPermission,
 } from '@/lib/accountControls';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -37,40 +34,43 @@ import {
 
 /**
  * The public / private choice after sign-up (switch `private-accounts`, owner 2026-10-08): one
- * screen, two cards saying what each means, and who can tag you (Everyone, I approve first,
- * picked already). Nothing is picked for the account: the person chooses. Continue saves through
- * `set_account_controls`, which also marks the choice made, so it shows once. Shown only while
- * the server says nothing was chosen (existing accounts were marked chosen, and stay public).
- * `onSettled(true)` once it is out of the way (or never needed), so the welcome cards can follow.
+ * screen, two cards saying what each means. It opens once the welcome cards close (`after`;
+ * order owner 2026-10-09). Nothing is picked for the account: the person chooses. Who can tag
+ * you isn't asked here (owner, 2026-10-09): the server's default stays, and Settings changes it.
+ * Continue saves through `set_account_controls`, which also marks the choice made, so it shows
+ * once. Shown only while the server says nothing was chosen (existing accounts were marked
+ * chosen, and stay public). `onSettled(true)` once it is out of the way (or never needed), so the
+ * notifications page can follow.
  */
 export default function PrivacyChoiceStep({
+  after,
   onSettled,
 }: {
+  /** The page before this one (the welcome cards) is out of the way. */
+  after: boolean;
   onSettled: (settled: boolean) => void;
 }): React.JSX.Element | null {
   const flagOn = useFeatureFlag('private-accounts');
   const chosenAt = useUserStore((s) => s.profile?.privacy_chosen_at);
-  const visible = showPrivacyChoice({ flagOn, chosenAt });
+  // Still to choose; settled is told from this alone, so it never reads as done while waiting.
+  const needed = showPrivacyChoice({ flagOn, chosenAt });
   const { colors, dark } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [isPrivate, setIsPrivate] = useState<boolean | null>(null);
-  const [tagPermission, setTagPermission] = useState<TagPermission>('approve');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    onSettled(!visible);
-  }, [visible, onSettled]);
+    onSettled(!needed);
+  }, [needed, onSettled]);
 
-  if (!visible) return null;
+  if (!needed || !after) return null;
 
   const surface = dark ? COLORS.surfaceDark : COLORS.paper;
 
   const save = async () => {
     if (isPrivate === null || saving) return;
     setSaving(true);
-    const { error } = await useUserStore
-      .getState()
-      .saveControls(privacyChoicePatch(isPrivate, tagPermission));
+    const { error } = await useUserStore.getState().saveControls(privacyChoicePatch(isPrivate));
     setSaving(false);
     if (error) {
       reportError(error, {
@@ -97,9 +97,7 @@ export default function PrivacyChoiceStep({
           <Text accessibilityRole="header" style={[styles.headline, { color: colors.text }]}>
             Who sees your workouts?
           </Text>
-          <Text style={[styles.lede, { color: colors.muted }]}>
-            Pick one. You can change it any time in your settings.
-          </Text>
+          <Text style={[styles.lede, { color: colors.muted }]}>{PRIVACY_CHOICE_LEDE}</Text>
 
           <View style={styles.cards} accessibilityRole="radiogroup" accessibilityLabel="Account">
             {ACCOUNT_OPTIONS.map((option) => {
@@ -141,18 +139,6 @@ export default function PrivacyChoiceStep({
               );
             })}
           </View>
-
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Who can tag you</Text>
-          <SegmentedControl
-            label="Who can tag you"
-            dark={dark}
-            options={TAG_OPTIONS}
-            value={tagPermission}
-            onChange={setTagPermission}
-          />
-          <Text style={[styles.cardLine, { color: colors.muted }]}>
-            {tagDescription(tagPermission)}
-          </Text>
         </View>
 
         <Pressable
@@ -201,7 +187,6 @@ const styles = StyleSheet.create({
   },
   cards: {
     gap: SPACE.s12,
-    marginBottom: SPACE.s16,
   },
   card: {
     borderWidth: BORDER_WIDTH.w1,
@@ -238,10 +223,6 @@ const styles = StyleSheet.create({
     width: SIZE.z10,
     height: SIZE.z10,
     borderRadius: RADIUS.pill,
-  },
-  sectionTitle: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f15,
   },
   continue: {
     minHeight: SIZE.z52,

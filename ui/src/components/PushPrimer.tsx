@@ -1,17 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePushPrimer } from '@/hooks/usePushPrimer';
-import { NotificationsIcon } from '@/components/ScreenIcons';
 import { PUSH_PRIMER } from '@/lib/pushPrimer';
 import { FONTS } from '@/constants/fonts';
 import {
-  COLORS,
   ALPHA,
   BORDER_WIDTH,
   FONT_SIZE,
-  ICON_SIZE,
   LINE_HEIGHT,
   RADIUS,
   SIZE,
@@ -20,23 +17,29 @@ import {
 } from '@/constants/tokens';
 
 /**
- * The full-screen "turn on notifications" page, shown once per device after the welcome cards
- * (flag `push-core`). Its one button, "Continue", always brings up the phone's own question
- * (Apple's guidance: no way to cancel here; the phone's "Don't Allow" is the way out). Someone who
- * says no there gets the camera's line (PushNudge) when a friend next tags them. Android's back
- * button still closes the page without asking.
+ * The full-screen "turn on notifications" page, the last onboarding page, after the welcome cards
+ * and the privacy choice (flag `push-core`; words owner 2026-10-09). Turn on brings up the phone's
+ * own question; Not now closes the page, and the banner at the top of the feed (PushBanner) offers
+ * it again. Android's back button counts as Not now. `onSettled(true)` once it has nothing left to
+ * show, so onboarding can finish.
  */
 export default function PushPrimer({
-  welcomeSettled,
+  after,
+  onSettled,
 }: {
-  /** The welcome cards are out of the way: seen before, switched off, or just closed. */
-  welcomeSettled: boolean;
+  /** The onboarding pages before this one are out of the way. */
+  after: boolean;
+  onSettled: (settled: boolean) => void;
 }): React.JSX.Element | null {
-  const { visible, answer } = usePushPrimer(welcomeSettled);
-  const { colors, dark } = useAppTheme();
+  const { visible, pending, answer } = usePushPrimer(after);
+  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   // The phone's question is up, or the answer is being saved: one tap only.
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    onSettled(!pending);
+  }, [pending, onSettled]);
 
   if (!visible) return null;
 
@@ -60,26 +63,15 @@ export default function PushPrimer({
           <Text accessibilityRole="header" style={[styles.headline, { color: colors.text }]}>
             {PUSH_PRIMER.headline}
           </Text>
-          <Text style={[styles.why, { color: withAlpha(colors.text, ALPHA.a70) }]}>
-            {PUSH_PRIMER.why}
+          <Text style={[styles.line, { color: withAlpha(colors.text, ALPHA.a70) }]}>
+            {PUSH_PRIMER.line}
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: dark ? COLORS.surfaceDark : COLORS.surfaceLight },
-          ]}
-        >
-          <NotificationsIcon size={ICON_SIZE.i32} color={colors.accent} />
-          <Text style={[styles.cardTitle, { color: colors.text }]}>{PUSH_PRIMER.cardTitle}</Text>
-          <Text style={[styles.cardBody, { color: withAlpha(colors.text, ALPHA.a70) }]}>
-            {PUSH_PRIMER.cardBody}
-          </Text>
-
+        <View style={styles.buttons}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={PUSH_PRIMER.continue}
+            accessibilityLabel={PUSH_PRIMER.turnOn}
             accessibilityHint="Your phone will ask whether to allow notifications from Mahi"
             accessibilityState={{ disabled: busy }}
             disabled={busy}
@@ -90,12 +82,23 @@ export default function PushPrimer({
               pressed && styles.pressed,
             ]}
           >
-            <Text style={[styles.buttonText, { color: colors.bg }]}>{PUSH_PRIMER.continue}</Text>
+            <Text style={[styles.buttonText, { color: colors.bg }]}>{PUSH_PRIMER.turnOn}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={PUSH_PRIMER.notNow}
+            accessibilityState={{ disabled: busy }}
+            disabled={busy}
+            onPress={() => choose(false)}
+            style={({ pressed }) => [
+              styles.button,
+              { borderColor: colors.border },
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[styles.buttonText, { color: colors.text }]}>{PUSH_PRIMER.notNow}</Text>
           </Pressable>
         </View>
-
-        {/* Keeps the card in the middle of the space under the headline. */}
-        <View />
       </ScrollView>
     </Modal>
   );
@@ -113,34 +116,17 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f32,
     lineHeight: LINE_HEIGHT.l38,
   },
-  why: {
+  line: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f17,
     lineHeight: LINE_HEIGHT.l24,
     marginTop: SPACE.s16,
   },
-  card: {
-    alignItems: 'center',
-    borderRadius: RADIUS.r24,
-    padding: SPACE.s24,
-  },
-  cardTitle: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f20,
-    lineHeight: LINE_HEIGHT.l28,
-    textAlign: 'center',
-    marginTop: SPACE.s12,
-  },
-  cardBody: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f15,
-    lineHeight: LINE_HEIGHT.l22,
-    textAlign: 'center',
-    marginTop: SPACE.s8,
+  buttons: {
+    gap: SPACE.s12,
   },
   button: {
     alignSelf: 'stretch',
-    marginTop: SPACE.s24,
     minHeight: SIZE.z52,
     alignItems: 'center',
     justifyContent: 'center',
