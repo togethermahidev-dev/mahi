@@ -7,6 +7,9 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 36 — FEED over the shutter with rising arrows (no pill); swiping from the camera
+ *     to Messages works again; no dot on empty screens; the caption @ picker says 1 on a first
+ *     post; old invite step and link list removed (2026-10-09)
  *   build 13 · 35 — core workflow: the first post tags 1 mate (Hold up, contacts when no
  *     friends, WhatsApp / Messages / Snap / IG); onboarding is cards → private or public →
  *     notifications; Replying to and Invited circles on posts; the selfie matches the preview;
@@ -160,4 +163,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 35;
+export const OTA_NUMBER = 36;
