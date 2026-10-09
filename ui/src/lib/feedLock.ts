@@ -185,3 +185,23 @@ export function feedCountdown({
     spoken: `Feed open. The next tag locks it after ${left}.`,
   };
 }
+
+/**
+ * What the panel under a lifted, locked camera says (owner, 2026-10-09: it showed an empty grey
+ * panel while the tags hadn't been read). Never blank: the reason and its button once the tags
+ * are read; "Checking your tags…" while they load; "Couldn’t reach Mahi." with Try again when the
+ * read failed. The same words as the camera's own loading and offline states.
+ */
+export function lockedGapContent({
+  pill,
+  loaded,
+  error,
+}: {
+  pill: ReturnType<typeof lockPill>;
+  loaded: boolean;
+  error: boolean;
+}): { line: string; button: string | null; action: LockCard['target'] | 'retry' | null } {
+  if (loaded && pill) return { line: pill.line, button: pill.button, action: pill.target };
+  if (error) return { line: 'Couldn’t reach Mahi.', button: 'Try again', action: 'retry' };
+  return { line: 'Checking your tags…', button: null, action: null };
+}

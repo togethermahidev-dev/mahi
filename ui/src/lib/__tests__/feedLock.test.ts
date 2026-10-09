@@ -1,4 +1,11 @@
-import { clockText, feedCountdown, lockExplainer, lockPill, timeLeftText } from '../feedLock';
+import {
+  clockText,
+  feedCountdown,
+  lockedGapContent,
+  lockExplainer,
+  lockPill,
+  timeLeftText,
+} from '../feedLock';
 
 const HOUR = 3600 * 1000;
 const MIN = 60 * 1000;
@@ -227,5 +234,32 @@ describe('lockPill — posted before, no post in the feed now', () => {
     expect(lockPill({ ...base, openTags: [], postedBefore: false })?.button).toBe(
       'Start first workout'
     );
+  });
+});
+
+// Owner, 2026-10-09: a locked feed lifted the camera over an empty grey panel. While the tags
+// load, or when they couldn't be read, the panel still says something; it is never blank.
+describe('lockedGapContent — the panel under a lifted, locked camera', () => {
+  const pill = { line: 'Locked until a friend tags you.', button: 'Find friends', target: 'friends' as const };
+  it('says why and what to do once the tags are read', () => {
+    expect(lockedGapContent({ pill, loaded: true, error: false })).toEqual({
+      line: 'Locked until a friend tags you.',
+      button: 'Find friends',
+      action: 'friends',
+    });
+  });
+  it('says it is checking while the tags load (no button)', () => {
+    expect(lockedGapContent({ pill: null, loaded: false, error: false })).toEqual({
+      line: 'Checking your tags…',
+      button: null,
+      action: null,
+    });
+  });
+  it('offers Try again when the tags could not be read', () => {
+    expect(lockedGapContent({ pill: null, loaded: false, error: true })).toEqual({
+      line: 'Couldn’t reach Mahi.',
+      button: 'Try again',
+      action: 'retry',
+    });
   });
 });

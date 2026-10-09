@@ -27,8 +27,8 @@ import { usePageSize } from '@/hooks/useChrome';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { cameraStrip, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
 import { detentProgress, releaseDetent, type Detent } from '@/lib/detent';
-import { lockPill } from '@/lib/feedLock';
-import { useFeedStore, useUserStore } from '@/store';
+import { lockedGapContent, lockPill } from '@/lib/feedLock';
+import { useFeedStore, useTagStore, useUserStore } from '@/store';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useSecondTick } from '@/hooks/useSecondTick';
 import { appHeaderHeight } from '@/lib/pip';
@@ -380,7 +380,7 @@ function LockedGap({
 }: {
   onPost: () => void;
   onFindFriends: () => void;
-}): React.JSX.Element | null {
+}): React.JSX.Element {
   const { colors } = useAppTheme();
   const { openTags, loaded } = useOpenTags();
   const unlockedUntil = useFeedStore((s) => s.unlockedUntil);
@@ -389,16 +389,29 @@ function LockedGap({
   const deviceNow = useSecondTick(openTags.length > 0);
   // The server's mark: someone who has posted is never asked for a first workout.
   const postedBefore = useUserStore((st) => st.profile?.has_posted_before ?? false);
+  const tagsError = useTagStore((st) => st.openTagsError);
   const pill = loaded
     ? lockPill({ locked: true, unlockedUntil, openTags, serverOffsetMs, deviceNow, postedBefore })
     : null;
-  if (!pill) return null;
-  const toFriends = pill.target === 'friends';
+  // Never blank (owner, 2026-10-09): checking while the tags load, Try again if they couldn't.
+  const gap = lockedGapContent({ pill, loaded, error: tagsError });
+  const onPress =
+    gap.action === 'friends'
+      ? onFindFriends
+      : gap.action === 'retry'
+        ? () => void useTagStore.getState().syncOpenTags()
+        : onPost;
+  const hint =
+    gap.action === 'friends'
+      ? 'Opens search'
+      : gap.action === 'retry'
+        ? 'Checks your tags again'
+        : 'Back to the camera';
   return (
     // The reason on top; the padlock and the button side by side under it (owner, 2026-10-08).
     <View style={styles.gapInner}>
       <Text style={[styles.gapLine, { color: colors.text }]} numberOfLines={2}>
-        {pill.line}
+        {gap.line}
       </Text>
       <View style={styles.gapRow}>
         <View
@@ -408,15 +421,17 @@ function LockedGap({
         >
           <LockIcon size={ICON_SIZE.i20} color={colors.bg} />
         </View>
-        <PressScale
-          style={[styles.gapButton, { backgroundColor: colors.text }]}
-          onPress={toFriends ? onFindFriends : onPost}
-          accessibilityRole="button"
-          accessibilityLabel={pill.button}
-          accessibilityHint={toFriends ? 'Opens search' : 'Back to the camera'}
-        >
-          <Text style={[styles.gapButtonText, { color: colors.bg }]}>{pill.button}</Text>
-        </PressScale>
+        {gap.button ? (
+          <PressScale
+            style={[styles.gapButton, { backgroundColor: colors.text }]}
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={gap.button}
+            accessibilityHint={hint}
+          >
+            <Text style={[styles.gapButtonText, { color: colors.bg }]}>{gap.button}</Text>
+          </PressScale>
+        ) : null}
       </View>
     </View>
   );
