@@ -93,7 +93,15 @@ describe('default-off flags (video-posts)', () => {
       'siri-shortcuts',
       'spotlight',
       'private-accounts',
+      'feed-rows',
     ]);
+  });
+
+  // Owner, 2026-10-09: the feed as rows hides behind a switch, off for everyone, so the feed is
+  // full-screen posts again. Off while flags load too, so rows never flash up first.
+  it('keeps feed-rows off until switched on', () => {
+    expect(FEATURE_FLAGS as readonly string[]).toContain('feed-rows');
+    expect(flagDefaultOn('feed-rows' as FeatureFlag)).toBe(false);
   });
 
   // Public and private accounts (owner, 2026-10-08): Controls, the choice at sign-up, follow

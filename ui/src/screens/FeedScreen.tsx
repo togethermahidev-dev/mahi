@@ -25,6 +25,7 @@ import { useSocialStore, useAuthStore, useChromeStore, useFeedStore } from '@/st
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
 import FeedRow from '@/components/FeedRow';
+import PostCard from '@/components/PostCard';
 import PostViewer from '@/components/PostViewer';
 import type { MorphSource } from '@/lib/morph';
 import CommentSheet from '@/components/CommentSheet';
@@ -32,6 +33,7 @@ import { lockExplainer as lockCardFor } from '@/lib/feedLock';
 import { feedLockMoment, haptic } from '@/lib/haptics';
 import { developPlan, developWords } from '@/lib/feedDevelop';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { feedListLayout } from '@/lib/feedListLayout';
 import { BlurView } from 'expo-blur';
 import Reanimated, {
   ReduceMotion,
@@ -50,6 +52,7 @@ import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
   ALPHA,
+  BLUR_INTENSITY,
   BORDER_WIDTH,
   DURATION,
   FONT_SIZE,
@@ -100,6 +103,41 @@ function DevelopCover({ delay, words }: { delay: number; words: string | null })
   );
 }
 
+// ─── LockedCard ──────────────────────────────────────────────────────────────
+
+/**
+ * A friend's post, full screen, while your feed is locked: the server sends no photo, name or
+ * caption, so it is a stand-in (a blank face and name bars where the post's own sit) under frost.
+ * The one lock pill floats over the feed (FeedLockBanner); a tap makes it wiggle "no".
+ */
+function LockedCard({ height, onPress }: { height: number; onPress: () => void }) {
+  const { dark, colors } = useAppTheme();
+  const shape = { backgroundColor: withAlpha(colors.text, ALPHA.a25) };
+  return (
+    <Pressable
+      style={[styles.lockedCard, { height, backgroundColor: colors.bg }]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Locked post"
+      accessibilityHint="Locked until you post"
+    >
+      <View style={styles.skeletonFoot}>
+        <View style={styles.skeletonWho}>
+          <View style={[styles.skeletonAvatar, shape]} />
+          <View style={[styles.skeletonName, shape]} />
+        </View>
+        <View style={[styles.skeletonLine, shape]} />
+      </View>
+      <BlurView
+        intensity={BLUR_INTENSITY.i40}
+        tint={dark ? 'dark' : 'light'}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+    </Pressable>
+  );
+}
+
 // ─── FeedScreen ──────────────────────────────────────────────────────────────
 
 /** The divider between rows: a hairline in the theme's faint border colour. */
@@ -138,6 +176,9 @@ export default function FeedScreen({
   const zooming = useChromeStore((s) => s.zooming);
   // TikTok-style snap: each card fills the page (the screen, or the space above the tab bar).
   const { width: screenWidth, height: cardHeight } = usePageSize();
+  // The feed as rows (on) or full-screen posts, one per screen (off, the default; owner,
+  // 2026-10-09). Geometry: src/lib/feedListLayout.ts.
+  const rowsOn = useFeatureFlag('feed-rows');
   const bg = dark ? COLORS.bgDark : COLORS.white;
   // Rows sit on the page's own background with a barely-there hairline between them, like the
   // Messages rows (owner, 2026-10-08: no blue lines).
@@ -231,6 +272,23 @@ export default function FeedScreen({
   const [pushH, setPushH] = useState(0);
   const pushSpace = pushH > 0 ? pushH + SPACE.s8 : 0;
   const topSpace = (!locked && bannerH > 0 ? bannerH + SPACE.s8 : 0) + pushSpace;
+  const layout = feedListLayout({
+    rows: rowsOn,
+    pageHeight: cardHeight,
+    headerH,
+    topInset,
+    topSpace,
+    hasPosts: posts.length > 0,
+  });
+  // Full screen: one flick moves one post, however hard, as on TikTok and Reels.
+  const paging = layout.snapInterval
+    ? {
+        snapToInterval: layout.snapInterval,
+        snapToAlignment: 'start' as const,
+        disableIntervalMomentum: true,
+        decelerationRate: 'fast' as const,
+      }
+    : null;
 
   // Friends' posts while locked: a button only when reactive posting lets you post (a tag still
   // open on the server clock, or your first post).
@@ -271,8 +329,8 @@ export default function FeedScreen({
   const toggleFeedMuted = useCallback(() => setFeedMuted((m) => !m), []);
   const feedOnScreen = isActive && !profileUserId && !viewerPost;
   const listExtra = useMemo(
-    () => ({ topSpace, inViewId, feedMuted, feedOnScreen, develop }),
-    [topSpace, inViewId, feedMuted, feedOnScreen, develop]
+    () => ({ topSpace, inViewId, feedMuted, feedOnScreen, develop, layout }),
+    [topSpace, inViewId, feedMuted, feedOnScreen, develop, layout]
   );
 
   // Notify parent when a fullscreen overlay (profile) opens/closes
@@ -335,6 +393,8 @@ export default function FeedScreen({
     <View style={[styles.root, { backgroundColor: posts.length ? listBg : bg }]}>
       <ListGestureContext.Provider value={listGesture}>
         <FlashList
+          // A fresh list when the layout switches, so no row is recycled as a full-screen post.
+          key={rowsOn ? 'rows' : 'full'}
           // The app header is an intentional overlay. Prevent iOS from adding its own safe-area
           // inset as well, which otherwise leaves a visible strip above the first full-screen post.
           automaticallyAdjustContentInsets={false}
@@ -344,16 +404,35 @@ export default function FeedScreen({
           data={posts}
           keyExtractor={(item) => item.id}
           extraData={listExtra}
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <View>
-              <FeedRow
-                item={item}
-                width={screenWidth}
-                onOpen={openPost}
-                onAvatarPress={handleAvatarPress}
-                onCommentPress={setCommentPostId}
-                onLockedPress={onLockedPress}
-              />
+              {rowsOn ? (
+                <FeedRow
+                  item={item}
+                  width={screenWidth}
+                  onOpen={openPost}
+                  onAvatarPress={handleAvatarPress}
+                  onCommentPress={setCommentPostId}
+                  onLockedPress={onLockedPress}
+                />
+              ) : item.locked ? (
+                <LockedCard height={layout.cardHeight ?? cardHeight} onPress={onLockedPress} />
+              ) : (
+                // Full screen, as before rows (owner, 2026-10-09): the post is already full
+                // screen, so a tap doesn't open the viewer; likes, comments and faces work here.
+                <PostCard
+                  item={item}
+                  dark={dark}
+                  width={screenWidth}
+                  height={layout.cardHeight ?? cardHeight}
+                  onAvatarPress={handleAvatarPress}
+                  onCommentPress={setCommentPostId}
+                  topSpace={index === 0 ? layout.firstTopSpace : 0}
+                  playing={shouldPlay({ screenActive: feedOnScreen, inView: inViewId === item.id })}
+                  soundOff={feedMuted}
+                  onToggleMuted={toggleFeedMuted}
+                />
+              )}
               {develop?.plan.has(item.id) ? (
                 <DevelopCover
                   delay={develop.plan.get(item.id) ?? 0}
@@ -362,9 +441,12 @@ export default function FeedScreen({
               ) : null}
             </View>
           )}
-          ItemSeparatorComponent={RowGap}
-          // The list starts under the floating header (and the lock pill, when there is one).
-          contentContainerStyle={{ paddingTop: posts.length ? headerH + topInset + topSpace : 0 }}
+          getItemType={(item) => (rowsOn ? 'row' : item.locked ? 'locked' : 'post')}
+          ItemSeparatorComponent={rowsOn ? RowGap : undefined}
+          {...paging}
+          // Rows start under the floating header (and the banners); full-screen posts start at
+          // the top, with the header and banners floating over the first one.
+          contentContainerStyle={{ paddingTop: layout.paddingTop }}
           onEndReached={hasMore ? loadMore : undefined}
           onEndReachedThreshold={0.4}
           ListFooterComponent={
@@ -599,6 +681,10 @@ const styles = StyleSheet.create({
   },
   skeleton: {
     justifyContent: 'flex-end',
+  },
+  lockedCard: {
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
   },
   moreLoader: {
     height: SIZE.z56,

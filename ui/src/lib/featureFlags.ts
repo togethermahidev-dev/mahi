@@ -56,6 +56,9 @@ export const FEATURE_FLAGS = [
   'auth-apple-signin', // Sign in with Apple on the welcome screen; build 13+ iPhones only (default OFF, not released yet)
   'auth-google-signin', // placeholder pill with nothing behind it yet
 
+  // Feed (owner, 2026-10-09)
+  'feed-rows', // the feed as rows (on) or full-screen posts, one per screen (off, the default)
+
   // Public and private accounts (owner, 2026-10-08)
   'private-accounts', // Settings → Controls, the choice after sign-up, follow requests, remove a follower (default OFF)
 ] as const;
@@ -80,6 +83,8 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * them shows for a moment on cold start.
  * `private-accounts`: Controls and the sign-up choice need migration
  * 20261008170000_private_accounts; off until the owner switches it on.
+ * `feed-rows`: owner, 2026-10-09 — the feed is full-screen posts again, rows hidden for everyone;
+ * off while flags load too, so rows never show first and then swap to full screen.
  */
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'push-core',
@@ -95,6 +100,7 @@ export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'siri-shortcuts',
   'spotlight',
   'private-accounts',
+  'feed-rows',
 ];
 
 /** Whether a flag reads as on before PostHog has answered (true for all but DEFAULT_OFF_FLAGS). */

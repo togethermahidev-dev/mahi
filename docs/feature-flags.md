@@ -52,7 +52,7 @@ if (!videoOn) return null;
 - **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `push-core`, `video-posts`,
   `ios-sf-symbols`, `camera-tap-focus`, `identity-verification`, `purchases`,
   `auth-google-signin`, `auth-apple-signin`, `live-activity`, `control-post-workout`, `siri-shortcuts`,
-  `spotlight` and `private-accounts`): off
+  `spotlight`, `private-accounts` and `feed-rows`): off
   while flags load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns
   `true`. Use this for a feature that must never show, even for a moment on cold start (video posts would
   otherwise be able to ask for the microphone before flags load; the full-screen notifications page would
@@ -60,7 +60,7 @@ if (!videoOn) return null;
 
 ## The flags
 
-28 keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone. Nor do the twelve switches removed on 2026-10-07 — see [Removed from code 2026-10-07](#removed-from-code-2026-10-07).)
+29 keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone. Nor do the twelve switches removed on 2026-10-07 — see [Removed from code 2026-10-07](#removed-from-code-2026-10-07).)
 
 **Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
 are switched in the `app_config` table):
@@ -113,6 +113,17 @@ moment for every point), `feed-develop` (locked posts clear one by one after you
 down after a miss, the miss moment waits for it), `profile-points-card` (the bar fills, numbers roll, the
 last three mates answered), `widget-tagger-photo` (the tagger's photo on the widget and Live Activity;
 off = no photo).
+
+**Feed:** `feed-rows` (**default off**, added 2026-10-09; owner: "This feed row I basically want to hide
+you can put it behind a feature flag and turn them off for everyone so that the feed goes into the TikTok
+style one as we previously had it." Create it in PostHog switched off.) Off = the feed is full-screen posts,
+one per screen, as before 2026-10-08: each post is one page tall and a flick moves exactly one post; the
+see-through header, the notifications banner and the feed timer float over the first post and slide away
+as you scroll; likes, comments, faces, the small second photo, videos and pull to refresh work on the post
+itself (a tap doesn't open another viewer). A locked feed is frosted full-screen stand-ins under the one
+lock pill; after you post, `feed-develop` still clears them one by one. On = the Messages-sized rows, where
+a tap grows the post into the full-screen view. Off while flags load too, so rows never show first.
+Geometry: [`ui/src/lib/feedListLayout.ts`](../ui/src/lib/feedListLayout.ts).
 
 **Posts:** `video-posts` (**default off**; owner: off for everyone). On: each of a post's two shots can be a
 photo or a video of up to 15 seconds — a Photo / Video switch by the shutter, and press and hold the shutter
