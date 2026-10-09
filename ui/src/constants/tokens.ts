@@ -573,6 +573,11 @@ export const MOTION = {
    *  a swipe past this share of the way, or a flick faster than this (pt/ms), settles; the first
    *  swipe stops at the peek (this share of the way), the next goes the rest. */
   cameraFeed: { openAt: 0.15, flick: 0.5, lockedShare: 0.16, peekShare: 0.3 },
+  /** The round button beside the bell (owner, 2026-10-09): its icon scrolls up and out of the
+   *  circle as the next rises in, done by the feed's peek. While a photo is being taken or
+   *  reviewed, or the post is going up (no roadmap button), the circle fades in over this share
+   *  of that scroll. */
+  bellPill: { fadeShare: 0.25 },
   /** FEED over the shutter (owner, 2026-10-09): each up-chevron rises this far (pt) over this
    *  long (ms), brightest this share of the way up, then gone; the upper one starts this long
    *  (ms) after the lower, on a loop. Reduce Motion: they stay still. */
@@ -612,7 +617,7 @@ export const MOTION = {
     /** The camera only slides (no shrinking) for this share of the pull, and the pill's icon and
      *  the notice finish changing by it. The pull itself goes all the way in one swipe. */
     peekShare: 0.3,
-    /** The pill's "?", arrow and camera icon grow in from this scale as they morph. */
+    /** The pill's camera icon and arrow grow in from this scale as they morph. */
     glyphFromScale: 0.6,
     /** The standalone arrow gives two short downward jumps instead of showing an instruction pill. */
     arrowJumpY: 8,

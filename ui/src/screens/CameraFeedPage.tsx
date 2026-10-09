@@ -3,7 +3,8 @@
  * up (or tap FEED over the shutter, src/components/FeedCue.tsx) and it shrinks into a small card
  * at the top-left while the feed's rows take the screen under it. Tap the card, the Camera pill,
  * or swipe the card down and the camera grows back. A post swipes the camera down into the feed by
- * itself. Geometry and release rules: src/lib/cameraFeed.ts.
+ * itself. Geometry and release rules: src/lib/cameraFeed.ts. The round button beside the bell says
+ * where you are, its icons scrolling in and out of the circle: src/lib/bellPill.ts.
  *
  * Worklet rule (13.08 / 13.19 crashed on launch): the animated styles below read only numbers and
  * shared values held in local consts — never an object that also holds a gesture or a function.
@@ -14,6 +15,7 @@ import { Gesture, GestureDetector, type NativeGesture } from 'react-native-gestu
 import Reanimated, {
   interpolate,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
@@ -22,10 +24,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CameraScreen from '@/screens/CameraScreen';
 import FeedScreen from '@/screens/FeedScreen';
 import { PressScale } from '@/components/Motion';
-import { CameraIcon, LockIcon } from '@/components/ScreenIcons';
+import { CameraIcon, FeedIcon, LockIcon } from '@/components/ScreenIcons';
 import { usePageSize } from '@/hooks/useChrome';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { cameraStrip, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
+import { bellIcons, bellPillOpacity, bellScroll, feedSideIcon } from '@/lib/bellPill';
 import { detentProgress, releaseDetent, type Detent } from '@/lib/detent';
 import { lockedGapContent, lockPill } from '@/lib/feedLock';
 import { useFeedStore, useTagStore, useUserStore } from '@/store';
@@ -231,12 +234,24 @@ export default function CameraFeedPage({
     opacity: locked ? 0 : interpolate(progress.value, [0.5, 1], [0, 1], 'clamp'),
   }));
 
-  // The pill beside the bell: the camera's "?" / arrow becomes a camera icon at the same spot
-  // while the feed (or the locked gap) is up; tap it to bring the camera back (owner, 2026-10-08).
-  const fromScale = MOTION.pull.glyphFromScale;
-  const cameraPillStyle = useAnimatedStyle(() => {
-    const p = Math.min(1, progress.value / peek);
-    return { opacity: p, transform: [{ scale: fromScale + (1 - fromScale) * p }] };
+  // The circle beside the bell says where you are (owner, 2026-10-09): a camera on the camera, the
+  // feed on the feed, a padlock when it's locked; the icons scroll in and out of the circle with
+  // the swipe. On the camera the camera's own circle (the roadmap button, CameraPull's PullHandle)
+  // is the one; this one takes over as the camera starts to lift. Tap: the camera comes back.
+  const [pullHandle, setPullHandle] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const iconTravel = SIZE.z36;
+  const feedIcon = feedSideIcon(locked);
+  const bellStyle = useAnimatedStyle(() => ({
+    opacity: bellPillOpacity({ progress: progress.value, peek, feedShown, handle: pullHandle }),
+  }));
+  const bellCameraStyle = useAnimatedStyle(() => {
+    const at = bellIcons(bellScroll(progress.value, peek), iconTravel, reduceMotion);
+    return { opacity: at.cameraOpacity, transform: [{ translateY: at.cameraY }] };
+  });
+  const bellFeedStyle = useAnimatedStyle(() => {
+    const at = bellIcons(bellScroll(progress.value, peek), iconTravel, reduceMotion);
+    return { opacity: at.feedOpacity, transform: [{ translateY: at.feedY }] };
   });
 
   return (
@@ -288,6 +303,7 @@ export default function CameraFeedPage({
             onSeeFeed={openFeed}
             onPosted={openFeed}
             feedShown={feedShown}
+            onPullHandle={setPullHandle}
             feedDrag={feedDrag}
             onFindFriends={onFindFriends}
             onOpenProfile={onOpenProfile}
@@ -350,14 +366,12 @@ export default function CameraFeedPage({
         </GestureDetector>
       ) : null}
 
-      {/* Beside the bell: the camera icon that brings the camera back. */}
+      {/* Beside the bell: the circle whose icon says where you are; it brings the camera back. */}
       <Reanimated.View
-        style={[
-          styles.cameraPillSpot,
-          { top: insets.top - (SIZE.z44 - SIZE.z36) / 2 },
-          cameraPillStyle,
-        ]}
+        style={[styles.cameraPillSpot, { top: insets.top - (SIZE.z44 - SIZE.z36) / 2 }, bellStyle]}
         pointerEvents={feedShown ? 'auto' : 'none'}
+        accessibilityElementsHidden={!feedShown}
+        importantForAccessibility={feedShown ? 'auto' : 'no-hide-descendants'}
       >
         <PressScale
           style={styles.cameraPill}
@@ -366,7 +380,16 @@ export default function CameraFeedPage({
           accessibilityLabel="Camera"
           accessibilityHint="Brings the camera back"
         >
-          <CameraIcon size={ICON_SIZE.i20} color={COLORS.offBlack} />
+          <Reanimated.View style={[styles.bellIcon, bellCameraStyle]}>
+            <CameraIcon size={ICON_SIZE.i20} color={COLORS.offBlack} />
+          </Reanimated.View>
+          <Reanimated.View style={[styles.bellIcon, bellFeedStyle]}>
+            {feedIcon === 'lock' ? (
+              <LockIcon size={ICON_SIZE.i20} color={COLORS.offBlack} />
+            ) : (
+              <FeedIcon size={ICON_SIZE.i20} color={COLORS.offBlack} />
+            )}
+          </Reanimated.View>
         </PressScale>
       </Reanimated.View>
     </View>
@@ -459,7 +482,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderRadius: RADIUS.r24,
   },
-  // Same spot as the camera's own pill (CameraPull's handleSpot): 8 left of the bell.
+  // Same spot as the camera's own circle (CameraPull's handleSpot): 8 left of the bell.
   cameraPillSpot: {
     position: 'absolute',
     right: SPACE.s24 + SIZE.z36 + SPACE.s8,
@@ -474,7 +497,14 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r18,
     alignItems: 'center',
     justifyContent: 'center',
+    // The icons scroll in and out of the circle: it clips them.
+    overflow: 'hidden',
     backgroundColor: COLORS.offWhite,
+  },
+  bellIcon: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   // The quarter of the page under a lifted camera when the feed is locked.
   gap: {

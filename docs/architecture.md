@@ -464,8 +464,11 @@ roadmap drawer (`useCameraPull`), up moves the feed (`feedDrag`, passed `CameraF
 `CameraScreen` → `useCameraPull`). Both are two-stage (`releaseDetent`, `ui/src/lib/detent.ts`):
 closed → peek → open. Swiping up slides the camera all the way up and the feed fills the page under
 its header (`cameraStrip`, `ui/src/lib/cameraFeed.ts`); the camera pill brings it back; a locked feed lifts about a sixth of the page
-(`lockedGap`) and shows `LockedGap` (the reason, the padlock and one button). The pill beside the bell
-morphs between a question mark, the up-arrow and a camera icon (decision #148). A post opens the
+(`lockedGap`) and shows `LockedGap` (the reason, the padlock and one button). The circle beside the bell
+says where you are: a camera on the camera (turning into the up-arrow as the roadmap opens), the
+feed icon or a padlock once the feed is up, the icons scrolling in and out of the circle with the
+swipe (`ui/src/lib/bellPill.ts`; decisions #148, #172). The camera's own circle (`PullHandle`) hands
+over to the feed page's at the same spot on the first move, so only one shows. A post opens the
 feed (`onPosted`).
 
 The order is `SWIPE_PAGES` in `ui/src/lib/nativeTabs.ts` (= the tab bar's `NATIVE_TABS`, tested).

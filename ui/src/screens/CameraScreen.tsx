@@ -1554,8 +1554,11 @@ interface CameraScreenProps {
   onSeeFeed?: () => void;
   /** A post has just gone up (the feed shows it). */
   onPosted?: () => void;
-  /** The feed is up over this camera: its pill becomes the feed page's camera pill. */
+  /** The feed is up over this camera: the feed page's circle beside the bell takes over. */
   feedShown?: boolean;
+  /** Whether this camera's own circle beside the bell (the roadmap button) is there, so the feed
+   *  page's circle knows to swap in for it at once or fade in (src/lib/bellPill.ts). */
+  onPullHandle?: (shown: boolean) => void;
   /** The feed behind this camera: an upward drag on the camera moves it (one gesture, both ways). */
   feedDrag?: {
     progress: SharedValue<number>;
@@ -1573,6 +1576,7 @@ export default function CameraScreen({
   onSeeFeed,
   onPosted,
   feedShown = false,
+  onPullHandle,
   feedDrag,
   onFindFriends,
   onOpenProfile,
@@ -1842,6 +1846,12 @@ export default function CameraScreen({
   // switched off, the screen becomes the fixed dead-end card shown in the reported build.
   const pullOn = cameraOn && !offline && !(frontPhoto && rearPhoto) && captureState === 'idle';
   const pull = useCameraPull(pullOn, safeTop, pageWidth, pageHeight, feedDrag);
+  // The circle beside the bell (PullHandle below) shows with the frost; the feed page needs to know.
+  const pullHandleShown =
+    (pullOn || gate === 'closed' || !!offline) && !flight && heldPoints === null;
+  useEffect(() => {
+    onPullHandle?.(pullHandleShown);
+  }, [onPullHandle, pullHandleShown]);
   // The pip window's place on the full camera, and where that maps to on the small camera card:
   // it moves and shrinks with the card (its height share, so it stays inside the card).
   const pipLeft = Math.max(PIP_MARGIN, railRoom);
@@ -1895,7 +1905,11 @@ export default function CameraScreen({
   const waitingTip = useCoachAnchor('waiting', pullOn && pull.expanded);
   // VoiceOver uses the arrow as a button; the visual coach bubble stays for sighted sessions.
   const screenReader = useScreenReader();
-  const pullTip = useCoachAnchor('pullDown', pullOn && !pull.expanded && !screenReader);
+  // Not while the feed is up: the circle it points at has handed over to the feed page's.
+  const pullTip = useCoachAnchor(
+    'pullDown',
+    pullOn && !pull.expanded && !screenReader && !feedShown
+  );
 
   // Tap to focus (flag `camera-tap-focus`): switch on, an iPhone, and a build whose camera can
   // focus on a point (build 11+). OTA updates also reach build 10, which can't: there it's off.
@@ -3182,19 +3196,20 @@ export default function CameraScreen({
                   <FeedCue onPress={onSeeFeed} />
                 </Reanimated.View>
               ) : null}
-              {feedShown ? null : (
-                <PullHandle
-                  // In the header row, beside the bell (the bell pill is 36 tall; this taps as 44);
-                  // open, it rides down to the small camera card's top edge.
-                  top={safeTop - (SIZE.z44 - SIZE.z36) / 2}
-                  openTop={pull.openOffset + SPACE.s8 - (SIZE.z44 - SIZE.z36) / 2}
-                  offset={pull.offset}
-                  openOffset={pull.openOffset}
-                  expanded={pull.expanded}
-                  anchorRef={pullTip}
-                  onPress={pull.toggle}
-                />
-              )}
+              {/* Stays mounted while the feed is up (it hides itself once the feed moves), so it
+                  doesn't hop again each time the camera comes back. */}
+              <PullHandle
+                // In the header row, beside the bell (the bell pill is 36 tall; this taps as 44);
+                // open, it rides down to the small camera card's top edge.
+                top={safeTop - (SIZE.z44 - SIZE.z36) / 2}
+                openTop={pull.openOffset + SPACE.s8 - (SIZE.z44 - SIZE.z36) / 2}
+                offset={pull.offset}
+                openOffset={pull.openOffset}
+                expanded={pull.expanded}
+                anchorRef={pullTip}
+                onPress={pull.toggle}
+                feedProgress={feedProgress}
+              />
             </View>
           </GestureDetector>
         ) : null}

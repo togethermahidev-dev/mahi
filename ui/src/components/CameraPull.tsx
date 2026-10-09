@@ -2,14 +2,13 @@
  * The waiting camera opens like a physical front layer (owner, 2026-10-08): the live camera and
  * its frost follow a downward pull, then settle low enough to uncover the accountability card
  * built behind them. Pulling up or tapping the up arrow closes it. One tick as it passes its mark.
- * A centered handle with a chevron says it can be pulled; it
- * breathes once when it shows (Apple's own symbol effect on an iPhone build with @expo/ui, ours
- * elsewhere). Rules and geometry: src/lib/cameraPull.ts.
+ * The round button beside the bell shows a camera, which turns into the up arrow as the drawer
+ * opens (owner, 2026-10-09). Rules and geometry: src/lib/cameraPull.ts.
  *
  * Reduce Motion: the camera crossfades away instead of sliding.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View, Text } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import Reanimated, {
   interpolate,
@@ -26,6 +25,8 @@ import Reanimated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Path } from 'react-native-svg';
 import { haptic } from '@/lib/haptics';
+import { bellHandoff } from '@/lib/bellPill';
+import { CameraIcon } from '@/components/ScreenIcons';
 import { cameraDrag, drawerOffset, drawerShouldOpen, pullParallax } from '@/lib/cameraPull';
 import { detentProgress, releaseDetent, type Detent } from '@/lib/detent';
 import {
@@ -39,9 +40,7 @@ import {
   STROKE,
   SWIPE,
   SPACE,
-  FONT_SIZE,
 } from '@/constants/tokens';
-import { FONTS } from '@/constants/fonts';
 
 /**
  * The pull gesture and the styles it drives. `enabled`: only while the waiting card shows.
@@ -316,7 +315,12 @@ export function useCameraPull(
   };
 }
 
-/** One large arrow: it jumps once to teach the physical pull, then travels with the camera. */
+/**
+ * The round button beside the bell on the camera: a camera icon that turns into the up arrow as
+ * the drawer opens; it hops to teach the pull, then travels with the camera. As the feed starts to
+ * come up it hands over to the feed page's circle at the same spot (bellPill.ts), so only one
+ * circle ever shows.
+ */
 export function PullHandle({
   top,
   openTop,
@@ -325,6 +329,7 @@ export function PullHandle({
   expanded,
   anchorRef,
   onPress,
+  feedProgress,
 }: {
   top: number;
   openTop: number;
@@ -334,6 +339,8 @@ export function PullHandle({
   /** Where the one-time "Pull down to peek" tip points. */
   anchorRef?: React.Ref<View>;
   onPress?: () => void;
+  /** The feed coming up over the camera (0 = not at all): this circle hides once it moves. */
+  feedProgress?: SharedValue<number>;
 }): React.JSX.Element {
   const reduceMotion = useReducedMotion();
   const jump = useSharedValue(0);
@@ -359,16 +366,19 @@ export function PullHandle({
   // Dark arrow on the white pill; Mahi blue once open.
   const arrowColor = expanded ? COLORS.accent : COLORS.offBlack;
   const jumpStyle = useAnimatedStyle(() => ({ transform: [{ translateY: jump.value }] }));
+  // The shared value alone goes into the worklet (worklet rule).
+  const feed = feedProgress;
   const positionStyle = useAnimatedStyle(() => {
     const progress = openOffset > 0 ? Math.min(1, offset.value / openOffset) : 0;
     return {
+      opacity: feed ? 1 - bellHandoff(feed.value) : 1,
       transform: [{ translateY: (openTop - top) * progress }],
     };
   });
   const fromScale = MOTION.pull.glyphFromScale;
-  // A question mark at rest that morphs into the up-arrow as the camera nudges down (owner,
-  // 2026-10-08): one fades and shrinks as the other grows and turns in.
-  // The morph is complete by the peek, so the peek shows a clean arrow.
+  // A camera at rest (owner, 2026-10-09; a question mark before) that morphs into the up-arrow
+  // as the camera nudges down (owner, 2026-10-08): one fades and shrinks as the other grows and
+  // turns in. The morph is complete by the peek, so the peek shows a clean arrow.
   const glyphEnd = openOffset * MOTION.pull.peekShare;
   const chevronStyle = useAnimatedStyle(() => {
     const progress = glyphEnd > 0 ? Math.min(1, offset.value / glyphEnd) : 0;
@@ -380,7 +390,7 @@ export function PullHandle({
       ],
     };
   });
-  const questionStyle = useAnimatedStyle(() => {
+  const cameraStyle = useAnimatedStyle(() => {
     const progress = glyphEnd > 0 ? Math.min(1, offset.value / glyphEnd) : 0;
     return { opacity: 1 - progress, transform: [{ scale: 1 - (1 - fromScale) * progress }] };
   });
@@ -408,8 +418,8 @@ export function PullHandle({
       >
         {/* Two layers: the hop and the turn each own a transform, so neither overwrites the other. */}
         <Reanimated.View style={[jumpStyle, styles.glyphBox]}>
-          <Reanimated.View style={[styles.glyph, questionStyle]}>
-            <Text style={styles.question}>?</Text>
+          <Reanimated.View style={[styles.glyph, cameraStyle]}>
+            <CameraIcon size={ICON_SIZE.i20} color={COLORS.offBlack} />
           </Reanimated.View>
           <Reanimated.View style={[styles.glyph, chevronStyle]}>
             {/* The app's own arrow: Apple's native one came up blank while it faded in. */}
@@ -450,7 +460,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: COLORS.offWhite,
   },
-  // The question mark and the arrow share one spot and morph into each other.
+  // The camera icon and the arrow share one spot and morph into each other.
   glyphBox: {
     width: ICON_SIZE.i24,
     height: ICON_SIZE.i24,
@@ -459,11 +469,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  question: {
-    fontSize: FONT_SIZE.f18,
-    fontFamily: FONTS.bold,
-    color: COLORS.offBlack,
   },
   handlePressed: {
     opacity: ALPHA.a80,
