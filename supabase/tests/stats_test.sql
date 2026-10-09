@@ -1,6 +1,9 @@
 -- The numbers of record: a known week of tag-loop activity, counted by the stats views.
 begin;
 select plan(19);
+-- The first post here follows the old rule (first_post_tags = 0: it may tag 0 to 3; the one-tag
+-- first post is tests/first_post_one_tag_test.sql).
+update public.app_config set first_post_tags = 0;
 
 -- Invite links off unless a section turns them on: fewer friends excuses the difference.
 update public.app_config set invite_links_enabled = false;

@@ -84,10 +84,10 @@ select is(pg_temp.item('00000000-0000-0000-0000-0000000a7b02') -> 'response',
   '{"tagger_username": "at_sam", "seconds": 7200}'::jsonb, 'the old response field is unchanged');
 select is(
   (select array_agg(k order by k) from jsonb_object_keys(pg_temp.item('00000000-0000-0000-0000-0000000a7b02')) k),
-  array['answered', 'caption', 'comment_count', 'created_at', 'first_post', 'front_media_type', 'id',
-        'image_path', 'latitude', 'like_count', 'liked_by_me', 'locked', 'longitude', 'post_date',
-        'pov_image_path', 'profile', 'rear_media_type', 'response', 'streak_day', 'tagged_users',
-        'user_id'],
+  array['answered', 'answered_taggers', 'caption', 'comment_count', 'created_at', 'first_post',
+        'front_media_type', 'id', 'image_path', 'latitude', 'like_count', 'liked_by_me', 'locked',
+        'longitude', 'pending_invites', 'post_date', 'pov_image_path', 'profile', 'rear_media_type',
+        'response', 'streak_day', 'tagged_users', 'user_id'],
   'every post keeps its fields and gains answered and first_post');
 
 -- 5. The profile list carries them (get_user_posts and get_feed both build items with feed_item).

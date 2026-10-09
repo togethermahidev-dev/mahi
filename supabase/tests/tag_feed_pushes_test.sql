@@ -4,6 +4,9 @@
 -- with history.
 begin;
 select plan(52);
+-- The first post here follows the old rule (first_post_tags = 0: it may tag 0 to 3; the one-tag
+-- first post is tests/first_post_one_tag_test.sql).
+update public.app_config set first_post_tags = 0;
 
 select has_column('public', 'app_config', 'feed_lock_warning_push', 'the warning push has its own switch');
 select has_column('public', 'app_config', 'feed_lock_warning_lead', 'and its own lead time');

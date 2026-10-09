@@ -3,6 +3,9 @@
 -- after the first still tags 3. Migration: 20261007190000_first_answer_no_tags.
 begin;
 select plan(7);
+-- The first post here follows the old rule (first_post_tags = 0: it may tag 0 to 3; the one-tag
+-- first post is tests/first_post_one_tag_test.sql).
+update public.app_config set first_post_tags = 0;
 
 update public.app_config set tags_required = true, tag_count = 3, invite_links_enabled = true,
   quiet_start = '00:00', quiet_end = '00:00';

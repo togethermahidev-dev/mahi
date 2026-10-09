@@ -3,6 +3,9 @@
 -- history.
 begin;
 select plan(55);
+-- The first post here follows the old rule (first_post_tags = 0: it may tag 0 to 3; the one-tag
+-- first post is tests/first_post_one_tag_test.sql).
+update public.app_config set first_post_tags = 0;
 
 update public.app_config set invite_links_enabled = true, tags_required = true, tag_count = 3,
   max_open_invites = 10;
