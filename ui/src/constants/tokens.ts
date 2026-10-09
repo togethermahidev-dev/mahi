@@ -573,6 +573,10 @@ export const MOTION = {
    *  a swipe past this share of the way, or a flick faster than this (pt/ms), settles; the first
    *  swipe stops at the peek (this share of the way), the next goes the rest. */
   cameraFeed: { openAt: 0.15, flick: 0.5, lockedShare: 0.16, peekShare: 0.3 },
+  /** FEED over the shutter (owner, 2026-10-09): each up-chevron rises this far (pt) over this
+   *  long (ms), brightest this share of the way up, then gone; the upper one starts this long
+   *  (ms) after the lower, on a loop. Reduce Motion: they stay still. */
+  feedCue: { riseMs: 1200, staggerMs: 600, rise: 5, peakAt: 0.3 },
   /** A "no": the padlock line wiggles sideways this far (pt), this fast (ms a beat), when a
    *  locked row is tapped (owner, 2026-10-08). */
   shake: { x: 6, ms: 60 },

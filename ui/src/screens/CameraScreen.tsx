@@ -14,7 +14,6 @@ import {
   Pressable,
   FlatList,
   ScrollView,
-  Share,
   AccessibilityInfo,
   BackHandler,
   ActivityIndicator,
@@ -85,10 +84,8 @@ import WorkoutIdeasSheet from '@/components/WorkoutIdeasSheet';
 import FlashButton from '@/components/FlashButton';
 import FocusSquare, { FOCUS_SQUARE_SIZE, type FocusTap } from '@/components/FocusSquare';
 import CapturePipGuide from '@/components/CapturePipGuide';
+import FeedCue, { FEED_CUE_WIDTH } from '@/components/FeedCue';
 import PostVideo, { SoundButton } from '@/components/PostVideo';
-import InviteStep from '@/components/InviteStep';
-import MateCircles from '@/components/MateCircles';
-import InviteShareSheet from '@/components/InviteShareSheet';
 import TagSlotsSheet from '@/components/TagSlotsSheet';
 import MyInvitesSheet from '@/components/MyInvitesSheet';
 import FindMatesSheet from '@/components/FindMatesSheet';
@@ -97,14 +94,13 @@ import CountBadge from '@/components/CountBadge';
 import { getMyInvites } from '@/api/invites';
 import { inviteBadgeCount } from '@/lib/myInvites';
 import { getTagSlots } from '@/api/tagSlots';
-import { inviteAMate, noteInviteSent } from '@/lib/inviteAMate';
+import { inviteAMate } from '@/lib/inviteAMate';
 import {
   HOLD_UP,
-  inviteBlockedReason,
   postButtonLabel,
   postRefusal,
+  tagScreenWords,
   type ScreenSlot,
-  INVITE_BUTTON,
 } from '@/lib/tagSlots';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useCoachAnchor } from '@/hooks/useCoachMarks';
@@ -145,8 +141,6 @@ import { loadAppleExtras } from '@/lib/appleExtrasModule';
 import { answersATag, hasPostedBefore, reactivePostingGate } from '@/lib/reactivePosting';
 import { nudgeLabel } from '@/lib/tagNudge';
 import { cantTagReason, maxTagsFor, postTagsRequired } from '@/lib/tagRules';
-import { inviteShareMessage, markInvite, type InviteItem } from '@/lib/inviteShare';
-import { tagSheetStep } from '@/lib/inviteStep';
 import {
   captureLabel as captureLabelFor,
   captureStepLabel,
@@ -196,6 +190,7 @@ import AnswerStamp from '@/components/AnswerStamp';
 import { answeredStamp } from '@/lib/answerStamp';
 import { flightCard, pointMoment, pointsRoll, willFly } from '@/lib/pointMoments';
 import { appHeaderHeight, openTagsTop } from '@/lib/pip';
+import { feedCueLeft, feedCueShows } from '@/lib/feedCue';
 
 /**
  * The camera when there's no open tag to answer: says how Mahi works (reactive posting) and what
@@ -419,13 +414,19 @@ function findUltraWideLens(lenses: string[]): string | null {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-/** The lens switch's bottom edge: above the shutter row (the shutter is 72 tall). */
-const LENS_TOGGLE_BOTTOM = OFFSET.o32 + OFFSET.o72 + OFFSET.o20;
+/** The shutter's top edge: its row sits 32 up and the shutter is 72 tall. */
+const SHUTTER_TOP = OFFSET.o32 + OFFSET.o72;
+/** The lens switch's bottom edge: above the shutter row. */
+const LENS_TOGGLE_BOTTOM = SHUTTER_TOP + OFFSET.o20;
+/** The lens switch's top edge (its row is 36 tall). */
+const LENS_TOGGLE_TOP = LENS_TOGGLE_BOTTOM + SIZE.z36;
+/** FEED (owner, 2026-10-09) sits this far over the shutter, or over the lens switch when it shows. */
+const FEED_CUE_GAP = SPACE.s4;
 /**
- * How far the camera's controls reach up from the bottom of the page: the lens switch's row (36
- * tall) on top of the shutter row. Toasts on the Camera page sit above this.
+ * How far the camera's controls reach up from the bottom of the page: the lens switch's row on top
+ * of the shutter row, and FEED (36 tall) over it. Toasts on the Camera page sit above this.
  */
-export const CAMERA_CONTROLS_TOP = LENS_TOGGLE_BOTTOM + SIZE.z36;
+export const CAMERA_CONTROLS_TOP = LENS_TOGGLE_TOP + FEED_CUE_GAP + SIZE.z36;
 
 /** One captured shot: a photo, or (flag `video-posts`) a video of up to 15 s. */
 interface CapturedPhoto {
@@ -510,9 +511,7 @@ interface DualPhotoPreviewProps {
   onCaptionChange: (v: string) => void;
   taggedUsers: TaggedUser[];
   onTaggedUsersChange: (users: TaggedUser[]) => void;
-  /** Slots filled by an invite link for someone not on Mahi. */
-  inviteCount: number;
-  onInviteCountChange: (n: number) => void;
+  /** Slots filled on the tag screen (links, in-app requests), as the server keeps them. */
   slots: ScreenSlot[];
   onSlotsChange: (slots: ScreenSlot[]) => void;
   /** Tags this post needs before POST unlocks (server enforces the same rule). */
@@ -541,8 +540,6 @@ function DualPhotoPreview({
   onCaptionChange,
   taggedUsers,
   onTaggedUsersChange,
-  inviteCount,
-  onInviteCountChange,
   slots,
   onSlotsChange,
   requiredTags,
@@ -553,12 +550,12 @@ function DualPhotoPreview({
   onToggleLocation,
 }: DualPhotoPreviewProps) {
   const insets = useSafeAreaInsets();
-  // An invite fills a slot just as a friend does.
-  const tagsMissing = Math.max(0, requiredTags - taggedUsers.length - inviteCount - slots.length);
+  // A slot filled on the tag screen counts just as a tagged friend does.
+  const tagsMissing = Math.max(0, requiredTags - taggedUsers.length - slots.length);
   // A first post says Post; with nobody tagged, Post shows "Hold up" instead of a count.
   const postLabel = firstPost
     ? 'Post'
-    : postButtonLabel(tagsMissing, taggedUsers.length + inviteCount + slots.length > 0);
+    : postButtonLabel(tagsMissing, taggedUsers.length + slots.length > 0);
   // "Hold up ✋": a first post's Post with nobody tagged. A card in the preview, not a page.
   const [holdUp, setHoldUp] = useState(false);
   useEffect(() => {
@@ -659,10 +656,9 @@ function DualPhotoPreview({
   type ActiveSheet = 'none' | 'caption' | 'tag';
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>('none');
   const openedTagStepForCapture = useRef(false);
-  // When non-null, the tag sheet was opened by typing `@` at this index in
-  // the caption. On commit we splice `username ` right after that `@`, then
-  // reopen the caption sheet. When null, the tag sheet was opened via the
-  // tag pill and commits/cancels go straight back to 'none'.
+  // When non-null, 'tag' is the caption's `@` picker, opened by typing `@` at this index in the
+  // caption: the friend picked is spliced in right after that `@`, then the caption sheet reopens.
+  // When null, 'tag' is the tag screen (from the tag pill, Post or Hold up).
   const [captionAtIndex, setCaptionAtIndex] = useState<number | null>(null);
   // One-time tip on the tag pill, the first time the preview is up with no sheet over it.
   const tagTip = useCoachAnchor(
@@ -683,22 +679,14 @@ function DualPhotoPreview({
     if (
       !firstPost &&
       requiredTags > 0 &&
-      taggedUsers.length + inviteCount + slots.length === 0 &&
+      taggedUsers.length + slots.length === 0 &&
       activeSheet === 'none' &&
       !openedTagStepForCapture.current
     ) {
       openedTagStepForCapture.current = true;
       setActiveSheet('tag');
     }
-  }, [
-    activeSheet,
-    firstPost,
-    hasPhotos,
-    inviteCount,
-    requiredTags,
-    slots.length,
-    taggedUsers.length,
-  ]);
+  }, [activeSheet, firstPost, hasPhotos, requiredTags, slots.length, taggedUsers.length]);
 
   useEffect(() => {
     if (hasPhotos) {
@@ -1191,7 +1179,7 @@ function DualPhotoPreview({
           }}
           onOpenTagAt={(atIndex, currentText) => {
             // User typed `@` mid-caption. Commit the current text (with the
-            // `@` still in place) and hand off to TagSheet in single-shot mode.
+            // `@` still in place) and hand off to the TagSheet picker.
             onCaptionChange(currentText);
             setCaptionAtIndex(atIndex);
             setActiveSheet('tag');
@@ -1219,48 +1207,33 @@ function DualPhotoPreview({
         {/* The caption's `@` picks one friend here. */}
         <TagSheet
           visible={activeSheet === 'tag' && captionAtIndex !== null}
-          initialSelected={taggedUsers}
-          initialInvites={inviteCount}
-          singleShot={captionAtIndex !== null}
+          tagged={taggedUsers}
+          maxTags={maxTags}
           onCancel={() => {
-            // If we came from the caption `@` bridge, return to the caption
-            // sheet (the `@` stays in the text). Otherwise, close entirely.
-            if (captionAtIndex !== null) {
-              setCaptionAtIndex(null);
-              setActiveSheet('caption');
-            } else {
-              setActiveSheet('none');
-            }
+            // Back to the caption sheet (the `@` stays in the text).
+            setCaptionAtIndex(null);
+            setActiveSheet('caption');
           }}
-          onCommit={(users, invites) => {
-            if (captionAtIndex !== null && users.length > 0) {
-              // `@` bridge commit: splice `username ` right after the `@`
-              // at captionAtIndex, add the user to the taggedUsers list
-              // (deduped + capped), and reopen the caption sheet.
-              const picked = users[0];
-              const insertion = `${picked.username} `;
-              const spliced =
-                caption.slice(0, captionAtIndex + 1) +
-                insertion +
-                caption.slice(captionAtIndex + 1);
-              onCaptionChange(spliced);
+          onPick={(picked) => {
+            if (captionAtIndex === null) return;
+            // Splice `username ` right after the `@` at captionAtIndex, add the friend to the
+            // post's tags (deduped + capped), and reopen the caption sheet.
+            const insertion = `${picked.username} `;
+            const spliced =
+              caption.slice(0, captionAtIndex + 1) + insertion + caption.slice(captionAtIndex + 1);
+            onCaptionChange(spliced);
 
-              const already = taggedUsers.some((u) => u.user_id === picked.user_id);
-              if (!already) {
-                if (taggedUsers.length + inviteCount + slots.length >= maxTags) {
-                  haptic('warning');
-                } else {
-                  onTaggedUsersChange([...taggedUsers, picked]);
-                }
+            const already = taggedUsers.some((u) => u.user_id === picked.user_id);
+            if (!already) {
+              if (taggedUsers.length + slots.length >= maxTags) {
+                haptic('warning');
+              } else {
+                onTaggedUsersChange([...taggedUsers, picked]);
               }
-
-              setCaptionAtIndex(null);
-              setActiveSheet('caption');
-            } else {
-              onTaggedUsersChange(users);
-              onInviteCountChange(invites);
-              setActiveSheet('none');
             }
+
+            setCaptionAtIndex(null);
+            setActiveSheet('caption');
           }}
         />
 
@@ -1436,74 +1409,33 @@ function TagUserRow({
 
 interface TagSheetProps {
   visible: boolean;
-  initialSelected: TaggedUser[];
-  /** Slots already set aside for people who aren't on Mahi. */
-  initialInvites: number;
+  /** Friends this post already tags: ticked in the list. */
+  tagged: TaggedUser[];
+  /** The most people this post can tag: 1 on a first post, else the tag count. */
+  maxTags: number;
   onCancel: () => void;
-  onCommit: (users: TaggedUser[], invites: number) => void;
-  /**
-   * When true, tapping a user immediately commits just that one user and
-   * closes the sheet — used by the caption `@` bridge where picking is a
-   * single-shot autocomplete, not multi-select.
-   */
-  singleShot?: boolean;
+  /** One tap picks one friend; the sheet closes. */
+  onPick: (user: TaggedUser) => void;
 }
 
-function TagSheet({
-  visible,
-  initialSelected,
-  initialInvites,
-  onCancel,
-  onCommit,
-  singleShot,
-}: TagSheetProps) {
-  const [selected, setSelected] = useState<TaggedUser[]>(initialSelected);
-  const [invites, setInvites] = useState(initialInvites);
+/**
+ * The caption's `@` picker: a tap picks one friend and closes the sheet. A post's tags are set on
+ * the tag screen (TagSlotsSheet).
+ */
+function TagSheet({ visible, tagged, maxTags, onCancel, onPick }: TagSheetProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<TaggableFriend[]>([]);
-  const maxTags = useTagStore((s) => s.maxTags);
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchRef = useRef<TextInput>(null);
-  const filled = selected.length + invites;
-  // Friends who can be tagged right now (from the unfiltered list); null until it has loaded.
-  const [availableFriends, setAvailableFriends] = useState<number | null>(null);
-  const inviteBlocked = inviteBlockedReason({
-    filled,
-    maxTags,
-  });
-  const addInvite = () => {
-    if (inviteBlocked) {
-      haptic('warning');
-      useToastStore.getState().show(inviteBlocked);
-      return;
-    }
-    // The mate circles feel each one filling.
-    setInvites((n) => n + 1);
-  };
-  const step = tagSheetStep({
-    singleShot: !!singleShot,
-    availableFriends,
-    maxTags,
-  });
 
-  // Reseed when the sheet re-opens; ignore changes to initialSelected while open.
+  // Fresh each time it opens, with the keyboard up for the search.
   useEffect(() => {
-    if (visible) {
-      setSelected(initialSelected);
-      setInvites(initialInvites);
-      setQuery('');
-      setResults([]);
-      setAvailableFriends(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!visible) return;
+    setQuery('');
+    setResults([]);
+    searchRef.current?.focus();
   }, [visible]);
-
-  // The keyboard waits until we know friends can fill the slots, so it never covers the step.
-  const stepIsFriends = step === 'friends';
-  useEffect(() => {
-    if (visible && stepIsFriends) searchRef.current?.focus();
-  }, [visible, stepIsFriends]);
 
   // Friends who follow back, filtered as you type (350ms debounce). An empty
   // query lists them all, so the sheet opens with the people you can tag.
@@ -1526,8 +1458,6 @@ function TagSheet({
         }
         if (stale) return;
         setResults(data ?? []);
-        // The whole list (no search) says how many friends can fill a slot; a failed read counts as none.
-        if (!q) setAvailableFriends((data ?? []).filter((f) => !f.has_open_tag).length);
         setLoading(false);
       },
       q ? WAIT.search : 0
@@ -1538,31 +1468,13 @@ function TagSheet({
     };
   }, [query, visible]);
 
-  const toggle = (u: TaggableFriend) => {
-    const asTagged: TaggedUser = {
+  const pick = (u: TaggableFriend) =>
+    onPick({
       user_id: u.id,
       username: u.username,
       display_name: u.display_name,
       avatar_url: u.avatar_url,
-    };
-
-    // Single-shot mode: tap to immediately commit just this one user.
-    if (singleShot) {
-      onCommit([asTagged], invites);
-      return;
-    }
-
-    const already = selected.some((s) => s.user_id === u.id);
-    if (already) {
-      setSelected((prev) => prev.filter((s) => s.user_id !== u.id));
-      return;
-    }
-    if (filled >= maxTags) {
-      haptic('warning');
-      return;
-    }
-    setSelected((prev) => [...prev, asTagged]);
-  };
+    });
 
   return (
     // The system page sheet: swipe down (or ✕) cancels; onRequestClose fires for both.
@@ -1575,55 +1487,19 @@ function TagSheet({
       <View style={styles.tagSheetPanel}>
         <View style={styles.sheetLabelRow}>
           <Text style={styles.sheetLabel}>Who are you holding accountable?</Text>
-          <View style={styles.sheetHeaderEnd}>
-            {singleShot ? null : (
-              <Text style={styles.sheetCounter}>
-                {filled}/{maxTags}
-              </Text>
-            )}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-              hitSlop={SLOP_CLOSE}
-              style={({ pressed }) => [styles.sheetCloseX, pressed && { opacity: ALPHA.a70 }]}
-              onPress={onCancel}
-            >
-              <Text style={styles.sheetCloseXText}>×</Text>
-            </Pressable>
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            hitSlop={SLOP_CLOSE}
+            style={({ pressed }) => [styles.sheetCloseX, pressed && { opacity: ALPHA.a70 }]}
+            onPress={onCancel}
+          >
+            <Text style={styles.sheetCloseXText}>×</Text>
+          </Pressable>
         </View>
 
-        <Text style={styles.accountabilityPrompt}>
-          Pick {maxTags} friends you want to see show up on Mahi.
-        </Text>
-
-        {singleShot ? null : (
-          <View style={styles.tagCircles}>
-            <MateCircles
-              total={maxTags}
-              friends={selected}
-              links={invites}
-              dark
-              onAdd={step === 'invite' ? addInvite : () => searchRef.current?.focus()}
-              onRemove={(circle) =>
-                circle.kind === 'friend'
-                  ? setSelected((prev) => prev.filter((u) => u.user_id !== circle.userId))
-                  : setInvites((n) => Math.max(0, n - 1))
-              }
-            />
-          </View>
-        )}
-
-        {step === 'invite' && availableFriends !== null ? (
-          <InviteStep
-            maxTags={maxTags}
-            availableFriends={availableFriends}
-            friends={selected.length}
-            invites={invites}
-            onAdd={addInvite}
-            onRemove={() => setInvites((n) => Math.max(0, n - 1))}
-          />
-        ) : null}
+        {/* The tag screen's words: "1 mate" on a first post. */}
+        <Text style={styles.accountabilityPrompt}>{tagScreenWords(maxTags).prompt}</Text>
 
         <TextInput
           ref={searchRef}
@@ -1650,75 +1526,18 @@ function TagSheet({
               <Text style={styles.tagEmptyText}>
                 {query.trim()
                   ? 'No friends found.'
-                  : step === 'invite'
-                    ? 'Follow each other and you can tag each other.'
-                    : 'Follow each other and you can tag each other.'}
+                  : 'Follow each other and you can tag each other.'}
               </Text>
             )
           }
           renderItem={({ item }) => (
             <TagUserRow
               item={item}
-              selected={selected.some((s) => s.user_id === item.id)}
-              onPress={() => toggle(item)}
+              selected={tagged.some((s) => s.user_id === item.id)}
+              onPress={() => pick(item)}
             />
           )}
         />
-
-        {singleShot || step !== 'friends' ? null : (
-          <View style={styles.inviteRow}>
-            <Text style={styles.inviteLabel}>
-              {invites > 0
-                ? `${invites === 1 ? '1 link' : `${invites} links`} to send after you post.`
-                : inviteBlocked && filled < maxTags
-                  ? `Not on Mahi yet? ${inviteBlocked}, then send a link.`
-                  : 'Not on Mahi yet? Send them a link instead.'}
-            </Text>
-            <View style={styles.inviteSteppers}>
-              {invites > 0 ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Remove a link"
-                  style={({ pressed }) => [
-                    styles.inviteStepTarget,
-                    pressed && { opacity: ALPHA.a70 },
-                  ]}
-                  onPress={() => setInvites((n) => Math.max(0, n - 1))}
-                >
-                  <View style={styles.inviteStep}>
-                    <Text style={styles.inviteStepText}>−</Text>
-                  </View>
-                </Pressable>
-              ) : null}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Add a link"
-                accessibilityState={{ disabled: filled >= maxTags }}
-                style={({ pressed }) => [
-                  styles.inviteStepTarget,
-                  { opacity: filled >= maxTags ? ALPHA.a30 : 1 },
-                  pressed && { opacity: ALPHA.a70 },
-                ]}
-                disabled={filled >= maxTags}
-                onPress={addInvite}
-              >
-                <View style={styles.inviteStep}>
-                  <Text style={styles.inviteStepText}>+</Text>
-                </View>
-              </Pressable>
-            </View>
-          </View>
-        )}
-
-        {singleShot ? null : (
-          <Pressable
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.sheetDone, pressed && { opacity: ALPHA.a85 }]}
-            onPress={() => onCommit(selected, invites)}
-          >
-            <Text style={styles.sheetDoneText}>Done</Text>
-          </Pressable>
-        )}
         <KeyboardInset />
       </View>
     </Modal>
@@ -1730,7 +1549,8 @@ function TagSheet({
 interface CameraScreenProps {
   /** Apple's tab bar: the post preview opened or closed (the bar hides while it is open). */
   onComposingChange?: (open: boolean) => void;
-  /** Go to the Feed page (the caught-up card's "See your feed", shown while the feed is open). */
+  /** Show the feed: FEED over the shutter, and the caught-up card's "See your feed" (shown while
+   *  the feed is open). Without it there is no FEED cue. */
   onSeeFeed?: () => void;
   /** A post has just gone up (the feed shows it). */
   onPosted?: () => void;
@@ -1799,8 +1619,6 @@ export default function CameraScreen({
   const [rearPhoto, setRearPhoto] = useState<CapturedPhoto | null>(null);
   const [caption, setCaption] = useState<string>('');
   const [taggedUsers, setTaggedUsers] = useState<TaggedUser[]>([]);
-  // Slots kept for people not on Mahi — the server turns each into a link to share.
-  const [inviteCount, setInviteCount] = useState(0);
   // Per-post location opt-in. Default OFF — we NEVER attach coordinates unless
   // the user explicitly turns this on for the current post. Reset after each
   // post / discard so location never silently carries over.
@@ -1815,11 +1633,8 @@ export default function CameraScreen({
   // Slots filled on the tag screen before posting. Read fresh from the server whenever a preview
   // opens — never kept on the phone (they expire).
   const [slots, setSlots] = useState<ScreenSlot[]>([]);
-  // The last post's invite links and which are sent. In memory only — links expire.
-  const [postInvites, setPostInvites] = useState<InviteItem[]>([]);
-  // The point-earned moment after a post, and the invite links waiting until it closes.
+  // The point-earned moment after a post.
   const [celebration, setCelebration] = useState<PointCelebrationContent | null>(null);
-  const invitesAfterCelebration = useRef<InviteItem[]>([]);
   // Who the answer just tagged, said once the +1 flight's card has gone.
   const toastAfterFlight = useRef<string | null>(null);
   // A later answer's point flies into the counter (#116); until it lands the counter keeps the
@@ -2040,6 +1855,15 @@ export default function CameraScreen({
   const noticeStyle = useAnimatedStyle(() => ({
     opacity: noticeEnd > 0 ? 1 - Math.min(1, Math.max(0, pullOffset.value / noticeEnd)) : 1,
   }));
+  // FEED over the shutter fades like the notice as the drawer opens, and as the camera slides up
+  // to the feed (gone by the feed's peek). The feed's progress is a shared value, or none.
+  const feedProgress = feedDrag?.progress;
+  const feedPeek = MOTION.cameraFeed.peekShare;
+  const feedCueStyle = useAnimatedStyle(() => {
+    const pulled = noticeEnd > 0 ? Math.min(1, Math.max(0, pullOffset.value / noticeEnd)) : 0;
+    const lifted = feedProgress ? Math.min(1, Math.max(0, feedProgress.value / feedPeek)) : 0;
+    return { opacity: (1 - pulled) * (1 - lifted) };
+  });
   const cardX = pull.collapsed.x;
   const cardY = pull.collapsed.y;
   const scaleW = pull.collapsed.width / pull.viewport.width;
@@ -2557,7 +2381,6 @@ export default function CameraScreen({
     const captionValue = caption || null;
     // From the tag screen's Post, its tags (this render's state hasn't caught up yet).
     const taggedUsersSnapshot = tags?.taggedUsers ?? taggedUsers;
-    const inviteCountSnapshot = inviteCount;
     const slotsSnapshot = tags?.slots ?? slots;
     // Snapshot the location opt-in for THIS post before we reset UI state below.
     const locationEnabledSnapshot = locationEnabled;
@@ -2604,7 +2427,6 @@ export default function CameraScreen({
     setRearPhoto(null);
     setCaption('');
     setTaggedUsers([]);
-    setInviteCount(0);
     setSlots([]);
     setLocationEnabled(false);
     setIsUploading(false);
@@ -2658,7 +2480,6 @@ export default function CameraScreen({
         povImagePath: paths.frontPath,
         caption: captionValue,
         taggedUserIds: taggedUsersSnapshot.map((u) => u.user_id),
-        inviteCount: inviteCountSnapshot,
         slotIds: slotsSnapshot.map((s) => s.challenge_id),
         latitude: coords?.latitude,
         longitude: coords?.longitude,
@@ -2700,7 +2521,7 @@ export default function CameraScreen({
         : null;
       hapticSequence(
         postedMoments({
-          tags: taggedUsersSnapshot.length + inviteCountSnapshot + slotsSnapshot.length,
+          tags: taggedUsersSnapshot.length + slotsSnapshot.length,
           pointsBefore: profile.streak_current,
           pointsAfter: moment === 'fly' ? profile.streak_current : result.streak.streak_current,
           // A milestone line in the toast below gets a small success buzz too.
@@ -2724,7 +2545,7 @@ export default function CameraScreen({
       track('tag_sent', {
         post_id: result.post.id,
         tag_count: taggedUsersSnapshot.length,
-        invite_count: inviteCountSnapshot + slotsSnapshot.length,
+        invite_count: slotsSnapshot.length,
         replayed: result.replayed === true,
       });
       for (const answered of result.answered) {
@@ -2751,7 +2572,7 @@ export default function CameraScreen({
           : undefined;
       const taggedCounts = {
         friends: taggedUsersSnapshot.length + slotsSnapshot.filter((x) => x.kind !== 'link').length,
-        links: inviteCountSnapshot + slotsSnapshot.filter((x) => x.kind === 'link').length,
+        links: slotsSnapshot.filter((x) => x.kind === 'link').length,
       };
       // The mates whose 48 hours start now, named (in-app requests start once accepted).
       const taggedNow = {
@@ -2773,13 +2594,10 @@ export default function CameraScreen({
             firstPost: firstPostNow,
             tagged: taggedNow,
           });
-      // Links were shared on the tag screen: nothing is left to send.
-      const invitesToSend: InviteItem[] = [];
       useTagStore.getState().syncOpenTags();
       if (moment === 'fly') {
-        // The invite list waits until the card has gone: one thing at a time. So do the words
-        // saying whose 48 hours this post just started (the card itself only names the tagger).
-        invitesAfterCelebration.current = invitesToSend;
+        // The words saying whose 48 hours this post just started wait until the card has gone
+        // (the card itself only names the tagger): one thing at a time.
         toastAfterFlight.current = taggedClockLine(taggedNow);
         launchFlight({
           ...flightCard({
@@ -2793,8 +2611,6 @@ export default function CameraScreen({
       }
       setHeldPoints(null);
       if (celebrate) {
-        // The invite list waits until the celebration is closed: one sheet at a time.
-        invitesAfterCelebration.current = invitesToSend;
         setCelebration({ ...celebrate, cheer });
         return;
       }
@@ -2811,9 +2627,6 @@ export default function CameraScreen({
         // A toast with a button stays long enough to reach it (at least as long as toastLong).
         cheer ? { action: cheer } : WAIT.toastLong
       );
-      // A list to send any invite links from, one share sheet each, so none is silently lost.
-      // (With tag slots on, links were shared on the tag screen; nothing is left to send.)
-      setPostInvites(invitesToSend);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setHeldPoints(null);
@@ -2839,7 +2652,6 @@ export default function CameraScreen({
         setRearPhoto(rear);
         setCaption(captionValue ?? '');
         setTaggedUsers(taggedUsersSnapshot);
-        setInviteCount(inviteCountSnapshot);
         setLocationEnabled(locationEnabledSnapshot);
         useTagStore.getState().loadRequirement();
       } else {
@@ -2857,7 +2669,6 @@ export default function CameraScreen({
             rearType: rear.kind,
             frontType: front.kind,
             tags: taggedUsersSnapshot.length,
-            invites: inviteCountSnapshot,
             slots: slotsSnapshot.length,
           },
         });
@@ -2943,24 +2754,6 @@ export default function CameraScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraRequest, gate]);
 
-  // One share sheet for one invite link; only a link that actually went somewhere counts as sent.
-  const sendInvite = async (token: string) => {
-    const invite = postInvites.find((i) => i.token === token);
-    if (!invite) return;
-    try {
-      const result = await Share.share({ message: inviteShareMessage(invite.url, invite.code) });
-      const shared = result.action === Share.sharedAction;
-      if (shared) {
-        track('invite_shared', {});
-        noteInviteSent(token, 'share');
-      }
-      setPostInvites((list) => markInvite(list, token, shared));
-    } catch (e) {
-      reportError(e, { flow: 'invites', action: 'sendInvite' });
-      useToastStore.getState().show('Couldn’t open sharing. Try again.');
-    }
-  };
-
   const handleDiscard = () => {
     // Uploads from a failed try stay: a lost reply may mean that post is live and uses them.
     retryRef.current = null;
@@ -2968,7 +2761,6 @@ export default function CameraScreen({
     setRearPhoto(null);
     setCaption('');
     setTaggedUsers([]);
-    setInviteCount(0);
     setSlots([]);
     setLocationEnabled(false);
   };
@@ -3075,6 +2867,26 @@ export default function CameraScreen({
     cameraGranted,
   });
 
+  // The 0.5× / 1× lens switch (and, with video posts, Photo / Video) above the shutter.
+  const lensRow = ((facing === 'back' && !!ultraWideLens) || videoOn) && !blocked;
+  // FEED over the shutter (owner, 2026-10-09): on the live and the locked camera only.
+  const feedCue = feedCueShows({
+    gate,
+    captureState,
+    previewOpen: hasPreview,
+    feedShown,
+    drawerOpen: pullExpanded,
+  });
+  // Over the lens switch it's level with the small window (bottom left): it stays clear of it.
+  const feedCuePlace = {
+    bottom: (lensRow ? LENS_TOGGLE_TOP : SHUTTER_TOP) + FEED_CUE_GAP + lift,
+    left: feedCueLeft({
+      pageWidth,
+      cueWidth: FEED_CUE_WIDTH,
+      clearOf: lensRow && guide ? pipLeft + PIP_W : 0,
+    }),
+  };
+
   return (
     <GestureDetector gesture={doubleTapToFlip}>
       <View
@@ -3151,7 +2963,7 @@ export default function CameraScreen({
           <OpenTagsBanner
             openTags={openTags}
             serverOffsetMs={serverOffsetMs}
-            // Never posted (not even a deleted post): "First post · no tag needed".
+            // Never posted (not even a deleted post): "Post your first Mahi.", or who tagged you.
             firstPost={hasPosted === false && tagsLoaded}
             answered={answeredTick}
           />
@@ -3360,6 +3172,16 @@ export default function CameraScreen({
                   />
                 </Reanimated.View>
               ) : null}
+              {/* FEED over the shutter: swipe up or tap for the feed. In the pull's view, so a
+                  swipe up that starts on it still moves the feed. */}
+              {onSeeFeed && feedCue ? (
+                <Reanimated.View
+                  style={[styles.feedCueSpot, feedCuePlace, feedCueStyle]}
+                  pointerEvents="box-none"
+                >
+                  <FeedCue onPress={onSeeFeed} />
+                </Reanimated.View>
+              ) : null}
               {feedShown ? null : (
                 <PullHandle
                   // In the header row, beside the bell (the bell pill is 36 tall; this taps as 44);
@@ -3396,7 +3218,7 @@ export default function CameraScreen({
           posting is blocked, matching the shutter gating. Sits just above the
           shutter row so it reads as a capture-config affordance. With video
           posts on, the Photo / Video switch sits beside it in the same row. */}
-        {((facing === 'back' && ultraWideLens) || videoOn) && !blocked && (
+        {lensRow && (
           <View
             style={[styles.lensToggleWrap, lift > 0 && { bottom: LENS_TOGGLE_BOTTOM + lift }]}
             pointerEvents="box-none"
@@ -3617,8 +3439,6 @@ export default function CameraScreen({
           onCaptionChange={setCaption}
           taggedUsers={taggedUsers}
           onTaggedUsersChange={setTaggedUsers}
-          inviteCount={inviteCount}
-          onInviteCountChange={setInviteCount}
           slots={slots}
           onSlotsChange={setSlots}
           requiredTags={postRequiredTags}
@@ -3627,12 +3447,6 @@ export default function CameraScreen({
           answering={answersATag(openTags, serverOffsetMs) ? openTags.map((t) => t.username) : []}
           locationEnabled={locationEnabled}
           onToggleLocation={handleToggleLocation}
-        />
-
-        <InviteShareSheet
-          invites={postInvites}
-          onSend={sendInvite}
-          onClose={() => setPostInvites([])}
         />
 
         <MyInvitesSheet visible={invitesOpen} onClose={() => setInvitesOpen(false)} dark={dark} />
@@ -3653,22 +3467,10 @@ export default function CameraScreen({
             const tagged = toastAfterFlight.current;
             toastAfterFlight.current = null;
             if (tagged) useToastStore.getState().show(tagged, WAIT.toastLong);
-            const waiting = invitesAfterCelebration.current;
-            invitesAfterCelebration.current = [];
-            if (waiting.length > 0) setPostInvites(waiting);
           }}
         />
 
-        <PointCelebration
-          content={celebration}
-          onClose={() => {
-            setCelebration(null);
-            const waiting = invitesAfterCelebration.current;
-            invitesAfterCelebration.current = [];
-            // iOS shows one sheet at a time: let the celebration finish closing first.
-            if (waiting.length > 0) setTimeout(() => setPostInvites(waiting), DURATION.d300);
-          }}
-        />
+        <PointCelebration content={celebration} onClose={() => setCelebration(null)} />
       </View>
     </GestureDetector>
   );
@@ -3787,6 +3589,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACE.s32,
+  },
+  // FEED over the shutter: its left and bottom come from feedCuePlace.
+  feedCueSpot: {
+    position: 'absolute',
   },
   waitingNotice: {
     flexDirection: 'row',
@@ -4156,10 +3962,6 @@ const styles = StyleSheet.create({
     paddingBottom: SPACE.s12,
     gap: SPACE.s12,
   },
-  /** The mate circles at the top of the tag sheet. */
-  tagCircles: {
-    paddingVertical: SPACE.s8,
-  },
   sheetHeaderEnd: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -4205,47 +4007,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: withAlpha(COLORS.white, ALPHA.a15),
-  },
-  inviteRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.s12,
-    paddingHorizontal: SPACE.s20,
-    paddingVertical: SPACE.s12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: withAlpha(COLORS.offWhite, ALPHA.a12),
-  },
-  inviteLabel: {
-    flex: 1,
-    color: themeColors(true).muted,
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
-  },
-  inviteSteppers: {
-    flexDirection: 'row',
-    gap: SPACE.s8,
-  },
-  /** The −/+ tap area: 44 square, transparent; the 32 circle sits inside it. */
-  inviteStepTarget: {
-    width: SIZE.z44,
-    height: SIZE.z44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inviteStep: {
-    width: SIZE.z32,
-    height: SIZE.z32,
-    borderRadius: RADIUS.r16,
-    borderWidth: BORDER_WIDTH.w1,
-    borderColor: withAlpha(COLORS.offWhite, ALPHA.a40),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inviteStepText: {
-    color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f18,
-    fontFamily: FONTS.semiBold,
-    lineHeight: LINE_HEIGHT.l20,
   },
   // "Need an idea?" under the caption: a text link, 44 pt tall to tap.
   ideaLink: {

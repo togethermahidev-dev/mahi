@@ -1,9 +1,9 @@
 /**
  * The camera and the feed on one screen (owner, 2026-10-08). The camera is full screen; swipe it
- * up (or tap the Feed pill) and it shrinks into a small card at the top-left while the feed's rows
- * take the screen under it. Tap the card, the Camera pill, or swipe the card down and the camera
- * grows back. A post swipes the camera down into the feed by itself. Geometry and release rules:
- * src/lib/cameraFeed.ts.
+ * up (or tap FEED over the shutter, src/components/FeedCue.tsx) and it shrinks into a small card
+ * at the top-left while the feed's rows take the screen under it. Tap the card, the Camera pill,
+ * or swipe the card down and the camera grows back. A post swipes the camera down into the feed by
+ * itself. Geometry and release rules: src/lib/cameraFeed.ts.
  *
  * Worklet rule (13.08 / 13.19 crashed on launch): the animated styles below read only numbers and
  * shared values held in local consts — never an object that also holds a gesture or a function.
@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CameraScreen from '@/screens/CameraScreen';
 import FeedScreen from '@/screens/FeedScreen';
 import { PressScale } from '@/components/Motion';
-import { CameraIcon, FeedIcon, LockIcon } from '@/components/ScreenIcons';
+import { CameraIcon, LockIcon } from '@/components/ScreenIcons';
 import { usePageSize } from '@/hooks/useChrome';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { cameraStrip, feedSwipe, feedTop, lockedGap } from '@/lib/cameraFeed';
@@ -35,7 +35,6 @@ import { appHeaderHeight } from '@/lib/pip';
 import { haptic } from '@/lib/haptics';
 import { FONTS } from '@/constants/fonts';
 import {
-  ALPHA,
   COLORS,
   FONT_SIZE,
   ICON_SIZE,
@@ -239,9 +238,6 @@ export default function CameraFeedPage({
     const p = Math.min(1, progress.value / peek);
     return { opacity: p, transform: [{ scale: fromScale + (1 - fromScale) * p }] };
   });
-  const onDarkCamera = !feedShown || locked;
-  const pillBg = onDarkCamera ? COLORS.offWhite : dark ? COLORS.offWhite : COLORS.offBlack;
-  const pillText = onDarkCamera ? COLORS.offBlack : dark ? COLORS.offBlack : COLORS.offWhite;
 
   return (
     <View style={styles.root}>
@@ -373,26 +369,6 @@ export default function CameraFeedPage({
           <CameraIcon size={ICON_SIZE.i20} color={COLORS.offBlack} />
         </PressScale>
       </Reanimated.View>
-
-      {/* At the header's left on the camera: Feed. */}
-      {feedShown ? null : (
-        <PressScale
-          style={[styles.pill, { top: insets.top, backgroundColor: pillBg }]}
-          onPress={feedShown ? closeFeed : openFeed}
-          accessibilityRole="button"
-          accessibilityLabel={feedShown ? 'Camera' : 'Feed'}
-          accessibilityHint={feedShown ? 'Brings the camera back' : 'Shows your feed'}
-        >
-          {feedShown ? (
-            <CameraIcon size={ICON_SIZE.i16} color={pillText} />
-          ) : (
-            <FeedIcon size={ICON_SIZE.i16} color={pillText} />
-          )}
-          <Text style={[styles.pillText, { color: pillText }]}>
-            {feedShown ? 'Camera' : 'Feed'}
-          </Text>
-        </PressScale>
-      )}
     </View>
   );
 }
@@ -524,20 +500,5 @@ const styles = StyleSheet.create({
   gapButtonText: {
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.bold,
-  },
-  pill: {
-    position: 'absolute',
-    left: SPACE.s24,
-    height: SIZE.z36,
-    borderRadius: RADIUS.r18,
-    paddingHorizontal: SPACE.s12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.s6,
-    opacity: ALPHA.a92,
-  },
-  pillText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
   },
 });
