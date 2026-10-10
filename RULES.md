@@ -307,10 +307,18 @@
 
 ## Design System
 
-- Font: Inter only, through `FONTS` in `ui/src/constants/fonts.ts` (`Inter_400Regular`, `Inter_600SemiBold`,
-  `Inter_700Bold`, loaded in `App.tsx`; no italic, no `fontWeight`/`fontStyle` — the face is the weight). The
-  native tab bar titles use it too. `fonts.test.ts` fails on a typed-out font name, text without an Inter face,
-  or a character Inter can't draw (✕ → ×). Emoji pass: the phone's emoji font draws them; only the owner's own words use them (🔔 🔕 ✋ ⏳ 🎉, core workflow 2026-10-09)
+- Text: PingMee's type system, value for value (owner, 2026-10-10; decision #195). One typeface, Inter Tight,
+  in five weights (`FONTS` in `ui/src/constants/fonts.ts`, loaded in `App.tsx`; no italic, no
+  `fontWeight`/`fontStyle` — the face is the weight). Every text style spreads ONE named style from
+  `TYPOGRAPHY` in `ui/src/constants/typography.ts` (`...TYPOGRAPHY.body`): page title `screenTitle` 28,
+  headings `h1`–`h4` 24/20/17/15, `sheetTitle` 16, `postBody` 17, `input` 15, `body` 14, `small` 13,
+  `caption` 12, `micro` 11, `button` 14 bold. Emoji and other pictures drawn as text spread a `GLYPH` size.
+  Nothing else sets a text size or a face; a missing style is added to `typography.ts`, never typed in a
+  screen. When PingMee's scale changes (`pingmee-v2/ui/theme/typography.ts`), copy it and update
+  `typography.test.ts`. Left out on purpose: PingMee's 10pt `tiny`, its capitals `overline` and `mono`.
+  The native tab bar titles use the typeface too. `fonts.test.ts` fails on a typed-out font name, text without
+  an Inter Tight face, or a character Inter Tight can't draw (✕ → ×). The website, staff portal and emails
+  read the same family and weights (`FONT_FAMILY`, `web/scripts/font-weights.mjs`). Emoji pass: the phone's emoji font draws them; only the owner's own words use them (🔔 🔕 ✋ ⏳ 🎉, core workflow 2026-10-09)
 - Every colour, text size, spacing, radius, shadow, size, offset, icon size, letter spacing, line height and
   border width comes from `ui/src/constants/tokens.ts` (`withAlpha` for opacity). So do the shared values:
   `ALPHA` (see-through amounts, also shadow strength), `STROKE` (icon line widths), `BLUR_INTENSITY`,
