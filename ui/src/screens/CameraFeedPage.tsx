@@ -43,10 +43,9 @@ import { useOpenTags } from '@/hooks/useOpenTags';
 import { useSecondTick } from '@/hooks/useSecondTick';
 import { appHeaderHeight } from '@/lib/pip';
 import { haptic } from '@/lib/haptics';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
-  FONT_SIZE,
   ICON_SIZE,
   RADIUS,
   SIZE,
@@ -676,8 +675,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   gapLine: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.bodyStrong,
   },
   gapButton: {
     minHeight: SIZE.z40,
@@ -687,7 +685,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
   },
   gapButtonText: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.pillLabel,
   },
 });

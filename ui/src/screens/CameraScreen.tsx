@@ -151,7 +151,7 @@ import {
 } from '@/lib/captureGuide';
 import { reportError } from '@/lib/sentry';
 import { requestLocationPermission, getCurrentLocation } from '@/lib/location';
-import { FONTS } from '@/constants/fonts';
+import { FIELD_TEXT, GLYPH, TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
@@ -160,10 +160,8 @@ import {
   CAMERA,
   DURATION,
   ELEVATION,
-  FONT_SIZE,
   ICON_SIZE,
   LAYOUT,
-  LINE_HEIGHT,
   MOTION,
   OFFSET,
   RADIUS,
@@ -173,7 +171,6 @@ import {
   SPACE,
   SPRING,
   STROKE,
-  TRACKING,
   VIEWER,
   WAIT,
   withAlpha,
@@ -303,7 +300,11 @@ function PointsCounter({
         <RollingNumber
           value={count}
           style={[styles.pointsNumber, !known && { color: themeColors(true).muted }]}
-          font={{ family: FONTS.bold, size: FONT_SIZE.f20, color: COLORS.white }}
+          font={{
+            family: TYPOGRAPHY.h3.fontFamily,
+            size: TYPOGRAPHY.h3.fontSize,
+            color: COLORS.white,
+          }}
           maxFontSizeMultiplier={LAYOUT.largeTextScale}
           appleDigits={appleDigits}
           rollDown={missRoll}
@@ -3523,17 +3524,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bgDark,
   },
   pointsNumber: {
+    ...TYPOGRAPHY.h3,
     color: COLORS.white,
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.bold,
-    lineHeight: LINE_HEIGHT.l24,
   },
   pointsLabel: {
+    ...TYPOGRAPHY.caption,
     color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
     opacity: ALPHA.a75,
-    lineHeight: LINE_HEIGHT.l14,
   },
   captureLabelWrap: {
     position: 'absolute',
@@ -3546,10 +3543,8 @@ const styles = StyleSheet.create({
     pointerEvents: 'none',
   },
   captureLabel: {
+    ...TYPOGRAPHY.h3,
     color: COLORS.white,
-    fontSize: FONT_SIZE.f18,
-    lineHeight: LINE_HEIGHT.l24,
-    fontFamily: FONTS.semiBold,
     opacity: ALPHA.a90,
   },
   shutterHint: {
@@ -3605,8 +3600,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
   },
   roadmapInviteText: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.button,
   },
   // The notice on the frosted camera: centred, dark glass, white words.
   waitingNoticeSpot: {
@@ -3643,15 +3637,12 @@ const styles = StyleSheet.create({
     gap: SPACE.s3,
   },
   waitingTitle: {
+    ...TYPOGRAPHY.bodyStrong,
     color: COLORS.white,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
   },
   waitingLine: {
+    ...TYPOGRAPHY.small,
     color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l18,
-    fontFamily: FONTS.regular,
   },
   noTagsCard: {
     width: '100%',
@@ -3690,9 +3681,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   seeFeedText: {
+    ...TYPOGRAPHY.button,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
   },
   // A quiet text link under the card's buttons, with a full-size tap area.
   seeInvites: {
@@ -3705,9 +3695,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s12,
   },
   seeInvitesText: {
+    ...TYPOGRAPHY.bodyMedium,
     color: withAlpha(COLORS.offWhite, ALPHA.a80),
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
   },
   controlsRow: {
     position: 'absolute',
@@ -3725,15 +3714,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   captureStep: {
+    ...TYPOGRAPHY.captionStrong,
     position: 'absolute',
     top: '100%',
     left: -SIZE.z24,
     right: -SIZE.z24,
     marginTop: SPACE.s4,
     color: COLORS.white,
-    fontSize: FONT_SIZE.f12,
-    lineHeight: LINE_HEIGHT.l16,
-    fontFamily: FONTS.semiBold,
     textAlign: 'center',
     textShadowColor: withAlpha(COLORS.black, ALPHA.a72),
     textShadowOffset: { width: 0, height: SIZE.z1 },
@@ -3816,10 +3803,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
   },
   lensOptionText: {
+    ...TYPOGRAPHY.captionMedium,
     color: withAlpha(COLORS.white, ALPHA.a70),
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t1,
   },
   lensOptionTextActive: {
     color: COLORS.offBlack,
@@ -3867,10 +3852,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   discardX: {
+    ...GLYPH.icon,
     color: COLORS.ink,
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.semiBold,
-    lineHeight: LINE_HEIGHT.l16,
   },
   postButtonFloat: {
     position: 'absolute',
@@ -3887,9 +3870,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s32,
   },
   postButtonText: {
+    ...TYPOGRAPHY.pillLabel,
     color: COLORS.ink,
-    fontSize: FONT_SIZE.f17,
-    fontFamily: FONTS.semiBold,
   },
   // "Hold up ✋" over the preview: a dim layer and one card, black and white.
   holdUpLayer: {
@@ -3909,15 +3891,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   holdUpTitle: {
+    ...TYPOGRAPHY.sheetTitle,
     color: COLORS.ink,
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.bold,
   },
   holdUpLine: {
+    ...TYPOGRAPHY.small,
     color: COLORS.ink,
-    fontSize: FONT_SIZE.f15,
-    lineHeight: LINE_HEIGHT.l22,
-    fontFamily: FONTS.regular,
     textAlign: 'center',
   },
   holdUpButton: {
@@ -3929,9 +3908,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   holdUpButtonText: {
+    ...TYPOGRAPHY.button,
     color: COLORS.white,
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.semiBold,
   },
   captionPill: {
     minHeight: SIZE.z36,
@@ -3949,9 +3927,8 @@ const styles = StyleSheet.create({
     backgroundColor: withAlpha(COLORS.black, ALPHA.a35),
   },
   captionPillText: {
+    ...TYPOGRAPHY.chipLabel,
     color: withAlpha(COLORS.white, ALPHA.a75),
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
   },
   // Location pill in its opted-in (ON) state — fills with the accent so the
   // explicit opt-in reads at a glance. Mirrors lensOptionActive's accent fill.
@@ -4006,28 +3983,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sheetLabel: {
+    ...TYPOGRAPHY.sheetTitle,
     flex: 1,
     color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f17,
-    fontFamily: FONTS.semiBold,
   },
   accountabilityPrompt: {
+    ...TYPOGRAPHY.body,
     color: themeColors(true).muted,
-    fontSize: FONT_SIZE.f14,
-    lineHeight: LINE_HEIGHT.l20,
-    fontFamily: FONTS.regular,
   },
   sheetCounter: {
+    ...TYPOGRAPHY.caption,
     color: themeColors(true).muted,
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
   },
   sheetInput: {
+    ...TYPOGRAPHY.input,
     minHeight: SIZE.z96,
     maxHeight: SIZE.z160,
     color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.regular,
     paddingVertical: SPACE.s8,
     paddingHorizontal: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -4040,9 +4012,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ideaLinkText: {
+    ...TYPOGRAPHY.bodyMedium,
     color: COLORS.accent,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.semiBold,
   },
   sheetDone: {
     backgroundColor: COLORS.accent,
@@ -4052,9 +4023,8 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s4,
   },
   sheetDoneText: {
+    ...TYPOGRAPHY.button,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.semiBold,
   },
   // ── Tag sheet (search + user rows)
   sheetCloseX: {
@@ -4064,15 +4034,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sheetCloseXText: {
+    ...GLYPH.icon,
     color: themeColors(true).muted,
-    fontSize: FONT_SIZE.f18,
-    fontFamily: FONTS.semiBold,
   },
   tagSearchInput: {
+    ...FIELD_TEXT,
     minHeight: SIZE.z44,
     color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.regular,
     paddingHorizontal: SPACE.s14,
     borderRadius: RADIUS.r50,
     backgroundColor: withAlpha(COLORS.white, ALPHA.a08),
@@ -4081,9 +4049,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tagEmptyText: {
+    ...TYPOGRAPHY.small,
     color: themeColors(true).muted,
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
     textAlign: 'center',
     paddingVertical: SPACE.s16,
   },
@@ -4109,31 +4076,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tagAvatarInitial: {
+    ...TYPOGRAPHY.h4,
     color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.semiBold,
   },
   tagRowName: {
+    ...TYPOGRAPHY.bodyStrong,
     color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.semiBold,
   },
   tagRowHandle: {
+    ...TYPOGRAPHY.caption,
     color: themeColors(true).muted,
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
     marginTop: SPACE.s1,
   },
   tagRowNudge: {
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t1,
+    ...TYPOGRAPHY.microStrong,
     marginTop: SPACE.s2,
   },
   tagRowCheck: {
+    ...GLYPH.icon,
     color: COLORS.accent,
-    fontSize: FONT_SIZE.f18,
-    fontFamily: FONTS.semiBold,
   },
   // ── Permissions ───────────────────────────────────────────────────────────
   permissionCenter: {
@@ -4173,24 +4134,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   permissionEyebrow: {
+    ...TYPOGRAPHY.sectionHeader,
     color: COLORS.accent,
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
     marginBottom: SPACE.s4,
   },
   permissionTitle: {
+    ...TYPOGRAPHY.h2,
     color: COLORS.white,
-    fontSize: FONT_SIZE.f24,
-    lineHeight: LINE_HEIGHT.l28,
-    fontFamily: FONTS.bold,
     textAlign: 'center',
     marginBottom: SPACE.s8,
   },
   deniedMessage: {
+    ...TYPOGRAPHY.body,
     color: withAlpha(COLORS.offWhite, ALPHA.a80),
-    fontSize: FONT_SIZE.f15,
-    lineHeight: LINE_HEIGHT.l22,
-    fontFamily: FONTS.regular,
     textAlign: 'center',
   },
   permissionButton: {
@@ -4205,15 +4161,12 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s24,
   },
   permissionButtonText: {
+    ...TYPOGRAPHY.button,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
   },
   permissionNote: {
+    ...TYPOGRAPHY.caption,
     color: themeColors(true).muted,
-    fontSize: FONT_SIZE.f12,
-    lineHeight: LINE_HEIGHT.l18,
-    fontFamily: FONTS.regular,
     textAlign: 'center',
     marginTop: SPACE.s16,
   },
@@ -4233,9 +4186,7 @@ const styles = StyleSheet.create({
     backgroundColor: withAlpha(COLORS.black, ALPHA.a55),
   },
   gateLoadingText: {
+    ...TYPOGRAPHY.body,
     color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f14,
-    lineHeight: LINE_HEIGHT.l20,
-    fontFamily: FONTS.semiBold,
   },
 });
