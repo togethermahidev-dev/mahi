@@ -21,8 +21,8 @@ import type { FeedPost } from '@/api';
  * One round button on the share sheet, for a post. Copy link copies it; WhatsApp and Messages open
  * with the words and link already written; Snapchat, Instagram and "Share to…" open the phone's
  * share sheet with the photo and link (no Snap or IG kit in this build, decision #156), as does
- * WhatsApp or Messages when that app isn't on the phone. True when it went somewhere for sure
- * (the sheet can close); the phone's own sheet doesn't say, so that reads false.
+ * WhatsApp or Messages when that app isn't on the phone. True when it went somewhere (the sheet
+ * can close); a share cancelled in the phone's own sheet reads false and is not counted.
  */
 export async function sharePostTo(post: FeedPost, target: ShareSheetTarget): Promise<boolean> {
   if (target === 'copy') {
@@ -31,23 +31,25 @@ export async function sharePostTo(post: FeedPost, target: ShareSheetTarget): Pro
     useToastStore.getState().show(copied ? 'Link copied' : 'Couldn’t copy the link. Try again.');
     return copied;
   }
-  track('post_shared', { post_id: post.id, friends: 0, via: target });
   if (target === 'whatsapp' || target === 'messages') {
     try {
       const platform = Platform.OS === 'ios' ? 'ios' : 'android';
       await Linking.openURL(shareAppUrl(target, postShareMessage(post), platform));
+      track('post_shared', { post_id: post.id, friends: 0, via: target });
       return true;
     } catch {
       // The app isn't on this phone: the phone's own sheet below.
     }
   }
-  await sharePost(post);
-  return false;
+  const shared = await sharePost(post);
+  if (shared) track('post_shared', { post_id: post.id, friends: 0, via: target });
+  return shared;
 }
 
-export async function sharePost(post: FeedPost): Promise<void> {
+/** Opens the phone's share sheet for a post. True when it was shared, false when it was cancelled. */
+export async function sharePost(post: FeedPost): Promise<boolean> {
   const target = shareTarget(post);
-  if (!target) return;
+  if (!target) return false;
   let temp: string | null = null;
   try {
     let url = target.uri;
@@ -58,10 +60,12 @@ export async function sharePost(post: FeedPost): Promise<void> {
       if (download.status !== 200) throw new Error(`download ${download.status}`);
       url = download.uri;
     }
-    await Share.share({
+    const result = await Share.share({
       url,
       message: postShareMessage(post),
     });
+    // An iPhone says when the sheet was closed without sharing; Android always reports a share.
+    return result.action !== Share.dismissedAction;
   } catch (e) {
     reportError(e, {
       flow: 'share',
@@ -69,6 +73,7 @@ export async function sharePost(post: FeedPost): Promise<void> {
       extra: { postId: post.id, ext: target.ext, local: target.local },
     });
     useToastStore.getState().show('Couldn’t open sharing. Try again.');
+    return false;
   } finally {
     if (temp) FileSystem.deleteAsync(temp, { idempotent: true }).catch(() => {});
   }

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   AppState,
   Image,
@@ -40,6 +41,7 @@ import {
   isShareRefusal,
   keepFriends,
   shareErrorText,
+  sendLabel,
   shareResultToast,
   shareSheetParts,
   shareTargets,
@@ -237,6 +239,8 @@ function PostShare({
   const [selected, setSelected] = useState<string[]>([]);
   const [note, setNote] = useState('');
   const [sending, setSending] = useState(false);
+  // What went wrong, said inside the sheet: on build 10 and Android a toast is drawn under it.
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<ShareSheetTarget | null>(null);
   const [findOpen, setFindOpen] = useState(false);
   // One id for this open: a retry after a dropped connection sends nothing twice.
@@ -289,19 +293,28 @@ function PostShare({
   const shown = useMemo(() => filterFriends(friends, query), [friends, query]);
   const targets = useMemo(() => shareTargets(canCopyLink()), []);
 
+  // While the sheet is open a message is a line in it (and read out); once it has closed, a toast.
+  const say = (message: string) => {
+    if (!live.current) return show(message);
+    setNotice(message);
+    AccessibilityInfo.announceForAccessibility(message);
+  };
+
   const pick = (id: string) => {
     const next = toggleRecipient(selected, id);
     if (next.full) {
       haptic('warning');
-      show(`You can send to ${MAX_SHARE_RECIPIENTS} friends at a time.`);
+      say(`You can send to ${MAX_SHARE_RECIPIENTS} friends at a time.`);
       return;
     }
     haptic('selection');
+    setNotice(null);
     setSelected(next.selected);
   };
 
   const send = async () => {
     if (sending || selected.length === 0) return;
+    setNotice(null);
     setSending(true);
     const { data, error } = await sharePostToFriends(post.id, selected, clientId, note);
     // Swiped shut while it was going: the toast still says how it went; nothing here is touched.
@@ -320,17 +333,18 @@ function PostShare({
       }
       // The picks and the note stay, so it can be sent again.
       haptic('error');
-      show(shareErrorText(message));
+      say(shareErrorText(message));
       return;
     }
-    show(shareResultToast(sent, skipped));
     if (sent === 0) {
       // Nobody could take it (blocked, a closed chat, a request waiting): pick someone else.
       haptic('warning');
+      say(shareResultToast(sent, skipped));
       if (open) setSelected((picked) => picked.filter((id) => !data.skipped.includes(id)));
       return;
     }
     haptic('tick');
+    show(shareResultToast(sent, skipped));
     track('post_shared', { post_id: post.id, friends: sent, via: 'mahi' });
     // The inbox line ("Sent a post") comes from the server.
     void useMessagesStore.getState().sync();
@@ -453,6 +467,7 @@ function PostShare({
         )}
 
         <View style={[styles.bottom, { borderTopColor: border, backgroundColor: bg }]}>
+          {notice ? <Text style={[styles.notice, { color: text }]}>{notice}</Text> : null}
           {selected.length > 0 ? (
             <View style={styles.sendBar}>
               <TextInput
@@ -478,7 +493,7 @@ function PostShare({
                 {sending ? (
                   <ActivityIndicator color={COLORS.offBlack} />
                 ) : (
-                  <Text style={styles.sendText}>Send</Text>
+                  <Text style={styles.sendText}>{sendLabel(selected.length)}</Text>
                 )}
               </Pressable>
             </View>
@@ -728,6 +743,12 @@ const styles = StyleSheet.create({
   },
   bottom: {
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  notice: {
+    ...TYPOGRAPHY.small,
+    textAlign: 'center',
+    paddingHorizontal: SPACE.s16,
+    paddingTop: SPACE.s10,
   },
   sendBar: {
     flexDirection: 'row',

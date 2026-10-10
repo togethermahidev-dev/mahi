@@ -116,6 +116,11 @@ export function readShareResult(raw: unknown): { sent: string[]; skipped: string
   };
 }
 
+/** The Send button's words: how many friends it goes to (a pick hidden by the search still counts). */
+export function sendLabel(count: number): string {
+  return `Send to ${count}`;
+}
+
 /** The toast once the server has answered. */
 export function shareResultToast(sent: number, skipped: number): string {
   const could = sent > 0 ? `Sent to ${sent} ${sent === 1 ? 'friend' : 'friends'}` : '';

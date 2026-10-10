@@ -7,6 +7,7 @@ import {
   readShareResult,
   shareErrorText,
   shareResultToast,
+  sendLabel,
   shareSheetParts,
   shareTargets,
   toggleRecipient,
@@ -178,5 +179,15 @@ describe('a failed send', () => {
   it('anything else: try again', () => {
     expect(shareErrorText('Network request failed')).toBe('Couldn’t send. Try again.');
     expect(shareErrorText('')).toBe('Couldn’t send. Try again.');
+  });
+});
+
+// The Send button says how many it goes to: a pick hidden by the search is still picked, and the
+// count is the only place it shows.
+describe('the Send button', () => {
+  it('says how many friends it goes to', () => {
+    expect(sendLabel(1)).toBe('Send to 1');
+    expect(sendLabel(3)).toBe('Send to 3');
+    expect(sendLabel(10)).toBe('Send to 10');
   });
 });
