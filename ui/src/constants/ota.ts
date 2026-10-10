@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 43 — the feed timer floats on its own at the top right; the header and its camera
+ *     circle hide and come back smoothly while paging (2026-10-10)
  *   build 13 · 42 — temporary swipe check on the camera (no visible change) (2026-10-09)
  *   build 13 · 41 — feed timer: just the ring and the clock, clear on the right (2026-10-09)
  *   build 13 · 40 — one swipe to the feed (no halfway stop); pull down from the first post or tap
@@ -174,4 +176,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 42;
+export const OTA_NUMBER = 43;
