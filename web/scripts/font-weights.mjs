@@ -7,11 +7,14 @@ export { FONTS, FONT_FAMILY };
 /** The family as next/font names it: Inter Tight → Inter_Tight. */
 export const nextFontName = () => FONT_FAMILY.replace(/ /g, '_');
 
-/** InterTight_600SemiBold → { weight: 600, italic: false }. */
+const WEIGHT = { Thin: 100, ExtraLight: 200, Light: 300, Regular: 400, Medium: 500, SemiBold: 600, Bold: 700, ExtraBold: 800, Black: 900 };
+
+/** InterTight-SemiBold → { weight: 600, italic: false } (the face's own name: family-Weight, then Italic). */
 export function fontFace(name) {
-  const m = /^[A-Za-z]+_(\d{3})[A-Za-z]+(_Italic)?$/.exec(name);
-  if (!m) throw new Error(`Can't read a weight from font "${name}" in ui/src/constants/fonts.ts`);
-  return { weight: Number(m[1]), italic: Boolean(m[2]) };
+  const m = /^[A-Za-z]+-([A-Za-z]+?)(Italic)?$/.exec(name);
+  const weight = m && (WEIGHT[m[1]] ?? (m[1] === 'Italic' ? WEIGHT.Regular : undefined));
+  if (!weight) throw new Error(`Can't read a weight from font "${name}" in ui/src/constants/fonts.ts`);
+  return { weight, italic: Boolean(m[2]) || m[1] === 'Italic' };
 }
 
 /** The distinct weights FONTS uses, lowest first. */

@@ -5,14 +5,14 @@ import { StatusBar } from 'expo-status-bar';
 // Suppress known harmless development warnings
 LogBox.ignoreLogs(['Tried to register two views with the same name', 'RNDateTimePicker']);
 import * as SplashScreen from 'expo-splash-screen';
-import {
-  useFonts,
-  InterTight_400Regular,
-  InterTight_500Medium,
-  InterTight_600SemiBold,
-  InterTight_700Bold,
-  InterTight_800ExtraBold,
-} from '@expo-google-fonts/inter-tight';
+import { useFonts } from 'expo-font';
+// One face each, from its own folder: the package's index would pull all 18 faces into the update.
+import { InterTight_400Regular } from '@expo-google-fonts/inter-tight/400Regular';
+import { InterTight_500Medium } from '@expo-google-fonts/inter-tight/500Medium';
+import { InterTight_600SemiBold } from '@expo-google-fonts/inter-tight/600SemiBold';
+import { InterTight_700Bold } from '@expo-google-fonts/inter-tight/700Bold';
+import { InterTight_800ExtraBold } from '@expo-google-fonts/inter-tight/800ExtraBold';
+import { FONTS } from '@/constants/fonts';
 
 import SplashScreenComponent from '@/screens/SplashScreen';
 import WelcomeScreen from '@/screens/WelcomeScreen';
@@ -169,11 +169,11 @@ export default function App(): React.JSX.Element {
   // One-time tips, the tag reminder and the camera's permission question wait until then.
   useCoachBlock(!onboardingSettled);
   const [fontsLoaded] = useFonts({
-    InterTight_400Regular,
-    InterTight_500Medium,
-    InterTight_600SemiBold,
-    InterTight_700Bold,
-    InterTight_800ExtraBold,
+    [FONTS.regular]: InterTight_400Regular,
+    [FONTS.medium]: InterTight_500Medium,
+    [FONTS.semiBold]: InterTight_600SemiBold,
+    [FONTS.bold]: InterTight_700Bold,
+    [FONTS.extraBold]: InterTight_800ExtraBold,
   });
 
   const { session, isLoading, setSession, setIsLoading } = useAuthStore();

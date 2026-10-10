@@ -52,29 +52,67 @@ const FACE_BY_WEIGHT: Record<number, string> = {
   800: FONTS.extraBold,
 };
 
+// Each face is named exactly as its font file names itself (its PostScript name). React Native's
+// text finds a face under any name it was loaded with, but Apple's own text (the rolling points
+// number, the tag banner's clock) looks a font up by that real name only. PingMee names them the same.
+const FACE_FILE: Record<keyof typeof FONTS, string> = {
+  regular: '400Regular/InterTight_400Regular',
+  medium: '500Medium/InterTight_500Medium',
+  semiBold: '600SemiBold/InterTight_600SemiBold',
+  bold: '700Bold/InterTight_700Bold',
+  extraBold: '800ExtraBold/InterTight_800ExtraBold',
+};
+
+/** The name a font file gives itself (name table, id 6), which is what the phone knows it by. */
+function postScriptName(file: string): string {
+  // Resolved, not joined to a path: node_modules sits at the workspace root, above ui/.
+  const font = readFileSync(require.resolve(`@expo-google-fonts/inter-tight/${file}.ttf`));
+  let table = 0;
+  for (let i = 0; i < font.readUInt16BE(4); i++)
+    if (font.toString('latin1', 12 + i * 16, 16 + i * 16) === 'name')
+      table = font.readUInt32BE(20 + i * 16);
+  const strings = table + font.readUInt16BE(table + 4);
+  for (let r = 0; r < font.readUInt16BE(table + 2); r++) {
+    const at = table + 6 + r * 12;
+    if (font.readUInt16BE(at + 6) !== 6) continue;
+    const bytes = font.subarray(
+      strings + font.readUInt16BE(at + 10),
+      strings + font.readUInt16BE(at + 10) + font.readUInt16BE(at + 8)
+    );
+    // Windows records are two bytes a letter; Mac ones are one.
+    return font.readUInt16BE(at) === 3
+      ? Buffer.from(bytes).swap16().toString('utf16le')
+      : bytes.toString('latin1');
+  }
+  return '';
+}
+
 describe("the app's typeface", () => {
   it('is Inter Tight in five weights, like PingMee', () => {
     expect(FONT_FAMILY).toBe('Inter Tight');
     expect(FONTS).toEqual({
-      regular: 'InterTight_400Regular',
-      medium: 'InterTight_500Medium',
-      semiBold: 'InterTight_600SemiBold',
-      bold: 'InterTight_700Bold',
-      extraBold: 'InterTight_800ExtraBold',
+      regular: 'InterTight-Regular',
+      medium: 'InterTight-Medium',
+      semiBold: 'InterTight-SemiBold',
+      bold: 'InterTight-Bold',
+      extraBold: 'InterTight-ExtraBold',
     });
   });
 
-  it('ships a font file for every face, and App.tsx loads every one', () => {
+  it.each(Object.entries(FACE_FILE))('names %s as its font file names itself', (key, file) => {
+    expect(postScriptName(file)).toBe(FONTS[key as keyof typeof FONTS]);
+  });
+
+  it('loads each face under that name in App.tsx, and only the five it uses', () => {
     const app = readFileSync(join(__dirname, '..', '..', '..', 'App.tsx'), 'utf8');
     const loaded = /useFonts\(\{([^}]*)\}\)/.exec(app)?.[1] ?? '';
-    for (const face of Object.values(FONTS)) {
-      const folder = face.split('_')[1];
-      // Resolved, not joined to a path: node_modules sits at the workspace root, above ui/.
-      expect(() =>
-        require.resolve(`@expo-google-fonts/inter-tight/${folder}/${face}.ttf`)
-      ).not.toThrow();
-      expect(loaded).toContain(face);
+    for (const [key, file] of Object.entries(FACE_FILE)) {
+      const [folder, face] = file.split('/');
+      expect(loaded).toContain(`[FONTS.${key}]: ${face}`);
+      expect(app).toContain(`from '@expo-google-fonts/inter-tight/${folder}'`);
     }
+    // The package's own index pulls in all 18 faces, italics included: never import from it.
+    expect(app).not.toContain("from '@expo-google-fonts/inter-tight'");
   });
 });
 
@@ -172,8 +210,10 @@ describe('every screen and component', () => {
 
   it('takes its text styles from the shared set, never a size or face typed in place', () => {
     const typed = /\bfont(?:Size|Family)\s*[:=]|\bFONT_SIZE\.|\bFONTS\./;
+    // App.tsx names the faces once, where it loads them (useFonts): that is not a text style.
+    const source = (f: string) => readFileSync(f, 'utf8').replace(/useFonts\(\{[^}]*\}\)/, '');
     const offenders = files
-      .filter((f) => typed.test(readFileSync(f, 'utf8')))
+      .filter((f) => typed.test(source(f)))
       .map((f) => f.slice(root.length + 1));
     expect(offenders).toEqual([]);
   });
