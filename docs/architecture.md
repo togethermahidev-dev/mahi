@@ -208,7 +208,7 @@ Live on production since 2026-10-06 (migrations `20261006100000_moderation` thro
 
 ## Messages
 
-Rebuilt like PingMee-v2 (migration `20261006190000_message_requests`, live 2026-10-06, OTA 12.12).
+Rebuilt (migration `20261006190000_message_requests`, live 2026-10-06, OTA 12.12).
 - Opening a chat makes nothing. The first message starts the conversation (`start_conversation`):
   between friends (they follow each other, `are_friends`) it goes straight to the inbox; otherwise
   it is a message request. The sender waits; the receiver accepts (`accept_message_request`),
@@ -295,7 +295,7 @@ sheet as before and a plain bubble in chats. Server: `20261010100000_share_post_
 | List Rendering | @shopify/flash-list | 2.0.2 |
 | Gestures | react-native-gesture-handler | ~2.32.0 |
 | UI Animation | react-native-reanimated | 4.5.1 |
-| Font | @expo-google-fonts/inter-tight — Inter Tight only, five weights (Regular, Medium, SemiBold, Bold, ExtraBold; no italic), each loaded from its own folder under its real name; the named text styles are in `ui/src/constants/typography.ts` (PingMee's scale, decision #195); also the tab bar titles; the code email loads Inter Tight from Google Fonts | ^0.4.2 |
+| Font | @expo-google-fonts/inter-tight — Inter Tight only, five weights (Regular, Medium, SemiBold, Bold, ExtraBold; no italic), each loaded from its own folder under its real name; the named text styles are in `ui/src/constants/typography.ts` (decision #195); also the tab bar titles; the code email loads Inter Tight from Google Fonts | ^0.4.2 |
 | Glass / Blur | expo-glass-effect, expo-blur | ~57 |
 | Gradients | expo-linear-gradient | ~57.0.2 |
 | Video playback | expo-video (loaded only when the build has it) | ~57.0.5 |
@@ -311,7 +311,7 @@ Versions as in `package.json`; check there before relying on one.
 ## Project Structure
 
 ```
-mahi/                   # pnpm workspace root (like pingmee-v2): run every pnpm command here
+mahi/                   # pnpm workspace root: run every pnpm command here
 ├── ui/                 # the Expo app — EAS commands run from here (eas.json sits next to app.config.js)
 │   ├── src/
 │   │   ├── api/            # Supabase query functions (posts, messages, profile, tags, auth)

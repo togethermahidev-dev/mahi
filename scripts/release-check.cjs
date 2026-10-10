@@ -86,7 +86,7 @@ function problems({ version, runtimeVersion, gates }) {
 }
 
 /**
- * The build-number rules (pingmee-v2): one number in app.config.js for every lane, iOS and Android
+ * The build-number rules: one number in app.config.js for every lane, iOS and Android
  * equal, the runtime following the version, and — for a release build — an OTA counter that
  * release:prepare has reset, which proves the build number was raised.
  */
@@ -124,7 +124,7 @@ function resolveProfile(build, name, seen = new Set()) {
 }
 
 /**
- * The lane rules (pingmee-v2's per-profile preflight): every lane names its EAS environment, only
+ * The lane rules (a per-profile preflight): every lane names its EAS environment, only
  * the production lane touches the production channel or environment, the production lane uses
  * both, and the app points at the EAS project it was set up with.
  */

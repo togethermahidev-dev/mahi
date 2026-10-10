@@ -1,4 +1,4 @@
--- Message requests, edits and unsends (owner, 2026-10-06: work like PingMee-v2, the server is the truth).
+-- Message requests, edits and unsends (owner, 2026-10-06: the server is the truth).
 -- * A request is a message: opening a chat makes nothing. The first message from someone who
 --   isn't a friend (people who follow each other) makes a request; friends go straight to the inbox.
 -- * While a request waits, the sender can't send more ("Waiting for @x to accept") and the

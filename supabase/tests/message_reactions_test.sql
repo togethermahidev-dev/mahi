@@ -1,5 +1,5 @@
 -- Message reactions (owner, 2026-10-07: "hold-down to react with emojis on message conversations
--- per message, like PingMee-v2"). One reaction per person per message: the same emoji again takes
+-- per message"). One reaction per person per message: the same emoji again takes
 -- it off, a different one replaces it. Only the two people in the chat can react or see reactions,
 -- and the same closed doors as sending apply: a waiting request, a block, a ban, a gone message.
 begin;

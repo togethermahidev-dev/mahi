@@ -5,7 +5,7 @@
 //   UserPromptSubmit — adds the release, database or go-live rules when a prompt is about them
 //   SessionStart     — lists files that already carried changes before this session
 // Reads the hook payload on stdin and prints a decision, or nothing to allow.
-// Laid out like pingmee-v2's guard (2026-10-03); tests in guard.test.cjs.
+// Tests in guard.test.cjs.
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');

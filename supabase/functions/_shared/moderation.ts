@@ -1,5 +1,5 @@
 // The AI check's rules, kept free of network calls so they can be tested (moderation_test.ts).
-// Same approach as pingmee-v2's _shared/moderation.ts: we read OpenAI's per-category scores
+// We read OpenAI's per-category scores
 // (0–1), not its yes/no "flagged", so Mahi owns the thresholds. A score at or above `block` is a
 // 'block', at or above `flag` a 'flag'; the worst category wins.
 // 'flag' and 'block' both put the post or comment on the staff list. A 'block' also hides it

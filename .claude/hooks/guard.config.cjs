@@ -11,7 +11,7 @@ module.exports = {
   migrationsDir: 'supabase/migrations',
   // A new migration's name says what changes in the database, never who asked or a batch (owner, 2026-10-09).
   migrationNameBanned: ['maximus', 'verity', 'joe', 'founder', 'owner', 'answers', 'round'],
-  // The Expo app (app.config.js, eas.json, src/) lives here, like pingmee-v2's ui/.
+  // The Expo app (app.config.js, eas.json, src/) lives here.
   appDir: 'ui',
   // Pre-launch only (owner, 2026-10-03): working against production (scripts/db.sh try) and the
   // preview lane pointing at production are allowed for now. The moment the owner says

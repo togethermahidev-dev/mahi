@@ -1,4 +1,4 @@
--- Sign-up codes, checked on the server (same design as Pingmee).
+-- Sign-up codes, checked on the server.
 --
 -- Today the live send-otp takes the code from the app and the live complete-signup creates the
 -- account without checking anything, so anyone can create an account on any email. From now on:

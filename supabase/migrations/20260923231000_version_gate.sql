@@ -1,4 +1,4 @@
--- Version gate (pingmee-v2 model): a minimum version and build per platform, a switch that is
+-- Version gate: a minimum version and build per platform, a switch that is
 -- OFF until the owner turns it on, and a reader that works before sign-in (old builds that are
 -- signed out still get gated). Apps from this release read get_app_gate(); older builds keep
 -- reading min_app_version, which stays as it is.

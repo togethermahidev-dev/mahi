@@ -571,7 +571,7 @@ VERIFY + CHECKPOINT. Security-critical SQL/auth changes get an adversarial revie
 
 ## 5. Commands
 
-The repo is a pnpm workspace laid out like pingmee-v2: the Expo app is in `ui/`, the waitlist site in
+The repo is a pnpm workspace: the Expo app is in `ui/`, the waitlist site in
 `web/`, the database in `supabase/`, shared scripts in `scripts/`. Run every command below from the repo
 root; the app ones hand over to `ui/` (`pnpm --dir ui …`). EAS commands run from `ui/`, where `eas.json`
 sits next to `app.config.js` (the `/version-control` skill has them). Install packages from the root:

@@ -63,7 +63,7 @@
   {
     "name": "messages",
     "purpose": "Private chats and message requests",
-    "summary": "Private chats like PingMee-v2: the first message is a request to accept, decline or block; edit for 15 minutes; unsend. Coming in the next update: hold a message for Apple's own menu with a quick emoji row (👍 ❤️ 😂 🔥 💪 👏) and a + for the full emoji keyboard, reaction badges under bubbles, double-tap to ❤️. Build 13 adds the emoji keyboard button with search and suggestions."
+    "summary": "Private chats: the first message is a request to accept, decline or block; edit for 15 minutes; unsend. Coming in the next update: hold a message for Apple's own menu with a quick emoji row (👍 ❤️ 😂 🔥 💪 👏) and a + for the full emoji keyboard, reaction badges under bubbles, double-tap to ❤️. Build 13 adds the emoji keyboard button with search and suggestions."
   },
   {
     "name": "notifications",

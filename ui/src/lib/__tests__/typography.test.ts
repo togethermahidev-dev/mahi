@@ -4,12 +4,9 @@ import { FONT_FAMILY, FONTS } from '@/constants/fonts';
 import { FIELD_TEXT, GLYPH, LETTERING, TYPOGRAPHY } from '@/constants/typography';
 import { POINTS_NUMBER, PROFILE, SEGMENTED } from '@/constants/tokens';
 
-// Mahi's text takes PingMee's type system, value for value (owner, 2026-10-10: "PingMee font sizes
-// and styling applied across the whole of mahi exactly what PingMee uses across their app for
-// shared tokens values for titles headings and fonts"). The table below is PingMee's own
-// (pingmee-v2 ui/theme/typography.ts): size, line height, weight, letter spacing. When PingMee's
-// scale changes, change this table and the tokens together.
-const PINGMEE: Record<string, [size: number, line: number, weight: number, tracking: number]> = {
+// The type scale the owner chose for the whole app (2026-10-10, decision #195), pinned value for
+// value: size, line height, weight, letter spacing. Change this table and the tokens together.
+const SCALE: Record<string, [size: number, line: number, weight: number, tracking: number]> = {
   display: [32, 40, 800, -0.5],
   screenTitle: [28, 34, 800, 0.2],
   h1: [24, 32, 700, -0.5],
@@ -45,9 +42,9 @@ const PINGMEE: Record<string, [size: number, line: number, weight: number, track
   authWordmark: [56, 64, 400, 0],
 };
 
-// Where the owner has set Mahi's own value over PingMee's. Sheet titles: PingMee's are 16; "Keep
+// Where the owner has since set his own value. Sheet titles: "Keep
 // them at 22" (owner, 2026-10-10, on Friends, Follow requests and Edit caption).
-const OWNER: typeof PINGMEE = {
+const OWNER: typeof SCALE = {
   sheetTitle: [22, 28, 700, 0],
 };
 
@@ -61,7 +58,7 @@ const FACE_BY_WEIGHT: Record<number, string> = {
 
 // Each face is named exactly as its font file names itself (its PostScript name). React Native's
 // text finds a face under any name it was loaded with, but Apple's own text (the rolling points
-// number, the tag banner's clock) looks a font up by that real name only. PingMee names them the same.
+// number, the tag banner's clock) looks a font up by that real name only.
 const FACE_FILE: Record<keyof typeof FONTS, string> = {
   regular: '400Regular/InterTight_400Regular',
   medium: '500Medium/InterTight_500Medium',
@@ -95,7 +92,7 @@ function postScriptName(file: string): string {
 }
 
 describe("the app's typeface", () => {
-  it('is Inter Tight in five weights, like PingMee', () => {
+  it('is Inter Tight in five weights', () => {
     expect(FONT_FAMILY).toBe('Inter Tight');
     expect(FONTS).toEqual({
       regular: 'InterTight-Regular',
@@ -124,8 +121,8 @@ describe("the app's typeface", () => {
 });
 
 describe('the named text styles', () => {
-  it.each(Object.entries({ ...PINGMEE, ...OWNER }))(
-    '%s is PingMee’s, or the owner’s where he set one',
+  it.each(Object.entries({ ...SCALE, ...OWNER }))(
+    '%s has its pinned value',
     (name, [size, line, weight, tracking]) => {
       const token = TYPOGRAPHY[name as keyof typeof TYPOGRAPHY];
       expect(token).toBeDefined();
@@ -136,11 +133,11 @@ describe('the named text styles', () => {
     }
   );
 
-  // PingMee's 10pt `tiny`, its capitals `overline` and `mono` are left out: Mahi keeps text at 11
+  // A 10pt `tiny`, a capitals `overline` and `mono` are not in the scale: Mahi keeps text at 11
   // or more, writes in sentence case, and has one typeface.
-  it('has every PingMee style and none of the three Mahi leaves out', () => {
+  it('has every style of the scale and none of the three Mahi leaves out', () => {
     const names = Object.keys(TYPOGRAPHY);
-    for (const name of Object.keys(PINGMEE)) expect(names).toContain(name);
+    for (const name of Object.keys(SCALE)) expect(names).toContain(name);
     for (const left of ['tiny', 'overline', 'mono']) expect(names).not.toContain(left);
   });
 
@@ -157,8 +154,8 @@ describe('the named text styles', () => {
 });
 
 describe('pictures drawn as text', () => {
-  // PingMee's glyph sizes: an emoji used as an icon, an emoji shown large, a big overlay line.
-  it('take PingMee’s sizes, with a face so Android never swaps the font', () => {
+  // The glyph sizes: an emoji used as an icon, an emoji shown large, a big overlay line.
+  it('take their set sizes, with a face so Android never swaps the font', () => {
     expect(GLYPH.icon.fontSize).toBe(20);
     expect(GLYPH.emoji.fontSize).toBe(26);
     expect(GLYPH.hero.fontSize).toBe(52);
@@ -168,7 +165,7 @@ describe('pictures drawn as text', () => {
 });
 
 describe("Mahi's own additions", () => {
-  // PingMee's section heading is capitals (`overline`); Mahi's is sentence case at the small size.
+  // A section heading is sentence case at the small size, never a capitals overline.
   it('has a sentence-case section heading', () => {
     expect(TYPOGRAPHY.sectionHeader.fontSize).toBe(13);
     expect(TYPOGRAPHY.sectionHeader.fontFamily).toBe(FONTS.semiBold);
@@ -181,7 +178,7 @@ describe("Mahi's own additions", () => {
   });
 });
 
-// Mahi's drawn lettering is not running text and has no PingMee role: the MAHI wordmark, the FEED
+// Mahi's drawn lettering is not running text and has no place in the scale: the MAHI wordmark, the FEED
 // cue and the numerals inside drawn circles ("+1", a step number). Each keeps the size it was drawn at.
 describe("Mahi's drawn lettering", () => {
   it('keeps the wordmark, the FEED cue and the numerals at their drawn sizes, in the bold face', () => {

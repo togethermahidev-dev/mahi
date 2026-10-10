@@ -39,7 +39,7 @@
 
 ## Repo layout
 
-- A pnpm workspace like pingmee-v2: the Expo app is in `ui/` (`App.tsx`, `app.config.js`, `eas.json`, `src/`,
+- A pnpm workspace: the Expo app is in `ui/` (`App.tsx`, `app.config.js`, `eas.json`, `src/`,
   `assets/`), the waitlist site in `web/`, the database in `supabase/`, shared scripts in `scripts/`.
   Paths below without a folder (`App.tsx`, `app.config.js`) are the app's, in `ui/`.
 - Run pnpm commands from the repo root (`pnpm typecheck`, `pnpm test`, `pnpm lint` hand over to `ui/`).
@@ -188,7 +188,7 @@
 ## Email / OTP
 
 - The server makes, stores (SHA-256 hash only) and checks every sign-up code; the app never sees
-  the code except as the user types it. Same design as Pingmee.
+  the code except as the user types it.
   - `send-otp` `{ email }` → emails a 6-digit code, 10-minute expiry, send limits per email and per network address
   - `verify-otp` `{ email, code }` → checks it (5 tries), stamps `otp_codes.verified_at`
   - `complete-signup` `{ email, password, code }` → creates the account only for a code verified in the last 30 minutes
@@ -309,15 +309,15 @@
 
 ## Design System
 
-- Text: PingMee's type system, value for value (owner, 2026-10-10; decision #195). One typeface, Inter Tight,
+- Text: one type system for the whole app (owner, 2026-10-10; decision #195). One typeface, Inter Tight,
   in five weights (`FONTS` in `ui/src/constants/fonts.ts`, loaded in `App.tsx`; no italic, no
   `fontWeight`/`fontStyle` — the face is the weight). Every text style spreads ONE named style from
   `TYPOGRAPHY` in `ui/src/constants/typography.ts` (`...TYPOGRAPHY.body`): page title `screenTitle` 28,
-  headings `h1`–`h4` 24/20/17/15, `sheetTitle` 22 bold (Mahi's own: the owner kept sheet titles at 22, PingMee's are 16), `postBody` 17, `input` 15, `body` 14, `small` 13,
+  headings `h1`–`h4` 24/20/17/15, `sheetTitle` 22 bold (the owner's own value: "Keep them at 22"), `postBody` 17, `input` 15, `body` 14, `small` 13,
   `caption` 12, `micro` 11, `button` 14 bold. Emoji and other pictures drawn as text spread a `GLYPH` size.
   Nothing else sets a text size or a face; a missing style is added to `typography.ts`, never typed in a
-  screen. When PingMee's scale changes (`pingmee-v2/ui/theme/typography.ts`), copy it and update
-  `typography.test.ts`. Left out on purpose: PingMee's 10pt `tiny`, its capitals `overline` and `mono`.
+  screen. The scale's values are pinned in
+  `typography.test.ts`; change both together. Not in the scale on purpose: any 10pt style, a capitals `overline` and a monospace style.
   The native tab bar titles use the typeface too. `fonts.test.ts` fails on a typed-out font name, text without
   an Inter Tight face, or a character Inter Tight can't draw (✕ → ×). The website, staff portal and emails
   read the same family and weights (`FONT_FAMILY`, `web/scripts/font-weights.mjs`). Emoji pass: the phone's emoji font draws them; only the owner's own words use them (🔔 🔕 ✋ ⏳ 🎉, core workflow 2026-10-09)

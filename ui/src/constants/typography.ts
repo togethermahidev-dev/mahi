@@ -2,17 +2,15 @@ import { FONTS } from './fonts';
 import { FONT_SIZE, LINE_HEIGHT, TRACKING } from './tokens';
 
 /**
- * The app's named text styles: PingMee's scale, value for value (owner, 2026-10-10: "PingMee font
- * sizes and styling applied across the whole of mahi exactly what PingMee uses across their app
- * for shared tokens values for titles headings and fonts"). The source is pingmee-v2's
- * ui/theme/typography.ts; when that scale changes, copy it here and into typography.test.ts.
+ * The app's named text styles: the type scale the owner chose for the whole app (2026-10-10,
+ * decision #195). The values are pinned in typography.test.ts; change both together.
  *
  * Every text style in the app spreads one of these (`...TYPOGRAPHY.body`): the same place on every
  * screen uses the same style, and nothing else sets a text size or a face. If a place needs a
  * style that isn't here, add it here. The face carries the weight; no style sets a weight on top.
  *
- * Left out on purpose: PingMee's 10pt `tiny` (Mahi keeps text at 11 or more), its capitals
- * `overline` (Mahi writes in sentence case) and `mono` (one typeface).
+ * Not in the scale on purpose: any 10pt style (Mahi keeps text at 11 or more), a capitals
+ * `overline` (Mahi writes in sentence case) and a monospace style (one typeface).
  */
 const style = (fontFamily: string, fontSize: number, lineHeight: number, letterSpacing = 0) =>
   ({ fontFamily, fontSize, lineHeight, letterSpacing }) as const;
@@ -29,8 +27,8 @@ export const TYPOGRAPHY = {
   h4: style(FONTS.semiBold, FONT_SIZE.f15, LINE_HEIGHT.l22),
   subtitle: style(FONTS.medium, FONT_SIZE.f15, LINE_HEIGHT.l22),
   /**
-   * A sheet's, pop-up's or pushed page's title. Mahi's own value: PingMee's is 16 semi-bold, and
-   * the owner kept Mahi's at 22 bold (2026-10-10: "Keep them at 22").
+   * A sheet's, pop-up's or pushed page's title: 22 bold, the owner's own value (2026-10-10:
+   * "Keep them at 22").
    */
   sheetTitle: style(FONTS.bold, FONT_SIZE.f22, LINE_HEIGHT.l28),
 
@@ -67,8 +65,8 @@ export const TYPOGRAPHY = {
   /** Count badges on tabs and icons (11, bold). */
   badge: style(FONTS.bold, FONT_SIZE.f11, LINE_HEIGHT.l14),
   /**
-   * Mahi's own: the heading above a group of rows (Preferences, Today, Earlier). PingMee's is its
-   * capitals `overline`; Mahi writes in sentence case, so it is the small semi-bold size instead.
+   * The heading above a group of rows (Preferences, Today, Earlier): sentence case at the small
+   * semi-bold size, where other apps use a capitals overline.
    */
   sectionHeader: style(FONTS.semiBold, FONT_SIZE.f13, LINE_HEIGHT.l18),
 
@@ -90,7 +88,7 @@ export const TYPOGRAPHY = {
 } as const;
 
 /**
- * Pictures drawn as text (an emoji, a big overlay line): PingMee's glyph sizes. They are not
+ * Pictures drawn as text (an emoji, a big overlay line). They are not
  * running text, so they carry no line height; they do carry a face, so Android never swaps in
  * the phone's own font for a letter beside the picture.
  */
@@ -107,7 +105,7 @@ export const GLYPH = {
 
 /**
  * The text of a one-line text field: the `input` style without its line height, which clips typed
- * text in a single-line field (PingMee's form fields do the same). A composer that grows over
+ * text in a single-line field. A composer that grows over
  * several lines spreads `TYPOGRAPHY.input` whole.
  */
 export const FIELD_TEXT = {
@@ -117,7 +115,7 @@ export const FIELD_TEXT = {
 } as const;
 
 /**
- * Mahi's drawn lettering: not running text, and nothing PingMee has a style for. The MAHI wordmark,
+ * Mahi's drawn lettering: not running text, so not part of the scale. The MAHI wordmark,
  * the FEED cue, and the numerals inside drawn circles ("+1", a step number). Each keeps the size
  * it was drawn at, in the bold face; none sets a line height.
  */

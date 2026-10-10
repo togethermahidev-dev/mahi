@@ -7,7 +7,7 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
- *   build 13 · 43 — text takes PingMee's type system across the app (Inter Tight, named sizes);
+ *   build 13 · 43 — one new type system across the app (Inter Tight, named text sizes);
  *     share sheet like Instagram's (a grid of friends, Copy link, round buttons; a shared post is a
  *     card in chats); feed: pinch to zoom, the small photo never over the name, nothing white
  *     between posts, the timer out of the header; old posts scroll up and down, sideways exits;

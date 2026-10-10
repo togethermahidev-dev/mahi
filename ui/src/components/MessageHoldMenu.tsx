@@ -24,7 +24,7 @@ import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 const ACTION_WORDS: Record<MessageHoldAction, string> = { edit: 'Edit', unsend: 'Unsend' };
 
 /**
- * Hold a message to react or act on it (owner, 2026-10-07, as PingMee-v2).
+ * Hold a message to react or act on it (owner, 2026-10-07).
  *
  * On an iPhone build with @expo/ui (build 11+): Apple's own context menu lifts the bubble and
  * shows, above the menu, the quick row of six emoji and a "+" (a ControlGroup, Apple's compact

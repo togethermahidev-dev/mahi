@@ -1,7 +1,7 @@
 /**
  * Messages API
  *
- * Works like PingMee-v2's, and the server decides everything:
+ * The server decides everything:
  *   - Opening a chat makes nothing. The first message makes the conversation: straight into the
  *     inbox between friends (people who follow each other), otherwise a message request.
  *   - While a request waits the sender can't send more; the receiver accepts, declines or blocks.

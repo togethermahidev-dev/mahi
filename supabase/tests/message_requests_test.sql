@@ -1,4 +1,4 @@
--- Message requests, edits and unsends (owner, 2026-10-06: "like PingMee-v2, the server is the truth").
+-- Message requests, edits and unsends (owner, 2026-10-06: "the server is the truth").
 -- A request is the first message from someone who isn't a friend; friends message directly; the
 -- receiver accepts, declines or blocks; a sender edits (15 minutes) or unsends their own message.
 begin;

@@ -119,7 +119,7 @@ test('build numbers live in app.config.js, never in EAS', () => {
   assert.strictEqual(verdict(write('{"cli":{"appVersionSource":"local"}}')), 'allow');
 });
 
-// ─── Matching pingmee-v2's guard (2026-10-03) ──────────────────────────────
+// ─── Release, database and repo rules (2026-10-03) ──────────────────────────────
 
 const { promptNotes, sessionStartNote, safeRun } = require('./guard.cjs');
 // Attribution phrases are built from pieces so this file never carries them whole.

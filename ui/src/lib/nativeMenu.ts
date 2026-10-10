@@ -1,5 +1,5 @@
 /**
- * The phone's own menu for a short list of choices (as pingmee-v2's `showNativeMenu`): iOS's
+ * The phone's own menu for a short list of choices: iOS's
  * action sheet, Android's system dialog. Cancel is always last and runs nothing; a destructive
  * row is marked as such. Built into React Native, so it works on every build (no probe needed).
  *

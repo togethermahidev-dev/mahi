@@ -83,7 +83,7 @@ test('comparison is numeric, not alphabetical', () => {
   );
 });
 
-// ── One build number for every lane (the pingmee-v2 rule) ──
+// ── One build number for every lane ──
 const { numberProblems } = require('./release-check.cjs');
 const good = {
   appVersionSource: 'local',
@@ -129,7 +129,7 @@ test('per-platform gates are found too', () => {
   assert.deepStrictEqual(found.map((g) => g.version), ['0.0.0', '0.2.0']);
 });
 
-// ─── Lanes (pingmee-v2's per-profile checks, 2026-10-03) ─────────────────────
+// ─── Lanes (per-profile checks, 2026-10-03) ─────────────────────
 const { laneProblems } = require('./release-check.cjs');
 
 const goodEas = {

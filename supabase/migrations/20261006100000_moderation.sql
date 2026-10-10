@@ -1,7 +1,7 @@
 -- Moderation (owner, 2026-10-06): reports on people, posts, comments and messages tracked on the
 -- server; a staff list and staff-only actions, each written to an audit log; hidden posts and
 -- removed comments left out of the feed and profiles; and an AI check of new posts and comments
--- that runs only once an OpenAI key is set. Modelled on pingmee-v2 (staff_users, is_staff,
+-- that runs only once an OpenAI key is set. The pieces (staff_users, is_staff,
 -- admin_actions, moderation_events, the moderate-* functions), adapted to Mahi's tables.
 -- The contract for the app and the staff portal: docs/moderation.md.
 --
@@ -38,7 +38,7 @@ as $$
 $$;
 
 -- Is the caller staff? Used by the RLS rules below and by the staff portal's gate. Says nothing
--- about anyone else (pingmee's recursive-RLS lesson: a policy never selects staff_users itself).
+-- about anyone else (the recursive-RLS lesson: a policy never selects staff_users itself).
 create function public.is_staff()
 returns boolean
 language sql

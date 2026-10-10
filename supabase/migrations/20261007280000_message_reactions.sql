@@ -1,4 +1,4 @@
--- Reactions on messages (owner, 2026-10-07: hold a message to react with an emoji, like PingMee-v2).
+-- Reactions on messages (owner, 2026-10-07: hold a message to react with an emoji).
 -- * One reaction per person per message. The same emoji again takes it off; a different one
 --   replaces it. Everything goes through react_to_message; nobody writes the rows directly.
 -- * Only the two people in the chat can react or see reactions, and the same closed doors as

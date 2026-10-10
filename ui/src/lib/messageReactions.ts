@@ -1,5 +1,5 @@
 /**
- * Message reactions (owner, 2026-10-07: hold a message to react with an emoji, as PingMee-v2).
+ * Message reactions (owner, 2026-10-07: hold a message to react with an emoji).
  *
  * Pure rules, unit-tested; nothing native here. The server (react_to_message) is the truth:
  * one reaction per person per message, the same emoji again takes it off, a different one

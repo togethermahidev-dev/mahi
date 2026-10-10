@@ -4,7 +4,7 @@ How reports, staff actions and the automatic check work on the server. This is t
 app and the staff portal build against. Server files: migration
 `supabase/migrations/20261006100000_moderation.sql` (undo in `supabase/rollbacks/`, test
 `supabase/tests/moderation_test.sql`), function `supabase/functions/moderate-content/`, rules for
-the automatic check in `supabase/functions/_shared/moderation.ts`. Modelled on pingmee-v2's
+the automatic check in `supabase/functions/_shared/moderation.ts`. Modelled on an existing
 moderation (staff list, `is_staff`, audit log, `moderate-*` functions), adapted to Mahi's tables.
 
 **Status: written and tested, not on production.** The owner's steps are at the end.
@@ -218,7 +218,7 @@ have run out and clears `is_banned` unless a ban or another suspension is still 
    to OpenAI's `omni-moderation-latest` model (free). Videos are not sent (the model reads text and
    images only); a video post's caption still is.
 5. It turns the scores into `clean`, `flag` or `block` with the thresholds in
-   `supabase/functions/_shared/moderation.ts` (copied from pingmee-v2; strict on sexual content).
+   `supabase/functions/_shared/moderation.ts` (strict on sexual content).
    `flag` and `block` put an AI report (`source: 'ai'`, `reporter` null, `ai_labels`,
    `ai_scores`, reason picked from the strongest category) on the staff list.
 6. Only if `app_config.ai_auto_hide` is switched on does a `block` also hide the post or remove

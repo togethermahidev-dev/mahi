@@ -1,5 +1,5 @@
 /**
- * Forced-update decision (pingmee-v2 model). Pure so it is unit-tested; App.tsx supplies this
+ * Forced-update decision. Pure so it is unit-tested; App.tsx supplies this
  * build's version and build number and the server's gate from `get_app_gate`.
  *
  * Fails open: no gate, a switched-off gate or an unreadable build number never blocks.
