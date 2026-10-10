@@ -20,17 +20,8 @@ import {
   privacyChoicePatch,
   showPrivacyChoice,
 } from '@/lib/accountControls';
-import { FONTS } from '@/constants/fonts';
-import {
-  ALPHA,
-  BORDER_WIDTH,
-  COLORS,
-  FONT_SIZE,
-  LINE_HEIGHT,
-  RADIUS,
-  SIZE,
-  SPACE,
-} from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { ALPHA, BORDER_WIDTH, COLORS, RADIUS, SIZE, SPACE } from '@/constants/tokens';
 
 /**
  * The public / private choice after sign-up (switch `private-accounts`, owner 2026-10-08): one
@@ -175,14 +166,10 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
   },
   headline: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f32,
-    lineHeight: LINE_HEIGHT.l38,
+    ...TYPOGRAPHY.screenTitle,
   },
   lede: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f15,
-    lineHeight: LINE_HEIGHT.l22,
+    ...TYPOGRAPHY.body,
     marginBottom: SPACE.s8,
   },
   cards: {
@@ -203,13 +190,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardTitle: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f18,
+    ...TYPOGRAPHY.bodyStrong,
   },
   cardLine: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f14,
-    lineHeight: LINE_HEIGHT.l20,
+    ...TYPOGRAPHY.caption,
   },
   radio: {
     width: SIZE.z24,
@@ -235,9 +219,8 @@ const styles = StyleSheet.create({
     opacity: ALPHA.a40,
   },
   continueText: {
+    ...TYPOGRAPHY.pillLabel,
     color: COLORS.offBlack,
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f16,
   },
   pressed: {
     opacity: ALPHA.a80,

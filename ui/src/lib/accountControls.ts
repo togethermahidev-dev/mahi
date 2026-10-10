@@ -1,6 +1,7 @@
 /**
- * Public and private accounts — Settings → Controls (switch `private-accounts`, owner 2026-10-08).
- * The words and small rules the Controls, the sign-up choice and someone else's profile share.
+ * Public and private accounts — Settings → Security and privacy → Privacy controls (switch
+ * `private-accounts`, owner 2026-10-08; moved off the main Settings list 2026-10-10).
+ * The words and small rules the controls, the sign-up choice and someone else's profile share.
  * The server enforces every rule (`set_account_controls`, `can_view_post`; migration
  * 20261008170000_private_accounts); these only say what each choice means.
  *
@@ -40,14 +41,18 @@ export const WORKOUT_OPTIONS: readonly Option<PostsVisibility>[] = [
   { value: 'friends', label: 'Friends', description: 'People you follow back.' },
 ];
 
+/**
+ * One word each (owner, 2026-10-10: "Everyone, I approve first" was worded long), so the three sit
+ * on one line; the description under the control says what the chosen one means.
+ */
 export const TAG_OPTIONS: readonly Option<TagPermission>[] = [
   { value: 'everyone', label: 'Everyone', description: 'Anyone can tag you.' },
   {
     value: 'approve',
-    label: 'Everyone, I approve first',
+    label: 'Approved',
     description: 'Friends tag you straight away; anyone else asks first.',
   },
-  { value: 'friends', label: 'Friends only', description: 'Only friends can tag you.' },
+  { value: 'friends', label: 'Friends', description: 'Only friends can tag you.' },
 ];
 
 const describe = <T>(options: readonly Option<T>[], value: T): string =>
@@ -75,6 +80,21 @@ export function workoutOptionDisabled(isPrivate: boolean, v: PostsVisibility): b
 /** Who really sees your workouts (the server's `effective_posts_visibility`). */
 export function effectiveVisibility(isPrivate: boolean, v: PostsVisibility): PostsVisibility {
   return workoutOptionDisabled(isPrivate, v) ? 'followers' : v;
+}
+
+/**
+ * The Settings row that opens the page holding the privacy controls (owner, 2026-10-10: they left
+ * the main list), with a second line that says what is inside.
+ */
+export const SECURITY_ROW = {
+  title: 'Security and privacy',
+  detail: 'Privacy controls, blocks, account access and deletion',
+} as const;
+
+/** What VoiceOver calls that row: its name, and the follow requests waiting behind it. */
+export function securityRowLabel(requests: number): string {
+  if (requests <= 0) return SECURITY_ROW.title;
+  return `${SECURITY_ROW.title}, ${requests} follow ${requests === 1 ? 'request' : 'requests'}`;
 }
 
 /** The line under the choice after sign-up (owner, 2026-10-09). "Settings" is the screen's name. */

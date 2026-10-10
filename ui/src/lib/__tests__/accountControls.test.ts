@@ -1,6 +1,8 @@
 import {
   ACCOUNT_OPTIONS,
   PRIVACY_CHOICE_LEDE,
+  SECURITY_ROW,
+  securityRowLabel,
   privacyChoicePatch,
   accountSwitchPatch,
   TAG_OPTIONS,
@@ -16,6 +18,7 @@ import {
   workoutOptionDisabled,
   workoutsDescription,
 } from '../accountControls';
+import { SEGMENTED } from '@/constants/tokens';
 
 // Owner-approved words (2026-10-08, plan-private-accounts.md "Proposed Controls design").
 describe('Controls wording', () => {
@@ -48,17 +51,45 @@ describe('Controls wording', () => {
     expect(workoutsDescription('friends')).toBe('People you follow back.');
   });
 
+  // Owner, 2026-10-10: "Everyone, I approve first" was worded long; one word each.
   it('who can tag you', () => {
-    expect(TAG_OPTIONS.map((o) => o.label)).toEqual([
-      'Everyone',
-      'Everyone, I approve first',
-      'Friends only',
-    ]);
+    expect(TAG_OPTIONS.map((o) => o.label)).toEqual(['Everyone', 'Approved', 'Friends']);
     expect(tagDescription('everyone')).toBe('Anyone can tag you.');
     expect(tagDescription('approve')).toBe(
       'Friends tag you straight away; anyone else asks first.'
     );
     expect(tagDescription('friends')).toBe('Only friends can tag you.');
+  });
+
+  // One word each, so three options sit side by side on one line; the line under the control
+  // says what the chosen one means.
+  it('every option is one word, on one line, with a line that says what it means', () => {
+    for (const option of [...ACCOUNT_OPTIONS, ...WORKOUT_OPTIONS, ...TAG_OPTIONS]) {
+      expect(option.label).toMatch(/^\S+$/);
+      expect(option.description).not.toBe('');
+    }
+    expect(SEGMENTED.labelLines).toBe(1);
+    // A label too long for its share shrinks before it is cut; it never wraps.
+    expect(SEGMENTED.labelMinScale).toBeGreaterThan(0);
+    expect(SEGMENTED.labelMinScale).toBeLessThan(1);
+  });
+});
+
+// Owner, 2026-10-10: the controls left the main Settings list for the page this row opens.
+describe('the Settings row that opens the privacy controls', () => {
+  it('says what is inside now', () => {
+    expect(SECURITY_ROW).toEqual({
+      title: 'Security and privacy',
+      detail: 'Privacy controls, blocks, account access and deletion',
+    });
+  });
+
+  // Follow requests used to show their number on the main list; the row that leads to them
+  // carries it now, and VoiceOver says what the number counts.
+  it('tells VoiceOver how many follow requests wait behind it', () => {
+    expect(securityRowLabel(0)).toBe('Security and privacy');
+    expect(securityRowLabel(1)).toBe('Security and privacy, 1 follow request');
+    expect(securityRowLabel(3)).toBe('Security and privacy, 3 follow requests');
   });
 });
 

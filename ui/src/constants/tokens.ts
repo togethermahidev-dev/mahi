@@ -500,17 +500,19 @@ export const LAYOUT = {
   storyLoadAhead: 2,
 } as const;
 
-// ─── Segmented control (Settings → Controls, the sign-up privacy choice) ────────
+// ─── Segmented control (Settings → Security and privacy → Privacy controls) ─────
 export const SEGMENTED = {
-  /** The whole control: tall enough for a two-line option ("Everyone, I approve first"). */
+  /** The whole control: one line of words, as tall as a comfortable tap. */
   minHeight: SIZE.z44,
   /** The track's corners, and the gap between it and the chosen option's thumb. */
   radius: RADIUS.r14,
   inset: SPACE.s3,
   /** The chosen option's thumb, inset inside the track. */
   thumbRadius: RADIUS.r12,
-  /** Lines an option's words wrap to before they are cut. */
-  labelLines: 2,
+  /** An option is one word on one line (owner, 2026-10-10); it never wraps. */
+  labelLines: 1,
+  /** Words too long for their share shrink to this share of their size before they are cut. */
+  labelMinScale: 0.75,
   /** An option that can't be chosen (Everyone while private) is drawn at this opacity. */
   disabledOpacity: ALPHA.a40,
 } as const;

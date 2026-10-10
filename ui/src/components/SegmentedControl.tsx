@@ -1,14 +1,21 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { FONTS } from '@/constants/fonts';
-import { BORDER_WIDTH, COLORS, FONT_SIZE, SEGMENTED, SPACE } from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { BORDER_WIDTH, COLORS, LAYOUT, SEGMENTED, SPACE } from '@/constants/tokens';
 import { themeColors } from '@/lib/themeColors';
 
-export type SegmentOption<T> = { value: T; label: string; disabled?: boolean };
+export type SegmentOption<T> = {
+  value: T;
+  label: string;
+  disabled?: boolean;
+  /** What choosing it means, read by VoiceOver after the one-word label. */
+  hint?: string;
+};
 
 /**
- * A row of two or three choices, one chosen (Settings → Controls). VoiceOver reads it as a radio
- * group; an option that can't be chosen is dimmed and says so.
+ * A row of two or three one-word choices, one chosen (Settings → Security and privacy → Privacy
+ * controls). VoiceOver reads it as a radio group; an option that can't be chosen is dimmed and
+ * says so. Each option stays on one line: words too long for their share shrink, then are cut.
  */
 export default function SegmentedControl<T extends string | boolean>({
   options,
@@ -48,6 +55,7 @@ export default function SegmentedControl<T extends string | boolean>({
             disabled={off}
             accessibilityRole="radio"
             accessibilityLabel={option.label}
+            accessibilityHint={option.hint}
             accessibilityState={{ checked: chosen, disabled: off }}
             style={[
               styles.segment,
@@ -58,6 +66,9 @@ export default function SegmentedControl<T extends string | boolean>({
             <Text
               style={[styles.label, { color: chosen ? text : muted }]}
               numberOfLines={SEGMENTED.labelLines}
+              adjustsFontSizeToFit
+              minimumFontScale={SEGMENTED.labelMinScale}
+              maxFontSizeMultiplier={LAYOUT.largeTextScale}
             >
               {option.label}
             </Text>
@@ -92,9 +103,10 @@ const styles = StyleSheet.create({
   unavailable: {
     opacity: SEGMENTED.disabledOpacity,
   },
+  // The full width of its share, so shrink-to-fit has a width to fit.
   label: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f13,
+    ...TYPOGRAPHY.captionMedium,
+    alignSelf: 'stretch',
     textAlign: 'center',
   },
 });

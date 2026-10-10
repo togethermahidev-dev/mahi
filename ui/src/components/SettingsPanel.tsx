@@ -1,16 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  Linking,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   SafeAreaInsetsContext,
   SafeAreaProvider,
@@ -38,28 +27,21 @@ import { useUserStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import {
   ACCOUNT_OPTIONS,
+  SECURITY_ROW,
   TAG_OPTIONS,
   accountSwitchPatch,
   WORKOUT_OPTIONS,
   accountDescription,
   effectiveVisibility,
   privacyConfirm,
+  securityRowLabel,
   tagDescription,
   workoutOptionDisabled,
   workoutsDescription,
   type AccountControls,
 } from '@/lib/accountControls';
-import { FONTS } from '@/constants/fonts';
-import {
-  COLORS,
-  ALPHA,
-  BORDER_WIDTH,
-  FONT_SIZE,
-  RADIUS,
-  SIZE,
-  SPACE,
-  TRACKING,
-} from '@/constants/tokens';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
+import { COLORS, ALPHA, BORDER_WIDTH, RADIUS, SIZE, SPACE } from '@/constants/tokens';
 import { themeColors } from '@/hooks/useAppTheme';
 
 interface SettingsPanelProps {
@@ -101,12 +83,12 @@ function Sheet({
   screenInsets: ReturnType<typeof useSafeAreaInsets>;
 }) {
   const insets = useSafeAreaInsets();
-  const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const { muted, border, accentText } = themeColors(dark);
+  const { text, muted, border } = themeColors(dark);
   const bg = dark ? COLORS.bgDark : COLORS.white;
-  const surface = dark ? COLORS.surfaceDark : COLORS.paper;
-  const iconSurface = dark ? COLORS.surfaceDark2 : COLORS.surfaceLight;
-  const danger = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
+  const circle = {
+    backgroundColor: dark ? COLORS.surfaceDark2 : COLORS.surfaceLight,
+    borderColor: border,
+  };
 
   const [blockedListOpen, setBlockedListOpen] = useState(false);
   // Your invites: read fresh when Settings opens and after the list closes; never kept on the phone.
@@ -125,13 +107,20 @@ function Sheet({
   // "Find friends in your contacts" (build 13+, no switch).
   const contactsFinder = useContactsFinder();
   const [findMatesOpen, setFindMatesOpen] = useState(false);
+  // The page behind "Security and privacy": privacy controls, then account access.
   const [securityOpen, setSecurityOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   // Mahi sends no notifications while push is off: no row that leads nowhere until it's on.
   const pushOn = useFeatureFlag('push-core');
-  // Public and private accounts: the Controls section (switch `private-accounts`).
+  // Public and private accounts: the privacy controls (switch `private-accounts`).
   const controlsOn = useFeatureFlag('private-accounts');
   const [deleting, setDeleting] = useState(false);
+  // Follow requests to a private account: read fresh while Settings is open, never kept. The
+  // number shows on the row that leads to them here, and beside "Follow requests" on its page.
+  const privateAccount = useUserStore((s) => s.profile?.is_private) === true;
+  const [requestsOpen, setRequestsOpen] = useState(false);
+  const { requests } = useFollowRequests(controlsOn && privateAccount && !requestsOpen);
+  const requestCount = controlsOn && privateAccount ? (requests?.length ?? 0) : 0;
 
   const handleLogout = () => {
     Alert.alert(
@@ -180,209 +169,135 @@ function Sheet({
     );
   };
 
-  const rowStyle = ({ pressed }: { pressed: boolean }, divided: boolean) => [
-    styles.row,
-    divided && styles.rowDivider,
-    { borderBottomColor: border },
-    pressed && styles.pressed,
-  ];
-
   // Every row here does something: a row with nothing behind it stays out until it's built.
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
       <View style={[styles.header, { paddingTop: insets.top + SPACE.s16 }]}>
-        <View style={styles.titleRow}>
-          {securityOpen ? (
+        {securityOpen ? (
+          <>
             <Pressable
               onPress={() => setSecurityOpen(false)}
               accessibilityRole="button"
               accessibilityLabel="Back to settings"
-              style={({ pressed }) => [styles.headerIcon, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.headerButton, circle, pressed && styles.pressed]}
             >
-              <Text style={[styles.backText, { color: text }]}>‹</Text>
+              <Text style={[styles.glyph, { color: text }]}>‹</Text>
             </Pressable>
-          ) : null}
-          <Text style={[styles.title, { color: text }]} accessibilityRole="header">
-            {securityOpen ? 'Security and privacy' : 'Settings'}
-          </Text>
-          {!securityOpen ? (
-            <View
-              style={[styles.headerIcon, { backgroundColor: iconSurface, borderColor: border }]}
+            <Text
+              style={[styles.pageTitle, { color: text }]}
+              numberOfLines={1}
+              accessibilityRole="header"
             >
+              {SECURITY_ROW.title}
+            </Text>
+          </>
+        ) : (
+          <View style={styles.titleRow}>
+            <Text
+              style={[styles.title, { color: text }]}
+              numberOfLines={1}
+              accessibilityRole="header"
+            >
+              Settings
+            </Text>
+            <View style={[styles.headerButton, circle]}>
               <ThemeToggle color={text} size={SIZE.z20} />
             </View>
-          ) : null}
-        </View>
+          </View>
+        )}
         <Pressable
           onPress={onClose}
           accessibilityRole="button"
           accessibilityLabel="Close settings"
-          style={({ pressed }) => [
-            styles.closeBtn,
-            { backgroundColor: iconSurface, borderColor: border },
-            pressed && styles.pressed,
-          ]}
+          style={({ pressed }) => [styles.headerButton, circle, pressed && styles.pressed]}
         >
-          <Text style={[styles.closeText, { color: text }]}>×</Text>
+          <Text style={[styles.glyph, { color: text }]}>×</Text>
         </Pressable>
       </View>
 
+      {/* Keyed by page, so each page opens at its top, not where the other was scrolled to. */}
       <ScrollView
+        key={securityOpen ? 'security' : 'settings'}
         style={styles.root}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + SPACE.s24 }]}
         showsVerticalScrollIndicator={false}
       >
         {securityOpen ? (
           <>
-            <Text style={[styles.sectionLabel, { color: muted }]}>Privacy</Text>
-            <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
-              <Pressable
-                style={(state) => rowStyle(state, false)}
-                onPress={() => setBlockedListOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Blocked users"
-              >
-                <View style={styles.rowCopy}>
-                  <Text style={[styles.rowLabel, { color: text }]}>Blocked users</Text>
-                  <Text style={[styles.rowDetail, { color: muted }]}>
-                    Review who cannot contact you
-                  </Text>
-                </View>
-                <Text style={[styles.chevron, { color: muted }]}>›</Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.spacer} />
-            <Text style={[styles.sectionLabel, { color: muted }]}>Account access</Text>
-            <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
-              <Pressable
-                style={(state) => rowStyle(state, true)}
-                onPress={handleLogout}
-                accessibilityRole="button"
-                accessibilityLabel="Log out"
-              >
-                <Text style={[styles.rowLabel, { color: text }]}>Log out</Text>
-                <Text style={[styles.chevron, { color: muted }]}>›</Text>
-              </Pressable>
-              <Pressable
-                style={(state) => rowStyle(state, false)}
+            <PrivacySection
+              dark={dark}
+              controlsOn={controlsOn}
+              requestCount={requestCount}
+              onOpenRequests={() => setRequestsOpen(true)}
+              onOpenBlocked={() => setBlockedListOpen(true)}
+            />
+            <Section title="Account access" dark={dark}>
+              <Row title="Log out" onPress={handleLogout} dark={dark} />
+              <Row
+                title={deleting ? 'Deleting your account…' : 'Delete account'}
+                label="Delete account"
                 onPress={handleDeleteAccount}
-                disabled={deleting}
-                accessibilityRole="button"
-                accessibilityLabel="Delete account"
-                accessibilityState={{ disabled: deleting, busy: deleting }}
-              >
-                <Text style={[styles.rowLabel, { color: danger }]}>
-                  {deleting ? 'Deleting your account…' : 'Delete account'}
-                </Text>
-                <Text style={[styles.chevron, { color: danger }]}>›</Text>
-              </Pressable>
-            </View>
+                busy={deleting}
+                danger
+                dark={dark}
+              />
+            </Section>
           </>
         ) : (
           <>
-            <Text style={[styles.sectionLabel, { color: muted }]}>Friends</Text>
-            <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
+            <Section title="Friends" dark={dark}>
               {contactsFinder ? (
-                <Pressable
-                  style={(state) => rowStyle(state, true)}
+                <Row
+                  title="Find friends in your contacts"
+                  detail="See who from your contacts is on Mahi"
                   onPress={() => setFindMatesOpen(true)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Find friends in your contacts"
-                >
-                  <View style={styles.rowCopy}>
-                    <Text style={[styles.rowLabel, { color: text }]}>
-                      Find friends in your contacts
-                    </Text>
-                    <Text style={[styles.rowDetail, { color: muted }]}>
-                      See who from your contacts is on Mahi
-                    </Text>
-                  </View>
-                  <Text style={[styles.chevron, { color: muted }]}>›</Text>
-                </Pressable>
+                  dark={dark}
+                />
               ) : null}
-              <Pressable
-                style={(state) => rowStyle(state, false)}
+              <Row
+                title="Your invites"
+                detail={invites?.line ?? 'Who you invited and who joined'}
+                label={invites?.count ? `Your invites, ${invites.count}` : 'Your invites'}
+                count={invites?.count}
                 onPress={() => setInvitesOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  invites?.count ? `Your invites, ${invites.count}` : 'Your invites'
-                }
-              >
-                <View style={styles.rowCopy}>
-                  <Text style={[styles.rowLabel, { color: text }]}>Your invites</Text>
-                  <Text style={[styles.rowDetail, { color: muted }]}>
-                    {invites?.line ?? 'Who you invited and who joined'}
-                  </Text>
-                </View>
-                <CountBadge count={invites?.count ?? 0} />
-                <Text style={[styles.chevron, { color: muted }]}>›</Text>
-              </Pressable>
-            </View>
+                dark={dark}
+              />
+            </Section>
 
-            {controlsOn ? (
-              <ControlsSection dark={dark} rowStyle={rowStyle} surface={surface} />
-            ) : null}
-
-            <View style={styles.spacer} />
-            <Text style={[styles.sectionLabel, { color: muted }]}>Preferences</Text>
-            <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
+            <Section title="Preferences" dark={dark}>
               {pushOn ? (
-                <Pressable
-                  style={(state) => rowStyle(state, true)}
+                <Row
+                  title="Notifications"
+                  detail="Manage alerts on this phone"
+                  label="Notification settings"
                   onPress={() => void Linking.openSettings()}
-                  accessibilityRole="button"
-                  accessibilityLabel="Notification settings"
-                >
-                  <View style={styles.rowCopy}>
-                    <Text style={[styles.rowLabel, { color: text }]}>Notifications</Text>
-                    <Text style={[styles.rowDetail, { color: muted }]}>
-                      Manage alerts on this phone
-                    </Text>
-                  </View>
-                  <Text style={[styles.chevron, { color: muted }]}>›</Text>
-                </Pressable>
+                  dark={dark}
+                />
               ) : null}
-              <Pressable
-                style={(state) => rowStyle(state, false)}
+              <Row
+                title={SECURITY_ROW.title}
+                detail={SECURITY_ROW.detail}
+                label={securityRowLabel(requestCount)}
+                count={requestCount}
                 onPress={() => setSecurityOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Security and privacy"
-              >
-                <View style={styles.rowCopy}>
-                  <Text style={[styles.rowLabel, { color: text }]}>Security and privacy</Text>
-                  <Text style={[styles.rowDetail, { color: muted }]}>
-                    Blocks, account access and deletion
-                  </Text>
-                </View>
-                <Text style={[styles.chevron, { color: muted }]}>›</Text>
-              </Pressable>
-            </View>
+                dark={dark}
+              />
+            </Section>
 
-            <View style={styles.spacer} />
-            <Text style={[styles.sectionLabel, { color: muted }]}>Support</Text>
-            <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
-              <Pressable
-                style={(state) => rowStyle(state, false)}
+            <Section title="Support" dark={dark}>
+              <Row
+                title="Help"
+                detail="See how tags and points work"
+                hint="Shows how Mahi works"
                 onPress={() => setHelpOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Help"
-                accessibilityHint="Shows how Mahi works"
-              >
-                <View style={styles.rowCopy}>
-                  <Text style={[styles.rowLabel, { color: text }]}>Help</Text>
-                  <Text style={[styles.rowDetail, { color: muted }]}>
-                    See how tags and points work
-                  </Text>
-                </View>
-                <Text style={[styles.chevron, { color: muted }]}>›</Text>
-              </Pressable>
-            </View>
+                dark={dark}
+              />
+            </Section>
           </>
         )}
 
         {/* Version line: v{runtime} {build}.{OTA} — see the version-control skill */}
-        <Text style={[styles.versionText, { color: muted }]}>{VERSION_LINE}</Text>
+        <Text style={[styles.version, { color: muted }]}>{VERSION_LINE}</Text>
       </ScrollView>
 
       {/* Opened from inside this sheet so they present over it. */}
@@ -391,6 +306,11 @@ function Sheet({
       <BlockedUsersSheet
         visible={blockedListOpen}
         onClose={() => setBlockedListOpen(false)}
+        dark={dark}
+      />
+      <FollowRequestsSheet
+        visible={requestsOpen}
+        onClose={() => setRequestsOpen(false)}
         dark={dark}
       />
 
@@ -403,34 +323,150 @@ function Sheet({
   );
 }
 
-type RowStyle = (state: { pressed: boolean }, divided: boolean) => StyleProp<ViewStyle>;
+/** A headed card of rows, with a hairline between one row and the next. */
+function Section({
+  title,
+  dark,
+  children,
+}: {
+  title: string;
+  dark: boolean;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const { muted, border } = themeColors(dark);
+  const surface = dark ? COLORS.surfaceDark : COLORS.paper;
+  return (
+    <View style={styles.section}>
+      <Text style={[styles.sectionHeader, { color: muted }]} accessibilityRole="header">
+        {title}
+      </Text>
+      <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
+        {/* Rows that are switched off (null) drop out here, so no line is left behind. */}
+        {React.Children.toArray(children).map((row, i) => (
+          <View
+            key={React.isValidElement(row) ? row.key : i}
+            style={i > 0 && [styles.divided, { borderTopColor: border }]}
+          >
+            {row}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** The one row: a title, a second line where there is more to say, and a chevron. */
+function Row({
+  title,
+  detail,
+  onPress,
+  dark,
+  count = 0,
+  label = title,
+  hint,
+  danger = false,
+  busy = false,
+}: {
+  title: string;
+  detail?: string;
+  onPress: () => void;
+  dark: boolean;
+  /** A number waiting behind the row (invites, follow requests); nothing at 0. */
+  count?: number;
+  /** What VoiceOver calls the row, where that isn't its title. */
+  label?: string;
+  hint?: string;
+  /** It deletes something. */
+  danger?: boolean;
+  /** Its action is on its way: the row waits. */
+  busy?: boolean;
+}): React.JSX.Element {
+  const { text, muted } = themeColors(dark);
+  const dangerText = dark ? COLORS.dangerSoft : COLORS.dangerDeep;
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      onPress={onPress}
+      disabled={busy}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      accessibilityState={{ disabled: busy, busy }}
+    >
+      <View style={styles.rowCopy}>
+        <Text style={[styles.rowTitle, { color: danger ? dangerText : text }]}>{title}</Text>
+        {detail ? <Text style={[styles.detail, { color: muted }]}>{detail}</Text> : null}
+      </View>
+      <CountBadge count={count} />
+      <Text style={[styles.glyph, { color: danger ? dangerText : muted }]}>›</Text>
+    </Pressable>
+  );
+}
+
+/** A control in a card: what it sets, the control, and what the chosen option means. */
+function Control({
+  title,
+  helper,
+  dark,
+  children,
+}: {
+  title: string;
+  helper: string;
+  dark: boolean;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const { text, muted } = themeColors(dark);
+  return (
+    <View style={styles.control}>
+      <Text style={[styles.controlTitle, { color: text }]}>{title}</Text>
+      {children}
+      <Text style={[styles.detail, { color: muted }]}>{helper}</Text>
+    </View>
+  );
+}
 
 /**
- * Settings → Controls (owner, 2026-10-08; server: 20261008170000_private_accounts): public or
- * private, who sees your workouts, who can tag you, your followers and follow requests. Each
+ * Settings → Security and privacy → Privacy controls (owner, 2026-10-10: off the main list;
+ * built 2026-10-08, server: 20261008170000_private_accounts): public or private, who sees your
+ * workouts, who can tag you, your followers and follow requests, then who you blocked. Each
  * change shows at once and the server's saved answer replaces it; the server enforces every rule.
- * Hidden on a server without the columns (the profile has no `is_private`).
+ * With the switch off, or on a server without the columns (the profile has no `is_private`),
+ * only Blocked users shows.
  */
-function ControlsSection({
+function PrivacySection({
   dark,
-  rowStyle,
-  surface,
+  controlsOn,
+  requestCount,
+  onOpenRequests,
+  onOpenBlocked,
 }: {
   dark: boolean;
-  rowStyle: RowStyle;
-  surface: string;
-}): React.JSX.Element | null {
-  const { text, muted, border } = themeColors(dark);
+  controlsOn: boolean;
+  requestCount: number;
+  onOpenRequests: () => void;
+  onOpenBlocked: () => void;
+}): React.JSX.Element {
   const profile = useUserStore((s) => s.profile);
   const isPrivate = profile?.is_private;
   const [saving, setSaving] = useState(false);
   const [followersOpen, setFollowersOpen] = useState(false);
-  const [requestsOpen, setRequestsOpen] = useState(false);
-  // The count beside "Follow requests": read fresh while Settings is open, never kept.
-  const { requests } = useFollowRequests(isPrivate === true && !requestsOpen);
   const show = useToastStore((st) => st.show);
 
-  if (!profile || isPrivate === undefined) return null;
+  const blocked = (
+    <Row
+      title="Blocked users"
+      detail="Review who cannot contact you"
+      onPress={onOpenBlocked}
+      dark={dark}
+    />
+  );
+  if (!controlsOn || !profile || isPrivate === undefined) {
+    return (
+      <Section title="Privacy controls" dark={dark}>
+        {blocked}
+      </Section>
+    );
+  }
   const visibility = effectiveVisibility(isPrivate, profile.posts_visibility ?? 'followers');
   const tagPermission = profile.tag_permission ?? 'approve';
 
@@ -469,11 +505,10 @@ function ControlsSection({
 
   return (
     <>
-      <View style={styles.spacer} />
-      <Text style={[styles.sectionLabel, { color: muted }]}>Controls</Text>
-      <View style={[styles.group, { backgroundColor: surface, borderColor: border }]}>
-        <View style={[styles.control, styles.rowDivider, { borderBottomColor: border }]}>
-          <Text style={[styles.rowLabel, { color: text }]}>Account</Text>
+      <Section title="Privacy controls" dark={dark}>
+        {/* No VoiceOver hint per option here: what Public means depends on the workouts choice
+            below, so only the line under the control says it. */}
+        <Control title="Account" helper={accountDescription(isPrivate, visibility)} dark={dark}>
           <SegmentedControl
             label="Account"
             dark={dark}
@@ -482,86 +517,69 @@ function ControlsSection({
             value={isPrivate}
             onChange={chooseAccount}
           />
-          <Text style={[styles.rowDetail, { color: muted }]}>
-            {accountDescription(isPrivate, visibility)}
-          </Text>
-        </View>
+        </Control>
 
-        <View style={[styles.control, styles.rowDivider, { borderBottomColor: border }]}>
-          <Text style={[styles.rowLabel, { color: text }]}>Who can see your workouts</Text>
+        <Control
+          title="Who can see your workouts"
+          helper={workoutsDescription(visibility)}
+          dark={dark}
+        >
           <SegmentedControl
             label="Who can see your workouts"
             dark={dark}
             disabled={saving}
             options={WORKOUT_OPTIONS.map((o) => ({
-              ...o,
+              value: o.value,
+              label: o.label,
+              hint: o.description,
               disabled: workoutOptionDisabled(isPrivate, o.value),
             }))}
             value={visibility}
             onChange={(v) => void save({ posts_visibility: v })}
           />
-          <Text style={[styles.rowDetail, { color: muted }]}>
-            {workoutsDescription(visibility)}
-          </Text>
-        </View>
+        </Control>
 
-        <View style={[styles.control, styles.rowDivider, { borderBottomColor: border }]}>
-          <Text style={[styles.rowLabel, { color: text }]}>Who can tag you</Text>
+        <Control title="Who can tag you" helper={tagDescription(tagPermission)} dark={dark}>
           <SegmentedControl
             label="Who can tag you"
             dark={dark}
             disabled={saving}
-            options={TAG_OPTIONS}
+            options={TAG_OPTIONS.map((o) => ({
+              value: o.value,
+              label: o.label,
+              hint: o.description,
+            }))}
             value={tagPermission}
             onChange={(v) => void save({ tag_permission: v })}
           />
-          <Text style={[styles.rowDetail, { color: muted }]}>{tagDescription(tagPermission)}</Text>
-        </View>
+        </Control>
 
-        <Pressable
-          style={(state) => rowStyle(state, isPrivate)}
+        <Row
+          title="Followers"
+          detail="See who follows you, and remove anyone"
           onPress={() => setFollowersOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Followers"
-        >
-          <View style={styles.rowCopy}>
-            <Text style={[styles.rowLabel, { color: text }]}>Followers</Text>
-            <Text style={[styles.rowDetail, { color: muted }]}>
-              See who follows you, and remove anyone
-            </Text>
-          </View>
-          <Text style={[styles.chevron, { color: muted }]}>›</Text>
-        </Pressable>
+          dark={dark}
+        />
 
         {isPrivate ? (
-          <Pressable
-            style={(state) => rowStyle(state, false)}
-            onPress={() => setRequestsOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel={
-              requests?.length ? `Follow requests, ${requests.length}` : 'Follow requests'
-            }
-          >
-            <View style={styles.rowCopy}>
-              <Text style={[styles.rowLabel, { color: text }]}>Follow requests</Text>
-              <Text style={[styles.rowDetail, { color: muted }]}>People asking to follow you</Text>
-            </View>
-            <CountBadge count={requests?.length ?? 0} />
-            <Text style={[styles.chevron, { color: muted }]}>›</Text>
-          </Pressable>
+          <Row
+            title="Follow requests"
+            detail="People asking to follow you"
+            label={requestCount ? `Follow requests, ${requestCount}` : 'Follow requests'}
+            count={requestCount}
+            onPress={onOpenRequests}
+            dark={dark}
+          />
         ) : null}
-      </View>
+
+        {blocked}
+      </Section>
 
       <FollowListModal
         visible={followersOpen}
         onClose={() => setFollowersOpen(false)}
         userId={profile.id}
         type="followers"
-        dark={dark}
-      />
-      <FollowRequestsSheet
-        visible={requestsOpen}
-        onClose={() => setRequestsOpen(false)}
         dark={dark}
       />
     </>
@@ -576,19 +594,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: SPACE.s12,
     paddingHorizontal: SPACE.s20,
     paddingBottom: SPACE.s20,
   },
-  title: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f24,
-  },
   titleRow: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.s12,
   },
-  headerIcon: {
+  // The main page's title.
+  title: {
+    ...TYPOGRAPHY.screenTitle,
+    flexShrink: 1,
+  },
+  // A page opened from the main one: its title sits centred between Back and Close.
+  pageTitle: {
+    ...TYPOGRAPHY.sheetTitle,
+    flex: 1,
+    textAlign: 'center',
+  },
+  // The round buttons in the header: back, light or dark, close.
+  headerButton: {
     width: SIZE.z44,
     height: SIZE.z44,
     borderRadius: RADIUS.r22,
@@ -596,34 +624,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backText: {
-    fontSize: FONT_SIZE.f22,
-    fontFamily: FONTS.regular,
-  },
-  closeBtn: {
-    width: SIZE.z44,
-    height: SIZE.z44,
-    borderRadius: RADIUS.r22,
-    borderWidth: BORDER_WIDTH.w1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeText: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
+  // A character drawn as an icon: the back and close marks, a row's chevron.
+  glyph: {
+    ...GLYPH.icon,
   },
   pressed: {
     opacity: ALPHA.a70,
   },
+  // The cards stack, one gap between each; they don't spread to fill.
   content: {
     flexGrow: 1,
     paddingTop: SPACE.s20,
+    gap: SPACE.s24,
   },
-  sectionLabel: {
+  section: {
+    gap: SPACE.s8,
+  },
+  sectionHeader: {
+    ...TYPOGRAPHY.sectionHeader,
     marginHorizontal: SPACE.s24,
-    marginBottom: SPACE.s8,
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f12,
   },
   group: {
     marginHorizontal: SPACE.s20,
@@ -631,49 +650,38 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r20,
     overflow: 'hidden',
   },
+  divided: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   row: {
     minHeight: SIZE.z72,
     paddingVertical: SPACE.s14,
     paddingHorizontal: SPACE.s16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: SPACE.s12,
-  },
-  rowDivider: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  // A control with its title above and what the choice means below.
-  control: {
-    paddingVertical: SPACE.s14,
-    paddingHorizontal: SPACE.s16,
-    gap: SPACE.s8,
   },
   rowCopy: {
     flex: 1,
     gap: SPACE.s3,
   },
-  rowLabel: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f15,
+  rowTitle: {
+    ...TYPOGRAPHY.body,
   },
-  rowDetail: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f12,
+  control: {
+    paddingVertical: SPACE.s14,
+    paddingHorizontal: SPACE.s16,
+    gap: SPACE.s8,
   },
-  chevron: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f22,
+  controlTitle: {
+    ...TYPOGRAPHY.bodyStrong,
   },
-  // The space between one card and the next title: the cards stack, they don't spread to fill.
-  spacer: {
-    height: SPACE.s24,
+  // A row's second line, and the line under a control saying what the choice means.
+  detail: {
+    ...TYPOGRAPHY.caption,
   },
-  versionText: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f11,
+  version: {
+    ...TYPOGRAPHY.caption,
     textAlign: 'center',
-    marginTop: SPACE.s12,
-    letterSpacing: TRACKING.t1,
   },
 });
