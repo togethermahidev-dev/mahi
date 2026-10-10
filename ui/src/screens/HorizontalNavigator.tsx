@@ -30,6 +30,7 @@ import UserProfileScreen from '@/screens/UserProfileScreen';
 import AppHeader from '@/components/AppHeader';
 import GlobalSearchOverlay from '@/components/GlobalSearchOverlay';
 import NavRail, { type RailTab } from '@/components/NavRail';
+import { track } from '@/lib/analytics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { usePushRouting } from '@/hooks/usePushRouting';
@@ -53,7 +54,7 @@ import {
   SIDE_EDGE,
   type Rect,
 } from '@/lib/swipeRules';
-import { COLORS, LAYER, LAYOUT, MOTION, SIZE, SPRING } from '@/constants/tokens';
+import { COLORS, LAYER, LAYOUT, MOTION, SIZE, SPRING, SWIPE } from '@/constants/tokens';
 
 // ─── Pages ────────────────────────────────────────────────────────────────────
 // One row, left to right, in the tab bar's order (owner, 2026-10-07): Messages ⇄ Feed ⇄ Camera ⇄
@@ -63,6 +64,31 @@ const CAMERA = tabPage('camera');
 const PROFILE = tabPage('profile');
 const MESSAGES = tabPage('messages');
 const INITIAL_PAGE = tabPage(INITIAL_TAB);
+
+// TEMPORARY swipe check (owner, 2026-10-10: sideways swipes on the camera "still gets stuck"). The
+// first recording showed real swipes are short flicks; this one shows whether they now turn the
+// page. Plain numbers only, so the swipe's worklets can read them. Remove with `swipe_check` in
+// analytics.ts once the numbers are read.
+const SWIPE_CHECK_MIN = SWIPE.sideSlop / 2;
+const SWIPE_CHECK_RESULTS = ['none', 'activate', 'fail'];
+function reportPageSwipe(
+  result: number,
+  turned: boolean,
+  dx: number,
+  dy: number,
+  v: number,
+  startX: number
+): void {
+  track('swipe_check', {
+    by: 'page',
+    result: SWIPE_CHECK_RESULTS[result] ?? 'none',
+    turned,
+    dx,
+    dy,
+    v,
+    start_x: startX,
+  });
+}
 
 /** The snap to a page. Runs even with Reduce Motion on, as it always has. */
 const PAGE_SPRING = { ...SPRING.page, reduceMotion: ReduceMotion.Never };
@@ -166,7 +192,6 @@ export default function HorizontalNavigator({
   }, [tabBarRoom]);
   const blurTargetRef = useRef<View | null>(null);
 
-
   // What the swipe reads on the UI thread.
   const indexSV = useSharedValue(INITIAL_PAGE);
   const blockedSV = useSharedValue(false);
@@ -187,6 +212,13 @@ export default function HorizontalNavigator({
   };
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
+  // TEMPORARY swipe check: the last move, how the swipe decided, and how it ended.
+  const checkDx = useSharedValue(0);
+  const checkDy = useSharedValue(0);
+  const checkResult = useSharedValue(0);
+  const checkTurned = useSharedValue(false);
+  const checkV = useSharedValue(0);
+  const checkPage = useSharedValue(0);
   const decided = useSharedValue(false);
   const base = useSharedValue(0);
   // Where the rail is on screen. A touch that starts there belongs to the rail.
@@ -336,6 +368,12 @@ export default function HorizontalNavigator({
       startX.value = t.absoluteX;
       startY.value = t.absoluteY;
       decided.value = false;
+      checkDx.value = 0;
+      checkDy.value = 0;
+      checkResult.value = 0;
+      checkTurned.value = false;
+      checkV.value = 0;
+      checkPage.value = indexSV.value;
       // A touch in a system strip, or with something open over the pages, is let go at once.
       const first = horizontalSwipe({
         startX: t.absoluteX,
@@ -377,8 +415,11 @@ export default function HorizontalNavigator({
         edge: sideEdge,
         blocked: blockedSV.value,
       });
+      checkDx.value = t.absoluteX - startX.value;
+      checkDy.value = t.absoluteY - startY.value;
       if (decision === 'wait') return;
       decided.value = true;
+      checkResult.value = decision === 'activate' ? 1 : 2;
       if (decision === 'activate') manager.activate();
       else manager.fail();
     })
@@ -403,9 +444,28 @@ export default function HorizontalNavigator({
             e.velocityX / 1000
           )
         : indexSV.value;
+      checkTurned.value = next !== checkPage.value;
+      checkDx.value = e.absoluteX - startX.value;
+      checkV.value = e.velocityX;
       indexSV.value = next;
       page.value = withSpring(next, PAGE_SPRING);
       scheduleOnRN(settle, next);
+    })
+    .onFinalize(() => {
+      'worklet';
+      // TEMPORARY swipe check: only touches that started on the camera and went mostly sideways.
+      if (checkPage.value !== CAMERA) return;
+      const ax = Math.abs(checkDx.value);
+      if (ax < SWIPE_CHECK_MIN || ax <= Math.abs(checkDy.value)) return;
+      scheduleOnRN(
+        reportPageSwipe,
+        checkResult.value,
+        checkTurned.value,
+        Math.round(checkDx.value),
+        Math.round(checkDy.value),
+        Math.round(checkV.value),
+        Math.round(startX.value)
+      );
     });
 
   const stripStyle = useAnimatedStyle(() => ({ transform: [{ translateX: -page.value * width }] }));

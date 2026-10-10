@@ -56,6 +56,21 @@ export type TagLoopEvents = {
   contacts_permission: { granted: boolean };
   /** A look through contacts came back: how many are on Mahi, out of how many contacts read. */
   contacts_matched: { count_on_mahi: number; count_total: number };
+  /**
+   * TEMPORARY (2026-10-10, remove once the numbers are read): how a sideways swipe that starts on
+   * the camera ends. `result`: none (it never started) / activate / fail. `turned`: the page
+   * changed. dx, dy in points from where the finger went down; `v` the release speed in points
+   * per second. No personal data.
+   */
+  swipe_check: {
+    by: 'page';
+    result: string;
+    turned: boolean;
+    dx: number;
+    dy: number;
+    v: number;
+    start_x: number;
+  };
   /** Someone joined from a link: you follow each other, and a tag starts if one came with it. */
   invite_claimed: { inviter_id: string };
   /** The feed went from locked to open for this user. */
