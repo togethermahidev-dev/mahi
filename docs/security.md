@@ -42,7 +42,11 @@ means "trusted": always ask what a stranger with a fresh account could read or w
     lets in, with no block). The policy calls that definer function and never reads `follows` itself
     (no recursion). `get_follow_data` returns the relationship fields (`is_following`,
     `follows_you`, `requested`) for the caller (`auth.uid()`) only; follower and following counts
-    are public to anyone signed in.
+    are public to anyone signed in, except across a block (either way), where `get_follow_data`
+    returns none (20261010110000). A bio lives in its own closed table (`profile_bios`: no rights for
+    the app at all), is written only by `set_bio` (your own, cleaned, 150 at most, refused for a
+    banned account) and read only through `get_profile_about`, which gives the same empty answer for
+    a block, a banned account or an unknown id.
     Suggestions count mates in common only through follows the caller may see.
   - One exception, per post (`tag_shows_post`): someone tagged on a post (`post_tags`, or a started
     tag on it), and the tagger of a tag the post answers (`tag_challenges.answered_post_id`), see that
