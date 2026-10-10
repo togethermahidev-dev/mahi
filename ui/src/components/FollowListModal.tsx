@@ -12,20 +12,17 @@ import { unfollowConfirm } from '@/lib/followBack';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import ListState from '@/components/ListState';
 import UserProfileScreen from '@/screens/UserProfileScreen';
-import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
-  FONT_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
   SPACE,
-  TRACKING,
   withAlpha,
 } from '@/constants/tokens';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 import { themeColors } from '@/hooks/useAppTheme';
 
 interface FollowListModalProps {
@@ -354,17 +351,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backArrow: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l22,
+    ...GLYPH.icon,
   },
   headerCopy: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: FONT_SIZE.f24,
-    lineHeight: LINE_HEIGHT.l24,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.sheetTitle,
   },
   listContent: {
     paddingVertical: SPACE.s12,
@@ -392,21 +385,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: FONT_SIZE.f18,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h4,
   },
   rowText: {
     flex: 1,
     gap: SPACE.s2,
   },
   name: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f15,
-    letterSpacing: TRACKING.t1,
+    ...TYPOGRAPHY.bodyStrong,
   },
   handle: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f13,
+    ...TYPOGRAPHY.caption,
   },
   unfollowBtn: {
     borderWidth: BORDER_WIDTH.w1,
@@ -415,8 +404,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s6,
   },
   unfollowBtnText: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.labelStrong,
   },
   pressed: {
     opacity: ALPHA.a70,

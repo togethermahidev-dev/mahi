@@ -19,20 +19,17 @@ import { useToastStore } from '@/store/toastStore';
 import { posthog } from '@/lib/posthog';
 import { Sentry, reportError } from '@/lib/sentry';
 import UserProfileScreen from '@/screens/UserProfileScreen';
-import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
-  FONT_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
   SPACE,
-  TRACKING,
   withAlpha,
 } from '@/constants/tokens';
+import { FIELD_TEXT, GLYPH, TYPOGRAPHY } from '@/constants/typography';
 import { themeColors } from '@/hooks/useAppTheme';
 
 interface BlockedUsersSheetProps {
@@ -309,15 +306,12 @@ const styles = StyleSheet.create({
     opacity: ALPHA.a70,
   },
   backArrow: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l22,
+    ...GLYPH.icon,
   },
   headerTitle: {
+    ...TYPOGRAPHY.sheetTitle,
     flex: 1,
     textAlign: 'center',
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
   },
   searchWrap: {
     paddingHorizontal: SPACE.s20,
@@ -325,11 +319,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   searchInput: {
+    ...FIELD_TEXT,
     height: SIZE.z40,
     borderRadius: RADIUS.r20,
     paddingHorizontal: SPACE.s16,
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f14,
   },
   loadingWrap: {
     flex: 1,
@@ -362,21 +355,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: FONT_SIZE.f18,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h4,
   },
   rowText: {
     flex: 1,
     gap: SPACE.s2,
   },
   name: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f15,
-    letterSpacing: TRACKING.t1,
+    ...TYPOGRAPHY.bodyStrong,
   },
   handle: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f13,
+    ...TYPOGRAPHY.caption,
   },
   unblockBtn: {
     borderWidth: BORDER_WIDTH.w1,
@@ -385,8 +374,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s6,
   },
   unblockBtnText: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.labelStrong,
   },
   separator: {
     height: SIZE.z1,
@@ -398,7 +386,6 @@ const styles = StyleSheet.create({
     paddingTop: SPACE.s60,
   },
   emptyText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
   },
 });

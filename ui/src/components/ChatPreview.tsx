@@ -4,16 +4,8 @@ import { getMessages, type Message } from '@/api';
 import { messagePreviewText } from '@/lib/sharedPost';
 import { reportError } from '@/lib/sentry';
 import { previewMessages } from '@/lib/contextMenuPreview';
-import { FONTS } from '@/constants/fonts';
-import {
-  COLORS,
-  ALPHA,
-  FONT_SIZE,
-  LINE_HEIGHT,
-  RADIUS,
-  SPACE,
-  withAlpha,
-} from '@/constants/tokens';
+import { COLORS, ALPHA, RADIUS, SPACE, withAlpha } from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
 import { themeColors } from '@/hooks/useAppTheme';
 
 /**
@@ -103,8 +95,7 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
   },
   name: {
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.h4,
     textAlign: 'center',
   },
   // The newest message sits at the bottom, as in the chat.
@@ -131,12 +122,9 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   bubbleText: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l20,
+    ...TYPOGRAPHY.subtitle,
   },
   note: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
   },
 });

@@ -24,13 +24,11 @@ import PointsBadge from '@/components/PointsBadge';
 import { useAuthStore, useBlockStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { Sentry, reportError } from '@/lib/sentry';
-import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
   ALPHA,
   BLUR_INTENSITY,
   DURATION,
-  FONT_SIZE,
   ICON_SIZE,
   LAYER,
   LAYOUT,
@@ -40,10 +38,10 @@ import {
   SPACE,
   SPRING,
   SWIPE,
-  TRACKING,
   WAIT,
   withAlpha,
 } from '@/constants/tokens';
+import { FIELD_TEXT, TYPOGRAPHY } from '@/constants/typography';
 import { useCoverRail } from '@/hooks/useChrome';
 import { themeColors } from '@/hooks/useAppTheme';
 import { INVITE_BUTTON } from '@/lib/tagSlots';
@@ -91,7 +89,7 @@ function UserRow({
       </View>
       {/* No "0 points" next to anyone: a 0 shows nothing, as on posts. */}
       {item.streak_current ? (
-        <PointsBadge points={item.streak_current} style={[styles.points, { color: muted }]} />
+        <PointsBadge points={item.streak_current} style={{ color: muted }} />
       ) : null}
     </Pressable>
   );
@@ -459,17 +457,15 @@ const styles = StyleSheet.create({
     marginRight: SPACE.s8,
   },
   input: {
+    ...FIELD_TEXT,
     flex: 1,
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f15,
   },
   cancelBtn: {
     paddingVertical: SPACE.s8,
     paddingHorizontal: SPACE.s4,
   },
   cancelText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f15,
+    ...TYPOGRAPHY.label,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
@@ -487,15 +483,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s24,
   },
   emptyText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f15,
+    ...TYPOGRAPHY.h3,
     textAlign: 'center',
     marginBottom: SPACE.s8,
   },
   hintText: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f14,
-    letterSpacing: TRACKING.t0_5,
+    ...TYPOGRAPHY.small,
     textAlign: 'center',
   },
   retryBtn: {
@@ -507,9 +500,8 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s16,
   },
   retryBtnText: {
+    ...TYPOGRAPHY.pillLabel,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
   },
   row: {
     flexDirection: 'row',
@@ -531,24 +523,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: FONT_SIZE.f18,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h4,
   },
   rowText: {
     flex: 1,
     gap: SPACE.s2,
   },
   name: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f15,
-    letterSpacing: TRACKING.t1,
+    ...TYPOGRAPHY.bodyStrong,
   },
   handle: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f13,
-  },
-  points: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f13,
+    ...TYPOGRAPHY.caption,
   },
 });

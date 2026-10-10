@@ -8,12 +8,10 @@ import { themeColors } from '@/hooks/useAppTheme';
 import { loadSwiftUI } from '@/lib/expoUiModule';
 import { haptic } from '@/lib/haptics';
 import { DOUBLE_TAP_EMOJI, QUICK_EMOJI, type MessageHoldAction } from '@/lib/messageReactions';
-import { FONTS } from '@/constants/fonts';
 import {
   ALPHA,
   COLORS,
   DURATION,
-  FONT_SIZE,
   RADIUS,
   SCALE,
   SIZE,
@@ -21,6 +19,7 @@ import {
   SPRING,
   withAlpha,
 } from '@/constants/tokens';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 
 const ACTION_WORDS: Record<MessageHoldAction, string> = { edit: 'Edit', unsend: 'Unsend' };
 
@@ -247,7 +246,7 @@ export default function MessageHoldMenu({
                   pressed && styles.pressed,
                 ]}
               >
-                <Text style={[styles.rowText, styles.cancelText, { color: text }]}>Cancel</Text>
+                <Text style={[styles.cancelText, { color: text }]}>Cancel</Text>
               </Pressable>
               <KeyboardInset />
             </View>
@@ -261,7 +260,7 @@ export default function MessageHoldMenu({
 const styles = StyleSheet.create({
   heartWrap: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   // Inter Tight carries no emoji glyphs: the phone's own emoji font draws the heart.
-  heart: { fontFamily: FONTS.regular, fontSize: FONT_SIZE.f48 },
+  heart: { ...GLYPH.hero },
   fill: { flex: 1, justifyContent: 'flex-end' },
   scrim: { ...StyleSheet.absoluteFill, backgroundColor: withAlpha(COLORS.black, ALPHA.a45) },
   sheet: {
@@ -277,7 +276,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  rowText: { fontFamily: FONTS.regular, fontSize: FONT_SIZE.f16 },
-  cancelText: { fontFamily: FONTS.semiBold },
+  rowText: { ...TYPOGRAPHY.body },
+  cancelText: { ...TYPOGRAPHY.bodyStrong },
   pressed: { opacity: ALPHA.a70 },
 });

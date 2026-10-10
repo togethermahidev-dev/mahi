@@ -36,21 +36,18 @@ import {
 } from '@/lib/contextMenuPreview';
 import type { ConversationPreview } from '@/api';
 import { relativeTime } from '@/lib/relativeTime';
-import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
-  FONT_SIZE,
   ICON_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
   SPACE,
-  TRACKING,
   withAlpha,
 } from '@/constants/tokens';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 
 function ConvoRow({
   item,
@@ -139,7 +136,13 @@ function ConvoRow({
         <View style={styles.convoInfo}>
           <Text style={[styles.convoName, { color: text }]}>{name}</Text>
           {preview ? (
-            <Text style={[styles.convoPreview, { color: unread ? text : muted }]}>{preview}</Text>
+            <Text
+              style={[styles.convoPreview, { color: unread ? text : muted }]}
+              // A message preview keeps to one line; the waiting line is shown in full.
+              numberOfLines={waiting ? undefined : 1}
+            >
+              {preview}
+            </Text>
           ) : null}
         </View>
 
@@ -387,9 +390,7 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
   },
   headerTitle: {
-    fontSize: FONT_SIZE.f24,
-    fontFamily: FONTS.bold,
-    lineHeight: LINE_HEIGHT.l24,
+    ...TYPOGRAPHY.screenTitle,
   },
   headerCopy: {
     flex: 1,
@@ -422,12 +423,10 @@ const styles = StyleSheet.create({
     gap: SPACE.s3,
   },
   requestsLabel: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.bodyStrong,
   },
   requestsDetail: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.caption,
   },
   requestsRight: {
     flexDirection: 'row',
@@ -444,15 +443,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: {
+    ...TYPOGRAPHY.badge,
     color: COLORS.white,
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.bold,
-    lineHeight: LINE_HEIGHT.l14,
   },
   chevron: {
-    fontSize: FONT_SIZE.f22,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l22,
+    ...GLYPH.icon,
   },
   convoRow: {
     flexDirection: 'row',
@@ -488,25 +483,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   convoInitial: {
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h4,
   },
   convoInfo: {
     flex: 1,
     gap: SPACE.s3,
   },
   convoName: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t1_5,
+    ...TYPOGRAPHY.h4,
   },
   convoPreview: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.bodyLarge,
   },
   convoTime: {
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.caption,
   },
   convoMeta: {
     alignItems: 'flex-end',

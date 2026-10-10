@@ -45,19 +45,17 @@ import { msLeft } from '@/lib/countdown';
 import { isSlotRefusal, slotErrorText, tagInviteState } from '@/lib/tagSlots';
 import { reportError } from '@/lib/sentry';
 import { track } from '@/lib/analytics';
-import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
-  FONT_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
   SPACE,
   withAlpha,
 } from '@/constants/tokens';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 
 interface NotificationsScreenProps {
   visible: boolean;
@@ -574,8 +572,7 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s6,
   },
   inviteDone: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.caption,
     marginTop: SPACE.s4,
   },
   inviteButtons: {
@@ -591,9 +588,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
   },
   inviteAcceptText: {
+    ...TYPOGRAPHY.labelStrong,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
   },
   inviteLater: {
     borderWidth: BORDER_WIDTH.w1,
@@ -603,8 +599,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
   },
   inviteLaterText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.labelStrong,
   },
   root: {
     flex: 1,
@@ -631,22 +626,17 @@ const styles = StyleSheet.create({
     height: SIZE.z44,
   },
   backArrow: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l22,
+    ...GLYPH.icon,
   },
   headerCopy: {
     flex: 1,
   },
   headerLine: {
+    ...TYPOGRAPHY.caption,
     marginTop: SPACE.s2,
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
   },
   headerName: {
-    fontSize: FONT_SIZE.f24,
-    lineHeight: LINE_HEIGHT.l24,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.screenTitle,
   },
   listContent: {
     paddingHorizontal: SPACE.s16,
@@ -654,8 +644,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   sectionLabel: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.sectionHeader,
     paddingHorizontal: SPACE.s4,
     paddingTop: SPACE.s16,
     paddingBottom: SPACE.s8,
@@ -680,8 +669,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitials: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h4,
   },
   rowText: {
     flex: 1,
@@ -699,23 +687,19 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.s4,
   },
   requestsTitle: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.bodyStrong,
   },
   rowContent: {
     gap: SPACE.s2,
   },
   rowCaption: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l18,
+    ...TYPOGRAPHY.body,
   },
   rowName: {
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.bodyStrong,
   },
   rowTime: {
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.caption,
   },
   rowMeta: {
     flexDirection: 'row',
@@ -723,17 +707,14 @@ const styles = StyleSheet.create({
     gap: SPACE.s8,
   },
   rowAction: {
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.captionMedium,
   },
   rowEnd: {
     alignItems: 'center',
     gap: SPACE.s8,
   },
   rowChevron: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l22,
+    ...GLYPH.icon,
   },
   unreadDot: {
     width: SIZE.z8,

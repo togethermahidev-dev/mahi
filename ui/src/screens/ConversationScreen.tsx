@@ -50,23 +50,20 @@ import {
   type Message,
 } from '@/api';
 import { useBlockStore, useConversationStore, useMessagesStore } from '@/store';
-import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
-  FONT_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
   SPACE,
-  TRACKING,
   SWIPE,
   VIEWER,
   MOTION,
   withAlpha,
 } from '@/constants/tokens';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 
 interface ConversationScreenProps {
   conversation: ConversationPreview;
@@ -679,16 +676,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backArrow: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l22,
+    ...GLYPH.icon,
   },
   headerName: {
+    ...TYPOGRAPHY.h4,
     flex: 1,
     textAlign: 'center',
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t3,
   },
   requestBanner: {
     paddingHorizontal: SPACE.s24,
@@ -697,8 +690,7 @@ const styles = StyleSheet.create({
     gap: SPACE.s10,
   },
   requestText: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
     textAlign: 'center',
   },
   requestActions: {
@@ -729,8 +721,7 @@ const styles = StyleSheet.create({
     display: 'none',
   },
   requestBtnText: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.labelStrong,
   },
   loadingWrap: {
     flex: 1,
@@ -765,13 +756,10 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s8,
   },
   bubbleText: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l20,
+    ...TYPOGRAPHY.subtitle,
   },
   bubbleTime: {
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.caption,
     paddingHorizontal: SPACE.s4,
   },
   dayHeader: {
@@ -780,9 +768,7 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s4,
   },
   dayHeaderText: {
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.regular,
-    letterSpacing: TRACKING.t1,
+    ...TYPOGRAPHY.captionMedium,
   },
   emptyWrap: {
     flex: 1,
@@ -791,8 +777,7 @@ const styles = StyleSheet.create({
     paddingTop: SPACE.s60,
   },
   emptyText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
   },
   inputBar: {
     flexDirection: 'row',
@@ -803,20 +788,18 @@ const styles = StyleSheet.create({
     gap: SPACE.s10,
   },
   input: {
+    ...TYPOGRAPHY.input,
     flex: 1,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.r20,
     paddingHorizontal: SPACE.s16,
     paddingVertical: SPACE.s8,
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
     maxHeight: SIZE.z100,
   },
   sendBtn: {
     paddingBottom: SPACE.s8,
   },
   sendText: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.labelStrong,
   },
 });

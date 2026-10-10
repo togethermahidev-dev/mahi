@@ -8,19 +8,17 @@ import { reportError } from '@/lib/sentry';
 import ListState from '@/components/ListState';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import type { FollowRequest } from '@/api';
-import { FONTS } from '@/constants/fonts';
 import {
   ALPHA,
   BORDER_WIDTH,
   COLORS,
-  FONT_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
   SPACE,
   withAlpha,
 } from '@/constants/tokens';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 import { themeColors } from '@/lib/themeColors';
 
 /**
@@ -225,22 +223,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backArrow: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l22,
+    ...GLYPH.icon,
   },
   headerCopy: {
     flex: 1,
   },
   title: {
-    fontSize: FONT_SIZE.f24,
-    lineHeight: LINE_HEIGHT.l24,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.sheetTitle,
   },
   headerLine: {
+    ...TYPOGRAPHY.caption,
     marginTop: SPACE.s2,
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
   },
   list: {
     paddingHorizontal: SPACE.s16,
@@ -269,20 +262,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   initial: {
-    fontSize: FONT_SIZE.f18,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h4,
   },
   rowText: {
     flex: 1,
     gap: SPACE.s2,
   },
   name: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.bodyStrong,
   },
   handle: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.caption,
   },
   buttons: {
     flexDirection: 'row',
@@ -298,9 +288,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
   },
   confirmText: {
+    ...TYPOGRAPHY.labelStrong,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
   },
   delete: {
     flex: 1,
@@ -312,7 +301,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
   },
   deleteText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.labelStrong,
   },
 });

@@ -10,20 +10,17 @@ import ConversationScreen from '@/screens/ConversationScreen';
 import ListState from '@/components/ListState';
 import type { ConversationPreview } from '@/api';
 import { relativeTime } from '@/lib/relativeTime';
-import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
-  FONT_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
   SPACE,
-  TRACKING,
   withAlpha,
 } from '@/constants/tokens';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 
 function RequestRow({
   item,
@@ -287,22 +284,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backArrow: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l22,
+    ...GLYPH.icon,
   },
   headerCopy: {
     flex: 1,
   },
   headerEyebrow: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.caption,
     marginBottom: SPACE.s2,
   },
   headerTitle: {
-    fontSize: FONT_SIZE.f24,
-    fontFamily: FONTS.bold,
-    lineHeight: LINE_HEIGHT.l24,
+    ...TYPOGRAPHY.sheetTitle,
   },
   backSpacer: {
     width: SIZE.z44,
@@ -337,28 +329,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   convoInitial: {
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h4,
   },
   convoInfo: {
     flex: 1,
     gap: SPACE.s3,
   },
   convoName: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t1_5,
+    ...TYPOGRAPHY.bodyStrong,
   },
   convoPreview: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
   },
   convoRight: {
     alignItems: 'flex-end',
   },
   convoTime: {
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.micro,
   },
   actionArea: {
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -367,8 +354,7 @@ const styles = StyleSheet.create({
     paddingBottom: SPACE.s14,
   },
   actionHint: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.caption,
     marginBottom: SPACE.s10,
   },
   actionBtns: {
@@ -389,16 +375,13 @@ const styles = StyleSheet.create({
     borderColor: COLORS.accent,
   },
   actionBtnText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.labelStrong,
   },
   acceptBtnText: {
+    ...TYPOGRAPHY.labelStrong,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.bold,
   },
   pendingLabel: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.small,
   },
 });
