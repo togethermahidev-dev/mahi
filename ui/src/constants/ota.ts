@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 44 — short sheets: the grey fades in on its own and only the card slides up;
+ *     Invite a friend opens as the phone's own short sheet on builds that have it (2026-10-10)
  *   build 13 · 43 — one new type system across the app (Inter Tight, named text sizes);
  *     share sheet like Instagram's (a grid of friends, Copy link, round buttons; a shared post is a
  *     card in chats); feed: pinch to zoom, the small photo never over the name, nothing white
@@ -182,4 +184,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 43;
+export const OTA_NUMBER = 44;
