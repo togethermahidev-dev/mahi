@@ -135,7 +135,7 @@ export function usePostShare(): {
 }
 
 /**
- * "Invite a mate", for every place that offers it. Switch `share-sheet` on (everyone): a link is
+ * "Invite a friend", for every place that offers it. Switch `share-sheet` on (everyone): a link is
  * made on tap, then Mahi's share sheet opens with it (put `sheet` in the component's own tree);
  * `invite` settles once the sheet is up, so a "making your link" state ends there. Off: the
  * phone's share sheet, as before (`inviteAMate`). `onSent` runs when the link went somewhere; a

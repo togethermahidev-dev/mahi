@@ -1,17 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { FONTS } from '@/constants/fonts';
-import {
-  ALPHA,
-  BORDER_WIDTH,
-  COLORS,
-  FONT_SIZE,
-  LINE_HEIGHT,
-  RADIUS,
-  SPACE,
-  withAlpha,
-} from '@/constants/tokens';
+import { FONT_SIZE, LINE_HEIGHT, PROFILE, SPACE } from '@/constants/tokens';
 import { themeColors } from '@/hooks/useAppTheme';
 
 interface ProfileIdentityCardProps {
@@ -19,65 +9,80 @@ interface ProfileIdentityCardProps {
   avatar: React.ReactNode;
   displayName: string;
   username?: string | null;
-  supportingText: string;
+  /** A line under the handle (someone else's profile). */
+  supportingText?: string;
+  /** Under the handle on your own profile: the short links to Friends and Your invites. */
+  children?: React.ReactNode;
 }
 
-/** Shared profile identity treatment for your profile and profiles you visit. */
+/**
+ * Who a profile belongs to, kept short so the grid of posts shows without scrolling (owner,
+ * 2026-10-10): the name and @username on the left, the profile picture on the right. Shared by
+ * your profile and profiles you visit. Plain black and white on the page, no card around it.
+ */
 export default function ProfileIdentityCard({
   dark,
   avatar,
   displayName,
   username,
   supportingText,
+  children,
 }: ProfileIdentityCardProps): React.JSX.Element {
-  const { text, muted, border } = themeColors(dark);
-  const start = dark ? withAlpha(COLORS.accent, ALPHA.a22) : withAlpha(COLORS.accent, ALPHA.a18);
-  const end = dark ? COLORS.surfaceDark2 : COLORS.paper;
+  const { text, muted } = themeColors(dark);
 
   return (
-    <LinearGradient colors={[start, end]} style={[styles.card, { borderColor: border }]}>
-      <View style={[styles.avatarHalo, { borderColor: withAlpha(COLORS.accent, ALPHA.a35) }]}>
-        {avatar}
+    <View style={styles.row}>
+      <View style={styles.copy}>
+        {/* A long name shrinks a little to stay on one line, so the header keeps its height. */}
+        <Text
+          style={[styles.displayName, { color: text }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={PROFILE.nameMinScale}
+          accessibilityRole="header"
+        >
+          {displayName}
+        </Text>
+        {username ? (
+          <Text style={[styles.handle, { color: muted }]} numberOfLines={1}>
+            @{username}
+          </Text>
+        ) : null}
+        {supportingText ? (
+          <Text style={[styles.supportingText, { color: muted }]}>{supportingText}</Text>
+        ) : null}
+        {children}
       </View>
-      <Text style={[styles.displayName, { color: text }]}>{displayName}</Text>
-      {username ? <Text style={[styles.handle, { color: muted }]}>@{username}</Text> : null}
-      <Text style={[styles.supportingText, { color: muted }]}>{supportingText}</Text>
-    </LinearGradient>
+      {avatar}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  row: {
     width: '100%',
-    alignItems: 'center',
-    borderRadius: RADIUS.r28,
-    borderWidth: BORDER_WIDTH.w1,
-    paddingTop: SPACE.s24,
-    paddingHorizontal: SPACE.s24,
-    paddingBottom: SPACE.s24,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACE.s16,
   },
-  avatarHalo: {
-    borderWidth: BORDER_WIDTH.w2,
-    borderRadius: RADIUS.r50,
-    padding: SPACE.s3,
-    marginBottom: SPACE.s16,
+  // The words take what the picture leaves, and wrap inside it.
+  copy: {
+    flex: 1,
   },
   displayName: {
-    fontSize: FONT_SIZE.f24,
+    fontSize: FONT_SIZE.f22,
     fontFamily: FONTS.bold,
     lineHeight: LINE_HEIGHT.l28,
-    marginBottom: SPACE.s4,
-    textAlign: 'center',
   },
   handle: {
     fontSize: FONT_SIZE.f14,
     fontFamily: FONTS.regular,
-    marginBottom: SPACE.s12,
+    marginTop: SPACE.s2,
   },
   supportingText: {
     fontSize: FONT_SIZE.f13,
     lineHeight: LINE_HEIGHT.l18,
     fontFamily: FONTS.regular,
-    textAlign: 'center',
+    marginTop: SPACE.s8,
   },
 });

@@ -129,7 +129,7 @@ export default function GlobalSearchOverlay({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ProfileSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  // "Invite a mate" under a search that found no one: the link is being made.
+  // "Invite a friend" under a search that found no one: the link is being made.
   const [inviting, setInviting] = useState(false);
   // The link opens in Mahi's share sheet (switch `share-sheet`; off: the phone's).
   const { invite: inviteAMate, sheet: inviteSheet } = useInviteAMate();

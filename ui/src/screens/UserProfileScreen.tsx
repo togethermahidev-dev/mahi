@@ -49,6 +49,7 @@ import {
   DURATION,
   FONT_SIZE,
   LAYER,
+  LAYOUT,
   LINE_HEIGHT,
   OFFSET,
   RADIUS,
@@ -532,11 +533,19 @@ export default function UserProfileScreen({
           accessible
           accessibilityLabel={`Best, ${pointsCount(profile?.streak_highest)}`}
         >
-          <View>
+          {/* The words take the room the number leaves and wrap inside it; the number keeps its
+              own width at the far end, so the two never run into each other. */}
+          <View style={styles.bestCopy}>
             <Text style={[styles.detailLabel, { color: muted }]}>Mahi points</Text>
             <Text style={[styles.detailTitle, { color: text }]}>Personal best</Text>
           </View>
-          <Text style={[styles.bestValue, { color: text }]}>{profile?.streak_highest ?? 0}</Text>
+          <Text
+            style={[styles.bestValue, { color: text }]}
+            numberOfLines={1}
+            maxFontSizeMultiplier={LAYOUT.largeTextScale}
+          >
+            {profile?.streak_highest ?? 0}
+          </Text>
         </View>
       </View>
 
@@ -830,6 +839,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: SPACE.s12,
+    paddingVertical: SPACE.s12,
+  },
+  bestCopy: {
+    flex: 1,
   },
   detailDivider: {
     width: '100%',
@@ -850,6 +864,7 @@ const styles = StyleSheet.create({
     lineHeight: LINE_HEIGHT.l24,
   },
   bestValue: {
+    flexShrink: 0,
     fontSize: FONT_SIZE.f28,
     fontFamily: FONTS.bold,
     lineHeight: LINE_HEIGHT.l28,

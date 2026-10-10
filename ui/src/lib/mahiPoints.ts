@@ -14,10 +14,18 @@ export function pointsCount(points: number | null | undefined): string {
   return `${n} ${n === 1 ? 'point' : 'points'}`;
 }
 
+/**
+ * The words beside a points number drawn on its own (the profile's rolling number): "Mahi point"
+ * for one, "Mahi points" otherwise and while the number is unknown.
+ */
+export function mahiPointsWords(points: number | null | undefined): string {
+  return `Mahi ${points === 1 ? 'point' : 'points'}`;
+}
+
 /** "1 Mahi point", "12 Mahi points" (unknown reads as 0): the one full wording for the points. */
 export function mahiPointsCount(points: number | null | undefined): string {
   const n = points ?? 0;
-  return `${n} Mahi ${n === 1 ? 'point' : 'points'}`;
+  return `${n} ${mahiPointsWords(n)}`;
 }
 
 /**

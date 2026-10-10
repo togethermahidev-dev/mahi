@@ -16,8 +16,10 @@ import {
   COLORS,
   DURATION,
   FONT_SIZE,
+  LAYOUT,
   LINE_HEIGHT,
   MOTION,
+  POINTS_NUMBER,
   RADIUS,
   SIZE,
   SPACE,
@@ -74,7 +76,15 @@ export default function PointCelebration({
               accessible
               accessibilityLabel={content.badgeLabel ?? 'Plus 1 Mahi point'}
             >
-              <Text style={[styles.plusOne, { color: COLORS.offBlack }]}>
+              {/* The circle is a fixed size: its number grows only up to large text and shrinks
+                  to fit, so it never spills over the words under it. */}
+              <Text
+                style={[styles.plusOne, { color: COLORS.offBlack }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={POINTS_NUMBER.badgeMinScale}
+                maxFontSizeMultiplier={LAYOUT.largeTextScale}
+              >
                 {content.badge ?? '+1'}
               </Text>
             </Reanimated.View>
@@ -137,6 +147,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: SPACE.s8,
     marginBottom: SPACE.s20,
   },
   plusOne: {

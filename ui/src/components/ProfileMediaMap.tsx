@@ -18,6 +18,7 @@ import { refreshTint } from '@/lib/themeColors';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { pointsBadgeText } from '@/lib/mahiPoints';
 import { gridTile } from '@/lib/videoPosts';
+import { gridInset, gridSquare } from '@/lib/profileGrid';
 import {
   gridMenuItems,
   isMenuAction,
@@ -45,6 +46,7 @@ import {
   ICON_SIZE,
   LAYOUT,
   OFFSET,
+  PROFILE,
   RADIUS,
   SIZE,
   SPACE,
@@ -208,8 +210,20 @@ function WorkoutCard({
         </View>
       ) : null}
       {points ? (
-        <View style={[styles.badge, { backgroundColor: badgeBg }]}>
-          <Text style={[styles.badgeText, { color: badgeText }]}>{points}</Text>
+        // Held between the square's edges: at three across, or at large text, "100 Mahi points"
+        // shrinks to fit on its one line instead of running off the square.
+        <View style={styles.badgeRow} pointerEvents="none">
+          <View style={[styles.badge, { backgroundColor: badgeBg }]}>
+            <Text
+              style={[styles.badgeText, { color: badgeText }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={PROFILE.badgeMinScale}
+              maxFontSizeMultiplier={LAYOUT.largeTextScale}
+            >
+              {points}
+            </Text>
+          </View>
         </View>
       ) : null}
     </Pressable>
@@ -253,7 +267,10 @@ interface ProfileMediaMapProps {
   onOpenCamera?: () => void;
 }
 
-/** A profile page as one scrolling list: the header, then a calm, two-column workout grid. */
+/**
+ * A profile page as one scrolling list: the header, then the workout grid, three squares across
+ * and edge to edge (owner, 2026-10-10).
+ */
 export default function ProfileMediaMap({
   userId,
   isSelf,
@@ -286,8 +303,9 @@ export default function ProfileMediaMap({
   const failed = posts.length === 0 && !isLoading && lastSyncedAt === null;
   const menuOn = useContextMenuPreview();
   const { width } = useWindowDimensions();
-  const cardWidth = (width - SPACE.s1 * (LAYOUT.profileColumns + 1)) / LAYOUT.profileColumns;
-  // Square photos with hairline gaps; the hold-to-preview wrapper is exactly the photo's size.
+  // Square photos with the small gap between them only; the hold-to-preview wrapper is exactly
+  // the photo's size.
+  const cardWidth = gridSquare(width, PROFILE.gridColumns, PROFILE.gridGap);
   const mediaHeight = cardWidth;
 
   // Pull to refresh: the spinner shows until the fresh posts are in.
@@ -339,7 +357,7 @@ export default function ProfileMediaMap({
         }
         data={posts}
         keyExtractor={(post) => post.id}
-        numColumns={LAYOUT.profileColumns}
+        numColumns={PROFILE.gridColumns}
         ListHeaderComponent={
           restricted && !isSelf ? (
             <>
@@ -358,8 +376,13 @@ export default function ProfileMediaMap({
           )
         }
         ListEmptyComponent={empty}
-        renderItem={({ item }) => (
-          <View style={styles.gridCell}>
+        renderItem={({ item, index }) => (
+          <View
+            style={[
+              styles.gridCell,
+              { marginLeft: gridInset(index, PROFILE.gridColumns, PROFILE.gridGap) },
+            ]}
+          >
             <WorkoutCard
               post={item}
               dark={dark}
@@ -392,8 +415,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   gridCell: {
-    marginLeft: SPACE.s1,
-    marginBottom: SPACE.s1,
+    marginBottom: PROFILE.gridGap,
   },
   moreLoader: {
     height: SIZE.z48,
@@ -406,10 +428,15 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: ALPHA.a80,
   },
-  badge: {
+  badgeRow: {
     position: 'absolute',
     bottom: OFFSET.o4,
+    left: OFFSET.o4,
     right: OFFSET.o4,
+    alignItems: 'flex-end',
+  },
+  badge: {
+    maxWidth: '100%',
     borderRadius: RADIUS.r50,
     paddingVertical: SPACE.s2,
     paddingHorizontal: SPACE.s6,

@@ -521,6 +521,35 @@ export const SHARE_SHEET = {
   postCardAspect: 3 / 4,
 } as const;
 
+// ─── Profile (owner, 2026-10-10): three squares across, a compact header, and the room a Mahi
+// points number keeps so its words never sit on it ────────────────────────────────────────────
+export const PROFILE = {
+  /** Squares across a profile's grid of posts, edge to edge… */
+  gridColumns: 3,
+  /** …with this gap between them (none at the screen's edges). */
+  gridGap: SPACE.s1,
+  /** The round "Invite a friend" button, top left of your own profile. */
+  inviteButton: SIZE.z44,
+  /** A long name shrinks to this share of its size before it is cut. */
+  nameMinScale: 0.75,
+  /** The most lines the note under your points wraps to (where you stand, who you last answered). */
+  noteLines: 3,
+  /** A post's "N Mahi points" badge shrinks to this share of its size before it is cut. */
+  badgeMinScale: 0.8,
+} as const;
+
+export const POINTS_NUMBER = {
+  /** Each digit keeps this share of the text size: Inter's widest digit (the bold 4, 0.676). */
+  digitWidth: 0.68,
+  /** Apple's rolling digits are one natural Inter line tall (ascent + descent, 1.21 of the size). */
+  lineShare: 1.21,
+  /** The words beside a number wrap to this many lines, shrinking to this share before a cut. */
+  wordsLines: 2,
+  wordsMinScale: 0.8,
+  /** "+1" in its circle shrinks to this share at most, so it always fits the circle. */
+  badgeMinScale: 0.5,
+} as const;
+
 // ─── Floating nav rail: the pill outline and shadow (with SHADOW_BLUR / SIZE) ────
 export const NAV_RAIL = {
   /** Pill outline: white at this opacity on dark screens (owner: a clearly visible pill). */

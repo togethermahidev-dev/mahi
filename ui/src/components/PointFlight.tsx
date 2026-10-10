@@ -36,7 +36,9 @@ import {
   COLORS,
   DURATION,
   FONT_SIZE,
+  LAYOUT,
   MOTION,
+  POINTS_NUMBER,
   RADIUS,
   SIZE,
   SPACE,
@@ -168,7 +170,16 @@ function FlightRun({
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
       >
-        <Text style={styles.chipText}>+1</Text>
+        {/* A fixed circle: the "+1" grows only up to large text and shrinks to fit. */}
+        <Text
+          style={styles.chipText}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={POINTS_NUMBER.badgeMinScale}
+          maxFontSizeMultiplier={LAYOUT.largeTextScale}
+        >
+          +1
+        </Text>
       </Reanimated.View>
 
       {landed && flight.milestone && !reduceMotion
@@ -277,6 +288,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: SPACE.s4,
     backgroundColor: COLORS.accent,
   },
   chipText: {
@@ -293,12 +305,16 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
     backgroundColor: COLORS.accent,
   },
+  // Held between both edges of the screen, the card at its right: on a narrow phone or at large
+  // text its words wrap inside the screen instead of running off the left.
   cardSpot: {
     position: 'absolute',
+    left: SPACE.s24,
     right: SPACE.s24,
-    maxWidth: SIZE.z360,
+    alignItems: 'flex-end',
   },
   card: {
+    maxWidth: SIZE.z360,
     borderRadius: RADIUS.r18,
     overflow: 'hidden',
   },

@@ -1,6 +1,7 @@
 import {
   pointsAfterDelete,
   mahiPointsCount,
+  mahiPointsWords,
   missMoment,
   pointCelebration,
   pointsRowText,
@@ -38,6 +39,24 @@ describe('mahiPointsCount', () => {
   it('reads 0 when the number is unknown', () => {
     expect(mahiPointsCount(null)).toBe('0 Mahi points');
     expect(mahiPointsCount(undefined)).toBe('0 Mahi points');
+  });
+});
+
+describe('mahiPointsWords', () => {
+  it('reads the words beside the number: "Mahi point" for one, "Mahi points" otherwise', () => {
+    expect(mahiPointsWords(1)).toBe('Mahi point');
+    expect(mahiPointsWords(0)).toBe('Mahi points');
+    expect(mahiPointsWords(12)).toBe('Mahi points');
+    expect(mahiPointsWords(100)).toBe('Mahi points');
+  });
+
+  it('reads "Mahi points" while the number is unknown', () => {
+    expect(mahiPointsWords(null)).toBe('Mahi points');
+    expect(mahiPointsWords(undefined)).toBe('Mahi points');
+  });
+
+  it('is the same wording as the full count', () => {
+    for (const n of [0, 1, 2, 48]) expect(mahiPointsCount(n)).toBe(`${n} ${mahiPointsWords(n)}`);
   });
 });
 

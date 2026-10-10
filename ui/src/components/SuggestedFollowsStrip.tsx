@@ -80,7 +80,8 @@ export default function SuggestedFollowsStrip({
         accessibilityRole="button"
         accessibilityLabel="Suggested for you"
         accessibilityState={{ expanded: open }}
-        hitSlop={{ top: SPACE.s8, bottom: SPACE.s8 }}
+        // 32 points tall; the slop makes it 44 to tap.
+        hitSlop={{ top: SPACE.s6, bottom: SPACE.s6 }}
       >
         <Text style={[styles.header, { color: muted }]}>Suggested for you</Text>
         <Text style={[styles.chevron, { color: muted }, open && styles.chevronOpen]}>›</Text>
@@ -175,16 +176,17 @@ export default function SuggestedFollowsStrip({
 const CARD_WIDTH = SIZE.z132;
 
 const styles = StyleSheet.create({
+  // Folded (the default) it is one short line, so the photo grid below keeps its room.
   root: {
     width: '100%',
-    marginTop: SPACE.s24,
+    marginTop: SPACE.s8,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACE.s8,
-    marginBottom: SPACE.s12,
+    minHeight: SIZE.z32,
   },
   header: {
     fontSize: FONT_SIZE.f13,
@@ -199,6 +201,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.regular,
     textAlign: 'center',
     paddingHorizontal: SPACE.s24,
+    marginTop: SPACE.s4,
     marginBottom: SPACE.s12,
   },
   chevronOpen: {

@@ -2,7 +2,7 @@
  * The share sheet (owner, 2026-10-10: "This is what a share sheet should look like for Mahi, it's
  * how Instagram's look"): search, a grid of your friends to send a post to in your Mahi chat, and
  * a row of round buttons along the bottom (Copy link, WhatsApp, Messages, Snapchat, Instagram,
- * Share to…). "Invite a mate" uses the same sheet with a title and the row only.
+ * Share to…). "Invite a friend" uses the same sheet with a title and the row only.
  *
  * Pure rules (type imports only) so they run under the node-only jest harness. Friends are never
  * kept on the phone: the sheet reads them fresh each time it opens.
@@ -22,11 +22,20 @@ export type ShareSheetMode = 'post' | 'invite';
 /** A round button on the bottom row: Copy link, or one of the tag screen's share targets. */
 export type ShareSheetTarget = 'copy' | ShareTarget;
 
+/**
+ * The invite's words (owner, 2026-10-10: "change mate to friend"), in one place: the round button
+ * on your profile, what VoiceOver reads on it, and the sheet's title.
+ */
+export const INVITE_A_FRIEND = {
+  label: 'Invite a friend',
+  hint: 'Makes an invite link and opens sharing',
+} as const;
+
 /** What the sheet shows per use: a post gets search and the friends grid; an invite doesn't. */
 export function shareSheetParts(mode: ShareSheetMode): { title: string; friends: boolean } {
   return mode === 'post'
     ? { title: 'Share', friends: true }
-    : { title: 'Invite a mate', friends: false };
+    : { title: INVITE_A_FRIEND.label, friends: false };
 }
 
 /** The sheet spells the apps out; the tag screen's small pills keep their short names. */

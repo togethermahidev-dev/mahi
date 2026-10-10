@@ -1,27 +1,41 @@
-import React, { useEffect, useState } from 'react';
-import { Alert, View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
+import React, { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  type StyleProp,
+  type TextStyle,
+} from 'react-native';
 import type { NativeGesture } from 'react-native-gesture-handler';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { useAuthStore, useProfilePostsStore, useUserStore } from '@/store';
-import { answeredMatesLine, lastAnsweredMates, pointsStatsLabel } from '@/lib/mahiPoints';
+import {
+  answeredMatesLine,
+  lastAnsweredMates,
+  mahiPointsWords,
+  pointsStatsLabel,
+  pointsValue,
+} from '@/lib/mahiPoints';
 import RollingNumber from '@/components/RollingNumber';
 import PointsBar from '@/components/PointsBar';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { POINTS_RULE, pointsHint } from '@/lib/pointsHint';
+import { INVITE_A_FRIEND } from '@/lib/shareSheet';
 import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostViewer from '@/components/PostViewer';
 import SettingsPanel from '@/components/SettingsPanel';
-import { MessagesIcon, ProfileIcon, SearchIcon, SettingsIcon } from '@/components/ScreenIcons';
+import { SearchIcon, SettingsIcon } from '@/components/ScreenIcons';
 import AvatarPicker from '@/components/AvatarPicker';
 import FollowListModal from '@/components/FollowListModal';
 import MyInvitesSheet from '@/components/MyInvitesSheet';
-import { getMyInvites } from '@/api/invites';
-import { inviteSummary } from '@/lib/myInvites';
 import { useInviteAMate } from '@/components/ShareSheet';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
-import TouchCarousel from '@/components/TouchCarousel';
 import ProfileIdentityCard from '@/components/ProfileIdentityCard';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { FONTS } from '@/constants/fonts';
@@ -29,15 +43,16 @@ import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
-  ELEVATION,
   FONT_SIZE,
   ICON_SIZE,
   LAYOUT,
   LINE_HEIGHT,
+  POINTS_NUMBER,
+  PROFILE,
   RADIUS,
-  SHADOW_BLUR,
   SIZE,
   SPACE,
+  STROKE,
   withAlpha,
 } from '@/constants/tokens';
 import { TAP_AREA, tapSlop } from '@/lib/tapArea';
@@ -45,28 +60,10 @@ import type { MorphSource } from '@/lib/morph';
 
 // The settings and search icons are drawn 22 across; each taps as 44.
 const ICON_SLOP = tapSlop(ICON_SIZE.i22, TAP_AREA.ios);
-
-type ProfileShortcut = 'friends' | 'invites' | 'find';
-
-const PROFILE_SHORTCUT_COPY: Record<
-  ProfileShortcut,
-  { title: string; subtitle: string; accessibilityHint: string }
-> = {
-  friends: {
-    title: 'Friends',
-    subtitle: 'See your list',
-    accessibilityHint: 'Opens your friends list',
-  },
-  invites: {
-    title: 'Your invites',
-    subtitle: 'See who joined',
-    accessibilityHint: 'Shows the links you’ve sent and who joined',
-  },
-  find: {
-    title: 'Find friends',
-    subtitle: 'Grow your circle',
-    accessibilityHint: 'Searches Mahi by name or username',
-  },
+// The short links under your name are 32 tall; each taps as 44 (they are wide enough already).
+const LINK_SLOP = {
+  top: tapSlop(SIZE.z32, TAP_AREA.ios).top,
+  bottom: tapSlop(SIZE.z32, TAP_AREA.ios).bottom,
 };
 
 interface ProfileScreenProps {
@@ -79,7 +76,10 @@ interface ProfileScreenProps {
   onSearch?: () => void;
   /** Go to the Camera page (the empty grid's "Open camera"); without it the grid only explains. */
   onOpenCamera?: () => void;
-  /** Holds the surrounding page swipe while a horizontal profile carousel owns the touch. */
+  /**
+   * The profile has no sideways carousel any more (the compact header, owner 2026-10-10), so
+   * nothing here holds the page swipe. Still accepted so the navigator's call keeps working.
+   */
   onCarouselTouchChange?: (active: boolean) => void;
 }
 
@@ -91,24 +91,69 @@ function explainPoints() {
   );
 }
 
+/** A person with a plus beside them: "Invite a friend". Drawn like the app's other icons. */
+function InviteIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+        stroke={color}
+        strokeWidth={STROKE.s1_8}
+        strokeLinecap="round"
+      />
+      <Circle cx="8.5" cy="7" r="4" stroke={color} strokeWidth={STROKE.s1_8} />
+      <Path d="M20 8v6M23 11h-6" stroke={color} strokeWidth={STROKE.s1_8} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/**
+ * A points number on the profile: rolling (switch `profile-points-card`) or still, a dash until
+ * it has loaded. Either way it keeps its own width in the row and grows only up to large text, so
+ * the words beside it always have room (they wrap or shrink; the number never gives way).
+ */
+function PointsNumber({
+  value,
+  rolling,
+  style,
+  size,
+  color,
+}: {
+  value: number | null;
+  rolling: boolean;
+  style: StyleProp<TextStyle>;
+  size: number;
+  color: string;
+}) {
+  if (!rolling) {
+    return (
+      <Text style={style} numberOfLines={1} maxFontSizeMultiplier={LAYOUT.largeTextScale}>
+        {pointsValue(value)}
+      </Text>
+    );
+  }
+  return (
+    <RollingNumber
+      value={value}
+      style={style}
+      font={{ family: FONTS.bold, size, color }}
+      maxFontSizeMultiplier={LAYOUT.largeTextScale}
+    />
+  );
+}
+
 export default function ProfileScreen({
   isActive = true,
   listGesture,
   onSearch,
   onOpenCamera,
-  onCarouselTouchChange,
 }: ProfileScreenProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const top = useSafeAreaInsets().top;
-  const { width } = useWindowDimensions();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
-  // "3 waiting · 1 joined", read fresh each time the profile shows (invites expire, so never
-  // kept on the phone). Null while reading or after a failed read: the row says so instead.
-  const [invitesLine, setInvitesLine] = useState<string | null>(null);
-  const [invitesRead, setInvitesRead] = useState(false);
-  // "Invite a mate" (core workflow step 24): one link at a time, so a double tap can't make two.
+  // "Invite a friend" (core workflow step 24): one link at a time, so a double tap can't make two.
   const [inviting, setInviting] = useState(false);
   // The link opens in Mahi's share sheet (switch `share-sheet`; off: the phone's).
   const { invite: inviteAMate, sheet: inviteSheet } = useInviteAMate();
@@ -119,9 +164,8 @@ export default function ProfileScreen({
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const { muted, border, accentText } = themeColors(dark);
+  const { muted, border } = themeColors(dark);
   const toggleColor = dark ? COLORS.offWhite : COLORS.offBlack;
-  const surface = dark ? COLORS.surfaceDark2 : COLORS.paper;
   const raisedSurface = dark ? COLORS.surfaceDark : COLORS.white;
   const iconSurface = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a08)
@@ -140,25 +184,14 @@ export default function ProfileScreen({
   const { posts: myPosts } = useProfilePosts(userId ?? '', isActive && !!userId);
   // The last three mates you answered: only once your posts have been read (never a guess).
   const myPostsRead = useProfilePostsStore((s) => s.userId === userId && s.lastSyncedAt !== null);
-  // Kill switch: off, today's still card (plain numbers, a still bar, no mates line).
+  // Kill switch: off, plain numbers, a still bar and no line about your last answers.
   const cardOn = useFeatureFlag('profile-points-card');
   const answeredMates = cardOn && myPostsRead ? lastAnsweredMates(myPosts) : [];
   const matesLine = answeredMatesLine(answeredMates);
 
-  useEffect(() => {
-    if (!isActive || !userId || invitesOpen) return;
-    let stale = false;
-    void getMyInvites().then(({ data }) => {
-      if (stale) return;
-      setInvitesLine(data ? inviteSummary(data) : null);
-      setInvitesRead(true);
-    });
-    return () => {
-      stale = true;
-    };
-  }, [isActive, userId, invitesOpen]);
-
   const hint = profile ? pointsHint(profile.streak_current, profile.streak_highest) : null;
+  // One short line under the bar: where you stand, then who you last answered.
+  const pointsNote = [hint, matesLine].filter(Boolean).join(' ');
 
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
   const currentPoints = profile?.streak_current ?? 0;
@@ -170,26 +203,37 @@ export default function ProfileScreen({
         ? LAYOUT.percentFull
         : 0
     : 0;
-  const carouselItemWidth = Math.min(SIZE.z400, width - SPACE.s40 - SIZE.z48);
-  const shortcuts: readonly ProfileShortcut[] = onSearch
-    ? ['friends', 'invites', 'find']
-    : ['friends', 'invites'];
-  const shortcutPress: Record<ProfileShortcut, (() => void) | undefined> = {
-    friends: () => setFriendsOpen(true),
-    invites: () => setInvitesOpen(true),
-    find: onSearch,
-  };
 
-  // Everything above the grid. The page is one list, so this scrolls away and the grid can
-  // fill the screen.
+  // Everything above the grid, kept short so the first rows of posts show without scrolling
+  // (owner, 2026-10-10). The page is one list, so this scrolls away with the grid.
   const header = (
     <View style={styles.header}>
-      {/* A compact, predictable top bar. Every icon has a visible 44-point target; Search stays
-          here because it is the profile's route to finding anyone on Mahi. */}
+      {/* Top bar: Invite a friend in the top left; Search and Settings stay in the top right.
+          Every button has a visible 44-point target. */}
       <View style={styles.topBar}>
-        <View style={styles.titleBlock}>
-          <Text style={[styles.screenTitle, { color: text }]}>Profile</Text>
-        </View>
+        <Pressable
+          style={({ pressed }) => [
+            styles.inviteButton,
+            { backgroundColor: text },
+            (pressed || inviting) && { opacity: ALPHA.a70 },
+          ]}
+          onPress={() => {
+            if (inviting) return;
+            setInviting(true);
+            void inviteAMate().finally(() => setInviting(false));
+          }}
+          disabled={inviting}
+          accessibilityRole="button"
+          accessibilityLabel={INVITE_A_FRIEND.label}
+          accessibilityHint={INVITE_A_FRIEND.hint}
+          accessibilityState={{ busy: inviting, disabled: inviting }}
+        >
+          {inviting ? (
+            <ActivityIndicator color={bg} />
+          ) : (
+            <InviteIcon size={ICON_SIZE.i22} color={bg} />
+          )}
+        </Pressable>
         <View style={styles.actions}>
           {onSearch ? (
             <Pressable
@@ -223,13 +267,12 @@ export default function ProfileScreen({
         </View>
       </View>
 
-      {/* The identity card is deliberately calm and spacious: the photo is editable, the name is
-          the strongest type, and the handle is clearly secondary. */}
+      {/* Who you are: name and @username on the left, your picture on the right (tap to see it,
+          Edit to change it), and the two short ways to your people under your name. */}
       <ProfileIdentityCard
         dark={dark}
         displayName={displayName}
         username={profile?.username}
-        supportingText="Only you are accountable for showing up."
         avatar={
           <AvatarPicker
             avatarUrl={profile?.avatar_url ?? null}
@@ -239,17 +282,50 @@ export default function ProfileScreen({
             onUpdate={(newUrl) => profile && setProfile({ ...profile, avatar_url: newUrl })}
           />
         }
-      />
+      >
+        <View style={styles.links}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.link,
+              { borderColor: border },
+              pressed && { opacity: ALPHA.a70 },
+            ]}
+            onPress={() => setFriendsOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Friends"
+            accessibilityHint="Opens your friends list"
+            hitSlop={LINK_SLOP}
+          >
+            <Text style={[styles.linkText, { color: text }]} numberOfLines={1}>
+              Friends
+            </Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.link,
+              { borderColor: border },
+              pressed && { opacity: ALPHA.a70 },
+            ]}
+            onPress={() => setInvitesOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Your invites"
+            accessibilityHint="Shows the links you’ve sent and who joined"
+            hitSlop={LINK_SLOP}
+          >
+            <Text style={[styles.linkText, { color: text }]} numberOfLines={1}>
+              Your invites
+            </Text>
+          </Pressable>
+        </View>
+      </ProfileIdentityCard>
 
-      {/* The progress card explains itself on tap and never shows a fake zero while loading. */}
+      {/* Mahi points on one line: the number keeps its own width, the words take what is left
+          and wrap or shrink, and Best sits at the far end. It explains itself on tap and never
+          shows a fake zero while loading. */}
       <Pressable
         style={({ pressed }) => [
           styles.pointsCard,
-          {
-            backgroundColor: raisedSurface,
-            borderColor: border,
-            shadowColor: COLORS.black,
-          },
+          { backgroundColor: raisedSurface, borderColor: border },
           pressed && { opacity: ALPHA.a80 },
         ]}
         onPress={explainPoints}
@@ -264,43 +340,39 @@ export default function ProfileScreen({
         }
         accessibilityHint="Explains Mahi points"
       >
-        <View style={styles.cardHeadingRow}>
-          <View style={styles.cardHeadingCopy}>
-            <Text style={[styles.cardEyebrow, { color: accentText }]}>Your progress</Text>
-            <Text style={[styles.cardTitle, { color: text }]}>Mahi points</Text>
+        <View style={styles.pointsRow}>
+          <PointsNumber
+            value={profile ? currentPoints : null}
+            rolling={cardOn}
+            style={[styles.pointsNumber, { color: profile ? text : muted }]}
+            size={FONT_SIZE.f24}
+            color={text}
+          />
+          <Text
+            style={[styles.pointsWords, { color: text }]}
+            numberOfLines={POINTS_NUMBER.wordsLines}
+            adjustsFontSizeToFit
+            minimumFontScale={POINTS_NUMBER.wordsMinScale}
+          >
+            {mahiPointsWords(profile ? currentPoints : null)}
+          </Text>
+          <View style={styles.bestGroup}>
+            <Text
+              style={[styles.bestLabel, { color: muted }]}
+              numberOfLines={1}
+              maxFontSizeMultiplier={LAYOUT.largeTextScale}
+            >
+              Best
+            </Text>
+            <PointsNumber
+              value={profile ? bestPoints : null}
+              rolling={cardOn}
+              style={[styles.bestNumber, { color: profile ? text : muted }]}
+              size={FONT_SIZE.f17}
+              color={text}
+            />
           </View>
-          <Text style={[styles.learnMore, { color: accentText }]}>How it works ›</Text>
-        </View>
-        <View style={styles.metricsRow}>
-          <View style={styles.metric}>
-            {cardOn ? (
-              <RollingNumber
-                value={profile ? currentPoints : null}
-                style={[styles.metricValue, { color: profile ? text : muted }]}
-                font={{ family: FONTS.bold, size: FONT_SIZE.f38, color: text }}
-              />
-            ) : (
-              <Text style={[styles.metricValue, { color: profile ? text : muted }]}>
-                {profile ? currentPoints : '–'}
-              </Text>
-            )}
-            <Text style={[styles.metricLabel, { color: muted }]}>Current</Text>
-          </View>
-          <View style={[styles.metricDivider, { backgroundColor: border }]} />
-          <View style={styles.metric}>
-            {cardOn ? (
-              <RollingNumber
-                value={profile ? bestPoints : null}
-                style={[styles.metricValue, { color: profile ? text : muted }]}
-                font={{ family: FONTS.bold, size: FONT_SIZE.f38, color: text }}
-              />
-            ) : (
-              <Text style={[styles.metricValue, { color: profile ? text : muted }]}>
-                {profile ? bestPoints : '–'}
-              </Text>
-            )}
-            <Text style={[styles.metricLabel, { color: muted }]}>Personal best</Text>
-          </View>
+          <Text style={[styles.chevron, { color: muted }]}>›</Text>
         </View>
         <View style={[styles.progressTrack, { backgroundColor: iconSurface }]}>
           {cardOn ? (
@@ -309,114 +381,15 @@ export default function ProfileScreen({
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
           )}
         </View>
-        {hint ? <Text style={[styles.pointsHint, { color: muted }]}>{hint}</Text> : null}
-        {/* Your points are made of people: the last three mates you answered. */}
-        {matesLine ? (
-          <View style={styles.matesRow}>
-            <View style={styles.matesFaces}>
-              {answeredMates.map((name) => (
-                <View key={name} style={[styles.mateFace, { borderColor: COLORS.accent }]}>
-                  <Text style={[styles.mateInitial, { color: text }]}>
-                    {(name[0] ?? '?').toUpperCase()}
-                  </Text>
-                </View>
-              ))}
-            </View>
-            <Text style={[styles.matesLine, { color: muted }]} numberOfLines={2}>
-              {matesLine}
-            </Text>
-          </View>
+        {pointsNote ? (
+          <Text style={[styles.pointsNote, { color: muted }]} numberOfLines={PROFILE.noteLines}>
+            {pointsNote}
+          </Text>
         ) : null}
       </Pressable>
 
-      {/* Two explicit routes avoid icon-only guesswork: Friends is always a list, never a made-up
-          count, and finding new people remains one tap away. */}
-      <TouchCarousel
-        items={shortcuts}
-        keyExtractor={(shortcut) => shortcut}
-        itemWidth={carouselItemWidth}
-        endInset={SIZE.z48}
-        accessibilityLabel="Profile shortcuts"
-        onTouchStateChange={onCarouselTouchChange}
-        renderItem={(shortcut) => {
-          const copy = PROFILE_SHORTCUT_COPY[shortcut];
-          const subtitle =
-            shortcut === 'invites'
-              ? invitesRead
-                ? (invitesLine ?? copy.subtitle)
-                : 'Checking…'
-              : copy.subtitle;
-          return (
-            <Pressable
-              style={({ pressed }) => [
-                styles.quickAction,
-                { backgroundColor: surface, borderColor: border },
-                pressed && { opacity: ALPHA.a75 },
-              ]}
-              onPress={shortcutPress[shortcut]}
-              accessibilityRole="button"
-              accessibilityLabel={copy.title}
-              accessibilityHint={copy.accessibilityHint}
-            >
-              <View style={[styles.quickIcon, { backgroundColor: iconSurface }]}>
-                {shortcut === 'friends' ? (
-                  <ProfileIcon size={ICON_SIZE.i20} color={toggleColor} />
-                ) : shortcut === 'invites' ? (
-                  <MessagesIcon size={ICON_SIZE.i20} color={toggleColor} />
-                ) : (
-                  <SearchIcon size={ICON_SIZE.i20} color={toggleColor} />
-                )}
-              </View>
-              <View style={styles.quickCopy}>
-                <Text style={[styles.quickTitle, { color: text }]}>{copy.title}</Text>
-                <Text style={[styles.quickSubtitle, { color: muted }]}>{subtitle}</Text>
-              </View>
-              <Text style={[styles.quickChevron, { color: muted }]}>›</Text>
-            </Pressable>
-          );
-        }}
-      />
-
-      {/* Invite a mate, from your profile at any time (core workflow step 24): a link made on
-          tap, then the share sheet. */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.quickAction,
-          { backgroundColor: surface, borderColor: border },
-          (pressed || inviting) && { opacity: ALPHA.a75 },
-        ]}
-        onPress={() => {
-          if (inviting) return;
-          setInviting(true);
-          void inviteAMate().finally(() => setInviting(false));
-        }}
-        disabled={inviting}
-        accessibilityRole="button"
-        accessibilityLabel="Invite a mate"
-        accessibilityHint="Makes an invite link and opens sharing"
-        accessibilityState={{ busy: inviting }}
-      >
-        <View style={[styles.quickIcon, { backgroundColor: iconSurface }]}>
-          <Text style={[styles.quickPlus, { color: toggleColor }]}>+</Text>
-        </View>
-        <View style={styles.quickCopy}>
-          <Text style={[styles.quickTitle, { color: text }]}>Invite a mate</Text>
-          <Text style={[styles.quickSubtitle, { color: muted }]}>
-            {inviting ? 'Making your link…' : 'Send them a link to join you'}
-          </Text>
-        </View>
-        <Text style={[styles.quickChevron, { color: muted }]}>›</Text>
-      </Pressable>
-
-      {/* Suggested follows — syncs on mount, renders null when empty */}
+      {/* Suggested follows — syncs on mount, folded to one line, renders null when empty */}
       <SuggestedFollowsStrip onPressUser={setProfileUserId} excludeUserId={userId} />
-
-      <View style={styles.workoutsHeading}>
-        <Text style={[styles.workoutsTitle, { color: text }]}>Your workouts</Text>
-        <Text style={[styles.workoutsSubtitle, { color: muted }]}>
-          Tap a post to see it full screen.
-        </Text>
-      </View>
     </View>
   );
 
@@ -439,7 +412,7 @@ export default function ProfileScreen({
       {/* Settings, in a page sheet */}
       <SettingsPanel visible={settingsOpen} onClose={() => setSettingsOpen(false)} dark={dark} />
 
-      {/* Friends list */}
+      {/* Friends list, in a page sheet */}
       <FollowListModal
         visible={friendsOpen}
         onClose={() => setFriendsOpen(false)}
@@ -483,20 +456,26 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
+  header: {
+    paddingTop: SPACE.s4,
+    paddingHorizontal: SPACE.s20,
+    paddingBottom: SPACE.s12,
+    width: '100%',
+  },
   topBar: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: SPACE.s20,
+    marginBottom: SPACE.s8,
   },
-  titleBlock: {
-    flexShrink: 1,
-  },
-  screenTitle: {
-    fontSize: FONT_SIZE.f28,
-    lineHeight: LINE_HEIGHT.l28,
-    fontFamily: FONTS.bold,
+  // A solid circle in the theme's ink: black on white, white on black.
+  inviteButton: {
+    width: PROFILE.inviteButton,
+    height: PROFILE.inviteButton,
+    borderRadius: RADIUS.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actions: {
     flexDirection: 'row',
@@ -511,172 +490,89 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  header: {
-    alignItems: 'center',
-    paddingTop: SPACE.s12,
-    paddingHorizontal: SPACE.s20,
-    width: '100%',
+  // The short links wrap onto a second line at large text instead of running under the picture.
+  links: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACE.s8,
+    marginTop: SPACE.s10,
+  },
+  link: {
+    minHeight: SIZE.z32,
+    justifyContent: 'center',
+    paddingHorizontal: SPACE.s12,
+    borderRadius: RADIUS.pill,
+    borderWidth: BORDER_WIDTH.w1,
+  },
+  linkText: {
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.semiBold,
   },
   pointsCard: {
     width: '100%',
-    borderRadius: RADIUS.r24,
+    borderRadius: RADIUS.r16,
     borderWidth: BORDER_WIDTH.w1,
-    marginTop: SPACE.s16,
-    padding: SPACE.s20,
-    elevation: ELEVATION.e3,
-    shadowOpacity: ALPHA.a08,
-    shadowRadius: SHADOW_BLUR.b8,
-    shadowOffset: { width: 0, height: SIZE.z4 },
+    marginTop: SPACE.s12,
+    padding: SPACE.s12,
   },
-  cardHeadingRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: SPACE.s12,
-  },
-  cardHeadingCopy: {
-    flexShrink: 1,
-  },
-  cardEyebrow: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
-    marginBottom: SPACE.s4,
-  },
-  cardTitle: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.bold,
-    lineHeight: LINE_HEIGHT.l24,
-  },
-  learnMore: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
-    marginTop: SPACE.s4,
-  },
-  metricsRow: {
+  // Number, words, Best, arrow: side by side with real gaps, nothing placed over anything else.
+  pointsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: SPACE.s20,
-    marginBottom: SPACE.s16,
+    gap: SPACE.s8,
   },
-  metric: {
-    flex: 1,
-  },
-  metricValue: {
-    fontSize: FONT_SIZE.f38,
-    lineHeight: LINE_HEIGHT.l38,
+  pointsNumber: {
+    flexShrink: 0,
+    fontSize: FONT_SIZE.f24,
+    lineHeight: LINE_HEIGHT.l28,
     fontFamily: FONTS.bold,
   },
-  metricLabel: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
-    marginTop: SPACE.s4,
+  // The words take the room the numbers leave: they wrap to a second line or shrink, never the
+  // numbers.
+  pointsWords: {
+    flex: 1,
+    fontSize: FONT_SIZE.f15,
+    lineHeight: LINE_HEIGHT.l20,
+    fontFamily: FONTS.semiBold,
   },
-  metricDivider: {
-    width: SIZE.z1,
-    height: SIZE.z48,
-    marginHorizontal: SPACE.s20,
+  bestGroup: {
+    flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s6,
+  },
+  bestLabel: {
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.regular,
+  },
+  bestNumber: {
+    flexShrink: 0,
+    fontSize: FONT_SIZE.f17,
+    lineHeight: LINE_HEIGHT.l22,
+    fontFamily: FONTS.bold,
+  },
+  chevron: {
+    flexShrink: 0,
+    fontSize: FONT_SIZE.f20,
+    lineHeight: LINE_HEIGHT.l22,
+    fontFamily: FONTS.regular,
   },
   progressTrack: {
     width: '100%',
     height: SIZE.z8,
     borderRadius: RADIUS.pill,
     overflow: 'hidden',
+    marginTop: SPACE.s8,
   },
   progressFill: {
     height: '100%',
     borderRadius: RADIUS.pill,
     backgroundColor: COLORS.accent,
   },
-  matesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.s10,
-    marginTop: SPACE.s12,
-  },
-  matesFaces: {
-    flexDirection: 'row',
-    gap: SPACE.s4,
-  },
-  mateFace: {
-    width: SIZE.z24,
-    height: SIZE.z24,
-    borderRadius: RADIUS.pill,
-    borderWidth: BORDER_WIDTH.w1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mateInitial: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f11,
-  },
-  matesLine: {
-    flexShrink: 1,
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f13,
-  },
-  pointsHint: {
+  pointsNote: {
     fontSize: FONT_SIZE.f13,
     fontFamily: FONTS.regular,
     lineHeight: LINE_HEIGHT.l18,
-    marginTop: SPACE.s12,
-  },
-  quickAction: {
-    width: '100%',
-    minHeight: SIZE.z88,
-    borderRadius: RADIUS.r20,
-    borderWidth: BORDER_WIDTH.w1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACE.s12,
-    paddingVertical: SPACE.s14,
-    marginTop: SPACE.s12,
-  },
-  quickIcon: {
-    width: SIZE.z36,
-    height: SIZE.z36,
-    borderRadius: RADIUS.r18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: SPACE.s10,
-  },
-  quickCopy: {
-    flex: 1,
-  },
-  quickTitle: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.semiBold,
-  },
-  quickSubtitle: {
-    fontSize: FONT_SIZE.f11,
-    lineHeight: LINE_HEIGHT.l14,
-    fontFamily: FONTS.regular,
-    marginTop: SPACE.s3,
-  },
-  quickPlus: {
-    fontSize: FONT_SIZE.f20,
-    lineHeight: LINE_HEIGHT.l22,
-    fontFamily: FONTS.semiBold,
-  },
-  quickChevron: {
-    fontSize: FONT_SIZE.f20,
-    lineHeight: LINE_HEIGHT.l22,
-    fontFamily: FONTS.regular,
-    marginLeft: SPACE.s4,
-  },
-  workoutsHeading: {
-    width: '100%',
-    marginTop: SPACE.s28,
-    marginBottom: SPACE.s14,
-  },
-  workoutsTitle: {
-    fontSize: FONT_SIZE.f20,
-    lineHeight: LINE_HEIGHT.l24,
-    fontFamily: FONTS.bold,
-  },
-  workoutsSubtitle: {
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l18,
-    fontFamily: FONTS.regular,
-    marginTop: SPACE.s4,
+    marginTop: SPACE.s8,
   },
 });

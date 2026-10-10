@@ -1,5 +1,6 @@
 /**
- * "Invite a mate" (owner, 2026-10-07), one flow for every place that offers it (the camera's
+ * "Invite a friend" (owner, 2026-10-07; "mate" became "friend" on 2026-10-10, the names in the
+ * code stay), one flow for every place that offers it (your profile's round button, the camera's
  * no-tag card, the empty "Your invites" list): a link with no tag behind it is made on tap, then
  * the phone's share sheet opens with it. Joining from it makes you follow each other.
  *

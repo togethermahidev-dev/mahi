@@ -1,4 +1,5 @@
 import {
+  INVITE_A_FRIEND,
   MAX_SHARE_RECIPIENTS,
   filterFriends,
   friendLabel,
@@ -62,7 +63,16 @@ describe('the sheet per use', () => {
   });
 
   it('an invite: a title and the bottom row only', () => {
-    expect(shareSheetParts('invite')).toEqual({ title: 'Invite a mate', friends: false });
+    expect(shareSheetParts('invite')).toEqual({ title: 'Invite a friend', friends: false });
+  });
+
+  // Owner, 2026-10-10: "Change mate to friend". One wording for the profile's round button, its
+  // VoiceOver label and the sheet's title.
+  it('says "Invite a friend" everywhere the invite is named, never "mate"', () => {
+    expect(INVITE_A_FRIEND.label).toBe('Invite a friend');
+    expect(shareSheetParts('invite').title).toBe(INVITE_A_FRIEND.label);
+    expect(`${INVITE_A_FRIEND.label} ${INVITE_A_FRIEND.hint}`).not.toMatch(/\bmates?\b/i);
+    expect(INVITE_A_FRIEND.hint.length).toBeGreaterThan(0);
   });
 });
 
