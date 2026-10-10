@@ -60,7 +60,7 @@ if (!videoOn) return null;
 
 ## The flags
 
-29 keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone. Nor do the twelve switches removed on 2026-10-07 — see [Removed from code 2026-10-07](#removed-from-code-2026-10-07).)
+30 keys, every one read by code. (Suggested follows have no flag: they are always on. Nor do the 12.12 additions — message requests, caption edits, shared post links and the crew strip are standard for everyone. Nor do the twelve switches removed on 2026-10-07 — see [Removed from code 2026-10-07](#removed-from-code-2026-10-07).)
 
 **Tag loop** (keys map to [tag-loop-plan.md](./tag-loop-plan.md) phases; they hide UI only — server rules
 are switched in the `app_config` table):
@@ -194,6 +194,17 @@ notification words. Off = no Controls, no sign-up screen, no requests list, no R
 own button on the welcome screen on iPhones with build 13+ (the `expo-apple-authentication` native module)
 where Apple says sign-in works; off hides it. Builds 10–12, Android and the web never show it. In PostHog
 it is off (2026-10-08) until the owner releases it.
+
+**Sharing:** `share-sheet` (**default on**, a kill switch; added 2026-10-10, decision #179. **Create it in
+PostHog at 100% before the update that reads it goes out**: a key missing from PostHog reads as off once
+flags load.) On = the post menu's Share and every "Invite a mate" open Mahi's own share sheet: for a post,
+search, a grid of your friends to send it to in your Mahi chat (up to 10, with an optional note) and a row
+of round buttons (Copy link, WhatsApp, Messages, Snapchat, Instagram, Share to…); for an invite, a title and
+that row. A post sent this way shows in the chat as a card (the poster, the photo, the note) that opens
+full screen; one that can't be shown says why. Needs migration `20261010100000_share_post_in_message` live
+for sending and for the card. Off = as before: Share goes straight to the iPhone share sheet, "Invite a
+mate" makes a link and opens the iPhone share sheet, and a post message already in a chat shows as a plain
+bubble with its note, or "Sent a post".
 
 **Sign-in placeholder**: `auth-google-signin` (**default off** since 2026-10-07, so it never flashes up while flags load) — a pill on the welcome screen with no sign-in behind it
 yet; tapping it does nothing. At 0% in PostHog (checked 2026-10-07).

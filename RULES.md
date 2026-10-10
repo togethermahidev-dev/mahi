@@ -77,6 +77,16 @@
 - The tag screen's Post button is the confirmation (owner, 2026-10-09); there is no separate
   pop-up. Its footer says the tagged mates get 48 hours and the caption can be edited for 1 hour.
   A post never goes without the person seeing that footer.
+- A post can be sent into a chat (owner, 2026-10-10; `share_post`, 1 to 10 people, migration
+  `20261010100000_share_post_in_message`). The message carries `post_id`; its words are the optional
+  note. The reader gets the post only under the usual rules (`can_view_post_for`: the owner's
+  settings, blocks, bans, moderation, the reader's feed lock). A share is never an exception:
+  otherwise the card says locked, private or gone and nothing of the post is sent. Sharing goes only
+  through `share_post`; a live message with a `post_id` is re-read, not built on the phone.
+- The share sheet (`ui/src/components/ShareSheet.tsx`, switch `share-sheet`, on for everyone) is
+  Instagram's layout: search, a grid of friends, a row of round buttons. The friends grid loads
+  fresh on every open and is never kept on the phone. Copy link uses React Native's built-in
+  clipboard, probed before it shows (`ui/src/lib/copyLink.ts`); build 14 swaps in `expo-clipboard`.
 
 ## Follows, tag requests and invite links (2026-10-07; public/private accounts 2026-10-08)
 

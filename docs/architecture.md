@@ -249,6 +249,30 @@ the universal link (`applinks:togethermahi.com` in `app.config.js`) opens the po
 `web/app/p/[postId]/route.ts` sends the person to the App Store or Play Store. The web route is live only
 after a web deploy; Android association needs the next native build.
 
+## Share sheet and posts in chats
+
+Owner, 2026-10-10 (decisions #179–#182). Switch `share-sheet`, on for everyone; off = the iPhone share
+sheet as before and a plain bubble in chats. Server: `20261010100000_share_post_in_message`.
+- `ShareSheet` (`ui/src/components/ShareSheet.tsx`) opens from a post's Share (`usePostShare` in `PostCard`,
+  `FeedRow`, `ProfileMediaMap`) and from every "Invite a mate" (`useInviteAMate`). Each caller puts the
+  sheet in its own tree, so it opens over whatever sheet or viewer it was called from. Rules in
+  `ui/src/lib/shareSheet.ts` (who can be picked, 10 at most, the button row, search, the toasts).
+- Friends come from `get_friends`, fresh on every open and re-read live while it is open (follows
+  changes, and on coming back to the app); never kept on the phone.
+- Send calls `share_post(p_post, p_recipients, p_client_id, p_note)` (`sharePostToFriends` in
+  `ui/src/api/messages.ts`): one message per friend in your chat with them, with `post_id` set and the
+  note as its words (maybe empty). One client id per open, so a retry sends nothing twice. It answers who
+  it went to and who it couldn't (`skipped`: blocked, a closed chat, a request still waiting).
+- The bottom row (`sharePostTo` in `sharePost.ts`, `sendMateLinkVia` in `inviteAMate.ts`): Copy link
+  (`ui/src/lib/copyLink.ts`, React Native's own clipboard until build 14, shown only when the build has
+  it), WhatsApp and Messages with the words already written, and Snapchat, Instagram and Share to…
+  through the phone's share sheet (decision #156).
+- In a chat, `get_messages` items carry `post_id` and `post`: the same feed item `get_feed` returns
+  (signed by `toPosts` in `ui/src/api/posts.ts`, like the feed) or `available: false` with `locked`,
+  `private` or `gone`. `SharedPostCard` draws the card; a tap opens `PostViewer` with just that post
+  (`from="post"`). A shared post follows the same who-can-see rules, no exception (decision #181).
+  A live `messages` row carries only `post_id`, so `conversationStore` reads the page again for it.
+
 ## Feed timer and motion
 
 - The feed timer matches the server: the feed is open for 24 hours after you post, then locks until a
@@ -427,7 +451,7 @@ All tables use Row Level Security (RLS). Writes for posting and messaging go thr
 | `invites.ts` | `getInvitePreview`, `claimInvite` |
 | `social.ts` | `toggleLike` (single-RPC atomic toggle), `getComments`, `addComment`, comment likes: `getCommentLikes`, `toggleCommentLike`, `getCommentLikers` |
 | `follows.ts` | `setFollowing` (atomic mutation + committed state), `getFollowData`, `getFollowList`, `getFriends`, `getSuggestedFollows` |
-| `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `declineRequest`, `sendMessage`, `createOrGetConversation`, `startConversation`, `editMessage`, `unsendMessage`, `reactToMessage`, `getMessageReactions`, `getMessages`, `markConversationRead` |
+| `messages.ts` | `getInbox`, `getRequests`, `acceptRequest`, `declineRequest`, `sendMessage`, `createOrGetConversation`, `startConversation`, `editMessage`, `unsendMessage`, `reactToMessage`, `getMessageReactions`, `getMessages`, `markConversationRead`, `sharePostToFriends` |
 | `notifications.ts` | `getNotifications`, `getUnreadCount`, `markAsRead`, `markAllAsRead` |
 | `moderation.ts` | `blockUser`, `unblockUser`, `getBlockedUsers`, `getBlockedIds`, `reportContent` (`report_*` RPCs; direct report inserts are closed) |
 | `profile.ts` | `getProfile`, `searchProfiles`, `updateAvatarUrl`, `updateTimezone` (sign-up inserts the profile row directly) |
