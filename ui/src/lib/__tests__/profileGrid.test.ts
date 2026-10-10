@@ -1,4 +1,4 @@
-import { gridInset, gridSquare, gridTileHeight } from '../profileGrid';
+import { gridEndLine, gridInset, gridSquare, gridTileHeight } from '../profileGrid';
 import { PROFILE, SPACE } from '@/constants/tokens';
 
 // A profile's posts: three squares across, edge to edge, with the small gap between them only
@@ -62,5 +62,34 @@ describe('a grid tile', () => {
     const tall = gridTileHeight(wide, PROFILE.gridTileTall);
     expect(tall).toBeGreaterThan(wide);
     expect(tall).toBeLessThan(wide * (4 / 3));
+  });
+});
+
+// Owner, 2026-10-10: a profile with a few posts "just looks blank"; say that the grid has ended.
+describe('the line under the last post', () => {
+  const done = { count: 3, hasMore: false, loading: false };
+
+  it('on your own profile says that is all, and where the next one goes', () => {
+    expect(gridEndLine({ ...done, isSelf: true, username: 'joe' })).toBe(
+      'That’s all your workouts so far. The next one lands here.'
+    );
+  });
+
+  it('on someone else’s says that is all of theirs', () => {
+    expect(gridEndLine({ ...done, isSelf: false, username: 'sam' })).toBe(
+      'That’s all of @sam’s workouts so far.'
+    );
+    expect(gridEndLine({ ...done, isSelf: false, username: null })).toBe(
+      'That’s all their workouts so far.'
+    );
+  });
+
+  it('waits until the grid really has ended', () => {
+    expect(gridEndLine({ ...done, isSelf: true, username: 'joe', hasMore: true })).toBeNull();
+    expect(gridEndLine({ ...done, isSelf: true, username: 'joe', loading: true })).toBeNull();
+  });
+
+  it('leaves an empty grid to its own empty state', () => {
+    expect(gridEndLine({ ...done, isSelf: true, username: 'joe', count: 0 })).toBeNull();
   });
 });

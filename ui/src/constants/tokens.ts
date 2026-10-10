@@ -553,8 +553,6 @@ export const PROFILE = {
   nameMinScale: 0.75,
   /** The most lines the note under your points wraps to (where you stand, who you last answered). */
   noteLines: 3,
-  /** A post's "N Mahi points" badge is already the smallest text (11), so it is cut, never shrunk. */
-  badgeMinScale: 1,
 } as const;
 
 // ─── Follower / following counts and the bio on a profile (switch `profile-bio-and-counts`) ───

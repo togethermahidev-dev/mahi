@@ -22,3 +22,27 @@ export function gridInset(index: number, columns: number, gap: number): number {
 export function gridTileHeight(width: number, tall: number): number {
   return width * tall;
 }
+
+/**
+ * The quiet line under the last post, so a short grid doesn't just trail off into blank space
+ * (owner, 2026-10-10). Null while more may come, and for an empty grid, which has its own state.
+ */
+export function gridEndLine({
+  isSelf,
+  username,
+  count,
+  hasMore,
+  loading,
+}: {
+  isSelf: boolean;
+  username: string | null | undefined;
+  count: number;
+  hasMore: boolean;
+  loading: boolean;
+}): string | null {
+  if (count === 0 || hasMore || loading) return null;
+  if (isSelf) return 'That’s all your workouts so far. The next one lands here.';
+  return username
+    ? `That’s all of @${username}’s workouts so far.`
+    : 'That’s all their workouts so far.';
+}

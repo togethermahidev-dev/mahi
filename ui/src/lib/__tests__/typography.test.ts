@@ -239,7 +239,6 @@ describe('text that shrinks to fit', () => {
   it.each([
     ['a segmented option', TYPOGRAPHY.captionMedium.fontSize * SEGMENTED.labelMinScale],
     ['the words beside the points number', TYPOGRAPHY.label.fontSize * POINTS_NUMBER.wordsMinScale],
-    ['a grid square’s points badge', TYPOGRAPHY.microStrong.fontSize * PROFILE.badgeMinScale],
   ])('%s never goes under 11', (_what, smallest) => {
     expect(smallest).toBeGreaterThanOrEqual(11);
   });

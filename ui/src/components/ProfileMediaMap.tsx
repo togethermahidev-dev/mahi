@@ -16,9 +16,8 @@ import Svg, { Path } from 'react-native-svg';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { refreshTint } from '@/lib/themeColors';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
-import { pointsBadgeText } from '@/lib/mahiPoints';
 import { gridTile } from '@/lib/videoPosts';
-import { gridInset, gridSquare, gridTileHeight } from '@/lib/profileGrid';
+import { gridEndLine, gridInset, gridSquare, gridTileHeight } from '@/lib/profileGrid';
 import {
   gridMenuItems,
   isMenuAction,
@@ -102,7 +101,6 @@ function WorkoutCard({
     ? withAlpha(COLORS.offBlack, ALPHA.a75)
     : withAlpha(COLORS.offWhite, ALPHA.a75);
   const badgeText = dark ? COLORS.offWhite : COLORS.offBlack;
-  const points = pointsBadgeText(post.streak_day);
   // Video posts: show the post's still photo (or a video card) and mark it with a video icon.
   const tile = gridTile(post);
   const label = tile.video ? 'video post' : 'post';
@@ -168,7 +166,7 @@ function WorkoutCard({
           ? `Locked post. ${LOCKED_HINT}`
           : imgError
             ? 'Couldn’t load this post'
-            : `${label.charAt(0).toUpperCase() + label.slice(1)}${points ? `, ${points}` : ''}`
+            : label.charAt(0).toUpperCase() + label.slice(1)
       }
       // VoiceOver: the menu's choices as actions (a double tap already opens the post).
       accessibilityActions={withMenu ? menuA11yActions(items, ['open']) : undefined}
@@ -206,23 +204,6 @@ function WorkoutCard({
       {tile.video ? (
         <View style={[styles.videoBadge, { backgroundColor: badgeBg }]}>
           <VideoIcon size={ICON_SIZE.i16} color={badgeText} />
-        </View>
-      ) : null}
-      {points ? (
-        // Held between the square's edges: at three across, or at large text, "100 Mahi points"
-        // shrinks to fit on its one line instead of running off the square.
-        <View style={styles.badgeRow} pointerEvents="none">
-          <View style={[styles.badge, { backgroundColor: badgeBg }]}>
-            <Text
-              style={[styles.badgeText, { color: badgeText }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={PROFILE.badgeMinScale}
-              maxFontSizeMultiplier={LAYOUT.largeTextScale}
-            >
-              {points}
-            </Text>
-          </View>
         </View>
       ) : null}
     </Pressable>
@@ -300,6 +281,10 @@ export default function ProfileMediaMap({
   if (isSyncing && !started) setStarted(true);
   const isLoading = posts.length === 0 && (!started || isSyncing || storeUserId !== userId);
   const failed = posts.length === 0 && !isLoading && lastSyncedAt === null;
+  // Under the last post: the grid has ended (a short one otherwise just trails off into blank).
+  const endLine = restricted
+    ? null
+    : gridEndLine({ isSelf, username, count: posts.length, hasMore, loading: isSyncing });
   const menuOn = useContextMenuPreview();
   const { width } = useWindowDimensions();
   // Square photos with the small gap between them only; the hold-to-preview wrapper is exactly
@@ -399,6 +384,8 @@ export default function ProfileMediaMap({
             <View style={styles.moreLoader} accessibilityLabel="Loading more workouts">
               <ActivityIndicator color={muted} />
             </View>
+          ) : endLine ? (
+            <Text style={[styles.endLine, { color: muted }]}>{endLine}</Text>
           ) : null
         }
       />
@@ -421,27 +408,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  endLine: {
+    ...TYPOGRAPHY.small,
+    textAlign: 'center',
+    paddingVertical: SPACE.s24,
+    paddingHorizontal: SPACE.s24,
+  },
   gridCard: {
     overflow: 'hidden',
   },
   pressed: {
     opacity: ALPHA.a80,
-  },
-  badgeRow: {
-    position: 'absolute',
-    bottom: OFFSET.o4,
-    left: OFFSET.o4,
-    right: OFFSET.o4,
-    alignItems: 'flex-end',
-  },
-  badge: {
-    maxWidth: '100%',
-    borderRadius: RADIUS.r50,
-    paddingVertical: SPACE.s2,
-    paddingHorizontal: SPACE.s6,
-  },
-  badgeText: {
-    ...TYPOGRAPHY.microStrong,
   },
   // A locked or failed post: a plain square with a padlock or the camera mark (never a stand-in
   // photo); also centres the spinner while a photo loads.
