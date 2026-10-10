@@ -7,6 +7,9 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 50 — page swipes follow real swipes: a short sideways flick now turns the page (from
+ *     159 swipes recorded on the camera); a temporary swipe check; the phone's reason is reported
+ *     when it won't open WhatsApp or Messages (2026-10-10)
  *   build 13 · 49 — the Invite a friend sheet is one colour to its bottom edge (no see-through
  *     strip under it) (2026-10-10)
  *   build 13 · 48 — under your own grid, your next step and its button (answer a tag, or invite a
@@ -194,4 +197,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 49;
+export const OTA_NUMBER = 50;
