@@ -18,7 +18,7 @@ interface UserProfile {
   streak_highest: number;
   /** Your first workout is posted; permanent, even after deleting every post. */
   has_posted_before?: boolean;
-  /** Settings → Controls (20261008170000_private_accounts); missing from an older server. */
+  /** Settings → Security and privacy → Privacy controls (20261008170000_private_accounts); missing from an older server. */
   is_private?: boolean;
   posts_visibility?: PostsVisibility;
   tag_permission?: TagPermission;

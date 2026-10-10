@@ -60,7 +60,7 @@ export const FEATURE_FLAGS = [
   'feed-rows', // the feed as rows (on) or full-screen posts, one per screen (off, the default)
 
   // Public and private accounts (owner, 2026-10-08)
-  'private-accounts', // Settings → Controls, the choice after sign-up, follow requests, remove a follower (default OFF)
+  'private-accounts', // Settings → Security and privacy → Privacy controls, the choice after sign-up, follow requests, remove a follower (default OFF)
 
   // Sharing (owner, 2026-10-10) — a kill switch, on for everyone
   'share-sheet', // Share and Invite a mate open Mahi's own share sheet, and a shared post shows as a card in a chat (off: straight to the phone's share sheet; a post message is a plain bubble)

@@ -58,7 +58,7 @@ Manages the authenticated user's profile including the Mahi points counters (sto
 | Action | Description |
 |---|---|
 | `setProfile(profile)` | Sets profile after DB fetch or optimistic update |
-| `saveControls(patch)` | Settings → Controls: shows the change at once, calls `set_account_controls`, keeps the server's saved answer (private + Everyone is stored as Followers) and marks `privacy_chosen_at`; a refusal puts the old choice back. Sends `account_controls_changed`. |
+| `saveControls(patch)` | Settings → Security and privacy → Privacy controls: shows the change at once, calls `set_account_controls`, keeps the server's saved answer (private + Everyone is stored as Followers) and marks `privacy_chosen_at`; a refusal puts the old choice back. Sends `account_controls_changed`. |
 | `reset()` | Clears profile on sign-out |
 
 **UserProfile shape** (matches `profiles` table row):
@@ -75,7 +75,7 @@ Manages the authenticated user's profile including the Mahi points counters (sto
   avatar_url: string | null;
   streak_current: number;           // Mahi points: +1 for the first post and each answering post (deleting a post takes its point back); back to 0 after a missed tag
   streak_highest: number;           // Best points, never lowered
-  is_private?: boolean;             // Settings → Controls (missing from a server without them)
+  is_private?: boolean;             // Settings → Security and privacy → Privacy controls (missing from a server without them)
   posts_visibility?: 'everyone' | 'followers' | 'friends';
   tag_permission?: 'everyone' | 'approve' | 'friends';
   privacy_chosen_at?: string | null; // null until the public / private choice after sign-up

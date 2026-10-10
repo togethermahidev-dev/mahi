@@ -200,7 +200,7 @@ describe('slotErrorText', () => {
       'Too many links and tag requests waiting. Take one back first.'
     );
     expect(slotErrorText('already friends')).toBe('You’re friends already. Tag them instead.');
-    // Their "Who can tag you" is Friends only (private accounts).
+    // Their "Who can tag you" is Friends (private accounts).
     expect(slotErrorText('only takes tags from friends')).toBe('They only take tags from friends.');
     expect(slotErrorText('invite links are off')).toBe('Links are off right now.');
     expect(slotErrorText('already invited')).toBe('Tag request already sent.');

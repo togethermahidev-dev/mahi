@@ -175,11 +175,12 @@ and RevenueCat is never started.)
 
 **Public and private accounts**: `private-accounts` (**default off**, added 2026-10-08; not in PostHog
 yet — create it switched off). Needs migration `20261008170000_private_accounts`. On: Settings →
-Controls between Friends and Preferences — Account (Public | Private: "Anyone on Mahi can see your
+Security and privacy opens with a Privacy controls section (moved there from the main Settings list,
+owner 2026-10-10) — Account (Public | Private: "Anyone on Mahi can see your
 profile and workouts and follow you." / "Only people you approve can follow you and see your
 workouts. Your name and photo still show."; public with workouts for followers or friends says "Anyone on Mahi can see your profile and follow you."; each switch asked about first; going public also sets
 workouts back to Everyone), Who can see your workouts (Everyone | Followers | Friends; Everyone can't
-be picked while private), Who can tag you (Everyone | Everyone, I approve first | Friends only),
+be picked while private), Who can tag you (Everyone | Approved | Friends),
 Followers (with Remove, asked about first: "They won't be told", and a friend's open tags end) and
 Follow requests (private only, Confirm / Delete). A "Follow requests" row at the top of Notifications
 opens the same list. A new account chooses public or private on one screen after sign-up (only while
@@ -188,7 +189,7 @@ fresh, update live while open and are never kept on the phone. **No switch** (th
 any time): the Requested follow button, the restricted profile ("This account is private", "Only @x's
 followers see their workouts", "Only @x's friends see their workouts"), per-person tag modes on the tag
 screen, the Follow back / Accept their follow pop-up after accepting a tag request, and the new
-notification words. Off = no Controls, no sign-up screen, no requests list, no Remove.
+notification words. Off = no privacy controls (the section shows Blocked users only), no sign-up screen, no requests list, no Remove.
 
 **Sign in with Apple**: `auth-apple-signin` (**default off** since 2026-10-08; not released yet, see below). Shows Apple's
 own button on the welcome screen on iPhones with build 13+ (the `expo-apple-authentication` native module)

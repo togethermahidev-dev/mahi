@@ -17,7 +17,7 @@ type ProfileRow = Database['public']['Tables']['profiles']['Row'];
  */
 const BASE_COLUMNS =
   'id, username, display_name, first_name, last_name, fitness_goals, avatar_url, streak_current, streak_highest, has_posted_before, is_banned, timezone, created_at, updated_at';
-/** Settings → Controls (20261008170000_private_accounts). */
+/** Settings → Security and privacy → Privacy controls (20261008170000_private_accounts). */
 const CONTROLS_COLUMNS = 'is_private, posts_visibility, tag_permission, privacy_chosen_at';
 const PROFILE_COLUMNS = `${BASE_COLUMNS}, ${CONTROLS_COLUMNS}` as const;
 

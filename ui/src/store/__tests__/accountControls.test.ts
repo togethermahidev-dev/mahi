@@ -1,5 +1,5 @@
 /**
- * Settings → Controls (20261008170000_private_accounts): a change shows at once, then the
+ * Settings → Security and privacy → Privacy controls (20261008170000_private_accounts): a change shows at once, then the
  * server's saved answer replaces it (private + Everyone is stored as Followers); a refusal puts
  * the old choice back.
  */

@@ -97,7 +97,7 @@
   (`respond_follow_request`); the requester is told only on acceptance; tapping Requested cancels.
   Going private keeps existing followers; going public accepts every pending request.
 - Who sees your workouts (`posts_visibility`: everyone / followers / friends, starting at followers
-  until the person chooses; everyone is not allowed while private) and who can tag you (`tag_permission`: everyone / approve first / friends only) are
+  until the person chooses; everyone is not allowed while private) and who can tag you (`tag_permission`: everyone / approve first / friends only; shown as Everyone / Approved / Friends) are
   enforced on the server (`can_view_post`, `create_post`, `invite_to_tag`). The feed lock stays on top.
   Someone tagged on a post always sees that one post (not the poster's others), and the tagger always
   sees the post that answers their tag, unless blocked or banned (the feed lock still applies).
