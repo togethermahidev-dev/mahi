@@ -29,6 +29,8 @@ interface AppHeaderProps {
   // true on Camera screen (always dark bg) → white text/icons
   // false on other screens → follows theme
   isDark: boolean;
+  /** The bell's one-time tip shows on this header (the feed's); by default wherever it isn't dark. */
+  bellTipHere?: boolean;
   onProfilePress: () => void;
   onMessagesPress: () => void;
   unreadNotifications: number;
@@ -39,6 +41,7 @@ interface AppHeaderProps {
 
 export default function AppHeader({
   isDark,
+  bellTipHere = !isDark,
   onProfilePress,
   onMessagesPress,
   unreadNotifications,
@@ -50,7 +53,7 @@ export default function AppHeader({
   // The first time a mate's tag is waiting, a one-time tip points at the bell on the Feed (the
   // Camera already says who tagged you).
   const tagged = useTagStore((s) => s.openTags.length > 0);
-  const bellTip = useCoachAnchor('bell', !isDark && tagged);
+  const bellTip = useCoachAnchor('bell', bellTipHere && tagged);
   // isDark = camera screen (always dark bg); systemDark = OS-level dark mode
   const onDark = isDark || systemDark;
   const mahiColor = onDark ? COLORS.white : COLORS.offBlack;

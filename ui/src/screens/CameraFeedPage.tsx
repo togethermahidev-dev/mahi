@@ -37,7 +37,7 @@ import { detentProgress, releaseDetent, type Detent } from '@/lib/detent';
 import { dragProgress, feedPullDown, switchPillShown } from '@/lib/feedPull';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { lockedGapContent, lockPill } from '@/lib/feedLock';
-import { feedChromeOpacity, headerSlide } from '@/lib/feedHeader';
+import { feedChromeOpacity, feedHeaderLook, headerSlide } from '@/lib/feedHeader';
 import { useFeedStore, useTagStore, useUserStore } from '@/store';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { useSecondTick } from '@/hooks/useSecondTick';
@@ -67,8 +67,8 @@ export default function CameraFeedPage({
 }: {
   /** This page is the one showing. */
   active: boolean;
-  /** The app header: dark on the camera, light on the feed. */
-  header: (onCamera: boolean) => React.ReactNode;
+  /** The app header: dark on the camera; on the feed, as `feedHeaderLook` says. */
+  header: (onCamera: boolean, feed?: { dark: boolean; bellTip: boolean }) => React.ReactNode;
   /** No longer used: the feed's header slides away by `headerHide` below (2026-10-09). */
   headerAnim?: RNAnimated.Value;
   /** The feed list's scrolling as a gesture, so the sideways page swipe can run alongside it. */
@@ -471,7 +471,7 @@ export default function CameraFeedPage({
         style={[styles.header, feedHeaderStyle]}
         pointerEvents={feedOpen ? 'box-none' : 'none'}
       >
-        {header(false)}
+        {header(false, feedHeaderLook({ rows: rowsOn }))}
       </Reanimated.View>
 
       {/* Locked: the lifted camera takes a tap or a swipe down back to the camera. (Open, the

@@ -6,6 +6,7 @@
 import {
   HEADER_START,
   feedChromeOpacity,
+  feedHeaderLook,
   feedTimerSpot,
   headerScroll,
   headerSlide,
@@ -106,5 +107,17 @@ describe('feedTimerSpot — the timer, apart from the header', () => {
     expect(feedTimerSpot({ headerH: 100, topInset: SPACE.s8, pushSpace: 60 }).top).toBe(
       100 + SPACE.s8 + 60
     );
+  });
+});
+
+// "No white bar or edges appear between the scrolls" (owner, 2026-10-10): the full-screen feed is a
+// black canvas in both themes, so its header is the dark one; a white fade there was the bar.
+describe('the look of the header over the feed', () => {
+  it('is the dark header over the full-screen feed, whatever the theme', () => {
+    expect(feedHeaderLook({ rows: false })).toEqual({ dark: true, bellTip: true });
+  });
+
+  it('follows the theme over the rows feed', () => {
+    expect(feedHeaderLook({ rows: true })).toEqual({ dark: false, bellTip: true });
   });
 });

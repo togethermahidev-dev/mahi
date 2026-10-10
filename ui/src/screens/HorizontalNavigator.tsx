@@ -439,9 +439,10 @@ export default function HorizontalNavigator({
   // The Profile / Messages pills, unless the rail or the phone's tab bar carries them.
   const showNavPills = !showRail && !tabBar;
 
-  const header = (onCamera: boolean) => (
+  const header = (onCamera: boolean, feed?: { dark: boolean; bellTip: boolean }) => (
     <AppHeader
-      isDark={onCamera}
+      isDark={onCamera || Boolean(feed?.dark)}
+      bellTipHere={feed ? feed.bellTip : !onCamera}
       onProfilePress={() => selectTab('profile')}
       onMessagesPress={() => selectTab('messages')}
       showNavPills={showNavPills}
