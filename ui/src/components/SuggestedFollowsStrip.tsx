@@ -6,17 +6,8 @@ import { useSuggestedFollows } from '@/hooks/useSuggestedFollows';
 import { useToastStore } from '@/store/toastStore';
 import { followErrorText } from '@/lib/followBack';
 import type { SuggestedUser } from '@/api';
-import { FONTS } from '@/constants/fonts';
-import {
-  COLORS,
-  ALPHA,
-  FONT_SIZE,
-  RADIUS,
-  SIZE,
-  SPACE,
-  TRACKING,
-  withAlpha,
-} from '@/constants/tokens';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
+import { COLORS, ALPHA, RADIUS, SIZE, SPACE, withAlpha } from '@/constants/tokens';
 
 const ACCENT = COLORS.accent;
 
@@ -189,16 +180,13 @@ const styles = StyleSheet.create({
     minHeight: SIZE.z32,
   },
   header: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.sectionHeader,
   },
   chevron: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.semiBold,
+    ...GLYPH.icon,
   },
   rule: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
     textAlign: 'center',
     paddingHorizontal: SPACE.s24,
     marginTop: SPACE.s4,
@@ -229,19 +217,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: FONT_SIZE.f22,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h2,
   },
   name: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f13,
-    letterSpacing: TRACKING.t1,
+    ...TYPOGRAPHY.bodyStrong,
     textAlign: 'center',
     maxWidth: '100%',
   },
   handle: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f12,
+    ...TYPOGRAPHY.caption,
     marginTop: SPACE.s2,
     marginBottom: SPACE.s12,
     maxWidth: '100%',
@@ -252,8 +236,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s7,
   },
   followBtnText: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.labelStrong,
     color: COLORS.offBlack,
   },
 });

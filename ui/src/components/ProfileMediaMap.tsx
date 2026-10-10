@@ -37,12 +37,11 @@ import ListState from '@/components/ListState';
 import { restrictedText } from '@/lib/accountControls';
 import type { MorphSource } from '@/lib/morph';
 import type { FeedPost } from '@/api';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
-  FONT_SIZE,
   ICON_SIZE,
   LAYOUT,
   OFFSET,
@@ -442,8 +441,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s6,
   },
   badgeText: {
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.microStrong,
   },
   // A locked or failed post: a plain square with a padlock or the camera mark (never a stand-in
   // photo); also centres the spinner while a photo loads.

@@ -57,13 +57,11 @@ import { reportError } from '@/lib/sentry';
 import { updateAvatarUrl } from '@/api/profile';
 import AvatarViewer from '@/components/AvatarViewer';
 import type { MorphSource } from '@/lib/morph';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
   ELEVATION,
-  FONT_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SHADOW_BLUR,
@@ -468,9 +466,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: SIZE.z1 },
   },
   editLabel: {
-    fontSize: FONT_SIZE.f12,
-    lineHeight: LINE_HEIGHT.l18,
+    ...TYPOGRAPHY.captionStrong,
     color: COLORS.offBlack,
-    fontFamily: FONTS.bold,
   },
 });

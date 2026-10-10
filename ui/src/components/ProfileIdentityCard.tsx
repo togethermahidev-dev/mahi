@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { FONTS } from '@/constants/fonts';
-import { FONT_SIZE, LINE_HEIGHT, PROFILE, SPACE } from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { PROFILE, SPACE } from '@/constants/tokens';
 import { themeColors } from '@/hooks/useAppTheme';
 
 interface ProfileIdentityCardProps {
@@ -70,19 +70,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   displayName: {
-    fontSize: FONT_SIZE.f22,
-    fontFamily: FONTS.bold,
-    lineHeight: LINE_HEIGHT.l28,
+    ...TYPOGRAPHY.h2,
   },
   handle: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.body,
     marginTop: SPACE.s2,
   },
   supportingText: {
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l18,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
     marginTop: SPACE.s8,
   },
 });

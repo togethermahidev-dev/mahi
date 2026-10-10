@@ -20,18 +20,8 @@ import {
   doubleTapZoom,
   swipeCloses,
 } from '@/lib/viewer';
-import { FONTS } from '@/constants/fonts';
-import {
-  COLORS,
-  ALPHA,
-  FONT_SIZE,
-  LINE_HEIGHT,
-  OFFSET,
-  RADIUS,
-  SIZE,
-  VIEWER,
-  withAlpha,
-} from '@/constants/tokens';
+import { GLYPH } from '@/constants/typography';
+import { COLORS, ALPHA, OFFSET, RADIUS, SIZE, VIEWER, withAlpha } from '@/constants/tokens';
 
 interface AvatarViewerProps {
   /** The profile picture to show; null keeps the viewer closed. */
@@ -296,9 +286,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   closeX: {
-    fontSize: FONT_SIZE.f18,
-    lineHeight: LINE_HEIGHT.l20,
+    ...GLYPH.icon,
     color: COLORS.white,
-    fontFamily: FONTS.semiBold,
   },
 });

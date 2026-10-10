@@ -41,16 +41,14 @@ import AvatarViewer from '@/components/AvatarViewer';
 import ProfileIdentityCard from '@/components/ProfileIdentityCard';
 import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview, PublicProfile } from '@/api';
-import { FONTS } from '@/constants/fonts';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
   DURATION,
-  FONT_SIZE,
   LAYER,
   LAYOUT,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
@@ -779,24 +777,19 @@ const styles = StyleSheet.create({
     height: SIZE.z44,
   },
   backArrow: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l22,
+    ...GLYPH.icon,
   },
   titleBlock: {
     flex: 1,
     alignItems: 'center',
   },
   screenTitle: {
-    fontSize: FONT_SIZE.f20,
-    lineHeight: LINE_HEIGHT.l24,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.sheetTitle,
   },
+  // The dots sit on the text's baseline: lifted so they read as centred in the circle.
   ellipsisText: {
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
-    lineHeight: LINE_HEIGHT.l18,
-    marginTop: -SPACE.s4,
+    ...GLYPH.icon,
+    marginTop: -SPACE.s6,
   },
   loader: {
     marginTop: SPACE.s120,
@@ -818,8 +811,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: FONT_SIZE.f28,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h1,
   },
   profileDetails: {
     width: '100%',
@@ -850,28 +842,21 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
   },
   detailLabel: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.caption,
     marginBottom: SPACE.s3,
   },
   detailTitle: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.bodyStrong,
   },
   detailChevron: {
-    fontSize: FONT_SIZE.f24,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l24,
+    ...GLYPH.icon,
   },
   bestValue: {
+    ...TYPOGRAPHY.h2,
     flexShrink: 0,
-    fontSize: FONT_SIZE.f28,
-    fontFamily: FONTS.bold,
-    lineHeight: LINE_HEIGHT.l28,
   },
   followHint: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
     textAlign: 'center',
     marginTop: SPACE.s12,
   },
@@ -892,14 +877,12 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s9,
   },
   followsYou: {
+    ...TYPOGRAPHY.captionStrong,
     textAlign: 'center',
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
     marginTop: SPACE.s12,
   },
   followBtnText: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.pillLabel,
   },
   messageBtn: {
     flex: 1,
@@ -912,8 +895,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s9,
   },
   messageBtnText: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.pillLabel,
   },
   workoutsHeading: {
     width: '100%',
@@ -921,14 +903,10 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.s12,
   },
   workoutsTitle: {
-    fontSize: FONT_SIZE.f20,
-    lineHeight: LINE_HEIGHT.l24,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.sectionHeader,
   },
   workoutsSubtitle: {
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l18,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
     marginTop: SPACE.s4,
   },
   blockedWrap: {
@@ -937,12 +915,10 @@ const styles = StyleSheet.create({
     gap: SPACE.s12,
   },
   blockedTitle: {
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h3,
   },
   blockedSubtitle: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
     textAlign: 'center',
     paddingHorizontal: SPACE.s16,
   },
@@ -956,7 +932,6 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s8,
   },
   unblockBtnText: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.pillLabel,
   },
 });

@@ -38,15 +38,13 @@ import { useInviteAMate } from '@/components/ShareSheet';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import ProfileIdentityCard from '@/components/ProfileIdentityCard';
 import UserProfileScreen from '@/screens/UserProfileScreen';
-import { FONTS } from '@/constants/fonts';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
-  FONT_SIZE,
   ICON_SIZE,
   LAYOUT,
-  LINE_HEIGHT,
   POINTS_NUMBER,
   PROFILE,
   RADIUS,
@@ -111,13 +109,14 @@ function PointsNumber({
   value,
   rolling,
   style,
-  size,
+  token,
   color,
 }: {
   value: number | null;
   rolling: boolean;
   style: StyleProp<TextStyle>;
-  size: number;
+  /** The named text style `style` spreads: Apple's digits take its face and size. */
+  token: { fontFamily: string; fontSize: number };
   color: string;
 }) {
   if (!rolling) {
@@ -131,7 +130,7 @@ function PointsNumber({
     <RollingNumber
       value={value}
       style={style}
-      font={{ family: FONTS.bold, size, color }}
+      font={{ family: token.fontFamily, size: token.fontSize, color }}
       maxFontSizeMultiplier={LAYOUT.largeTextScale}
     />
   );
@@ -340,7 +339,7 @@ export default function ProfileScreen({
             value={profile ? currentPoints : null}
             rolling={cardOn}
             style={[styles.pointsNumber, { color: profile ? text : muted }]}
-            size={FONT_SIZE.f24}
+            token={TYPOGRAPHY.h2}
             color={text}
           />
           <Text
@@ -363,7 +362,7 @@ export default function ProfileScreen({
               value={profile ? bestPoints : null}
               rolling={cardOn}
               style={[styles.bestNumber, { color: profile ? text : muted }]}
-              size={FONT_SIZE.f17}
+              token={TYPOGRAPHY.h3}
               color={text}
             />
           </View>
@@ -500,8 +499,7 @@ const styles = StyleSheet.create({
     borderWidth: BORDER_WIDTH.w1,
   },
   linkText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.labelStrong,
   },
   pointsCard: {
     width: '100%',
@@ -517,18 +515,14 @@ const styles = StyleSheet.create({
     gap: SPACE.s8,
   },
   pointsNumber: {
+    ...TYPOGRAPHY.h2,
     flexShrink: 0,
-    fontSize: FONT_SIZE.f24,
-    lineHeight: LINE_HEIGHT.l28,
-    fontFamily: FONTS.bold,
   },
   // The words take the room the numbers leave: they wrap to a second line or shrink, never the
   // numbers.
   pointsWords: {
+    ...TYPOGRAPHY.label,
     flex: 1,
-    fontSize: FONT_SIZE.f15,
-    lineHeight: LINE_HEIGHT.l20,
-    fontFamily: FONTS.semiBold,
   },
   bestGroup: {
     flexShrink: 0,
@@ -537,20 +531,15 @@ const styles = StyleSheet.create({
     gap: SPACE.s6,
   },
   bestLabel: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.caption,
   },
   bestNumber: {
+    ...TYPOGRAPHY.h3,
     flexShrink: 0,
-    fontSize: FONT_SIZE.f17,
-    lineHeight: LINE_HEIGHT.l22,
-    fontFamily: FONTS.bold,
   },
   chevron: {
+    ...GLYPH.icon,
     flexShrink: 0,
-    fontSize: FONT_SIZE.f20,
-    lineHeight: LINE_HEIGHT.l22,
-    fontFamily: FONTS.regular,
   },
   progressTrack: {
     width: '100%',
@@ -565,9 +554,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
   },
   pointsNote: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l18,
+    ...TYPOGRAPHY.small,
     marginTop: SPACE.s8,
   },
 });
