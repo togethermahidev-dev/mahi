@@ -368,4 +368,7 @@
   site reads them through the generated `web/app/tokens.css`
 - Pop-ups are native: page sheets (`presentationStyle="pageSheet"`) for comments, tags, notifications,
   requests, blocked users and friends; `ActionSheetIOS` for menus
+- A short sheet at the bottom of the screen always goes through `ShortSheet` (decision #205): never a
+  see-through `Modal` that slides (its grey layer slides up with it; `shortSheet.test.ts` fails on one).
+  `native` on it asks for the phone's own short sheet, only for a sheet seen that way on a phone
 - The keyboard never covers a sheet, field or button — see CLAUDE.md (`KeyboardInset`)

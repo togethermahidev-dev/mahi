@@ -95,6 +95,7 @@ describe('default-off flags (video-posts)', () => {
       'private-accounts',
       'feed-rows',
       'profile-bio-and-counts',
+      'native-short-sheets',
     ]);
   });
 

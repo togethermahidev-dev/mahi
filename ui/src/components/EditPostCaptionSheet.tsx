@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import KeyboardInset from '@/components/KeyboardInset';
+import ShortSheet from '@/components/ShortSheet';
 import { EmojiKeyboardButton, EmojiPanel, useEmojiKeyboard } from '@/components/EmojiKeyboard';
 import { FREE_TEXT_PREDICTION } from '@/lib/emojiKeyboard';
 import { updatePostCaption } from '@/api';
@@ -9,7 +10,7 @@ import { useToastStore } from '@/store/toastStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { reportError } from '@/lib/sentry';
 import { TYPOGRAPHY } from '@/constants/typography';
-import { ALPHA, COLORS, RADIUS, SIZE, SPACE, withAlpha } from '@/constants/tokens';
+import { ALPHA, COLORS, RADIUS, SIZE, SPACE } from '@/constants/tokens';
 
 export default function EditPostCaptionSheet({
   postId,
@@ -47,13 +48,8 @@ export default function EditPostCaptionSheet({
   };
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.fill}>
-        <Pressable
-          style={styles.scrim}
-          onPress={onClose}
-          accessibilityLabel="Close caption editor"
-        />
+    <ShortSheet dark={dark} closeLabel="Close caption editor" onDismiss={onClose}>
+      {() => (
         <View style={[styles.sheet, { backgroundColor: colors.bg }]}>
           <Text style={[styles.title, { color: colors.text }]}>Edit caption</Text>
           <Text style={[styles.help, { color: colors.muted }]}>
@@ -93,14 +89,12 @@ export default function EditPostCaptionSheet({
           <EmojiPanel emoji={emoji} />
           <KeyboardInset />
         </View>
-      </View>
-    </Modal>
+      )}
+    </ShortSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  fill: { flex: 1, justifyContent: 'flex-end' },
-  scrim: { ...StyleSheet.absoluteFill, backgroundColor: withAlpha(COLORS.black, ALPHA.a45) },
   sheet: {
     borderTopLeftRadius: RADIUS.r24,
     borderTopRightRadius: RADIUS.r24,

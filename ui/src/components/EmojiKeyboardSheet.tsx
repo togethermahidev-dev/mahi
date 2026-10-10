@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import KeyboardInset from '@/components/KeyboardInset';
+import ShortSheet from '@/components/ShortSheet';
 import { EmojiKeyboardButton, EmojiPanel, useEmojiKeyboard } from '@/components/EmojiKeyboard';
 import { anyEmojiHelp } from '@/lib/emojiKeyboard';
 import { themeColors } from '@/hooks/useAppTheme';
 import { firstEmoji } from '@/lib/messageReactions';
 import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
-import { ALPHA, COLORS, RADIUS, SIZE, SPACE, withAlpha } from '@/constants/tokens';
+import { ALPHA, RADIUS, SIZE, SPACE } from '@/constants/tokens';
 
 /**
  * Any emoji as a reaction (the hold menu's "+"): a field that opens the keyboard; the first emoji
@@ -44,9 +45,8 @@ export default function EmojiKeyboardSheet({
     setTyped(value);
   };
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.fill}>
-        <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Close" />
+    <ShortSheet dark={dark} onDismiss={onClose}>
+      {(close) => (
         <View style={[styles.sheet, { backgroundColor: bg }]}>
           <Text style={[styles.title, { color: text }]}>Any emoji</Text>
           <Text style={[styles.help, { color: muted }]} accessibilityLiveRegion="polite">
@@ -69,7 +69,7 @@ export default function EmojiKeyboardSheet({
             <EmojiKeyboardButton emoji={emoji} color={muted} />
           </View>
           <Pressable
-            onPress={onClose}
+            onPress={() => close()}
             accessibilityRole="button"
             style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}
           >
@@ -78,14 +78,12 @@ export default function EmojiKeyboardSheet({
           <EmojiPanel emoji={emoji} />
           <KeyboardInset />
         </View>
-      </View>
-    </Modal>
+      )}
+    </ShortSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  fill: { flex: 1, justifyContent: 'flex-end' },
-  scrim: { ...StyleSheet.absoluteFill, backgroundColor: withAlpha(COLORS.black, ALPHA.a45) },
   sheet: {
     borderTopLeftRadius: RADIUS.r24,
     borderTopRightRadius: RADIUS.r24,

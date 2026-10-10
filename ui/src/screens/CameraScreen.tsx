@@ -79,6 +79,7 @@ import {
 import { useSecondTick } from '@/hooks/useSecondTick';
 import { matesOnClock } from '@/lib/openTagsBanner';
 import KeyboardInset from '@/components/KeyboardInset';
+import ShortSheet from '@/components/ShortSheet';
 import { EmojiKeyboardButton, EmojiPanel, useEmojiKeyboard } from '@/components/EmojiKeyboard';
 import { FREE_TEXT_PREDICTION } from '@/lib/emojiKeyboard';
 import WorkoutIdeasSheet from '@/components/WorkoutIdeasSheet';
@@ -1292,73 +1293,63 @@ function CaptionSheet({ visible, initialValue, onClose, onOpenTagAt }: CaptionSh
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      statusBarTranslucent
-      onRequestClose={commit}
-    >
-      <View style={styles.sheetFlex}>
-        {/* Tapping outside saves, like Done; Done is the one VoiceOver reads. */}
-        <Pressable
-          style={styles.sheetScrim}
-          onPress={commit}
-          accessible={false}
-          importantForAccessibility="no"
-        />
-        <View style={styles.sheetPanel}>
-          <View style={styles.sheetHandle} />
-          <View style={styles.sheetLabelRow}>
-            <Text style={styles.sheetLabel}>Caption</Text>
-            <View style={styles.sheetHeaderEnd}>
-              <Text style={styles.sheetCounter}>{draft.length}/200</Text>
-              <EmojiKeyboardButton emoji={emoji} color={COLORS.offWhite} />
+    // Tapping outside saves, like Done.
+    <ShortSheet visible={visible} dark closeLabel="Done" onDismiss={commit}>
+      {() => (
+        <>
+          <View style={styles.sheetPanel}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetLabelRow}>
+              <Text style={styles.sheetLabel}>Caption</Text>
+              <View style={styles.sheetHeaderEnd}>
+                <Text style={styles.sheetCounter}>{draft.length}/200</Text>
+                <EmojiKeyboardButton emoji={emoji} color={COLORS.offWhite} />
+              </View>
             </View>
+            <TextInput
+              ref={inputRef}
+              style={styles.sheetInput}
+              value={draft}
+              onChangeText={handleChangeText}
+              onSelectionChange={(e) => {
+                cursorRef.current = e.nativeEvent.selection.end;
+              }}
+              placeholder="What did you do? Any workout counts."
+              placeholderTextColor={themeColors(true).muted}
+              multiline
+              maxLength={200}
+              autoFocus
+              keyboardAppearance="dark"
+              textAlignVertical="top"
+              onBlur={emoji.onBlur}
+              {...FREE_TEXT_PREDICTION}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityHint="Shows workouts that count"
+              style={({ pressed }) => [styles.ideaLink, pressed && { opacity: ALPHA.a70 }]}
+              onPress={() => {
+                Keyboard.dismiss();
+                setIdeasOpen(true);
+              }}
+            >
+              <Text style={styles.ideaLinkText}>Need an idea?</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.sheetDone, pressed && { opacity: ALPHA.a85 }]}
+              onPress={commit}
+            >
+              <Text style={styles.sheetDoneText}>Done</Text>
+            </Pressable>
+            <EmojiPanel emoji={emoji} />
+            <KeyboardInset />
           </View>
-          <TextInput
-            ref={inputRef}
-            style={styles.sheetInput}
-            value={draft}
-            onChangeText={handleChangeText}
-            onSelectionChange={(e) => {
-              cursorRef.current = e.nativeEvent.selection.end;
-            }}
-            placeholder="What did you do? Any workout counts."
-            placeholderTextColor={themeColors(true).muted}
-            multiline
-            maxLength={200}
-            autoFocus
-            keyboardAppearance="dark"
-            textAlignVertical="top"
-            onBlur={emoji.onBlur}
-            {...FREE_TEXT_PREDICTION}
-          />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityHint="Shows workouts that count"
-            style={({ pressed }) => [styles.ideaLink, pressed && { opacity: ALPHA.a70 }]}
-            onPress={() => {
-              Keyboard.dismiss();
-              setIdeasOpen(true);
-            }}
-          >
-            <Text style={styles.ideaLinkText}>Need an idea?</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.sheetDone, pressed && { opacity: ALPHA.a85 }]}
-            onPress={commit}
-          >
-            <Text style={styles.sheetDoneText}>Done</Text>
-          </Pressable>
-          <EmojiPanel emoji={emoji} />
-          <KeyboardInset />
-        </View>
-      </View>
-      {/* Inside this modal so it opens over it. */}
-      <WorkoutIdeasSheet visible={ideasOpen} onClose={() => setIdeasOpen(false)} />
-    </Modal>
+          {/* Inside this sheet so it opens over it. */}
+          <WorkoutIdeasSheet visible={ideasOpen} onClose={() => setIdeasOpen(false)} />
+        </>
+      )}
+    </ShortSheet>
   );
 }
 
@@ -3937,14 +3928,6 @@ const styles = StyleSheet.create({
     borderColor: COLORS.accent,
   },
   // ── Caption bottom sheet
-  sheetFlex: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  sheetScrim: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: withAlpha(COLORS.black, ALPHA.a55),
-  },
   sheetPanel: {
     backgroundColor: COLORS.bgDark,
     borderTopLeftRadius: RADIUS.r24,

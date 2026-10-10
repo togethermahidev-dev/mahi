@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import KeyboardInset from '@/components/KeyboardInset';
+import ShortSheet from '@/components/ShortSheet';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useCoachBlock } from '@/hooks/useCoachMarks';
 import { claimFailText, inviteAcceptLine, inviteAsk } from '@/lib/inviteLink';
@@ -17,7 +18,7 @@ import { COLORS, ALPHA, BORDER_WIDTH, RADIUS, SIZE, SPACE, withAlpha } from '@/c
  * note instead. The sign-up card is its own yes, so a brand-new account never sees this.
  */
 export default function InviteConfirmSheet({ userId }: { userId: string }): React.JSX.Element {
-  const { colors } = useAppTheme();
+  const { colors, dark } = useAppTheme();
   const ready = useUserStore((s) => s.profile?.id === userId);
   const pendingToken = useInviteStore((s) => s.pendingToken);
   const confirmedToken = useInviteStore((s) => s.confirmedToken);
@@ -48,20 +49,8 @@ export default function InviteConfirmSheet({ userId }: { userId: string }): Reac
   const inviter = preview?.username ?? '';
 
   return (
-    <Modal
-      visible={ask === 'ask'}
-      transparent
-      animationType="slide"
-      statusBarTranslucent
-      onRequestClose={notNow}
-    >
-      <View style={styles.flex}>
-        <Pressable
-          style={styles.scrim}
-          onPress={notNow}
-          accessibilityRole="button"
-          accessibilityLabel="Not now"
-        />
+    <ShortSheet visible={ask === 'ask'} dark={dark} closeLabel="Not now" onDismiss={notNow}>
+      {() => (
         <View style={[styles.panel, { backgroundColor: colors.bg }]}>
           <View style={[styles.handle, { backgroundColor: withAlpha(colors.text, ALPHA.a25) }]} />
           <Text style={[styles.headline, { color: colors.text }]} accessibilityRole="header">
@@ -97,20 +86,12 @@ export default function InviteConfirmSheet({ userId }: { userId: string }): Reac
           </Pressable>
           <KeyboardInset />
         </View>
-      </View>
-    </Modal>
+      )}
+    </ShortSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  scrim: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: withAlpha(COLORS.black, ALPHA.a55),
-  },
   panel: {
     borderTopLeftRadius: RADIUS.r24,
     borderTopRightRadius: RADIUS.r24,

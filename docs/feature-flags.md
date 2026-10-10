@@ -52,7 +52,7 @@ if (!videoOn) return null;
 - **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `push-core`, `video-posts`,
   `ios-sf-symbols`, `camera-tap-focus`, `identity-verification`, `purchases`,
   `auth-google-signin`, `auth-apple-signin`, `live-activity`, `control-post-workout`, `siri-shortcuts`,
-  `spotlight`, `private-accounts`, `feed-rows` and `profile-bio-and-counts`): off
+  `spotlight`, `private-accounts`, `feed-rows`, `profile-bio-and-counts` and `native-short-sheets`): off
   while flags load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns
   `true`. Use this for a feature that must never show, even for a moment on cold start (video posts would
   otherwise be able to ask for the microphone before flags load; the full-screen notifications page would
@@ -355,3 +355,13 @@ user-scoped servers.
 **Hard project-lock for PostHog:** a personal API key reaches the whole PostHog org unless restricted. For a true
 guarantee that this key only touches project 130791, scope it in PostHog → Settings → Personal API keys to that
 project with `feature_flag:read` + `feature_flag:write` scopes only. Rotate the seed key before launch.
+
+**The phone's own short sheet:** `native-short-sheets` (**default off in code**, added 2026-10-10; owner, on
+Invite a friend: "The sheet have like a weird overlay does it use the native sheet?"). On, on an iPhone build
+that has Apple's SwiftUI views (11 and later): Invite a friend opens as Apple's own short sheet, sized to its
+content, with its dimming, grab handle and swipe down. Off, build 10 and Android: our own short sheet. Either
+way every short sheet (Invite a friend, the invite you accept, Edit caption, the emoji keyboard, the camera's
+caption) goes through `ShortSheet`, where the grey fades in on its own and only the card slides up (with Reduce
+Motion the card fades too); it used to be one see-through layer that slid up, grey and all. The four with a text
+field or a confirm stay our own until each is seen as the native one on a phone with the keyboard up
+(`native` on `ShortSheet`). `ui/src/components/ShortSheet.tsx`, `ui/src/lib/shortSheet.ts`.

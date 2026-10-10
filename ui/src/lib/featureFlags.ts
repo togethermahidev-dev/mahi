@@ -67,6 +67,9 @@ export const FEATURE_FLAGS = [
 
   // Profiles (owner, 2026-10-10)
   'profile-bio-and-counts', // follower and following counts and a bio on your profile and other people's (default OFF; the bio needs migration 20261010110000_profile_bio)
+
+  // Sheets (owner, 2026-10-10)
+  'native-short-sheets', // Invite a friend opens as the phone's own short sheet on builds that have it (default OFF until seen on a phone)
 ] as const;
 
 /** A known PostHog feature flag key. */
@@ -110,6 +113,7 @@ export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'private-accounts',
   'feed-rows',
   'profile-bio-and-counts',
+  'native-short-sheets',
 ];
 
 /** Whether a flag reads as on before PostHog has answered (true for all but DEFAULT_OFF_FLAGS). */

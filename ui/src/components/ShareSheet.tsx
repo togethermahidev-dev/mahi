@@ -51,6 +51,7 @@ import {
 import GlobalSearchOverlay from '@/components/GlobalSearchOverlay';
 import InviteChannelIcon from '@/components/InviteChannelIcon';
 import KeyboardInset from '@/components/KeyboardInset';
+import ShortSheet, { type CloseShortSheet } from '@/components/ShortSheet';
 import ListState from '@/components/ListState';
 import { FIELD_TEXT, GLYPH, TYPOGRAPHY } from '@/constants/typography';
 import {
@@ -537,33 +538,32 @@ function InviteShare({
     };
   }, []);
 
-  const runTarget = async (target: ShareSheetTarget) => {
+  const runTarget = async (target: ShareSheetTarget, close: CloseShortSheet) => {
     if (busy) return;
     haptic('selection');
     setBusy(target);
     const went = await sendMateLinkVia(link, target);
     if (!live.current) return;
     setBusy(null);
-    if (went) onClose(true);
+    if (went) close(() => onClose(true));
   };
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={() => onClose(false)}>
-      <View style={styles.fill}>
-        <Pressable
-          style={styles.scrim}
-          onPress={() => onClose(false)}
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-        />
+    <ShortSheet dark={dark} native onDismiss={() => onClose(false)}>
+      {(close) => (
         <View style={[styles.card, { backgroundColor: bg }]} accessibilityViewIsModal>
-          <SheetHeader title={parts.title} dark={dark} onClose={() => onClose(false)} />
-          <TargetRow targets={targets} busy={busy} dark={dark} onPress={runTarget} />
+          <SheetHeader title={parts.title} dark={dark} onClose={() => close()} />
+          <TargetRow
+            targets={targets}
+            busy={busy}
+            dark={dark}
+            onPress={(target) => runTarget(target, close)}
+          />
           <View style={{ height: insets.bottom }} />
           <KeyboardInset />
         </View>
-      </View>
-    </Modal>
+      )}
+    </ShortSheet>
   );
 }
 
@@ -806,14 +806,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   // The invite sheet: a short card over the dimmed screen.
-  fill: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  scrim: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: withAlpha(COLORS.black, ALPHA.a45),
-  },
   card: {
     borderTopLeftRadius: RADIUS.r24,
     borderTopRightRadius: RADIUS.r24,
