@@ -14,7 +14,11 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
+import { useProfileAbout } from '@/hooks/useProfileAbout';
 import { useAuthStore, useProfilePostsStore, useUserStore } from '@/store';
+import { useToastStore } from '@/store/toastStore';
+import { bioErrorText, bioLine, type CountKind } from '@/lib/profileAbout';
+import { reportError } from '@/lib/sentry';
 import {
   answeredMatesLine,
   lastAnsweredMates,
@@ -37,6 +41,8 @@ import MyInvitesSheet from '@/components/MyInvitesSheet';
 import { useInviteAMate } from '@/components/ShareSheet';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import ProfileIdentityCard from '@/components/ProfileIdentityCard';
+import ProfileAbout from '@/components/ProfileAbout';
+import EditBioSheet from '@/components/EditBioSheet';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import { GLYPH, TYPOGRAPHY, type TypographyName } from '@/constants/typography';
 import {
@@ -145,8 +151,16 @@ export default function ProfileScreen({
   const { dark } = useAppTheme();
   const top = useSafeAreaInsets().top;
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [friendsOpen, setFriendsOpen] = useState(false);
+  // Friends, and with the counts on your followers and following: one sheet, one list at a time.
+  // The kind stays put while the sheet slides shut, so its title never changes on the way out.
+  const [listOpen, setListOpen] = useState(false);
+  const [listType, setListType] = useState<'friends' | CountKind>('friends');
+  const openList = (type: 'friends' | CountKind) => {
+    setListType(type);
+    setListOpen(true);
+  };
   const [invitesOpen, setInvitesOpen] = useState(false);
+  const [bioOpen, setBioOpen] = useState(false);
   // "Invite a friend" (core workflow step 24): one link at a time, so a double tap can't make two.
   const [inviting, setInviting] = useState(false);
   // The link opens in Mahi's share sheet (switch `share-sheet`; off: the phone's).
@@ -187,6 +201,43 @@ export default function ProfileScreen({
   // One short line under the bar: where you stand, then who you last answered.
   const pointsNote = [hint, matesLine].filter(Boolean).join(' ');
 
+  // Follower and following counts and the bio (switch `profile-bio-and-counts`): asked for again
+  // each time this page comes on screen, never kept on the phone. Off: the header as it was.
+  const aboutOn = useFeatureFlag('profile-bio-and-counts');
+  const { counts, about, saveBio } = useProfileAbout(userId, aboutOn, isActive);
+  const myBio = about?.bio ?? null;
+
+  // Save closes the sheet and shows the new bio at once; a refusal puts the old one back and
+  // says so.
+  const handleSaveBio = (words: string) => {
+    setBioOpen(false);
+    void saveBio(words).then(({ error }) => {
+      if (!error) return;
+      reportError(error, { flow: 'profile', action: 'saveBio', level: 'warning' });
+      useToastStore.getState().show(bioErrorText(error.message));
+    });
+  };
+
+  // "Your invites": under your name, or beside the invite button when the counts take that line.
+  const invitesLink = (
+    <Pressable
+      style={({ pressed }) => [
+        styles.link,
+        { borderColor: border },
+        pressed && { opacity: ALPHA.a70 },
+      ]}
+      onPress={() => setInvitesOpen(true)}
+      accessibilityRole="button"
+      accessibilityLabel="Your invites"
+      accessibilityHint="Shows the links you’ve sent and who joined"
+      hitSlop={LINK_SLOP}
+    >
+      <Text style={[styles.linkText, { color: text }]} numberOfLines={1}>
+        Your invites
+      </Text>
+    </Pressable>
+  );
+
   const displayName = profile?.display_name ?? profile?.first_name ?? profile?.username ?? '—';
   const currentPoints = profile?.streak_current ?? 0;
   const bestPoints = profile?.streak_highest ?? 0;
@@ -205,29 +256,32 @@ export default function ProfileScreen({
       {/* Top bar: Invite a friend in the top left; Search and Settings stay in the top right.
           Every button has a visible 44-point target. */}
       <View style={styles.topBar}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.inviteButton,
-            { backgroundColor: text },
-            (pressed || inviting) && { opacity: ALPHA.a70 },
-          ]}
-          onPress={() => {
-            if (inviting) return;
-            setInviting(true);
-            void inviteAMate().finally(() => setInviting(false));
-          }}
-          disabled={inviting}
-          accessibilityRole="button"
-          accessibilityLabel={INVITE_A_FRIEND.label}
-          accessibilityHint={INVITE_A_FRIEND.hint}
-          accessibilityState={{ busy: inviting, disabled: inviting }}
-        >
-          {inviting ? (
-            <ActivityIndicator color={bg} />
-          ) : (
-            <InviteIcon size={ICON_SIZE.i22} color={bg} />
-          )}
-        </Pressable>
+        <View style={styles.actions}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.inviteButton,
+              { backgroundColor: text },
+              (pressed || inviting) && { opacity: ALPHA.a70 },
+            ]}
+            onPress={() => {
+              if (inviting) return;
+              setInviting(true);
+              void inviteAMate().finally(() => setInviting(false));
+            }}
+            disabled={inviting}
+            accessibilityRole="button"
+            accessibilityLabel={INVITE_A_FRIEND.label}
+            accessibilityHint={INVITE_A_FRIEND.hint}
+            accessibilityState={{ busy: inviting, disabled: inviting }}
+          >
+            {inviting ? (
+              <ActivityIndicator color={bg} />
+            ) : (
+              <InviteIcon size={ICON_SIZE.i22} color={bg} />
+            )}
+          </Pressable>
+          {aboutOn ? invitesLink : null}
+        </View>
         <View style={styles.actions}>
           {onSearch ? (
             <Pressable
@@ -276,41 +330,43 @@ export default function ProfileScreen({
             onUpdate={(newUrl) => profile && setProfile({ ...profile, avatar_url: newUrl })}
           />
         }
+        about={
+          aboutOn ? (
+            // One line of counts with Friends at its end, then your bio or "Add a bio".
+            <ProfileAbout
+              dark={dark}
+              counts={counts}
+              whose="your"
+              onOpenList={openList}
+              onOpenFriends={() => openList('friends')}
+              bioLine={bioLine({ supported: about !== null, bio: myBio, isSelf: true })}
+              bio={myBio}
+              onEditBio={() => setBioOpen(true)}
+            />
+          ) : undefined
+        }
       >
-        <View style={styles.links}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.link,
-              { borderColor: border },
-              pressed && { opacity: ALPHA.a70 },
-            ]}
-            onPress={() => setFriendsOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Friends"
-            accessibilityHint="Opens your friends list"
-            hitSlop={LINK_SLOP}
-          >
-            <Text style={[styles.linkText, { color: text }]} numberOfLines={1}>
-              Friends
-            </Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
-              styles.link,
-              { borderColor: border },
-              pressed && { opacity: ALPHA.a70 },
-            ]}
-            onPress={() => setInvitesOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Your invites"
-            accessibilityHint="Shows the links you’ve sent and who joined"
-            hitSlop={LINK_SLOP}
-          >
-            <Text style={[styles.linkText, { color: text }]} numberOfLines={1}>
-              Your invites
-            </Text>
-          </Pressable>
-        </View>
+        {aboutOn ? null : (
+          <View style={styles.links}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.link,
+                { borderColor: border },
+                pressed && { opacity: ALPHA.a70 },
+              ]}
+              onPress={() => openList('friends')}
+              accessibilityRole="button"
+              accessibilityLabel="Friends"
+              accessibilityHint="Opens your friends list"
+              hitSlop={LINK_SLOP}
+            >
+              <Text style={[styles.linkText, { color: text }]} numberOfLines={1}>
+                Friends
+              </Text>
+            </Pressable>
+            {invitesLink}
+          </View>
+        )}
       </ProfileIdentityCard>
 
       {/* Mahi points on one line: the number keeps its own width, the words take what is left
@@ -406,13 +462,22 @@ export default function ProfileScreen({
       {/* Settings, in a page sheet */}
       <SettingsPanel visible={settingsOpen} onClose={() => setSettingsOpen(false)} dark={dark} />
 
-      {/* Friends list, in a page sheet */}
+      {/* Friends (and, with the counts on, followers and following), in a page sheet */}
       <FollowListModal
-        visible={friendsOpen}
-        onClose={() => setFriendsOpen(false)}
+        visible={listOpen}
+        onClose={() => setListOpen(false)}
         userId={userId ?? ''}
-        type="friends"
+        type={listType}
         dark={dark}
+      />
+
+      {/* Your bio's editor, in a page sheet */}
+      <EditBioSheet
+        visible={bioOpen}
+        bio={myBio}
+        dark={dark}
+        onClose={() => setBioOpen(false)}
+        onSave={handleSaveBio}
       />
 
       {/* The links you've sent and who joined */}

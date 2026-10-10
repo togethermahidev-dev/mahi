@@ -9,6 +9,8 @@ interface ProfileIdentityCardProps {
   avatar: React.ReactNode;
   displayName: string;
   username?: string | null;
+  /** Straight under the handle: the counts line and the bio (switch `profile-bio-and-counts`). */
+  about?: React.ReactNode;
   /** A line under the handle (someone else's profile). */
   supportingText?: string;
   /** Under the handle on your own profile: the short links to Friends and Your invites. */
@@ -25,6 +27,7 @@ export default function ProfileIdentityCard({
   avatar,
   displayName,
   username,
+  about,
   supportingText,
   children,
 }: ProfileIdentityCardProps): React.JSX.Element {
@@ -48,6 +51,7 @@ export default function ProfileIdentityCard({
             @{username}
           </Text>
         ) : null}
+        {about}
         {supportingText ? (
           <Text style={[styles.supportingText, { color: muted }]}>{supportingText}</Text>
         ) : null}

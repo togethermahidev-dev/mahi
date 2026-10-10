@@ -31,6 +31,9 @@ import { useAuthStore, useFollowStore, useBlockStore, useProfilePostsStore } fro
 import { useToastStore } from '@/store/toastStore';
 import { pointsCount } from '@/lib/mahiPoints';
 import { useCoverRail } from '@/hooks/useChrome';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { useProfileAbout } from '@/hooks/useProfileAbout';
+import { bioLine, countTap, type CountKind } from '@/lib/profileAbout';
 import { posthog } from '@/lib/posthog';
 import { Sentry, reportError } from '@/lib/sentry';
 import FollowListModal from '@/components/FollowListModal';
@@ -39,6 +42,7 @@ import ProfileMediaMap from '@/components/ProfileMediaMap';
 import PostViewer from '@/components/PostViewer';
 import AvatarViewer from '@/components/AvatarViewer';
 import ProfileIdentityCard from '@/components/ProfileIdentityCard';
+import ProfileAbout from '@/components/ProfileAbout';
 import ConversationScreen from '@/screens/ConversationScreen';
 import type { ConversationPreview, PublicProfile } from '@/api';
 import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
@@ -153,7 +157,14 @@ export default function UserProfileScreen({
   /** Bumped by "Try again" after a failed load, to read the profile again. */
   const [attempt, setAttempt] = useState(0);
   const [messaging, setMessaging] = useState(false);
-  const [friendsOpen, setFriendsOpen] = useState(false);
+  // Friends, and with the counts on their followers and following: one sheet, one list at a
+  // time. The kind stays put while the sheet slides shut, so its title never changes on the way out.
+  const [listOpen, setListOpen] = useState(false);
+  const [listType, setListType] = useState<'friends' | CountKind>('friends');
+  const openList = (type: 'friends' | CountKind) => {
+    setListType(type);
+    setListOpen(true);
+  };
   const [activeConvo, setActiveConvo] = useState<ConversationPreview | null>(null);
   const [viewerPost, setViewerPost] = useState<{
     postId: string;
@@ -201,9 +212,15 @@ export default function UserProfileScreen({
     else x.value = withSpring(0, PAGE_SPRING);
   }, [x, fade, reduceMotion]);
 
+  // Follower and following counts and the bio (switch `profile-bio-and-counts`): read fresh each
+  // time this profile opens, never kept on the phone. Off: the header as it was.
+  const aboutOn = useFeatureFlag('profile-bio-and-counts');
+  const { counts, about } = useProfileAbout(userId, aboutOn);
+
+  // With the counts on, the read above is this same one (it also says when the counts are fresh).
   useEffect(() => {
-    if (currentUserId) loadFollowData(currentUserId, userId);
-  }, [userId, currentUserId, loadFollowData]);
+    if (currentUserId && !aboutOn) loadFollowData(currentUserId, userId);
+  }, [userId, currentUserId, loadFollowData, aboutOn]);
 
   // A follow that lets you in (or an unfollow that shuts you out) reads their workouts again.
   const followState = isFollowing ? 'following' : isRequested ? 'requested' : 'none';
@@ -462,6 +479,19 @@ export default function UserProfileScreen({
         dark={dark}
         displayName={displayName}
         username={profile?.username}
+        about={
+          aboutOn ? (
+            // A count opens its list only where the server lets you read it; else it is plain text.
+            <ProfileAbout
+              dark={dark}
+              counts={counts}
+              whose={isSelf ? 'your' : `${handle}’s`}
+              onOpenList={countTap(isSelf, about?.listsOpen) === 'open' ? openList : undefined}
+              bioLine={bioLine({ supported: about !== null, bio: about?.bio, isSelf: false })}
+              bio={about?.bio}
+            />
+          ) : undefined
+        }
         supportingText="Follow each other to share tags and keep moving together."
         avatar={
           profile?.avatar_url ? (
@@ -510,7 +540,7 @@ export default function UserProfileScreen({
           <>
             <Pressable
               style={({ pressed }) => [styles.friendsLink, pressed && { opacity: ALPHA.a70 }]}
-              onPress={() => setFriendsOpen(true)}
+              onPress={() => openList('friends')}
               accessibilityRole="button"
               accessibilityLabel="Friends"
               accessibilityHint={`Shows ${handle}'s friends`}
@@ -692,12 +722,12 @@ export default function UserProfileScreen({
           </View>
         )}
 
-        {/* Friends list */}
+        {/* Friends (and, with the counts on, their followers and following) */}
         <FollowListModal
-          visible={friendsOpen}
-          onClose={() => setFriendsOpen(false)}
+          visible={listOpen}
+          onClose={() => setListOpen(false)}
           userId={userId}
-          type="friends"
+          type={listType}
           dark={dark}
         />
 
