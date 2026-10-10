@@ -225,7 +225,7 @@ The owner's answers (three rounds, 2026-10-08; plan `.claude/plan-private-accoun
 
 The owner's 24-step workflow is the product's source of truth: [core-workflow.md](./core-workflow.md)
 (word for word, with each step's server rule, app file and switch). RULES.md summarises it. Server:
-`20261009100000_first_post_tag_and_post_points` (not pushed yet).
+`20261009100000_first_post_tag_and_post_points` (live on production since 2026-10-09).
 
 | # | Decision | Chosen | Other options | Status | Decided | Used in |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -261,7 +261,7 @@ The owner's 24-step workflow is the product's source of truth: [core-workflow.md
 ## Share sheet and posts in chats (2026-10-10)
 
 App side built 2026-10-10 behind switch `share-sheet` (on for everyone); server: `20261010100000_share_post_in_message`
-(not pushed yet). Nothing here is live until that migration is on production and an update is published.
+(live on production since 2026-10-10). The app side reaches phones with OTA 13.43.
 
 | # | Decision | Chosen | Other options | Status | Decided | Used in |
 | --- | --- | --- | --- | --- | --- | --- |

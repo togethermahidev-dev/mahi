@@ -132,7 +132,8 @@
   distance or flick. Where it settles: `releaseDetent` (`ui/src/lib/detent.ts`).
 - Back from the open full-screen feed: at its first post a pull down runs the same morph backwards
   (`feedPullDown`, `ui/src/lib/feedPull.ts`, decision #176), a "Switch to camera" pill floats there, and
-  the circle beside the bell works from anywhere. The pull is a pan on the feed card that runs
+  the circle beside the bell takes you back too (it slides away with the header while you page down
+  and returns with it), as does tapping the Camera tab (decision #184). The pull is a pan on the feed card that runs
   alongside the list's own Native gesture (like the page swipe) and only activates at the top with a
   downward drag; the full-screen list doesn't bounce or pull to refresh — it refreshes each time the
   feed opens. Rows (`feed-rows` on) keep pull to refresh and have no pull down.
@@ -141,7 +142,8 @@
   compete and the outer one loses (13.23–13.29).
 - Tapping a tab, or a button that opens a page, grows the page in (`pageMorphFrame`, decision #146);
   only a swipe slides the strip.
-- Only a real sideways carousel may hold the page swipe (`onCarouselTouchChange`). Never wire it to a
+- Only a real sideways carousel may hold the page swipe (none today: the profile's carousel went with
+  the compact header, 2026-10-10). Never hold it for a
   whole-screen list: every touch would hold the swipe and the page could not be left by swiping
   (the cause of "can't swipe from Profile", fixed in OTA 12.22).
 

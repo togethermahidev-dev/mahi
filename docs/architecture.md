@@ -493,7 +493,8 @@ decision #174; Reduce Motion: slide and fade, no scaling). Back: at the feed's f
 runs the same progress backwards (`feedPull` pan on the feed card, simultaneous with the list's
 `feedList` Native gesture, deciding by `feedPullDown` in `ui/src/lib/feedPull.ts`; the full-screen
 list doesn't bounce), a "Switch to camera" pill floats there (`SwitchCameraPill`), and the circle
-beside the bell works from anywhere (decision #176). The feed refreshes (`sync(true)`) each time it
+beside the bell takes you back too (it slides away with the header while you page down; decision #176),
+as does the Camera tab (decision #184; the feed then goes back to its first post). The feed refreshes (`sync(true)`) each time it
 opens instead of pull to refresh (rows keep theirs); a locked feed lifts about a sixth of the page
 (`lockedGap`) and shows `LockedGap` (the reason, the padlock and one button). The circle beside the bell
 says where you are: a camera on the camera (turning into the up-arrow as the roadmap opens), the
@@ -522,7 +523,7 @@ Spring: `SPRING.page` (`damping: 22, stiffness: 160, mass: 0.9`; Reduce Motion i
 
 ### Horizontal Navigator (`ui/src/screens/HorizontalNavigator.tsx`)
 
-The swipe pages above, plus what they share: an `AppHeader` on the Camera and on the Feed (the Feed's slides off-screen by `headerAnim` as the list scrolls down), `NotificationsScreen`, a `UserProfileScreen` opened from notifications or a push, `GlobalSearchOverlay` (the empty feed's "Find friends"; Messages has its own magnifier), the `NavRail`, and the push hooks `usePushRegistration` and `usePushRouting` ([Push notifications](#push-notifications)). Messages' back button goes to Profile.
+The swipe pages above, plus what they share: an `AppHeader` on the Camera and on the Feed (the Feed's slides away by `headerHide` as you page down, `ui/src/lib/feedHeader.ts`; over the full-screen feed it is the dark header in both themes), `NotificationsScreen`, a `UserProfileScreen` opened from notifications or a push, `GlobalSearchOverlay` (the empty feed's "Find friends"; Messages has its own magnifier), the `NavRail`, and the push hooks `usePushRegistration` and `usePushRouting` ([Push notifications](#push-notifications)). Messages' back button goes to Profile.
 
 | Index | Page | Also reached by |
 |---|---|---|
