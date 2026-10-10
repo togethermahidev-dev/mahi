@@ -313,7 +313,7 @@
   in five weights (`FONTS` in `ui/src/constants/fonts.ts`, loaded in `App.tsx`; no italic, no
   `fontWeight`/`fontStyle` — the face is the weight). Every text style spreads ONE named style from
   `TYPOGRAPHY` in `ui/src/constants/typography.ts` (`...TYPOGRAPHY.body`): page title `screenTitle` 28,
-  headings `h1`–`h4` 24/20/17/15, `sheetTitle` 16, `postBody` 17, `input` 15, `body` 14, `small` 13,
+  headings `h1`–`h4` 24/20/17/15, `sheetTitle` 22 bold (Mahi's own: the owner kept sheet titles at 22, PingMee's are 16), `postBody` 17, `input` 15, `body` 14, `small` 13,
   `caption` 12, `micro` 11, `button` 14 bold. Emoji and other pictures drawn as text spread a `GLYPH` size.
   Nothing else sets a text size or a face; a missing style is added to `typography.ts`, never typed in a
   screen. When PingMee's scale changes (`pingmee-v2/ui/theme/typography.ts`), copy it and update

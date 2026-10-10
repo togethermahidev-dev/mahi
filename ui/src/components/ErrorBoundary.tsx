@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s48,
   },
   buttonText: {
-    ...TYPOGRAPHY.sheetTitle,
+    ...TYPOGRAPHY.button,
     color: COLORS.offBlack,
   },
 });

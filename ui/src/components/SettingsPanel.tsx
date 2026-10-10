@@ -41,7 +41,7 @@ import {
   type AccountControls,
 } from '@/lib/accountControls';
 import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
-import { COLORS, ALPHA, BORDER_WIDTH, RADIUS, SIZE, SPACE } from '@/constants/tokens';
+import { COLORS, ALPHA, BORDER_WIDTH, LAYOUT, RADIUS, SIZE, SPACE } from '@/constants/tokens';
 import { themeColors } from '@/hooks/useAppTheme';
 
 interface SettingsPanelProps {
@@ -186,6 +186,8 @@ function Sheet({
             <Text
               style={[styles.pageTitle, { color: text }]}
               numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={LAYOUT.titleMinScale}
               accessibilityRole="header"
             >
               {SECURITY_ROW.title}

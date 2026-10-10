@@ -28,8 +28,11 @@ export const TYPOGRAPHY = {
   h3: style(FONTS.semiBold, FONT_SIZE.f17, LINE_HEIGHT.l24),
   h4: style(FONTS.semiBold, FONT_SIZE.f15, LINE_HEIGHT.l22),
   subtitle: style(FONTS.medium, FONT_SIZE.f15, LINE_HEIGHT.l22),
-  /** A sheet's or pop-up's header title (16). */
-  sheetTitle: style(FONTS.semiBold, FONT_SIZE.f16, LINE_HEIGHT.l22),
+  /**
+   * A sheet's, pop-up's or pushed page's title. Mahi's own value: PingMee's is 16 semi-bold, and
+   * the owner kept Mahi's at 22 bold (2026-10-10: "Keep them at 22").
+   */
+  sheetTitle: style(FONTS.bold, FONT_SIZE.f22, LINE_HEIGHT.l28),
 
   // ─── Body ──────────────────────────────────────────────────────────────────
   /** The words of a post on its card (17, medium). */

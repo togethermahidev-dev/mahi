@@ -480,6 +480,8 @@ export const LAYOUT = {
   percentFull: 100,
   /** Start the next page of a profile's grid shortly before the last row comes into view. */
   profileEndThreshold: 0.35,
+  /** A title between two header buttons shrinks to this share of its size before it is cut. */
+  titleMinScale: 0.75,
   /** Tagged friends' bubbles shown before "+n". */
   taggedBubbles: 3,
   /** The most lines a toast wraps to before it is cut. */

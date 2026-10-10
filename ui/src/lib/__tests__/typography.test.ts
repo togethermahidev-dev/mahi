@@ -45,6 +45,12 @@ const PINGMEE: Record<string, [size: number, line: number, weight: number, track
   authWordmark: [56, 64, 400, 0],
 };
 
+// Where the owner has set Mahi's own value over PingMee's. Sheet titles: PingMee's are 16; "Keep
+// them at 22" (owner, 2026-10-10, on Friends, Follow requests and Edit caption).
+const OWNER: typeof PINGMEE = {
+  sheetTitle: [22, 28, 700, 0],
+};
+
 const FACE_BY_WEIGHT: Record<number, string> = {
   400: FONTS.regular,
   500: FONTS.medium,
@@ -118,14 +124,17 @@ describe("the app's typeface", () => {
 });
 
 describe('the named text styles', () => {
-  it.each(Object.entries(PINGMEE))('%s is PingMee’s', (name, [size, line, weight, tracking]) => {
-    const token = TYPOGRAPHY[name as keyof typeof TYPOGRAPHY];
-    expect(token).toBeDefined();
-    expect(token.fontSize).toBe(size);
-    expect(token.lineHeight).toBe(line);
-    expect(token.fontFamily).toBe(FACE_BY_WEIGHT[weight]);
-    expect(token.letterSpacing).toBeCloseTo(tracking, 6);
-  });
+  it.each(Object.entries({ ...PINGMEE, ...OWNER }))(
+    '%s is PingMee’s, or the owner’s where he set one',
+    (name, [size, line, weight, tracking]) => {
+      const token = TYPOGRAPHY[name as keyof typeof TYPOGRAPHY];
+      expect(token).toBeDefined();
+      expect(token.fontSize).toBe(size);
+      expect(token.lineHeight).toBe(line);
+      expect(token.fontFamily).toBe(FACE_BY_WEIGHT[weight]);
+      expect(token.letterSpacing).toBeCloseTo(tracking, 6);
+    }
+  );
 
   // PingMee's 10pt `tiny`, its capitals `overline` and `mono` are left out: Mahi keeps text at 11
   // or more, writes in sentence case, and has one typeface.
