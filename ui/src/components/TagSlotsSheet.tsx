@@ -23,6 +23,7 @@ import { noteInviteSent } from '@/lib/inviteAMate';
 import { useAuthStore } from '@/store';
 import KeyboardInset from '@/components/KeyboardInset';
 import InviteChannelIcon from '@/components/InviteChannelIcon';
+import { shareTargetLook } from '@/lib/shareSheet';
 import { loadContacts, readDeviceContacts } from '@/lib/contactsModule';
 import { matchContacts } from '@/api/contacts';
 import {
@@ -643,7 +644,12 @@ export default function TagSlotsSheet({
           onPress={() => onSend(target)}
         >
           {target === 'more' ? null : (
-            <InviteChannelIcon channel={target} size={ICON_SIZE.i16} color={colors.text} />
+            // Another app's tile shows that app's logo in its own colour.
+            <InviteChannelIcon
+              channel={target}
+              size={ICON_SIZE.i16}
+              color={shareTargetLook(target)?.fill[0] ?? colors.text}
+            />
           )}
           <Text style={[styles.shareButtonText, { color: colors.text }]} numberOfLines={1}>
             {label}

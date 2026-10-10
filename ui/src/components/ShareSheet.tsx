@@ -43,6 +43,7 @@ import {
   shareErrorText,
   sendLabel,
   shareResultToast,
+  shareTargetLook,
   shareSheetParts,
   shareTargets,
   toggleRecipient,
@@ -50,6 +51,7 @@ import {
 } from '@/lib/shareSheet';
 import GlobalSearchOverlay from '@/components/GlobalSearchOverlay';
 import InviteChannelIcon from '@/components/InviteChannelIcon';
+import { LinearGradient } from 'expo-linear-gradient';
 import KeyboardInset from '@/components/KeyboardInset';
 import ShortSheet, { type CloseShortSheet } from '@/components/ShortSheet';
 import ListState from '@/components/ListState';
@@ -620,32 +622,56 @@ function TargetRow({
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={styles.targets}
     >
-      {targets.map(({ target, label }) => (
-        <Pressable
-          key={target}
-          style={({ pressed }) => [styles.target, (pressed || busy !== null) && styles.pressed]}
-          onPress={() => void onPress(target)}
-          disabled={busy !== null}
-          accessibilityRole="button"
-          accessibilityLabel={label}
-          accessibilityState={{ busy: busy === target, disabled: busy !== null }}
-        >
-          <View style={[styles.targetCircle, { backgroundColor: withAlpha(text, ALPHA.a10) }]}>
-            {busy === target ? (
-              <ActivityIndicator color={text} />
+      {targets.map(({ target, label }) => {
+        // Another app's button wears that app's own colour and logo; Mahi's own two stay plain.
+        const look = shareTargetLook(target);
+        const mark = look ? look.mark : text;
+        const inside =
+          busy === target ? (
+            <ActivityIndicator color={mark} />
+          ) : (
+            <InviteChannelIcon
+              channel={target === 'more' ? 'share' : target}
+              size={ICON_SIZE.i24}
+              color={mark}
+              outline={look?.outline}
+            />
+          );
+        return (
+          <Pressable
+            key={target}
+            style={({ pressed }) => [styles.target, (pressed || busy !== null) && styles.pressed]}
+            onPress={() => void onPress(target)}
+            disabled={busy !== null}
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            accessibilityState={{ busy: busy === target, disabled: busy !== null }}
+          >
+            {look && look.fill.length > 1 ? (
+              <LinearGradient
+                colors={[look.fill[0], look.fill[1], ...look.fill.slice(2)]}
+                start={SHARE_SHEET.gradientFrom}
+                end={SHARE_SHEET.gradientTo}
+                style={styles.targetCircle}
+              >
+                {inside}
+              </LinearGradient>
             ) : (
-              <InviteChannelIcon
-                channel={target === 'more' ? 'share' : target}
-                size={ICON_SIZE.i24}
-                color={text}
-              />
+              <View
+                style={[
+                  styles.targetCircle,
+                  { backgroundColor: look ? look.fill[0] : withAlpha(text, ALPHA.a10) },
+                ]}
+              >
+                {inside}
+              </View>
             )}
-          </View>
-          <Text style={[styles.targetLabel, { color: text }]} numberOfLines={1}>
-            {label}
-          </Text>
-        </Pressable>
-      ))}
+            <Text style={[styles.targetLabel, { color: text }]} numberOfLines={1}>
+              {label}
+            </Text>
+          </Pressable>
+        );
+      })}
     </ScrollView>
   );
 }

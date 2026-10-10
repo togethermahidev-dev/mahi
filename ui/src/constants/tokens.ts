@@ -117,6 +117,18 @@ export const FONT_SIZE = {
   f56: 56,
 } as const;
 
+// ─── Other apps' own colours ─────────────────────────────────────────────────
+// For that app's share button only (owner, 2026-10-10: "whatsapp green snap yellow"). Never used
+// for anything of Mahi's own, which stays black, white and Mahi blue.
+export const BRAND = {
+  whatsapp: '#25D366',
+  /** Apple's Messages green. */
+  messages: '#34C759',
+  snapchat: '#FFFC00',
+  /** Instagram's gradient, bottom left to top right. */
+  instagram: ['#FEDA75', '#FA7E1E', '#D62976', '#962FBF', '#4F5BD5'],
+} as const;
+
 // ─── Spacing (padding, margin, gap) ──────────────────────────────────────────
 // Negative offsets use a minus sign: marginTop: -SPACE.s4.
 export const SPACE = {
@@ -539,6 +551,9 @@ export const SHARE_SHEET = {
   /** A post in a chat bubble: this wide, its photo portrait like the camera's (3:4). */
   postCardWidth: SIZE.z200,
   postCardAspect: 3 / 4,
+  /** A gradient button (Instagram's) runs from its bottom left to its top right. */
+  gradientFrom: { x: 0, y: 1 },
+  gradientTo: { x: 1, y: 0 },
 } as const;
 
 // ─── Profile (owner, 2026-10-10): three squares across, a compact header, and the room a Mahi

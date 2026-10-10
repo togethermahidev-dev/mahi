@@ -8,6 +8,7 @@
  * kept on the phone: the sheet reads them fresh each time it opens.
  */
 import { SHARE_TARGETS, type ShareTarget } from './tagSlots';
+import { BRAND, COLORS } from '@/constants/tokens';
 
 /** The most people one share goes to (the server's rule: `share_post` takes 1 to 10). */
 export const MAX_SHARE_RECIPIENTS = 10;
@@ -149,4 +150,21 @@ export function isShareRefusal(message: string): boolean {
 export function openRefusal(e: unknown): string {
   const message = e instanceof Error ? e.message : String(e);
   return message.split(/[?&]/)[0];
+}
+
+/**
+ * How a share button looks. Another app's button wears that app's own colour and logo (owner,
+ * 2026-10-10): `fill` is the circle's colour (several = a gradient), `mark` the logo's colour,
+ * `outline` a line round the logo. Null for Mahi's own two (Copy link, Share to…), which stay plain.
+ */
+export function shareTargetLook(
+  target: ShareSheetTarget
+): { fill: readonly string[]; mark: string; outline?: string } | null {
+  if (target === 'whatsapp') return { fill: [BRAND.whatsapp], mark: COLORS.white };
+  if (target === 'messages') return { fill: [BRAND.messages], mark: COLORS.white };
+  if (target === 'snapchat') {
+    return { fill: [BRAND.snapchat], mark: COLORS.white, outline: COLORS.black };
+  }
+  if (target === 'instagram') return { fill: BRAND.instagram, mark: COLORS.white };
+  return null;
 }

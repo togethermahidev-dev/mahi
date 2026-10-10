@@ -1,4 +1,5 @@
 import { INVITE_BUTTON } from '@/lib/tagSlots';
+import { BRAND, COLORS } from '@/constants/tokens';
 import {
   INVITE_A_FRIEND,
   MAX_SHARE_RECIPIENTS,
@@ -9,6 +10,7 @@ import {
   shareErrorText,
   shareResultToast,
   sendLabel,
+  shareTargetLook,
   openRefusal,
   shareSheetParts,
   shareTargets,
@@ -222,5 +224,40 @@ describe('the phone’s reason for not opening a share app', () => {
 
   it('copes with something that is not an error', () => {
     expect(openRefusal('nope')).toBe('nope');
+  });
+});
+
+// Owner, 2026-10-10: "color them and put their actual color branded logos … like whatsapp green
+// snap yellow". Another app's button wears that app's own colour and logo; Mahi's own two (Copy
+// link, Share to…) stay plain.
+describe('how a share button looks', () => {
+  it('WhatsApp is its green with a white logo', () => {
+    expect(shareTargetLook('whatsapp')).toEqual({ fill: [BRAND.whatsapp], mark: COLORS.white });
+    expect(BRAND.whatsapp).toBe('#25D366');
+  });
+
+  it('Messages is Apple’s green with a white logo', () => {
+    expect(shareTargetLook('messages')).toEqual({ fill: [BRAND.messages], mark: COLORS.white });
+  });
+
+  it('Snapchat is its yellow, the ghost white with a black outline', () => {
+    expect(shareTargetLook('snapchat')).toEqual({
+      fill: [BRAND.snapchat],
+      mark: COLORS.white,
+      outline: COLORS.black,
+    });
+    expect(BRAND.snapchat).toBe('#FFFC00');
+  });
+
+  it('Instagram is its gradient with a white logo', () => {
+    const look = shareTargetLook('instagram');
+    expect(look?.fill).toEqual(BRAND.instagram);
+    expect(look?.fill.length).toBeGreaterThan(1);
+    expect(look?.mark).toBe(COLORS.white);
+  });
+
+  it('Copy link and Share to… stay plain', () => {
+    expect(shareTargetLook('copy')).toBeNull();
+    expect(shareTargetLook('more')).toBeNull();
   });
 });
