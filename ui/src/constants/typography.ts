@@ -63,6 +63,11 @@ export const TYPOGRAPHY = {
   microStrong: style(FONTS.semiBold, FONT_SIZE.f11, LINE_HEIGHT.l14),
   /** Count badges on tabs and icons (11, bold). */
   badge: style(FONTS.bold, FONT_SIZE.f11, LINE_HEIGHT.l14),
+  /**
+   * Mahi's own: the heading above a group of rows (Preferences, Today, Earlier). PingMee's is its
+   * capitals `overline`; Mahi writes in sentence case, so it is the small semi-bold size instead.
+   */
+  sectionHeader: style(FONTS.semiBold, FONT_SIZE.f13, LINE_HEIGHT.l18),
 
   // ─── Controls ──────────────────────────────────────────────────────────────
   button: style(FONTS.bold, FONT_SIZE.f14, LINE_HEIGHT.l20, TRACKING.t0_5),
@@ -95,6 +100,17 @@ export const GLYPH = {
   emoji: glyph(FONT_SIZE.f26),
   /** A big overlay line (52). */
   hero: glyph(FONT_SIZE.f52),
+} as const;
+
+/**
+ * The text of a one-line text field: the `input` style without its line height, which clips typed
+ * text in a single-line field (PingMee's form fields do the same). A composer that grows over
+ * several lines spreads `TYPOGRAPHY.input` whole.
+ */
+export const FIELD_TEXT = {
+  fontFamily: TYPOGRAPHY.input.fontFamily,
+  fontSize: TYPOGRAPHY.input.fontSize,
+  letterSpacing: TYPOGRAPHY.input.letterSpacing,
 } as const;
 
 export type TypographyName = keyof typeof TYPOGRAPHY;

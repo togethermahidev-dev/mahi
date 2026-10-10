@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { FONT_FAMILY, FONTS } from '@/constants/fonts';
-import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
+import { FIELD_TEXT, GLYPH, TYPOGRAPHY } from '@/constants/typography';
 
 // Mahi's text takes PingMee's type system, value for value (owner, 2026-10-10: "PingMee font sizes
 // and styling applied across the whole of mahi exactly what PingMee uses across their app for
@@ -116,5 +116,19 @@ describe('pictures drawn as text', () => {
     expect(GLYPH.hero.fontSize).toBe(52);
     const faces = Object.values(FONTS) as string[];
     for (const glyph of Object.values(GLYPH)) expect(faces).toContain(glyph.fontFamily);
+  });
+});
+
+describe("Mahi's own additions", () => {
+  // PingMee's section heading is capitals (`overline`); Mahi's is sentence case at the small size.
+  it('has a sentence-case section heading', () => {
+    expect(TYPOGRAPHY.sectionHeader.fontSize).toBe(13);
+    expect(TYPOGRAPHY.sectionHeader.fontFamily).toBe(FONTS.semiBold);
+  });
+
+  it('gives a one-line field the input size and face, with no line height to clip it', () => {
+    expect(FIELD_TEXT.fontSize).toBe(TYPOGRAPHY.input.fontSize);
+    expect(FIELD_TEXT.fontFamily).toBe(TYPOGRAPHY.input.fontFamily);
+    expect(Object.keys(FIELD_TEXT)).not.toContain('lineHeight');
   });
 });
