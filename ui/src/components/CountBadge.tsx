@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { FONTS } from '@/constants/fonts';
-import { COLORS, FONT_SIZE, RADIUS, SIZE, SPACE } from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { COLORS, RADIUS, SIZE, SPACE } from '@/constants/tokens';
 
 /**
  * A small accent pill with a number (e.g. how many invites you have). Nothing at 0. VoiceOver
@@ -27,8 +27,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   text: {
+    ...TYPOGRAPHY.badge,
     color: COLORS.offBlack,
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f12,
   },
 });

@@ -51,14 +51,12 @@ import { themeColors } from '@/hooks/useAppTheme';
 import ListState from '@/components/ListState';
 import { ProfileIcon } from '@/components/ScreenIcons';
 import UserProfileScreen from '@/screens/UserProfileScreen';
-import { FONTS } from '@/constants/fonts';
+import { FIELD_TEXT, GLYPH, TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BORDER_WIDTH,
   COLORS,
-  FONT_SIZE,
   ICON_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
@@ -689,15 +687,12 @@ const styles = StyleSheet.create({
     opacity: ALPHA.a70,
   },
   backArrow: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l22,
+    ...GLYPH.icon,
   },
   headerTitle: {
+    ...TYPOGRAPHY.sheetTitle,
     flex: 1,
     textAlign: 'center',
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
   },
   explainer: {
     flexGrow: 1,
@@ -715,23 +710,17 @@ const styles = StyleSheet.create({
     gap: SPACE.s4,
   },
   cardTitle: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f20,
-    lineHeight: LINE_HEIGHT.l28,
+    ...TYPOGRAPHY.h2,
     textAlign: 'center',
     marginTop: SPACE.s12,
   },
   cardBody: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f15,
-    lineHeight: LINE_HEIGHT.l22,
+    ...TYPOGRAPHY.body,
     textAlign: 'center',
     marginTop: SPACE.s8,
   },
   cardNote: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l18,
+    ...TYPOGRAPHY.caption,
     textAlign: 'center',
     marginTop: SPACE.s12,
   },
@@ -747,9 +736,8 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s24,
   },
   mainButtonText: {
+    ...TYPOGRAPHY.button,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
   },
   quietButton: {
     minHeight: SIZE.z44,
@@ -759,8 +747,7 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s8,
   },
   quietText: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.bodyMedium,
   },
   searchWrap: {
     paddingHorizontal: SPACE.s20,
@@ -768,25 +755,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   searchInput: {
+    ...FIELD_TEXT,
     height: SIZE.z40,
     borderRadius: RADIUS.r20,
     paddingHorizontal: SPACE.s16,
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f14,
   },
   listContent: {
     paddingHorizontal: SPACE.s20,
   },
   sectionTitle: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f13,
+    ...TYPOGRAPHY.sectionHeader,
     paddingTop: SPACE.s20,
     paddingBottom: SPACE.s4,
   },
   noneLine: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l18,
+    ...TYPOGRAPHY.small,
     paddingVertical: SPACE.s12,
   },
   row: {
@@ -811,20 +794,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: FONT_SIZE.f18,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h4,
   },
   rowText: {
     flex: 1,
     gap: SPACE.s2,
   },
   name: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f15,
+    ...TYPOGRAPHY.bodyStrong,
   },
   detail: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f13,
+    ...TYPOGRAPHY.caption,
   },
   pill: {
     minHeight: SIZE.z32,
@@ -837,7 +817,6 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s6,
   },
   pillText: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.labelStrong,
   },
 });

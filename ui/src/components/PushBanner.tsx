@@ -5,16 +5,8 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { usePushStore } from '@/store';
 import { PUSH_BANNER, pushBanner } from '@/lib/pushPrimer';
 import { track } from '@/lib/analytics';
-import { FONTS } from '@/constants/fonts';
-import {
-  ALPHA,
-  BORDER_WIDTH,
-  FONT_SIZE,
-  LINE_HEIGHT,
-  RADIUS,
-  SIZE,
-  SPACE,
-} from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { ALPHA, BORDER_WIDTH, RADIUS, SIZE, SPACE } from '@/constants/tokens';
 
 /**
  * The banner at the top of the feed for someone with notifications off, after Not now on the
@@ -74,10 +66,8 @@ const styles = StyleSheet.create({
     paddingRight: SPACE.s10,
   },
   text: {
+    ...TYPOGRAPHY.small,
     flex: 1,
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f14,
-    lineHeight: LINE_HEIGHT.l20,
   },
   button: {
     minHeight: SIZE.z36,
@@ -87,8 +77,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f14,
+    ...TYPOGRAPHY.labelStrong,
   },
   pressed: {
     opacity: ALPHA.a80,

@@ -5,8 +5,8 @@ import { EmojiKeyboardButton, EmojiPanel, useEmojiKeyboard } from '@/components/
 import { anyEmojiHelp } from '@/lib/emojiKeyboard';
 import { themeColors } from '@/hooks/useAppTheme';
 import { firstEmoji } from '@/lib/messageReactions';
-import { FONTS } from '@/constants/fonts';
-import { ALPHA, COLORS, FONT_SIZE, RADIUS, SIZE, SPACE, withAlpha } from '@/constants/tokens';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
+import { ALPHA, COLORS, RADIUS, SIZE, SPACE, withAlpha } from '@/constants/tokens';
 
 /**
  * Any emoji as a reaction (the hold menu's "+"): a field that opens the keyboard; the first emoji
@@ -92,21 +92,20 @@ const styles = StyleSheet.create({
     padding: SPACE.s24,
     gap: SPACE.s12,
   },
-  title: { fontFamily: FONTS.bold, fontSize: FONT_SIZE.f22 },
-  help: { fontFamily: FONTS.regular, fontSize: FONT_SIZE.f14, lineHeight: SIZE.z20 },
+  title: { ...TYPOGRAPHY.sheetTitle },
+  help: { ...TYPOGRAPHY.small },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s8 },
   input: {
+    // Inter Tight carries no emoji glyphs: the phone's own emoji font draws what is typed.
+    ...GLYPH.emoji,
     flex: 1,
     minHeight: SIZE.z52,
     borderWidth: SIZE.z1,
     borderRadius: RADIUS.r16,
     paddingHorizontal: SPACE.s16,
-    // Inter Tight carries no emoji glyphs: the phone's own emoji font draws what is typed.
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f24,
     textAlign: 'center',
   },
   cancel: { minHeight: SIZE.z44, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { fontFamily: FONTS.semiBold, fontSize: FONT_SIZE.f14 },
+  cancelText: { ...TYPOGRAPHY.button },
   pressed: { opacity: ALPHA.a70 },
 });

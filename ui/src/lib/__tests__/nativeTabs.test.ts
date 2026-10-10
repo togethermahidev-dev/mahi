@@ -12,7 +12,7 @@ import {
   tabPage,
   cameraBadge,
 } from '@/lib/nativeTabs';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 
 describe('cameraBadge (a tag waiting shows on the Camera tab)', () => {
   it('counts the open tags on the Camera tab once they have been read', () => {
@@ -57,14 +57,16 @@ describe('tab titles', () => {
     for (const layout of ['stacked', 'inline', 'compactInline'] as const) {
       for (const state of ['normal', 'selected'] as const) {
         expect(TAB_TITLE_APPEARANCE.ios[layout][state].tabBarItemTitleFontFamily).toBe(
-          FONTS.semiBold
+          TYPOGRAPHY.buttonSmall.fontFamily
         );
       }
     }
   });
 
   it('sets Inter Tight on Android', () => {
-    expect(TAB_TITLE_APPEARANCE.android.tabBarItemTitleFontFamily).toBe(FONTS.semiBold);
+    expect(TAB_TITLE_APPEARANCE.android.tabBarItemTitleFontFamily).toBe(
+      TYPOGRAPHY.buttonSmall.fontFamily
+    );
   });
 });
 

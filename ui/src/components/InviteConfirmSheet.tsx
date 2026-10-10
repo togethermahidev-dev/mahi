@@ -6,18 +6,8 @@ import { useCoachBlock } from '@/hooks/useCoachMarks';
 import { claimFailText, inviteAcceptLine, inviteAsk } from '@/lib/inviteLink';
 import { useInviteStore, useUserStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
-import { FONTS } from '@/constants/fonts';
-import {
-  COLORS,
-  ALPHA,
-  BORDER_WIDTH,
-  FONT_SIZE,
-  LINE_HEIGHT,
-  RADIUS,
-  SIZE,
-  SPACE,
-  withAlpha,
-} from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { COLORS, ALPHA, BORDER_WIDTH, RADIUS, SIZE, SPACE, withAlpha } from '@/constants/tokens';
 
 /**
  * An invite link (or the App Clip's handover) that arrives while someone is already signed in.
@@ -137,14 +127,10 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.s4,
   },
   headline: {
-    fontSize: FONT_SIZE.f22,
-    lineHeight: LINE_HEIGHT.l28,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.sheetTitle,
   },
   sub: {
-    fontSize: FONT_SIZE.f15,
-    lineHeight: LINE_HEIGHT.l22,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
   },
   main: {
     backgroundColor: COLORS.accent,
@@ -154,9 +140,8 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s4,
   },
   mainText: {
+    ...TYPOGRAPHY.button,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.semiBold,
   },
   later: {
     borderWidth: BORDER_WIDTH.w1,
@@ -165,8 +150,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   laterText: {
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.button,
   },
   pressed: {
     opacity: ALPHA.a80,

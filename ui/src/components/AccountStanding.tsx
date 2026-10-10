@@ -4,8 +4,8 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { getMyStanding, markWarningsSeen, signOut } from '@/api';
 import { standingNotice, type StandingNotice } from '@/lib/reports';
 import { reportError } from '@/lib/sentry';
-import { FONTS } from '@/constants/fonts';
-import { ALPHA, FONT_SIZE, LINE_HEIGHT, RADIUS, SPACE } from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { ALPHA, RADIUS, SPACE } from '@/constants/tokens';
 
 /** Users already told about a suspension this time the app is open (it's told once per launch;
  * nothing is kept on the phone, as a suspension can be lifted). */
@@ -91,16 +91,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s32,
   },
   title: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f28,
+    ...TYPOGRAPHY.h1,
     marginBottom: SPACE.s16,
     textAlign: 'center',
   },
   body: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f16,
+    ...TYPOGRAPHY.bodyLarge,
     textAlign: 'center',
-    lineHeight: LINE_HEIGHT.l24,
   },
   button: {
     marginTop: SPACE.s28,
@@ -109,7 +106,6 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r50,
   },
   buttonText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f16,
+    ...TYPOGRAPHY.h3,
   },
 });

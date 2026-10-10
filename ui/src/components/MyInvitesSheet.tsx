@@ -54,14 +54,12 @@ import MateCircles from '@/components/MateCircles';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import FindMatesSheet from '@/components/FindMatesSheet';
 import { useContactsFinder } from '@/hooks/useContactsFinder';
-import { FONTS } from '@/constants/fonts';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BORDER_WIDTH,
   COLORS,
-  FONT_SIZE,
   ICON_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
@@ -597,15 +595,12 @@ const styles = StyleSheet.create({
     opacity: ALPHA.a70,
   },
   backArrow: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l22,
+    ...GLYPH.icon,
   },
   headerTitle: {
+    ...TYPOGRAPHY.sheetTitle,
     flex: 1,
     textAlign: 'center',
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
   },
   intro: {
     paddingVertical: SPACE.s16,
@@ -613,9 +608,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   introLine: {
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l18,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
   },
   // The app's one main-button style (ListState's): accent pill, dark words.
   inviteButton: {
@@ -628,9 +621,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s24,
   },
   inviteButtonText: {
+    ...TYPOGRAPHY.button,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
   },
   listContent: {
     paddingHorizontal: SPACE.s20,
@@ -654,29 +646,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: FONT_SIZE.f18,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h4,
   },
   rowText: {
     flex: 1,
     gap: SPACE.s2,
   },
   name: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f15,
+    ...TYPOGRAPHY.bodyStrong,
   },
   status: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f13,
+    ...TYPOGRAPHY.caption,
   },
   when: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f12,
+    ...TYPOGRAPHY.caption,
   },
   // "Waiting", "Joined", "Older": small words above each group.
   groupTitle: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f13,
+    ...TYPOGRAPHY.sectionHeader,
     paddingTop: SPACE.s20,
     paddingBottom: SPACE.s4,
   },
@@ -686,11 +673,10 @@ const styles = StyleSheet.create({
     marginLeft: SIZE.z44 + SPACE.s12,
   },
   code: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f12,
+    ...TYPOGRAPHY.captionMedium,
   },
   codeValue: {
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.captionStrong,
   },
   // Under the words, lined up with them (past the avatar).
   actions: {
@@ -711,12 +697,10 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s6,
   },
   pillText: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.labelStrong,
   },
   limit: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.caption,
   },
   cancel: {
     minHeight: SIZE.z32,
@@ -724,8 +708,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s4,
   },
   cancelText: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.labelStrong,
   },
   separator: {
     height: SIZE.z1,
@@ -739,7 +722,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   findMatesText: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.body,
   },
 });

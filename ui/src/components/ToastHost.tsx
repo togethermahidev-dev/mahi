@@ -14,13 +14,12 @@ import { useToastStore } from '@/store/toastStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { loadScreens } from '@/lib/screensModule';
 import { toastLines } from '@/lib/toast';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
   DURATION,
   ELEVATION,
-  FONT_SIZE,
   OFFSET,
   RADIUS,
   SHADOW_BLUR,
@@ -193,8 +192,7 @@ const styles = StyleSheet.create({
     paddingRight: SPACE.s4,
   },
   text: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.bodyMedium,
     textAlign: 'center',
   },
   textWithAction: {
@@ -208,9 +206,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionText: {
+    ...TYPOGRAPHY.labelStrong,
     color: COLORS.accent,
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.bold,
   },
   pressed: {
     opacity: ALPHA.a70,

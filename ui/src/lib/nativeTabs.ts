@@ -7,7 +7,7 @@
  */
 import type { AndroidSymbol } from 'expo-symbols';
 import type { SFSymbolName } from '@/lib/sfSymbols';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 
 export type TabKey = 'camera' | 'messages' | 'profile';
 
@@ -76,8 +76,11 @@ export function cameraBadge(
   return String(tags.count);
 }
 
-/** The tab titles in Inter Tight, like every other word in the app (owner, 2026-10-05). */
-const TAB_TITLE = { tabBarItemTitleFontFamily: FONTS.semiBold };
+/**
+ * The tab titles in Inter Tight, like every other word in the app (owner, 2026-10-05): the face of
+ * the small button style, PingMee's tab label. The size stays the phone's own.
+ */
+const TAB_TITLE = { tabBarItemTitleFontFamily: TYPOGRAPHY.buttonSmall.fontFamily };
 const TAB_TITLE_STATES = { normal: TAB_TITLE, selected: TAB_TITLE };
 
 /** The bar's `standardAppearance` on each platform: only the title face; the rest stays the phone's. */

@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { reportError } from '@/lib/sentry';
-import { FONTS } from '@/constants/fonts';
-import { COLORS, ALPHA, FONT_SIZE, LINE_HEIGHT, RADIUS, SPACE } from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { COLORS, ALPHA, RADIUS, SPACE } from '@/constants/tokens';
 
 interface Props {
   children: React.ReactNode;
@@ -70,18 +70,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bgDark,
   },
   title: {
+    ...TYPOGRAPHY.h2,
     color: COLORS.offWhite,
-    fontSize: FONT_SIZE.f22,
-    fontFamily: FONTS.bold,
     marginBottom: SPACE.s12,
     textAlign: 'center',
   },
   body: {
+    ...TYPOGRAPHY.bodyLarge,
     color: COLORS.offWhite,
     opacity: ALPHA.a70,
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f15,
-    lineHeight: LINE_HEIGHT.l22,
     textAlign: 'center',
     marginBottom: SPACE.s32,
   },
@@ -92,8 +89,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s48,
   },
   buttonText: {
+    ...TYPOGRAPHY.sheetTitle,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
   },
 });

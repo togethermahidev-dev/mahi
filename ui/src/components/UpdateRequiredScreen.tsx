@@ -2,8 +2,8 @@ import React from 'react';
 import { Linking, Platform, StyleSheet, Text, Pressable, View } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { VERSION_LINE } from '@/lib/appBuild';
-import { FONTS } from '@/constants/fonts';
-import { ALPHA, FONT_SIZE, LINE_HEIGHT, RADIUS, SPACE } from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { ALPHA, RADIUS, SPACE } from '@/constants/tokens';
 
 /** Shown instead of the app when this build is older than the server's minimum version. */
 export default function UpdateRequiredScreen({
@@ -55,15 +55,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s32,
   },
   title: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f28,
+    ...TYPOGRAPHY.h1,
     marginBottom: SPACE.s16,
   },
   body: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f16,
+    ...TYPOGRAPHY.bodyLarge,
     textAlign: 'center',
-    lineHeight: LINE_HEIGHT.l24,
   },
   button: {
     marginTop: SPACE.s28,
@@ -72,12 +69,10 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r50,
   },
   buttonText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f16,
+    ...TYPOGRAPHY.h3,
   },
   version: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f13,
+    ...TYPOGRAPHY.caption,
     marginTop: SPACE.s24,
   },
 });

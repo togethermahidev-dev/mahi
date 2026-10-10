@@ -1,17 +1,8 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { themeColors } from '@/hooks/useAppTheme';
-import { FONTS } from '@/constants/fonts';
-import {
-  ALPHA,
-  BORDER_WIDTH,
-  COLORS,
-  FONT_SIZE,
-  RADIUS,
-  SIZE,
-  SPACE,
-  withAlpha,
-} from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { ALPHA, BORDER_WIDTH, COLORS, RADIUS, SIZE, SPACE, withAlpha } from '@/constants/tokens';
 
 /** The line under every load error: one wording across the app. */
 export const LOAD_ERROR_LINE = 'Check your connection and try again.';
@@ -137,13 +128,11 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.s16,
   },
   title: {
-    fontSize: FONT_SIZE.f18,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h3,
     textAlign: 'center',
   },
   line: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
     textAlign: 'center',
     marginTop: SPACE.s8,
   },
@@ -157,9 +146,8 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s8,
   },
   buttonText: {
+    ...TYPOGRAPHY.labelStrong,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
   },
   pressed: {
     opacity: ALPHA.a70,
