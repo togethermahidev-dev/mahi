@@ -8,7 +8,7 @@
  *
  * History (newest first):
  *   build 13 · 47 — a line under a profile's last post says the grid has ended; no points pill on
- *     grid photos (2026-10-10)
+ *     grid photos; the points card shows an info mark, not an arrow (2026-10-10)
  *   build 13 · 46 — profile grid tiles are a little taller than square (four wide to five tall)
  *     (2026-10-10)
  *   build 13 · 45 — Your invites is clearer: an Invite a friend button, one status line per link
