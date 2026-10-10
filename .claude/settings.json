@@ -4,6 +4,43 @@
     "posthog",
     "sentry"
   ],
+  "permissions": {
+    "allow": [
+      "Read",
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm test *)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm test:scripts *)",
+      "Bash(pnpm ota:bump *)",
+      "Bash(pnpm release:check *)",
+      "Bash(pnpm --filter ./web lint *)",
+      "Bash(pnpm --filter ./web test *)",
+      "Bash(scripts/db.sh local *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git ls-files *)",
+      "Bash(git check-ignore *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(npx prettier *)",
+      "Bash(npx eslint *)",
+      "Bash(grep *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(sed -n *)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__list_edge_functions",
+      "mcp__supabase__execute_sql",
+      "mcp__sentry__search_issues",
+      "mcp__sentry__search_events"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
