@@ -550,7 +550,7 @@ function InviteShare({
 
   return (
     <ShortSheet dark={dark} native onDismiss={() => onClose(false)}>
-      {(close) => (
+      {(close, sheet) => (
         <View style={[styles.card, { backgroundColor: bg }]} accessibilityViewIsModal>
           <SheetHeader title={parts.title} dark={dark} onClose={() => close()} />
           <TargetRow
@@ -559,7 +559,8 @@ function InviteShare({
             dark={dark}
             onPress={(target) => runTarget(target, close)}
           />
-          <View style={{ height: insets.bottom }} />
+          {/* The phone's own sheet keeps its own strip for the home bar. */}
+          <View style={{ height: sheet.native ? 0 : insets.bottom }} />
           <KeyboardInset />
         </View>
       )}

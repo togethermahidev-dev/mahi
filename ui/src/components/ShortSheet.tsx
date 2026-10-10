@@ -13,9 +13,16 @@ import { ALPHA, COLORS, DURATION, withAlpha } from '@/constants/tokens';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { hasNativeExpoUI, loadSwiftUI } from '@/lib/expoUiModule';
 import { shortSheetKind } from '@/lib/shortSheet';
+import { themeColors } from '@/lib/themeColors';
 
 /** Closes the sheet with its animation, then runs `then` (or tells the owner it was dismissed). */
 export type CloseShortSheet = (then?: () => void) => void;
+
+/**
+ * What the card needs to know about the sheet it is in. In the phone's own sheet the strip for the
+ * home bar is the sheet's, so the card leaves out its own room at the bottom.
+ */
+export type ShortSheetInfo = { native: boolean };
 
 interface ShortSheetProps {
   /** Shown or not. A sheet that is only mounted while open can leave this out. */
@@ -31,7 +38,7 @@ interface ShortSheetProps {
   /** The person closed it: a tap outside, a swipe down, Android's back. Called once it has gone. */
   onDismiss: () => void;
   /** The sheet's own card. `close` closes it with its animation, then runs what you pass. */
-  children: (close: CloseShortSheet) => React.ReactNode;
+  children: (close: CloseShortSheet, sheet: ShortSheetInfo) => React.ReactNode;
 }
 
 /**
@@ -110,7 +117,7 @@ function OurShortSheet({
             accessibilityLabel={closeLabel}
           />
         </Animated.View>
-        <Animated.View style={card}>{children(close)}</Animated.View>
+        <Animated.View style={card}>{children(close, { native: false })}</Animated.View>
       </View>
     </Modal>
   );
@@ -132,7 +139,10 @@ function NativeShortSheet({
   const swift = loadSwiftUI();
   if (!swift) return null;
   const { Host, BottomSheet, Group, RNHostView } = swift.ui;
-  const { presentationDragIndicator } = swift.modifiers;
+  const { presentationBackground, presentationDragIndicator } = swift.modifiers;
+  // The whole sheet in the card's colour, the strip for the home bar included: without it that
+  // strip is the sheet's own see-through glass, and reads as a bar under the card.
+  const { bg } = themeColors(dark);
 
   const close: CloseShortSheet = (then) => {
     setAfter(() => then ?? null);
@@ -157,9 +167,9 @@ function NativeShortSheet({
           }}
           fitToContents
         >
-          <Group modifiers={[presentationDragIndicator('visible')]}>
+          <Group modifiers={[presentationDragIndicator('visible'), presentationBackground(bg)]}>
             <RNHostView matchContents>
-              <View style={{ width }}>{children(close)}</View>
+              <View style={{ width }}>{children(close, { native: true })}</View>
             </RNHostView>
           </Group>
         </BottomSheet>
