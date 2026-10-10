@@ -1,22 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Alert,
-  View,
-  Text,
-  Image,
-  Modal,
-  StyleSheet,
-  Pressable,
-  useWindowDimensions,
-} from 'react-native';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Reanimated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, View, Text, Image, Modal, StyleSheet, Pressable } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import { getFollowList, getFriends, type FollowListUser } from '@/api';
@@ -39,9 +23,7 @@ import {
   RADIUS,
   SIZE,
   SPACE,
-  SWIPE,
   TRACKING,
-  VIEWER,
   withAlpha,
 } from '@/constants/tokens';
 import { themeColors } from '@/hooks/useAppTheme';
@@ -54,6 +36,13 @@ interface FollowListModalProps {
   dark: boolean;
 }
 
+/**
+ * Followers, Following or Friends, in the app's usual page sheet (owner, 2026-10-10: "open
+ * normally rather than the current effect"): it slides up like Your invites and Follow requests,
+ * and a swipe down, the close button or Android back closes it. All three lists open the same
+ * way. Never kept on the phone: each open starts with a loading state, then the server's list,
+ * and it listens for changes while open.
+ */
 export default function FollowListModal({
   visible,
   onClose,
@@ -61,13 +50,34 @@ export default function FollowListModal({
   type,
   dark,
 }: FollowListModalProps): React.JSX.Element {
+  const { bg } = themeColors(dark);
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      {/* A Modal is its own native window: gesture-handler needs its own root here (a profile
+          opened from a row swipes closed with a pan), and the sheet's insets differ from the
+          screen behind it. The sheet mounts on open, so the list starts fresh each time. */}
+      <GestureHandlerRootView style={styles.root}>
+        <SafeAreaProvider style={{ backgroundColor: bg }}>
+          <Sheet onClose={onClose} userId={userId} type={type} dark={dark} />
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </Modal>
+  );
+}
+
+function Sheet({ onClose, userId, type, dark }: Omit<FollowListModalProps, 'visible'>) {
   const currentUserId = useAuthStore((s) => s.user?.id);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
   const subscribeToFollows = useFollowStore((s) => s.subscribeToFollows);
 
   const bg = dark ? COLORS.bgDark : COLORS.white;
   const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const { muted, border, accentText } = themeColors(dark);
+  const { muted, border } = themeColors(dark);
   const surface = dark ? COLORS.surfaceDark : COLORS.white;
   const iconSurface = dark
     ? withAlpha(COLORS.offWhite, ALPHA.a08)
@@ -80,40 +90,7 @@ export default function FollowListModal({
   /** The list couldn't be read: say so (never "No friends yet"), with Try again. */
   const [failed, setFailed] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
-  const { width } = useWindowDimensions();
   const top = useSafeAreaInsets().top;
-  const dismissX = useSharedValue(width);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  const finishClose = useCallback(() => onCloseRef.current(), []);
-  const close = useCallback(() => {
-    dismissX.value = withTiming(width, { duration: VIEWER.closeMs }, (finished) => {
-      if (finished) scheduleOnRN(finishClose);
-    });
-  }, [dismissX, finishClose, width]);
-  const dismiss = Gesture.Pan()
-    .enabled(!profileUserId)
-    .activeOffsetX([SWIPE.slop, SWIPE.slop])
-    .failOffsetX(-SWIPE.slop)
-    .failOffsetY([-SWIPE.slop, SWIPE.slop])
-    .onUpdate((event) => {
-      'worklet';
-      dismissX.value = Math.max(0, event.translationX);
-    })
-    .onEnd((event) => {
-      'worklet';
-      const shouldDismiss =
-        event.translationX > VIEWER.closeDistance || event.velocityX > VIEWER.closeVelocity;
-      if (shouldDismiss) {
-        dismissX.value = withTiming(width, { duration: VIEWER.closeMs }, (finished) => {
-          if (finished) scheduleOnRN(finishClose);
-        });
-      } else {
-        dismissX.value = withSpring(0, VIEWER.snapBack);
-      }
-    });
-  const dismissStyle = useAnimatedStyle(() => ({ transform: [{ translateX: dismissX.value }] }));
 
   // Remove a follower (switch `private-accounts`): only on your own followers list.
   const privateAccountsOn = useFeatureFlag('private-accounts');
@@ -132,25 +109,13 @@ export default function FollowListModal({
     setLoading(false);
   }, [userId, type, showRemove]);
 
-  // Fetch list + subscribe to realtime changes
+  // Read the list fresh on every open (the sheet mounts then, already loading) and listen for
+  // changes while it is open.
   useEffect(() => {
-    if (!visible) {
-      dismissX.value = width;
-      setUsers([]);
-      setLoading(true);
-      setFailed(false);
-      setProfileUserId(null);
-      return;
-    }
-    dismissX.value = withSpring(0, VIEWER.snapBack);
     if (!currentUserId) return;
-
-    setLoading(true);
-    fetchList();
-
-    const unsubscribe = subscribeToFollows(userId, currentUserId, fetchList);
-    return unsubscribe;
-  }, [visible, userId, type, currentUserId, fetchList, subscribeToFollows, dismissX, width]);
+    void fetchList();
+    return subscribeToFollows(userId, currentUserId, fetchList);
+  }, [userId, currentUserId, fetchList, subscribeToFollows]);
 
   const runUnfollow = useCallback(
     async (targetUserId: string, handle: string) => {
@@ -234,164 +199,137 @@ export default function FollowListModal({
   const showUnfollow = type === 'following' && userId === currentUserId;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="none"
-      presentationStyle="overFullScreen"
-      transparent
-      statusBarTranslucent
-      onRequestClose={close}
-    >
-      {/* A Modal is its own native window, so gesture-handler and safe-area context each need a
-          root here. overFullScreen lets the previous profile show behind the right swipe. */}
-      <GestureHandlerRootView style={styles.root}>
-        <SafeAreaProvider>
-          <GestureDetector gesture={dismiss}>
-            <Reanimated.View style={[styles.root, { backgroundColor: bg }, dismissStyle]}>
-              <View style={[styles.header, { paddingTop: top + SPACE.s12 }]}>
+    <>
+      <View style={[styles.root, { backgroundColor: bg }]}>
+        <View style={[styles.header, { paddingTop: top + SPACE.s16 }]}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.backBtn,
+              { backgroundColor: iconSurface, borderColor: border },
+              pressed && styles.pressed,
+            ]}
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
+          >
+            <Text style={[styles.backArrow, { color: text }]}>{'‹'}</Text>
+          </Pressable>
+          <View style={styles.headerCopy}>
+            <Text
+              style={[styles.headerTitle, { color: text }]}
+              numberOfLines={1}
+              accessibilityRole="header"
+            >
+              {title}
+            </Text>
+          </View>
+        </View>
+
+        {loading ? (
+          <ListState kind="loading" dark={dark} />
+        ) : failed && users.length === 0 ? (
+          <ListState kind="error" dark={dark} title="Couldn’t load this list" onAction={retry} />
+        ) : (
+          <FlashList
+            data={users}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => {
+              const displayName = item.display_name ?? item.first_name ?? item.username ?? '—';
+              const initials = displayName[0]?.toUpperCase() ?? '?';
+
+              return (
                 <Pressable
                   style={({ pressed }) => [
-                    styles.backBtn,
-                    { backgroundColor: iconSurface, borderColor: border },
+                    styles.row,
+                    { backgroundColor: surface, borderColor: border },
                     pressed && styles.pressed,
                   ]}
-                  onPress={close}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close"
-                  hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
-                >
-                  <Text style={[styles.backArrow, { color: text }]}>{'\u2039'}</Text>
-                </Pressable>
-                <View style={styles.headerCopy}>
-                  <Text
-                    style={[styles.headerTitle, { color: text }]}
-                    numberOfLines={1}
-                    accessibilityRole="header"
-                  >
-                    {title}
-                  </Text>
-                </View>
-                <View style={styles.headerSpacer} />
-              </View>
-
-              {loading ? (
-                <ListState kind="loading" dark={dark} />
-              ) : failed && users.length === 0 ? (
-                <ListState
-                  kind="error"
-                  dark={dark}
-                  title="Couldn’t load this list"
-                  onAction={retry}
-                />
-              ) : (
-                <FlashList
-                  data={users}
-                  keyExtractor={(item) => item.id}
-                  contentContainerStyle={styles.listContent}
-                  showsVerticalScrollIndicator={false}
-                  renderItem={({ item }) => {
-                    const displayName =
-                      item.display_name ?? item.first_name ?? item.username ?? '\u2014';
-                    const initials = displayName[0]?.toUpperCase() ?? '?';
-
-                    return (
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.row,
-                          { backgroundColor: surface, borderColor: border },
-                          pressed && styles.pressed,
-                        ]}
-                        onPress={() => {
-                          if (item.id === currentUserId) return;
-                          setProfileUserId(item.id);
-                        }}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Open ${displayName}'s profile`}
-                      >
-                        {item.avatar_url ? (
-                          <Image
-                            source={{ uri: item.avatar_url, cache: 'force-cache' }}
-                            style={styles.avatar}
-                          />
-                        ) : (
-                          <View
-                            style={[
-                              styles.avatar,
-                              styles.avatarFallback,
-                              { backgroundColor: iconSurface },
-                            ]}
-                          >
-                            <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
-                          </View>
-                        )}
-                        <View style={styles.rowText}>
-                          <Text style={[styles.name, { color: text }]}>{displayName}</Text>
-                          {item.username ? (
-                            <Text style={[styles.handle, { color: muted }]}>@{item.username}</Text>
-                          ) : null}
-                        </View>
-                        {showUnfollow ? (
-                          <Pressable
-                            style={({ pressed }) => [
-                              styles.unfollowBtn,
-                              { backgroundColor: iconSurface, borderColor: border },
-                              pressed && { opacity: ALPHA.a75 },
-                            ]}
-                            onPress={() =>
-                              handleUnfollow(
-                                item.id,
-                                item.username ? `@${item.username}` : displayName
-                              )
-                            }
-                            accessibilityRole="button"
-                            accessibilityLabel={`Following @${item.username ?? displayName}`}
-                            accessibilityHint="Asks before unfollowing"
-                            hitSlop={OFFSET.o8}
-                          >
-                            <Text style={[styles.unfollowBtnText, { color: text }]}>Following</Text>
-                          </Pressable>
-                        ) : null}
-                        {showRemove ? (
-                          <Pressable
-                            style={({ pressed }) => [
-                              styles.unfollowBtn,
-                              { backgroundColor: iconSurface, borderColor: border },
-                              pressed && { opacity: ALPHA.a75 },
-                            ]}
-                            onPress={() => handleRemove(item)}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Remove @${item.username ?? displayName}`}
-                            accessibilityHint="Asks before removing this follower"
-                            hitSlop={OFFSET.o8}
-                          >
-                            <Text style={[styles.unfollowBtnText, { color: text }]}>Remove</Text>
-                          </Pressable>
-                        ) : null}
-                      </Pressable>
-                    );
+                  onPress={() => {
+                    if (item.id === currentUserId) return;
+                    setProfileUserId(item.id);
                   }}
-                  ListEmptyComponent={
-                    !loading ? (
-                      <ListState kind="empty" dark={dark} title={emptyTitle} line={emptyLine} />
-                    ) : null
-                  }
-                />
-              )}
-            </Reanimated.View>
-          </GestureDetector>
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${displayName}'s profile`}
+                >
+                  {item.avatar_url ? (
+                    <Image
+                      source={{ uri: item.avatar_url, cache: 'force-cache' }}
+                      style={styles.avatar}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.avatar,
+                        styles.avatarFallback,
+                        { backgroundColor: iconSurface },
+                      ]}
+                    >
+                      <Text style={[styles.avatarInitial, { color: text }]}>{initials}</Text>
+                    </View>
+                  )}
+                  <View style={styles.rowText}>
+                    <Text style={[styles.name, { color: text }]}>{displayName}</Text>
+                    {item.username ? (
+                      <Text style={[styles.handle, { color: muted }]}>@{item.username}</Text>
+                    ) : null}
+                  </View>
+                  {showUnfollow ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.unfollowBtn,
+                        { backgroundColor: iconSurface, borderColor: border },
+                        pressed && { opacity: ALPHA.a75 },
+                      ]}
+                      onPress={() =>
+                        handleUnfollow(item.id, item.username ? `@${item.username}` : displayName)
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`Following @${item.username ?? displayName}`}
+                      accessibilityHint="Asks before unfollowing"
+                      hitSlop={OFFSET.o8}
+                    >
+                      <Text style={[styles.unfollowBtnText, { color: text }]}>Following</Text>
+                    </Pressable>
+                  ) : null}
+                  {showRemove ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.unfollowBtn,
+                        { backgroundColor: iconSurface, borderColor: border },
+                        pressed && { opacity: ALPHA.a75 },
+                      ]}
+                      onPress={() => handleRemove(item)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove @${item.username ?? displayName}`}
+                      accessibilityHint="Asks before removing this follower"
+                      hitSlop={OFFSET.o8}
+                    >
+                      <Text style={[styles.unfollowBtnText, { color: text }]}>Remove</Text>
+                    </Pressable>
+                  ) : null}
+                </Pressable>
+              );
+            }}
+            ListEmptyComponent={
+              <ListState kind="empty" dark={dark} title={emptyTitle} line={emptyLine} />
+            }
+          />
+        )}
+      </View>
 
-          {/* Full-screen profile — shown when a row is tapped */}
-          {profileUserId ? (
-            <UserProfileScreen
-              key={profileUserId}
-              userId={profileUserId}
-              onBack={() => setProfileUserId(null)}
-              dark={dark}
-            />
-          ) : null}
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
-    </Modal>
+      {/* Full-screen profile — shown when a row is tapped */}
+      {profileUserId ? (
+        <UserProfileScreen
+          key={profileUserId}
+          userId={profileUserId}
+          onBack={() => setProfileUserId(null)}
+          dark={dark}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -399,6 +337,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
+  // In a page sheet, which already starts below the status bar (its top inset is 0 there).
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -426,10 +365,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f24,
     lineHeight: LINE_HEIGHT.l24,
     fontFamily: FONTS.bold,
-  },
-  headerSpacer: {
-    width: SIZE.z44,
-    height: SIZE.z44,
   },
   listContent: {
     paddingVertical: SPACE.s12,
