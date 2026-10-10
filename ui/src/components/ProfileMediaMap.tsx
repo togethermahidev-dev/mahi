@@ -18,7 +18,7 @@ import { refreshTint } from '@/lib/themeColors';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { pointsBadgeText } from '@/lib/mahiPoints';
 import { gridTile } from '@/lib/videoPosts';
-import { gridInset, gridSquare } from '@/lib/profileGrid';
+import { gridInset, gridSquare, gridTileHeight } from '@/lib/profileGrid';
 import {
   gridMenuItems,
   isMenuAction,
@@ -305,7 +305,7 @@ export default function ProfileMediaMap({
   // Square photos with the small gap between them only; the hold-to-preview wrapper is exactly
   // the photo's size.
   const cardWidth = gridSquare(width, PROFILE.gridColumns, PROFILE.gridGap);
-  const mediaHeight = cardWidth;
+  const mediaHeight = gridTileHeight(cardWidth, PROFILE.gridTileTall);
 
   // Pull to refresh: the spinner shows until the fresh posts are in.
   const [refreshing, setRefreshing] = useState(false);

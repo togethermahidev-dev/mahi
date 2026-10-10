@@ -543,6 +543,8 @@ export const PROFILE = {
   gridColumns: 3,
   /** …with this gap between them (none at the screen's edges). */
   gridGap: SPACE.s1,
+  /** A tile is this much taller than it is wide: four wide to five tall (owner, 2026-10-10). */
+  gridTileTall: 1.25,
   /** Rows one read brings: enough to fill the first screen in one go. */
   gridPageRows: 4,
   /** The round "Invite a friend" button, top left of your own profile. */

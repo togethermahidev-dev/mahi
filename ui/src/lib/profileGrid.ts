@@ -1,6 +1,6 @@
 /**
- * A profile's grid of posts (owner, 2026-10-10: three across): squares edge to edge, with the gap
- * between squares only, none at the screen's edges. Pure, so it runs under the node-only tests;
+ * A profile's grid of posts (owner, 2026-10-10: three across, each tile a little taller than it is
+ * wide): tiles edge to edge, with the gap between them only, none at the screen's edges. Pure, so it runs under the node-only tests;
  * the list is src/components/ProfileMediaMap.tsx, the counts are PROFILE in the tokens.
  */
 
@@ -16,4 +16,9 @@ export function gridSquare(width: number, columns: number, gap: number): number 
  */
 export function gridInset(index: number, columns: number, gap: number): number {
   return ((index % columns) * gap) / columns;
+}
+
+/** A tile's height: its width made a little taller (`PROFILE.gridTileTall`). */
+export function gridTileHeight(width: number, tall: number): number {
+  return width * tall;
 }

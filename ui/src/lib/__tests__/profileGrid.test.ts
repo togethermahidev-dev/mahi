@@ -1,4 +1,4 @@
-import { gridInset, gridSquare } from '../profileGrid';
+import { gridInset, gridSquare, gridTileHeight } from '../profileGrid';
 import { PROFILE, SPACE } from '@/constants/tokens';
 
 // A profile's posts: three squares across, edge to edge, with the small gap between them only
@@ -47,5 +47,20 @@ describe('the profile grid', () => {
   it('is a plain full-width square with one column', () => {
     expect(gridSquare(393, 1, 1)).toBe(393);
     expect(gridInset(5, 1, 1)).toBe(0);
+  });
+});
+
+// Owner, 2026-10-10: "Make the profile grids slightly longer then square please".
+describe('a grid tile', () => {
+  it('is a little taller than it is wide: four wide to five tall', () => {
+    expect(PROFILE.gridTileTall).toBe(1.25);
+    expect(gridTileHeight(130, PROFILE.gridTileTall)).toBeCloseTo(162.5, 6);
+  });
+
+  it('is taller than a square, and never as tall as a full portrait photo', () => {
+    const wide = gridSquare(393, 3, 1);
+    const tall = gridTileHeight(wide, PROFILE.gridTileTall);
+    expect(tall).toBeGreaterThan(wide);
+    expect(tall).toBeLessThan(wide * (4 / 3));
   });
 });
