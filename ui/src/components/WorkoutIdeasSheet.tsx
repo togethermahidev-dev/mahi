@@ -3,8 +3,8 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { WORKOUT_SAFETY_LINE, workoutIdeas } from '@/lib/workoutIdeas';
-import { FONTS } from '@/constants/fonts';
-import { ALPHA, COLORS, FONT_SIZE, LINE_HEIGHT, RADIUS, SIZE, SPACE } from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { ALPHA, COLORS, RADIUS, SIZE, SPACE } from '@/constants/tokens';
 
 /**
  * "Need an idea?" from the caption sheet: what counts as a workout, in a native page sheet. The
@@ -82,24 +82,18 @@ const styles = StyleSheet.create({
     gap: SPACE.s16,
   },
   title: {
-    fontSize: FONT_SIZE.f22,
-    lineHeight: LINE_HEIGHT.l28,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.sheetTitle,
   },
   list: {
     gap: SPACE.s4,
   },
   idea: {
-    fontSize: FONT_SIZE.f16,
-    lineHeight: LINE_HEIGHT.l22,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.body,
     paddingVertical: SPACE.s12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   safety: {
-    fontSize: FONT_SIZE.f15,
-    lineHeight: LINE_HEIGHT.l22,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
   },
   // The app's one main-button style: accent pill, dark words.
   button: {
@@ -112,8 +106,7 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s8,
   },
   buttonText: {
+    ...TYPOGRAPHY.button,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
   },
 });

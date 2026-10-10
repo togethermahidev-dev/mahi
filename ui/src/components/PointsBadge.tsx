@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, type StyleProp, type TextStyle } from 'react-native';
-import { FONTS } from '@/constants/fonts';
-import { FONT_SIZE, LAYOUT } from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { LAYOUT } from '@/constants/tokens';
 import { pointsCount } from '@/lib/mahiPoints';
 
 /**
@@ -31,8 +31,7 @@ export default function PointsBadge({
 
 const styles = StyleSheet.create({
   text: {
+    ...TYPOGRAPHY.label,
     flexShrink: 0,
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f13,
   },
 });

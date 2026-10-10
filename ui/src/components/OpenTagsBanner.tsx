@@ -32,14 +32,13 @@ import { bannerText, openTagsBanner } from '@/lib/openTagsBanner';
 import { openTagsTop } from '@/lib/pip';
 import type { OpenTag } from '@/api';
 import { useUserStore } from '@/store';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BLUR_INTENSITY,
   BORDER_WIDTH,
   COLORS,
   DURATION,
-  FONT_SIZE,
   ICON_SIZE,
   MOTION,
   RADIUS,
@@ -243,7 +242,10 @@ function GlassAnswered({
   const { GlassEffectContainer, HStack, Host, Image: SImage, Namespace, Text: SText } = swift.ui;
   const m = swift.modifiers;
   const pad = m.padding({ horizontal: SPACE.s16, vertical: SPACE.s8 });
-  const label = m.font({ family: FONTS.semiBold, size: FONT_SIZE.f14 });
+  const label = m.font({
+    family: TYPOGRAPHY.bodyStrong.fontFamily,
+    size: TYPOGRAPHY.bodyStrong.fontSize,
+  });
   const who = words.replace(/^Answered /, '');
   return (
     <Host matchContents>
@@ -361,7 +363,10 @@ function UrgentLine({
             <swift.ui.Host matchContents>
               <swift.ui.Text
                 modifiers={[
-                  swift.modifiers.font({ family: FONTS.bold, size: FONT_SIZE.f14 }),
+                  swift.modifiers.font({
+                    family: TYPOGRAPHY.bodyBold.fontFamily,
+                    size: TYPOGRAPHY.bodyBold.fontSize,
+                  }),
                   swift.modifiers.monospacedDigit(),
                   swift.modifiers.foregroundStyle(color),
                   swift.modifiers.contentTransition('numericText', { countsDown: true }),
@@ -375,9 +380,9 @@ function UrgentLine({
               </swift.ui.Text>
             </swift.ui.Host>
           ) : lines.clock ? (
-            <Text style={[styles.text, styles.time, { color }]}>{lines.clock}</Text>
+            <Text style={[styles.time, { color }]}>{lines.clock}</Text>
           ) : null}
-          <Text style={[styles.text, styles.time, { color }]}>{lines.after}</Text>
+          <Text style={[styles.time, { color }]}>{lines.after}</Text>
         </View>
       </View>
     </View>
@@ -407,8 +412,7 @@ const styles = StyleSheet.create({
     backgroundColor: withAlpha(COLORS.white, ALPHA.a15),
   },
   urgentInitial: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f12,
+    ...TYPOGRAPHY.microStrong,
   },
   urgentWords: {
     flexShrink: 1,
@@ -451,18 +455,16 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   text: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f14,
+    ...TYPOGRAPHY.bodyStrong,
     textAlign: 'center',
   },
   time: {
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.bodyBold,
     // Same-width digits, so the ticking clock doesn't jitter.
     fontVariant: ['tabular-nums'],
   },
   note: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f13,
+    ...TYPOGRAPHY.small,
     textAlign: 'center',
     marginTop: SPACE.s4,
   },

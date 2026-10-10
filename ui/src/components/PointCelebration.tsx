@@ -10,6 +10,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { PressScale } from '@/components/Motion';
 import { useCoachBlock } from '@/hooks/useCoachMarks';
 import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BORDER_WIDTH,
@@ -17,7 +18,6 @@ import {
   DURATION,
   FONT_SIZE,
   LAYOUT,
-  LINE_HEIGHT,
   MOTION,
   POINTS_NUMBER,
   RADIUS,
@@ -155,22 +155,17 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f38,
   },
   title: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f24,
-    lineHeight: LINE_HEIGHT.l28,
+    ...TYPOGRAPHY.sheetTitle,
     textAlign: 'center',
   },
   total: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f16,
+    ...TYPOGRAPHY.bodyStrong,
     marginTop: SPACE.s8,
     marginBottom: SPACE.s12,
     textAlign: 'center',
   },
   line: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f15,
-    lineHeight: LINE_HEIGHT.l20,
+    ...TYPOGRAPHY.small,
     textAlign: 'center',
     marginTop: SPACE.s6,
   },
@@ -183,8 +178,7 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s24,
   },
   buttonText: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f17,
+    ...TYPOGRAPHY.button,
   },
   secondary: {
     alignSelf: 'stretch',
@@ -194,7 +188,6 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s8,
   },
   secondaryText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f15,
+    ...TYPOGRAPHY.button,
   },
 });

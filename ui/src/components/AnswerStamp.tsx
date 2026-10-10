@@ -13,13 +13,12 @@ import Reanimated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BORDER_WIDTH,
   COLORS,
   DURATION,
-  FONT_SIZE,
   MOTION,
   RADIUS,
   SPACE,
@@ -71,8 +70,7 @@ const styles = StyleSheet.create({
     backgroundColor: withAlpha(COLORS.black, ALPHA.a35),
   },
   text: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f24,
+    ...TYPOGRAPHY.h1,
     color: COLORS.accent,
   },
 });

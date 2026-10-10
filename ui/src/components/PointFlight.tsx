@@ -29,6 +29,7 @@ import { burstDots, flyPoint, type Point } from '@/lib/pointMoments';
 import { useCoachBlock } from '@/hooks/useCoachMarks';
 import { useScreenReader } from '@/hooks/useScreenReader';
 import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BLUR_INTENSITY,
@@ -328,13 +329,11 @@ const styles = StyleSheet.create({
     gap: SPACE.s4,
   },
   cardTitle: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f15,
+    ...TYPOGRAPHY.bodyStrong,
     color: COLORS.white,
   },
   cardLine: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f13,
+    ...TYPOGRAPHY.small,
     color: COLORS.offWhite,
   },
   cheer: {
@@ -342,13 +341,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cheerText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f15,
+    ...TYPOGRAPHY.labelStrong,
     color: COLORS.accent,
   },
   doneText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f15,
+    ...TYPOGRAPHY.labelStrong,
     color: COLORS.offWhite,
   },
 });

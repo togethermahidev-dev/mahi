@@ -3,15 +3,13 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 import { CameraIcon, ProfileIcon } from '@/components/ScreenIcons';
 import PostVideo from '@/components/PostVideo';
 import type { PipGuide } from '@/lib/captureGuide';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
   ELEVATION,
-  FONT_SIZE,
   ICON_SIZE,
-  LINE_HEIGHT,
   RADIUS,
   SHADOW_BLUR,
   SIZE,
@@ -89,10 +87,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s8,
   },
   text: {
+    ...TYPOGRAPHY.labelStrong,
     color: COLORS.white,
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l18,
-    fontFamily: FONTS.semiBold,
     textAlign: 'center',
   },
 });

@@ -39,6 +39,7 @@ import {
   type Rect,
 } from '@/lib/coachMarks';
 import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BLUR_INTENSITY,
@@ -50,7 +51,6 @@ import {
   FONT_SIZE,
   ICON_SIZE,
   LAYER,
-  LINE_HEIGHT,
   MOTION,
   OFFSET,
   RADIUS,
@@ -564,14 +564,10 @@ const styles = StyleSheet.create({
     gap: SPACE.s2,
   },
   title: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f16,
-    lineHeight: LINE_HEIGHT.l20,
+    ...TYPOGRAPHY.labelStrong,
   },
   body: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f14,
-    lineHeight: LINE_HEIGHT.l20,
+    ...TYPOGRAPHY.micro,
   },
   footer: {
     flexDirection: 'row',
@@ -579,8 +575,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   step: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f12,
+    ...TYPOGRAPHY.micro,
   },
   gotIt: {
     minHeight: SIZE.z28,
@@ -590,9 +585,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
   },
   gotItText: {
+    ...TYPOGRAPHY.labelStrong,
     color: COLORS.offBlack,
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f13,
   },
   pressed: {
     opacity: ALPHA.a80,

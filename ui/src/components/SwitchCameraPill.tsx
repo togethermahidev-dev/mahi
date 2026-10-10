@@ -14,10 +14,9 @@ import Reanimated, { useAnimatedStyle, type SharedValue } from 'react-native-rea
 import Svg, { Path } from 'react-native-svg';
 import { PressScale } from '@/components/Motion';
 import { switchPillOpacity } from '@/lib/feedPull';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
-  FONT_SIZE,
   ICON_SIZE,
   RADIUS,
   SIZE,
@@ -87,8 +86,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.offWhite,
   },
   label: {
+    ...TYPOGRAPHY.pillLabel,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.semiBold,
   },
 });

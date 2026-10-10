@@ -12,12 +12,12 @@ import Reanimated, {
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { FadeInItem } from '@/components/Motion';
 import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BORDER_WIDTH,
   DURATION,
   FONT_SIZE,
-  LINE_HEIGHT,
   RADIUS,
   SCALE,
   SIZE,
@@ -127,14 +127,10 @@ const styles = StyleSheet.create({
     gap: SPACE.s16,
   },
   eyebrow: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l16,
+    ...TYPOGRAPHY.sectionHeader,
   },
   heading: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f20,
-    lineHeight: LINE_HEIGHT.l28,
+    ...TYPOGRAPHY.h2,
   },
   steps: { gap: 0 },
   step: { flexDirection: 'row', minHeight: SIZE.z64 },
@@ -151,14 +147,10 @@ const styles = StyleSheet.create({
   line: { flex: 1, width: SIZE.z2 },
   copy: { flex: 1, paddingLeft: SPACE.s12, paddingBottom: SPACE.s12 },
   title: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f16,
-    lineHeight: LINE_HEIGHT.l20,
+    ...TYPOGRAPHY.h4,
   },
   body: {
+    ...TYPOGRAPHY.small,
     marginTop: SPACE.s2,
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l18,
   },
 });
