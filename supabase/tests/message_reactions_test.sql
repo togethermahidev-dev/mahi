@@ -81,8 +81,9 @@ select is(public.get_messages(pg_temp.convo('a', 'b')) -> 0 -> 'reactions',
   'get_messages carries each message''s reactions, mine from the reader''s side');
 select is(public.get_messages(pg_temp.convo('a', 'b')) -> 0 ->> 'content', 'hi b',
   'the message''s own fields are as before');
-select is((select count(*)::int from jsonb_object_keys(public.get_messages(pg_temp.convo('a', 'b')) -> 0)), 9,
-  'exactly one field was added: reactions');
+-- 10 since 20261010100000_share_post_in_message: every message also carries post_id (null here).
+select is((select count(*)::int from jsonb_object_keys(public.get_messages(pg_temp.convo('a', 'b')) -> 0)), 10,
+  'the fields are the message''s own, reactions and post_id; a text message has no post');
 select is(public.send_message(pg_temp.convo('a', 'b'), gen_random_uuid(), 'fresh') -> 'reactions', null,
   'send_message''s row is unchanged (no reactions field)');
 
