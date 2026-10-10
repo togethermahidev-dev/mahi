@@ -11,13 +11,11 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { FadeInItem } from '@/components/Motion';
-import { FONTS } from '@/constants/fonts';
-import { TYPOGRAPHY } from '@/constants/typography';
+import { LETTERING, TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BORDER_WIDTH,
   DURATION,
-  FONT_SIZE,
   RADIUS,
   SCALE,
   SIZE,
@@ -143,7 +141,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  numberText: { fontFamily: FONTS.bold, fontSize: FONT_SIZE.f15 },
+  numberText: { ...LETTERING.numeralSmall },
   line: { flex: 1, width: SIZE.z2 },
   copy: { flex: 1, paddingLeft: SPACE.s12, paddingBottom: SPACE.s12 },
   title: {

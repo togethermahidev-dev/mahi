@@ -9,14 +9,12 @@ import Reanimated, {
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { PressScale } from '@/components/Motion';
 import { useCoachBlock } from '@/hooks/useCoachMarks';
-import { FONTS } from '@/constants/fonts';
-import { TYPOGRAPHY } from '@/constants/typography';
+import { LETTERING, TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BORDER_WIDTH,
   COLORS,
   DURATION,
-  FONT_SIZE,
   LAYOUT,
   MOTION,
   POINTS_NUMBER,
@@ -151,8 +149,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.s20,
   },
   plusOne: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f38,
+    ...LETTERING.numeralHero,
   },
   title: {
     ...TYPOGRAPHY.h2,

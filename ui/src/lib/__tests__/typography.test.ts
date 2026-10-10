@@ -1,7 +1,7 @@
-import { readFileSync } from 'fs';
+import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { FONT_FAMILY, FONTS } from '@/constants/fonts';
-import { FIELD_TEXT, GLYPH, TYPOGRAPHY } from '@/constants/typography';
+import { FIELD_TEXT, GLYPH, LETTERING, TYPOGRAPHY } from '@/constants/typography';
 
 // Mahi's text takes PingMee's type system, value for value (owner, 2026-10-10: "PingMee font sizes
 // and styling applied across the whole of mahi exactly what PingMee uses across their app for
@@ -130,5 +130,59 @@ describe("Mahi's own additions", () => {
     expect(FIELD_TEXT.fontSize).toBe(TYPOGRAPHY.input.fontSize);
     expect(FIELD_TEXT.fontFamily).toBe(TYPOGRAPHY.input.fontFamily);
     expect(Object.keys(FIELD_TEXT)).not.toContain('lineHeight');
+  });
+});
+
+// Mahi's drawn lettering is not running text and has no PingMee role: the MAHI wordmark, the FEED
+// cue and the numerals inside drawn circles ("+1", a step number). Each keeps the size it was drawn at.
+describe("Mahi's drawn lettering", () => {
+  it('keeps the wordmark, the FEED cue and the numerals at their drawn sizes, in the bold face', () => {
+    const sizes = Object.fromEntries(
+      Object.entries(LETTERING).map(([name, l]) => [name, [l.fontSize, l.letterSpacing]])
+    );
+    expect(sizes).toEqual({
+      wordmarkFront: [56, 10],
+      wordmarkLaunch: [56, 8],
+      wordmarkSplash: [48, 8],
+      wordmarkHeader: [24, 8],
+      feedCue: [13, 3],
+      numeralHero: [38, 0],
+      numeral: [24, 0],
+      numeralSmall: [15, 0],
+      numeralTiny: [13, 0],
+    });
+    for (const l of Object.values(LETTERING)) expect(l.fontFamily).toBe(FONTS.bold);
+  });
+});
+
+// The rule that keeps the whole app on the shared set: outside src/constants nothing types a text
+// size or a face, or reads the raw size and face tokens. A style spreads TYPOGRAPHY, GLYPH,
+// FIELD_TEXT or LETTERING; a native font prop reads `TYPOGRAPHY.x.fontFamily` / `.fontSize`.
+describe('every screen and component', () => {
+  function sourceFiles(dir: string): string[] {
+    return readdirSync(dir).flatMap((name) => {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory())
+        return name === '__tests__' || name === 'constants' ? [] : sourceFiles(path);
+      return /\.tsx?$/.test(name) ? [path] : [];
+    });
+  }
+  const root = join(__dirname, '..', '..', '..');
+  const files = [...sourceFiles(join(root, 'src')), join(root, 'App.tsx')];
+
+  it('takes its text styles from the shared set, never a size or face typed in place', () => {
+    const typed = /\bfont(?:Size|Family)\s*[:=]|\bFONT_SIZE\.|\bFONTS\./;
+    const offenders = files
+      .filter((f) => typed.test(readFileSync(f, 'utf8')))
+      .map((f) => f.slice(root.length + 1));
+    expect(offenders).toEqual([]);
+  });
+
+  it('sets no line height or letter spacing in place either: the named style carries both', () => {
+    const typed = /\b(?:lineHeight|letterSpacing)\s*:\s*(?:LINE_HEIGHT|TRACKING|-)/;
+    const offenders = files
+      .filter((f) => typed.test(readFileSync(f, 'utf8')))
+      .map((f) => f.slice(root.length + 1));
+    expect(offenders).toEqual([]);
   });
 });

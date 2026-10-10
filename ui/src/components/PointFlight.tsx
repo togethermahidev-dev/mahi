@@ -28,15 +28,13 @@ import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { burstDots, flyPoint, type Point } from '@/lib/pointMoments';
 import { useCoachBlock } from '@/hooks/useCoachMarks';
 import { useScreenReader } from '@/hooks/useScreenReader';
-import { FONTS } from '@/constants/fonts';
-import { TYPOGRAPHY } from '@/constants/typography';
+import { LETTERING, TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BLUR_INTENSITY,
   BORDER_WIDTH,
   COLORS,
   DURATION,
-  FONT_SIZE,
   LAYOUT,
   MOTION,
   POINTS_NUMBER,
@@ -293,8 +291,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
   },
   chipText: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f24,
+    ...LETTERING.numeral,
     color: COLORS.offBlack,
   },
   dot: {

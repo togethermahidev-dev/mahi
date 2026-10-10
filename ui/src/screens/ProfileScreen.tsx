@@ -38,7 +38,7 @@ import { useInviteAMate } from '@/components/ShareSheet';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import ProfileIdentityCard from '@/components/ProfileIdentityCard';
 import UserProfileScreen from '@/screens/UserProfileScreen';
-import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
+import { GLYPH, TYPOGRAPHY, type TypographyName } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
@@ -116,7 +116,7 @@ function PointsNumber({
   rolling: boolean;
   style: StyleProp<TextStyle>;
   /** The named text style `style` spreads: Apple's digits take its face and size. */
-  token: { fontFamily: string; fontSize: number };
+  token: (typeof TYPOGRAPHY)[TypographyName];
   color: string;
 }) {
   if (!rolling) {

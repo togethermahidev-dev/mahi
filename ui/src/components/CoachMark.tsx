@@ -38,8 +38,7 @@ import {
   type CoachTipId,
   type Rect,
 } from '@/lib/coachMarks';
-import { FONTS } from '@/constants/fonts';
-import { TYPOGRAPHY } from '@/constants/typography';
+import { LETTERING, TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BLUR_INTENSITY,
@@ -48,7 +47,6 @@ import {
   COLORS,
   DURATION,
   ELEVATION,
-  FONT_SIZE,
   ICON_SIZE,
   LAYER,
   MOTION,
@@ -555,9 +553,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   plusOne: {
+    ...LETTERING.numeralTiny,
     color: COLORS.offBlack,
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f13,
   },
   words: {
     flex: 1,

@@ -26,11 +26,9 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
 import { PressScale } from '@/components/Motion';
-import { FONTS } from '@/constants/fonts';
 import {
   ALPHA,
   COLORS,
-  FONT_SIZE,
   ICON_SIZE,
   MOTION,
   OFFSET,
@@ -38,8 +36,8 @@ import {
   SIZE,
   SPACE,
   STROKE,
-  TRACKING,
 } from '@/constants/tokens';
+import { LETTERING } from '@/constants/typography';
 
 /** How wide the cue is: a chevron column each side of the word, a small gap between. */
 export const FEED_CUE_WIDTH = ICON_SIZE.i14 * 2 + SPACE.s4 * 2 + SIZE.z48;
@@ -80,13 +78,11 @@ export default function FeedCue({ onPress }: { onPress: () => void }): React.JSX
         {/* Centred on its box; letter spacing also follows the last letter, so half of it moves
             the word back to the middle. */}
         <SvgText
-          x={SIZE.z48 / 2 + TRACKING.t3 / 2}
+          x={SIZE.z48 / 2 + LETTERING.feedCue.letterSpacing / 2}
           y={SIZE.z20 / 2}
           textAnchor="middle"
           alignmentBaseline="central"
-          fontFamily={FONTS.bold}
-          fontSize={FONT_SIZE.f13}
-          letterSpacing={TRACKING.t3}
+          {...LETTERING.feedCue}
           fill="url(#feedCueWord)"
         >
           FEED

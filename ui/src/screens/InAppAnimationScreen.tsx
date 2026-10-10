@@ -14,17 +14,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Path } from 'react-native-svg';
-import { FONTS } from '@/constants/fonts';
-import { TYPOGRAPHY } from '@/constants/typography';
-import {
-  COLORS,
-  ALPHA,
-  FONT_SIZE,
-  SPACE,
-  TRACKING,
-  BORDER_WIDTH,
-  LAUNCH_LENS as L,
-} from '@/constants/tokens';
+import { LETTERING, TYPOGRAPHY } from '@/constants/typography';
+import { COLORS, ALPHA, SPACE, BORDER_WIDTH, LAUNCH_LENS as L } from '@/constants/tokens';
 import { haptic, type HapticMoment } from '@/lib/haptics';
 import { lensBladePath } from '@/lib/launchLens';
 
@@ -218,9 +209,7 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
   },
   title: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f56,
-    letterSpacing: TRACKING.t8,
+    ...LETTERING.wordmarkLaunch,
     color: COLORS.ink,
   },
   tagline: {

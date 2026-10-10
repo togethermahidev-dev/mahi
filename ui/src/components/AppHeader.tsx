@@ -6,19 +6,17 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useCoachAnchor } from '@/hooks/useCoachMarks';
 import { useTagStore } from '@/store';
 import { ProfileIcon, MessagesIcon, NotificationsIcon } from '@/components/ScreenIcons';
-import { FONTS } from '@/constants/fonts';
 import {
   COLORS,
   ALPHA,
-  FONT_SIZE,
   ICON_SIZE,
   OFFSET,
   RADIUS,
   SIZE,
   SPACE,
-  TRACKING,
   withAlpha,
 } from '@/constants/tokens';
+import { LETTERING } from '@/constants/typography';
 import { TAP_AREA, tapSlop } from '@/lib/tapArea';
 
 // The pills are drawn 36 across; each taps as 44. The bell and Messages sit 8 apart, so 4 of
@@ -173,9 +171,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   title: {
-    fontSize: FONT_SIZE.f24,
-    fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t8,
+    ...LETTERING.wordmarkHeader,
   },
   titleEcho: {
     // accent colour echo — adjust top/left to taste

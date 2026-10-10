@@ -1,9 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { useReducedMotion } from 'react-native-reanimated';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ALPHA, COLORS, FONT_SIZE, RADIUS, SIZE, SPACE } from '@/constants/tokens';
-import { FONTS } from '@/constants/fonts';
-import { TYPOGRAPHY } from '@/constants/typography';
+import { ALPHA, COLORS, RADIUS, SIZE, SPACE } from '@/constants/tokens';
+import { LETTERING, TYPOGRAPHY } from '@/constants/typography';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { roadmap, stepAction, type StepAction } from '@/lib/workoutRoadmap';
 
@@ -113,7 +112,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  number: { color: COLORS.offBlack, fontFamily: FONTS.bold, fontSize: FONT_SIZE.f24 },
+  number: { ...LETTERING.numeral, color: COLORS.offBlack },
   title: {
     ...TYPOGRAPHY.h4,
     color: COLORS.offWhite,

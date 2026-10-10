@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { VERSION_LINE } from '@/lib/appBuild';
-import { FONTS } from '@/constants/fonts';
-import { TYPOGRAPHY } from '@/constants/typography';
-import { COLORS, ALPHA, FONT_SIZE, OFFSET, TRACKING, withAlpha } from '@/constants/tokens';
+import { LETTERING, TYPOGRAPHY } from '@/constants/typography';
+import { COLORS, ALPHA, OFFSET, withAlpha } from '@/constants/tokens';
 
 const BG = COLORS.accent;
 const TEXT_COLOR = COLORS.white;
@@ -30,10 +29,8 @@ const styles = StyleSheet.create({
   titleWrapper: { position: 'relative' },
   titleEcho: { position: 'absolute', color: ECHO_COLOR, top: OFFSET.o3, left: OFFSET.o3 },
   title: {
+    ...LETTERING.wordmarkSplash,
     color: TEXT_COLOR,
-    fontSize: FONT_SIZE.f48,
-    fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t8,
   },
   version: {
     ...TYPOGRAPHY.caption,

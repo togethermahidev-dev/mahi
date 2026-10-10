@@ -113,4 +113,33 @@ export const FIELD_TEXT = {
   letterSpacing: TYPOGRAPHY.input.letterSpacing,
 } as const;
 
+/**
+ * Mahi's drawn lettering: not running text, and nothing PingMee has a style for. The MAHI wordmark,
+ * the FEED cue, and the numerals inside drawn circles ("+1", a step number). Each keeps the size
+ * it was drawn at, in the bold face; none sets a line height.
+ */
+const lettering = (fontSize: number, letterSpacing = 0) =>
+  ({ fontFamily: FONTS.bold, fontSize, letterSpacing }) as const;
+
+export const LETTERING = {
+  /** MAHI on the front door. */
+  wordmarkFront: lettering(FONT_SIZE.f56, TRACKING.t10),
+  /** MAHI in the launch animation. */
+  wordmarkLaunch: lettering(FONT_SIZE.f56, TRACKING.t8),
+  /** MAHI on the splash. */
+  wordmarkSplash: lettering(FONT_SIZE.f48, TRACKING.t8),
+  /** MAHI in the app header. */
+  wordmarkHeader: lettering(FONT_SIZE.f24, TRACKING.t8),
+  /** FEED above the shutter. */
+  feedCue: lettering(FONT_SIZE.f13, TRACKING.t3),
+  /** "+1" in the celebration's circle. */
+  numeralHero: lettering(FONT_SIZE.f38),
+  /** The flying "+1"; a step number in a large circle. */
+  numeral: lettering(FONT_SIZE.f24),
+  /** A step number in a small circle. */
+  numeralSmall: lettering(FONT_SIZE.f15),
+  /** "+1" inside a tip's icon. */
+  numeralTiny: lettering(FONT_SIZE.f13),
+} as const;
+
 export type TypographyName = keyof typeof TYPOGRAPHY;

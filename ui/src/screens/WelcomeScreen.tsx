@@ -20,20 +20,17 @@ import AccountabilityLoop from '@/components/AccountabilityLoop';
 import { PressScale } from '@/components/Motion';
 import { useInviteStore } from '@/store';
 import { welcomeInvite } from '@/lib/welcomeCards';
-import { FONTS } from '@/constants/fonts';
-import { TYPOGRAPHY } from '@/constants/typography';
+import { LETTERING, TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
   DURATION,
-  FONT_SIZE,
   LAYOUT,
   OFFSET,
   RADIUS,
   SIZE,
   SPACE,
-  TRACKING,
 } from '@/constants/tokens';
 
 const { height } = Dimensions.get('window');
@@ -275,7 +272,7 @@ const styles = StyleSheet.create({
   },
   titles: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   titleWrapper: { position: 'relative', marginBottom: SPACE.s12 },
-  title: { fontSize: FONT_SIZE.f56, fontFamily: FONTS.bold, letterSpacing: TRACKING.t10 },
+  title: { ...LETTERING.wordmarkFront },
   titleEcho: { position: 'absolute', color: COLORS.accent, top: OFFSET.o4, left: OFFSET.o4 },
   subtitle: { ...TYPOGRAPHY.body, opacity: ALPHA.a70 },
   gap: { height: SIZE.z55 },
