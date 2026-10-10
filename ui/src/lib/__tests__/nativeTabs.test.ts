@@ -52,18 +52,14 @@ describe('INITIAL_TAB', () => {
 });
 
 describe('tab titles', () => {
-  // Owner, 2026-10-05: Inter Tight everywhere, the phone's own tab bar included.
-  it('sets Inter Tight on iPhone for every layout and state', () => {
-    for (const layout of ['stacked', 'inline', 'compactInline'] as const) {
-      for (const state of ['normal', 'selected'] as const) {
-        expect(TAB_TITLE_APPEARANCE.ios[layout][state].tabBarItemTitleFontFamily).toBe(
-          TYPOGRAPHY.buttonSmall.fontFamily
-        );
-      }
-    }
+  // On iPhone the bar keeps the phone's own lettering. Given the app's typeface by its real name
+  // (2026-10-10), the bar picked it up for some titles and not others, and a title sat lower and
+  // was cut off (owner: "the tab bar icons playing up").
+  it('leaves the phone’s own lettering on iPhone', () => {
+    expect(TAB_TITLE_APPEARANCE.ios).toBeUndefined();
   });
 
-  it('sets Inter Tight on Android', () => {
+  it('sets the app’s typeface on Android', () => {
     expect(TAB_TITLE_APPEARANCE.android.tabBarItemTitleFontFamily).toBe(
       TYPOGRAPHY.buttonSmall.fontFamily
     );

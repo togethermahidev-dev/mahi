@@ -16,6 +16,9 @@ import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { useProfileAbout } from '@/hooks/useProfileAbout';
 import { useAuthStore, useProfilePostsStore, useUserStore } from '@/store';
+import { useOpenTags } from '@/hooks/useOpenTags';
+import { msLeft } from '@/lib/countdown';
+import { ownNextStep } from '@/lib/profileGrid';
 import { useToastStore } from '@/store/toastStore';
 import { bioErrorText, bioLine, type CountKind } from '@/lib/profileAbout';
 import { reportError } from '@/lib/sentry';
@@ -179,6 +182,25 @@ export default function ProfileScreen({
   const [inviting, setInviting] = useState(false);
   // The link opens in Mahi's share sheet (switch `share-sheet`; off: the phone's).
   const { invite: inviteAMate, sheet: inviteSheet } = useInviteAMate();
+  const startInvite = () => {
+    if (inviting) return;
+    setInviting(true);
+    void inviteAMate().finally(() => setInviting(false));
+  };
+  // Under the grid: the next step in the loop (answer a tag at the camera, or invite a friend).
+  const tags = useOpenTags();
+  const step = ownNextStep({
+    tagsLoaded: tags.loaded,
+    taggers: tags.openTags
+      .filter((t) => msLeft(t.expires_at, tags.serverOffsetMs) > 0)
+      .map((t) => t.username),
+  });
+  const nextStep =
+    step?.go === 'invite'
+      ? { line: step.line, button: step.button, busy: inviting, onPress: startInvite }
+      : step && onOpenCamera
+        ? { line: step.line, button: step.button, onPress: onOpenCamera }
+        : null;
   const [viewerPost, setViewerPost] = useState<{
     postId: string;
     source?: MorphSource;
@@ -277,11 +299,7 @@ export default function ProfileScreen({
               { backgroundColor: text },
               (pressed || inviting) && { opacity: ALPHA.a70 },
             ]}
-            onPress={() => {
-              if (inviting) return;
-              setInviting(true);
-              void inviteAMate().finally(() => setInviting(false));
-            }}
+            onPress={startInvite}
             disabled={inviting}
             accessibilityRole="button"
             accessibilityLabel={INVITE_A_FRIEND.label}
@@ -471,6 +489,7 @@ export default function ProfileScreen({
           onPostPress={(post, source) => setViewerPost({ postId: post.id, source })}
           listGesture={listGesture}
           onOpenCamera={onOpenCamera}
+          nextStep={nextStep}
         />
       ) : (
         header

@@ -318,7 +318,8 @@
   Nothing else sets a text size or a face; a missing style is added to `typography.ts`, never typed in a
   screen. The scale's values are pinned in
   `typography.test.ts`; change both together. Not in the scale on purpose: any 10pt style, a capitals `overline` and a monospace style.
-  The native tab bar titles use the typeface too. `fonts.test.ts` fails on a typed-out font name, text without
+  The native tab bar's titles use the typeface on Android; on iPhone the bar keeps the
+  phone's own lettering (decision #211). `fonts.test.ts` fails on a typed-out font name, text without
   an Inter Tight face, or a character Inter Tight can't draw (✕ → ×). The website, staff portal and emails
   read the same family and weights (`FONT_FAMILY`, `web/scripts/font-weights.mjs`). Emoji pass: the phone's emoji font draws them; only the owner's own words use them (🔔 🔕 ✋ ⏳ 🎉, core workflow 2026-10-09)
 - Every colour, text size, spacing, radius, shadow, size, offset, icon size, letter spacing, line height and

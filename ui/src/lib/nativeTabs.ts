@@ -81,11 +81,14 @@ export function cameraBadge(
  * the small button style. The size stays the phone's own.
  */
 const TAB_TITLE = { tabBarItemTitleFontFamily: TYPOGRAPHY.buttonSmall.fontFamily };
-const TAB_TITLE_STATES = { normal: TAB_TITLE, selected: TAB_TITLE };
 
-/** The bar's `standardAppearance` on each platform: only the title face; the rest stays the phone's. */
+/**
+ * The bar's `standardAppearance` on each platform. Android takes the app's typeface for its titles.
+ * iPhone keeps the phone's own lettering: given the typeface by its real name (2026-10-10) the bar
+ * picked it up for some titles and not others, and a title sat lower and was cut off.
+ */
 export const TAB_TITLE_APPEARANCE = {
-  ios: { stacked: TAB_TITLE_STATES, inline: TAB_TITLE_STATES, compactInline: TAB_TITLE_STATES },
+  ios: undefined,
   android: TAB_TITLE,
 };
 

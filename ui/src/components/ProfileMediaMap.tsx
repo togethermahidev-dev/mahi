@@ -245,6 +245,11 @@ interface ProfileMediaMapProps {
   username?: string | null;
   /** Your own empty grid: a button to the camera, when the screen can open it. */
   onOpenCamera?: () => void;
+  /**
+   * Under your own grid once it has ended: your next step in the loop and its button (answer a
+   * tag, or invite a friend). Worked out by the screen (`ownNextStep`).
+   */
+  nextStep?: { line: string; button: string; busy?: boolean; onPress: () => void } | null;
 }
 
 /**
@@ -259,12 +264,13 @@ export default function ProfileMediaMap({
   listGesture,
   username,
   onOpenCamera,
+  nextStep,
 }: ProfileMediaMapProps): React.JSX.Element {
   const { dark } = useAppTheme();
   const bg = dark ? COLORS.bgDark : COLORS.white;
   // The last row scrolls clear of the phone's tab bar.
   const tabRoom = useTabBarRoom();
-  const { muted } = themeColors(dark);
+  const { muted, text } = themeColors(dark);
 
   const { posts, hasMore, loadMore, refresh } = useProfilePosts(userId);
   // Loading, failed and empty are three states. The store keeps the last good read's time, so:
@@ -385,7 +391,27 @@ export default function ProfileMediaMap({
               <ActivityIndicator color={muted} />
             </View>
           ) : endLine ? (
-            <Text style={[styles.endLine, { color: muted }]}>{endLine}</Text>
+            <View style={styles.end}>
+              <Text style={[styles.endLine, { color: muted }]}>{endLine}</Text>
+              {nextStep ? (
+                <>
+                  <Text style={[styles.endStep, { color: text }]}>{nextStep.line}</Text>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.endButton,
+                      (pressed || nextStep.busy) && styles.pressed,
+                    ]}
+                    onPress={nextStep.onPress}
+                    disabled={nextStep.busy}
+                    accessibilityRole="button"
+                    accessibilityLabel={nextStep.button}
+                    accessibilityState={{ busy: nextStep.busy === true }}
+                  >
+                    <Text style={styles.endButtonText}>{nextStep.button}</Text>
+                  </Pressable>
+                </>
+              ) : null}
+            </View>
           ) : null
         }
       />
@@ -408,11 +434,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Under the last post: the grid has ended, then (your own) the next step and its button.
+  end: {
+    alignItems: 'center',
+    gap: SPACE.s8,
+    paddingVertical: SPACE.s24,
+    paddingHorizontal: SPACE.s24,
+  },
   endLine: {
     ...TYPOGRAPHY.small,
     textAlign: 'center',
-    paddingVertical: SPACE.s24,
+  },
+  endStep: {
+    ...TYPOGRAPHY.bodyStrong,
+    textAlign: 'center',
+  },
+  // The app's one main-button style (ListState's): accent pill, dark words.
+  endButton: {
+    minHeight: SIZE.z44,
+    justifyContent: 'center',
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.accent,
     paddingHorizontal: SPACE.s24,
+    marginTop: SPACE.s4,
+  },
+  endButtonText: {
+    ...TYPOGRAPHY.button,
+    color: COLORS.offBlack,
   },
   gridCard: {
     overflow: 'hidden',
