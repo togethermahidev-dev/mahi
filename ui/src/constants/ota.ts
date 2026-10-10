@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 52 — share buttons for other apps wear their own colours and real logos (WhatsApp
+ *     green, Messages green) (2026-10-10)
  *   build 13 · 51 — no Snapchat or Instagram share button until a build can open those apps' own
  *     share screens; both stay reachable through the phone's own sheet (2026-10-10)
  *   build 13 · 50 — page swipes follow real swipes: a short sideways flick now turns the page (from
@@ -199,4 +201,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 51;
+export const OTA_NUMBER = 52;
