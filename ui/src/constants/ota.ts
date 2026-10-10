@@ -7,10 +7,13 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
- *   build 13 · 43 — share sheet like Instagram's (a grid of friends to send a post to in Mahi,
- *     Copy link, WhatsApp, Messages, Snapchat, Instagram, Share to); a post shows as a card in
- *     chats; the feed timer floats on its own at the top right; the header and its camera circle
- *     hide and come back smoothly while paging (2026-10-10)
+ *   build 13 · 43 — text takes PingMee's type system across the app (Inter Tight, named sizes);
+ *     share sheet like Instagram's (a grid of friends, Copy link, round buttons; a shared post is a
+ *     card in chats); feed: pinch to zoom, the small photo never over the name, nothing white
+ *     between posts, the timer out of the header; old posts scroll up and down, sideways exits;
+ *     profile: three-across grid, picture on the right, Invite a friend circle; Friends opens as a
+ *     sheet; Messages has no back arrow; Camera tab brings the camera back from the feed; easier
+ *     sideways swipes; privacy controls move into Security and privacy (2026-10-10)
  *   build 13 · 42 — temporary swipe check on the camera (no visible change) (2026-10-09)
  *   build 13 · 41 — feed timer: just the ring and the clock, clear on the right (2026-10-09)
  *   build 13 · 40 — one swipe to the feed (no halfway stop); pull down from the first post or tap
