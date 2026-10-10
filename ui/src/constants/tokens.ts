@@ -455,8 +455,13 @@ export const SWIPE = {
   /** A swipe takes over once the finger moves this far (px) along its axis. */
   slop: 20,
   /** A clearly sideways drag (at least twice as far across as up or down) takes over this soon
-   *  (px), so a short flick still moves the page (2026-10-10). */
-  sideSlop: 12,
+   *  (px): the distance the phone itself calls a drag. Recorded swipes on the camera that never
+   *  started travelled 14 on average (2026-10-10). */
+  sideSlop: 10,
+  /** A page turns once the finger is let go this far (px) from where it went down… */
+  pageDistance: 12,
+  /** …or on a flick this fast (px per ms) the same way, however short the drag. */
+  pageFlick: 0.15,
   /** How many times further up/down than across a drag must go for the camera to take it early,
    *  at half the slop: about 72° or steeper (2026-10-10). */
   cameraSteep: 3,

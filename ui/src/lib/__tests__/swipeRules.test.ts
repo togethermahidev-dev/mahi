@@ -27,6 +27,14 @@ describe('swipe rules', () => {
       expect(h({ dx: 13, dy: 2 })).toBe('activate');
       expect(h({ dx: -17, dy: 1 })).toBe('activate');
     });
+    // Recorded on the owner's phone (9–10 Oct, 159 sideways swipes on the camera): the ones that
+    // never started travelled 14pt on average. Past 10pt (the phone's own threshold for a drag)
+    // and clearly sideways is a page swipe.
+    it('starts at the distance the phone itself calls a drag', () => {
+      expect(h({ dx: 11, dy: 3 })).toBe('activate');
+      expect(h({ dx: -11, dy: -4 })).toBe('activate');
+      expect(h({ dx: 11, dy: 7 })).toBe('wait');
+    });
     it('a short diagonal still waits for the full slop', () => {
       expect(h({ dx: 13, dy: 9 })).toBe('wait');
     });
@@ -111,16 +119,34 @@ describe('swipe rules', () => {
       expect(horizontalRelease(1, 3, -61, 0)).toBe(2);
       expect(horizontalRelease(1, 3, -10, -0.5)).toBe(2);
     });
-    it('snaps back after a short slow drag', () => {
-      expect(horizontalRelease(1, 3, 60, 0.4)).toBe(1);
-      expect(horizontalRelease(1, 3, -60, -0.4)).toBe(1);
+    // The same recording: a real swipe is a short flick of 10–20pt, so a page turns once the
+    // finger has gone a little past where the swipe started, or on a light flick the same way.
+    it('turns the page after a short drag: a little past where the swipe started', () => {
+      expect(horizontalRelease(1, 3, 14, 0)).toBe(0);
+      expect(horizontalRelease(1, 3, -14, 0)).toBe(2);
+    });
+    it('turns the page on a light flick the same way, however short', () => {
+      expect(horizontalRelease(1, 3, 11, 0.2)).toBe(0);
+      expect(horizontalRelease(1, 3, -11, -0.2)).toBe(2);
+    });
+    it('snaps back after a tiny slow drag', () => {
+      expect(horizontalRelease(1, 3, 11, 0.1)).toBe(1);
+      expect(horizontalRelease(1, 3, -11, -0.1)).toBe(1);
+    });
+    it('snaps back when the finger is let go moving back the other way', () => {
+      expect(horizontalRelease(1, 3, 20, -0.2)).toBe(1);
+      expect(horizontalRelease(1, 3, -20, 0.2)).toBe(1);
+    });
+    it('a light flick against where the finger is does nothing', () => {
+      expect(horizontalRelease(1, 3, 5, -0.2)).toBe(1);
     });
     it('stays put at either end', () => {
       expect(horizontalRelease(0, 3, 200, 2)).toBe(0);
       expect(horizontalRelease(2, 3, -200, -2)).toBe(2);
     });
-    it('a flick back against the drag wins towards the right-hand page', () => {
+    it('a hard flick back against the drag wins', () => {
       expect(horizontalRelease(1, 3, 80, -0.5)).toBe(2);
+      expect(horizontalRelease(1, 3, -80, 0.5)).toBe(0);
     });
   });
 

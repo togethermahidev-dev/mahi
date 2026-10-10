@@ -78,7 +78,9 @@ export function atListTop(offsetY: number): boolean {
 // Distances are px from where the finger went down; velocities are px per ms (a gesture
 // handler reports px per second: divide by 1000).
 
-// Sideways: a drag of SWIPE.distance, or a flick of SWIPE.velocity, moves one page.
+// Sideways between pages: a real swipe is a short flick (the owner's recorded ones travel 10–20px),
+// so a page turns a little past where the swipe started (SWIPE.pageDistance) or on a light flick
+// the same way (SWIPE.pageFlick). An overlay still closes at SWIPE.distance / SWIPE.velocity.
 
 /** Where the page strip sits while dragged: past the first or last page it moves a third as far. */
 export function rubberBand(raw: number, min: number, max: number): number {
@@ -90,14 +92,22 @@ export function rubberBand(raw: number, min: number, max: number): number {
 
 /**
  * The page a sideways swipe lands on (0 = left). A drag right goes one page left, a drag left one
- * page right; when the drag and the flick disagree, the page to the right wins.
+ * page right. In order: a hard flick decides, whichever way the finger is; otherwise a drag past
+ * `pageDistance` turns the page unless the finger is let go moving back; otherwise a light flick
+ * the same way as the drag turns it; anything else snaps back.
  */
 export function horizontalRelease(index: number, count: number, dx: number, vx: number): number {
   'worklet';
-  let next = index;
-  if ((dx > SWIPE.distance || vx > SWIPE.velocity) && index > 0) next = index - 1;
-  if ((dx < -SWIPE.distance || vx < -SWIPE.velocity) && index < count - 1) next = index + 1;
-  return next;
+  // +1 = towards the page on the left (a drag or flick to the right), -1 = the page on the right.
+  let way = 0;
+  if (Math.abs(vx) > SWIPE.velocity) way = vx > 0 ? 1 : -1;
+  else if (Math.abs(dx) > SWIPE.pageDistance) {
+    const drag = dx > 0 ? 1 : -1;
+    if (vx * drag > -SWIPE.pageFlick) way = drag;
+  } else if (Math.abs(vx) > SWIPE.pageFlick && vx * dx > 0) way = vx > 0 ? 1 : -1;
+  if (way > 0 && index > 0) return index - 1;
+  if (way < 0 && index < count - 1) return index + 1;
+  return index;
 }
 
 // ─── Closing a profile opened over a page ─────────────────────────────────────
