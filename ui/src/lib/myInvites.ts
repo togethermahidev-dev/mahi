@@ -71,8 +71,8 @@ export function formatPhone(phone: string): string {
 const SHARED_TITLE: Record<Exclude<InviteVia, 'contact'>, string> = {
   whatsapp: 'Shared on WhatsApp',
   messages: 'Shared by Messages',
-  share: 'Shared by link',
-  copy: 'Link copied',
+  share: 'Link you shared',
+  copy: 'Link you copied',
 };
 
 /** The row's name: who joined, who it was sent to, or how it was shared. */
@@ -86,16 +86,20 @@ export function inviteTitle(invite: ScreenInvite): string {
   return 'Invite link';
 }
 
-/** The second line: what the link does. */
+/**
+ * The second line: where the link is at. A waiting one says it in one go (owner, 2026-10-10, "This
+ * doesn't feel very clear?"): not joined yet, when it went, and how long it works.
+ */
 export function inviteWhatText(invite: ScreenInvite): string {
   if (invite.status === 'joined') return 'Joined · you follow each other';
   if (invite.status === 'expired') return 'This link has ended.';
   if (invite.status === 'cancelled') return 'You cancelled this link.';
-  return invite.kind === 'tag'
-    ? 'They’ll have 48 hours to post back once they join.'
-    : 'You’ll follow each other when they join.';
+  const withPost = invite.kind === 'tag' && !!invite.post_id;
+  const sent = `sent ${withPost ? 'with your post ' : ''}${sentDay(invite)}`;
+  return `Not joined yet · ${sent} · link works until ${dayText(invite.expires_at)}`;
 }
 
+const DAY_MS = 86_400_000;
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -105,18 +109,31 @@ export function dayText(iso: string): string {
   return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
 }
 
-const STATUS_WORD: Record<Exclude<InviteStatus, 'joined'>, string> = {
-  waiting: 'Waiting',
-  expired: 'Expired',
-  cancelled: 'Cancelled',
-};
+/** "today", "yesterday" or the day it last went out, on the phone's calendar and the server's clock. */
+function sentDay(invite: ScreenInvite): string {
+  const sent = new Date(invite.last_sent_at);
+  const now = new Date(invite.server_now);
+  const days = Math.round(
+    (new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() -
+      new Date(sent.getFullYear(), sent.getMonth(), sent.getDate()).getTime()) /
+      DAY_MS
+  );
+  if (days === 0) return 'today';
+  if (days === 1) return 'yesterday';
+  return dayText(invite.last_sent_at);
+}
 
-/** The third line: where it's at, and when it last went out ("with your post" for a tag link). */
+/**
+ * The small third line, when there is more to say: what a waiting tag link starts, or when a link
+ * that is over (or joined) went out. A waiting link for a friend has none.
+ */
 export function inviteWhenText(invite: ScreenInvite): string {
   if (invite.pending === 'resending') return 'Sending…';
-  const withPost = invite.kind === 'tag' && !!invite.post_id;
-  const sent = `${withPost ? 'Sent with your post · ' : 'Sent '}${dayText(invite.last_sent_at)}`;
-  return invite.status === 'joined' ? sent : `${STATUS_WORD[invite.status]} · ${sent}`;
+  const day = dayText(invite.last_sent_at);
+  if (invite.status === 'joined') return `Sent ${day}`;
+  if (invite.status === 'expired') return `Expired · sent ${day}`;
+  if (invite.status === 'cancelled') return `Cancelled · sent ${day}`;
+  return invite.kind === 'tag' ? 'They’ll have 48 hours to post back once they join.' : '';
 }
 
 /** The picture when nobody has joined yet: how it went out ("link" for an older one). */
@@ -168,7 +185,7 @@ export function inviteSections(list: ScreenInvite[]): InviteListItem[] {
 }
 
 /** The code sits behind this, for someone the link didn't reach. */
-export const CODE_HINT = 'Didn’t get the link?';
+export const CODE_HINT = 'Show a code they can type in';
 
 export function codeText(invite: ScreenInvite): string {
   return `Code ${invite.code}`;
@@ -190,11 +207,11 @@ export function resendButton(
     return { kind: 'none', label: null };
   }
   if (!invite.resend_at) {
-    return { kind: 'limit', label: `Resent ${plural(invite.send_count - 1, 'time')}` };
+    return { kind: 'limit', label: `Sent again ${plural(invite.send_count - 1, 'time')}` };
   }
   const left = Date.parse(invite.resend_at) - now;
-  if (invite.can_resend || left <= 0) return { kind: 'resend', label: 'Resend' };
-  return { kind: 'wait', label: `Resend in ${waitText(left)}` };
+  if (invite.can_resend || left <= 0) return { kind: 'resend', label: 'Send again' };
+  return { kind: 'wait', label: `You can send it again in ${waitText(left)}` };
 }
 
 /** Cancel is offered while a link is waiting for someone, and nothing else is in flight. */

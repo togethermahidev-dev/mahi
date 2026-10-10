@@ -1,3 +1,4 @@
+import { INVITE_BUTTON } from '@/lib/tagSlots';
 import {
   INVITE_A_FRIEND,
   MAX_SHARE_RECIPIENTS,
@@ -189,5 +190,13 @@ describe('the Send button', () => {
     expect(sendLabel(1)).toBe('Send to 1');
     expect(sendLabel(3)).toBe('Send to 3');
     expect(sendLabel(10)).toBe('Send to 10');
+  });
+});
+
+// Owner, 2026-10-10: the invite button says what it does. It was "Hold someone else accountable".
+describe('the invite button', () => {
+  it('says Invite a friend everywhere, the same words as the share sheet', () => {
+    expect(INVITE_BUTTON).toBe('Invite a friend');
+    expect(INVITE_BUTTON).toBe(INVITE_A_FRIEND.label);
   });
 });

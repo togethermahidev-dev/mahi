@@ -179,10 +179,11 @@ export function slotShareMessage(url: string, _code: string): string {
 }
 
 /**
- * The words on every button that invites someone to Mahi (owner, 2026-10-07: not "Invite a mate";
- * say why, in Mahi's accountability words). One place, so it can be changed once.
+ * The words on every button that invites someone to Mahi: it says what it does (owner, 2026-10-10;
+ * it was "Hold someone else accountable" from 2026-10-07). The same words as the share sheet's
+ * title (`INVITE_A_FRIEND` in shareSheet.ts). One place, so it can be changed once.
  */
-export const INVITE_BUTTON = 'Hold someone else accountable';
+export const INVITE_BUTTON = 'Invite a friend';
 
 /** The message with an invite for a mate (no tag behind it: nothing to answer). */
 export function mateInviteMessage(url: string): string {

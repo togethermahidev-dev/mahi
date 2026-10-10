@@ -126,7 +126,7 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
   const now = useMinuteTick() + offset;
   // Links with a tap of yours on its way: a read that lands meanwhile keeps your tap on screen.
   const inFlight = useRef(new Set<string>());
-  // Rows whose "Didn't get the link?" is open, showing the code. This open only.
+  // Rows whose code is showing ("Show a code they can type in"). This open only.
   const [codesShown, setCodesShown] = useState<ReadonlySet<string>>(new Set());
   const sections = useMemo(() => inviteSections(invites), [invites]);
 
@@ -328,7 +328,7 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
           onPress={joined ? () => setProfileUserId(joined.id) : undefined}
           disabled={!joined}
           accessibilityRole={joined ? 'button' : 'text'}
-          accessibilityLabel={`${title}. ${what} ${when}.`}
+          accessibilityLabel={[title, what, when].filter(Boolean).join('. ')}
           accessibilityHint={joined ? 'Opens their profile' : undefined}
         >
           {avatar}
@@ -342,32 +342,13 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
             >
               {what}
             </Text>
-            <Text style={[styles.when, { color: muted }]} numberOfLines={1}>
-              {when}
-            </Text>
+            {when ? (
+              <Text style={[styles.when, { color: muted }]} numberOfLines={2}>
+                {when}
+              </Text>
+            ) : null}
           </View>
         </Pressable>
-
-        {showCodeHint ? (
-          <Pressable
-            style={({ pressed }) => [styles.codeHint, pressed && styles.pressed]}
-            onPress={() => toggleCode(item.token)}
-            hitSlop={OFFSET.o8}
-            accessibilityRole="button"
-            accessibilityLabel={codeShown ? `${CODE_HINT} ${codeText(item)}` : CODE_HINT}
-            accessibilityHint={codeShown ? undefined : 'Shows a code they can type in instead'}
-            accessibilityState={{ expanded: codeShown }}
-          >
-            <Text style={[styles.code, { color: muted }]} numberOfLines={1}>
-              {CODE_HINT}
-              {codeShown ? (
-                <Text style={[styles.codeValue, { color: text }]} selectable>
-                  {` ${codeText(item)}`}
-                </Text>
-              ) : null}
-            </Text>
-          </Pressable>
-        ) : null}
 
         {button.kind !== 'none' || cancellable ? (
           <View style={styles.actions}>
@@ -380,10 +361,10 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
                 ]}
                 onPress={() => void resend(item)}
                 accessibilityRole="button"
-                accessibilityLabel="Resend"
+                accessibilityLabel={button.label ?? undefined}
                 accessibilityHint="Sends the same link again and keeps it open for longer"
               >
-                <Text style={[styles.pillText, { color: accentText }]}>Resend</Text>
+                <Text style={[styles.pillText, { color: accentText }]}>{button.label}</Text>
               </Pressable>
             ) : null}
             {button.kind === 'busy' ? (
@@ -396,18 +377,8 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
                 <ActivityIndicator size="small" color={muted} />
               </View>
             ) : null}
-            {button.kind === 'wait' ? (
-              <View
-                style={[styles.pill, { borderColor: border }]}
-                accessible
-                accessibilityRole="button"
-                accessibilityLabel={button.label ?? undefined}
-                accessibilityState={{ disabled: true }}
-              >
-                <Text style={[styles.pillText, { color: muted }]}>{button.label}</Text>
-              </View>
-            ) : null}
-            {button.kind === 'limit' ? (
+            {/* Not a button while it has to wait: a greyed pill looked like one that didn't work. */}
+            {button.kind === 'wait' || button.kind === 'limit' ? (
               <Text style={[styles.limit, { color: muted }]}>{button.label}</Text>
             ) : null}
             {cancellable ? (
@@ -419,27 +390,70 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
                 accessibilityLabel="Cancel invite"
                 accessibilityHint="The link will stop working"
               >
-                <Text style={[styles.cancelText, { color: dangerText }]}>Cancel</Text>
+                <Text style={[styles.cancelText, { color: dangerText }]}>Cancel invite</Text>
               </Pressable>
             ) : null}
           </View>
+        ) : null}
+        {/* Last, and worded as what it does: it used to read like a heading for the buttons. */}
+        {showCodeHint ? (
+          <Pressable
+            style={({ pressed }) => [styles.codeHint, pressed && styles.pressed]}
+            onPress={() => toggleCode(item.token)}
+            hitSlop={OFFSET.o8}
+            accessibilityRole="button"
+            accessibilityLabel={codeShown ? codeText(item) : CODE_HINT}
+            accessibilityHint={codeShown ? undefined : 'For someone the link didn’t reach'}
+            accessibilityState={{ expanded: codeShown }}
+          >
+            {codeShown ? (
+              <Text style={[styles.codeValue, { color: text }]} numberOfLines={1} selectable>
+                {codeText(item)}
+              </Text>
+            ) : (
+              <Text style={[styles.code, { color: muted }]} numberOfLines={1}>
+                {CODE_HINT}
+              </Text>
+            )}
+          </Pressable>
         ) : null}
       </View>
     );
   };
 
+  // Find friends in your contacts: under the invite button when there is a list, on its own above
+  // the loading, error and empty states.
+  const findFriends = (inList: boolean) =>
+    contactsFinder ? (
+      <Pressable
+        style={({ pressed }) => [
+          styles.findMates,
+          inList ? styles.findMatesInList : { borderBottomColor: border },
+          pressed && styles.pressed,
+        ]}
+        onPress={() => setFindMatesOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Find friends in your contacts"
+        accessibilityHint="Shows who from your contacts is on Mahi, and lets you invite the rest"
+      >
+        <Text style={[styles.findMatesText, { color: accentText }]}>
+          Find friends in your contacts
+        </Text>
+        <Text style={[styles.findMatesChevron, { color: muted }]}>›</Text>
+      </Pressable>
+    ) : null;
+  const findRow = findFriends(false);
+  const listShown = phase !== 'loading' && phase !== 'error' && invites.length > 0;
+
   const header = (
     <View style={[styles.intro, { borderBottomColor: border }]}>
-      <Text style={[styles.introLine, { color: muted }]}>
-        When a friend joins from your link, you follow each other.
-      </Text>
       <Pressable
         style={({ pressed }) => [styles.inviteButton, pressed && styles.pressed]}
         onPress={() => void inviteMate()}
         disabled={inviting}
         accessibilityRole="button"
         accessibilityLabel={INVITE_BUTTON}
-        accessibilityHint="Makes a link to share. When they join, you’ll follow each other."
+        accessibilityHint="Makes a link to share"
         accessibilityState={{ busy: inviting }}
       >
         {inviting ? (
@@ -448,6 +462,10 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
           <Text style={styles.inviteButtonText}>{INVITE_BUTTON}</Text>
         )}
       </Pressable>
+      <Text style={[styles.introLine, { color: muted }]}>
+        They join from your link and you follow each other.
+      </Text>
+      {findFriends(true)}
     </View>
   );
 
@@ -480,24 +498,7 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
           <View style={styles.spacer} />
         </View>
 
-        {contactsFinder ? (
-          <Pressable
-            style={({ pressed }) => [
-              styles.findMates,
-              { borderBottomColor: border },
-              pressed && styles.pressed,
-            ]}
-            onPress={() => setFindMatesOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Find friends in your contacts"
-            accessibilityHint="Shows who from your contacts is on Mahi, and lets you invite the rest"
-          >
-            <Text style={[styles.findMatesText, { color: accentText }]}>
-              Find friends in your contacts
-            </Text>
-            <Text style={[styles.findMatesChevron, { color: muted }]}>›</Text>
-          </Pressable>
-        ) : null}
+        {listShown ? null : findRow}
 
         {phase === 'loading' ? (
           <ListState kind="loading" dark={dark} />
@@ -720,6 +721,11 @@ const styles = StyleSheet.create({
     minHeight: SIZE.z44,
     paddingHorizontal: SPACE.s20,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  // Inside the list's top section, which already has the side room and the line under it.
+  findMatesInList: {
+    paddingHorizontal: 0,
+    borderBottomWidth: 0,
   },
   findMatesText: {
     ...TYPOGRAPHY.bodyMedium,

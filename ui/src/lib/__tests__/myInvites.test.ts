@@ -77,8 +77,8 @@ describe('inviteTitle — who, or where it went', () => {
   it('is how it was shared', () => {
     expect(inviteTitle(invite({ sent_via: 'whatsapp' }))).toBe('Shared on WhatsApp');
     expect(inviteTitle(invite({ sent_via: 'messages' }))).toBe('Shared by Messages');
-    expect(inviteTitle(invite({ sent_via: 'share' }))).toBe('Shared by link');
-    expect(inviteTitle(invite({ sent_via: 'copy' }))).toBe('Link copied');
+    expect(inviteTitle(invite({ sent_via: 'share' }))).toBe('Link you shared');
+    expect(inviteTitle(invite({ sent_via: 'copy' }))).toBe('Link you copied');
   });
 
   it('an older link, or one from an older server, is an invite link', () => {
@@ -98,22 +98,40 @@ describe('formatPhone', () => {
   });
 });
 
-describe('inviteWhatText — what the link does', () => {
-  it('a tag link: 48 hours to post back once they join', () => {
-    expect(inviteWhatText(invite({ kind: 'tag' }))).toBe(
-      'They’ll have 48 hours to post back once they join.'
+// Owner, 2026-10-10, on Your invites: "This doesn't feel very clear?" One line now says where the
+// link is at, when it went and how long it works, instead of repeating what the top already says.
+describe('inviteWhatText — where a link is at', () => {
+  it('a waiting link: not joined yet, when it went, and how long it works', () => {
+    const sent = invite({ last_sent_at: WED, server_now: WED, expires_at: '2026-10-14T12:00:00Z' });
+    expect(inviteWhatText(sent)).toBe('Not joined yet · sent today · link works until Wed 14 Oct');
+  });
+
+  it('says yesterday, then the day', () => {
+    const base = { last_sent_at: WED, expires_at: '2026-10-14T12:00:00Z' };
+    expect(inviteWhatText(invite({ ...base, server_now: '2026-10-08T12:00:00Z' }))).toBe(
+      'Not joined yet · sent yesterday · link works until Wed 14 Oct'
+    );
+    expect(inviteWhatText(invite({ ...base, server_now: '2026-10-10T12:00:00Z' }))).toBe(
+      'Not joined yet · sent Wed 7 Oct · link works until Wed 14 Oct'
     );
   });
 
-  it('a link for a friend: you follow each other', () => {
-    expect(inviteWhatText(invite())).toBe('You’ll follow each other when they join.');
+  it('a tag link that went with a post says so', () => {
+    const tag = invite({
+      kind: 'tag',
+      post_id: 'p1',
+      post_created_at: WED,
+      last_sent_at: WED,
+      server_now: WED,
+      expires_at: '2026-10-14T12:00:00Z',
+    });
+    expect(inviteWhatText(tag)).toBe(
+      'Not joined yet · sent with your post today · link works until Wed 14 Oct'
+    );
   });
 
   it('joined: you follow each other, the same mutual follow every other screen promises', () => {
     expect(inviteWhatText(invite({ status: 'joined', joined: SAM }))).toBe(
-      'Joined · you follow each other'
-    );
-    expect(inviteWhatText(invite({ kind: 'tag', status: 'joined', joined: SAM }))).toBe(
       'Joined · you follow each other'
     );
   });
@@ -140,35 +158,24 @@ describe('dayText', () => {
   });
 });
 
-describe('inviteWhenText — where it is at, and when it went', () => {
-  it('a waiting link: when it was sent', () => {
-    expect(inviteWhenText(invite({ last_sent_at: WED }))).toBe('Waiting · Sent Wed 7 Oct');
+describe('inviteWhenText — the small line under it', () => {
+  it('a waiting link for a friend needs none: the line above says it all', () => {
+    expect(inviteWhenText(invite({ last_sent_at: WED }))).toBe('');
   });
 
-  it('a tag link that went with a post', () => {
-    const tag = invite({
-      kind: 'tag',
-      last_sent_at: WED,
-      post_id: 'p1',
-      post_created_at: WED,
-    });
-    expect(inviteWhenText(tag)).toBe('Waiting · Sent with your post · Wed 7 Oct');
-  });
-
-  it('a tag link not posted with yet just says when', () => {
+  it('a waiting tag link: 48 hours to post back once they join', () => {
     expect(inviteWhenText(invite({ kind: 'tag', last_sent_at: WED }))).toBe(
-      'Waiting · Sent Wed 7 Oct'
+      'They’ll have 48 hours to post back once they join.'
     );
   });
 
-  it('keeps the status words', () => {
+  it('a link that is over or joined says when it went', () => {
     expect(inviteWhenText(invite({ status: 'expired', last_sent_at: WED }))).toBe(
-      'Expired · Sent Wed 7 Oct'
+      'Expired · sent Wed 7 Oct'
     );
     expect(inviteWhenText(invite({ status: 'cancelled', last_sent_at: WED }))).toBe(
-      'Cancelled · Sent Wed 7 Oct'
+      'Cancelled · sent Wed 7 Oct'
     );
-    // Joined is already on the line above.
     expect(inviteWhenText(invite({ status: 'joined', joined: SAM, last_sent_at: WED }))).toBe(
       'Sent Wed 7 Oct'
     );
@@ -250,40 +257,43 @@ describe('inviteSections — Waiting, Joined, Older', () => {
 });
 
 describe('the code, for when the link didn’t arrive', () => {
-  it('is tucked away behind a question', () => {
-    expect(CODE_HINT).toBe('Didn’t get the link?');
+  it('is behind a link that says what it does', () => {
+    expect(CODE_HINT).toBe('Show a code they can type in');
     expect(codeText(invite())).toBe('Code ABC234');
   });
 });
 
 describe('resendButton', () => {
-  it('offers Resend once the wait is over', () => {
-    expect(resendButton(invite(), NOW)).toEqual({ kind: 'resend', label: 'Resend' });
+  it('offers Send again once the wait is over', () => {
+    expect(resendButton(invite(), NOW)).toEqual({ kind: 'resend', label: 'Send again' });
   });
 
   it('counts down while it has to wait', () => {
     const waiting = invite({ can_resend: false, resend_at: inHours(4.2) });
-    expect(resendButton(waiting, NOW)).toEqual({ kind: 'wait', label: 'Resend in 5h' });
+    expect(resendButton(waiting, NOW)).toEqual({
+      kind: 'wait',
+      label: 'You can send it again in 5h',
+    });
     expect(resendButton(invite({ can_resend: false, resend_at: inHours(0.25) }), NOW)).toEqual({
       kind: 'wait',
-      label: 'Resend in 15m',
+      label: 'You can send it again in 15m',
     });
   });
 
   it('opens up when the countdown reaches zero, even before the next read', () => {
     expect(resendButton(invite({ can_resend: false, resend_at: hoursAgo(0.01) }), NOW)).toEqual({
       kind: 'resend',
-      label: 'Resend',
+      label: 'Send again',
     });
   });
 
   it('says how many times after the limit', () => {
     expect(
       resendButton(invite({ can_resend: false, resend_at: null, send_count: 4 }), NOW)
-    ).toEqual({ kind: 'limit', label: 'Resent 3 times' });
+    ).toEqual({ kind: 'limit', label: 'Sent again 3 times' });
     expect(
       resendButton(invite({ can_resend: false, resend_at: null, send_count: 2 }), NOW)
-    ).toEqual({ kind: 'limit', label: 'Resent 1 time' });
+    ).toEqual({ kind: 'limit', label: 'Sent again 1 time' });
   });
 
   it('is gone once joined or cancelled, and busy while sending', () => {
