@@ -15,16 +15,8 @@ import { posthog } from '@/lib/posthog';
 import ForgotPasswordSheet from '@/components/ForgotPasswordSheet';
 import { authErrorText } from '@/lib/account';
 import { reportAuthError } from '@/lib/authReport';
-import { FONTS } from '@/constants/fonts';
-import {
-  COLORS,
-  ALPHA,
-  BORDER_WIDTH,
-  FONT_SIZE,
-  RADIUS,
-  SPACE,
-  TRACKING,
-} from '@/constants/tokens';
+import { FIELD_TEXT, TYPOGRAPHY } from '@/constants/typography';
+import { COLORS, ALPHA, BORDER_WIDTH, RADIUS, SPACE } from '@/constants/tokens';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 
 const DOMAINS = ['gmail.com', 'icloud.com', 'outlook.com', 'yahoo.com'];
@@ -234,24 +226,13 @@ export default function LoginSheet({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { padding: SPACE.s32, gap: SPACE.s12 },
-  title: {
-    fontSize: FONT_SIZE.f32,
-    fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t4,
-    marginBottom: SPACE.s16,
-  },
-  label: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t1,
-    marginBottom: -SPACE.s4,
-  },
+  title: { ...TYPOGRAPHY.h1, marginBottom: SPACE.s16 },
+  label: { ...TYPOGRAPHY.label, marginBottom: -SPACE.s4 },
   input: {
+    ...FIELD_TEXT,
     borderRadius: RADIUS.r14,
     paddingHorizontal: SPACE.s16,
     paddingVertical: SPACE.s14,
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.semiBold,
   },
   inputRow: {
     borderRadius: RADIUS.r14,
@@ -260,13 +241,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  inputInner: {
-    flex: 1,
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.semiBold,
-    paddingVertical: SPACE.s10,
-  },
-  toggle: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, paddingHorizontal: SPACE.s4 },
+  inputInner: { ...FIELD_TEXT, flex: 1, paddingVertical: SPACE.s10 },
+  toggle: { ...TYPOGRAPHY.labelStrong, paddingHorizontal: SPACE.s4 },
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s8 },
   pill: {
     borderWidth: BORDER_WIDTH.w1_5,
@@ -274,21 +250,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s14,
     paddingVertical: SPACE.s8,
   },
-  pillText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
+  pillText: { ...TYPOGRAPHY.labelStrong },
   button: {
     borderRadius: RADIUS.r50,
     paddingVertical: SPACE.s20,
     alignItems: 'center',
     marginTop: SPACE.s8,
   },
-  buttonText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
-  forgot: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
-    textAlign: 'center',
-    marginTop: SPACE.s4,
-  },
-  errorText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
+  buttonText: { ...TYPOGRAPHY.button },
+  forgot: { ...TYPOGRAPHY.bodyMedium, textAlign: 'center', marginTop: SPACE.s4 },
+  errorText: { ...TYPOGRAPHY.caption },
   // Pressed feedback, matching the old TouchableOpacity activeOpacity values.
   pressed: { opacity: ALPHA.a70 },
   pressedStrong: { opacity: ALPHA.a80 },

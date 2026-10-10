@@ -15,6 +15,7 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Path } from 'react-native-svg';
 import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
@@ -211,10 +212,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s24,
   },
   eyebrow: {
+    ...TYPOGRAPHY.microStrong,
     position: 'absolute',
     bottom: SPACE.s80,
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f11,
     color: COLORS.ink,
   },
   title: {
@@ -224,9 +224,8 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
   },
   tagline: {
+    ...TYPOGRAPHY.microStrong,
     marginTop: SPACE.s12,
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f11,
     color: COLORS.ink,
   },
   focus: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },

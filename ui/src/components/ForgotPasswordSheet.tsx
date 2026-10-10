@@ -18,8 +18,8 @@ import { PASSWORD_HINT, PASSWORD_PLACEHOLDER, PASSWORD_RULES } from '@/lib/passw
 import { posthog } from '@/lib/posthog';
 import { reportError } from '@/lib/sentry';
 import OtpCodeInput from '@/components/OtpCodeInput';
-import { FONTS } from '@/constants/fonts';
-import { COLORS, ALPHA, FONT_SIZE, RADIUS, SPACE, TRACKING } from '@/constants/tokens';
+import { FIELD_TEXT, TYPOGRAPHY } from '@/constants/typography';
+import { COLORS, ALPHA, RADIUS, SPACE } from '@/constants/tokens';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 
 interface Props {
@@ -287,25 +287,14 @@ export default function ForgotPasswordSheet({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { padding: SPACE.s32, gap: SPACE.s12 },
-  title: {
-    fontSize: FONT_SIZE.f32,
-    fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t2,
-    marginBottom: SPACE.s4,
-  },
-  subtitle: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.regular, marginBottom: SPACE.s4 },
-  label: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t1,
-    marginBottom: -SPACE.s4,
-  },
+  title: { ...TYPOGRAPHY.h1, marginBottom: SPACE.s4 },
+  subtitle: { ...TYPOGRAPHY.body, marginBottom: SPACE.s4 },
+  label: { ...TYPOGRAPHY.label, marginBottom: -SPACE.s4 },
   input: {
+    ...FIELD_TEXT,
     borderRadius: RADIUS.r14,
     paddingHorizontal: SPACE.s16,
     paddingVertical: SPACE.s14,
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.semiBold,
   },
   inputRow: {
     borderRadius: RADIUS.r14,
@@ -314,30 +303,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  inputInner: {
-    flex: 1,
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.semiBold,
-    paddingVertical: SPACE.s10,
-  },
+  inputInner: { ...FIELD_TEXT, flex: 1, paddingVertical: SPACE.s10 },
   // Kept in the form for iOS autofill only; takes no room and is not seen.
-  hiddenUsername: { height: 0, opacity: 0, padding: 0, fontFamily: FONTS.regular },
-  toggle: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, paddingHorizontal: SPACE.s4 },
-  hint: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular, marginTop: -SPACE.s4 },
-  errorText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
+  hiddenUsername: { ...FIELD_TEXT, height: 0, opacity: 0, padding: 0 },
+  toggle: { ...TYPOGRAPHY.labelStrong, paddingHorizontal: SPACE.s4 },
+  hint: { ...TYPOGRAPHY.caption, marginTop: -SPACE.s4 },
+  errorText: { ...TYPOGRAPHY.caption },
   button: {
     borderRadius: RADIUS.r50,
     paddingVertical: SPACE.s20,
     alignItems: 'center',
     marginTop: SPACE.s8,
   },
-  buttonText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
-  link: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
-    textAlign: 'center',
-    marginTop: SPACE.s4,
-  },
+  buttonText: { ...TYPOGRAPHY.button },
+  link: { ...TYPOGRAPHY.bodyMedium, textAlign: 'center', marginTop: SPACE.s4 },
   pressed: { opacity: ALPHA.a70 },
   pressedStrong: { opacity: ALPHA.a80 },
 });

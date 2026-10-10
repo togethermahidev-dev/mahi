@@ -36,18 +36,8 @@ import { reportAuthError } from '@/lib/authReport';
 import { Sentry, reportError } from '@/lib/sentry';
 import { posthog } from '@/lib/posthog';
 import { env } from '@/lib/env';
-import { FONTS } from '@/constants/fonts';
-import {
-  COLORS,
-  ALPHA,
-  BORDER_WIDTH,
-  FONT_SIZE,
-  LINE_HEIGHT,
-  RADIUS,
-  SIZE,
-  SPACE,
-  TRACKING,
-} from '@/constants/tokens';
+import { FIELD_TEXT, TYPOGRAPHY } from '@/constants/typography';
+import { COLORS, ALPHA, BORDER_WIDTH, RADIUS, SIZE, SPACE } from '@/constants/tokens';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 
 const SUPABASE_URL = env.supabaseUrl;
@@ -560,7 +550,6 @@ export default function CreateAccountSheet({
                   <TextInput
                     style={[
                       styles.input,
-                      styles.inviteCodeInput,
                       { backgroundColor: inputBg, color: text },
                       focusBorder('inviteCode'),
                     ]}
@@ -578,7 +567,7 @@ export default function CreateAccountSheet({
                     autoCorrect={false}
                   />
                   {codeInput.trim().length >= 6 && (!pendingInvite || inviteChecked) ? (
-                    <Text style={[styles.inviteWhat, { color: muted }]}>
+                    <Text style={[styles.inviteCodeNote, { color: muted }]}>
                       {pendingInvite
                         ? "That invite code isn't right. Check it and try again."
                         : 'An invite code is 6 letters and numbers.'}
@@ -868,13 +857,7 @@ export default function CreateAccountSheet({
                   accessibilityRole="button"
                   accessibilityLabel="Date of birth"
                 >
-                  <Text
-                    style={{
-                      color: dobSet ? text : muted,
-                      fontSize: FONT_SIZE.f16,
-                      fontFamily: FONTS.semiBold,
-                    }}
-                  >
+                  <Text style={[styles.dobText, { color: dobSet ? text : muted }]}>
                     {dobSet ? `${dobDD}/${dobMM}/${dobYYYY}` : 'DD/MM/YYYY'}
                   </Text>
                 </Pressable>
@@ -966,7 +949,7 @@ export default function CreateAccountSheet({
               />
 
               <Text style={[styles.label, { color: muted }]}>Fitness goals</Text>
-              <Text style={[styles.subtitle, { color: muted }]}>Select all that apply</Text>
+              <Text style={[styles.goalsHint, { color: muted }]}>Select all that apply</Text>
               <View style={styles.goalsGrid}>
                 {GOALS.map((g) => {
                   const selected = fitnessGoals.includes(g);
@@ -1072,31 +1055,15 @@ const styles = StyleSheet.create({
   content: { padding: SPACE.s32, gap: SPACE.s12 },
   step: { gap: SPACE.s12 },
 
-  title: {
-    fontSize: FONT_SIZE.f32,
-    fontFamily: FONTS.bold,
-    letterSpacing: TRACKING.t2,
-    marginBottom: SPACE.s8,
-  },
-  subtitle: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
-    marginTop: -SPACE.s4,
-    marginBottom: SPACE.s4,
-  },
-  label: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t1,
-    marginBottom: -SPACE.s4,
-  },
+  title: { ...TYPOGRAPHY.h1, marginBottom: SPACE.s8 },
+  subtitle: { ...TYPOGRAPHY.body, marginTop: -SPACE.s4, marginBottom: SPACE.s4 },
+  label: { ...TYPOGRAPHY.label, marginBottom: -SPACE.s4 },
 
   input: {
+    ...FIELD_TEXT,
     borderRadius: RADIUS.r14,
     paddingHorizontal: SPACE.s16,
     paddingVertical: SPACE.s14,
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.semiBold,
   },
   inputRow: {
     borderRadius: RADIUS.r14,
@@ -1105,13 +1072,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  inputInner: {
-    flex: 1,
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.semiBold,
-    paddingVertical: SPACE.s10,
-  },
-  toggle: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, paddingHorizontal: SPACE.s4 },
+  inputInner: { ...FIELD_TEXT, flex: 1, paddingVertical: SPACE.s10 },
+  toggle: { ...TYPOGRAPHY.labelStrong, paddingHorizontal: SPACE.s4 },
 
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s8, marginTop: SPACE.s4 },
   pill: {
@@ -1120,24 +1082,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s14,
     paddingVertical: SPACE.s8,
   },
-  pillText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold },
+  pillText: { ...TYPOGRAPHY.labelStrong },
 
   strengthRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s6, marginTop: -SPACE.s4 },
   strengthSegment: { flex: 1, height: SIZE.z4, borderRadius: RADIUS.r2 },
-  strengthLabel: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.semiBold, marginLeft: SPACE.s4 },
+  strengthLabel: { ...TYPOGRAPHY.captionMedium, marginLeft: SPACE.s4 },
 
-  countdown: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
-    textAlign: 'center',
-    marginBottom: SPACE.s4,
-  },
-  resendText: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
-    textAlign: 'center',
-    marginTop: SPACE.s4,
-  },
+  countdown: { ...TYPOGRAPHY.body, textAlign: 'center', marginBottom: SPACE.s4 },
+  resendText: { ...TYPOGRAPHY.bodyMedium, textAlign: 'center', marginTop: SPACE.s4 },
 
   otpRow: { flexDirection: 'row', gap: SPACE.s8, justifyContent: 'center' },
   otpBox: {
@@ -1148,7 +1100,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  otpDigit: { fontSize: FONT_SIZE.f24, fontFamily: FONTS.bold },
+  otpDigit: { ...TYPOGRAPHY.h1 },
   // Near-zero (not zero) opacity keeps the field tappable and open to autofill.
   otpInput: { ...StyleSheet.absoluteFill, opacity: ALPHA.a01 },
 
@@ -1158,26 +1110,27 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s14,
     gap: SPACE.s4,
   },
-  inviteWho: { fontSize: FONT_SIZE.f15, fontFamily: FONTS.bold, letterSpacing: TRACKING.t1 },
-  inviteWhat: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.regular, lineHeight: LINE_HEIGHT.l18 },
-  inviteCodeInput: { letterSpacing: TRACKING.t4 },
+  inviteWho: { ...TYPOGRAPHY.bodyStrong },
+  inviteWhat: { ...TYPOGRAPHY.small },
+  inviteCodeNote: { ...TYPOGRAPHY.caption },
 
-  fieldNote: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, marginTop: -SPACE.s4 },
-  errorText: { fontSize: FONT_SIZE.f13, fontFamily: FONTS.semiBold, marginTop: SPACE.s4 },
-  passwordHint: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular, marginTop: -SPACE.s4 },
-  whyNote: { fontSize: FONT_SIZE.f12, fontFamily: FONTS.regular, marginTop: SPACE.s8 },
+  fieldNote: { ...TYPOGRAPHY.caption, marginTop: -SPACE.s4 },
+  errorText: { ...TYPOGRAPHY.caption, marginTop: SPACE.s4 },
+  passwordHint: { ...TYPOGRAPHY.caption, marginTop: -SPACE.s4 },
+  whyNote: { ...TYPOGRAPHY.caption, marginTop: SPACE.s8 },
 
-  atSign: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.semiBold, paddingRight: SPACE.s2 },
-  optionalTag: { fontSize: FONT_SIZE.f11, fontFamily: FONTS.regular },
+  atSign: { ...FIELD_TEXT, paddingRight: SPACE.s2 },
+  optionalTag: { ...TYPOGRAPHY.caption },
 
   goalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s10, marginTop: SPACE.s4 },
   goalPill: { borderRadius: RADIUS.r50, paddingHorizontal: SPACE.s18, paddingVertical: SPACE.s12 },
-  goalText: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.semiBold },
+  goalsHint: { ...TYPOGRAPHY.caption, marginTop: -SPACE.s4, marginBottom: SPACE.s4 },
+  goalText: { ...TYPOGRAPHY.filterLabel },
 
   navRow: { flexDirection: 'row', gap: SPACE.s12, marginTop: SPACE.s16 },
   navBtn: { borderRadius: RADIUS.r50, paddingVertical: SPACE.s20, alignItems: 'center' },
   navBtnOutline: { backgroundColor: 'transparent', borderWidth: BORDER_WIDTH.w1_5 },
-  navBtnText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
+  navBtnText: { ...TYPOGRAPHY.button },
 
   dobRow: {
     flexDirection: 'row',
@@ -1187,7 +1140,9 @@ const styles = StyleSheet.create({
   },
   // Until a date is picked the field shows a placeholder date, so it is dimmed.
   dobUnset: { opacity: ALPHA.a40 },
-  dobHint: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.regular },
+  dobHint: { ...TYPOGRAPHY.caption },
+  // Android: the chosen date, written like the text of the fields around it.
+  dobText: { ...FIELD_TEXT },
 
   // Pressed feedback, matching the old TouchableOpacity activeOpacity values.
   pressed: { opacity: ALPHA.a70 },

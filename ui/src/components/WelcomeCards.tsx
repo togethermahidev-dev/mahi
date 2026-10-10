@@ -26,17 +26,8 @@ import {
   welcomeSeenKey,
   type WelcomeCard,
 } from '@/lib/welcomeCards';
-import { FONTS } from '@/constants/fonts';
-import {
-  ALPHA,
-  FONT_SIZE,
-  ICON_SIZE,
-  LINE_HEIGHT,
-  RADIUS,
-  SIZE,
-  SPACE,
-  withAlpha,
-} from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { ALPHA, ICON_SIZE, RADIUS, SIZE, SPACE, withAlpha } from '@/constants/tokens';
 
 const COUNT = WELCOME_CARDS.length;
 
@@ -255,15 +246,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   title: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f28,
+    ...TYPOGRAPHY.h2,
     textAlign: 'center',
     marginTop: SPACE.s40,
   },
   body: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f17,
-    lineHeight: LINE_HEIGHT.l24,
+    ...TYPOGRAPHY.body,
     textAlign: 'center',
     marginTop: SPACE.s16,
   },
@@ -284,7 +272,6 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r50,
   },
   buttonText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f16,
+    ...TYPOGRAPHY.pillLabel,
   },
 });

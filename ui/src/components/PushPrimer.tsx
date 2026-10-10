@@ -4,17 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePushPrimer } from '@/hooks/usePushPrimer';
 import { PUSH_PRIMER } from '@/lib/pushPrimer';
-import { FONTS } from '@/constants/fonts';
-import {
-  ALPHA,
-  BORDER_WIDTH,
-  FONT_SIZE,
-  LINE_HEIGHT,
-  RADIUS,
-  SIZE,
-  SPACE,
-  withAlpha,
-} from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { ALPHA, BORDER_WIDTH, RADIUS, SIZE, SPACE, withAlpha } from '@/constants/tokens';
 
 /**
  * The full-screen "turn on notifications" page, the last onboarding page, after the welcome cards
@@ -112,14 +103,10 @@ const styles = StyleSheet.create({
     gap: SPACE.s32,
   },
   headline: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZE.f32,
-    lineHeight: LINE_HEIGHT.l38,
+    ...TYPOGRAPHY.screenTitle,
   },
   line: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f17,
-    lineHeight: LINE_HEIGHT.l24,
+    ...TYPOGRAPHY.body,
     marginTop: SPACE.s16,
   },
   buttons: {
@@ -135,8 +122,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
   },
   buttonText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f16,
+    ...TYPOGRAPHY.pillLabel,
   },
   pressed: {
     opacity: ALPHA.a80,

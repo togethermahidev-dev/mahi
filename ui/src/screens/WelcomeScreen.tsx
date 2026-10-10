@@ -21,6 +21,7 @@ import { PressScale } from '@/components/Motion';
 import { useInviteStore } from '@/store';
 import { welcomeInvite } from '@/lib/welcomeCards';
 import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
@@ -276,7 +277,7 @@ const styles = StyleSheet.create({
   titleWrapper: { position: 'relative', marginBottom: SPACE.s12 },
   title: { fontSize: FONT_SIZE.f56, fontFamily: FONTS.bold, letterSpacing: TRACKING.t10 },
   titleEcho: { position: 'absolute', color: COLORS.accent, top: OFFSET.o4, left: OFFSET.o4 },
-  subtitle: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.regular, opacity: ALPHA.a70 },
+  subtitle: { ...TYPOGRAPHY.body, opacity: ALPHA.a70 },
   gap: { height: SIZE.z55 },
   bottomSheet: {
     flex: 1,
@@ -294,8 +295,8 @@ const styles = StyleSheet.create({
     gap: SPACE.s24,
   },
   invite: { alignItems: 'center', gap: SPACE.s8 },
-  inviteWho: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold, textAlign: 'center' },
-  inviteLine: { fontSize: FONT_SIZE.f16, fontFamily: FONTS.regular, textAlign: 'center' },
+  inviteWho: { ...TYPOGRAPHY.h3, textAlign: 'center' },
+  inviteLine: { ...TYPOGRAPHY.body, textAlign: 'center' },
   buttons: { width: '100%', gap: SPACE.s12 },
   button: {
     width: '72%',
@@ -321,7 +322,7 @@ const styles = StyleSheet.create({
   },
   // Apple's own button: its size is set here, its colours and words by Apple.
   appleButton: { width: '72%', height: SIZE.z56, alignSelf: 'center' },
-  error: { fontSize: FONT_SIZE.f14, fontFamily: FONTS.semiBold, textAlign: 'center' },
+  error: { ...TYPOGRAPHY.body, textAlign: 'center' },
   buttonOutline: { backgroundColor: 'transparent', borderWidth: BORDER_WIDTH.w1_5 },
-  buttonText: { fontSize: FONT_SIZE.f18, fontFamily: FONTS.semiBold },
+  buttonText: { ...TYPOGRAPHY.authButton },
 });

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { VERSION_LINE } from '@/lib/appBuild';
 import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import { COLORS, ALPHA, FONT_SIZE, OFFSET, TRACKING, withAlpha } from '@/constants/tokens';
 
 const BG = COLORS.accent;
@@ -35,9 +36,8 @@ const styles = StyleSheet.create({
     letterSpacing: TRACKING.t8,
   },
   version: {
+    ...TYPOGRAPHY.caption,
     color: TEXT_COLOR,
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.regular,
     position: 'absolute',
     bottom: OFFSET.o40,
   },
