@@ -13,7 +13,8 @@
  *     between posts, the timer out of the header; old posts scroll up and down, sideways exits;
  *     profile: three-across grid, picture on the right, Invite a friend circle; Friends opens as a
  *     sheet; Messages has no back arrow; Camera tab brings the camera back from the feed; easier
- *     sideways swipes; privacy controls move into Security and privacy (2026-10-10)
+ *     sideways swipes; privacy controls move into Security and privacy; follower and following
+ *     counts and a bio on profiles (2026-10-10)
  *   build 13 · 42 — temporary swipe check on the camera (no visible change) (2026-10-09)
  *   build 13 · 41 — feed timer: just the ring and the clock, clear on the right (2026-10-09)
  *   build 13 · 40 — one swipe to the feed (no halfway stop); pull down from the first post or tap
