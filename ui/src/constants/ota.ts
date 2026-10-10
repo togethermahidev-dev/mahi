@@ -7,6 +7,8 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 48 — under your own grid, your next step and its button (answer a tag, or invite a
+ *     friend); tab bar titles keep the phone's own lettering on iPhone, so none sits low (2026-10-10)
  *   build 13 · 47 — a line under a profile's last post says the grid has ended; no points pill on
  *     grid photos; the points card shows an info mark, not an arrow (2026-10-10)
  *   build 13 · 46 — profile grid tiles are a little taller than square (four wide to five tall)
@@ -190,4 +192,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 47;
+export const OTA_NUMBER = 48;
