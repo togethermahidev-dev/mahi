@@ -52,7 +52,7 @@ if (!videoOn) return null;
 - **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `push-core`, `video-posts`,
   `ios-sf-symbols`, `camera-tap-focus`, `identity-verification`, `purchases`,
   `auth-google-signin`, `auth-apple-signin`, `live-activity`, `control-post-workout`, `siri-shortcuts`,
-  `spotlight`, `private-accounts` and `feed-rows`): off
+  `spotlight`, `private-accounts`, `feed-rows` and `profile-bio-and-counts`): off
   while flags load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns
   `true`. Use this for a feature that must never show, even for a moment on cold start (video posts would
   otherwise be able to ask for the microphone before flags load; the full-screen notifications page would
@@ -206,6 +206,19 @@ full screen; one that can't be shown says why. Needs migration `20261010100000_s
 for sending and for the card. Off = as before: Share goes straight to the iPhone share sheet, "Invite a
 mate" makes a link and opens the iPhone share sheet, and a post message already in a chat shows as a plain
 bubble with its note, or "Sent a post".
+
+**Profile counts and bio:** `profile-bio-and-counts` (**default off**, added 2026-10-10; owner: "Should this
+be added- yes"; not in PostHog yet — create it switched off). One switch for both. On, your profile and other
+people's show, under the name and @username: one line of counts ("12 followers", "1 follower",
+"8 following"; a dash while loading, read fresh each time the profile opens, never kept on the phone), then
+the bio in three lines at most. Your own counts always open your Followers and Following lists; someone
+else's open only where the server lets you read their lists, otherwise they are plain text. On your own
+profile "Friends" becomes a word at the end of the counts line and "Your invites" moves up beside the
+"Invite a friend" button, so the header stays short; "Add a bio" (or a tap on your bio) opens "Edit bio"
+(150 characters, one paragraph, plain text). The counts need nothing new on the server. The bio needs
+migration `20261010110000_profile_bio`: before it is live the app shows the counts and no bio line at all
+(no error). That migration also keeps the bio and the counts back across a block. Off = the profile as
+before: no counts, no bio, the "Friends" and "Your invites" pills under your name.
 
 **Sign-in placeholder**: `auth-google-signin` (**default off** since 2026-10-07, so it never flashes up while flags load) — a pill on the welcome screen with no sign-in behind it
 yet; tapping it does nothing. At 0% in PostHog (checked 2026-10-07).

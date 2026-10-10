@@ -107,8 +107,9 @@ export async function getFriends(
 
 export type FollowData = {
   is_following: boolean;
-  follower_count: number;
-  following_count: number;
+  /** Null when the server keeps the counts back: a block between you (20261010110000_profile_bio). */
+  follower_count: number | null;
+  following_count: number | null;
   /** They follow you (20261006110000_follow_back); false from a server without it. */
   follows_you: boolean;
   /** I have a follow request waiting with them (private accounts); false from an older server. */

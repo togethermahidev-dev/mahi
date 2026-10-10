@@ -36,8 +36,11 @@ interface FollowState {
   /** Follower/following counts keyed by userId. */
   counts: Record<string, FollowCounts>;
 
-  /** Load follow status + counts for a user via single RPC. */
-  loadFollowData: (currentUserId: string, targetUserId: string) => Promise<void>;
+  /**
+   * Load follow status + counts for a user via single RPC. Resolves true when the server
+   * answered (a profile shows its counts only after that), false when the read failed.
+   */
+  loadFollowData: (currentUserId: string, targetUserId: string) => Promise<boolean>;
   /**
    * The follow button: Follow (or Follow back) follows, Following unfollows, Requested takes the
    * request back. Optimistic with rollback; `status` is the server's committed answer.
@@ -70,6 +73,26 @@ interface FollowState {
   reset: () => void;
 }
 
+/**
+ * The counts as the server just gave them. It keeps them back (null) across a block: then that
+ * person has no counts here at all, never a 0 and never an older number.
+ */
+function withServerCounts(
+  all: Record<string, FollowCounts>,
+  userId: string,
+  data: { follower_count: number | null; following_count: number | null }
+): Record<string, FollowCounts> {
+  const next = { ...all };
+  if (data.follower_count === null || data.following_count === null) delete next[userId];
+  else {
+    next[userId] = {
+      follower_count: data.follower_count,
+      following_count: data.following_count,
+    };
+  }
+  return next;
+}
+
 /** Active realtime channels keyed by userId. */
 const followChannels = new Map<
   string,
@@ -92,7 +115,7 @@ export const useFollowStore = create<FollowState>((set, get) => ({
         action: 'loadFollowData',
         extra: { targetUserId, rpc: 'get_follow_data' },
       });
-      return;
+      return false;
     }
 
     set((s) => ({
@@ -103,14 +126,9 @@ export const useFollowStore = create<FollowState>((set, get) => ({
         [targetUserId]: !data.is_following && data.requested === true,
       },
       privateById: { ...s.privateById, [targetUserId]: data.is_private },
-      counts: {
-        ...s.counts,
-        [targetUserId]: {
-          follower_count: data.follower_count,
-          following_count: data.following_count,
-        },
-      },
+      counts: withServerCounts(s.counts, targetUserId, data),
     }));
+    return true;
   },
 
   toggleFollow: (currentUserId, targetUserId, opts) => {
@@ -193,11 +211,7 @@ export const useFollowStore = create<FollowState>((set, get) => ({
       followsMe: { ...st.followsMe, [targetUserId]: data.follows_you },
       privateById: { ...st.privateById, [targetUserId]: data.is_private },
       counts: {
-        ...st.counts,
-        [targetUserId]: {
-          follower_count: data.follower_count,
-          following_count: data.following_count,
-        },
+        ...withServerCounts(st.counts, targetUserId, data),
         ...(myPrevCounts
           ? {
               [currentUserId]: {

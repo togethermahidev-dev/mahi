@@ -70,6 +70,63 @@ describe('followStore', () => {
     expect(useFollowStore.getState().counts.target.follower_count).toBe(8);
   });
 
+  // Counts on a profile (switch `profile-bio-and-counts`): the screen waits for this read before
+  // it shows a number, and the server keeps the counts back across a block.
+  describe('loading the counts', () => {
+    const answer = {
+      is_following: false,
+      follows_you: false,
+      requested: false,
+      is_private: false,
+      follower_count: 12,
+      following_count: 8,
+    };
+
+    it('says the read worked, with the counts in place', async () => {
+      getFollowData.mockResolvedValue({ data: answer, error: null });
+      await expect(useFollowStore.getState().loadFollowData('me', 'target')).resolves.toBe(true);
+      expect(useFollowStore.getState().counts.target).toEqual({
+        follower_count: 12,
+        following_count: 8,
+      });
+    });
+
+    it('says the read failed, and keeps nothing new', async () => {
+      getFollowData.mockResolvedValue({ data: null, error: new Error('offline') });
+      await expect(useFollowStore.getState().loadFollowData('me', 'target')).resolves.toBe(false);
+      expect(useFollowStore.getState().counts.target).toBeUndefined();
+    });
+
+    it('counts the server keeps back (a block) are dropped, never shown as 0', async () => {
+      useFollowStore.setState({ counts: { target: { follower_count: 12, following_count: 8 } } });
+      getFollowData.mockResolvedValue({
+        data: { ...answer, follower_count: null, following_count: null },
+        error: null,
+      });
+      await expect(useFollowStore.getState().loadFollowData('me', 'target')).resolves.toBe(true);
+      expect(useFollowStore.getState().counts.target).toBeUndefined();
+    });
+
+    it('an unfollow answered without counts drops them too', async () => {
+      useFollowStore.setState({
+        followingByMe: { target: true },
+        counts: { target: { follower_count: 12, following_count: 8 } },
+      });
+      setFollowing.mockResolvedValue({
+        data: {
+          ...answer,
+          status: 'none',
+          follower_count: null,
+          following_count: null,
+          current_following_count: 0,
+        },
+        error: null,
+      });
+      await useFollowStore.getState().toggleFollow('me', 'target');
+      expect(useFollowStore.getState().counts.target).toBeUndefined();
+    });
+  });
+
   // Private accounts (20261008170000_private_accounts): a follow can come back as a request.
   describe('follow requests', () => {
     const row = (status: string, over: Record<string, unknown> = {}) => ({

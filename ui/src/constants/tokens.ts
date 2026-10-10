@@ -555,6 +555,16 @@ export const PROFILE = {
   badgeMinScale: 1,
 } as const;
 
+// ─── Follower / following counts and the bio on a profile (switch `profile-bio-and-counts`) ───
+export const PROFILE_ABOUT = {
+  /** The most characters a bio holds; the server refuses more (`set_bio`). */
+  bioMax: 150,
+  /** The most lines of a bio a profile shows before it is cut with an ellipsis. */
+  bioLines: 3,
+  /** The "Edit bio" field starts this tall and grows with the words. */
+  fieldMinHeight: SIZE.z96,
+} as const;
+
 export const POINTS_NUMBER = {
   /** Each digit keeps this share of the text size: Inter Tight's widest digit (extra-bold, 0.681). */
   digitWidth: 0.69,

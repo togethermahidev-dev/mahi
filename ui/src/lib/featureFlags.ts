@@ -64,6 +64,9 @@ export const FEATURE_FLAGS = [
 
   // Sharing (owner, 2026-10-10) — a kill switch, on for everyone
   'share-sheet', // Share and Invite a mate open Mahi's own share sheet, and a shared post shows as a card in a chat (off: straight to the phone's share sheet; a post message is a plain bubble)
+
+  // Profiles (owner, 2026-10-10)
+  'profile-bio-and-counts', // follower and following counts and a bio on your profile and other people's (default OFF; the bio needs migration 20261010110000_profile_bio)
 ] as const;
 
 /** A known PostHog feature flag key. */
@@ -88,6 +91,8 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * 20261008170000_private_accounts; off until the owner switches it on.
  * `feed-rows`: owner, 2026-10-09 — the feed is full-screen posts again, rows hidden for everyone;
  * off while flags load too, so rows never show first and then swap to full screen.
+ * `profile-bio-and-counts`: a new feature (owner, 2026-10-10), so it starts off; the profile
+ * header never changes shape in front of someone while flags load.
  */
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'push-core',
@@ -104,6 +109,7 @@ export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'spotlight',
   'private-accounts',
   'feed-rows',
+  'profile-bio-and-counts',
 ];
 
 /** Whether a flag reads as on before PostHog has answered (true for all but DEFAULT_OFF_FLAGS). */

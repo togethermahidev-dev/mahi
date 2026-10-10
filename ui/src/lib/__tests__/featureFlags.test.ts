@@ -94,7 +94,15 @@ describe('default-off flags (video-posts)', () => {
       'spotlight',
       'private-accounts',
       'feed-rows',
+      'profile-bio-and-counts',
     ]);
+  });
+
+  // Follower and following counts and the bio on profiles (owner, 2026-10-10): a new feature, so
+  // it starts off and never shows for a moment while flags load. One switch covers both.
+  it('keeps profile-bio-and-counts off until switched on', () => {
+    expect(FEATURE_FLAGS).toContain('profile-bio-and-counts');
+    expect(flagDefaultOn('profile-bio-and-counts')).toBe(false);
   });
 
   // Owner, 2026-10-09: the feed as rows hides behind a switch, off for everyone, so the feed is
