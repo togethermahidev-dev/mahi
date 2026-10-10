@@ -441,6 +441,12 @@ export const WAIT = {
 export const SWIPE = {
   /** A swipe takes over once the finger moves this far (px) along its axis. */
   slop: 20,
+  /** A clearly sideways drag (at least twice as far across as up or down) takes over this soon
+   *  (px), so a short flick still moves the page (2026-10-10). */
+  sideSlop: 12,
+  /** How many times further up/down than across a drag must go for the camera to take it early,
+   *  at half the slop: about 72° or steeper (2026-10-10). */
+  cameraSteep: 3,
   /** A drag this far (px)… */
   distance: 60,
   /** …or a flick this fast (px per ms) moves a page or closes an overlay. */

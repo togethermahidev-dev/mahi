@@ -42,26 +42,6 @@ import {
   SPACE,
 } from '@/constants/tokens';
 
-import { track } from '@/lib/analytics';
-
-/** TEMPORARY swipe check (2026-10-09): remove once the numbers are read. */
-function reportCameraDrag(
-  feed: boolean,
-  dx: number,
-  dy: number,
-  startX: number,
-  moved: boolean
-): void {
-  track('swipe_check', {
-    by: 'camera',
-    result: feed ? 'feed' : 'drawer',
-    dx,
-    dy,
-    start_x: startX,
-    moved,
-  });
-}
-
 /**
  * The pull gesture and the styles it drives. `enabled`: only while the waiting card shows.
  * `insetTop`: a drag from the status bar is left to the phone.
@@ -168,15 +148,6 @@ export function useCameraPull(
         return;
       }
       dragMode.value = way === 'feed' ? 1 : 0;
-      // TEMPORARY swipe check (2026-10-09): the camera's up/down took this drag.
-      scheduleOnRN(
-        reportCameraDrag,
-        way === 'feed',
-        Math.round(t.absoluteX - startX.value),
-        Math.round(t.absoluteY - startY.value),
-        Math.round(startX.value),
-        moved
-      );
       manager.activate();
     })
     .onStart(() => {

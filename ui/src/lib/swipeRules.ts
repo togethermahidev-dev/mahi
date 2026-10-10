@@ -7,6 +7,7 @@
  *   the side edges where Android's back gesture lives; an iPhone passes `edge: 0`) is left to
  *   the phone.
  * - The finger must move SWIPE.slop px, mostly along the swipe's own axis; the other axis fails it.
+ *   A clearly sideways drag is taken sooner, at SWIPE.sideSlop.
  * - `blocked`: a pop-up screen is open, so the page underneath must not move.
  * - `exclude`: a sideways swipe never starts inside this rectangle (the nav rail owns its touches).
  *
@@ -60,6 +61,8 @@ export function horizontalSwipe(t: Touch): SwipeDecision {
   const ay = Math.abs(t.dy);
   if (ay > SWIPE.slop && ay >= ax) return 'fail';
   if (ax > SWIPE.slop && ax > ay) return 'activate';
+  // Clearly sideways: taken sooner, so a short, quick flick still moves the page (2026-10-10).
+  if (ax > SWIPE.sideSlop && ax >= 2 * ay) return 'activate';
   return 'wait';
 }
 

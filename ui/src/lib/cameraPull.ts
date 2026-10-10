@@ -97,8 +97,9 @@ export function cameraDrag({
   const ay = Math.abs(dy);
   if (ax > half && ax >= ay) return 'fail';
   if (ay <= half || ay <= ax) return 'wait';
-  // Steeper than about 63°: the camera's at half the slop. Shallower: the page swipe decides first.
-  if (ay < 2 * ax && ay <= SWIPE.slop) return 'wait';
+  // Steeper than about 72°: the camera's at half the slop. Shallower (a thumb's arc, or a sideways
+  // swipe that starts with a wobble): the page swipe decides first, the camera at the full slop.
+  if (ay < SWIPE.cameraSteep * ax && ay <= SWIPE.slop) return 'wait';
   if (dy > 0 || moved) return 'drawer';
   return feedOn ? 'feed' : 'fail';
 }

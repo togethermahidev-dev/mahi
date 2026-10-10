@@ -21,6 +21,15 @@ describe('swipe rules', () => {
     it('waits until the finger has moved far enough', () => {
       expect(h({ dx: 10, dy: 2 })).toBe('wait');
     });
+    // Owner, 2026-10-10: sideways swipes felt harder on the camera than on Profile and Messages.
+    // The one sideways swipe the phone recorded was a 17pt flick: it never reached the 20pt slop.
+    it('takes a clearly sideways drag sooner, so a short flick still moves the page', () => {
+      expect(h({ dx: 13, dy: 2 })).toBe('activate');
+      expect(h({ dx: -17, dy: 1 })).toBe('activate');
+    });
+    it('a short diagonal still waits for the full slop', () => {
+      expect(h({ dx: 13, dy: 9 })).toBe('wait');
+    });
     it('lets an up/down swipe go', () => {
       expect(h({ dx: 5, dy: 30 })).toBe('fail');
     });

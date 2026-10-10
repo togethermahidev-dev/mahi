@@ -102,6 +102,12 @@ describe('cameraDrag — which way a drag on the camera goes', () => {
     expect(cameraDrag({ ...base, dx: h - 2, dy: -h })).toBe('wait');
     expect(cameraDrag({ ...base, dx: 9, dy: -11 })).toBe('wait');
   });
+  // Owner, 2026-10-10: a sideways swipe that starts with a small upward wobble was still taken
+  // by the camera. Only a clearly vertical start (steeper than about 72°) is the camera's early.
+  it('a wobbly start waits; only a clearly vertical start takes the camera at half the slop', () => {
+    expect(cameraDrag({ ...base, dx: 5, dy: -h })).toBe('wait');
+    expect(cameraDrag({ ...base, dx: 3, dy: -h })).toBe('feed');
+  });
   it('a diagonal that stays vertical past the full slop is still the feed', () => {
     expect(cameraDrag({ ...base, dx: 12, dy: -(SWIPE.slop + 1) })).toBe('feed');
   });
@@ -139,6 +145,12 @@ describe('cameraDrag vs the page swipe — a thumb arc toward Messages', () => {
   });
   it('a leftward, flatter swipe (to Profile) still moves the page', () => {
     expect(claimFirst([[-4, -1], [-12, -2], [-24, -4]], 300)).toBe('page');
+  });
+  it('a sideways swipe that starts with an upward wobble still moves the page', () => {
+    expect(claimFirst([[2, -6], [5, -11], [9, -13], [14, -14], [22, -15]], 120)).toBe('page');
+  });
+  it('a short, quick sideways flick moves the page', () => {
+    expect(claimFirst([[-6, 0], [-13, -2]], 300)).toBe('page');
   });
   it('a clear swipe up is still the camera’s', () => {
     expect(claimFirst([[1, -6], [2, -12], [3, -24]], 200)).toBe('camera');
