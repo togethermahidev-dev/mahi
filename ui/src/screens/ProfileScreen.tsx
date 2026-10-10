@@ -44,7 +44,7 @@ import ProfileIdentityCard from '@/components/ProfileIdentityCard';
 import ProfileAbout from '@/components/ProfileAbout';
 import EditBioSheet from '@/components/EditBioSheet';
 import UserProfileScreen from '@/screens/UserProfileScreen';
-import { GLYPH, TYPOGRAPHY, type TypographyName } from '@/constants/typography';
+import { TYPOGRAPHY, type TypographyName } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
@@ -102,6 +102,20 @@ function InviteIcon({ size, color }: { size: number; color: string }) {
       />
       <Circle cx="8.5" cy="7" r="4" stroke={color} strokeWidth={STROKE.s1_8} />
       <Path d="M20 8v6M23 11h-6" stroke={color} strokeWidth={STROKE.s1_8} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/**
+ * An "i" in a circle: tapping the points card explains Mahi points. It was a "›", which promised
+ * a page that isn't there (owner, 2026-10-10: "the arrow doesn't do anything").
+ */
+function InfoIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="9" stroke={color} strokeWidth={STROKE.s1_8} />
+      <Path d="M12 11v5.5" stroke={color} strokeWidth={STROKE.s1_8} strokeLinecap="round" />
+      <Path d="M12 7.6v.2" stroke={color} strokeWidth={STROKE.s1_8} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -390,7 +404,8 @@ export default function ProfileScreen({
         }
         accessibilityHint="Explains Mahi points"
       >
-        <View style={styles.pointsRow}>
+        {/* Touches go to the card itself, so a tap on the number or the mark explains points too. */}
+        <View style={styles.pointsRow} pointerEvents="none">
           <PointsNumber
             value={profile ? currentPoints : null}
             rolling={cardOn}
@@ -422,7 +437,9 @@ export default function ProfileScreen({
               color={text}
             />
           </View>
-          <Text style={[styles.chevron, { color: muted }]}>›</Text>
+          <View style={styles.infoMark}>
+            <InfoIcon size={ICON_SIZE.i20} color={muted} />
+          </View>
         </View>
         <View style={[styles.progressTrack, { backgroundColor: iconSurface }]}>
           {cardOn ? (
@@ -602,8 +619,7 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.h3,
     flexShrink: 0,
   },
-  chevron: {
-    ...GLYPH.icon,
+  infoMark: {
     flexShrink: 0,
   },
   progressTrack: {
