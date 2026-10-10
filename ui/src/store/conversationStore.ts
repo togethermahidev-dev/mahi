@@ -275,6 +275,14 @@ export const useConversationStore = create<ConversationState>((set, get) => {
         appStateSub.remove();
         appStateSub = null;
       }
+      // A shared post can be deleted or made private after it was sent, so a chat holding one is
+      // not kept: the next open shows loading, then what the server says now.
+      if (get().threads[conversationId]?.messages.some((m) => m.post_id)) {
+        set((s) => {
+          const { [conversationId]: _gone, ...threads } = s.threads;
+          return { threads };
+        });
+      }
     },
 
     loadOlder: async (conversationId) => {

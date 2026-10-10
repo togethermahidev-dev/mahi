@@ -324,6 +324,8 @@ export default function HorizontalNavigator({
   const messagesList = useMemo(() => Gesture.Native(), []);
 
   const safeInsets = { top: insets.top, bottom: insets.bottom };
+  // With the phone's tab bar the pages end above it: their bottom is a post's name and caption.
+  const aboveTabBar = !!tabBar;
   // Android keeps its side edges for the phone's back gesture; an iPhone's edges are screen.
   const sideEdge = Platform.OS === 'android' ? SIDE_EDGE : 0;
 
@@ -348,6 +350,7 @@ export default function HorizontalNavigator({
         width,
         height,
         insets: safeInsets,
+        aboveTabBar,
         edge: sideEdge,
         blocked: blockedSV.value,
         exclude: railRectSV.value,
@@ -375,6 +378,7 @@ export default function HorizontalNavigator({
         width,
         height,
         insets: safeInsets,
+        aboveTabBar,
         edge: sideEdge,
         blocked: blockedSV.value,
       });

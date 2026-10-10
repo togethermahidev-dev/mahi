@@ -33,6 +33,17 @@ describe('swipe rules', () => {
     it('lets an up/down swipe go', () => {
       expect(h({ dx: 5, dy: 30 })).toBe('fail');
     });
+    // The home bar's strip at the bottom is the phone's. With the phone's tab bar the page ends
+    // above that strip already, and what sits there is a post's name and caption (owner,
+    // 2026-10-10: swipe to Profile and Messages "when the feed is on aswell").
+    it('leaves the bottom strip to the phone', () => {
+      expect(h({ startY: 790, dx: 30, dy: 2 })).toBe('fail');
+    });
+    it('takes a swipe at the very bottom of a page that ends above the tab bar', () => {
+      expect(h({ startY: 790, dx: 30, dy: 2, aboveTabBar: true })).toBe('activate');
+      // The top strip (status bar) is still the phone's.
+      expect(h({ startY: 20, dx: 30, dy: 2, aboveTabBar: true })).toBe('fail');
+    });
     it('leaves the side edges to the phone (Android back)', () => {
       expect(h({ startX: 10, dx: 40 })).toBe('fail');
       expect(h({ startX: 395, dx: -40 })).toBe('fail');

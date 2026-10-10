@@ -26,6 +26,8 @@ type Touch = {
   height: number;
   insets: { top: number; bottom: number };
   blocked: boolean;
+  /** The page ends above the phone's tab bar, so its bottom is not the home bar's strip. */
+  aboveTabBar?: boolean;
   /** Screen rectangle a sideways swipe may not start in, or null. */
   exclude?: Rect | null;
   /** Side strip left to the phone; SIDE_EDGE (Android's back gesture) unless given. */
@@ -46,9 +48,9 @@ const MIN_BOTTOM_ZONE = 24;
 
 function inSystemStrip(t: Touch): boolean {
   'worklet';
-  return (
-    t.startY < t.insets.top || t.startY > t.height - Math.max(t.insets.bottom, MIN_BOTTOM_ZONE)
-  );
+  if (t.startY < t.insets.top) return true;
+  if (t.aboveTabBar) return false;
+  return t.startY > t.height - Math.max(t.insets.bottom, MIN_BOTTOM_ZONE);
 }
 
 export function horizontalSwipe(t: Touch): SwipeDecision {

@@ -272,8 +272,9 @@ export default function NavRail({
         accessibilityState={{ selected }}
         hitSlop={buttonSlop}
         onPress={() => {
-          if (selected) return;
-          haptic('selection');
+          // A tap on the tab you are on still reaches the navigator: Camera brings the camera
+          // back from the feed.
+          if (!selected) haptic('selection');
           onSelect(key);
         }}
         style={({ pressed }) => [

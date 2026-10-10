@@ -339,6 +339,9 @@ export default function FeedScreen({
   // Profile overlay, conversation overlay, and comment sheet — lifted to
   // FeedScreen so overlays cover the full screen (not just the PostCard)
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  // The feed closed under an open profile (the Camera tab was tapped): the profile goes with it,
+  // or its overlay would go on blocking the sideways page swipe from the camera.
+  if (!isActive && profileUserId) setProfileUserId(null);
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
   // A tapped row grows into the full-screen feed (TikTok style) through the shared morph.
   const [viewerPost, setViewerPost] = useState<{

@@ -354,3 +354,28 @@ describe('a post arriving in a chat', () => {
     expect(thread().messages[0].post).toEqual(post);
   });
 });
+
+// A shared post can be deleted or made private after it was sent (decision #181: the usual
+// who-can-see rules, no exception), so a chat holding one is never shown again from memory.
+describe('leaving a chat that holds a shared post', () => {
+  it('forgets the thread, so reopening shows loading and then the fresh answer', async () => {
+    (getMessages as jest.Mock).mockResolvedValue({
+      data: [{ ...serverRow('m1', 'c1', '', justAfter(1)), post_id: 'p1' }],
+      error: null,
+    });
+    await useConversationStore.getState().open(CONVO);
+    expect(ids()).toEqual(['m1']);
+    useConversationStore.getState().close(CONVO);
+    expect(thread()).toBeUndefined();
+  });
+
+  it('keeps a plain chat, as before', async () => {
+    (getMessages as jest.Mock).mockResolvedValue({
+      data: [serverRow('m1', 'c1', 'hi', justAfter(1))],
+      error: null,
+    });
+    await useConversationStore.getState().open(CONVO);
+    useConversationStore.getState().close(CONVO);
+    expect(ids()).toEqual(['m1']);
+  });
+});
