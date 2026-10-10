@@ -31,12 +31,11 @@ import { relativeTime } from '@/lib/relativeTime';
 import { haptic } from '@/lib/haptics';
 import type { MorphSource } from '@/lib/morph';
 import type { FeedPost } from '@/api';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BLUR_INTENSITY,
   BORDER_WIDTH,
-  FONT_SIZE,
   ICON_SIZE,
   OFFSET,
   RADIUS,
@@ -304,20 +303,17 @@ const styles = StyleSheet.create({
     borderWidth: BORDER_WIDTH.w1,
   },
   avatarInitial: {
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h4,
   },
   words: {
     flex: 1,
     gap: SPACE.s3,
   },
   name: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h4,
   },
   line: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
   },
   counts: {
     flexDirection: 'row',
@@ -330,8 +326,7 @@ const styles = StyleSheet.create({
     gap: SPACE.s4,
   },
   countText: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.label,
   },
   thumbs: {
     flexDirection: 'row',

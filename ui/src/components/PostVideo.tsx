@@ -3,13 +3,11 @@ import { View, Text, Pressable, StyleSheet, type StyleProp, type ViewStyle } fro
 import { loadExpoVideo, type ExpoVideo } from '@/lib/videoModule';
 import { soundButtonLabel } from '@/lib/videoPosts';
 import { VideoIcon, SoundOnIcon, SoundOffIcon } from '@/components/ScreenIcons';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
-  FONT_SIZE,
   ICON_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
@@ -134,10 +132,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
   },
   unavailableText: {
+    ...TYPOGRAPHY.small,
     color: withAlpha(COLORS.white, ALPHA.a80),
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l18,
-    fontFamily: FONTS.semiBold,
     textAlign: 'center',
   },
   sound: {

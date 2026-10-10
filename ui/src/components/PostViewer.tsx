@@ -39,12 +39,10 @@ import { shouldPlay } from '@/lib/videoPosts';
 import type { MorphSource } from '@/lib/morph';
 import type { FeedPost } from '@/api';
 import { MorphingImage, useMorphTransition } from '@/components/MorphTransition';
-import { FONTS } from '@/constants/fonts';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
-  FONT_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
@@ -527,14 +525,11 @@ const styles = StyleSheet.create({
     backgroundColor: withAlpha(COLORS.black, ALPHA.a40),
   },
   moreText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.captionStrong,
     color: COLORS.white,
   },
   closeX: {
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.semiBold,
-    lineHeight: LINE_HEIGHT.l18,
+    ...GLYPH.icon,
     color: COLORS.white,
   },
 });

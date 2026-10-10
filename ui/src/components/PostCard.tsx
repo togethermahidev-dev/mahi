@@ -77,13 +77,12 @@ import {
   type PipTextParts,
 } from '@/lib/pip';
 import type { FeedPost } from '@/api';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
   DURATION,
-  FONT_SIZE,
   ICON_SIZE,
   OFFSET,
   POST_CARD,
@@ -899,8 +898,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s24,
   },
   photoStateText: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.body,
     textAlign: 'center',
   },
   photoRetry: {
@@ -911,8 +909,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   photoRetryText: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.pillLabel,
   },
   card: {
     borderRadius: 0,
@@ -938,8 +935,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h4,
     color: COLORS.white,
   },
   userInfo: {
@@ -947,8 +943,7 @@ const styles = StyleSheet.create({
     gap: SPACE.s2,
   },
   usernameOverlay: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.h4,
     color: COLORS.white,
   },
   /** The on-time line: "Answered @sam in 2h", a small accent clock in front. */
@@ -961,8 +956,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   timeOverlay: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
     color: withAlpha(COLORS.white, ALPHA.a75),
   },
   moreButton: {
@@ -972,18 +966,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   taggedText: {
+    ...TYPOGRAPHY.small,
     color: withAlpha(COLORS.white, ALPHA.a75),
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
   },
   taggedPerson: {
+    ...TYPOGRAPHY.labelStrong,
     color: COLORS.white,
-    fontFamily: FONTS.semiBold,
   },
   /** A name in "Replying to @joe, @sam." that opens their profile. */
   replyPerson: {
+    ...TYPOGRAPHY.labelStrong,
     color: COLORS.white,
-    fontFamily: FONTS.semiBold,
   },
   /** "With @a, @b" then each pending invite, wrapping onto a second line when it must. */
   taggedRow: {
@@ -1009,8 +1002,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   invitedInitials: {
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.microStrong,
     color: COLORS.white,
   },
   imageContainer: {
@@ -1041,8 +1033,7 @@ const styles = StyleSheet.create({
     gap: SPACE.s10,
   },
   captionText: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.postBody,
     color: COLORS.white,
     textShadowColor: withAlpha(COLORS.black, ALPHA.a50),
     textShadowOffset: { width: 0, height: SIZE.z1 },
@@ -1071,8 +1062,7 @@ const styles = StyleSheet.create({
     gap: SPACE.s4,
   },
   sideActionCount: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.label,
     color: COLORS.white,
   },
 });

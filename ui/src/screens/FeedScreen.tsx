@@ -58,14 +58,13 @@ import {
   headerSlide,
 } from '@/lib/feedHeader';
 import type { FeedPost } from '@/api';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
   BLUR_INTENSITY,
   BORDER_WIDTH,
   DURATION,
-  FONT_SIZE,
   MOTION,
   POST_FULL,
   RADIUS,
@@ -804,9 +803,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s32,
   },
   developWords: {
+    ...TYPOGRAPHY.h3,
     color: COLORS.white,
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZE.f17,
     textAlign: 'center',
   },
   root: {
@@ -823,8 +821,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s32,
   },
   lockedButtonText: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.pillLabel,
   },
   lockBanner: {
     position: 'absolute',
@@ -874,8 +871,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   endNoteText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.captionStrong,
     color: COLORS.white,
   },
   skeletonFoot: {
@@ -908,12 +904,10 @@ const styles = StyleSheet.create({
     gap: SPACE.s8,
   },
   emptyTitle: {
-    fontSize: FONT_SIZE.f18,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h3,
   },
   emptySub: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.small,
     textAlign: 'center',
     paddingHorizontal: SPACE.s32,
   },
@@ -927,13 +921,11 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s8,
   },
   textLinkLabel: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.bodyMedium,
   },
   errorText: {
+    ...TYPOGRAPHY.small,
     textAlign: 'center',
     padding: SPACE.s16,
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
   },
 });

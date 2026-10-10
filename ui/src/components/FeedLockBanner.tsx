@@ -29,12 +29,11 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { haptic } from '@/lib/haptics';
 import { MOTION } from '@/constants/tokens';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BORDER_WIDTH,
   COLORS,
-  FONT_SIZE,
   ICON_SIZE,
   RADIUS,
   SHADOW_BLUR,
@@ -225,8 +224,7 @@ const styles = StyleSheet.create({
     paddingRight: SPACE.s16,
   },
   actionText: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.pillLabel,
   },
   // The feed timer: the ring and the clock side by side, white with a soft shadow so they read
   // over any post (owner, 2026-10-09). The digits keep their width as they tick. The feed places
@@ -237,9 +235,8 @@ const styles = StyleSheet.create({
     gap: SPACE.s8,
   },
   clock: {
+    ...TYPOGRAPHY.bodyStrong,
     color: COLORS.white,
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.bold,
     fontVariant: ['tabular-nums'],
   },
   shadowed: {

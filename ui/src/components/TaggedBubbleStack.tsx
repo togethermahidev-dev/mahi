@@ -2,12 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, type ViewStyle, type StyleProp } from 'react-native';
 import { BlurView } from 'expo-blur';
 import type { TaggedUser } from '@/api';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
   BLUR_INTENSITY,
-  FONT_SIZE,
   LAYOUT,
   OFFSET,
   RADIUS,
@@ -80,8 +79,7 @@ const styles = StyleSheet.create({
     maxWidth: SIZE.z180,
   },
   bubbleText: {
+    ...TYPOGRAPHY.chipLabel,
     color: COLORS.white,
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
   },
 });
