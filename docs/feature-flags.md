@@ -207,8 +207,8 @@ for sending and for the card. Off = as before: Share goes straight to the iPhone
 mate" makes a link and opens the iPhone share sheet, and a post message already in a chat shows as a plain
 bubble with its note, or "Sent a post".
 
-**Profile counts and bio:** `profile-bio-and-counts` (**default off**, added 2026-10-10; owner: "Should this
-be added- yes"; not in PostHog yet — create it switched off). One switch for both. On, your profile and other
+**Profile counts and bio:** `profile-bio-and-counts` (**default off in code; ON at 100% in PostHog since 2026-10-10**, with OTA 13.43 and migration `20261010110000_profile_bio` live; added 2026-10-10; owner: "Should this
+be added- yes"). One switch for both. On, your profile and other
 people's show, under the name and @username: one line of counts ("12 followers", "1 follower",
 "8 following"; a dash while loading, read fresh each time the profile opens, never kept on the phone), then
 the bio in three lines at most. Your own counts always open your Followers and Following lists; someone
