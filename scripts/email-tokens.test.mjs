@@ -58,14 +58,14 @@ test('emailTokens.ts matches the app tokens (else run `pnpm tokens:email`)', () 
   assert.equal(current, emailTokensSource());
 });
 
-test('the code email loads Inter and uses one font stack, the app weights and no italic', async () => {
-  assert.match(FONT_STACK, /^Inter, .*sans-serif$/);
-  assert.ok(FONT_LINK.includes(`family=Inter:wght@${fontWeights().join(';')}&`), FONT_LINK);
+test("the code email loads the app's typeface and uses one font stack, the app weights and no italic", async () => {
+  assert.match(FONT_STACK, /^'Inter Tight', .*sans-serif$/);
+  assert.ok(FONT_LINK.includes(`family=Inter+Tight:wght@${fontWeights().join(';')}&`), FONT_LINK);
 
   // By URL, so the app's tsc doesn't pull this Deno file into its type check.
   const { codeEmailHtml } = await import(pathToFileURL(EMAIL_FILE).href);
   const html = codeEmailHtml('042917', { title: 't', heading: 'h', intro: 'i', ignoreNote: 'n' });
-  assert.ok(html.split('</head>')[0].includes(`<link href="${FONT_LINK}" rel="stylesheet"`), 'Inter link in <head>');
+  assert.ok(html.split('</head>')[0].includes(`<link href="${FONT_LINK}" rel="stylesheet"`), 'font link in <head>');
   const stacks = [...html.matchAll(/font-family:([^;"]+)/g)].map((m) => m[1]);
   assert.deepEqual([...new Set(stacks)], [FONT_STACK]);
   const weights = [...html.matchAll(/font-weight:([^;"]+)/g)].map((m) => Number(m[1]));

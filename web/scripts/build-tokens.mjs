@@ -97,7 +97,7 @@ for (const g of GROUPS.filter((x) => x.tw)) {
 theme.push('  /* SHADOW_BLUR → shadows */');
 for (const key of Object.keys(SHADOW_BLUR)) theme.push(`  --shadow-${key}: var(--mahi-shadow-${key});`);
 theme.push('  /* FONTS */');
-theme.push('  --font-sans: var(--font-inter), system-ui, sans-serif;');
+theme.push('  --font-sans: var(--font-app), system-ui, sans-serif;');
 for (const key of Object.keys(FONTS)) {
   if (!fontFace(FONTS[key]).italic) theme.push(`  --font-weight-${kebab(key)}: var(${cssVar('font-weight', key)});`);
 }

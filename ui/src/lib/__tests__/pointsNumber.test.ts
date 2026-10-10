@@ -6,10 +6,10 @@ import { POINTS_NUMBER } from '@/constants/tokens';
 // its own room, worked out from how many digits it has, so the words beside or under it are laid
 // out clear of it from the first frame — whatever Apple's rolling digits report later.
 
-/** What Inter's own file says: each digit's width and the line's height, as shares of the size. */
+/** What the font's own file says: each digit's width and the line's height, as shares of the size. */
 function interMetrics(face: string): { widestDigit: number; line: number } {
   // Resolved, not joined to a path: node_modules sits at the workspace root, above ui/.
-  const font = readFileSync(require.resolve(`@expo-google-fonts/inter/${face}.ttf`));
+  const font = readFileSync(require.resolve(`@expo-google-fonts/inter-tight/${face}.ttf`));
   const table: Record<string, number> = {};
   for (let i = 0; i < font.readUInt16BE(4); i++)
     table[font.toString('latin1', 12 + i * 16, 16 + i * 16)] = font.readUInt32BE(20 + i * 16);
@@ -46,9 +46,11 @@ function interMetrics(face: string): { widestDigit: number; line: number } {
 
 describe('the room kept for a points number', () => {
   it.each([
-    '400Regular/Inter_400Regular',
-    '600SemiBold/Inter_600SemiBold',
-    '700Bold/Inter_700Bold',
+    '400Regular/InterTight_400Regular',
+    '500Medium/InterTight_500Medium',
+    '600SemiBold/InterTight_600SemiBold',
+    '700Bold/InterTight_700Bold',
+    '800ExtraBold/InterTight_800ExtraBold',
   ])('is at least as wide and tall as %s really draws', (face) => {
     const inter = interMetrics(face);
     expect(inter.widestDigit).toBeGreaterThan(0.5); // the file was read, not a 0

@@ -1,15 +1,15 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter_Tight } from 'next/font/google';
 import { COLORS } from '../../ui/src/constants/tokens';
 import './globals.css';
 
-// The app's one typeface. Weights and styles match FONTS in ui/src/constants/fonts.ts
-// (regular, semi-bold, bold; no italic); scripts/check-tokens.mjs fails the build if they drift.
-const inter = Inter({
+// The app's one typeface. Family, weights and styles match ui/src/constants/fonts.ts (five
+// weights, no italic); scripts/check-tokens.mjs fails the build if they drift.
+const appFont = Inter_Tight({
   subsets: ['latin'],
-  weight: ['400', '600', '700'],
+  weight: ['400', '500', '600', '700', '800'],
   style: ['normal'],
-  variable: '--font-inter',
+  variable: '--font-app',
   display: 'swap',
 });
 
@@ -25,7 +25,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en-GB" className={inter.variable}>
+    <html lang="en-GB" className={appFont.variable}>
       <body suppressHydrationWarning className="min-h-dvh bg-paper font-sans text-ink-deep">{children}</body>
     </html>
   );

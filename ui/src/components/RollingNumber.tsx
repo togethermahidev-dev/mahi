@@ -1,6 +1,6 @@
 /**
  * A number that rolls to its new value, up for a point and down after a miss. On an iPhone build with @expo/ui it is Apple's own
- * rolling digits (SwiftUI's numericText content transition, in Inter); elsewhere, and with Reduce
+ * rolling digits (SwiftUI's numericText content transition, in Inter Tight); elsewhere, and with Reduce
  * Motion, our count (`useCountRoll`). `null` shows a dash: never a 0 that then changes.
  *
  * The number keeps its own room (owner, 2026-10-10: "the writing overlaps the number"): a box

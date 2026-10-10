@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     borderWidth: SIZE.z1,
     borderRadius: RADIUS.r16,
     paddingHorizontal: SPACE.s16,
-    // Inter carries no emoji glyphs: the phone's own emoji font draws what is typed.
+    // Inter Tight carries no emoji glyphs: the phone's own emoji font draws what is typed.
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZE.f24,
     textAlign: 'center',

@@ -260,7 +260,7 @@ export default function MessageHoldMenu({
 
 const styles = StyleSheet.create({
   heartWrap: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
-  // Inter carries no emoji glyphs: the phone's own emoji font draws the heart.
+  // Inter Tight carries no emoji glyphs: the phone's own emoji font draws the heart.
   heart: { fontFamily: FONTS.regular, fontSize: FONT_SIZE.f48 },
   fill: { flex: 1, justifyContent: 'flex-end' },
   scrim: { ...StyleSheet.absoluteFill, backgroundColor: withAlpha(COLORS.black, ALPHA.a45) },

@@ -76,7 +76,7 @@ export function cameraBadge(
   return String(tags.count);
 }
 
-/** The tab titles in Inter, like every other word in the app (owner, 2026-10-05). */
+/** The tab titles in Inter Tight, like every other word in the app (owner, 2026-10-05). */
 const TAB_TITLE = { tabBarItemTitleFontFamily: FONTS.semiBold };
 const TAB_TITLE_STATES = { normal: TAB_TITLE, selected: TAB_TITLE };
 

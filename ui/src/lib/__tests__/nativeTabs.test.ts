@@ -52,8 +52,8 @@ describe('INITIAL_TAB', () => {
 });
 
 describe('tab titles', () => {
-  // Owner, 2026-10-05: Inter everywhere, the phone's own tab bar included.
-  it('sets Inter on iPhone for every layout and state', () => {
+  // Owner, 2026-10-05: Inter Tight everywhere, the phone's own tab bar included.
+  it('sets Inter Tight on iPhone for every layout and state', () => {
     for (const layout of ['stacked', 'inline', 'compactInline'] as const) {
       for (const state of ['normal', 'selected'] as const) {
         expect(TAB_TITLE_APPEARANCE.ios[layout][state].tabBarItemTitleFontFamily).toBe(
@@ -63,7 +63,7 @@ describe('tab titles', () => {
     }
   });
 
-  it('sets Inter on Android', () => {
+  it('sets Inter Tight on Android', () => {
     expect(TAB_TITLE_APPEARANCE.android.tabBarItemTitleFontFamily).toBe(FONTS.semiBold);
   });
 });

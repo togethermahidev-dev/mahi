@@ -8,7 +8,7 @@
  * widget's own JavaScript, inside iOS. So they can't use anything from this file or any import:
  * only @expo/ui's SwiftUI views and modifiers (named exactly as imported below), their props and
  * the environment. Colours and sizes arrive in `props.look` (from the tokens). Text is in Apple's
- * system font: the widget extension can't load Inter (expo-widgets has no way to add fonts to it).
+ * system font: the widget extension can't load Inter Tight (expo-widgets has no way to add fonts to it).
  */
 import { HStack, Image, Spacer, Text, VStack } from '@expo/ui/swift-ui';
 import {

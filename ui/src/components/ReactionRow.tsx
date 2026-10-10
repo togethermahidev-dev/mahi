@@ -52,7 +52,7 @@ export default function ReactionRow({
               pressed && styles.pressed,
             ]}
           >
-            {/* Inter carries no emoji glyphs: the phone's own emoji font draws these. */}
+            {/* Inter Tight carries no emoji glyphs: the phone's own emoji font draws these. */}
             <Text style={styles.emoji}>{emoji}</Text>
           </Pressable>
         );

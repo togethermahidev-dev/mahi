@@ -7,10 +7,12 @@ LogBox.ignoreLogs(['Tried to register two views with the same name', 'RNDateTime
 import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
-  Inter_400Regular,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from '@expo-google-fonts/inter';
+  InterTight_400Regular,
+  InterTight_500Medium,
+  InterTight_600SemiBold,
+  InterTight_700Bold,
+  InterTight_800ExtraBold,
+} from '@expo-google-fonts/inter-tight';
 
 import SplashScreenComponent from '@/screens/SplashScreen';
 import WelcomeScreen from '@/screens/WelcomeScreen';
@@ -167,9 +169,11 @@ export default function App(): React.JSX.Element {
   // One-time tips, the tag reminder and the camera's permission question wait until then.
   useCoachBlock(!onboardingSettled);
   const [fontsLoaded] = useFonts({
-    Inter_400Regular,
-    Inter_600SemiBold,
-    Inter_700Bold,
+    InterTight_400Regular,
+    InterTight_500Medium,
+    InterTight_600SemiBold,
+    InterTight_700Bold,
+    InterTight_800ExtraBold,
   });
 
   const { session, isLoading, setSession, setIsLoading } = useAuthStore();

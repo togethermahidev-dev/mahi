@@ -23,16 +23,17 @@ import {
   LINE_HEIGHT,
   BORDER_WIDTH,
 } from '../ui/src/constants/tokens.ts';
-import { FONTS, fontFace, fontWeights } from '../web/scripts/font-weights.mjs';
+import { FONTS, FONT_FAMILY, fontFace, fontWeights } from '../web/scripts/font-weights.mjs';
 
 export const TOKENS_FILE = fileURLToPath(new URL('../supabase/functions/_shared/emailTokens.ts', import.meta.url));
 export const EMAIL_FILE = fileURLToPath(new URL('../supabase/functions/_shared/email.ts', import.meta.url));
 
-// The app's one family (Inter_400Regular → Inter), then fonts for mail apps that ignore web fonts
-// (Gmail): the phone's own font, then the common ones.
-const FAMILY = Object.values(FONTS)[0].split('_')[0];
-export const FONT_STACK = `${FAMILY}, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif`;
-export const FONT_LINK = `https://fonts.googleapis.com/css2?family=${FAMILY}:wght@${fontWeights().join(';')}&display=swap`;
+// The app's one family, then fonts for mail apps that ignore web fonts (Gmail): the phone's own
+// font, then the common ones. A name with a space is quoted in the stack and joined with + in the link.
+const FAMILY = FONT_FAMILY;
+const quoted = FAMILY.includes(' ') ? `'${FAMILY}'` : FAMILY;
+export const FONT_STACK = `${quoted}, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif`;
+export const FONT_LINK = `https://fonts.googleapis.com/css2?family=${FAMILY.replace(/ /g, '+')}:wght@${fontWeights().join(';')}&display=swap`;
 
 // Copied as they are: colours as hex, lengths as numbers (one app point = one email px).
 const GROUPS = { COLORS, FONT_SIZE, SPACE, SIZE, RADIUS, TRACKING, LINE_HEIGHT, BORDER_WIDTH };

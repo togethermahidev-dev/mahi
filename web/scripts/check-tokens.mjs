@@ -97,14 +97,17 @@ function files(dir) {
   });
 }
 
-/** layout.tsx must load exactly the Inter weights (and italic) the app's FONTS uses. */
+/** layout.tsx must load the app's family in exactly the weights (and italic) its FONTS uses. */
 async function fontProblems(webRoot) {
-  const { fontWeights, hasItalic } = await import('./font-weights.mjs');
+  const { fontWeights, hasItalic, nextFontName } = await import('./font-weights.mjs');
   const layout = readFileSync(join(webRoot, 'app', 'layout.tsx'), 'utf8');
   const loaded = /weight:\s*\[([^\]]*)\]/.exec(layout)?.[1].match(/\d{3}/g)?.map(Number) ?? [];
   const problems = [];
+  if (!layout.includes(`${nextFontName()}(`)) {
+    problems.push(`app/layout.tsx doesn't load the app's typeface (${nextFontName()} from next/font/google)`);
+  }
   if (loaded.join() !== fontWeights().join()) {
-    problems.push(`app/layout.tsx loads Inter weights [${loaded}], the app's FONTS uses [${fontWeights()}]`);
+    problems.push(`app/layout.tsx loads weights [${loaded}], the app's FONTS uses [${fontWeights()}]`);
   }
   if (/style:\s*\[[^\]]*'italic'/.test(layout) !== hasItalic()) {
     problems.push(`app/layout.tsx italic style doesn't match the app's FONTS`);

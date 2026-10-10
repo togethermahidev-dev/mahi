@@ -22,7 +22,7 @@ const TEXT_TAGS = new Set(['Text', 'TextInput', 'Animated.Text']);
 
 /**
  * Text that would fall back to the phone's own font (San Francisco / Roboto): a style that sets a
- * text size without an Inter face, or a Text whose own styles never name one. Styles passed in from
+ * text size without an Inter Tight face, or a Text whose own styles never name one. Styles passed in from
  * outside can't be read here and count as fine; nested Text takes its parent's face.
  */
 function textWithoutInter(file: string): string[] {
@@ -46,7 +46,7 @@ function textWithoutInter(file: string): string[] {
   };
   collect(sf);
 
-  // 'yes' names an Inter face, 'no' certainly doesn't, 'unknown' can't be read from here.
+  // 'yes' names an Inter Tight face, 'no' certainly doesn't, 'unknown' can't be read from here.
   const face = (e: ts.Expression | undefined): 'yes' | 'no' | 'unknown' => {
     if (!e) return 'no';
     if (ts.isParenthesizedExpression(e) || ts.isAsExpression(e)) return face(e.expression);
@@ -106,11 +106,11 @@ function textWithoutInter(file: string): string[] {
   return found;
 }
 
-/** Every character Inter can draw, read from the font file's character map (formats 4 and 12). */
+/** Every character Inter Tight can draw, read from the font file's character map (formats 4 and 12). */
 function interCharacters(): Set<number> {
   // Resolved, not joined to a path: node_modules sits at the workspace root, above ui/.
   const font = readFileSync(
-    require.resolve('@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf')
+    require.resolve('@expo-google-fonts/inter-tight/400Regular/InterTight_400Regular.ttf')
   );
   const chars = new Set<number>();
   let cmap = 0;
@@ -148,7 +148,7 @@ function interCharacters(): Set<number> {
  */
 const EMOJI_CHAR = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Regional_Indicator}‍️⃣]/u;
 
-/** Characters in the app's own words (strings and JSX text, not comments) that Inter lacks. */
+/** Characters in the app's own words (strings and JSX text, not comments) that Inter Tight lacks. */
 function charactersOutsideInter(file: string, inter: Set<number>): string[] {
   const sf = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
   const found: string[] = [];
@@ -180,12 +180,12 @@ describe('fonts', () => {
     expect(offenders.map(rel)).toEqual([]);
   });
 
-  // Owner, 2026-10-05: Inter only, kept simple — no italic face.
+  // Owner, 2026-10-05: one typeface, kept simple — no italic face.
   it('has no italic face', () => {
     expect(Object.values(FONTS).filter((f) => /italic/i.test(f))).toEqual([]);
   });
 
-  // The weight is the Inter face itself; fontWeight or fontStyle on top makes Android (and SVG
+  // The weight is the Inter Tight face itself; fontWeight or fontStyle on top makes Android (and SVG
   // text) fall back to the phone's own font or a faked style.
   it('sets no fontWeight or fontStyle — the face carries the weight', () => {
     const offenders = files.filter((f) =>
@@ -195,15 +195,15 @@ describe('fonts', () => {
   });
 
   // The home-screen widget and Live Activity (src/widgets) are drawn by iOS in the widget
-  // extension, which can't load Inter (expo-widgets has no way to add a font to it): their text
-  // is SwiftUI's, in Apple's system font. Everything the app itself draws stays Inter.
-  it('gives every piece of text an Inter face', () => {
+  // extension, which can't load Inter Tight (expo-widgets has no way to add a font to it): their text
+  // is SwiftUI's, in Apple's system font. Everything the app itself draws stays Inter Tight.
+  it('gives every piece of text an Inter Tight face', () => {
     const widgets = join('src', 'widgets', '');
     expect(files.filter((f) => !f.includes(widgets)).flatMap(textWithoutInter)).toEqual([]);
   });
 
-  // A character Inter lacks is drawn in the phone's own font, Inter face or not.
-  it('writes only characters Inter can draw', () => {
+  // A character Inter Tight lacks is drawn in the phone's own font, Inter Tight face or not.
+  it('writes only characters Inter Tight can draw', () => {
     const inter = interCharacters();
     expect(inter.has('A'.codePointAt(0)!)).toBe(true);
     expect(files.flatMap((f) => charactersOutsideInter(f, inter))).toEqual([]);

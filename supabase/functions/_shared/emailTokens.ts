@@ -50,13 +50,16 @@ export const FONT_SIZE = {
   f16: 16,
   f17: 17,
   f18: 18,
+  f19: 19,
   f20: 20,
   f22: 22,
   f24: 24,
+  f26: 26,
   f28: 28,
   f32: 32,
   f38: 38,
   f48: 48,
+  f52: 52,
   f56: 56,
 } as const;
 
@@ -169,6 +172,9 @@ export const RADIUS = {
 } as const;
 
 export const TRACKING = {
+  t0_1: 0.1,
+  t0_2: 0.2,
+  t0_3: 0.3,
   t0_5: 0.5,
   t1: 1,
   t1_5: 1.5,
@@ -187,10 +193,16 @@ export const LINE_HEIGHT = {
   l16: 16,
   l18: 18,
   l20: 20,
+  l21: 21,
   l22: 22,
   l24: 24,
+  l26: 26,
   l28: 28,
+  l32: 32,
+  l34: 34,
   l38: 38,
+  l40: 40,
+  l64: 64,
 } as const;
 
 export const BORDER_WIDTH = {
@@ -201,12 +213,14 @@ export const BORDER_WIDTH = {
 
 export const FONT_WEIGHT = {
   regular: 400,
+  medium: 500,
   semiBold: 600,
   bold: 700,
+  extraBold: 800,
 } as const;
 
-/** Inter first; mail apps that don't load web fonts (Gmail) fall back along the list. */
-export const FONT_STACK = "Inter, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
+/** Inter Tight first; mail apps that don't load web fonts (Gmail) fall back along the list. */
+export const FONT_STACK = "'Inter Tight', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
 
-/** Loads Inter in the weights above (Apple Mail, iOS Mail). */
-export const FONT_LINK = "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap";
+/** Loads Inter Tight in the weights above (Apple Mail, iOS Mail). */
+export const FONT_LINK = "https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&display=swap";

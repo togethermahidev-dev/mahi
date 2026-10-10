@@ -48,13 +48,16 @@
   --mahi-font-size-f16: 1rem;
   --mahi-font-size-f17: 1.0625rem;
   --mahi-font-size-f18: 1.125rem;
+  --mahi-font-size-f19: 1.1875rem;
   --mahi-font-size-f20: 1.25rem;
   --mahi-font-size-f22: 1.375rem;
   --mahi-font-size-f24: 1.5rem;
+  --mahi-font-size-f26: 1.625rem;
   --mahi-font-size-f28: 1.75rem;
   --mahi-font-size-f32: 2rem;
   --mahi-font-size-f38: 2.375rem;
   --mahi-font-size-f48: 3rem;
+  --mahi-font-size-f52: 3.25rem;
   --mahi-font-size-f56: 3.5rem;
   /* SPACE */
   --mahi-space-s1: 0.0625rem;
@@ -129,6 +132,7 @@
   --mahi-size-z170: 10.625rem;
   --mahi-size-z180: 11.25rem;
   --mahi-size-z200: 12.5rem;
+  --mahi-size-z320: 20rem;
   --mahi-size-z360: 22.5rem;
   --mahi-size-z400: 25rem;
   --mahi-size-z420: 26.25rem;
@@ -193,6 +197,9 @@
   --mahi-radius-r50: 3.125rem;
   --mahi-radius-pill: 62.4375rem;
   /* TRACKING */
+  --mahi-tracking-t0_1: 0.0063rem;
+  --mahi-tracking-t0_2: 0.0125rem;
+  --mahi-tracking-t0_3: 0.0187rem;
   --mahi-tracking-t0_5: 0.0313rem;
   --mahi-tracking-t1: 0.0625rem;
   --mahi-tracking-t1_5: 0.0938rem;
@@ -209,10 +216,16 @@
   --mahi-line-height-l16: 1rem;
   --mahi-line-height-l18: 1.125rem;
   --mahi-line-height-l20: 1.25rem;
+  --mahi-line-height-l21: 1.3125rem;
   --mahi-line-height-l22: 1.375rem;
   --mahi-line-height-l24: 1.5rem;
+  --mahi-line-height-l26: 1.625rem;
   --mahi-line-height-l28: 1.75rem;
+  --mahi-line-height-l32: 2rem;
+  --mahi-line-height-l34: 2.125rem;
   --mahi-line-height-l38: 2.375rem;
+  --mahi-line-height-l40: 2.5rem;
+  --mahi-line-height-l64: 4rem;
   /* SHADOW_BLUR */
   --mahi-shadow-blur-b3: 3px;
   --mahi-shadow-blur-b6: 6px;
@@ -230,8 +243,10 @@
   --mahi-nav-rail-hold-ms: 280;
   /* FONTS */
   --mahi-font-weight-regular: 400;
+  --mahi-font-weight-medium: 500;
   --mahi-font-weight-semi-bold: 600;
   --mahi-font-weight-bold: 700;
+  --mahi-font-weight-extra-bold: 800;
   /* Shadows (composed from SIZE, SHADOW_BLUR, COLORS and NAV_RAIL) */
   --mahi-shadow-color: rgba(0,0,0,0.22);
   --mahi-shadow-b3: 0 var(--mahi-size-z4) var(--mahi-shadow-blur-b3) var(--mahi-shadow-color);
@@ -296,13 +311,16 @@
   --text-f16: var(--mahi-font-size-f16);
   --text-f17: var(--mahi-font-size-f17);
   --text-f18: var(--mahi-font-size-f18);
+  --text-f19: var(--mahi-font-size-f19);
   --text-f20: var(--mahi-font-size-f20);
   --text-f22: var(--mahi-font-size-f22);
   --text-f24: var(--mahi-font-size-f24);
+  --text-f26: var(--mahi-font-size-f26);
   --text-f28: var(--mahi-font-size-f28);
   --text-f32: var(--mahi-font-size-f32);
   --text-f38: var(--mahi-font-size-f38);
   --text-f48: var(--mahi-font-size-f48);
+  --text-f52: var(--mahi-font-size-f52);
   --text-f56: var(--mahi-font-size-f56);
   /* SPACE */
   --spacing-s1: var(--mahi-space-s1);
@@ -377,6 +395,7 @@
   --spacing-z170: var(--mahi-size-z170);
   --spacing-z180: var(--mahi-size-z180);
   --spacing-z200: var(--mahi-size-z200);
+  --spacing-z320: var(--mahi-size-z320);
   --spacing-z360: var(--mahi-size-z360);
   --spacing-z400: var(--mahi-size-z400);
   --spacing-z420: var(--mahi-size-z420);
@@ -441,6 +460,9 @@
   --radius-r50: var(--mahi-radius-r50);
   --radius-pill: var(--mahi-radius-pill);
   /* TRACKING */
+  --tracking-t0_1: var(--mahi-tracking-t0_1);
+  --tracking-t0_2: var(--mahi-tracking-t0_2);
+  --tracking-t0_3: var(--mahi-tracking-t0_3);
   --tracking-t0_5: var(--mahi-tracking-t0_5);
   --tracking-t1: var(--mahi-tracking-t1);
   --tracking-t1_5: var(--mahi-tracking-t1_5);
@@ -457,10 +479,16 @@
   --leading-l16: var(--mahi-line-height-l16);
   --leading-l18: var(--mahi-line-height-l18);
   --leading-l20: var(--mahi-line-height-l20);
+  --leading-l21: var(--mahi-line-height-l21);
   --leading-l22: var(--mahi-line-height-l22);
   --leading-l24: var(--mahi-line-height-l24);
+  --leading-l26: var(--mahi-line-height-l26);
   --leading-l28: var(--mahi-line-height-l28);
+  --leading-l32: var(--mahi-line-height-l32);
+  --leading-l34: var(--mahi-line-height-l34);
   --leading-l38: var(--mahi-line-height-l38);
+  --leading-l40: var(--mahi-line-height-l40);
+  --leading-l64: var(--mahi-line-height-l64);
   /* SHADOW_BLUR → shadows */
   --shadow-b3: var(--mahi-shadow-b3);
   --shadow-b6: var(--mahi-shadow-b6);
@@ -468,10 +496,12 @@
   --shadow-b10: var(--mahi-shadow-b10);
   --shadow-b12: var(--mahi-shadow-b12);
   /* FONTS */
-  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-sans: var(--font-app), system-ui, sans-serif;
   --font-weight-regular: var(--mahi-font-weight-regular);
+  --font-weight-medium: var(--mahi-font-weight-medium);
   --font-weight-semi-bold: var(--mahi-font-weight-semi-bold);
   --font-weight-bold: var(--mahi-font-weight-bold);
+  --font-weight-extra-bold: var(--mahi-font-weight-extra-bold);
   /* Breakpoints (from SIZE; media queries need the value written out) */
   --breakpoint-sm: 26.25rem;
   --breakpoint-md: 50rem;
