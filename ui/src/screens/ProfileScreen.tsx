@@ -19,7 +19,7 @@ import FollowListModal from '@/components/FollowListModal';
 import MyInvitesSheet from '@/components/MyInvitesSheet';
 import { getMyInvites } from '@/api/invites';
 import { inviteSummary } from '@/lib/myInvites';
-import { inviteAMate } from '@/lib/inviteAMate';
+import { useInviteAMate } from '@/components/ShareSheet';
 import SuggestedFollowsStrip from '@/components/SuggestedFollowsStrip';
 import TouchCarousel from '@/components/TouchCarousel';
 import ProfileIdentityCard from '@/components/ProfileIdentityCard';
@@ -110,6 +110,8 @@ export default function ProfileScreen({
   const [invitesRead, setInvitesRead] = useState(false);
   // "Invite a mate" (core workflow step 24): one link at a time, so a double tap can't make two.
   const [inviting, setInviting] = useState(false);
+  // The link opens in Mahi's share sheet (switch `share-sheet`; off: the phone's).
+  const { invite: inviteAMate, sheet: inviteSheet } = useInviteAMate();
   const [viewerPost, setViewerPost] = useState<{
     postId: string;
     source?: MorphSource;
@@ -376,7 +378,7 @@ export default function ProfileScreen({
       />
 
       {/* Invite a mate, from your profile at any time (core workflow step 24): a link made on
-          tap, then the phone's share sheet. */}
+          tap, then the share sheet. */}
       <Pressable
         style={({ pressed }) => [
           styles.quickAction,
@@ -448,6 +450,7 @@ export default function ProfileScreen({
 
       {/* The links you've sent and who joined */}
       <MyInvitesSheet visible={invitesOpen} onClose={() => setInvitesOpen(false)} dark={dark} />
+      {inviteSheet}
 
       {/* Your posts, full screen from the tapped one: up/down browses, sideways closes */}
       {profile ? (

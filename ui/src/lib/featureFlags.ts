@@ -61,6 +61,9 @@ export const FEATURE_FLAGS = [
 
   // Public and private accounts (owner, 2026-10-08)
   'private-accounts', // Settings → Controls, the choice after sign-up, follow requests, remove a follower (default OFF)
+
+  // Sharing (owner, 2026-10-10) — a kill switch, on for everyone
+  'share-sheet', // Share and Invite a mate open Mahi's own share sheet, and a shared post shows as a card in a chat (off: straight to the phone's share sheet; a post message is a plain bubble)
 ] as const;
 
 /** A known PostHog feature flag key. */

@@ -19,7 +19,7 @@ import { useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SearchIcon } from '@/components/ScreenIcons';
 import { searchProfiles, type ProfileSearchResult } from '@/api';
-import { inviteAMate } from '@/lib/inviteAMate';
+import { useInviteAMate } from '@/components/ShareSheet';
 import PointsBadge from '@/components/PointsBadge';
 import { useAuthStore, useBlockStore } from '@/store';
 import UserProfileScreen from '@/screens/UserProfileScreen';
@@ -131,6 +131,8 @@ export default function GlobalSearchOverlay({
   const [loading, setLoading] = useState(false);
   // "Invite a mate" under a search that found no one: the link is being made.
   const [inviting, setInviting] = useState(false);
+  // The link opens in Mahi's share sheet (switch `share-sheet`; off: the phone's).
+  const { invite: inviteAMate, sheet: inviteSheet } = useInviteAMate();
   const [searched, setSearched] = useState(false);
   /** The last search failed: say so (never "no one called…"), with Try again. */
   const [failed, setFailed] = useState(false);
@@ -418,6 +420,7 @@ export default function GlobalSearchOverlay({
           dark={dark}
         />
       ) : null}
+      {inviteSheet}
     </Animated.View>
   );
 }

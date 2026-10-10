@@ -284,3 +284,73 @@ describe('the first message to someone', () => {
     expect(await useConversationStore.getState().start('them', ME, 'hi')).toBeNull();
   });
 });
+
+// A post shared into a chat (`share_post`): the live row carries only `post_id`, so the page is
+// read again for the post itself (RULES.md "Live updates"); an edit of its note keeps the post.
+describe('a post arriving in a chat', () => {
+  const post = { id: 'p1', available: false as const, reason: 'private' as const };
+  const postRow = (extra: Partial<Message> = {}): Message => ({
+    ...serverRow('s1', 'c1', '', justAfter(0)),
+    sender_id: 'them',
+    post_id: 'p1',
+    ...extra,
+  });
+
+  // A read left waiting by one test must never be the next test's first page.
+  beforeEach(() => {
+    (getMessages as jest.Mock).mockReset();
+    (getMessages as jest.Mock).mockResolvedValue({ data: [], error: null });
+  });
+
+  it('re-reads the page for a live message that carries a post', async () => {
+    await useConversationStore.getState().open(CONVO);
+    (getMessages as jest.Mock).mockClear();
+    (getMessages as jest.Mock).mockResolvedValueOnce({ data: [postRow({ post })], error: null });
+
+    insertHandler?.({ new: postRow() });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(getMessages).toHaveBeenCalledWith(CONVO);
+    expect(thread().messages).toHaveLength(1);
+    expect(thread().messages[0].post).toEqual(post);
+  });
+
+  it('never shows the bare live row in place of a post already on screen', async () => {
+    (getMessages as jest.Mock).mockResolvedValueOnce({ data: [postRow({ post })], error: null });
+    await useConversationStore.getState().open(CONVO);
+    // The re-read is still on its way when the live row lands.
+    (getMessages as jest.Mock).mockReturnValueOnce(new Promise(() => {}));
+
+    insertHandler?.({ new: postRow() });
+
+    expect(thread().messages[0].post).toEqual(post);
+  });
+
+  it('a plain live message is added without another read', async () => {
+    await useConversationStore.getState().open(CONVO);
+    (getMessages as jest.Mock).mockClear();
+
+    insertHandler?.({ new: serverRow('s2', 'c2', 'hi', justAfter(1)) });
+
+    expect(getMessages).not.toHaveBeenCalled();
+    expect(contents()).toEqual(['hi']);
+  });
+
+  it('editing the note keeps the post on the message', async () => {
+    const mine = postRow({ sender_id: ME, content: 'Look', post });
+    (getMessages as jest.Mock).mockResolvedValueOnce({ data: [mine], error: null });
+    await useConversationStore.getState().open(CONVO);
+    // edit_message answers the message alone: post_id, no post.
+    const saved = {
+      ...postRow({ sender_id: ME, content: 'Look at this' }),
+      edited_at: justAfter(1),
+    };
+    (editMessage as jest.Mock).mockResolvedValue({ data: saved, error: null });
+
+    expect(await useConversationStore.getState().edit(CONVO, 's1', 'Look at this')).toBe(true);
+
+    expect(contents()).toEqual(['Look at this']);
+    expect(thread().messages[0].post).toEqual(post);
+  });
+});

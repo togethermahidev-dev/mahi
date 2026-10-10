@@ -17,6 +17,7 @@ import {
   type Message,
 } from '@/api';
 import { reactionsOf, toggleReaction, type ReactionSummary } from '@/lib/messageReactions';
+import { messagePreviewText } from '@/lib/sharedPost';
 import { useMessagesStore } from './messagesStore';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -175,16 +176,26 @@ export const useConversationStore = create<ConversationState>((set, get) => {
             },
             (payload) => {
               const incoming = payload.new as Message;
-              set((s) => {
-                const prev = s.threads[conversationId] ?? EMPTY;
-                return {
-                  threads: {
-                    ...s.threads,
-                    [conversationId]: { ...prev, messages: merge(prev.messages, [incoming]) },
-                  },
-                };
+              if (incoming.post_id) {
+                // A shared post: the live row carries only its id, so the page is read again for
+                // the post itself (and a post already on screen is never swapped for a bare row).
+                void get().refreshNewest(conversationId);
+              } else {
+                set((s) => {
+                  const prev = s.threads[conversationId] ?? EMPTY;
+                  return {
+                    threads: {
+                      ...s.threads,
+                      [conversationId]: { ...prev, messages: merge(prev.messages, [incoming]) },
+                    },
+                  };
+                });
+              }
+              // The inbox line: a post with no note reads "Sent a post", as get_inbox says it.
+              useMessagesStore.getState().patchConversationLastMessage(conversationId, {
+                ...incoming,
+                content: messagePreviewText(incoming),
               });
-              useMessagesStore.getState().patchConversationLastMessage(conversationId, incoming);
             }
           )
           .on(
@@ -391,7 +402,8 @@ export const useConversationStore = create<ConversationState>((set, get) => {
           extra: { conversationId, messageId, rpc: 'edit_message' },
         });
       }
-      put(error || !data ? before : data);
+      // The answer is the message alone: what only get_messages sends (a shared post) stays.
+      put(error || !data ? before : { ...before, ...data });
       return !error && !!data;
     },
 

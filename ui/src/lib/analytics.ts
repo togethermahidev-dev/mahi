@@ -44,8 +44,14 @@ export type TagLoopEvents = {
   };
   /** The person who missed the tag lost their Mahi points — their side of the same miss. */
   streak_lost: { challenge_id: string | null };
-  /** An invite link actually reached the share sheet and was sent (`via`: where, on the tag screen). */
-  invite_shared: { via?: 'whatsapp' | 'messages' | 'more'; challenge_id?: string };
+  /** An invite link actually went out (`via`: where; `copy`: copied from the share sheet). */
+  invite_shared: { via?: 'whatsapp' | 'messages' | 'more' | 'copy'; challenge_id?: string };
+  /**
+   * A post was shared from the share sheet. `via: 'mahi'`: sent to `friends` friends in their Mahi
+   * chats, once the server confirmed. Otherwise a button on the bottom row was tapped (`copy`,
+   * `whatsapp`, `messages`, `snapchat`, `instagram`, `more`) and `friends` is 0.
+   */
+  post_shared: { post_id: string; friends: number; via: string };
   /** An in-app invite went to someone on Mahi who isn't a friend yet (flag `tag-slots`). */
   tag_invite_sent: { challenge_id: string };
   /** Someone answered an in-app invite. */

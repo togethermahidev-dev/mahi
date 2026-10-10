@@ -41,8 +41,13 @@ import {
 interface PostViewerProps {
   /** Whose posts: the profile the grid belongs to ('' with `from: 'feed'`). */
   userId: string;
-  /** Which list it pages through: a profile's posts (sideways) or the feed (up and down). */
-  from?: 'profile' | 'feed';
+  /**
+   * Which list it pages through: a profile's posts (sideways), the feed (up and down), or just
+   * the one `post` (a post shared in a chat: who can see it is the server's call, post by post).
+   */
+  from?: 'profile' | 'feed' | 'post';
+  /** With `from: 'post'`: the post to show. */
+  post?: FeedPost | null;
   /** The tapped post; null keeps the viewer closed. */
   postId: string | null;
   onClose: () => void;
@@ -63,6 +68,7 @@ interface PostViewerProps {
 export default function PostViewer({
   userId,
   from = 'profile',
+  post = null,
   postId,
   onClose,
   onOpenProfile,
@@ -76,10 +82,11 @@ export default function PostViewer({
     postId: string;
     opening: number;
     source: MorphSource | null;
+    post: FeedPost | null;
   } | null>(null);
   if (postId !== openId) {
     setOpenId(postId);
-    if (postId) setShown({ postId, opening: (shown?.opening ?? 0) + 1, source });
+    if (postId) setShown({ postId, opening: (shown?.opening ?? 0) + 1, source, post });
   }
 
   if (!shown) return <></>;
@@ -90,6 +97,7 @@ export default function PostViewer({
       visible={!!postId}
       userId={userId}
       from={from}
+      post={shown.post}
       startPostId={shown.postId}
       source={shown.source}
       onClose={onClose}
@@ -103,6 +111,7 @@ function PostViewerModal({
   visible,
   userId,
   from,
+  post,
   startPostId,
   source,
   onClose,
@@ -111,7 +120,8 @@ function PostViewerModal({
 }: {
   visible: boolean;
   userId: string;
-  from: 'profile' | 'feed';
+  from: 'profile' | 'feed' | 'post';
+  post: FeedPost | null;
   startPostId: string;
   source: MorphSource | null;
   onClose: () => void;
@@ -139,6 +149,7 @@ function PostViewerModal({
           <Reanimated.View style={[styles.root, morph.contentStyle]}>
             <Pages
               from={from}
+              post={post}
               userId={userId}
               startPostId={startPostId}
               open={visible && morph.presented}
@@ -175,9 +186,28 @@ type PagesProps = {
   morphProgress?: SharedValue<number>;
 };
 
-/** The list the viewer pages through: a profile's posts, or the feed (owner, 2026-10-08). */
-function Pages({ from, ...props }: PagesProps & { from: 'profile' | 'feed' }): React.JSX.Element {
+/**
+ * The list the viewer pages through: a profile's posts, the feed (owner, 2026-10-08), or the one
+ * post shared in a chat (owner, 2026-10-10).
+ */
+function Pages({
+  from,
+  post,
+  ...props
+}: PagesProps & { from: 'profile' | 'feed' | 'post'; post: FeedPost | null }): React.JSX.Element {
+  if (from === 'post') return <OnePostPage {...props} post={post} />;
   return from === 'feed' ? <FeedPages {...props} /> : <ProfilePages {...props} />;
+}
+
+const noMore = () => {};
+
+/** Just the one post, as the chat's `get_messages` handed it over (nothing else is read). */
+function OnePostPage({
+  post,
+  ...props
+}: PagesProps & { post: FeedPost | null }): React.JSX.Element {
+  const posts = useMemo(() => openablePosts(post ? [post] : []), [post]);
+  return <ViewerPages {...props} posts={posts} hasMore={false} loadMore={noMore} />;
 }
 
 function ProfilePages(props: PagesProps): React.JSX.Element {

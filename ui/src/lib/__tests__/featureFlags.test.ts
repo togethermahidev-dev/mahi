@@ -222,3 +222,13 @@ describe('build 13 features held back', () => {
     }
   });
 });
+
+// Owner, 2026-10-10: the share sheet "like Instagram's". A kill switch, on for everyone: it reads
+// as on while flags load, and only an explicit false in PostHog brings back the old Share.
+describe('share-sheet', () => {
+  it('is in the registry and on by default', () => {
+    expect(FEATURE_FLAGS as readonly string[]).toContain('share-sheet');
+    expect(flagDefaultOn('share-sheet' as FeatureFlag)).toBe(true);
+    expect(DEFAULT_OFF_FLAGS as readonly string[]).not.toContain('share-sheet');
+  });
+});

@@ -498,6 +498,23 @@ export const SEGMENTED = {
   disabledOpacity: ALPHA.a40,
 } as const;
 
+// ─── Share sheet (owner, 2026-10-10: like Instagram's) and a post inside a chat ─────
+export const SHARE_SHEET = {
+  /** Friends across the grid. */
+  columns: 3,
+  /** A friend's round photo, and the tick on a picked one. */
+  avatar: SIZE.z72,
+  tick: SIZE.z24,
+  /** A round button on the bottom row, and the room each takes with its label. */
+  target: SIZE.z56,
+  targetWidth: SIZE.z72,
+  /** The note grows to this before it scrolls. */
+  noteMaxHeight: SIZE.z100,
+  /** A post in a chat bubble: this wide, its photo portrait like the camera's (3:4). */
+  postCardWidth: SIZE.z200,
+  postCardAspect: 3 / 4,
+} as const;
+
 // ─── Floating nav rail: the pill outline and shadow (with SHADOW_BLUR / SIZE) ────
 export const NAV_RAIL = {
   /** Pill outline: white at this opacity on dark screens (owner: a clearly visible pill). */

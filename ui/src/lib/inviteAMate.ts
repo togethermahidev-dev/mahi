@@ -11,6 +11,8 @@ import { makeMateInvite, type MateInvite } from '@/api/tagSlots';
 import { discardUnsentInvite, recordInviteSent } from '@/api/invites';
 import { isSlotRefusal, mateInviteErrorText, mateInviteMessage, shareAppUrl } from '@/lib/tagSlots';
 import { smsInviteUrl } from '@/lib/contactMatch';
+import { copyLink } from '@/lib/copyLink';
+import type { ShareSheetTarget } from '@/lib/shareSheet';
 import type { InviteVia, ResendPlace } from '@/lib/myInvites';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
@@ -87,6 +89,36 @@ export async function sendLinkTo(
     } catch {
       // The app isn't on this phone: the share sheet below.
     }
+  }
+  return shareMateLink(link, action);
+}
+
+/**
+ * One round button on the share sheet, for an invite link. Copy link copies it; WhatsApp and
+ * Messages open with the invite already written (the share sheet when that app isn't on the
+ * phone); Snapchat, Instagram and "Share to…" open the phone's share sheet (decision #156). True
+ * when the link went somewhere; where it went is recorded for "Your invites".
+ */
+export async function sendMateLinkVia(
+  link: MateInvite,
+  target: ShareSheetTarget
+): Promise<boolean> {
+  const action = 'shareMateInvite';
+  if (target === 'copy') {
+    const copied = copyLink(link.url);
+    if (copied) {
+      track('invite_shared', { via: 'copy' });
+      noteInviteSent(link.token, 'copy');
+    }
+    useToastStore.getState().show(copied ? 'Link copied' : 'Couldn’t copy the link. Try again.');
+    return copied;
+  }
+  const none = { toName: null, toPhone: null };
+  if (target === 'whatsapp') {
+    return sendLinkTo(link, { open: 'whatsapp', via: 'whatsapp', ...none }, action);
+  }
+  if (target === 'messages') {
+    return sendLinkTo(link, { open: 'sms', via: 'messages', ...none }, action);
   }
   return shareMateLink(link, action);
 }

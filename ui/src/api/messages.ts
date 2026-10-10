@@ -13,8 +13,12 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import { reportError } from '@/lib/sentry';
 import type { Database } from '@/types';
 import type { ReactionSummary } from '@/lib/messageReactions';
+import { readSharedPost, type SharedPostReason } from '@/lib/sharedPost';
+import { readShareResult } from '@/lib/shareSheet';
+import { toPosts, type FeedItem, type FeedPost } from './posts';
 
 type ProfRow = Database['public']['Tables']['profiles']['Row'];
 
@@ -32,7 +36,22 @@ export type Message = {
   unsent_at?: string | null;
   /** Its reactions, first reaction first (get_messages only; a fresh send has none). */
   reactions?: ReactionSummary[];
+  /** The post this message carries (`share_post`); `content` is then the optional note, maybe ''. */
+  post_id?: string | null;
+  /**
+   * That post, from `get_messages` only: a live row and an edit's answer carry just `post_id`,
+   * so the page is read again for it. Missing from a server before shared posts.
+   */
+  post?: SharedPost | null;
 };
+
+/**
+ * A post inside a chat: the post as the feed draws it (photo links signed the same way), or why
+ * it can't be shown. A shared post follows the same who-can-see rules; no exception.
+ */
+export type SharedPost =
+  | { id: string; available: true; post: FeedPost }
+  | { id: string; available: false; reason: SharedPostReason };
 
 /** How long after sending a message its sender can still edit it (the server's rule). */
 export const EDIT_WINDOW_MS = 15 * 60 * 1000;
@@ -209,6 +228,33 @@ export async function startConversation(
   };
 }
 
+/**
+ * Send a post to friends in their Mahi chats (the share sheet), with an optional note: one
+ * message each. `clientId` is made on the phone, so a retry never sends twice. Hands back who it
+ * went to and who it couldn't be sent to (blocked, a closed chat, a request still waiting).
+ * Errors: "post not found" (you can't see that post), "share with 1 to 10 people", a note over
+ * 2000 characters.
+ */
+export async function sharePostToFriends(
+  postId: string,
+  recipientIds: string[],
+  clientId: string,
+  note: string | null
+): Promise<{ data: { sent: string[]; skipped: string[] } | null; error: Error | null }> {
+  // Not in the generated types until its migration is live (20261010100000_share_post_in_message).
+  const { data, error } = await supabase.rpc(
+    'share_post' as never,
+    {
+      p_post: postId,
+      p_recipients: recipientIds,
+      p_client_id: clientId,
+      p_note: note?.trim() || null,
+    } as never
+  );
+  if (error) return { data: null, error: new Error(error.message, { cause: error }) };
+  return { data: readShareResult(data), error: null };
+}
+
 /** Edit your own message (within 15 minutes of sending it). */
 export async function editMessage(
   messageId: string,
@@ -273,7 +319,48 @@ export async function getMessages(
 
   if (error) return { data: null, error: new Error(error.message, { cause: error }) };
   // The server returns newest first; the screen reads oldest first.
-  return { data: (data as unknown as Message[]).slice().reverse(), error: null };
+  const rows = ((data ?? []) as unknown as RawMessage[]).slice().reverse();
+  return { data: await withSharedPosts(rows), error: null };
+}
+
+/** A message as `get_messages` sends it: `post` still the server's shape. */
+type RawMessage = Omit<Message, 'post'> & { post?: unknown };
+
+/**
+ * Give each message its shared post, photo links signed the way feed posts are (one request for
+ * the whole page). Links that can't be made leave the chat readable: those posts say they
+ * couldn't load.
+ */
+async function withSharedPosts(rows: RawMessage[]): Promise<Message[]> {
+  const shared = rows.map((row) => readSharedPost(row.post));
+  const items = shared.flatMap((s) => (s?.available ? [s.item as FeedItem] : []));
+  const posts = new Map<string, FeedPost>();
+  if (items.length) {
+    try {
+      for (const post of await toPosts(items)) posts.set(post.id, post);
+    } catch (e) {
+      reportError(e, {
+        flow: 'messages',
+        action: 'signSharedPosts',
+        level: 'warning',
+        extra: { count: items.length, bucket: 'posts' },
+      });
+    }
+  }
+  return rows.map((row, i): Message => {
+    const raw = shared[i];
+    if (!raw) return { ...row, post: null };
+    if (!raw.available) return { ...row, post: raw };
+    const post = posts.get(raw.id);
+    // Nothing to show (the link failed, or the server hid the photo): say so, without a photo.
+    return {
+      ...row,
+      post:
+        post && post.image_url
+          ? { id: raw.id, available: true, post }
+          : { id: raw.id, available: false, reason: 'error' },
+    };
+  });
 }
 
 /** Mark everything in a conversation as read, up to now. */

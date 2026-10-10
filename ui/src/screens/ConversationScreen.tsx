@@ -30,7 +30,11 @@ import { FREE_TEXT_PREDICTION } from '@/lib/emojiKeyboard';
 import MessageHoldMenu from '@/components/MessageHoldMenu';
 import ReactionBadges from '@/components/ReactionBadges';
 import EmojiKeyboardSheet from '@/components/EmojiKeyboardSheet';
+import SharedPostCard from '@/components/SharedPostCard';
+import PostViewer from '@/components/PostViewer';
+import UserProfileScreen from '@/screens/UserProfileScreen';
 import { messageHoldActions, myReaction, reactionsOf } from '@/lib/messageReactions';
+import { messagePreviewText, messageWordsEditable } from '@/lib/sharedPost';
 import { useToastStore } from '@/store/toastStore';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { useConversation } from '@/hooks/useConversation';
@@ -38,7 +42,13 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useCoverRail } from '@/hooks/useChrome';
 import { useMessages } from '@/hooks/useMessages';
 import { groupMessagesByDate, type GroupedRow } from '@/lib/groupMessages';
-import { canStillEdit, isDraft, type ConversationPreview, type Message } from '@/api';
+import {
+  canStillEdit,
+  isDraft,
+  type ConversationPreview,
+  type FeedPost,
+  type Message,
+} from '@/api';
 import { useBlockStore, useConversationStore, useMessagesStore } from '@/store';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -111,6 +121,16 @@ export default function ConversationScreen({
   const [editing, setEditing] = useState<Message | null>(null);
   // The message whose "+" (any emoji) sheet is open, if any.
   const [emojiFor, setEmojiFor] = useState<string | null>(null);
+  // A post shared into the chat shows as a card that opens full screen (switch `share-sheet`;
+  // off: a plain bubble with its words). From it, someone's profile can open over the chat.
+  const sharedPostsOn = useFeatureFlag('share-sheet');
+  const [viewerPost, setViewerPost] = useState<FeedPost | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const closeViewer = () => {
+    setViewerPost(null);
+    // The post may have changed or gone while it was open: the server's page again.
+    if (!draft) void useConversationStore.getState().refreshNewest(convo.id);
+  };
 
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
@@ -429,14 +449,17 @@ export default function ConversationScreen({
                       </View>
                     );
                   }
-                  const msg = item.msg;
+                  const msg = item.msg as Message;
                   const isOwn = msg.sender_id === currentUserId;
                   const sending = msg.id.startsWith('temp_');
                   const actions = messageHoldActions({
                     own: isOwn && !sending,
-                    canEdit: canStillEdit(msg.created_at) && canSend,
+                    // A post sent with no note has no words to edit.
+                    canEdit: canStillEdit(msg.created_at) && canSend && messageWordsEditable(msg),
                   });
                   const reactions = reactionsOf(msg);
+                  const shared = sharedPostsOn ? (msg.post ?? null) : null;
+                  const openPost = shared?.available ? shared.post : null;
                   return (
                     <View
                       style={[
@@ -453,15 +476,28 @@ export default function ConversationScreen({
                         onReact={(emoji) => void onReact(msg.id, emoji)}
                         onMore={() => setEmojiFor(msg.id)}
                         onAction={(action) => void runHoldAction(msg, action)}
+                        onPress={openPost ? () => setViewerPost(openPost) : undefined}
                       >
-                        <View
-                          style={[
-                            styles.bubble,
-                            { backgroundColor: isOwn ? ownBubble : otherBubble },
-                          ]}
-                        >
-                          <Text style={[styles.bubbleText, { color: text }]}>{msg.content}</Text>
-                        </View>
+                        {shared ? (
+                          <SharedPostCard
+                            shared={shared}
+                            note={msg.content}
+                            background={isOwn ? ownBubble : otherBubble}
+                            dark={dark}
+                            onOpen={setViewerPost}
+                          />
+                        ) : (
+                          <View
+                            style={[
+                              styles.bubble,
+                              { backgroundColor: isOwn ? ownBubble : otherBubble },
+                            ]}
+                          >
+                            <Text style={[styles.bubbleText, { color: text }]}>
+                              {messagePreviewText(msg)}
+                            </Text>
+                          </View>
+                        )}
                       </MessageHoldMenu>
                       {reactionsOn ? (
                         <ReactionBadges
@@ -595,6 +631,26 @@ export default function ConversationScreen({
             ) : null}
           </Reanimated.View>
         </GestureDetector>
+        {/* A shared post, full screen: just that post, as the server handed it to this chat. */}
+        <PostViewer
+          userId=""
+          from="post"
+          post={viewerPost}
+          postId={viewerPost?.id ?? null}
+          onClose={closeViewer}
+          onOpenProfile={(id) => {
+            closeViewer();
+            setProfileUserId(id);
+          }}
+        />
+        {profileUserId ? (
+          <UserProfileScreen
+            key={profileUserId}
+            userId={profileUserId}
+            onBack={() => setProfileUserId(null)}
+            dark={dark}
+          />
+        ) : null}
       </GestureHandlerRootView>
     </Modal>
   );

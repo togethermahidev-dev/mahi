@@ -25,7 +25,7 @@ import {
   previewSize,
   shareTarget,
 } from '@/lib/contextMenuPreview';
-import { sharePost } from '@/lib/sharePost';
+import { usePostShare } from '@/components/ShareSheet';
 import { useContextMenuPreview } from '@/hooks/useContextMenuPreview';
 import { useProfilePostsStore, useSocialStore, useUserStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
@@ -95,6 +95,8 @@ function WorkoutCard({
   const [imgError, setImgError] = useState(false);
   // A muted square with a spinner until the photo arrives (slow networks).
   const [imgLoaded, setImgLoaded] = useState(false);
+  // Share: Mahi's share sheet (switch `share-sheet`; off: straight to the phone's).
+  const { share, sheet: shareSheet } = usePostShare();
   const badgeBg = dark
     ? withAlpha(COLORS.offBlack, ALPHA.a75)
     : withAlpha(COLORS.offWhite, ALPHA.a75);
@@ -147,7 +149,7 @@ function WorkoutCard({
       // Seed the post's liked state first, so the toggle starts from what the grid shows.
       useSocialStore.getState().initPost(post.id, post.liked_by_me);
       useSocialStore.getState().toggleLike(post.id, userId);
-    } else if (action === 'share') sharePost(post);
+    } else if (action === 'share') share(post);
   };
 
   const cell = (
@@ -215,19 +217,22 @@ function WorkoutCard({
 
   if (!withMenu) return cell;
   return (
-    <PreviewMenu
-      width={width}
-      height={mediaHeight}
-      style={styles.gridCard}
-      dark={dark}
-      items={items}
-      onAction={runAction}
-      previewSize={previewSize({ width: screenW, height: screenH }, 'post')}
-      previewBackground={dark ? COLORS.surfaceDark2 : COLORS.surfaceLight}
-      renderPreview={() => <PostPreviewImage uri={tile.uri} />}
-    >
-      {cell}
-    </PreviewMenu>
+    <>
+      <PreviewMenu
+        width={width}
+        height={mediaHeight}
+        style={styles.gridCard}
+        dark={dark}
+        items={items}
+        onAction={runAction}
+        previewSize={previewSize({ width: screenW, height: screenH }, 'post')}
+        previewBackground={dark ? COLORS.surfaceDark2 : COLORS.surfaceLight}
+        renderPreview={() => <PostPreviewImage uri={tile.uri} />}
+      >
+        {cell}
+      </PreviewMenu>
+      {shareSheet}
+    </>
   );
 }
 

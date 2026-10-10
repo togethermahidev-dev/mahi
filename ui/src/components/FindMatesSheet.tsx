@@ -41,7 +41,8 @@ import {
   type MatchPhase,
   type MatchedAccount,
 } from '@/lib/contactMatch';
-import { discardUnsentLink, inviteAMate, makeMateLink, noteInviteSent } from '@/lib/inviteAMate';
+import { discardUnsentLink, makeMateLink, noteInviteSent } from '@/lib/inviteAMate';
+import { useInviteAMate } from '@/components/ShareSheet';
 import { INVITE_BUTTON, mateInviteMessage } from '@/lib/tagSlots';
 import { reportError } from '@/lib/sentry';
 import { track } from '@/lib/analytics';
@@ -123,6 +124,8 @@ function FindMates({ onClose, dark }: { onClose: () => void; dark: boolean }) {
   const [query, setQuery] = useState('');
   const [asking, setAsking] = useState(false);
   const [linking, setLinking] = useState(false);
+  // "Invite by link": the link opens in Mahi's share sheet (switch `share-sheet`; off: the phone's).
+  const { invite: inviteAMate, sheet: inviteSheet } = useInviteAMate();
   const [invitingId, setInvitingId] = useState<string | null>(null);
   // Contacts whose text was opened in Messages. Opening it doesn't mean it was sent, so the row
   // says "Text opened", and a second tap opens the same link again rather than making a new one
@@ -654,6 +657,7 @@ function FindMates({ onClose, dark }: { onClose: () => void; dark: boolean }) {
           dark={dark}
         />
       ) : null}
+      {inviteSheet}
     </>
   );
 }

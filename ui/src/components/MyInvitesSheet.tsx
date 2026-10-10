@@ -21,7 +21,8 @@ import { supabase } from '@/lib/supabase';
 import { reportError } from '@/lib/sentry';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
-import { inviteAMate, sendLinkTo } from '@/lib/inviteAMate';
+import { sendLinkTo } from '@/lib/inviteAMate';
+import { useInviteAMate } from '@/components/ShareSheet';
 import {
   CANCEL_CONFIRM,
   CODE_HINT,
@@ -158,6 +159,10 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
     void load();
   }, [load]);
 
+  // A new link opens in Mahi's share sheet (switch `share-sheet`; off: the phone's); once it has
+  // gone somewhere the list is read again, so it shows.
+  const { invite: inviteAMate, sheet: inviteSheet } = useInviteAMate(() => void load());
+
   // Live while open: someone joining from your link sends you an invite_joined notification
   // (invites themselves aren't in realtime). Back from the background, read again too: the
   // connection may have slept through a join.
@@ -203,7 +208,7 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
     if (inviting) return;
     setInviting(true);
     try {
-      if (await inviteAMate()) await load();
+      await inviteAMate();
     } finally {
       setInviting(false);
     }
@@ -560,6 +565,7 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
           dark={dark}
         />
       ) : null}
+      {inviteSheet}
     </>
   );
 }

@@ -25,7 +25,7 @@ import {
   rowMenuItems,
   shareTarget,
 } from '@/lib/contextMenuPreview';
-import { sharePost } from '@/lib/sharePost';
+import { usePostShare } from '@/components/ShareSheet';
 import { gridTile } from '@/lib/videoPosts';
 import { relativeTime } from '@/lib/relativeTime';
 import { haptic } from '@/lib/haptics';
@@ -120,6 +120,8 @@ export default function FeedRow({
 }): React.JSX.Element {
   const { dark, colors } = useAppTheme();
   const currentUser = useAuthStore((s) => s.user);
+  // Share: Mahi's share sheet (switch `share-sheet`; off: straight to the phone's).
+  const { share, sheet: shareSheet } = usePostShare();
   const tile = gridTile(item);
   const rearRef = useRef<View>(null);
 
@@ -161,7 +163,7 @@ export default function FeedRow({
     if (action === 'open') open();
     else if (action === 'like' || action === 'unlike') like();
     else if (action === 'comment') onCommentPress(item.id);
-    else if (action === 'share') void sharePost(item);
+    else if (action === 'share') share(item);
     else if (action === 'view-profile') onAvatarPress(item.profiles.id);
   };
 
@@ -264,17 +266,20 @@ export default function FeedRow({
 
   if (!withMenu) return row;
   return (
-    <PreviewMenu
-      width={width}
-      dark={dark}
-      items={items}
-      onAction={runAction}
-      previewSize={previewSize({ width: screenW, height: screenH }, 'post')}
-      previewBackground={colors.bg}
-      renderPreview={() => <PostPreviewImage uri={tile.uri} />}
-    >
-      {row}
-    </PreviewMenu>
+    <>
+      <PreviewMenu
+        width={width}
+        dark={dark}
+        items={items}
+        onAction={runAction}
+        previewSize={previewSize({ width: screenW, height: screenH }, 'post')}
+        previewBackground={colors.bg}
+        renderPreview={() => <PostPreviewImage uri={tile.uri} />}
+      >
+        {row}
+      </PreviewMenu>
+      {shareSheet}
+    </>
   );
 }
 

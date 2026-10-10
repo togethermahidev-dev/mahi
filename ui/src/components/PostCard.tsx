@@ -54,7 +54,7 @@ import {
   previewStill,
   shareTarget,
 } from '@/lib/contextMenuPreview';
-import { sharePost } from '@/lib/sharePost';
+import { usePostShare } from '@/components/ShareSheet';
 import { reportError } from '@/lib/sentry';
 import { canEditPostCaption } from '@/lib/postPolicy';
 import { deletePost } from '@/api';
@@ -158,6 +158,8 @@ export default function PostCard({
   const canEditCaption = ownPost && canEditPostCaption(item.created_at);
   const [editingCaption, setEditingCaption] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Share: Mahi's share sheet (switch `share-sheet`; off: straight to the phone's).
+  const { share, sheet: shareSheet } = usePostShare();
 
   const removeOwnPost = useCallback(async () => {
     if (deleting) return;
@@ -414,7 +416,7 @@ export default function PostCard({
     if (!isMenuAction(action)) return;
     if (action === 'like' || action === 'unlike') handleLike();
     else if (action === 'comment') handleCommentPress();
-    else if (action === 'share') sharePost(item);
+    else if (action === 'share') share(item);
     else if (action === 'view-profile') onAvatarPress(item.profiles.id);
   };
   const previewUri = previewStill([
@@ -765,6 +767,7 @@ export default function PostCard({
           onClose={() => setEditingCaption(false)}
         />
       ) : null}
+      {shareSheet}
     </View>
   );
 }

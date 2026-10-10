@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { getMessages, type Message } from '@/api';
+import { messagePreviewText } from '@/lib/sharedPost';
 import { reportError } from '@/lib/sentry';
 import { previewMessages } from '@/lib/contextMenuPreview';
 import { FONTS } from '@/constants/fonts';
@@ -78,7 +79,7 @@ export default function ChatPreview({
           ]}
         >
           <Text style={[styles.bubbleText, { color: text }]} numberOfLines={3}>
-            {msg.content}
+            {messagePreviewText(msg)}
           </Text>
         </View>
       );

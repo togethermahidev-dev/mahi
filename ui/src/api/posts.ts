@@ -73,7 +73,7 @@ export type FeedPage = {
 };
 
 /** One post as get_feed / get_user_posts return it (public.feed_item). */
-type FeedItem = {
+export type FeedItem = {
   id: string;
   user_id: string;
   created_at: string;
@@ -120,8 +120,12 @@ function cachedSignedUrl(path: string, now: number): string | null {
   return cached.url;
 }
 
-/** Turn server items into posts with short-lived signed photo / video URLs ('' when hidden). */
-async function toPosts(items: FeedItem[]): Promise<FeedPost[]> {
+/**
+ * Turn server items into posts with short-lived signed photo / video URLs ('' when hidden).
+ * Also how a post shared into a chat is signed (`getMessages`): the same item, the same links.
+ * Throws when the links can't be made.
+ */
+export async function toPosts(items: FeedItem[]): Promise<FeedPost[]> {
   const paths = [
     ...new Set(
       items.flatMap((i) => [i.image_path, i.pov_image_path]).filter((p): p is string => !!p)

@@ -34,7 +34,9 @@ const ACTION_WORDS: Record<MessageHoldAction, string> = { edit: 'Edit', unsend: 
  * (Reduce Motion: it fades in and out, no spring).
  * Picking is felt (`selection`); the double tap too (`tick`).
  *
- * `children` stay what they were: the bubble, its taps intact.
+ * `children` stay what they were: the bubble, its taps intact. A bubble that opens something (a
+ * shared post) hands its tap here as `onPress`, so a hold on it still brings up the menu; one tap
+ * then opens at once, and the double-tap heart gives way to it (reactions stay in the menu).
  */
 export default function MessageHoldMenu({
   enabled,
@@ -45,6 +47,7 @@ export default function MessageHoldMenu({
   onReact,
   onMore,
   onAction,
+  onPress,
   children,
 }: {
   /** False: just `children` (a message still sending, or theirs in a waiting request). */
@@ -60,6 +63,8 @@ export default function MessageHoldMenu({
   /** The "+": any other emoji. */
   onMore: () => void;
   onAction: (action: MessageHoldAction) => void;
+  /** One tap on the bubble (a shared post opens). Without it, a double tap is a heart. */
+  onPress?: () => void;
   children: React.ReactNode;
 }): React.JSX.Element {
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -98,6 +103,11 @@ export default function MessageHoldMenu({
     onReact(DOUBLE_TAP_EMOJI);
   };
   const doubleTap = Gesture.Tap().numberOfTaps(2).runOnJS(true).onEnd(doubleTapped);
+  const oneTap = Gesture.Tap()
+    .runOnJS(true)
+    .onEnd((_event, success) => {
+      if (success) onPress?.();
+    });
 
   // VoiceOver: the same choices as actions on the bubble.
   const a11yActions = enabled
@@ -118,7 +128,7 @@ export default function MessageHoldMenu({
   };
 
   const body = (
-    <GestureDetector gesture={doubleTap}>
+    <GestureDetector gesture={onPress ? oneTap : doubleTap}>
       <View collapsable={false}>
         {children}
         <View pointerEvents="none" style={styles.heartWrap}>

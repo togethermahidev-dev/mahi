@@ -94,7 +94,7 @@ import CountBadge from '@/components/CountBadge';
 import { getMyInvites } from '@/api/invites';
 import { inviteBadgeCount } from '@/lib/myInvites';
 import { getTagSlots } from '@/api/tagSlots';
-import { inviteAMate } from '@/lib/inviteAMate';
+import { useInviteAMate } from '@/components/ShareSheet';
 import {
   HOLD_UP,
   postButtonLabel,
@@ -1765,6 +1765,8 @@ export default function CameraScreen({
   // Nothing to answer: you can still bring a mate in (owner, 2026-10-07). A link with no tag
   // behind it, made on tap; joining from it makes you follow each other, and no tag starts.
   const [invitingMate, setInvitingMate] = useState(false);
+  // The link opens in Mahi's share sheet (switch `share-sheet`; off: the phone's).
+  const { invite: inviteAMate, sheet: inviteSheet } = useInviteAMate();
   const [invitesOpen, setInvitesOpen] = useState(false);
   // "Find friends in your contacts" from contacts (build 13+, no switch).
   const contactsFinder = useContactsFinder();
@@ -3470,6 +3472,7 @@ export default function CameraScreen({
           onClose={() => setFindMatesOpen(false)}
           dark={dark}
         />
+        {inviteSheet}
 
         <PointFlight
           flight={flight}
