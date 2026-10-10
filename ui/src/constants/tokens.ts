@@ -465,9 +465,7 @@ export const EMOJI_PANEL = {
 export const LAYOUT = {
   /** A complete progress bar, expressed as a percentage. */
   percentFull: 100,
-  /** Columns in a profile's grid of posts. */
-  profileColumns: 2,
-  /** Start the next two-tile profile page shortly before the last row comes into view. */
+  /** Start the next page of a profile's grid shortly before the last row comes into view. */
   profileEndThreshold: 0.35,
   /** Tagged friends' bubbles shown before "+n". */
   taggedBubbles: 3,
@@ -528,6 +526,8 @@ export const PROFILE = {
   gridColumns: 3,
   /** …with this gap between them (none at the screen's edges). */
   gridGap: SPACE.s1,
+  /** Rows one read brings: enough to fill the first screen in one go. */
+  gridPageRows: 4,
   /** The round "Invite a friend" button, top left of your own profile. */
   inviteButton: SIZE.z44,
   /** A long name shrinks to this share of its size before it is cut. */

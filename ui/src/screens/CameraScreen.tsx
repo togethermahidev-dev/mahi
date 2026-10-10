@@ -69,6 +69,7 @@ import TaggedBubbleStack from '@/components/TaggedBubbleStack';
 import OpenTagsBanner from '@/components/OpenTagsBanner';
 import { CameraIcon, LockIcon } from '@/components/ScreenIcons';
 import {
+  mahiPointsWords,
   pointCelebration,
   pointsCount,
   pointsValue,
@@ -307,7 +308,13 @@ function PointsCounter({
           appleDigits={appleDigits}
           rollDown={missRoll}
         />
-        <Text style={styles.pointsLabel}>Mahi points</Text>
+        <Text
+          style={styles.pointsLabel}
+          numberOfLines={1}
+          maxFontSizeMultiplier={LAYOUT.largeTextScale}
+        >
+          {mahiPointsWords(known ? count : null)}
+        </Text>
       </Animated.View>
     </View>
   );

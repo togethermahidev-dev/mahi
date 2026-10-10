@@ -76,11 +76,6 @@ interface ProfileScreenProps {
   onSearch?: () => void;
   /** Go to the Camera page (the empty grid's "Open camera"); without it the grid only explains. */
   onOpenCamera?: () => void;
-  /**
-   * The profile has no sideways carousel any more (the compact header, owner 2026-10-10), so
-   * nothing here holds the page swipe. Still accepted so the navigator's call keeps working.
-   */
-  onCarouselTouchChange?: (active: boolean) => void;
 }
 
 /** The rule behind Points and Best (#47), in the app's words. */

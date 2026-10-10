@@ -6,7 +6,11 @@ jest.mock('@/lib/sentry', () => ({ reportError: jest.fn() }));
 const getUserPosts = jest.fn();
 jest.mock('@/api', () => ({ getUserPosts: (...a: unknown[]) => getUserPosts(...a) }));
 
+import { PROFILE } from '@/constants/tokens';
 import { useProfilePostsStore } from '@/store/profilePostsStore';
+
+// One full read of a profile's grid: whole rows of squares.
+const PAGE = PROFILE.gridColumns * PROFILE.gridPageRows;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -23,12 +27,16 @@ it('keeps why the workouts are hidden', async () => {
 
 // Tagged people see the post (owner, 2026-10-08): a restricted answer can still carry posts.
 it('keeps the posts a restricted answer carries, and pages them as usual', async () => {
-  const posts = [1, 2, 3, 4].map((n) => ({ id: `p${n}`, created_at: `2026-10-0${n}T00:00:00Z` }));
+  const posts = Array.from({ length: PAGE }, (_, i) => ({
+    id: `p${i + 1}`,
+    created_at: `2026-10-01T00:00:${String(i).padStart(2, '0')}Z`,
+  }));
   getUserPosts.mockResolvedValue({ data: posts, error: null, restricted: 'private' });
   await useProfilePostsStore.getState().sync('sam');
   const s = useProfilePostsStore.getState();
   expect(s.restricted).toBe('private');
-  expect(s.posts.map((p) => p.id)).toEqual(['p1', 'p2', 'p3', 'p4']);
+  expect(s.posts.map((p) => p.id)).toEqual(posts.map((p) => p.id));
+  // A full read means there may be more.
   expect(s.hasMore).toBe(true);
 });
 

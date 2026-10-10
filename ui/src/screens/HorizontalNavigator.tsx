@@ -189,15 +189,6 @@ export default function HorizontalNavigator({
     camera: usePageMorphStyle(pageMorph, entering, CAMERA),
     profile: usePageMorphStyle(pageMorph, entering, PROFILE),
   };
-  // A horizontal card carousel inside Profile owns its finger until release, so the same drag
-  // never changes both the card and the whole app page.
-  const profileCarouselActive = useSharedValue(false);
-  const setProfileCarouselActive = useCallback(
-    (active: boolean) => {
-      profileCarouselActive.set(active);
-    },
-    [profileCarouselActive]
-  );
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
   const decided = useSharedValue(false);
@@ -358,7 +349,7 @@ export default function HorizontalNavigator({
         height,
         insets: safeInsets,
         edge: sideEdge,
-        blocked: blockedSV.value || profileCarouselActive.value,
+        blocked: blockedSV.value,
         exclude: railRectSV.value,
       });
       if (first === 'fail') {
@@ -385,7 +376,7 @@ export default function HorizontalNavigator({
         height,
         insets: safeInsets,
         edge: sideEdge,
-        blocked: blockedSV.value || profileCarouselActive.value,
+        blocked: blockedSV.value,
       });
       if (decision === 'wait') return;
       decided.value = true;
@@ -505,7 +496,6 @@ export default function HorizontalNavigator({
                   listGesture={profileList}
                   onSearch={() => setSearchVisible(true)}
                   onOpenCamera={() => navigate(CAMERA, 'morph')}
-                  onCarouselTouchChange={setProfileCarouselActive}
                 />
               </Animated.View>
             </DockRoom>

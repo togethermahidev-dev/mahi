@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { getUserPosts, type FeedPost, type ProfilePostCursor } from '@/api';
+import { PROFILE } from '@/constants/tokens';
 import { reportError } from '@/lib/sentry';
 import type { ProfileRestriction } from '@/lib/accountControls';
 
-// A profile grid loads four workouts at a time: enough to complete two rows without over-fetching.
-const PAGE_SIZE = 4;
+// A profile grid loads whole rows, enough to fill the first screen in one read.
+const PAGE_SIZE = PROFILE.gridColumns * PROFILE.gridPageRows;
 
 // How long a successful sync stays "fresh" before a focus-driven re-sync is
 // allowed. Keeps swiping back to profile from re-fetching on every gesture
