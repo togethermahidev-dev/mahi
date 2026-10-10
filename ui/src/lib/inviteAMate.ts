@@ -13,7 +13,7 @@ import { discardUnsentInvite, recordInviteSent } from '@/api/invites';
 import { isSlotRefusal, mateInviteErrorText, mateInviteMessage, shareAppUrl } from '@/lib/tagSlots';
 import { smsInviteUrl } from '@/lib/contactMatch';
 import { copyLink } from '@/lib/copyLink';
-import type { ShareSheetTarget } from '@/lib/shareSheet';
+import { openRefusal, type ShareSheetTarget } from '@/lib/shareSheet';
 import type { InviteVia, ResendPlace } from '@/lib/myInvites';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
@@ -87,8 +87,16 @@ export async function sendLinkTo(
       track('invite_shared', { via: place.open === 'whatsapp' ? 'whatsapp' : 'messages' });
       noteInviteSent(link.token, place.via, place.toName, place.toPhone);
       return true;
-    } catch {
-      // The app isn't on this phone: the share sheet below.
+    } catch (e) {
+      // The phone wouldn't open it (usually the app isn't on this phone): the share sheet below.
+      // Reported with the phone's own reason, so a refusal that isn't "not installed" can be seen
+      // (owner, 2026-10-10: every button brought up the phone's sheet).
+      reportError(new Error(`Share app would not open: ${openRefusal(e)}`), {
+        flow: 'invites',
+        action: 'openShareApp',
+        level: 'warning',
+        extra: { app: place.open, scheme: url.split(':')[0] },
+      });
     }
   }
   return shareMateLink(link, action);

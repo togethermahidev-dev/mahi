@@ -141,3 +141,12 @@ export function shareErrorText(message: string): string {
 export function isShareRefusal(message: string): boolean {
   return shareErrorText(message) !== SEND_FAILED;
 }
+
+/**
+ * The phone's reason for not opening a link, without the message it carried (the words and the
+ * invite link stay out of the report): "Unable to open URL: whatsapp://send".
+ */
+export function openRefusal(e: unknown): string {
+  const message = e instanceof Error ? e.message : String(e);
+  return message.split(/[?&]/)[0];
+}

@@ -9,6 +9,7 @@ import {
   shareErrorText,
   shareResultToast,
   sendLabel,
+  openRefusal,
   shareSheetParts,
   shareTargets,
   toggleRecipient,
@@ -198,5 +199,22 @@ describe('the invite button', () => {
   it('says Invite a friend everywhere, the same words as the share sheet', () => {
     expect(INVITE_BUTTON).toBe('Invite a friend');
     expect(INVITE_BUTTON).toBe(INVITE_A_FRIEND.label);
+  });
+});
+
+// When the phone won't open WhatsApp or Messages, its reason is reported so it can be read; the
+// message and the invite link it carried never are.
+describe('the phone’s reason for not opening a share app', () => {
+  it('keeps the reason and the app, and drops what the link carried', () => {
+    expect(
+      openRefusal(new Error('Unable to open URL: whatsapp://send?text=Join%20me%0Ahttps://x/i/abc'))
+    ).toBe('Unable to open URL: whatsapp://send');
+    expect(
+      openRefusal(new Error('Unable to open URL: sms:&body=Join%20me%0Ahttps://x/i/abc'))
+    ).toBe('Unable to open URL: sms:');
+  });
+
+  it('copes with something that is not an error', () => {
+    expect(openRefusal('nope')).toBe('nope');
   });
 });

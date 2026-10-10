@@ -12,7 +12,7 @@ import { useToastStore } from '@/store/toastStore';
 import { postShareMessage, postShareUrl } from '@/lib/postShareLink';
 import { copyLink } from '@/lib/copyLink';
 import { shareAppUrl } from '@/lib/tagSlots';
-import type { ShareSheetTarget } from '@/lib/shareSheet';
+import { openRefusal, type ShareSheetTarget } from '@/lib/shareSheet';
 import { track } from '@/lib/analytics';
 import { reportError } from '@/lib/sentry';
 import type { FeedPost } from '@/api';
@@ -37,8 +37,15 @@ export async function sharePostTo(post: FeedPost, target: ShareSheetTarget): Pro
       await Linking.openURL(shareAppUrl(target, postShareMessage(post), platform));
       track('post_shared', { post_id: post.id, friends: 0, via: target });
       return true;
-    } catch {
-      // The app isn't on this phone: the phone's own sheet below.
+    } catch (e) {
+      // The phone wouldn't open it (usually the app isn't on this phone): its own sheet below.
+      // Reported with the phone's reason, so any other refusal can be seen.
+      reportError(new Error(`Share app would not open: ${openRefusal(e)}`), {
+        flow: 'share',
+        action: 'openShareApp',
+        level: 'warning',
+        extra: { app: target },
+      });
     }
   }
   const shared = await sharePost(post);
