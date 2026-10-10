@@ -128,3 +128,19 @@ export function tabPage(tab: TabKey): number {
 export function movesPages(actionOrigin: string): boolean {
   return actionOrigin !== 'programmatic-js';
 }
+
+/**
+ * What tapping a tab does. A tab you're not on moves the pages to it. Camera again, while the
+ * camera page is showing, brings the camera back from the feed behind it (owner, 2026-10-10: "press
+ * the camera then it takes you back to the top where the camera is"). Any other tab again: nothing.
+ */
+export function tabTap({
+  tapped,
+  showing,
+}: {
+  tapped: TabKey;
+  showing: TabKey;
+}): 'move' | 'home' | 'none' {
+  if (tapped !== showing) return 'move';
+  return tapped === 'camera' ? 'home' : 'none';
+}

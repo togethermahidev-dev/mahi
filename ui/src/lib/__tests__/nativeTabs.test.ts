@@ -4,6 +4,7 @@ import {
   tabIcons,
   cameraLift,
   movesPages,
+  tabTap,
   nativeTabsAvailable,
   pageTab,
   SWIPE_PAGES,
@@ -145,5 +146,21 @@ describe('tabIcons — no tab changes with the feed lock', () => {
   it('the Camera tab keeps its icons while the feed is locked', () => {
     expect(tabIcons(camera, true)).toEqual({ icon: 'camera', selectedIcon: 'camera.fill' });
     expect(tabIcons(camera, false)).toEqual({ icon: 'camera', selectedIcon: 'camera.fill' });
+  });
+});
+
+// Owner, 2026-10-10: "If you're scrolling in your feed, to be able to press the camera then it
+// takes you back to the top where the camera is."
+describe('tabTap (what tapping a tab does)', () => {
+  it('a tab you are not on moves the pages to it', () => {
+    expect(tabTap({ tapped: 'messages', showing: 'camera' })).toBe('move');
+    expect(tabTap({ tapped: 'camera', showing: 'profile' })).toBe('move');
+  });
+  it('Camera again, while on the camera page, brings the camera back from the feed', () => {
+    expect(tabTap({ tapped: 'camera', showing: 'camera' })).toBe('home');
+  });
+  it('any other tab again does nothing', () => {
+    expect(tabTap({ tapped: 'messages', showing: 'messages' })).toBe('none');
+    expect(tabTap({ tapped: 'profile', showing: 'profile' })).toBe('none');
   });
 });

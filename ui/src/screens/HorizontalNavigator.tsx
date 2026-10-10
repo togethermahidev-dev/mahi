@@ -44,7 +44,7 @@ import { useCoachStore } from '@/store/coachStore';
 import { useAuthStore, useChromeStore, useNotificationsStore, useProfilePostsStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { TabBarRoomContext, usePageSize } from '@/hooks/useChrome';
-import { INITIAL_TAB, SWIPE_PAGES, pageTab, tabPage } from '@/lib/nativeTabs';
+import { INITIAL_TAB, SWIPE_PAGES, pageTab, tabPage, tabTap } from '@/lib/nativeTabs';
 import { pageActions, pageForAction, pageTitle } from '@/lib/pageActions';
 import { dockShows, railShows } from '@/lib/railSelector';
 import {
@@ -139,6 +139,8 @@ export default function HorizontalNavigator({
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   // A full-screen view inside the Feed (someone's profile).
   const [feedOverlay, setFeedOverlay] = useState(false);
+  // Counts taps on Camera while the camera page is showing; each one closes the feed.
+  const [cameraHome, setCameraHome] = useState(0);
   // A post opened from a notification (a comment one with its comments up), and whether the notifications sheet is still on screen
   // (iPhone won't show a new full-screen view while a sheet is sliding away).
   const [viewer, setViewer] = useState<{
@@ -465,9 +467,11 @@ export default function HorizontalNavigator({
 
   // A tab (the phone's bar or the rail) moves the pages to its page.
   const selectTab = (next: RailTab) => {
-    const target = tabPage(next);
     // indexSV, not index: a drag along the rail can switch twice before the next render.
-    if (indexSV.value !== target) navigate(target, 'morph');
+    const action = tabTap({ tapped: next, showing: pageTab(indexSV.value) });
+    if (action === 'move') navigate(tabPage(next), 'morph');
+    // Camera tapped while on the camera page: the camera comes back from the feed.
+    else if (action === 'home') setCameraHome((n) => n + 1);
   };
   if (tabBar) tabBar.selectRef.current = selectTab;
 
@@ -512,7 +516,7 @@ export default function HorizontalNavigator({
                 accessibilityActions={pageA11y('messages')}
                 onAccessibilityAction={onPageAction}
               >
-                <MessagesScreen onBack={() => navigate(CAMERA)} listGesture={messagesList} />
+                <MessagesScreen listGesture={messagesList} />
               </Animated.View>
             </DockRoom>
             {/* Camera — the entry page, always dark — with the feed behind it (one screen). */}
@@ -526,6 +530,7 @@ export default function HorizontalNavigator({
                 header={header}
                 headerAnim={headerAnim}
                 feedList={feedList}
+                homeSignal={cameraHome}
                 onFindFriends={() => setSearchVisible(true)}
                 onOpenProfile={setProfileUserId}
                 onComposingChange={handleComposingChange}

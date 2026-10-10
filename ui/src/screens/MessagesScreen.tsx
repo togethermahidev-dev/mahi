@@ -175,13 +175,11 @@ function ConvoRow({
 }
 
 interface MessagesScreenProps {
-  onBack?: () => void;
   /** The inbox list's scrolling as a gesture, so the sideways page swipe can run alongside it. */
   listGesture?: NativeGesture;
 }
 
 export default function MessagesScreen({
-  onBack,
   listGesture,
 }: MessagesScreenProps = {}): React.JSX.Element {
   const { dark, colors } = useAppTheme();
@@ -219,23 +217,9 @@ export default function MessagesScreen({
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
       <View style={[styles.header, { paddingTop: insets.top + SPACE.s12 }]}>
-        {onBack ? (
-          <Pressable
-            style={({ pressed }) => [
-              styles.headerIconBtn,
-              { backgroundColor: iconSurface, borderColor: border },
-              pressed && styles.pressed,
-            ]}
-            onPress={onBack}
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-            hitSlop={{ top: OFFSET.o8, bottom: OFFSET.o8, left: OFFSET.o8, right: OFFSET.o8 }}
-          >
-            <Text style={[styles.backArrow, { color: text }]}>‹</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.headerSpacer} />
-        )}
+        {/* Messages is its own tab: no back arrow (owner, 2026-10-10). The spacer keeps the title
+            centred against the button on the right. */}
+        <View style={styles.headerSpacer} />
         <View style={styles.headerCopy}>
           <Text style={[styles.headerTitle, { color: text }]}>Messages</Text>
         </View>
@@ -401,11 +385,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s20,
     paddingBottom: SPACE.s20,
     gap: SPACE.s12,
-  },
-  backArrow: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l22,
   },
   headerTitle: {
     fontSize: FONT_SIZE.f24,

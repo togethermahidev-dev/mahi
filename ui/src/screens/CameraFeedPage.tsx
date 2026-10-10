@@ -59,6 +59,7 @@ export default function CameraFeedPage({
   active,
   header,
   feedList,
+  homeSignal,
   onFindFriends,
   onOpenProfile,
   onComposingChange,
@@ -72,6 +73,8 @@ export default function CameraFeedPage({
   headerAnim?: RNAnimated.Value;
   /** The feed list's scrolling as a gesture, so the sideways page swipe can run alongside it. */
   feedList: NativeGesture;
+  /** Goes up each time Camera is tapped while this page shows: the camera comes back. */
+  homeSignal: number;
   onFindFriends: () => void;
   onOpenProfile: (userId: string) => void;
   onComposingChange: (composing: boolean) => void;
@@ -125,6 +128,10 @@ export default function CameraFeedPage({
   useEffect(() => {
     if (!active && feedOpen) closeFeed();
   }, [active, feedOpen, closeFeed]);
+  // Camera tapped again in the tab bar (owner, 2026-10-10): back to the camera from the feed.
+  useEffect(() => {
+    if (homeSignal > 0) closeFeed();
+  }, [homeSignal, closeFeed]);
 
   // Numbers only for the worklets (see the rule above).
   // Locked: how far the camera lifts (open, the morph moves it).

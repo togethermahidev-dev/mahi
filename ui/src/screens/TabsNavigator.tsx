@@ -122,8 +122,13 @@ export default function TabsNavigator(): React.JSX.Element | null {
         navStateRequest={{ selectedScreenKey: tab, baseProvenance: provenance }}
         onTabSelected={({ nativeEvent }: TabSelected) => {
           setProvenance(nativeEvent.provenance);
-          if (nativeEvent.isRepeated) return;
           const key = nativeEvent.selectedScreenKey as TabKey;
+          // The tab you're on, tapped again: the pages decide (Camera brings the camera back from
+          // the feed; the others do nothing).
+          if (nativeEvent.isRepeated) {
+            if (movesPages(nativeEvent.actionOrigin)) selectRef.current?.(key);
+            return;
+          }
           setTab(key);
           // A tap moves the pages (they tick as they settle); a swipe already did.
           if (movesPages(nativeEvent.actionOrigin)) selectRef.current?.(key);
