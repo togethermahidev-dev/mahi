@@ -2,17 +2,8 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { themeColors } from '@/hooks/useAppTheme';
 import { QUICK_EMOJI } from '@/lib/messageReactions';
-import { FONTS } from '@/constants/fonts';
-import {
-  ALPHA,
-  BORDER_WIDTH,
-  COLORS,
-  FONT_SIZE,
-  RADIUS,
-  SIZE,
-  SPACE,
-  withAlpha,
-} from '@/constants/tokens';
+import { GLYPH } from '@/constants/typography';
+import { ALPHA, BORDER_WIDTH, COLORS, RADIUS, SIZE, SPACE, withAlpha } from '@/constants/tokens';
 
 /**
  * The quick row a held message offers where Apple's menu isn't available (build 10, Android):
@@ -86,7 +77,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emoji: { fontFamily: FONTS.regular, fontSize: FONT_SIZE.f24 },
-  plus: { fontFamily: FONTS.regular, fontSize: FONT_SIZE.f24 },
+  emoji: { ...GLYPH.emoji },
+  plus: { ...GLYPH.emoji },
   pressed: { opacity: ALPHA.a70 },
 });

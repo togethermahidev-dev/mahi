@@ -50,14 +50,12 @@ import GlobalSearchOverlay from '@/components/GlobalSearchOverlay';
 import InviteChannelIcon from '@/components/InviteChannelIcon';
 import KeyboardInset from '@/components/KeyboardInset';
 import ListState from '@/components/ListState';
-import { FONTS } from '@/constants/fonts';
+import { FIELD_TEXT, GLYPH, TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BORDER_WIDTH,
   COLORS,
-  FONT_SIZE,
   ICON_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SHARE_SHEET,
@@ -657,25 +655,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
+    ...TYPOGRAPHY.sheetTitle,
     flex: 1,
     textAlign: 'center',
-    fontSize: FONT_SIZE.f17,
-    fontFamily: FONTS.semiBold,
   },
   closeText: {
-    fontSize: FONT_SIZE.f22,
-    fontFamily: FONTS.semiBold,
+    ...GLYPH.icon,
   },
   searchWrap: {
     paddingHorizontal: SPACE.s20,
     paddingBottom: SPACE.s12,
   },
   searchInput: {
+    ...FIELD_TEXT,
     height: SIZE.z40,
     borderRadius: RADIUS.r20,
     paddingHorizontal: SPACE.s16,
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f14,
   },
   grid: {
     paddingHorizontal: SPACE.s12,
@@ -702,8 +697,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontSize: FONT_SIZE.f24,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h1,
   },
   // A picked friend: an accent ring round the photo and a tick at its corner (as MateCircles).
   avatarRing: {
@@ -724,16 +718,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tickText: {
+    ...TYPOGRAPHY.captionStrong,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.bold,
   },
   friendName: {
+    ...TYPOGRAPHY.bodyStrong,
     alignSelf: 'stretch',
     textAlign: 'center',
-    fontSize: FONT_SIZE.f13,
-    lineHeight: LINE_HEIGHT.l18,
-    fontFamily: FONTS.regular,
   },
   bottom: {
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -746,6 +737,7 @@ const styles = StyleSheet.create({
     paddingTop: SPACE.s10,
   },
   note: {
+    ...TYPOGRAPHY.input,
     flex: 1,
     minHeight: SIZE.z44,
     maxHeight: SHARE_SHEET.noteMaxHeight,
@@ -754,8 +746,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s16,
     paddingTop: SPACE.s12,
     paddingBottom: SPACE.s12,
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
   },
   // The app's one main-button style (ListState's): accent pill, dark words.
   send: {
@@ -768,9 +758,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s20,
   },
   sendText: {
+    ...TYPOGRAPHY.pillLabel,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
   },
   targets: {
     paddingHorizontal: SPACE.s12,
@@ -791,10 +780,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   targetLabel: {
+    ...TYPOGRAPHY.caption,
     alignSelf: 'stretch',
     textAlign: 'center',
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
   },
   // The invite sheet: a short card over the dimmed screen.
   fill: {

@@ -26,18 +26,16 @@ import { showNativeMenu } from '@/lib/nativeMenu';
 import { startReport } from '@/lib/reportFlow';
 import { relativeTime } from '@/lib/relativeTime';
 import type { CommentWithProfile } from '@/api/social';
-import { FONTS } from '@/constants/fonts';
+import { FIELD_TEXT, TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
-  FONT_SIZE,
   ICON_SIZE,
   OFFSET,
   RADIUS,
   SIZE,
   SPACE,
-  TRACKING,
   withAlpha,
 } from '@/constants/tokens';
 import { themeColors } from '@/hooks/useAppTheme';
@@ -442,25 +440,20 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.r13,
   },
   commentAvatarInitial: {
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.microStrong,
   },
   commentBody: {
     flex: 1,
     gap: SPACE.s2,
   },
   commentUsername: {
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.semiBold,
-    letterSpacing: TRACKING.t1,
+    ...TYPOGRAPHY.labelStrong,
   },
   commentText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.body,
   },
   commentTime: {
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.micro,
     paddingTop: SPACE.s2,
   },
   // ── Comment likes: a heart with its count under it, on the right of each comment
@@ -475,8 +468,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   likeCount: {
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.captionMedium,
   },
   commentInputRow: {
     flexDirection: 'row',
@@ -487,25 +479,23 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   commentInput: {
+    ...FIELD_TEXT,
     flex: 1,
-    minHeight: SIZE.z36,
+    minHeight: SIZE.z38,
     borderRadius: RADIUS.r50,
     borderWidth: BORDER_WIDTH.w1,
     paddingHorizontal: SPACE.s14,
     paddingVertical: SPACE.s8,
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
   },
   commentSubmit: {
-    minHeight: SIZE.z36,
+    minHeight: SIZE.z38,
     justifyContent: 'center',
     borderRadius: RADIUS.r50,
     paddingHorizontal: SPACE.s14,
     paddingVertical: SPACE.s7,
   },
   commentSubmitText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.pillLabel,
     color: COLORS.offBlack,
   },
   // ── Comment sheet (native page sheet)
@@ -513,8 +503,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sheetTitle: {
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.sheetTitle,
     textAlign: 'center',
     paddingTop: SPACE.s20,
     paddingBottom: SPACE.s12,
@@ -530,13 +519,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s32,
   },
   sheetEmptyTitle: {
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.bodyStrong,
     textAlign: 'center',
   },
   sheetEmptyText: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.caption,
     textAlign: 'center',
   },
   retryBtn: {
@@ -548,8 +535,7 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s8,
   },
   retryBtnText: {
+    ...TYPOGRAPHY.pillLabel,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.bold,
   },
 });

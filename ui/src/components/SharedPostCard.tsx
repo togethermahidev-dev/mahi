@@ -5,13 +5,11 @@ import { themeColors } from '@/hooks/useAppTheme';
 import { sharedPostUnavailableText } from '@/lib/sharedPost';
 import { gridTile } from '@/lib/videoPosts';
 import { VideoIcon } from '@/components/ScreenIcons';
-import { FONTS } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   COLORS,
-  FONT_SIZE,
   ICON_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SHARE_SHEET,
@@ -135,13 +133,11 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
   },
   avatarInitial: {
-    fontSize: FONT_SIZE.f11,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.microStrong,
   },
   name: {
+    ...TYPOGRAPHY.labelStrong,
     flex: 1,
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.semiBold,
   },
   photo: {
     width: SHARE_SHEET.postCardWidth,
@@ -159,17 +155,13 @@ const styles = StyleSheet.create({
     backgroundColor: withAlpha(COLORS.black, ALPHA.a40),
   },
   note: {
+    ...TYPOGRAPHY.subtitle,
     paddingHorizontal: SPACE.s14,
     paddingVertical: SPACE.s8,
-    fontSize: FONT_SIZE.f14,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l20,
   },
   unavailable: {
+    ...TYPOGRAPHY.small,
     paddingHorizontal: SPACE.s14,
     paddingVertical: SPACE.s12,
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l18,
   },
 });

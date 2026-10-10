@@ -2,12 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { themeColors } from '@/hooks/useAppTheme';
 import { myReaction, type ReactionSummary } from '@/lib/messageReactions';
-import { FONTS } from '@/constants/fonts';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BORDER_WIDTH,
   COLORS,
-  FONT_SIZE,
   OFFSET,
   RADIUS,
   SCALE,
@@ -102,7 +101,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
     borderWidth: BORDER_WIDTH.w1,
   },
-  emoji: { fontFamily: FONTS.regular, fontSize: FONT_SIZE.f13 },
-  count: { fontFamily: FONTS.semiBold, fontSize: FONT_SIZE.f11 },
+  emoji: { ...GLYPH.icon },
+  count: { ...TYPOGRAPHY.captionStrong },
   pressed: { opacity: ALPHA.a70 },
 });

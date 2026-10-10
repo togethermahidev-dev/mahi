@@ -6,13 +6,11 @@ import { FlashList } from '@shopify/flash-list';
 import { useAuthStore } from '@/store';
 import { useCommentLikers } from '@/hooks/useCommentLikers';
 import UserProfileScreen from '@/screens/UserProfileScreen';
-import { FONTS } from '@/constants/fonts';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 import {
   COLORS,
   ALPHA,
   BORDER_WIDTH,
-  FONT_SIZE,
-  LINE_HEIGHT,
   OFFSET,
   RADIUS,
   SIZE,
@@ -200,15 +198,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backArrow: {
-    fontSize: FONT_SIZE.f20,
-    fontFamily: FONTS.regular,
-    lineHeight: LINE_HEIGHT.l22,
+    ...GLYPH.icon,
   },
   title: {
+    ...TYPOGRAPHY.sheetTitle,
     flex: 1,
     textAlign: 'center',
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
   },
   spacer: {
     width: SIZE.z36,
@@ -227,8 +222,7 @@ const styles = StyleSheet.create({
     paddingTop: SPACE.s40,
   },
   note: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.caption,
   },
   listContent: {
     paddingHorizontal: SPACE.s20,
@@ -250,19 +244,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   initial: {
-    fontSize: FONT_SIZE.f16,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h4,
   },
   rowText: {
     flex: 1,
     gap: SPACE.s2,
   },
   name: {
-    fontSize: FONT_SIZE.f15,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.labelStrong,
   },
   handle: {
-    fontSize: FONT_SIZE.f13,
-    fontFamily: FONTS.regular,
+    ...TYPOGRAPHY.micro,
   },
 });

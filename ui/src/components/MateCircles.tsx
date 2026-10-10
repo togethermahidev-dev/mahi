@@ -20,14 +20,12 @@ import {
   type CircleMate,
   type MateCircle,
 } from '@/lib/mateCircles';
-import { FONTS } from '@/constants/fonts';
+import { GLYPH, TYPOGRAPHY } from '@/constants/typography';
 import {
   ALPHA,
   BORDER_WIDTH,
   COLORS,
   DURATION,
-  FONT_SIZE,
-  LINE_HEIGHT,
   MOTION,
   OFFSET,
   RADIUS,
@@ -213,9 +211,7 @@ const styles = StyleSheet.create({
     gap: SPACE.s16,
   },
   title: {
-    fontSize: FONT_SIZE.f20,
-    lineHeight: LINE_HEIGHT.l28,
-    fontFamily: FONTS.bold,
+    ...TYPOGRAPHY.h2,
     textAlign: 'center',
   },
   row: {
@@ -243,9 +239,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   plus: {
-    fontSize: FONT_SIZE.f28,
-    lineHeight: LINE_HEIGHT.l38,
-    fontFamily: FONTS.regular,
+    ...GLYPH.emoji,
   },
   face: {
     backgroundColor: COLORS.accent,
@@ -256,9 +250,8 @@ const styles = StyleSheet.create({
     height: SIZE.z72,
   },
   faceText: {
+    ...TYPOGRAPHY.h1,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f28,
-    fontFamily: FONTS.bold,
   },
   check: {
     position: 'absolute',
@@ -273,15 +266,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkText: {
+    ...TYPOGRAPHY.captionStrong,
     color: COLORS.offBlack,
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.bold,
   },
   caption: {
-    minHeight: LINE_HEIGHT.l16,
-    lineHeight: LINE_HEIGHT.l16,
-    fontSize: FONT_SIZE.f12,
-    fontFamily: FONTS.semiBold,
+    ...TYPOGRAPHY.caption,
+    minHeight: TYPOGRAPHY.caption.lineHeight,
     textAlign: 'center',
   },
 });

@@ -8,8 +8,8 @@ import { useFeedStore, useProfilePostsStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { reportError } from '@/lib/sentry';
-import { FONTS } from '@/constants/fonts';
-import { ALPHA, COLORS, FONT_SIZE, RADIUS, SIZE, SPACE, withAlpha } from '@/constants/tokens';
+import { TYPOGRAPHY } from '@/constants/typography';
+import { ALPHA, COLORS, RADIUS, SIZE, SPACE, withAlpha } from '@/constants/tokens';
 
 export default function EditPostCaptionSheet({
   postId,
@@ -107,19 +107,18 @@ const styles = StyleSheet.create({
     padding: SPACE.s24,
     gap: SPACE.s12,
   },
-  title: { fontFamily: FONTS.bold, fontSize: FONT_SIZE.f22 },
-  help: { fontFamily: FONTS.regular, fontSize: FONT_SIZE.f14, lineHeight: SIZE.z20 },
+  title: { ...TYPOGRAPHY.sheetTitle },
+  help: { ...TYPOGRAPHY.small },
   input: {
+    ...TYPOGRAPHY.input,
     minHeight: SIZE.z120,
     borderWidth: SIZE.z1,
     borderRadius: RADIUS.r16,
     padding: SPACE.s16,
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZE.f16,
     textAlignVertical: 'top',
   },
   countRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  count: { marginLeft: 'auto', fontFamily: FONTS.regular, fontSize: FONT_SIZE.f12 },
+  count: { ...TYPOGRAPHY.caption, marginLeft: 'auto' },
   save: {
     minHeight: SIZE.z52,
     borderRadius: RADIUS.r50,
@@ -127,7 +126,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  saveText: { color: COLORS.offBlack, fontFamily: FONTS.bold, fontSize: FONT_SIZE.f16 },
+  saveText: { ...TYPOGRAPHY.button, color: COLORS.offBlack },
   pressed: { opacity: ALPHA.a80 },
   disabled: { opacity: ALPHA.a45 },
 });
