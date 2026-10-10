@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AccessibilityInfo,
   type AccessibilityActionEvent,
-  Animated as RNAnimated,
   Platform,
   StyleSheet,
   View,
@@ -167,9 +166,6 @@ export default function HorizontalNavigator({
   }, [tabBarRoom]);
   const blurTargetRef = useRef<View | null>(null);
 
-  // The Feed header slides away as the list scrolls down.
-  const headerAnim = useRef(new RNAnimated.Value(0)).current;
-  const headerH = insets.top + SIZE.z48;
 
   // What the swipe reads on the UI thread.
   const indexSV = useSharedValue(INITIAL_PAGE);
@@ -206,12 +202,11 @@ export default function HorizontalNavigator({
     onTabChange?.(tab);
   }, [tab, onTabChange]);
 
-  // The strip has been sent to `next`: record it, tick, and bring the header back off Feed.
+  // The strip has been sent to `next`: record it and tick.
   const settle = (next: number) => {
     setIndex(next);
     indexSV.value = next;
     haptic('tick');
-    if (next !== CAMERA) headerAnim.setValue(0);
   };
 
   const navigate = (next: number, how: 'slide' | 'morph' = 'slide') => {
@@ -479,7 +474,6 @@ export default function HorizontalNavigator({
               <CameraFeedPage
                 active={index === CAMERA}
                 header={header}
-                headerAnim={headerAnim}
                 feedList={feedList}
                 homeSignal={cameraHome}
                 onFindFriends={() => setSearchVisible(true)}

@@ -563,11 +563,12 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: SPACE.s2,
   },
+  // A first-run tip is read as a sentence, so it takes the banner pair, not a tooltip's 11pt.
   title: {
-    ...TYPOGRAPHY.labelStrong,
+    ...TYPOGRAPHY.bodyStrong,
   },
   body: {
-    ...TYPOGRAPHY.micro,
+    ...TYPOGRAPHY.small,
   },
   footer: {
     flexDirection: 'row',
@@ -575,7 +576,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   step: {
-    ...TYPOGRAPHY.micro,
+    ...TYPOGRAPHY.caption,
   },
   gotIt: {
     minHeight: SIZE.z28,

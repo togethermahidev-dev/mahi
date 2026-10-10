@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.f38,
   },
   title: {
-    ...TYPOGRAPHY.sheetTitle,
+    ...TYPOGRAPHY.h2,
     textAlign: 'center',
   },
   total: {

@@ -13,7 +13,7 @@
  * shared values held in local consts — never an object that also holds a gesture or a function.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Animated as RNAnimated, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector, type NativeGesture } from 'react-native-gesture-handler';
 import Reanimated, {
   interpolate,
@@ -68,8 +68,6 @@ export default function CameraFeedPage({
   active: boolean;
   /** The app header: dark on the camera; on the feed, as `feedHeaderLook` says. */
   header: (onCamera: boolean, feed?: { dark: boolean; bellTip: boolean }) => React.ReactNode;
-  /** No longer used: the feed's header slides away by `headerHide` below (2026-10-09). */
-  headerAnim?: RNAnimated.Value;
   /** The feed list's scrolling as a gesture, so the sideways page swipe can run alongside it. */
   feedList: NativeGesture;
   /** Goes up each time Camera is tapped while this page shows: the camera comes back. */
