@@ -48,9 +48,9 @@ const TARGET_LABEL: Record<ShareTarget, string> = {
 };
 
 /**
- * The bottom row, left to right. Copy link only on a build that can copy (`canCopyLink`). Snapchat
- * and Instagram open the phone's share sheet until a native build adds their kits (decision #156).
- * No story button.
+ * The bottom row, left to right. Copy link only on a build that can copy (`canCopyLink`). No
+ * Snapchat or Instagram button until a build can open their own share screens (see
+ * `SHARE_TARGETS`). No story button.
  */
 export function shareTargets(canCopy: boolean): { target: ShareSheetTarget; label: string }[] {
   const apps = SHARE_TARGETS.map(({ target }) => ({ target, label: TARGET_LABEL[target] }));

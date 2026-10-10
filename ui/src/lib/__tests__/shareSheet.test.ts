@@ -85,15 +85,21 @@ describe('the bottom row', () => {
       { target: 'copy', label: 'Copy link' },
       { target: 'whatsapp', label: 'WhatsApp' },
       { target: 'messages', label: 'Messages' },
-      { target: 'snapchat', label: 'Snapchat' },
-      { target: 'instagram', label: 'Instagram' },
       { target: 'more', label: 'Share to…' },
     ]);
   });
 
   it('leaves Copy link out on a build that can’t copy', () => {
     const targets = shareTargets(false).map((t) => t.target);
-    expect(targets).toEqual(['whatsapp', 'messages', 'snapchat', 'instagram', 'more']);
+    expect(targets).toEqual(['whatsapp', 'messages', 'more']);
+  });
+
+  // Owner, 2026-10-10: a button for Snapchat or Instagram must open that app's own share screen.
+  // Neither can from an update (each needs its kit built into the app), so neither is shown.
+  it('has no Snapchat or Instagram button until a build can open them properly', () => {
+    const labels = shareTargets(true).map((t) => t.label);
+    expect(labels).not.toContain('Snapchat');
+    expect(labels).not.toContain('Instagram');
   });
 
   it('has no story button', () => {

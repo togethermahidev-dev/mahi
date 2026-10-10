@@ -111,14 +111,18 @@ export const HOLD_UP = {
   button: 'Tag mates',
 } as const;
 
-/** Where a link can be sent from the tag screen. Snap and IG open the phone's share sheet. */
+/** Where a link can be sent from the tag screen and the share sheet. */
 export type ShareTarget = 'whatsapp' | 'messages' | 'snapchat' | 'instagram' | 'more';
 
+/**
+ * The buttons shown. Snapchat and Instagram are not: a button for one must open that app's own
+ * share screen (owner, 2026-10-10), and neither can from an update. Each needs its kit built into
+ * the app (Instagram's story sharing, Snapchat's Creative Kit), so they come back with that build;
+ * until then both are reached through "More…", the phone's own sheet.
+ */
 export const SHARE_TARGETS: readonly { target: ShareTarget; label: string }[] = [
   { target: 'whatsapp', label: 'WhatsApp' },
   { target: 'messages', label: 'Messages' },
-  { target: 'snapchat', label: 'Snap' },
-  { target: 'instagram', label: 'IG' },
   // The phone's own sheet: Copy and every other app.
   { target: 'more', label: 'More…' },
 ];

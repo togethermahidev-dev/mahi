@@ -346,14 +346,9 @@ describe('the first post’s hold up card', () => {
 });
 
 describe('share targets', () => {
-  it('WhatsApp, Messages, Snap, IG, then the phone’s own sheet', () => {
-    expect(SHARE_TARGETS.map((t) => t.label)).toEqual([
-      'WhatsApp',
-      'Messages',
-      'Snap',
-      'IG',
-      'More…',
-    ]);
+  // Snap and IG come back when a build can open their own share screens (owner, 2026-10-10).
+  it('WhatsApp, Messages, then the phone’s own sheet', () => {
+    expect(SHARE_TARGETS.map((t) => t.label)).toEqual(['WhatsApp', 'Messages', 'More…']);
   });
 
   it('Snap and IG go through the share sheet, so they are recorded as share', () => {
