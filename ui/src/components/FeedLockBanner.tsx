@@ -223,8 +223,9 @@ const styles = StyleSheet.create({
     paddingLeft: SPACE.s12,
     paddingRight: SPACE.s16,
   },
+  // A small button inside a banner: at this size "Find accountability partners" fits a narrow phone.
   actionText: {
-    ...TYPOGRAPHY.pillLabel,
+    ...TYPOGRAPHY.labelStrong,
   },
   // The feed timer: the ring and the clock side by side, white with a soft shadow so they read
   // over any post (owner, 2026-10-09). The digits keep their width as they tick. The feed places

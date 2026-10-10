@@ -295,7 +295,7 @@ sheet as before and a plain bubble in chats. Server: `20261010100000_share_post_
 | List Rendering | @shopify/flash-list | 2.0.2 |
 | Gestures | react-native-gesture-handler | ~2.32.0 |
 | UI Animation | react-native-reanimated | 4.5.1 |
-| Font | @expo-google-fonts/inter — Inter only (Regular, SemiBold, Bold; no italic), also the tab bar titles; the code email loads Inter from Google Fonts | ^0.4.2 |
+| Font | @expo-google-fonts/inter-tight — Inter Tight only, five weights (Regular, Medium, SemiBold, Bold, ExtraBold; no italic), each loaded from its own folder under its real name; the named text styles are in `ui/src/constants/typography.ts` (PingMee's scale, decision #195); also the tab bar titles; the code email loads Inter Tight from Google Fonts | ^0.4.2 |
 | Glass / Blur | expo-glass-effect, expo-blur | ~57 |
 | Gradients | expo-linear-gradient | ~57.0.2 |
 | Video playback | expo-video (loaded only when the build has it) | ~57.0.5 |
@@ -320,7 +320,7 @@ mahi/                   # pnpm workspace root (like pingmee-v2): run every pnpm 
 │   │   │                   #    reactivePosting, mahiPoints, welcomeCards, featureFlags, versionGate, …;
 │   │   │                   #    tests in __tests__/)
 │   │   ├── constants/      # tokens.ts (design tokens: colours, sizes, ALPHA, STROKE, BLUR_INTENSITY, DURATION,
-│   │   │                   #   SPRING, SCALE, WAIT, SWIPE, LAYOUT, …), fonts.ts (Inter only, no italic),
+│   │   │                   #   SPRING, SCALE, WAIT, SWIPE, LAYOUT, …), fonts.ts (Inter Tight only, no italic), typography.ts (the named text styles),
 │   │   │                   #   ota.ts (OTA counter + history)
 │   │   ├── store/          # Zustand global state (feedStore, messagesStore, tagStore, inviteStore, …)
 │   │   ├── hooks/          # Thin store wrappers + utility hooks (useFeed, useOpenTags, useFeatureFlag, …)
@@ -660,7 +660,7 @@ The caption itself is rendered via the `CaptionText` component (`ui/src/componen
 ```
 App launch
   OS renders native splash
-  JS bundle loads (Inter faces loaded with useFonts)
+  JS bundle loads (Inter Tight faces loaded with useFonts)
   SplashScreen.preventAutoHideAsync()       ← module scope in App.tsx
   App renders → <SplashScreen /> → SplashScreen.hideAsync() → setSplashDone(true)
 

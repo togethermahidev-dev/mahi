@@ -512,7 +512,7 @@ export const SEGMENTED = {
   /** An option is one word on one line (owner, 2026-10-10); it never wraps. */
   labelLines: 1,
   /** Words too long for their share shrink to this share of their size before they are cut. */
-  labelMinScale: 0.75,
+  labelMinScale: 0.92,
   /** An option that can't be chosen (Everyone while private) is drawn at this opacity. */
   disabledOpacity: ALPHA.a40,
 } as const;
@@ -549,8 +549,8 @@ export const PROFILE = {
   nameMinScale: 0.75,
   /** The most lines the note under your points wraps to (where you stand, who you last answered). */
   noteLines: 3,
-  /** A post's "N Mahi points" badge shrinks to this share of its size before it is cut. */
-  badgeMinScale: 0.8,
+  /** A post's "N Mahi points" badge is already the smallest text (11), so it is cut, never shrunk. */
+  badgeMinScale: 1,
 } as const;
 
 export const POINTS_NUMBER = {
@@ -560,7 +560,7 @@ export const POINTS_NUMBER = {
   lineShare: 1.21,
   /** The words beside a number wrap to this many lines, shrinking to this share before a cut. */
   wordsLines: 2,
-  wordsMinScale: 0.8,
+  wordsMinScale: 0.85,
   /** "+1" in its circle shrinks to this share at most, so it always fits the circle. */
   badgeMinScale: 0.5,
 } as const;

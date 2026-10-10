@@ -24,10 +24,15 @@ export const HEADER_START: HeaderScroll = { shown: true, anchorY: 0 };
 /**
  * How the header looks over the feed. The full-screen feed is a black canvas in both themes, so
  * its header is the dark one (a white fade there read as a white bar between posts: owner,
- * 2026-10-10); the rows feed follows the theme. The bell's one-time tip belongs to the feed either way.
+ * 2026-10-10). The rows feed follows the theme, and so does a feed with no posts to show (empty,
+ * loading, failed): that page keeps the theme's background. The bell's one-time tip belongs to the
+ * feed either way.
  */
-export function feedHeaderLook({ rows }: { rows: boolean }): { dark: boolean; bellTip: boolean } {
-  return { dark: !rows, bellTip: true };
+export function feedHeaderLook({ rows, hasPosts }: { rows: boolean; hasPosts: boolean }): {
+  dark: boolean;
+  bellTip: boolean;
+} {
+  return { dark: !rows && hasPosts, bellTip: true };
 }
 
 /** The header's state after the list reports scroll position `y`. */

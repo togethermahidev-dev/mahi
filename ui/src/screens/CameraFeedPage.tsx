@@ -44,15 +44,7 @@ import { useSecondTick } from '@/hooks/useSecondTick';
 import { appHeaderHeight } from '@/lib/pip';
 import { haptic } from '@/lib/haptics';
 import { TYPOGRAPHY } from '@/constants/typography';
-import {
-  COLORS,
-  ICON_SIZE,
-  RADIUS,
-  SIZE,
-  SPACE,
-  SPRING,
-  MOTION,
-} from '@/constants/tokens';
+import { COLORS, ICON_SIZE, RADIUS, SIZE, SPACE, SPRING, MOTION } from '@/constants/tokens';
 
 export default function CameraFeedPage({
   active,
@@ -92,6 +84,7 @@ export default function CameraFeedPage({
   // camera the same small way and the gap says loading / Try again (owner, 2026-10-09: an empty
   // grey feed). `locked` below means "the gap, not the feed".
   const feedState = useFeedStore((s) => (s.loaded ? 'loaded' : s.error ? 'error' : 'loading'));
+  const hasPosts = useFeedStore((s) => s.posts.length > 0);
   const locked = feedLocked || feedState !== 'loaded';
   const gap = lockedGap(page.height);
 
@@ -468,7 +461,7 @@ export default function CameraFeedPage({
         style={[styles.header, feedHeaderStyle]}
         pointerEvents={feedOpen ? 'box-none' : 'none'}
       >
-        {header(false, feedHeaderLook({ rows: rowsOn }))}
+        {header(false, feedHeaderLook({ rows: rowsOn, hasPosts }))}
       </Reanimated.View>
 
       {/* Locked: the lifted camera takes a tap or a swipe down back to the camera. (Open, the

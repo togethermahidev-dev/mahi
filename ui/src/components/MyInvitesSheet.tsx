@@ -495,7 +495,7 @@ function Sheet({ onClose, dark }: Omit<MyInvitesSheetProps, 'visible'>) {
             <Text style={[styles.findMatesText, { color: accentText }]}>
               Find friends in your contacts
             </Text>
-            <Text style={[styles.findMatesText, { color: muted }]}>›</Text>
+            <Text style={[styles.findMatesChevron, { color: muted }]}>›</Text>
           </Pressable>
         ) : null}
 
@@ -722,6 +722,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   findMatesText: {
-    ...TYPOGRAPHY.body,
+    ...TYPOGRAPHY.bodyMedium,
+  },
+  findMatesChevron: {
+    ...GLYPH.icon,
   },
 });

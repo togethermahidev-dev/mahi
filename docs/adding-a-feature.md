@@ -81,8 +81,10 @@ Call `const { bookmarkedByMe, toggle } = useBookmarks()` and render the optimist
 `{ error }`** the store action returns (don't swallow it). Every colour, size, spacing, radius, font,
 opacity (`ALPHA`), animation (`DURATION`, `SPRING`), swipe (`SWIPE`), wait (`WAIT`) and layout share
 (`LAYOUT`) comes from `ui/src/constants/tokens.ts` / `fonts.ts` — add a token if one is missing (the token
-tests fail on raw values). Text is Inter only: pick a `FONTS` face, never `fontWeight`/`fontStyle`, no
-italic, and only characters Inter can draw (`fonts.test.ts`). Colours that follow light/dark come from
+tests fail on raw values). Text is Inter Tight only, through the named styles: spread ONE
+`TYPOGRAPHY` style by role (`...TYPOGRAPHY.body`; emoji `GLYPH`, a one-line field `FIELD_TEXT`), never a size,
+face, line height, letter spacing, `fontWeight` or `fontStyle` typed in a screen, no italic, and only
+characters Inter Tight can draw (`typography.test.ts`, `fonts.test.ts`). Colours that follow light/dark come from
 `useAppTheme()` (or `themeColors(dark)`). Sentence-case labels, pop-ups and menus (`sentenceCase.test.ts`).
 Put pure UI rules (wording, thresholds) in `ui/src/lib/` with a Jest test. A bottom-anchored sheet or composer ends with `<KeyboardInset />`; pop-ups are native page sheets.
 

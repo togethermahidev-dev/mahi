@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { FONT_FAMILY, FONTS } from '@/constants/fonts';
 import { FIELD_TEXT, GLYPH, LETTERING, TYPOGRAPHY } from '@/constants/typography';
+import { POINTS_NUMBER, PROFILE, SEGMENTED } from '@/constants/tokens';
 
 // Mahi's text takes PingMee's type system, value for value (owner, 2026-10-10: "PingMee font sizes
 // and styling applied across the whole of mahi exactly what PingMee uses across their app for
@@ -224,5 +225,16 @@ describe('every screen and component', () => {
       .filter((f) => typed.test(readFileSync(f, 'utf8')))
       .map((f) => f.slice(root.length + 1));
     expect(offenders).toEqual([]);
+  });
+});
+
+// Text that shrinks to fit must stop at 11pt, like every other text (the floor moves with the style).
+describe('text that shrinks to fit', () => {
+  it.each([
+    ['a segmented option', TYPOGRAPHY.captionMedium.fontSize * SEGMENTED.labelMinScale],
+    ['the words beside the points number', TYPOGRAPHY.label.fontSize * POINTS_NUMBER.wordsMinScale],
+    ['a grid square’s points badge', TYPOGRAPHY.microStrong.fontSize * PROFILE.badgeMinScale],
+  ])('%s never goes under 11', (_what, smallest) => {
+    expect(smallest).toBeGreaterThanOrEqual(11);
   });
 });

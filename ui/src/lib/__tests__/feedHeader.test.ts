@@ -114,10 +114,19 @@ describe('feedTimerSpot — the timer, apart from the header', () => {
 // black canvas in both themes, so its header is the dark one; a white fade there was the bar.
 describe('the look of the header over the feed', () => {
   it('is the dark header over the full-screen feed, whatever the theme', () => {
-    expect(feedHeaderLook({ rows: false })).toEqual({ dark: true, bellTip: true });
+    expect(feedHeaderLook({ rows: false, hasPosts: true })).toEqual({ dark: true, bellTip: true });
+  });
+
+  // No posts yet, still loading or failed to load: the page keeps the theme's background, so a
+  // dark fade and a white MAHI would sit on a white page.
+  it('follows the theme while the feed has no posts to show', () => {
+    expect(feedHeaderLook({ rows: false, hasPosts: false })).toEqual({
+      dark: false,
+      bellTip: true,
+    });
   });
 
   it('follows the theme over the rows feed', () => {
-    expect(feedHeaderLook({ rows: true })).toEqual({ dark: false, bellTip: true });
+    expect(feedHeaderLook({ rows: true, hasPosts: true })).toEqual({ dark: false, bellTip: true });
   });
 });
