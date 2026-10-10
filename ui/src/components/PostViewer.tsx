@@ -1,6 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import {
+  Modal,
+  PixelRatio,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Reanimated, {
   type SharedValue,
@@ -18,7 +26,15 @@ import { useAuthStore, useChromeStore, useFeedStore } from '@/store';
 import PostCard from '@/components/PostCard';
 import CommentSheet from '@/components/CommentSheet';
 import GestureScrollView, { ListGestureContext } from '@/components/GestureScrollView';
-import { backdropOpacity, openablePosts, swipeCloses, viewerStartIndex } from '@/lib/viewer';
+import { backdropOpacity, openablePosts, viewerStartIndex } from '@/lib/viewer';
+import {
+  sidewaysCloses,
+  sidewaysExit,
+  sidewaysProgress,
+  viewerPages,
+  type ViewerFrom,
+} from '@/lib/viewerSwipe';
+import { feedListLayout, fullScreenPaging, snapBack } from '@/lib/feedListLayout';
 import { shouldPlay } from '@/lib/videoPosts';
 import type { MorphSource } from '@/lib/morph';
 import type { FeedPost } from '@/api';
@@ -42,10 +58,10 @@ interface PostViewerProps {
   /** Whose posts: the profile the grid belongs to ('' with `from: 'feed'`). */
   userId: string;
   /**
-   * Which list it pages through: a profile's posts (sideways), the feed (up and down), or just
-   * the one `post` (a post shared in a chat: who can see it is the server's call, post by post).
+   * Which list it pages through, up and down: a profile's posts, the feed, or just the one
+   * `post` (a post shared in a chat: who can see it is the server's call, post by post).
    */
-  from?: 'profile' | 'feed' | 'post';
+  from?: ViewerFrom;
   /** With `from: 'post'`: the post to show. */
   post?: FeedPost | null;
   /** The tapped post; null keeps the viewer closed. */
@@ -61,9 +77,11 @@ interface PostViewerProps {
 
 /**
  * A profile's posts, full screen, starting on the tapped one (owner, 2026-10-02: like Instagram
- * and TikTok). Left/right pages through all of that profile's posts, one per screen, drawn exactly
- * as the feed draws them (PostCard, videos included); a swipe down closes it, as do the ✕ and the
- * back gesture. Only posts the grid lets you open are shown (the feed lock's rule).
+ * and TikTok). Up and down pages through all of that profile's posts, one per screen with the
+ * feed's snap, drawn exactly as the feed draws them (PostCard, videos included); a sideways swipe,
+ * either way, closes it, as do the × and the back gesture (owner, 2026-10-10: "scroll up/down to
+ * go between them and make swiping left or right be able to exit"; rules in
+ * src/lib/viewerSwipe.ts). Only posts the grid lets you open are shown (the feed lock's rule).
  */
 export default function PostViewer({
   userId,
@@ -120,7 +138,7 @@ function PostViewerModal({
 }: {
   visible: boolean;
   userId: string;
-  from: 'profile' | 'feed' | 'post';
+  from: ViewerFrom;
   post: FeedPost | null;
   startPostId: string;
   source: MorphSource | null;
@@ -194,10 +212,18 @@ function Pages({
   from,
   post,
   ...props
-}: PagesProps & { from: 'profile' | 'feed' | 'post'; post: FeedPost | null }): React.JSX.Element {
-  if (from === 'post') return <OnePostPage {...props} post={post} />;
-  return from === 'feed' ? <FeedPages {...props} /> : <ProfilePages {...props} />;
+}: PagesProps & { from: ViewerFrom; post: FeedPost | null }): React.JSX.Element {
+  const paged = viewerPages(from);
+  if (from === 'post') return <OnePostPage {...props} post={post} paged={paged} />;
+  return from === 'feed' ? (
+    <FeedPages {...props} paged={paged} />
+  ) : (
+    <ProfilePages {...props} paged={paged} />
+  );
 }
+
+/** Whether up and down moves between posts (viewerPages): not for one post on its own. */
+type Paged = { paged: boolean };
 
 const noMore = () => {};
 
@@ -205,24 +231,24 @@ const noMore = () => {};
 function OnePostPage({
   post,
   ...props
-}: PagesProps & { post: FeedPost | null }): React.JSX.Element {
+}: PagesProps & Paged & { post: FeedPost | null }): React.JSX.Element {
   const posts = useMemo(() => openablePosts(post ? [post] : []), [post]);
   return <ViewerPages {...props} posts={posts} hasMore={false} loadMore={noMore} />;
 }
 
-function ProfilePages(props: PagesProps): React.JSX.Element {
+function ProfilePages(props: PagesProps & Paged): React.JSX.Element {
   const { posts: all, hasMore, loadMore } = useProfilePosts(props.userId);
   const posts = useMemo(() => openablePosts(all), [all]);
   return <ViewerPages {...props} posts={posts} hasMore={hasMore} loadMore={loadMore} />;
 }
 
 /** The feed, up and down like the feed itself; only posts it lets you open. */
-function FeedPages(props: PagesProps): React.JSX.Element {
+function FeedPages(props: PagesProps & Paged): React.JSX.Element {
   const all = useFeedStore((s) => s.posts);
   const hasMore = useFeedStore((s) => s.hasMore);
   const posts = useMemo(() => openablePosts(all), [all]);
   const loadMore = useCallback(() => void useFeedStore.getState().loadMore(), []);
-  return <ViewerPages {...props} posts={posts} hasMore={hasMore} loadMore={loadMore} vertical />;
+  return <ViewerPages {...props} posts={posts} hasMore={hasMore} loadMore={loadMore} />;
 }
 
 function ViewerPages({
@@ -236,22 +262,36 @@ function ViewerPages({
   posts,
   hasMore,
   loadMore,
-  vertical = false,
-}: PagesProps & {
-  posts: ReturnType<typeof openablePosts<FeedPost>>;
-  hasMore: boolean;
-  loadMore: () => void;
-  /** Pages up and down (the feed) instead of sideways; the ✕ and the back gesture close it. */
-  vertical?: boolean;
-}): React.JSX.Element {
+  paged,
+}: PagesProps &
+  Paged & {
+    posts: ReturnType<typeof openablePosts<FeedPost>>;
+    hasMore: boolean;
+    loadMore: () => void;
+  }): React.JSX.Element {
   const { dark } = useAppTheme();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const myId = useAuthStore((s) => s.user?.id);
-  // Holding a post (hold to view) fades the ✕ away with everything else over the photo.
+  // Holding a post (hold to view) fades the × away with everything else over the photo.
   const chrome = useChromeFade();
   // A photo being pinched holds the list and the close swipe still.
   const zooming = useChromeStore((s) => s.zooming);
+  // One post per screen with the feed's snap: the post's height and the snap are the same
+  // whole-pixel number, so no edge of the next post shows (src/lib/feedListLayout.ts).
+  const { cardHeight, snapInterval } = useMemo(() => {
+    const full = feedListLayout({
+      rows: false,
+      pageHeight: height,
+      headerH: 0,
+      topInset: 0,
+      topSpace: 0,
+      hasPosts: true,
+      pixelRatio: PixelRatio.get(),
+    });
+    return { cardHeight: full.cardHeight ?? height, snapInterval: full.snapInterval };
+  }, [height]);
+  const paging = paged ? fullScreenPaging(snapInterval) : null;
 
   // Where it opens is decided once; later pages loading in don't move it.
   const [startIndex] = useState(() => viewerStartIndex(posts, startPostId));
@@ -296,46 +336,83 @@ function ViewerPages({
     [userId, myId, onClose, onOpenProfile]
   );
 
-  // ── Swipe down to close ──────────────────────────────────────────────────
-  // Horizontal swipes page through workouts. A deliberate vertical pull dismisses the viewer,
-  // so browsing and closing never compete for the same shared gesture value.
+  // ── Swipe sideways to close ──────────────────────────────────────────────
+  // Up and down pages through the posts (the list's own scrolling). A clear sideways swipe, either
+  // way, closes the viewer, the close animation following the finger: it starts once the finger
+  // has moved SWIPE.slop sideways, and gives up if it moves that far up or down first, so
+  // browsing and closing never compete for the same drag (rules: src/lib/viewerSwipe.ts).
   const list = useMemo(() => Gesture.Native(), []);
-  const dy = useSharedValue(0);
+  const dx = useSharedValue(0);
+  // How far the finger had already moved when the swipe took over: the post follows from there,
+  // so it doesn't jump by that much as the swipe starts.
+  const grabX = useSharedValue(0);
+  // While the close swipe has the finger the list holds still, so the post doesn't drift up or
+  // down under a sideways drag or page as it lets go.
+  const [closing, setClosing] = useState(false);
   const swipe = Gesture.Pan()
-    .enabled(!zooming && !vertical)
+    .enabled(!zooming)
     .maxPointers(1)
-    .activeOffsetY([SWIPE.slop, SWIPE.slop])
-    .failOffsetX([-SWIPE.slop, SWIPE.slop])
+    .activeOffsetX([-SWIPE.slop, SWIPE.slop])
+    .failOffsetY([-SWIPE.slop, SWIPE.slop])
     .simultaneousWithExternalGesture(list)
+    .onStart((e) => {
+      'worklet';
+      grabX.value = e.translationX;
+      scheduleOnRN(setClosing, true);
+    })
     .onUpdate((e) => {
       'worklet';
+      const moved = e.translationX - grabX.value;
       if (morphProgress) {
         // SharedValue supplied by the transition owner; the pan directly scrubs its UI-thread value.
         // eslint-disable-next-line react-hooks/immutability
-        morphProgress.value = Math.max(0, Math.min(1, 1 - e.translationY / height));
+        morphProgress.value = sidewaysProgress(moved, width);
       } else {
-        dy.value = Math.max(0, e.translationY);
+        dx.value = moved;
       }
     })
     .onEnd((e) => {
       'worklet';
-      if (swipeCloses(e.translationY, e.velocityY)) {
+      if (sidewaysCloses(e.translationX, e.velocityX)) {
         if (morphProgress) scheduleOnRN(onClose);
         else {
-          dy.value = withTiming(height, { duration: VIEWER.closeMs }, (done) => {
-            if (done) scheduleOnRN(onClose);
-          });
+          dx.value = withTiming(
+            sidewaysExit(e.translationX, width),
+            { duration: VIEWER.closeMs },
+            (done) => {
+              if (done) scheduleOnRN(onClose);
+            }
+          );
         }
       } else {
         if (morphProgress) {
           // eslint-disable-next-line react-hooks/immutability
           morphProgress.value = withSpring(1, VIEWER.snapBack);
-        } else dy.value = withSpring(0, VIEWER.snapBack);
+        } else dx.value = withSpring(0, VIEWER.snapBack);
       }
+    })
+    .onFinalize(() => {
+      'worklet';
+      scheduleOnRN(setClosing, false);
     });
 
-  const pagesStyle = useAnimatedStyle(() => ({ transform: [{ translateY: dy.value }] }));
-  const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity(dy.value) }));
+  const pagesStyle = useAnimatedStyle(() => ({ transform: [{ translateX: dx.value }] }));
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity(dx.value) }));
+
+  // A list left a little off its post goes straight back to it. Two fingers starting a pinch, or
+  // a finger starting the close swipe, can drag the list a few points before it is held still.
+  const listRef = useRef<FlashListRef<FeedPost>>(null);
+  const lastY = useRef<number | null>(null);
+  const postCount = useRef(posts.length);
+  useEffect(() => {
+    postCount.current = posts.length;
+  }, [posts.length]);
+  const held = zooming || closing;
+  useEffect(() => {
+    if (lastY.current == null) return;
+    const rest = snapBack(lastY.current, paged ? snapInterval : undefined, postCount.current);
+    if (rest != null) listRef.current?.scrollToOffset({ offset: rest, animated: false });
+  }, [held, paged, snapInterval]);
 
   return (
     <View
@@ -349,19 +426,22 @@ function ViewerPages({
         <Reanimated.View style={[styles.root, pagesStyle]}>
           <ListGestureContext.Provider value={list}>
             <FlashList
-              scrollEnabled={!zooming}
+              ref={listRef}
+              // One post on its own doesn't move up or down at all.
+              scrollEnabled={paged && !held}
+              bounces={paged}
+              overScrollMode={paged ? 'auto' : 'never'}
               renderScrollComponent={GestureScrollView}
               data={posts}
               keyExtractor={(item) => item.id}
               extraData={extra}
               initialScrollIndex={startIndex}
-              horizontal={!vertical}
               renderItem={({ item }) => (
                 <PostCard
                   item={item}
                   dark={dark}
                   width={width}
-                  height={height}
+                  height={cardHeight}
                   onAvatarPress={onAvatarPress}
                   onCommentPress={setCommentPostId}
                   playing={shouldPlay({
@@ -372,11 +452,12 @@ function ViewerPages({
                   onToggleMuted={toggleMuted}
                 />
               )}
-              snapToInterval={vertical ? height : width}
-              snapToAlignment="start"
-              disableIntervalMomentum
-              decelerationRate="fast"
+              {...paging}
               showsVerticalScrollIndicator={false}
+              onScroll={(e) => {
+                lastY.current = e.nativeEvent.contentOffset.y;
+              }}
+              scrollEventThrottle={16}
               onEndReached={hasMore ? loadMore : undefined}
               onEndReachedThreshold={0.4}
               onViewableItemsChanged={onViewable}

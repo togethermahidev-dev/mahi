@@ -3,18 +3,19 @@ import {
   AccessibilityInfo,
   View,
   Text,
+  PixelRatio,
   RefreshControl,
   StyleSheet,
   Pressable,
   ActivityIndicator,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeGesture } from 'react-native-gesture-handler';
 import type { SharedValue } from 'react-native-reanimated';
 import { themeColors, useAppTheme } from '@/hooks/useAppTheme';
 import { refreshTint } from '@/lib/themeColors';
-import { usePageSize } from '@/hooks/useChrome';
+import { usePageSize, useTabBarRoom } from '@/hooks/useChrome';
 import { useFeed } from '@/hooks/useFeed';
 import { useOpenTags } from '@/hooks/useOpenTags';
 import { answersATag } from '@/lib/reactivePosting';
@@ -34,7 +35,7 @@ import { lockExplainer as lockCardFor } from '@/lib/feedLock';
 import { feedLockMoment, haptic } from '@/lib/haptics';
 import { developPlan, developWords } from '@/lib/feedDevelop';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
-import { feedListLayout } from '@/lib/feedListLayout';
+import { feedListLayout, fullScreenPaging, showsEndNote, snapBack } from '@/lib/feedListLayout';
 import { BlurView } from 'expo-blur';
 import Reanimated, {
   Easing,
@@ -66,6 +67,7 @@ import {
   DURATION,
   FONT_SIZE,
   MOTION,
+  POST_FULL,
   RADIUS,
   SIZE,
   SPACE,
@@ -120,11 +122,12 @@ function DevelopCover({ delay, words }: { delay: number; words: string | null })
  * The one lock pill floats over the feed (FeedLockBanner); a tap makes it wiggle "no".
  */
 function LockedCard({ height, onPress }: { height: number; onPress: () => void }) {
-  const { dark, colors } = useAppTheme();
-  const shape = { backgroundColor: withAlpha(colors.text, ALPHA.a25) };
+  // On the same dark canvas as every full-screen post, in both themes: nothing between posts is
+  // ever white (owner, 2026-10-10).
+  const shape = { backgroundColor: withAlpha(COLORS.white, ALPHA.a25) };
   return (
     <Pressable
-      style={[styles.lockedCard, { height, backgroundColor: colors.bg }]}
+      style={[styles.lockedCard, { height, backgroundColor: POST_FULL.canvas }]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel="Locked post"
@@ -139,7 +142,7 @@ function LockedCard({ height, onPress }: { height: number; onPress: () => void }
       </View>
       <BlurView
         intensity={BLUR_INTENSITY.i40}
-        tint={dark ? 'dark' : 'light'}
+        tint="dark"
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
@@ -193,7 +196,7 @@ export default function FeedScreen({
   // A photo being pinched holds the list still.
   const zooming = useChromeStore((s) => s.zooming);
   // TikTok-style snap: each card fills the page (the screen, or the space above the tab bar).
-  const { width: screenWidth, height: cardHeight } = usePageSize();
+  const { width: screenWidth, height: pageHeight } = usePageSize();
   // The feed as rows (on) or full-screen posts, one per screen (off, the default; owner,
   // 2026-10-09). Geometry: src/lib/feedListLayout.ts.
   const rowsOn = useFeatureFlag('feed-rows');
@@ -292,23 +295,31 @@ export default function FeedScreen({
   const [pushH, setPushH] = useState(0);
   const pushSpace = pushH > 0 ? pushH + SPACE.s8 : 0;
   const topSpace = (!locked && bannerH > 0 ? bannerH + SPACE.s8 : 0) + pushSpace;
-  const layout = feedListLayout({
-    rows: rowsOn,
-    pageHeight: cardHeight,
-    headerH,
-    topInset,
-    topSpace,
-    hasPosts: posts.length > 0,
-  });
+  const hasPosts = posts.length > 0;
+  const layout = useMemo(
+    () =>
+      feedListLayout({
+        rows: rowsOn,
+        pageHeight,
+        headerH,
+        topInset,
+        topSpace,
+        hasPosts,
+        pixelRatio: PixelRatio.get(),
+      }),
+    [rowsOn, pageHeight, headerH, topInset, topSpace, hasPosts]
+  );
+  // Full screen: a post's height and the snap are the same whole-pixel number (cardHeight).
+  const cardHeight = layout.cardHeight ?? pageHeight;
+  // Full-screen posts sit on the posts' own dark canvas in both themes: behind and between them
+  // and wherever the list is still catching up, nothing is ever white (owner, 2026-10-10: "no
+  // white bar or edges between the scrolls"). With no posts the page keeps its own background,
+  // under the words that say so.
+  const canvas = !rowsOn && hasPosts;
+  // Any bar that floats at the foot of the page (the glass dock on builds without the tab bar).
+  const tabRoom = useTabBarRoom();
   // Full screen: one flick moves one post, however hard, as on TikTok and Reels.
-  const paging = layout.snapInterval
-    ? {
-        snapToInterval: layout.snapInterval,
-        snapToAlignment: 'start' as const,
-        disableIntervalMomentum: true,
-        decelerationRate: 'fast' as const,
-      }
-    : null;
+  const paging = fullScreenPaging(layout.snapInterval);
 
   // Friends' posts while locked: a button only when reactive posting lets you post (a tag still
   // open on the server clock, or your first post).
@@ -449,6 +460,41 @@ export default function FeedScreen({
     headerState.current = next;
   };
 
+  const listRef = useRef<FlashListRef<FeedPost>>(null);
+  // Full screen: a list left a little off its post goes straight back to it, so no edge of the
+  // next post shows. Two fingers starting a pinch can drag the list a few points before it is
+  // held still (and again as it lets go), and a page that changes height moves every post.
+  const snapInterval = layout.snapInterval;
+  useEffect(() => {
+    const rest = snapBack(lastY.current, snapInterval, postsNow.current.length);
+    if (rest != null) listRef.current?.scrollToOffset({ offset: rest, animated: false });
+  }, [zooming, snapInterval]);
+
+  // Full screen: once the feed has closed it goes back to its first post, without animation, so
+  // the next time it opens it starts at the top (owner, 2026-10-10: "press the camera then it
+  // takes you back to the top where the camera is"; it already refreshes on open). It waits until
+  // the closing feed is out of sight, so nothing jumps while it is still on its way out; reopened
+  // before then, it goes back at once.
+  const backToFirst = useRef(false);
+  const toFirstPost = useCallback(() => {
+    backToFirst.current = false;
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    lastY.current = 0;
+    headerState.current = HEADER_START;
+    tellTop(true);
+  }, [tellTop]);
+  useEffect(() => {
+    if (rowsOn) return;
+    if (isActive) {
+      if (backToFirst.current) toFirstPost();
+      return;
+    }
+    if (lastY.current === 0) return;
+    backToFirst.current = true;
+    const id = setTimeout(toFirstPost, POST_FULL.resetAfterMs);
+    return () => clearTimeout(id);
+  }, [isActive, rowsOn, toFirstPost]);
+
   // The notifications banner leaves with the header, all the way off the top.
   const pushDistance = headerH + topInset + pushH;
   const pushStyle = useAnimatedStyle(() => {
@@ -466,12 +512,24 @@ export default function FeedScreen({
     [headerH, topInset, pushSpace]
   );
 
+  // Full screen, on the last post: "loading more" or "couldn't load more" (showsEndNote).
+  const endNote = showsEndNote({
+    rows: rowsOn,
+    posts,
+    inViewId,
+    busy: isLoadingMore,
+    failed: !!error,
+  });
+
   return (
-    <View style={[styles.root, { backgroundColor: posts.length ? listBg : bg }]}>
+    <View style={[styles.root, { backgroundColor: canvas ? POST_FULL.canvas : listBg }]}>
       <ListGestureContext.Provider value={listGesture}>
         <FlashList
+          ref={listRef}
           // A fresh list when the layout switches, so no row is recycled as a full-screen post.
           key={rowsOn ? 'rows' : 'full'}
+          // Full screen: the list itself is the posts' dark canvas (never the page's white).
+          style={canvas ? styles.fullList : undefined}
           // The app header is an intentional overlay. Prevent iOS from adding its own safe-area
           // inset as well, which otherwise leaves a visible strip above the first full-screen post.
           automaticallyAdjustContentInsets={false}
@@ -493,7 +551,7 @@ export default function FeedScreen({
                   onLockedPress={onLockedPress}
                 />
               ) : item.locked ? (
-                <LockedCard height={layout.cardHeight ?? cardHeight} onPress={onLockedPress} />
+                <LockedCard height={cardHeight} onPress={onLockedPress} />
               ) : (
                 // Full screen, as before rows (owner, 2026-10-09): the post is already full
                 // screen, so a tap doesn't open the viewer; likes, comments and faces work here.
@@ -501,7 +559,7 @@ export default function FeedScreen({
                   item={item}
                   dark={dark}
                   width={screenWidth}
-                  height={layout.cardHeight ?? cardHeight}
+                  height={cardHeight}
                   onAvatarPress={handleAvatarPress}
                   onCommentPress={setCommentPostId}
                   topSpace={index === 0 ? layout.firstTopSpace : 0}
@@ -523,27 +581,25 @@ export default function FeedScreen({
           {...paging}
           // Rows start under the floating header (and the banners); full-screen posts start at
           // the top, with the header and banners floating over the first one.
-          contentContainerStyle={{ paddingTop: layout.paddingTop }}
+          contentContainerStyle={
+            canvas
+              ? { paddingTop: layout.paddingTop, backgroundColor: POST_FULL.canvas }
+              : { paddingTop: layout.paddingTop }
+          }
           onEndReached={hasMore ? loadMore : undefined}
           onEndReachedThreshold={0.4}
           ListFooterComponent={
-            isLoadingMore ? (
+            // Rows only. Full screen the list is posts and nothing else: a strip under the last
+            // post gave the list somewhere to stop that wasn't a post, leaving it out of step
+            // with a bar of background showing. Its "loading more" floats over the last post.
+            !rowsOn ? null : isLoadingMore ? (
               <View style={styles.moreLoader} accessibilityLabel="Loading more posts">
                 <ActivityIndicator color={muted} />
               </View>
             ) : error && posts.length > 0 ? (
-              rowsOn ? (
-                <Text style={[styles.errorText, { color: muted }]}>
-                  Couldn’t load more. Pull down to try again.
-                </Text>
-              ) : (
-                // Full screen: the pull down at the top is the camera's, so this is a tap.
-                <Pressable onPress={loadMore} accessibilityRole="button">
-                  <Text style={[styles.errorText, { color: muted }]}>
-                    Couldn’t load more. Tap to try again.
-                  </Text>
-                </Pressable>
-              )
+              <Text style={[styles.errorText, { color: muted }]}>
+                Couldn’t load more. Pull down to try again.
+              </Text>
             ) : null
           }
           showsVerticalScrollIndicator={false}
@@ -678,6 +734,26 @@ export default function FeedScreen({
         </Reanimated.View>
       ) : null}
 
+      {/* Full screen, on the last post: more posts loading, or a tap to try again (the pull down
+          at the top is the camera's). It floats over the post and takes no room in the list. */}
+      {endNote ? (
+        <View style={[styles.endNote, { bottom: tabRoom + SPACE.s16 }]} pointerEvents="box-none">
+          {isLoadingMore ? (
+            <View style={styles.endNotePill} accessible accessibilityLabel="Loading more posts">
+              <ActivityIndicator color={COLORS.white} />
+            </View>
+          ) : (
+            <Pressable
+              style={({ pressed }) => [styles.endNotePill, pressed && { opacity: ALPHA.a70 }]}
+              onPress={loadMore}
+              accessibilityRole="button"
+            >
+              <Text style={styles.endNoteText}>Couldn’t load more. Tap to try again.</Text>
+            </Pressable>
+          )}
+        </View>
+      ) : null}
+
       {/* At the first post: "Switch to camera", under the header, the banner and the timer. */}
       {switchPill && onGoToCamera && posts.length > 0 ? (
         <SwitchCameraPill
@@ -773,6 +849,31 @@ const styles = StyleSheet.create({
     height: SIZE.z56,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Full-screen posts: the list's own background is the posts' dark canvas.
+  fullList: {
+    backgroundColor: POST_FULL.canvas,
+  },
+  // Full-screen posts: "loading more" floats at the foot of the last post, under its caption.
+  endNote: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  endNotePill: {
+    minWidth: SIZE.z44,
+    minHeight: SIZE.z44,
+    paddingHorizontal: SPACE.s16,
+    borderRadius: RADIUS.pill,
+    backgroundColor: withAlpha(COLORS.black, ALPHA.a45),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  endNoteText: {
+    fontSize: FONT_SIZE.f13,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.white,
   },
   skeletonFoot: {
     padding: SPACE.s16,

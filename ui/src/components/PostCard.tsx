@@ -1,4 +1,11 @@
-import React, { useState, useRef, useCallback, useContext, useEffect } from 'react';
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+} from 'react';
 import {
   View,
   Text,
@@ -59,7 +66,16 @@ import { reportError } from '@/lib/sentry';
 import { canEditPostCaption } from '@/lib/postPolicy';
 import { deletePost } from '@/api';
 import { useToastStore } from '@/store/toastStore';
-import { appHeaderHeight, pipZone } from '@/lib/pip';
+import {
+  appHeaderHeight,
+  measuredTextTop,
+  pipPlacement,
+  sameTextTop,
+  textTopFromParts,
+  withTextPart,
+  type PipMeasure,
+  type PipTextParts,
+} from '@/lib/pip';
 import type { FeedPost } from '@/api';
 import { FONTS } from '@/constants/fonts';
 import {
@@ -71,6 +87,7 @@ import {
   ICON_SIZE,
   OFFSET,
   POST_CARD,
+  POST_FULL,
   RADIUS,
   SCALE,
   SHADOW_BLUR,
@@ -117,14 +134,15 @@ export default function PostCard({
   soundOff?: boolean;
   onToggleMuted?: () => void;
 }) {
-  const text = dark ? COLORS.offWhite : COLORS.offBlack;
-  const { muted } = themeColors(dark);
-  const border = dark
-    ? withAlpha(COLORS.offWhite, ALPHA.a10)
-    : withAlpha(COLORS.offBlack, ALPHA.a10);
+  // A full-screen post is a dark canvas in both themes, so what shows while its photo loads (and
+  // the first sliver of the next post as you page) is never white (owner, 2026-10-10: "no white
+  // bar between the scrolls"). Words on it are the light ones. `dark` still sets the look of the
+  // hold-to-preview menu, which follows the theme.
+  const text = COLORS.offWhite;
+  const { muted } = themeColors(true);
   // The app header floats over the card; its height follows the status bar / notch.
   const headerH = appHeaderHeight(useSafeAreaInsets().top);
-  const cardBg = dark ? COLORS.surfaceDark2 : COLORS.surfaceLight;
+  const cardBg = POST_FULL.canvas;
 
   const name = item.profiles.display_name ?? item.profiles.username;
   const initials = (item.profiles.username ?? '?')[0].toUpperCase();
@@ -140,10 +158,15 @@ export default function PostCard({
   const invites = pendingInvites(item);
   const reduceMotion = useReducedMotion();
 
-  const [rearIsPrimary, setRearIsPrimary] = useState(true);
-  // Whether the primary photo is landscape (wider than tall), detected on load,
-  // so a landscape post is letterboxed (contain) rather than center-cropped.
-  const [primaryLandscape, setPrimaryLandscape] = useState(false);
+  // A list cell is reused for the next post, so what is remembered here says which post (or
+  // photo) it is about: the next post never starts swapped, letterboxed or with the small photo
+  // where the last one had it.
+  // The post whose two shots are swapped (the small one shown big), or null.
+  const [swappedPostId, setSwappedPostId] = useState<string | null>(null);
+  const rearIsPrimary = swappedPostId !== item.id;
+  // The photo found to be landscape (wider than tall) when it loaded, so a landscape post is
+  // letterboxed (contain) rather than center-cropped.
+  const [landscapeUri, setLandscapeUri] = useState<string | null>(null);
   // Slow networks: which photo has arrived or failed, and a retry count that redraws it.
   const [loadedUri, setLoadedUri] = useState<string | null>(null);
   const [failedUri, setFailedUri] = useState<string | null>(null);
@@ -205,16 +228,48 @@ export default function PostCard({
   const frontKind = mediaTypeOrPhoto(item.front_media_type);
   const primaryKind = hasDual && !rearIsPrimary ? frontKind : rearKind;
   const pipKind = hasDual && !rearIsPrimary ? rearKind : frontKind;
+  const primaryLandscape = landscapeUri === primaryUrl;
   // A video post still uploading says so (its files are large); photo posts show as today.
   const postingVideo = 'isPending' in item && (rearKind === 'video' || frontKind === 'video');
 
   // ── Draggable PiP (FaceTime-style) — safe zone clears the header + tagged pills ──
-  // …and stays above the name row (owner, 2026-10-09: "make sure the pip window doesn't cover the
-  // users name row"): where the row starts on the card is the shade's top plus its place in it.
-  const [shadeY, setShadeY] = useState<number | null>(null);
-  const [nameRowY, setNameRowY] = useState<number | null>(null);
-  const textTop = shadeY != null && nameRowY != null ? shadeY + nameRowY : null;
-  const pipSafeZone = pipZone({ width, height }, headerH + OFFSET.o120 + topSpace, textTop);
+  // …and never covers the name row, the line under it or the caption (owner, 2026-10-10: "make
+  // sure it never does on all posts"; rules in src/lib/pip.ts). Its lowest spot comes from where
+  // THIS post's name row starts; until that is known for this post, it isn't drawn.
+  const postId = item.id;
+  const mediaRef = useRef<View>(null);
+  const nameRowRef = useRef<View>(null);
+  const [pipMeasure, setPipMeasure] = useState<PipMeasure | null>(null);
+  const noteTextTop = useCallback((id: string, textTop: number) => {
+    setPipMeasure((known) => (sameTextTop(known, id, textTop) ? known : { postId: id, textTop }));
+  }, []);
+  // Measured as soon as each draw of the post is laid out, before it is shown, so the small photo
+  // and the text under it land on the same frame.
+  useLayoutEffect(() => {
+    const row = nameRowRef.current;
+    const media = mediaRef.current;
+    if (!hasDual || !row || !media) return;
+    row.measureLayout(media, (_x, y) => noteTextTop(postId, y));
+  });
+  // The same answer from the layout reports (the shade's top on the post plus the name row's top
+  // in the shade), in case the measure above has nothing to say. The text block is made fresh
+  // for each post (its key), so these are always this post's own.
+  const textParts = useRef<PipTextParts>({ postId, shadeY: null, rowY: null });
+  const noteTextPart = (part: 'shadeY' | 'rowY', y: number) => {
+    if (!hasDual) return;
+    textParts.current = withTextPart(textParts.current, postId, part, y);
+    const textTop = textTopFromParts(textParts.current, postId);
+    if (textTop != null) noteTextTop(postId, textTop);
+  };
+  const pip =
+    hasDual && pipUrl
+      ? pipPlacement(
+          { width, height },
+          headerH + OFFSET.o120 + topSpace,
+          headerH + topSpace,
+          measuredTextTop(pipMeasure, postId)
+        )
+      : null;
 
   // ── Double-tap medal burst animation ─────────────────────────────────────
   const medalScale = useRef(new Animated.Value(0)).current;
@@ -378,16 +433,19 @@ export default function PostCard({
       zoomY.value = withSpring(0, VIEWER.snapBack);
       scheduleOnRN(endZoom);
     });
-  if (list) pinch.simultaneousWithExternalGesture(list);
   const zoomStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: zoomX.value }, { translateY: zoomY.value }, { scale: zoom.value }],
   }));
 
   // Hold to preview on: Apple's context menu owns the hold, so hold to view steps aside.
   const menuOn = useContextMenuPreview();
-  const postGesture = menuOn
-    ? Gesture.Simultaneous(doubleTap, pinch)
-    : Gesture.Simultaneous(doubleTap, hold, pinch);
+  const postGesture = menuOn ? doubleTap : Gesture.Simultaneous(doubleTap, hold);
+  // The pinch has its own detector, on a plain view around the hold-to-preview host (the same
+  // side of it as the list's own scrolling), and runs alongside the post's gestures inside the
+  // host and alongside the list, exactly as it did when it was one of them.
+  pinch.simultaneousWithExternalGesture(doubleTap);
+  if (!menuOn) pinch.simultaneousWithExternalGesture(hold);
+  if (list) pinch.simultaneousWithExternalGesture(list);
 
   // ── Like handler (action bar tap) ───────────────────────────────────────
   const handleLike = useCallback(() => {
@@ -445,11 +503,19 @@ export default function PostCard({
           const src = e.nativeEvent?.source;
           // Landscape (wider than tall) → letterbox; portrait/square stay cover.
           if (src?.width && src?.height) {
-            setPrimaryLandscape(src.width / src.height > 1.05);
+            setLandscapeUri(src.width / src.height > 1.05 ? primaryUrl : null);
           }
         }}
       />
     );
+  // The photo (or video) inside the view the pinch moves: the one you pinch is the one you see,
+  // with hold to preview on or off. (It was drawn outside this view wherever hold to preview
+  // runs, so a pinch there zoomed nothing.)
+  const zoomedMedia = (
+    <Reanimated.View style={[StyleSheet.absoluteFill, zoomStyle]} pointerEvents="none">
+      {media}
+    </Reanimated.View>
+  );
 
   // A photo still on its way shows a spinner on the card; one that failed says so, with a retry.
   // (A locked post has no photo address: nothing to wait for.)
@@ -469,257 +535,278 @@ export default function PostCard({
       {/* Post image — double-tap to like, press and hold to see it whole (or, with hold to
           preview on, to pop it out with a menu; off, this wrapper adds nothing) */}
       <View style={[styles.imageContainer, { width, flex: 1 }]}>
-        <PreviewMenu
-          enabled={menuOn}
-          width={width}
-          height={height}
-          dark={dark}
-          items={menuItems}
-          onAction={runMenuAction}
-          previewSize={previewSize(screen, 'post')}
-          previewBackground={cardBg}
-          renderPreview={() => <PostPreviewImage uri={previewUri} />}
-        >
-          <GestureDetector gesture={postGesture}>
-            <View
-              style={[
-                { width, flex: 1 },
-                primaryLandscape && primaryKind === 'photo' && styles.letterbox,
-              ]}
-              onLayout={(e) => {
-                mediaH.value = e.nativeEvent.layout.height;
-              }}
+        {/* Two fingers zoom the photo. The pinch is taken here, on a plain view around the
+            hold-to-preview host, where the list's own scrolling is taken too. */}
+        <GestureDetector gesture={pinch}>
+          <View style={{ width, flex: 1 }}>
+            <PreviewMenu
+              enabled={menuOn}
+              width={width}
+              height={height}
+              dark={dark}
+              items={menuItems}
+              onAction={runMenuAction}
+              previewSize={previewSize(screen, 'post')}
+              previewBackground={cardBg}
+              renderPreview={() => <PostPreviewImage uri={previewUri} />}
             >
-              <Reanimated.View style={[StyleSheet.absoluteFill, zoomStyle]} pointerEvents="none">
-                {menuOn ? null : media}
-              </Reanimated.View>
-              {menuOn ? (
-                // VoiceOver: the post is one element with the menu's choices as actions.
+              <GestureDetector gesture={postGesture}>
                 <View
-                  style={StyleSheet.absoluteFill}
-                  accessible
-                  accessibilityLabel={`${name}'s ${primaryKind}`}
-                  accessibilityActions={menuA11yActions(menuItems)}
-                  onAccessibilityAction={(e) => runMenuAction(e.nativeEvent.actionName)}
-                >
-                  {media}
-                </View>
-              ) : null}
-              {photoState === 'loading' ? (
-                <View style={[StyleSheet.absoluteFill, styles.photoState]} pointerEvents="none">
-                  <ActivityIndicator color={muted} accessibilityLabel="Loading photo" />
-                </View>
-              ) : photoState === 'failed' ? (
-                <View style={[StyleSheet.absoluteFill, styles.photoState]} pointerEvents="box-none">
-                  <Text style={[styles.photoStateText, { color: text }]}>
-                    Couldn’t load this photo
-                  </Text>
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.photoRetry,
-                      { borderColor: text },
-                      pressed && { opacity: ALPHA.a70 },
-                    ]}
-                    onPress={retryPhoto}
-                    accessibilityRole="button"
-                  >
-                    <Text style={[styles.photoRetryText, { color: text }]}>Try again</Text>
-                  </Pressable>
-                </View>
-              ) : null}
-              {/* One information layer over the photo; fades away while the post is held. */}
-              <Reanimated.View
-                style={[StyleSheet.absoluteFill, chrome.style]}
-                pointerEvents={chrome.viewing ? 'none' : 'box-none'}
-              >
-                {/* A single bottom shade keeps controls legible without masking the workout. */}
-                <LinearGradient
-                  colors={[
-                    'transparent',
-                    withAlpha(COLORS.black, POST_CARD.shadeMid),
-                    withAlpha(COLORS.black, POST_CARD.shadeBottom),
-                  ]}
+                  ref={mediaRef}
                   style={[
-                    styles.captionOverlay,
-                    { minHeight: height * layout.shadeHeight },
-                    tabRoom > 0 && { paddingBottom: Math.max(SPACE.s80, tabRoom + SPACE.s16) },
+                    { width, flex: 1 },
+                    primaryLandscape && primaryKind === 'photo' && styles.letterbox,
                   ]}
-                  pointerEvents="box-none"
-                  onLayout={(e) => setShadeY(e.nativeEvent.layout.y)}
+                  onLayout={(e) => {
+                    mediaH.value = e.nativeEvent.layout.height;
+                  }}
                 >
-                  <View
-                    style={styles.identityRow}
-                    onLayout={(e) => setNameRowY(e.nativeEvent.layout.y)}
-                  >
-                    <PressScale
-                      style={styles.avatarRow}
-                      onPress={() => onAvatarPress(item.profiles.id)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Open ${name}'s profile`}
+                  {menuOn ? (
+                    // VoiceOver: the post is one element with the menu's choices as actions.
+                    <View
+                      style={StyleSheet.absoluteFill}
+                      accessible
+                      accessibilityLabel={`${name}'s ${primaryKind}`}
+                      accessibilityActions={menuA11yActions(menuItems)}
+                      onAccessibilityAction={(e) => runMenuAction(e.nativeEvent.actionName)}
                     >
-                      {item.profiles.avatar_url ? (
-                        <Image
-                          source={{ uri: item.profiles.avatar_url, cache: 'force-cache' }}
-                          style={styles.avatar}
-                        />
-                      ) : (
-                        <View
-                          style={[
-                            styles.avatar,
-                            styles.avatarFallback,
-                            { backgroundColor: withAlpha(COLORS.white, ALPHA.a30) },
-                          ]}
-                        >
-                          <Text style={styles.avatarInitial}>{initials}</Text>
-                        </View>
-                      )}
-                      <View style={styles.userInfo}>
-                        <Text style={styles.usernameOverlay}>{name}</Text>
-                        {replyLine ? (
-                          <View style={styles.onTimeRow}>
-                            <ClockIcon size={ICON_SIZE.i14} color={COLORS.accent} />
-                            <Text
-                              style={[styles.timeOverlay, styles.onTimeText]}
-                              numberOfLines={2}
-                              accessibilityLabel={[replyLine, replyTail].filter(Boolean).join(' ')}
-                            >
-                              Replying to{' '}
-                              {replyTo.map((person, index) => (
-                                <Text
-                                  key={person.user_id ?? person.username}
-                                  style={person.user_id ? styles.replyPerson : undefined}
-                                  onPress={
-                                    person.user_id
-                                      ? () => onAvatarPress(person.user_id as string)
-                                      : undefined
-                                  }
-                                  accessibilityRole={person.user_id ? 'link' : undefined}
-                                >
-                                  @{person.username}
-                                  {index < replyTo.length - 1 ? ', ' : '.'}
-                                </Text>
-                              ))}
-                              {replyTail ? ` ${replyTail}` : ''}
-                            </Text>
-                          </View>
-                        ) : null}
-                        {onTime ? (
-                          <View style={styles.onTimeRow}>
-                            <ClockIcon size={ICON_SIZE.i14} color={COLORS.accent} />
-                            <Text style={[styles.timeOverlay, styles.onTimeText]} numberOfLines={1}>
-                              {onTime}
-                            </Text>
-                          </View>
-                        ) : null}
-                        <Text style={styles.timeOverlay} numberOfLines={1}>
-                          {postingVideo ? 'Posting…' : relativeTime(item.created_at)}
-                          {points ? ` · ${points}` : ''}
-                        </Text>
-                      </View>
-                    </PressScale>
-                    {canReport || ownPost ? (
-                      <PressScale
-                        style={styles.moreButton}
-                        onPress={() =>
-                          ownPost
-                            ? showOwnPostMenu(
-                                canEditCaption,
-                                () => setEditingCaption(true),
-                                removeOwnPost,
-                                deleting
-                              )
-                            : showPostMenu(() => startReport('post', item.id))
-                        }
-                        hitSlop={OFFSET.o12}
-                        accessibilityRole="button"
-                        accessibilityLabel="More"
-                        accessibilityHint={
-                          ownPost ? 'Edit caption or delete this post' : 'Report this post'
-                        }
-                      >
-                        <MoreIcon size={ICON_SIZE.i20} color={COLORS.white} />
-                      </PressScale>
-                    ) : null}
-                  </View>
-                  {item.caption ? (
-                    <CaptionText
-                      caption={item.caption}
-                      tagged={item.tagged_users}
-                      style={styles.captionText}
-                      onPressUser={(u) => onAvatarPress(u.user_id)}
-                      numberOfLines={layout.captionLines}
-                    />
-                  ) : null}
-                  {item.tagged_users.length > 0 || invites.length > 0 ? (
-                    <View style={styles.taggedRow}>
-                      <Text style={styles.taggedText} numberOfLines={1}>
-                        With{' '}
-                        {item.tagged_users.map((user, index) => (
-                          <Text
-                            key={user.user_id}
-                            style={styles.taggedPerson}
-                            onPress={() => onAvatarPress(user.user_id)}
-                            accessibilityRole="link"
-                          >
-                            @{user.username}
-                            {index < item.tagged_users.length - 1 ? ', ' : ''}
-                          </Text>
-                        ))}
+                      {zoomedMedia}
+                    </View>
+                  ) : (
+                    zoomedMedia
+                  )}
+                  {photoState === 'loading' ? (
+                    <View style={[StyleSheet.absoluteFill, styles.photoState]} pointerEvents="none">
+                      <ActivityIndicator color={muted} accessibilityLabel="Loading photo" />
+                    </View>
+                  ) : photoState === 'failed' ? (
+                    <View
+                      style={[StyleSheet.absoluteFill, styles.photoState]}
+                      pointerEvents="box-none"
+                    >
+                      <Text style={[styles.photoStateText, { color: text }]}>
+                        Couldn’t load this photo
                       </Text>
-                      {/* Invited by link, not joined yet: initials only, never a name or number.
-                          The real avatar and username replace it once they join. */}
-                      {invites.map((invite) => (
-                        <View
-                          key={invite.key}
-                          style={styles.invitedChip}
-                          accessible
-                          accessibilityLabel={
-                            invite.initials ? `Invited, ${invite.initials}` : 'Invited'
-                          }
-                        >
-                          <View style={styles.invitedCircle}>
-                            {invite.initials ? (
-                              <Text style={styles.invitedInitials}>{invite.initials}</Text>
-                            ) : null}
-                          </View>
-                          <Text style={styles.taggedText}>Invited ⏳</Text>
-                        </View>
-                      ))}
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.photoRetry,
+                          { borderColor: text },
+                          pressed && { opacity: ALPHA.a70 },
+                        ]}
+                        onPress={retryPhoto}
+                        accessibilityRole="button"
+                      >
+                        <Text style={[styles.photoRetryText, { color: text }]}>Try again</Text>
+                      </Pressable>
                     </View>
                   ) : null}
-                </LinearGradient>
-              </Reanimated.View>
-              {/* Heart burst overlay — shown on double-tap */}
-              {showMedal && (
-                <Animated.View
-                  pointerEvents="none"
-                  style={[
-                    styles.medalBurst,
-                    {
-                      left: medalPos.x - OFFSET.o40,
-                      top: medalPos.y - OFFSET.o40,
-                      transform: [{ scale: medalScale }],
-                      opacity: medalOpacity,
-                    },
-                  ]}
-                >
-                  <HeartIcon size={ICON_SIZE.i80} color={COLORS.white} filled />
-                </Animated.View>
-              )}
-            </View>
-          </GestureDetector>
-        </PreviewMenu>
-        {/* Draggable PIP — uses RNGH so it wins over scroll/navigation gestures */}
-        {hasDual && pipUrl && (
+                  {/* One information layer over the photo; fades away while the post is held. */}
+                  <Reanimated.View
+                    style={[StyleSheet.absoluteFill, chrome.style]}
+                    pointerEvents={chrome.viewing ? 'none' : 'box-none'}
+                  >
+                    {/* A single bottom shade keeps controls legible without masking the workout.
+                    Made fresh for each post (the key), so where its name row starts is always
+                    reported for this post, even in a reused list cell. */}
+                    <LinearGradient
+                      key={postId}
+                      colors={[
+                        'transparent',
+                        withAlpha(COLORS.black, POST_CARD.shadeMid),
+                        withAlpha(COLORS.black, POST_CARD.shadeBottom),
+                      ]}
+                      style={[
+                        styles.captionOverlay,
+                        { minHeight: height * layout.shadeHeight },
+                        tabRoom > 0 && { paddingBottom: Math.max(SPACE.s80, tabRoom + SPACE.s16) },
+                      ]}
+                      pointerEvents="box-none"
+                      onLayout={(e) => noteTextPart('shadeY', e.nativeEvent.layout.y)}
+                    >
+                      <View
+                        ref={nameRowRef}
+                        style={styles.identityRow}
+                        onLayout={(e) => noteTextPart('rowY', e.nativeEvent.layout.y)}
+                      >
+                        <PressScale
+                          style={styles.avatarRow}
+                          onPress={() => onAvatarPress(item.profiles.id)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Open ${name}'s profile`}
+                        >
+                          {item.profiles.avatar_url ? (
+                            <Image
+                              source={{ uri: item.profiles.avatar_url, cache: 'force-cache' }}
+                              style={styles.avatar}
+                            />
+                          ) : (
+                            <View
+                              style={[
+                                styles.avatar,
+                                styles.avatarFallback,
+                                { backgroundColor: withAlpha(COLORS.white, ALPHA.a30) },
+                              ]}
+                            >
+                              <Text style={styles.avatarInitial}>{initials}</Text>
+                            </View>
+                          )}
+                          <View style={styles.userInfo}>
+                            <Text style={styles.usernameOverlay}>{name}</Text>
+                            {replyLine ? (
+                              <View style={styles.onTimeRow}>
+                                <ClockIcon size={ICON_SIZE.i14} color={COLORS.accent} />
+                                <Text
+                                  style={[styles.timeOverlay, styles.onTimeText]}
+                                  numberOfLines={2}
+                                  accessibilityLabel={[replyLine, replyTail]
+                                    .filter(Boolean)
+                                    .join(' ')}
+                                >
+                                  Replying to{' '}
+                                  {replyTo.map((person, index) => (
+                                    <Text
+                                      key={person.user_id ?? person.username}
+                                      style={person.user_id ? styles.replyPerson : undefined}
+                                      onPress={
+                                        person.user_id
+                                          ? () => onAvatarPress(person.user_id as string)
+                                          : undefined
+                                      }
+                                      accessibilityRole={person.user_id ? 'link' : undefined}
+                                    >
+                                      @{person.username}
+                                      {index < replyTo.length - 1 ? ', ' : '.'}
+                                    </Text>
+                                  ))}
+                                  {replyTail ? ` ${replyTail}` : ''}
+                                </Text>
+                              </View>
+                            ) : null}
+                            {onTime ? (
+                              <View style={styles.onTimeRow}>
+                                <ClockIcon size={ICON_SIZE.i14} color={COLORS.accent} />
+                                <Text
+                                  style={[styles.timeOverlay, styles.onTimeText]}
+                                  numberOfLines={1}
+                                >
+                                  {onTime}
+                                </Text>
+                              </View>
+                            ) : null}
+                            <Text style={styles.timeOverlay} numberOfLines={1}>
+                              {postingVideo ? 'Posting…' : relativeTime(item.created_at)}
+                              {points ? ` · ${points}` : ''}
+                            </Text>
+                          </View>
+                        </PressScale>
+                        {canReport || ownPost ? (
+                          <PressScale
+                            style={styles.moreButton}
+                            onPress={() =>
+                              ownPost
+                                ? showOwnPostMenu(
+                                    canEditCaption,
+                                    () => setEditingCaption(true),
+                                    removeOwnPost,
+                                    deleting
+                                  )
+                                : showPostMenu(() => startReport('post', item.id))
+                            }
+                            hitSlop={OFFSET.o12}
+                            accessibilityRole="button"
+                            accessibilityLabel="More"
+                            accessibilityHint={
+                              ownPost ? 'Edit caption or delete this post' : 'Report this post'
+                            }
+                          >
+                            <MoreIcon size={ICON_SIZE.i20} color={COLORS.white} />
+                          </PressScale>
+                        ) : null}
+                      </View>
+                      {item.caption ? (
+                        <CaptionText
+                          caption={item.caption}
+                          tagged={item.tagged_users}
+                          style={styles.captionText}
+                          onPressUser={(u) => onAvatarPress(u.user_id)}
+                          numberOfLines={layout.captionLines}
+                        />
+                      ) : null}
+                      {item.tagged_users.length > 0 || invites.length > 0 ? (
+                        <View style={styles.taggedRow}>
+                          <Text style={styles.taggedText} numberOfLines={1}>
+                            With{' '}
+                            {item.tagged_users.map((user, index) => (
+                              <Text
+                                key={user.user_id}
+                                style={styles.taggedPerson}
+                                onPress={() => onAvatarPress(user.user_id)}
+                                accessibilityRole="link"
+                              >
+                                @{user.username}
+                                {index < item.tagged_users.length - 1 ? ', ' : ''}
+                              </Text>
+                            ))}
+                          </Text>
+                          {/* Invited by link, not joined yet: initials only, never a name or number.
+                          The real avatar and username replace it once they join. */}
+                          {invites.map((invite) => (
+                            <View
+                              key={invite.key}
+                              style={styles.invitedChip}
+                              accessible
+                              accessibilityLabel={
+                                invite.initials ? `Invited, ${invite.initials}` : 'Invited'
+                              }
+                            >
+                              <View style={styles.invitedCircle}>
+                                {invite.initials ? (
+                                  <Text style={styles.invitedInitials}>{invite.initials}</Text>
+                                ) : null}
+                              </View>
+                              <Text style={styles.taggedText}>Invited ⏳</Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : null}
+                    </LinearGradient>
+                  </Reanimated.View>
+                  {/* Heart burst overlay — shown on double-tap */}
+                  {showMedal && (
+                    <Animated.View
+                      pointerEvents="none"
+                      style={[
+                        styles.medalBurst,
+                        {
+                          left: medalPos.x - OFFSET.o40,
+                          top: medalPos.y - OFFSET.o40,
+                          transform: [{ scale: medalScale }],
+                          opacity: medalOpacity,
+                        },
+                      ]}
+                    >
+                      <HeartIcon size={ICON_SIZE.i80} color={COLORS.white} filled />
+                    </Animated.View>
+                  )}
+                </View>
+              </GestureDetector>
+            </PreviewMenu>
+          </View>
+        </GestureDetector>
+        {/* Draggable PIP — uses RNGH so it wins over scroll/navigation gestures. One per post
+            (the key: never where the last post left it), drawn only once this post's name row
+            has been measured, inside a fence that ends above that row. */}
+        {pip && pipUrl ? (
           <DraggablePip
+            key={postId}
             uri={pipUrl}
             video={pipKind === 'video'}
             playing={playing}
-            zone={pipSafeZone}
-            resetKey={item.id}
-            onTap={() => setRearIsPrimary((p) => !p)}
+            zone={pip.zone}
+            fence={pip.fence}
+            onTap={() => setSwappedPostId((id) => (id === postId ? null : postId))}
           />
-        )}
+        ) : null}
 
         {/* ── Right-side action column, at the height TikTok and Reels put it ── */}
         {/* Icon SIZE is decoupled from HIT TARGET: glyphs stay small (~32px)

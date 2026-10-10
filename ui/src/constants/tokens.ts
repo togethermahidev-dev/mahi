@@ -611,6 +611,24 @@ export const POST_CARD = {
   captionLinesLarge: 4,
 } as const;
 
+// ─── Full-screen posts: the dark canvas, the small second photo's fence, the reset ──
+export const POST_FULL = {
+  /** Behind every full-screen post — while its photo loads, between posts, where the list is
+   *  still catching up — in both themes (owner, 2026-10-10: no white bar between scrolls). */
+  canvas: COLORS.black,
+  /** The small second photo is drawn inside a fence that ends above the name row. The fence
+   *  reaches this far (pt) past the photo's resting edge, for its lift and shadow: less than the
+   *  gap kept above the name row, so the fence itself never reaches the name. */
+  pipFenceBleed: SPACE.s8,
+  /** A name row re-measured within this many points is in the same place. */
+  measureSlack: 0.5,
+  /** A paged list within this many points of a post's start is on it (under one screen pixel). */
+  snapSlack: 0.25,
+  /** The feed goes back to its first post this long (ms) after it closes, once it is out of
+   *  sight (owner, 2026-10-10: back to the top where the camera is). */
+  resetAfterMs: DURATION.d400,
+} as const;
+
 // ─── Motion that brings screens to life (Reanimated; Reduce Motion gets fades) ──
 export const MOTION = {
   /** A pressed button shrinks to this, then springs back. */

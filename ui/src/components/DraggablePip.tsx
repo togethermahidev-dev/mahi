@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Image, StyleSheet } from 'react-native';
+import React, { useLayoutEffect, useRef } from 'react';
+import { Image, StyleSheet, View } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Reanimated, {
   useSharedValue,
@@ -30,60 +30,59 @@ interface DraggablePipProps {
   /** Video posts: the shot is a video. It plays muted, looping, while `playing`. */
   video?: boolean;
   playing?: boolean;
-  /** Where the photo may move (see pipZone). It starts bottom-left. */
+  /** Where the photo may move on this post (see pipPlacement). It starts bottom-left. */
   zone: PipZone;
+  /** How far down the post its fence reaches: it is never drawn past it (above the name row). */
+  fence: number;
   /** Tap: swap the big and small photos. */
   onTap: () => void;
-  /** Change it to put the photo back in its start corner (a recycled list cell). */
-  resetKey?: string;
 }
 
 /**
  * The small second-camera photo on a full-screen post, FaceTime-style: tap to swap photos,
  * press and hold to drag, and it snaps to the nearest corner of its safe zone on release.
  * Uses gesture-handler so it wins over the list scroll and page swipes underneath.
+ *
+ * One of these belongs to one post: PostCard mounts it with the post's id as its key, and only
+ * once that post's name row has been measured, so it never starts where another post left it.
+ * It is drawn inside a fence that ends above the name row (owner, 2026-10-10: it must never
+ * cover the name): if its position is a frame behind a change, the fence cuts it off.
  */
 export default function DraggablePip({
   uri,
   video = false,
   playing = false,
   zone,
+  fence,
   onTap,
-  resetKey,
 }: DraggablePipProps): React.JSX.Element {
-  const x = useSharedValue(zone.left);
-  const y = useSharedValue(zone.bottom);
-  const startX = useSharedValue(zone.left);
-  const startY = useSharedValue(zone.bottom);
-  const scale = useSharedValue(1);
-  // Whether the user has dragged it on this post: until then it follows its start corner.
-  const moved = useSharedValue(false);
-
-  useEffect(() => {
-    x.set(zone.left);
-    y.set(zone.bottom);
-    scale.set(1);
-    moved.set(false);
-    // Only a new post moves it back; a changed zone keeps where the user put it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resetKey]);
-
-  // The zone changes once the name row under it has been measured (or the text size changes):
-  // not yet dragged, it moves to the new start corner; dragged, it stays put unless that spot is
-  // now outside the zone (over the name row), when it moves just inside.
+  // Numbers only for the worklets below (never the zone object itself).
   const { left, right, top, bottom } = zone;
-  useEffect(() => {
-    const z = { left, right, top, bottom };
-    const p = moved.get() ? clampToZone(x.get(), y.get(), z) : { x: left, y: bottom };
-    x.set(p.x);
-    y.set(p.y);
-  }, [left, right, top, bottom, moved, x, y]);
+  const x = useSharedValue(left);
+  const y = useSharedValue(bottom);
+  const startX = useSharedValue(left);
+  const startY = useSharedValue(bottom);
+  const scale = useSharedValue(1);
+
+  // The corner it rests in (bottom-left until dragged), kept so a zone that moves — the text
+  // under it changed height — takes the photo with it, to the same corner. (Not when it first
+  // appears: it starts in its corner.)
+  const atRight = useSharedValue(false);
+  const atTop = useSharedValue(false);
+  const placed = useRef(false);
+  useLayoutEffect(() => {
+    if (!placed.current) {
+      placed.current = true;
+      return;
+    }
+    x.set(atRight.get() ? right : left);
+    y.set(atTop.get() ? top : bottom);
+  }, [left, right, top, bottom, x, y, atRight, atTop]);
 
   const pan = Gesture.Pan()
     .activateAfterLongPress(DURATION.d150)
     .onStart(() => {
       'worklet';
-      moved.set(true);
       startX.set(x.get());
       startY.set(y.get());
       scale.set(withSpring(SCALE.s1_1, SPRING.lift));
@@ -91,16 +90,25 @@ export default function DraggablePip({
     })
     .onUpdate((e) => {
       'worklet';
-      const p = clampToZone(startX.get() + e.translationX, startY.get() + e.translationY, zone);
+      const p = clampToZone(startX.get() + e.translationX, startY.get() + e.translationY, {
+        left,
+        right,
+        top,
+        bottom,
+      });
       x.set(p.x);
       y.set(p.y);
     })
     .onEnd(() => {
       'worklet';
-      const p = snapToCorner(x.get(), y.get(), zone);
+      // It always rests on a corner of the zone: never over the name row or the caption.
+      const p = snapToCorner(x.get(), y.get(), { left, right, top, bottom });
       x.set(withSpring(p.x, SPRING.snap));
       y.set(withSpring(p.y, SPRING.snap));
       scale.set(withSpring(1, SPRING.lift));
+      // (A zone squeezed to one row has no top corner: it counts as the bottom.)
+      atRight.set(p.x === right);
+      atTop.set(p.y === top && top < bottom);
     });
 
   const tap = Gesture.Tap().runOnJS(true).onEnd(onTap);
@@ -110,25 +118,36 @@ export default function DraggablePip({
   }));
 
   return (
-    <GestureDetector gesture={Gesture.Race(pan, tap)}>
-      <Reanimated.View
-        style={[styles.pip, animStyle]}
-        accessible
-        accessibilityRole="button"
-        accessibilityLabel={video ? 'Small video. Swap with the big one' : 'Swap photos'}
-        accessibilityHint="Press and hold to move it"
-      >
-        {video ? (
-          <PostVideo uri={uri} playing={playing} muted style={styles.image} />
-        ) : (
-          <Image source={{ uri, cache: 'force-cache' }} style={styles.image} resizeMode="cover" />
-        )}
-      </Reanimated.View>
-    </GestureDetector>
+    <View style={[styles.fence, { height: fence }]} pointerEvents="box-none">
+      <GestureDetector gesture={Gesture.Race(pan, tap)}>
+        <Reanimated.View
+          style={[styles.pip, animStyle]}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel={video ? 'Small video. Swap with the big one' : 'Swap photos'}
+          accessibilityHint="Press and hold to move it"
+        >
+          {video ? (
+            <PostVideo uri={uri} playing={playing} muted style={styles.image} />
+          ) : (
+            <Image source={{ uri, cache: 'force-cache' }} style={styles.image} resizeMode="cover" />
+          )}
+        </Reanimated.View>
+      </GestureDetector>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // The part of the post the photo may be drawn on: from the top down to just above the name
+  // row. Touches that miss the photo pass through to the post underneath.
+  fence: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    overflow: 'hidden',
+  },
   pip: {
     position: 'absolute',
     top: 0,
