@@ -7,6 +7,10 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 53 — sideways swipes off the camera no longer get dropped; profile grid rows and
+ *     the points numbers keep their place; a chat opened from a sheet clears the status bar and
+ *     shows the other person's picture; the emailed code's boxes can be tapped again and show a
+ *     cursor (2026-10-12)
  *   build 13 · 52 — share buttons for other apps wear their own colours and real logos (WhatsApp
  *     green, Messages green) (2026-10-10)
  *   build 13 · 51 — no Snapchat or Instagram share button until a build can open those apps' own
@@ -201,4 +205,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 52;
+export const OTA_NUMBER = 53;
