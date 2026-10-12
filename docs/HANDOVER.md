@@ -5,7 +5,26 @@ The single entry point for continuing work on Mahi. Read this first. It encodes 
 
 ---
 
-## State on 2026-10-09 (newest; overrides everything below)
+## State on 2026-10-12 (newest; overrides everything below)
+
+Update 13.53 is live on preview and TestFlight (published 20:36 UTC, commits `5b4ca42` + `879c0b6`;
+decisions #215–#218). Not checked on a phone yet. No database change.
+
+- Sideways swipes off the camera: the page swipe and the camera's drag are built once (`useMemo`),
+  so a redraw no longer strips the guard that holds them back mid-touch; taps on the camera carry a
+  travel limit. Recorded on 13.52: 62 of 94 swipes decided to start and never ran. The temporary
+  `swipe_check` recording now sends `started`: read it on 13.53 (every `activate` should have
+  `started` true), then remove it from `HorizontalNavigator.tsx` and `analytics.ts`.
+- Apple views inside a page (grid tiles' hold to preview, rolling points numbers, the tag pill,
+  the message hold menu) ignore the safe areas: no more uneven grid gaps or numbers over the note.
+- A chat, a post and a profile photo opened full screen measure the screen themselves (they sat
+  under the status bar when opened from a profile inside a sheet). The chat header shows the other
+  person's picture.
+- One code field for sign-up and password reset; tappable again; a cursor in the selected box.
+- Still open: the back swipe on chats and visited profiles starts on the first finger movement
+  (needs a phone test to change safely); the owner's question on who lands in message requests.
+
+## State on 2026-10-09
 
 Preview lane / TestFlight at **OTA 13.35** on build 13 (published 13:50 UTC from `d8703ec`; the
 production app lane is untouched). It carries the owner's **core workflow** (`docs/core-workflow.md`,
