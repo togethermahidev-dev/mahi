@@ -65,6 +65,8 @@ export type TagLoopEvents = {
   swipe_check: {
     by: 'page';
     result: string;
+    /** The swipe really began after it decided to (false: something else took the touch). */
+    started: boolean;
     turned: boolean;
     dx: number;
     dy: number;

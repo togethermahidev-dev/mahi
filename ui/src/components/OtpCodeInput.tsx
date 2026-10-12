@@ -1,6 +1,6 @@
-import React, { forwardRef, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { sanitiseOtp } from '@/lib/otpCode';
+import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { currentBox, sanitiseOtp } from '@/lib/otpCode';
 import { TYPOGRAPHY } from '@/constants/typography';
 import { COLORS, ALPHA, BORDER_WIDTH, RADIUS, SIZE, SPACE } from '@/constants/tokens';
 
@@ -16,15 +16,22 @@ interface Props {
 }
 
 /**
- * The one-box code field from sign-up: one real field (iOS offers the emailed code above the
- * keyboard); the boxes are drawn from its value and the field lies invisibly on top of them, so
- * tapping any box focuses it and long-press pastes.
+ * The one code field, for sign-up and a password reset: one real field (iOS offers the emailed
+ * code above the keyboard); the boxes are drawn from its value and the field lies all but
+ * invisibly on top of them, so long-press pastes.
+ *
+ * A tap anywhere on the boxes selects the field again (owner, 2026-10-12: "if you tap off it
+ * just doesn't allow the user to tap back"). The phone passes over a view as faint as the field
+ * was, so the boxes take the tap themselves and the field is a little less faint. The selected
+ * box has the accent border and, while empty, a text cursor.
  */
 const OtpCodeInput = forwardRef<TextInput, Props>(function OtpCodeInput(
   { value, onChange, onComplete, length, textColor, boxColor, autoFocus },
   ref
 ) {
   const [focused, setFocused] = useState(false);
+  const input = useRef<TextInput>(null);
+  useImperativeHandle(ref, () => input.current as TextInput, []);
 
   const handleChange = (raw: string) => {
     const code = sanitiseOtp(raw, length);
@@ -32,8 +39,10 @@ const OtpCodeInput = forwardRef<TextInput, Props>(function OtpCodeInput(
     if (code.length === length) onComplete?.(code);
   };
 
+  const current = currentBox({ typed: value.length, length, focused });
+
   return (
-    <View>
+    <Pressable onPress={() => input.current?.focus()} accessible={false}>
       <View
         style={styles.row}
         accessibilityElementsHidden
@@ -41,7 +50,7 @@ const OtpCodeInput = forwardRef<TextInput, Props>(function OtpCodeInput(
       >
         {Array.from({ length }, (_, i) => {
           const digit = value[i] ?? '';
-          const current = focused && i === Math.min(value.length, length - 1);
+          const selected = i === current;
           return (
             <View
               key={i}
@@ -49,18 +58,22 @@ const OtpCodeInput = forwardRef<TextInput, Props>(function OtpCodeInput(
                 styles.box,
                 {
                   backgroundColor: boxColor,
-                  borderColor: current ? COLORS.accent : digit ? textColor : 'transparent',
-                  borderWidth: current ? BORDER_WIDTH.w2 : BORDER_WIDTH.w1_5,
+                  borderColor: selected ? COLORS.accent : digit ? textColor : 'transparent',
+                  borderWidth: selected ? BORDER_WIDTH.w2 : BORDER_WIDTH.w1_5,
                 },
               ]}
             >
-              <Text style={[styles.digit, { color: textColor }]}>{digit}</Text>
+              {selected && !digit ? (
+                <View style={[styles.cursor, { backgroundColor: textColor }]} />
+              ) : (
+                <Text style={[styles.digit, { color: textColor }]}>{digit}</Text>
+              )}
             </View>
           );
         })}
       </View>
       <TextInput
-        ref={ref}
+        ref={input}
         style={styles.input}
         value={value}
         onChangeText={handleChange}
@@ -74,7 +87,7 @@ const OtpCodeInput = forwardRef<TextInput, Props>(function OtpCodeInput(
         autoFocus={autoFocus}
         accessibilityLabel="Code from the email"
       />
-    </View>
+    </Pressable>
   );
 });
 
@@ -91,6 +104,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   digit: { ...TYPOGRAPHY.h1 },
-  // Near-zero (not zero) opacity keeps the field tappable and open to autofill.
-  input: { ...StyleSheet.absoluteFill, opacity: ALPHA.a01 },
+  // The selected, empty box's text cursor.
+  cursor: { width: BORDER_WIDTH.w2, height: SIZE.z24, borderRadius: RADIUS.pill },
+  // Faint, not gone: the phone still offers the emailed code and a long-press still pastes. Its
+  // own text is see-through, so only the boxes show the digits.
+  input: { ...StyleSheet.absoluteFill, opacity: ALPHA.a04, color: 'transparent' },
 });

@@ -140,6 +140,12 @@
 - One gesture on the camera decides both directions (`cameraDrag` in `ui/src/lib/cameraPull.ts`), so the
   swipe up is as reliable as the pull down. Never add a second vertical pan beside it: nested pans
   compete and the outer one loses (13.23–13.29).
+- A swipe that decides for itself (`manualActivation`: the page swipe, the camera's drag, the feed's
+  pull) is built once with `useMemo`, never on every redraw (decision #215). A redraw re-sends a
+  gesture's settings to the phone, and mid-touch that removes the guard holding the swipe back until
+  it decides: it then starts by itself and takes the touch from the others. A test reads the source
+  for this (`touchAndLayoutRules.test.ts`). Taps on the camera carry a travel limit (`maxDistance`),
+  so a swipe is never read as a tap.
 - Tapping a tab, or a button that opens a page, grows the page in (`pageMorphFrame`, decision #146);
   only a swipe slides the strip.
 - Only a real sideways carousel may hold the page swipe (none today: the profile's carousel went with

@@ -62,6 +62,8 @@ export default function PreviewMenu({
     <Host
       style={[size, style]}
       matchContents={height == null ? { vertical: true } : undefined}
+      // In a list: it must never make room for the status bar or home bar by itself.
+      ignoreSafeArea="all"
       colorScheme={dark ? 'dark' : 'light'}
     >
       <ContextMenu>

@@ -8,7 +8,11 @@ import Reanimated, {
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaProvider,
+  initialWindowMetrics,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import type { MorphSource } from '@/lib/morph';
 import { MorphingImage, useMorphTransition } from '@/components/MorphTransition';
 import {
@@ -98,18 +102,23 @@ function AvatarViewerModal({
     >
       {/* A Modal is its own native window: gesture-handler needs its own root here. */}
       <GestureHandlerRootView style={styles.root}>
-        <Reanimated.View style={[StyleSheet.absoluteFill, styles.backdrop, morph.backdropStyle]} />
-        <Reanimated.View style={[styles.root, morph.contentStyle]}>
-          <ZoomablePhoto uri={uri} onClose={morph.close} label={label} />
-        </Reanimated.View>
-        {morph.enabled && source ? (
-          <MorphingImage
-            source={source}
-            target={{ x: (width - size) / 2, y: (height - size) / 2, width: size, height: size }}
-            targetRadius={size / 2}
-            progress={morph.progress}
+        {/* It covers the whole screen, so it measures the screen itself (a sheet has no top inset). */}
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+          <Reanimated.View
+            style={[StyleSheet.absoluteFill, styles.backdrop, morph.backdropStyle]}
           />
-        ) : null}
+          <Reanimated.View style={[styles.root, morph.contentStyle]}>
+            <ZoomablePhoto uri={uri} onClose={morph.close} label={label} />
+          </Reanimated.View>
+          {morph.enabled && source ? (
+            <MorphingImage
+              source={source}
+              target={{ x: (width - size) / 2, y: (height - size) / 2, width: size, height: size }}
+              targetRadius={size / 2}
+              progress={morph.progress}
+            />
+          ) : null}
+        </SafeAreaProvider>
       </GestureHandlerRootView>
     </Modal>
   );

@@ -81,7 +81,7 @@ export default function RollingNumber({
     } = swift.modifiers;
     return (
       <View style={room}>
-        <Host matchContents>
+        <Host matchContents ignoreSafeArea="all">
           <SText
             modifiers={[
               sFont({ family: font.family, size: box.appleSize }),

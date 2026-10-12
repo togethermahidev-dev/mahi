@@ -147,7 +147,7 @@ export default function MessageHoldMenu({
   if (swift) {
     const { Host, ContextMenu, Button, ControlGroup, RNHostView } = swift.ui;
     return (
-      <Host matchContents colorScheme={dark ? 'dark' : 'light'}>
+      <Host matchContents ignoreSafeArea="all" colorScheme={dark ? 'dark' : 'light'}>
         <ContextMenu>
           <ContextMenu.Trigger>
             <RNHostView matchContents>

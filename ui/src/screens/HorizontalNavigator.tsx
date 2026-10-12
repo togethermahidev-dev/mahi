@@ -65,14 +65,17 @@ const PROFILE = tabPage('profile');
 const MESSAGES = tabPage('messages');
 const INITIAL_PAGE = tabPage(INITIAL_TAB);
 
-// TEMPORARY swipe check (owner, 2026-10-10: sideways swipes on the camera "still gets stuck"). The
-// first recording showed real swipes are short flicks; this one shows whether they now turn the
-// page. Plain numbers only, so the swipe's worklets can read them. Remove with `swipe_check` in
-// analytics.ts once the numbers are read.
+// TEMPORARY swipe check (owner, 2026-10-10: sideways swipes on the camera "still gets stuck").
+// Read on 13.52 (2026-10-12): 62 of 94 swipes decided to start and then never ran (`dx` stopped at
+// the deciding move, so they only looked like short flicks). `started` now says whether the swipe
+// really began after deciding, and `dx` follows the finger to the end. Plain numbers only, so the
+// swipe's worklets can read them. Remove with `swipe_check` in analytics.ts once the numbers show
+// started = true for every 'activate'.
 const SWIPE_CHECK_MIN = SWIPE.sideSlop / 2;
 const SWIPE_CHECK_RESULTS = ['none', 'activate', 'fail'];
 function reportPageSwipe(
   result: number,
+  started: boolean,
   turned: boolean,
   dx: number,
   dy: number,
@@ -82,6 +85,7 @@ function reportPageSwipe(
   track('swipe_check', {
     by: 'page',
     result: SWIPE_CHECK_RESULTS[result] ?? 'none',
+    started,
     turned,
     dx,
     dy,
@@ -219,6 +223,7 @@ export default function HorizontalNavigator({
   const checkTurned = useSharedValue(false);
   const checkV = useSharedValue(0);
   const checkPage = useSharedValue(0);
+  const checkStarted = useSharedValue(false);
   const decided = useSharedValue(false);
   const base = useSharedValue(0);
   // Where the rail is on screen. A touch that starts there belongs to the rail.
@@ -235,11 +240,14 @@ export default function HorizontalNavigator({
   }, [tab, onTabChange]);
 
   // The strip has been sent to `next`: record it and tick.
-  const settle = (next: number) => {
-    setIndex(next);
-    indexSV.value = next;
-    haptic('tick');
-  };
+  const settle = useCallback(
+    (next: number) => {
+      setIndex(next);
+      indexSV.value = next;
+      haptic('tick');
+    },
+    [indexSV]
+  );
 
   const navigate = (next: number, how: 'slide' | 'morph' = 'slide') => {
     const from = indexSV.value;
@@ -350,7 +358,10 @@ export default function HorizontalNavigator({
   const profileList = useMemo(() => Gesture.Native(), []);
   const messagesList = useMemo(() => Gesture.Native(), []);
 
-  const safeInsets = { top: insets.top, bottom: insets.bottom };
+  const safeInsets = useMemo(
+    () => ({ top: insets.top, bottom: insets.bottom }),
+    [insets.top, insets.bottom]
+  );
   // With the phone's tab bar the pages end above it: their bottom is a post's name and caption.
   const aboveTabBar = !!tabBar;
   // Android keeps its side edges for the phone's back gesture; an iPhone's edges are screen.
@@ -358,115 +369,156 @@ export default function HorizontalNavigator({
 
   // Take clear sideways swipes (see swipeRules); up/down ones are left to the lists. Runs on the
   // UI thread.
-  const swipe = Gesture.Pan()
-    .manualActivation(true)
-    .simultaneousWithExternalGesture(feedList, profileList, messagesList)
-    .onTouchesDown((e, manager) => {
-      'worklet';
-      const t = e.changedTouches[0];
-      if (e.numberOfTouches !== 1 || !t) return;
-      startX.value = t.absoluteX;
-      startY.value = t.absoluteY;
-      decided.value = false;
-      checkDx.value = 0;
-      checkDy.value = 0;
-      checkResult.value = 0;
-      checkTurned.value = false;
-      checkV.value = 0;
-      checkPage.value = indexSV.value;
-      // A touch in a system strip, or with something open over the pages, is let go at once.
-      const first = horizontalSwipe({
-        startX: t.absoluteX,
-        startY: t.absoluteY,
-        dx: 0,
-        dy: 0,
-        width,
-        height,
-        insets: safeInsets,
-        aboveTabBar,
-        edge: sideEdge,
-        blocked: blockedSV.value,
-        exclude: railRectSV.value,
-      });
-      if (first === 'fail') {
-        decided.value = true;
-        manager.fail();
-      }
-    })
-    .onTouchesMove((e, manager) => {
-      'worklet';
-      const t = e.allTouches[0];
-      if (decided.value || !t) return;
-      // A second finger (a pinch) is never a page swipe.
-      if (e.numberOfTouches > 1) {
-        decided.value = true;
-        manager.fail();
-        return;
-      }
-      const decision = horizontalSwipe({
-        startX: startX.value,
-        startY: startY.value,
-        dx: t.absoluteX - startX.value,
-        dy: t.absoluteY - startY.value,
-        width,
-        height,
-        insets: safeInsets,
-        aboveTabBar,
-        edge: sideEdge,
-        blocked: blockedSV.value,
-      });
-      checkDx.value = t.absoluteX - startX.value;
-      checkDy.value = t.absoluteY - startY.value;
-      if (decision === 'wait') return;
-      decided.value = true;
-      checkResult.value = decision === 'activate' ? 1 : 2;
-      if (decision === 'activate') manager.activate();
-      else manager.fail();
-    })
-    .onStart(() => {
-      'worklet';
-      cancelAnimation(page);
-      base.value = indexSV.value;
-    })
-    .onUpdate((e) => {
-      'worklet';
-      // Follows the finger; rubber-band resistance past the first and last pages.
-      page.value = rubberBand(base.value - (e.absoluteX - startX.value) / width, 0, PAGE_COUNT - 1);
-    })
-    .onEnd((e, success) => {
-      'worklet';
-      // Cut short (the phone took the touch): snap back to the page it started on.
-      const next = success
-        ? horizontalRelease(
-            indexSV.value,
-            PAGE_COUNT,
-            e.absoluteX - startX.value,
-            e.velocityX / 1000
-          )
-        : indexSV.value;
-      checkTurned.value = next !== checkPage.value;
-      checkDx.value = e.absoluteX - startX.value;
-      checkV.value = e.velocityX;
-      indexSV.value = next;
-      page.value = withSpring(next, PAGE_SPRING);
-      scheduleOnRN(settle, next);
-    })
-    .onFinalize(() => {
-      'worklet';
-      // TEMPORARY swipe check: only touches that started on the camera and went mostly sideways.
-      if (checkPage.value !== CAMERA) return;
-      const ax = Math.abs(checkDx.value);
-      if (ax < SWIPE_CHECK_MIN || ax <= Math.abs(checkDy.value)) return;
-      scheduleOnRN(
-        reportPageSwipe,
-        checkResult.value,
-        checkTurned.value,
-        Math.round(checkDx.value),
-        Math.round(checkDy.value),
-        Math.round(checkV.value),
-        Math.round(startX.value)
-      );
-    });
+  // Built once, never on a plain redraw (owner, 2026-10-12: "it's hard to swipe off the camera").
+  // A redraw re-sends a gesture's settings, and mid-touch that takes away the guard that holds a
+  // self-deciding swipe back until it decides (RULES.md "Swipe pages").
+  const swipe = useMemo(
+    () =>
+      Gesture.Pan()
+        .manualActivation(true)
+        .simultaneousWithExternalGesture(feedList, profileList, messagesList)
+        .onTouchesDown((e, manager) => {
+          'worklet';
+          const t = e.changedTouches[0];
+          if (e.numberOfTouches !== 1 || !t) return;
+          startX.set(t.absoluteX);
+          startY.set(t.absoluteY);
+          decided.set(false);
+          checkDx.set(0);
+          checkDy.set(0);
+          checkResult.set(0);
+          checkTurned.set(false);
+          checkV.set(0);
+          checkStarted.set(false);
+          checkPage.set(indexSV.get());
+          // A touch in a system strip, or with something open over the pages, is let go at once.
+          const first = horizontalSwipe({
+            startX: t.absoluteX,
+            startY: t.absoluteY,
+            dx: 0,
+            dy: 0,
+            width,
+            height,
+            insets: safeInsets,
+            aboveTabBar,
+            edge: sideEdge,
+            blocked: blockedSV.get(),
+            exclude: railRectSV.get(),
+          });
+          if (first === 'fail') {
+            decided.set(true);
+            manager.fail();
+          }
+        })
+        .onTouchesMove((e, manager) => {
+          'worklet';
+          const t = e.allTouches[0];
+          if (!t) return;
+          // TEMPORARY swipe check: the finger's travel for as long as this swipe is told of it.
+          if (e.numberOfTouches === 1) {
+            checkDx.set(t.absoluteX - startX.get());
+            checkDy.set(t.absoluteY - startY.get());
+          }
+          if (decided.get()) return;
+          // A second finger (a pinch) is never a page swipe.
+          if (e.numberOfTouches > 1) {
+            decided.set(true);
+            manager.fail();
+            return;
+          }
+          const decision = horizontalSwipe({
+            startX: startX.get(),
+            startY: startY.get(),
+            dx: t.absoluteX - startX.get(),
+            dy: t.absoluteY - startY.get(),
+            width,
+            height,
+            insets: safeInsets,
+            aboveTabBar,
+            edge: sideEdge,
+            blocked: blockedSV.get(),
+          });
+          if (decision === 'wait') return;
+          decided.set(true);
+          checkResult.set(decision === 'activate' ? 1 : 2);
+          if (decision === 'activate') manager.activate();
+          else manager.fail();
+        })
+        .onStart(() => {
+          'worklet';
+          cancelAnimation(page);
+          base.set(indexSV.get());
+          checkStarted.set(true);
+        })
+        .onUpdate((e) => {
+          'worklet';
+          // Follows the finger; rubber-band resistance past the first and last pages.
+          page.set(
+            rubberBand(base.get() - (e.absoluteX - startX.get()) / width, 0, PAGE_COUNT - 1)
+          );
+        })
+        .onEnd((e, success) => {
+          'worklet';
+          // Cut short (the phone took the touch): snap back to the page it started on.
+          const next = success
+            ? horizontalRelease(
+                indexSV.get(),
+                PAGE_COUNT,
+                e.absoluteX - startX.get(),
+                e.velocityX / 1000
+              )
+            : indexSV.get();
+          checkTurned.set(next !== checkPage.get());
+          if (success) checkDx.set(e.absoluteX - startX.get());
+          checkV.set(e.velocityX);
+          indexSV.set(next);
+          page.set(withSpring(next, PAGE_SPRING));
+          scheduleOnRN(settle, next);
+        })
+        .onFinalize(() => {
+          'worklet';
+          // TEMPORARY swipe check: only touches that started on the camera and went mostly sideways.
+          if (checkPage.get() !== CAMERA) return;
+          const ax = Math.abs(checkDx.get());
+          if (ax < SWIPE_CHECK_MIN || ax <= Math.abs(checkDy.get())) return;
+          scheduleOnRN(
+            reportPageSwipe,
+            checkResult.get(),
+            checkStarted.get(),
+            checkTurned.get(),
+            Math.round(checkDx.get()),
+            Math.round(checkDy.get()),
+            Math.round(checkV.get()),
+            Math.round(startX.get())
+          );
+        }),
+    [
+      width,
+      height,
+      safeInsets,
+      aboveTabBar,
+      sideEdge,
+      feedList,
+      profileList,
+      messagesList,
+      settle,
+      indexSV,
+      blockedSV,
+      railRectSV,
+      page,
+      base,
+      startX,
+      startY,
+      decided,
+      checkDx,
+      checkDy,
+      checkResult,
+      checkTurned,
+      checkV,
+      checkPage,
+      checkStarted,
+    ]
+  );
 
   const stripStyle = useAnimatedStyle(() => ({ transform: [{ translateX: -page.value * width }] }));
 

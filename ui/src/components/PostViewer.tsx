@@ -18,7 +18,11 @@ import Reanimated, {
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaProvider,
+  initialWindowMetrics,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useProfilePosts } from '@/hooks/useProfilePosts';
 import { TabBarRoomContext, useChromeFade } from '@/hooks/useChrome';
@@ -157,33 +161,37 @@ function PostViewerModal({
     >
       {/* A Modal is its own native window: gesture-handler needs its own root here. */}
       <GestureHandlerRootView style={styles.root}>
-        {/* No tab bar in here, even when opened from a tab. */}
-        <TabBarRoomContext.Provider value={null}>
-          <Reanimated.View
-            style={[StyleSheet.absoluteFill, styles.backdrop, morph.backdropStyle]}
-          />
-          <Reanimated.View style={[styles.root, morph.contentStyle]}>
-            <Pages
-              from={from}
-              post={post}
-              userId={userId}
-              startPostId={startPostId}
-              open={visible && morph.presented}
-              onClose={morph.close}
-              onOpenProfile={onOpenProfile}
-              commentsUp={openComments && morph.presented}
-              morphProgress={morph.enabled ? morph.progress : undefined}
+        {/* It covers the whole screen, so it measures the screen itself: opened from a profile
+            inside a sheet, the sheet's top inset (none) would put Close under the status bar. */}
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+          {/* No tab bar in here, even when opened from a tab. */}
+          <TabBarRoomContext.Provider value={null}>
+            <Reanimated.View
+              style={[StyleSheet.absoluteFill, styles.backdrop, morph.backdropStyle]}
             />
-          </Reanimated.View>
-          {morph.enabled && source ? (
-            <MorphingImage
-              source={source}
-              target={{ x: 0, y: 0, width, height }}
-              targetRadius={0}
-              progress={morph.progress}
-            />
-          ) : null}
-        </TabBarRoomContext.Provider>
+            <Reanimated.View style={[styles.root, morph.contentStyle]}>
+              <Pages
+                from={from}
+                post={post}
+                userId={userId}
+                startPostId={startPostId}
+                open={visible && morph.presented}
+                onClose={morph.close}
+                onOpenProfile={onOpenProfile}
+                commentsUp={openComments && morph.presented}
+                morphProgress={morph.enabled ? morph.progress : undefined}
+              />
+            </Reanimated.View>
+            {morph.enabled && source ? (
+              <MorphingImage
+                source={source}
+                target={{ x: 0, y: 0, width, height }}
+                targetRadius={0}
+                progress={morph.progress}
+              />
+            ) : null}
+          </TabBarRoomContext.Provider>
+        </SafeAreaProvider>
       </GestureHandlerRootView>
     </Modal>
   );

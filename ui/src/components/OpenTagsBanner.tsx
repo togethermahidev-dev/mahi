@@ -248,7 +248,7 @@ function GlassAnswered({
   });
   const who = words.replace(/^Answered /, '');
   return (
-    <Host matchContents>
+    <Host matchContents ignoreSafeArea="all">
       <Namespace id={ns}>
         <GlassEffectContainer
           modifiers={[m.animation(m.Animation.spring(MOTION.glassMorph), done)]}

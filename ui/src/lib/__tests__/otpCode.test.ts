@@ -1,4 +1,11 @@
-import { sanitiseOtp, reusableCode, codeTimes, CODE_TTL_MS, RESEND_AFTER_MS } from '../otpCode';
+import {
+  sanitiseOtp,
+  reusableCode,
+  codeTimes,
+  currentBox,
+  CODE_TTL_MS,
+  RESEND_AFTER_MS,
+} from '../otpCode';
 
 describe('sanitiseOtp', () => {
   it('keeps typed digits', () => {
@@ -69,5 +76,21 @@ describe('codeTimes', () => {
       secondsLeft: 0,
       resendInMs: 0,
     });
+  });
+});
+
+// Owner, 2026-10-12: the boxes "need to be highlighting which one is selected".
+describe('currentBox', () => {
+  it('is the next empty box while the field is selected', () => {
+    expect(currentBox({ typed: 0, length: 6, focused: true })).toBe(0);
+    expect(currentBox({ typed: 3, length: 6, focused: true })).toBe(3);
+  });
+
+  it('stays on the last box once the code is full', () => {
+    expect(currentBox({ typed: 6, length: 6, focused: true })).toBe(5);
+  });
+
+  it('is no box when the field is not selected', () => {
+    expect(currentBox({ typed: 3, length: 6, focused: false })).toBe(-1);
   });
 });

@@ -172,6 +172,7 @@ import {
   SPACE,
   SPRING,
   STROKE,
+  SWIPE,
   VIEWER,
   WAIT,
   withAlpha,
@@ -797,6 +798,7 @@ function DualPhotoPreview({
     });
 
   const pipTapGesture = Gesture.Tap()
+    .maxDistance(SWIPE.slop)
     .runOnJS(true)
     .onEnd(() => {
       // Reset zoom so the newly-promoted photo starts at 1x (recommended).
@@ -875,6 +877,7 @@ function DualPhotoPreview({
     });
 
   const primaryDoubleTapGesture = Gesture.Tap()
+    .maxDistance(SWIPE.slop)
     .numberOfTaps(2)
     .onEnd(() => {
       'worklet';
@@ -1936,7 +1939,10 @@ export default function CameraScreen({
   // The last tap's square, on the camera it was tapped on (a flip leaves it behind).
   const [focusTap, setFocusTap] = useState<(FocusTap & { facing: 'back' | 'front' }) | null>(null);
 
+  // A tap may only travel so far: a swipe across the camera is not a tap, so it neither focuses
+  // the camera nor (two in a row) flips it (2026-10-12).
   const doubleTapToFlip = Gesture.Tap()
+    .maxDistance(SWIPE.slop)
     .numberOfTaps(2)
     .runOnJS(true)
     .onEnd(() => {
@@ -1960,6 +1966,7 @@ export default function CameraScreen({
 
   // One tap on the live camera focuses there; two still flip it (the single tap waits for that).
   const tapToFocus = Gesture.Tap()
+    .maxDistance(SWIPE.slop)
     .enabled(focusOn && !blocked)
     .runOnJS(true)
     .requireExternalGestureToFail(doubleTapToFlip)

@@ -7,7 +7,7 @@
  *
  * Reduce Motion: the camera crossfades away instead of sliding.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import Reanimated, {
@@ -108,96 +108,120 @@ export function useCameraPull(
   const start: Detent = detent;
   const moved = detent !== 'closed';
 
-  const gesture = Gesture.Pan()
-    .enabled(enabled)
-    .manualActivation(true)
-    .onTouchesDown((e, manager) => {
-      'worklet';
-      const t = e.changedTouches[0];
-      if (e.numberOfTouches !== 1 || !t) return;
-      cancelAnimation(offset);
-      startX.value = t.absoluteX;
-      startY.value = t.absoluteY;
-      decided.value = false;
-      if (t.absoluteY < insetTop) {
-        decided.value = true;
-        manager.fail();
-      }
-    })
-    .onTouchesMove((e, manager) => {
-      'worklet';
-      const t = e.allTouches[0];
-      if (decided.value || !t) return;
-      if (e.numberOfTouches > 1) {
-        decided.value = true;
-        manager.fail();
-        return;
-      }
-      const way = cameraDrag({
-        startY: startY.value,
-        insetTop,
-        moved,
-        feedOn,
-        dx: t.absoluteX - startX.value,
-        dy: t.absoluteY - startY.value,
-      });
-      if (way === 'wait') return;
-      decided.value = true;
-      if (way === 'fail') {
-        manager.fail();
-        return;
-      }
-      dragMode.value = way === 'feed' ? 1 : 0;
-      manager.activate();
-    })
-    .onStart(() => {
-      'worklet';
-      felt.value = false;
-      startOffset.value = offset.value;
-      if (feedProgress) feedStart.value = feedProgress.value;
-    })
-    .onUpdate((e) => {
-      'worklet';
-      if (dragMode.value === 1) {
-        if (feedProgress && feedTravel > 0) {
-          feedProgress.value = Math.min(
-            1,
-            Math.max(0, feedStart.value - e.translationY / feedTravel)
+  // Built once per state, never on a plain redraw (owner, 2026-10-12: "it's hard to swipe off the
+  // camera"). The camera redraws often (its clocks tick), and each redraw re-sent this gesture's
+  // settings; mid-touch that took away the guard that holds a self-deciding swipe back, so this
+  // one started by itself and took the touch from the page swipe.
+  const gesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .enabled(enabled)
+        .manualActivation(true)
+        .onTouchesDown((e, manager) => {
+          'worklet';
+          const t = e.changedTouches[0];
+          if (e.numberOfTouches !== 1 || !t) return;
+          cancelAnimation(offset);
+          startX.set(t.absoluteX);
+          startY.set(t.absoluteY);
+          decided.set(false);
+          if (t.absoluteY < insetTop) {
+            decided.set(true);
+            manager.fail();
+          }
+        })
+        .onTouchesMove((e, manager) => {
+          'worklet';
+          const t = e.allTouches[0];
+          if (decided.get() || !t) return;
+          if (e.numberOfTouches > 1) {
+            decided.set(true);
+            manager.fail();
+            return;
+          }
+          const way = cameraDrag({
+            startY: startY.get(),
+            insetTop,
+            moved,
+            feedOn,
+            dx: t.absoluteX - startX.get(),
+            dy: t.absoluteY - startY.get(),
+          });
+          if (way === 'wait') return;
+          decided.set(true);
+          if (way === 'fail') {
+            manager.fail();
+            return;
+          }
+          dragMode.set(way === 'feed' ? 1 : 0);
+          manager.activate();
+        })
+        .onStart(() => {
+          'worklet';
+          felt.set(false);
+          startOffset.set(offset.get());
+          if (feedProgress) feedStart.set(feedProgress.get());
+        })
+        .onUpdate((e) => {
+          'worklet';
+          if (dragMode.get() === 1) {
+            if (feedProgress && feedTravel > 0) {
+              feedProgress.set(
+                Math.min(1, Math.max(0, feedStart.get() - e.translationY / feedTravel))
+              );
+            }
+            return;
+          }
+          offset.set(
+            startOffset.get() > 0
+              ? Math.max(0, Math.min(openOffset, startOffset.get() + e.translationY))
+              : drawerOffset(e.translationY, openOffset)
           );
-        }
-        return;
-      }
-      // eslint-disable-next-line react-hooks/immutability
-      offset.value =
-        startOffset.value > 0
-          ? Math.max(0, Math.min(openOffset, startOffset.value + e.translationY))
-          : drawerOffset(e.translationY, openOffset);
-      if (!felt.value && drawerShouldOpen(offset.value, openOffset)) {
-        felt.value = true;
-        scheduleOnRN(haptic, 'tick');
-      }
-    })
-    .onEnd((e) => {
-      'worklet';
-      if (dragMode.value === 1) {
-        // Towards the feed is up: a negative vertical velocity.
-        if (feedRelease && feedProgress) {
-          scheduleOnRN(feedRelease, feedProgress.value, -e.velocityY / 1000);
-        }
-        return;
-      }
-      const target = releaseDetent({
-        start,
-        progress: openOffset > 0 ? offset.value / openOffset : 0,
-        // Towards open is down: a positive vertical velocity.
-        // One swipe, all the way: a drawer peek showed nothing and looked stuck (owner,
-        // 2026-10-08, 13.33); the feed went the same way on 2026-10-09.
-        velocity: e.velocityY / 1000,
-      });
-      // eslint-disable-next-line react-hooks/immutability
-      offset.value = withSpring(detentProgress(target) * openOffset, SPRING.pullBack);
-      scheduleOnRN(setDetent, target);
-    });
+          if (!felt.get() && drawerShouldOpen(offset.get(), openOffset)) {
+            felt.set(true);
+            scheduleOnRN(haptic, 'tick');
+          }
+        })
+        .onEnd((e) => {
+          'worklet';
+          if (dragMode.get() === 1) {
+            // Towards the feed is up: a negative vertical velocity.
+            if (feedRelease && feedProgress) {
+              scheduleOnRN(feedRelease, feedProgress.get(), -e.velocityY / 1000);
+            }
+            return;
+          }
+          const target = releaseDetent({
+            start,
+            progress: openOffset > 0 ? offset.get() / openOffset : 0,
+            // Towards open is down: a positive vertical velocity.
+            // One swipe, all the way: a drawer peek showed nothing and looked stuck (owner,
+            // 2026-10-08, 13.33); the feed went the same way on 2026-10-09.
+            velocity: e.velocityY / 1000,
+          });
+          offset.set(withSpring(detentProgress(target) * openOffset, SPRING.pullBack));
+          scheduleOnRN(setDetent, target);
+        }),
+    [
+      enabled,
+      insetTop,
+      start,
+      moved,
+      feedOn,
+      feedProgress,
+      feedTravel,
+      feedRelease,
+      openOffset,
+      offset,
+      startOffset,
+      dragMode,
+      feedStart,
+      startX,
+      startY,
+      decided,
+      felt,
+    ]
+  );
 
   // To the peek the camera only slides down, so the roadmap shows in the gap above it; past the
   // peek it shrinks into the portrait card (owner, 2026-10-08: the peek looked stuck when the

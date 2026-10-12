@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase';
 import { sendOTP, verifyOTP, clearOTP, getOTPState, OTP_LENGTH } from '@/lib/otp';
 import { sanitiseOtp, reusableCode, codeTimes } from '@/lib/otpCode';
 import { completeSignup } from '@/api/auth';
+import OtpCodeInput from '@/components/OtpCodeInput';
 import { useFeedStore, useInviteStore, useSignUpStore, useTagStore, useUserStore } from '@/store';
 import { getProfile } from '@/api';
 import { invitePreviewLine, typedInvite } from '@/lib/inviteLink';
@@ -109,7 +110,6 @@ export default function CreateAccountSheet({
   const [enteredCode, setEnteredCode] = useState('');
   const passwordRef = useRef<RNTextInput>(null);
   const otpRef = useRef<RNTextInput>(null);
-  const [otpFocused, setOtpFocused] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const focusBorder = (field: string) => ({
@@ -708,51 +708,15 @@ export default function CreateAccountSheet({
               </Text>
 
               <Text style={[styles.label, { color: muted }]}>Code</Text>
-              {/* One real field (iOS offers the emailed code above the keyboard). The
-                  boxes are drawn from its value; the field lies invisibly on top of
-                  them, so tapping any box focuses it and long-press pastes. */}
-              <View>
-                <View
-                  style={styles.otpRow}
-                  accessibilityElementsHidden
-                  importantForAccessibility="no-hide-descendants"
-                >
-                  {Array.from({ length: OTP_LENGTH }, (_, i) => {
-                    const digit = otp[i] ?? '';
-                    const current = otpFocused && i === Math.min(otp.length, OTP_LENGTH - 1);
-                    return (
-                      <View
-                        key={i}
-                        style={[
-                          styles.otpBox,
-                          {
-                            backgroundColor: inputBg,
-                            borderColor: current ? COLORS.accent : digit ? text : 'transparent',
-                            borderWidth: current ? BORDER_WIDTH.w2 : BORDER_WIDTH.w1_5,
-                          },
-                        ]}
-                      >
-                        <Text style={[styles.otpDigit, { color: text }]}>{digit}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-                <TextInput
-                  ref={otpRef}
-                  style={styles.otpInput}
-                  value={otp}
-                  onChangeText={handleOtpChange}
-                  onFocus={() => setOtpFocused(true)}
-                  onBlur={() => setOtpFocused(false)}
-                  keyboardType="number-pad"
-                  textContentType="oneTimeCode"
-                  autoComplete="one-time-code"
-                  maxLength={OTP_LENGTH}
-                  caretHidden
-                  autoFocus
-                  accessibilityLabel="Verification code"
-                />
-              </View>
+              <OtpCodeInput
+                ref={otpRef}
+                value={otp}
+                onChange={handleOtpChange}
+                length={OTP_LENGTH}
+                textColor={text}
+                boxColor={inputBg}
+                autoFocus
+              />
 
               {/* Resend */}
               <Pressable
@@ -1090,19 +1054,6 @@ const styles = StyleSheet.create({
 
   countdown: { ...TYPOGRAPHY.body, textAlign: 'center', marginBottom: SPACE.s4 },
   resendText: { ...TYPOGRAPHY.bodyMedium, textAlign: 'center', marginTop: SPACE.s4 },
-
-  otpRow: { flexDirection: 'row', gap: SPACE.s8, justifyContent: 'center' },
-  otpBox: {
-    width: SIZE.z46,
-    height: SIZE.z60,
-    borderRadius: RADIUS.r12,
-    borderWidth: BORDER_WIDTH.w1_5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  otpDigit: { ...TYPOGRAPHY.h1 },
-  // Near-zero (not zero) opacity keeps the field tappable and open to autofill.
-  otpInput: { ...StyleSheet.absoluteFill, opacity: ALPHA.a01 },
 
   inviteCard: {
     borderRadius: RADIUS.r14,

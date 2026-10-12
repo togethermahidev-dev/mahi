@@ -14,6 +14,24 @@ export function sanitiseOtp(raw: string, length: number): string {
 }
 
 /**
+ * Which code box is the selected one (owner, 2026-10-12: the boxes "need to be highlighting which
+ * one is selected"): the next empty box, or the last once the code is full; -1 (none) while the
+ * field isn't selected.
+ */
+export function currentBox({
+  typed,
+  length,
+  focused,
+}: {
+  /** How many digits are in. */
+  typed: number;
+  length: number;
+  focused: boolean;
+}): number {
+  return focused ? Math.min(typed, length - 1) : -1;
+}
+
+/**
  * True when the code already sent to this email is still good, so going Back and pressing
  * Next again returns to the code screen instead of asking the server for another code
  * (which it refuses inside a minute, and which would cancel the code in the inbox).
