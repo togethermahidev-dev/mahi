@@ -162,9 +162,9 @@ Each is a setting only the owner can change. Tick it here when done.
   Expo "Enhanced push security" — in that order.
 - [ ] Slack: the address for #account-deletions goes into the database's secret store
   (`account_deletions_slack_url`, an incoming webhook for that one channel); never a bot token.
-- [ ] Privacy policy (none is published yet): say what is deleted with an account, and that we keep
-  only the reason for leaving with nothing that identifies the person. Have it checked by a lawyer
-  before launch.
+- [ ] Privacy policy: a draft exists locally (`docs/privacy-policy-draft.md`, git-ignored, written
+  2026-10-13 from how the app works). Fill in the points at its top, have a lawyer check it, then
+  publish it before launch.
 - [ ] PostHog: a deleted person's past activity stays there under their old account id. Decide
   whether it should be removed when an account is deleted (it needs a PostHog key on the server).
 - [ ] Later (owner decisions): code-signed OTA updates; raise the update gate to build 13 once it's out
