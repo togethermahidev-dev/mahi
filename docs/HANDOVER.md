@@ -5,7 +5,39 @@ The single entry point for continuing work on Mahi. Read this first. It encodes 
 
 ---
 
-## State on 2026-10-12 (newest; overrides everything below)
+## State on 2026-10-13 (newest; overrides everything below)
+
+Update 13.54 is live on preview and TestFlight (published 19:35 UTC, update group `0e0da3d7…`,
+commits `7b00878`, `cb2b0fa`, `554ba99`, `0bc749f`; decisions #219–#222). Not checked on a phone
+yet. Not pushed to GitHub.
+
+- Deleting an account (owner, 2026-10-13: harder to do, ask why, keep only what we may). Settings →
+  Security and privacy → Delete account opens `DeleteAccountSheet`: why you're leaving (eight quick
+  picks; "Something else" takes 180 characters; "I'd rather not say"), then five lines to tick and
+  the word "delete" to type. Switch `account-delete-reasons` (PostHog id 312825, on at 100%); off =
+  the one-step pop-up.
+- Database: `20261013100000_account_deletion_reasons` is live (checked
+  against prod before and after, 80 checks green live). One row per deletion in
+  `account_deletions` with nothing that says who (day, reason, their words, account age in four
+  steps, had posted); written by a trigger as the profile goes; an unused reason is cleared within
+  the hour. No server function changed.
+- Slack: #account-deletions (private, pinned summary of what is kept). The database posts each
+  deletion there itself once the owner stores the channel's address
+  (`account_deletions_slack_url`, steps in `.claude/steps-account-deletion.md` step 6). Until
+  then deletions are kept but not posted.
+- PostHog: `account_deleted` (reason, `note_added`; sent with no link to the person), chart "Why
+  people delete their account" on the Founder metrics dashboard, and
+  `stats.account_deletions_daily` in the 6-hourly copy.
+- An independent review ran before the push; its four findings were fixed first (`cb2b0fa`): the
+  day only, not the time; unused reasons cleared; web addresses in someone's words can't become
+  links; the reason never goes to Sentry.
+- Still open (owner): the Slack address; a phone check of 13.54 with a throwaway account; a
+  privacy policy that says what is kept; whether a deleted person's past activity in PostHog
+  should be removed too.
+- Two database tests fail locally and did before this work: `messages_test.sql` (permission
+  denied on `conversations`) and `staff_admins_test.sql` (expects the three live staff rows).
+
+## State on 2026-10-12
 
 Update 13.53 is live on preview and TestFlight (published 20:36 UTC, commits `5b4ca42` + `879c0b6`;
 decisions #215–#218). Not checked on a phone yet. No database change.

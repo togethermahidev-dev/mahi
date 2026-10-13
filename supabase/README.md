@@ -94,7 +94,18 @@ every phone has the Mahi points update. (`contract_messages` is live as migratio
 `20261007111029_contract_messages`; `contract_posting` and `private_bucket` became
 `20261008100000_security_hardening`.)
 
-Latest production migration: `20261009110000_tag_join_push_username` (live, checked against prod
+Latest production migration: `20261013100000_account_deletion_reasons` (live, checked against prod
+2026-10-13): a deleted account leaves one row with nothing that says who
+(`account_deletions`: day, reason, their words, account age in four steps, had posted), written by a
+trigger on `profiles`; `set_account_deletion_reason` leaves the reason first; the row is posted to
+Slack through pg_net when the Vault secret `account_deletions_slack_url` is set; unused reasons are
+cleared hourly (pg_cron). Tests `tests/account_deletion_reasons_test.sql`,
+`tests/live/account_deletion_slack_test.sql`; undo
+`rollbacks/20261013100000_account_deletion_reasons.rollback.sql`. Between it and the one below:
+`20261009120000_feed_lock_reason`, `20261010100000_share_post_in_message`, `20261010110000_profile_bio`,
+`20261010120000_migration_log_comment_wording` (all live).
+
+Before those, `20261009110000_tag_join_push_username` (live, checked against prod
 2026-10-09): the joined-from-your-tag push names the person by @username. Before it
 `20261009100000_first_post_tag_and_post_points` (live 2026-10-09; before that
 `20261008180000_prebuild_hardening`): the first post tags exactly 1 (`app_config.first_post_tags`;

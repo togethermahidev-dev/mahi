@@ -367,7 +367,7 @@ Motion the card fades too); it used to be one see-through layer that slid up, gr
 field or a confirm stay our own until each is seen as the native one on a phone with the keyboard up
 (`native` on `ShortSheet`). `ui/src/components/ShortSheet.tsx`, `ui/src/lib/shortSheet.ts`.
 
-**Deleting an account, with a reason:** `account-delete-reasons` (**default off in code**, added 2026-10-13;
+**Deleting an account, with a reason:** `account-delete-reasons` (**default off in code; ON at 100% in PostHog since 2026-10-13**, id 312825, with OTA 13.54 and migration `20261013100000_account_deletion_reasons` live; added 2026-10-13;
 owner: "make deleting an account harder … a confirm with a tick of what gets removed"). On: Settings →
 Security and privacy → Delete account opens a page sheet in two steps. Why you're leaving (eight quick
 picks; "Something else" takes up to 180 characters of your own words; "I'd rather not say" is always there),
