@@ -23,8 +23,10 @@ yet. Not pushed to GitHub.
   the hour. No server function changed.
 - Slack: #account-deletions (private, pinned summary of what is kept). The database posts each
   deletion there itself once the owner stores the channel's address
-  (`account_deletions_slack_url`, steps in `.claude/steps-account-deletion.md` step 6). Until
-  then deletions are kept but not posted.
+  (`account_deletions_slack_url`, steps in `.claude/steps-account-deletion.md` step 6). Parked by
+  the owner on 2026-10-13 ("we'll do that another time"): until then deletions are kept and
+  counted but not posted, and ones made in the meantime are not posted later. Deleting itself is
+  unaffected.
 - PostHog: `account_deleted` (reason, `note_added`; sent with no link to the person), chart "Why
   people delete their account" on the Founder metrics dashboard, and
   `stats.account_deletions_daily` in the 6-hourly copy.
