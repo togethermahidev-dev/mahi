@@ -6,7 +6,7 @@
 -- With a Slack address set, deleting an account queues one message to it, built from the kept
 -- row alone.
 begin;
-select plan(4);
+select plan(6);
 
 -- A made-up Slack address, unless the real one is already set (names are unique in Vault).
 select vault.create_secret('https://hooks.slack.com/services/T000/B000/test',
@@ -31,17 +31,22 @@ select lives_ok(
   'the account can be deleted with a Slack address set');
 
 create temp table queued as
-  select q.url, convert_from(q.body, 'utf8')::jsonb ->> 'text' as text
-  from net.http_request_queue q where q.id > (select id from queued_before);
+  select q.url, convert_from(q.body, 'utf8')::jsonb as body
+  from net.http_request_queue q
+  where q.id > (select id from queued_before) and q.url like 'https://hooks.slack.com/%';
 
-select is((select count(*)::int from queued where url like 'https://hooks.slack.com/%'), 1,
-  'one message is queued for Slack');
+select is((select count(*)::int from queued), 1, 'one message is queued for Slack');
 select is(
-  (select text from queued),
+  (select body ->> 'text' from queued),
   E'Someone deleted their Mahi account.\n• Why: Something else\n• In their words: “Too many &lt;!here&gt; pings”\n• Had the account: less than a day\n• Posted a workout: no',
   'it says why, in their words, and cannot ping anyone');
-select ok((select text !~* 'delslack|del-slack|de1f01' from queued),
+select ok((select body::text !~* 'delslack|del-slack|de1f01' from queued),
   'and it does not say who');
+select ok((select body -> 'unfurl_links' = 'false'::jsonb and body -> 'unfurl_media' = 'false'::jsonb
+           from queued),
+  'link and picture previews are switched off');
+select is((select count(*)::int from cron.job where jobname = 'clear-stale-account-deletion-reasons'), 1,
+  'the hourly clear-up of unused reasons is scheduled');
 
 select * from finish();
 rollback;

@@ -2,15 +2,16 @@
 -- (20261013100000_account_deletion_reasons; owner, 2026-10-13: "only keep what we are allowed").
 -- * a person says why just before deleting (set_account_deletion_reason): your own only, one of
 --   the listed reasons, their own words only with "Something else", 180 characters at most
--- * when the profile goes, one row is kept in account_deletions: the reason, their words, roughly
---   how old the account was and whether it had ever posted. No column says who it was
+-- * when the profile goes, one row is kept in account_deletions: the day, the reason, their words,
+--   roughly how old the account was and whether it had ever posted. No column says who it was,
+--   and no time of day that could be matched to a log
 -- * a deletion with no reason (an older app, staff) is kept as "not_given"; a reason left over
---   from an earlier try (older than an hour) is not used
+--   from an earlier try (older than an hour) is not used, and is cleared away every hour
 -- * the Slack message is built from that row alone, and their words can't ping or link anything
 -- * the app can read and write neither table; PostHog's reader sees the daily counts, never the words
 -- Every check reads only this test's own people, as a stranger with a fresh account would call it.
 begin;
-select plan(50);
+select plan(55);
 
 create function pg_temp.uid(p text) returns uuid language sql immutable as $$
   select ('00000000-0000-0000-0000-000000de1e' || lpad((ascii(p) - 96)::text, 2, '0'))::uuid
@@ -38,11 +39,11 @@ create function pg_temp.kept() returns public.account_deletions language sql as 
   select d.* from public.account_deletions d where d.id not in (select id from seen)
 $$;
 
--- a..d differ in age and posting; e gives no reason; f's reason is from an earlier try;
--- s is a stranger with a fresh account; n is signed in with no profile yet.
+-- a..d differ in age and posting; e gives no reason; f's reason is from an earlier try and g's
+-- from a slow one; s is a stranger with a fresh account; n is signed in with no profile yet.
 insert into auth.users (id, email)
 select pg_temp.uid(c), 'del-why-' || c || '@example.invalid'
-from unnest(array['a','b','c','d','e','f','s','n']) c;
+from unnest(array['a','b','c','d','e','f','g','s','n']) c;
 insert into public.profiles (id, username, timezone, created_at, has_posted_before) values
   (pg_temp.uid('a'), 'delwhy_a', 'Europe/London', now() - interval '2 hours', false),
   (pg_temp.uid('b'), 'delwhy_b', 'Europe/London', now() - interval '3 days', true),
@@ -50,6 +51,7 @@ insert into public.profiles (id, username, timezone, created_at, has_posted_befo
   (pg_temp.uid('d'), 'delwhy_d', 'Europe/London', now() - interval '90 days', true),
   (pg_temp.uid('e'), 'delwhy_e', 'Europe/London', now() - interval '3 days', false),
   (pg_temp.uid('f'), 'delwhy_f', 'Europe/London', now() - interval '3 days', false),
+  (pg_temp.uid('g'), 'delwhy_g', 'Europe/London', now() - interval '3 days', false),
   (pg_temp.uid('s'), 'delwhy_s', 'Europe/London', now(), false);
 
 create temp table before_counts as
@@ -60,8 +62,12 @@ select is(
   (select array_agg(column_name::text order by ordinal_position)
    from information_schema.columns
    where table_schema = 'public' and table_name = 'account_deletions'),
-  array['id', 'deleted_at', 'reason', 'note', 'account_age', 'had_posted'],
+  array['id', 'deleted_on', 'reason', 'note', 'account_age', 'had_posted'],
   'the kept row has no column that says who it was');
+select is(
+  (select data_type::text from information_schema.columns
+   where table_schema = 'public' and table_name = 'account_deletions' and column_name = 'deleted_on'),
+  'date', 'and it keeps the day only: no time of day that could be matched to a log');
 select ok(not has_table_privilege('authenticated', 'public.account_deletions', 'SELECT')
           and not has_table_privilege('authenticated', 'public.account_deletions', 'INSERT')
           and not has_table_privilege('authenticated', 'public.account_deletions', 'UPDATE')
@@ -98,7 +104,9 @@ select ok((select bool_and(prosecdef and proconfig @> array['search_path=public'
 select ok(not has_function_privilege('authenticated', 'public.record_account_deletion()', 'execute')
           and not has_function_privilege('authenticated', 'public.notify_account_deletion()', 'execute')
           and not has_function_privilege('authenticated', 'public.account_deletion_slack_text(text, text, text, boolean)', 'execute')
-          and not has_function_privilege('anon', 'public.account_deletion_slack_text(text, text, text, boolean)', 'execute'),
+          and not has_function_privilege('anon', 'public.account_deletion_slack_text(text, text, text, boolean)', 'execute')
+          and not has_function_privilege('authenticated', 'public.clear_stale_account_deletion_reasons()', 'execute')
+          and not has_function_privilege('anon', 'public.clear_stale_account_deletion_reasons()', 'execute'),
   'the keeping and the Slack message are the server''s own: the app cannot call them');
 
 -- 2. Signed out is refused.
@@ -224,6 +232,27 @@ where user_id = pg_temp.uid('f');
 select pg_temp.remove('f');
 select is((select reason || ' | ' || coalesce(note, 'no words') from pg_temp.kept()),
   'not_given | no words', 'a reason from an earlier try is not passed off as this deletion''s');
+select pg_temp.as_user('g');
+select public.set_account_deletion_reason('other', 'said 59 minutes ago');
+reset role;
+update public.account_deletion_reasons set created_at = now() - interval '59 minutes'
+where user_id = pg_temp.uid('g');
+select pg_temp.remove('g');
+select is((select reason || ' | ' || note from pg_temp.kept()),
+  'other | said 59 minutes ago', 'a reason from within the hour (a slow deletion) still counts');
+
+-- A reason nobody acted on (the deletion failed, or they changed their mind) does not wait with
+-- the account for ever: the hourly clear-up removes what is over an hour old, and only that.
+select pg_temp.as_user('s');
+select public.set_account_deletion_reason('privacy', null);
+reset role;
+select public.clear_stale_account_deletion_reasons();
+select is(pg_temp.pending('s'), 'privacy', 'the clear-up leaves a fresh reason alone');
+update public.account_deletion_reasons set created_at = now() - interval '61 minutes'
+where user_id = pg_temp.uid('s');
+select public.clear_stale_account_deletion_reasons();
+select is((select count(*)::int from public.account_deletion_reasons where user_id = pg_temp.uid('s')), 0,
+  'and removes one left over an hour ago');
 
 -- 9. The Slack message: built from the kept row alone.
 select is(
@@ -238,6 +267,10 @@ select is(
   public.account_deletion_slack_text('not_given', null, 'under_a_day', false),
   E'Someone deleted their Mahi account.\n• Why: No reason given\n• Had the account: less than a day\n• Posted a workout: no',
   'no reason reads as no reason given');
+select is(
+  public.account_deletion_slack_text('other', 'Staff: go to https://evil.example/x.jpg or WWW.evil.example', 'under_a_day', false),
+  E'Someone deleted their Mahi account.\n• Why: Something else\n• In their words: “Staff: go to https[://]evil.example/x.jpg or WWW[.]evil.example”\n• Had the account: less than a day\n• Posted a workout: no',
+  'a web address in their words is broken up, so Slack shows it as text and not a link');
 select ok(
   public.account_deletion_slack_text('other', 'x', 'under_a_day', false) !~* 'delwhy|@',
   'the message never names anyone');

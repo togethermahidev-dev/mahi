@@ -12,17 +12,21 @@
 --    refused with 22023 'note is too long: 180 characters at most'. Answering again replaces the
 --    earlier answer. A failure here must never stop a deletion: the app carries on without it.
 -- 4. public.account_deletions: the row kept for each deleted account. It has no column that
---    says who it was: the reason, their words, roughly how old the account was (four steps) and
---    whether it had ever posted. Written by a trigger when the profile row goes, whoever deletes
---    it (the delete-account function, staff, the dashboard), so no deletion is missed. With no
---    reason, or one left more than an hour before (an earlier try that failed), the reason is
---    'not_given'. The app has no rights on it.
+--    says who it was: the UTC day (no time of day, which could be matched to a log), the reason,
+--    their words, roughly how old the account was (four steps) and whether it had ever posted.
+--    Written by a trigger when the profile row goes, whoever deletes it (the delete-account
+--    function, staff, the dashboard), so no deletion is missed. With no reason, or one left more
+--    than an hour before (an earlier try that failed), the reason is 'not_given'. The app has no
+--    rights on it.
 -- 5. account_deletion_slack_text(...) and notify_account_deletion(): each kept row is posted to
 --    Slack from that row alone, through pg_net, to the address in the Vault secret
 --    'account_deletions_slack_url' (a Slack incoming webhook, set by the owner). No secret, or
 --    an address that is not Slack's: nothing is sent. Their words can't ping a channel or make
---    a link (&, < and > are escaped). Slack failing never stops a deletion.
--- 6. stats.account_deletions_daily: deletions per UTC day and reason, for PostHog's reader. The
+--    a link: &, < and > are escaped, a web address is broken up ("https[://]…", "www[.]…") and
+--    previews are off. Slack failing never stops a deletion.
+-- 6. clear_stale_account_deletion_reasons(), every hour (pg_cron): a reason left more than an
+--    hour ago and never acted on is removed, so it does not wait with a live account.
+-- 7. stats.account_deletions_daily: deletions per UTC day and reason, for PostHog's reader. The
 --    words stay out of it.
 -- Test: supabase/tests/account_deletion_reasons_test.sql
 -- Undo: supabase/rollbacks/20261013100000_account_deletion_reasons.rollback.sql
@@ -57,7 +61,8 @@ create table public.account_deletion_reasons (
 
 create table public.account_deletions (
   id          uuid primary key default gen_random_uuid(),
-  deleted_at  timestamptz not null default now(),
+  -- The UTC day only: a time of day could be matched to a log that does say who.
+  deleted_on  date not null default ((now() at time zone 'UTC')::date),
   reason      text not null check (public.account_deletion_reason_label(reason) is not null),
   note        text check (char_length(note) between 1 and 180),
   account_age text not null check (
@@ -166,9 +171,16 @@ set search_path = public
 as $$
   select 'Someone deleted their Mahi account.'
     || E'\n• Why: ' || coalesce(public.account_deletion_reason_label(p_reason), 'No reason given')
+    -- Their words as plain text: Slack's three control characters escaped (no pings, no made
+    -- links), and a web address broken up so Slack does not turn it into a link.
     || coalesce(
          E'\n• In their words: “'
-         || replace(replace(replace(p_note, '&', '&amp;'), '<', '&lt;'), '>', '&gt;') || '”',
+         || regexp_replace(
+              replace(
+                replace(replace(replace(p_note, '&', '&amp;'), '<', '&lt;'), '>', '&gt;'),
+                '://', '[://]'),
+              '(www)\.', '\1[.]', 'gi')
+         || '”',
          '')
     || E'\n• Had the account: ' || case p_account_age
          when 'under_a_day' then 'less than a day'
@@ -197,7 +209,10 @@ begin
     url := v_url,
     body := jsonb_build_object(
       'text',
-      public.account_deletion_slack_text(new.reason, new.note, new.account_age, new.had_posted)),
+      public.account_deletion_slack_text(new.reason, new.note, new.account_age, new.had_posted),
+      -- No previews of anything a person wrote.
+      'unfurl_links', false,
+      'unfurl_media', false),
     headers := jsonb_build_object('Content-Type', 'application/json'),
     timeout_milliseconds := 10000
   );
@@ -213,9 +228,22 @@ create trigger trg_account_deletions_notify
   after insert on public.account_deletions
   for each row execute function public.notify_account_deletion();
 
+-- A reason nobody acted on (the deletion failed, or they changed their mind) does not wait with
+-- the account for ever: every hour, what is over an hour old goes.
+create function public.clear_stale_account_deletion_reasons()
+returns void
+language sql
+set search_path = public
+as $$
+  delete from public.account_deletion_reasons where created_at < now() - interval '1 hour'
+$$;
+
+select cron.schedule('clear-stale-account-deletion-reasons', '23 * * * *',
+  $$select public.clear_stale_account_deletion_reasons()$$);
+
 create view stats.account_deletions_daily as
 select
-  (deleted_at at time zone 'UTC')::date as day,
+  deleted_on as day,
   reason,
   count(*)::int as deletions
 from public.account_deletions
@@ -231,7 +259,8 @@ revoke execute on function
   public.account_deletion_reason_label(text),
   public.record_account_deletion(),
   public.account_deletion_slack_text(text, text, text, boolean),
-  public.notify_account_deletion()
+  public.notify_account_deletion(),
+  public.clear_stale_account_deletion_reasons()
 from public, anon, authenticated;
 
 notify pgrst, 'reload schema';

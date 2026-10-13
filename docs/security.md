@@ -64,13 +64,16 @@ means "trusted": always ask what a stranger with a fresh account could read or w
 - **After an account is deleted (20261013100000).** Everything that says who the person was goes
   with the account (`account_delete_test.sql`). What stays is one row in `account_deletions` with no
   column that could say who: the reason they picked, their own words (only with "Something else",
-  180 characters at most), the time, how old the account was in four rough steps and whether it had
-  ever posted. Never a username, name, email, phone number, photo or account id, in the database,
+  180 characters at most), the day (never the time of day, which could be matched to a log), how
+  old the account was in four rough steps and whether it had ever posted. Never a username, name, email, phone number, photo or account id, in the database,
   in Slack or in PostHog. The app can read and write neither that table nor the reason waiting
   with an account; a reason is left only through `set_account_deletion_reason` (your own, from
-  `auth.uid()`), and the row is written by a trigger as the profile goes. The Slack message is
-  built from that row alone and escapes `&`, `<` and `>`, so someone's words can't ping a channel
-  or make a link. Before keeping anything new about a deleted person, ask what law requires it.
+  `auth.uid()`), and the row is written by a trigger as the profile goes. A reason left and not
+  acted on is cleared within the hour, and a failure to leave one is reported to Sentry without
+  the reason (Sentry knows the account). The Slack message is built from that row alone: `&`, `<`
+  and `>` are escaped, a web address is broken up and previews are off, so someone's words can't
+  ping a channel or make a link. Before keeping anything new about a deleted person, ask what law
+  requires it.
 - **Storage:** buckets holding people's content are private (avatars accepted public); the app
   shows files through signed URLs; the read policy applies the same visibility rule as the rows;
   uploads only into `<your user id>/`.

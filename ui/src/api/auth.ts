@@ -90,12 +90,13 @@ export async function deleteAccount(why?: DeletionAnswer): Promise<{ error: Erro
   const token = data.session?.access_token;
   if (!token) return { error: new Error('Log in again, then try again.') };
   if (why) {
+    // Sentry knows the account, so the report says only that the call failed, never the reason.
     const report = (err: unknown) =>
       reportError(err, {
         flow: 'account',
         action: 'setDeletionReason',
         level: 'warning',
-        extra: { rpc: 'set_account_deletion_reason', reason: why.reason },
+        extra: { rpc: 'set_account_deletion_reason' },
       });
     try {
       const { error: whyError } = await supabase.rpc(

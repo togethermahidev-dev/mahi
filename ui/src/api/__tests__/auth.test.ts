@@ -131,6 +131,20 @@ describe('deleteAccount with a reason', () => {
     );
   });
 
+  // Sentry knows which account an error came from, so the warning must not say why they left:
+  // that would tie the reason to the person after all.
+  it('the warning never carries the reason or their words', async () => {
+    rpc.mockResolvedValue({ error: { message: 'boom' } });
+    fetchMock.mockResolvedValue(reply(200, { deleted: true }));
+    await deleteAccount({ reason: 'privacy', note: null });
+    await deleteAccount({ reason: 'other', note: 'It got boring' });
+    expect(reportError).toHaveBeenCalledTimes(2);
+    const sent = JSON.stringify(reportError.mock.calls.map((call) => call[1]));
+    expect(sent).not.toContain('privacy');
+    expect(sent).not.toContain('other');
+    expect(sent).not.toContain('boring');
+  });
+
   it('nor does a lost connection while leaving it', async () => {
     rpc.mockRejectedValue(new Error('offline'));
     fetchMock.mockResolvedValue(reply(200, { deleted: true }));
