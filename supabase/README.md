@@ -128,6 +128,9 @@ Rules (enforced by `.claude/hooks/guard.cjs`):
     test in one transaction on production, then rolls everything back. Do this before every push.
   - `scripts/db.sh push --dry-run`, then `scripts/db.sh push`.
   - `scripts/db.sh test` — runs `tests/*.sql` with `psql`; every file is `begin; … rollback;`.
+  - `tests/live/` — tests that need the real Vault and pg_net (the local stand-ins have neither), so
+    `local` and `test` skip them: name them in a `try` (`tests/live/account_deletion_slack_test.sql`
+    checks the Slack message a deleted account queues; nothing is sent, it all rolls back).
 - The script reads the database password from `~/.pgpass` (the owner adds it; never committed):
   `aws-1-eu-west-2.pooler.supabase.com:5432:postgres:postgres.pzepodsppqtvptzmwxzs:<password>`
 

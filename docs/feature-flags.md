@@ -52,7 +52,8 @@ if (!videoOn) return null;
 - **Default-off flags** (`DEFAULT_OFF_FLAGS` in `featureFlags.ts`: `push-core`, `video-posts`,
   `ios-sf-symbols`, `camera-tap-focus`, `identity-verification`, `purchases`,
   `auth-google-signin`, `auth-apple-signin`, `live-activity`, `control-post-workout`, `siri-shortcuts`,
-  `spotlight`, `private-accounts`, `feed-rows`, `profile-bio-and-counts` and `native-short-sheets`): off
+  `spotlight`, `private-accounts`, `feed-rows`, `profile-bio-and-counts`, `native-short-sheets` and
+  `account-delete-reasons`): off
   while flags load, off with no PostHog key, off when missing from PostHog — on only when PostHog returns
   `true`. Use this for a feature that must never show, even for a moment on cold start (video posts would
   otherwise be able to ask for the microphone before flags load; the full-screen notifications page would
@@ -365,3 +366,14 @@ caption) goes through `ShortSheet`, where the grey fades in on its own and only 
 Motion the card fades too); it used to be one see-through layer that slid up, grey and all. The four with a text
 field or a confirm stay our own until each is seen as the native one on a phone with the keyboard up
 (`native` on `ShortSheet`). `ui/src/components/ShortSheet.tsx`, `ui/src/lib/shortSheet.ts`.
+
+**Deleting an account, with a reason:** `account-delete-reasons` (**default off in code**, added 2026-10-13;
+owner: "make deleting an account harder … a confirm with a tick of what gets removed"). On: Settings →
+Security and privacy → Delete account opens a page sheet in two steps. Why you're leaving (eight quick
+picks; "Something else" takes up to 180 characters of your own words; "I'd rather not say" is always there),
+then five lines to tick one by one and the word "delete" to type before the red button works. The reason is
+left with the account through `set_account_deletion_reason` (migration
+`20261013100000_account_deletion_reasons`); if that fails the account is still deleted, with no reason. Off:
+the one-step pop-up, and the deletion is kept and counted as "not given". Either way the server keeps one
+row with nothing that says who and posts it to Slack #account-deletions, and PostHog gets `account_deleted`
+with no link to the person. `ui/src/components/DeleteAccountSheet.tsx`, `ui/src/lib/accountDeletion.ts`.

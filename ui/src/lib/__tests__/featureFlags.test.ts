@@ -96,7 +96,15 @@ describe('default-off flags (video-posts)', () => {
       'feed-rows',
       'profile-bio-and-counts',
       'native-short-sheets',
+      'account-delete-reasons',
     ]);
+  });
+
+  // Deleting an account through the reason sheet (owner, 2026-10-13): a new flow, so it starts
+  // off; until switched on, Delete account is the one-step pop-up it always was.
+  it('keeps account-delete-reasons off until switched on', () => {
+    expect(FEATURE_FLAGS).toContain('account-delete-reasons');
+    expect(flagDefaultOn('account-delete-reasons')).toBe(false);
   });
 
   // Follower and following counts and the bio on profiles (owner, 2026-10-10): a new feature, so

@@ -13,6 +13,7 @@ import { posthog } from '@/lib/posthog';
 import { APP_BUILD } from '@/lib/appBuild';
 import { OTA_NUMBER } from '@/constants/ota';
 import { identityStep } from '@/lib/analyticsIdentity';
+import type { DeletionReasonCounted } from '@/lib/accountDeletion';
 
 export type TagLoopEvents = {
   /**
@@ -112,6 +113,13 @@ export type TagLoopEvents = {
   message_sent: { message_id: string; conversation_id: string; first: boolean };
   /** I reacted to a message with `emoji` (sent once the server has it; taking one off is not sent). */
   message_reacted: { emoji: string };
+  /**
+   * An account was deleted, once the server confirmed. `reason`: the quick pick, or `not_given`
+   * from the one-step pop-up. `note_added`: they wrote their own words (the words stay on the
+   * server). Sent only through `trackAccountDeleted`, with no link to the person.
+   * `stats.account_deletions_daily` has the number of record.
+   */
+  account_deleted: { reason: DeletionReasonCounted; note_added: boolean };
 };
 
 /** Send one tag-loop event. Never throws: analytics must not break what the user just did. */
@@ -120,6 +128,24 @@ export function track<K extends keyof TagLoopEvents>(event: K, props: TagLoopEve
     posthog.capture(event, props);
   } catch {
     // An analytics SDK that isn't ready is not worth a crash.
+  }
+}
+
+/**
+ * Count a deleted account (owner, 2026-10-13: "only keep what we are allowed"). Why someone left
+ * is never tied to who left: PostHog forgets the account first, so the event goes out under a new
+ * id with no person behind it, and forgets again after, so a later sign-in on this phone can't
+ * pick the event up. Forgetting clears what rides on every event (the app update, no city or
+ * postcode), so it goes on this event by hand and is put back for whatever the phone sends next.
+ */
+export function trackAccountDeleted(props: TagLoopEvents['account_deleted']): void {
+  try {
+    posthog.reset();
+    posthog.capture('account_deleted', { ...appUpdateProperties(), ...props });
+    posthog.reset();
+    void posthog.register(appUpdateProperties()).catch(() => undefined);
+  } catch {
+    // Same as `track`: analytics never breaks what the person just did.
   }
 }
 

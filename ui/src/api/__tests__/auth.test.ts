@@ -1,12 +1,14 @@
 const getSession = jest.fn();
 const signOut = jest.fn();
 const reportError = jest.fn();
+const rpc = jest.fn();
 jest.mock('@/lib/supabase', () => ({
   supabase: {
     auth: {
       getSession: (...a: unknown[]) => getSession(...a),
       signOut: (...a: unknown[]) => signOut(...a),
     },
+    rpc: (...a: unknown[]) => rpc(...a),
   },
 }));
 jest.mock('@/lib/env', () => ({ env: { supabaseUrl: 'https://x.test', supabaseAnonKey: 'anon' } }));
@@ -23,6 +25,7 @@ beforeEach(() => {
   fetchMock.mockReset();
   reportError.mockReset();
   signOut.mockReset().mockResolvedValue({ error: null });
+  rpc.mockReset().mockResolvedValue({ error: null });
   getSession.mockReset().mockResolvedValue({ data: { session: { access_token: 'tok' } } });
 });
 
@@ -94,5 +97,60 @@ describe('deleteAccount and Apple', () => {
       'Couldn’t delete your photos. Please try again.'
     );
     expect(signOut).not.toHaveBeenCalled();
+  });
+});
+
+// Owner, 2026-10-13: a reason on the way out. It waits with the account on the server and is
+// kept, with nothing that says who, once the account is gone.
+describe('deleteAccount with a reason', () => {
+  it('leaves the reason with the account first, then deletes', async () => {
+    fetchMock.mockResolvedValue(reply(200, { deleted: true }));
+    expect(await deleteAccount({ reason: 'other', note: 'It got boring' })).toEqual({
+      error: null,
+    });
+    expect(rpc).toHaveBeenCalledWith('set_account_deletion_reason', {
+      p_reason: 'other',
+      p_note: 'It got boring',
+    });
+    expect(rpc.mock.invocationCallOrder[0]).toBeLessThan(fetchMock.mock.invocationCallOrder[0]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://x.test/functions/v1/delete-account',
+      expect.objectContaining({ method: 'POST' })
+    );
+    expect(signOut).toHaveBeenCalledWith({ scope: 'local' });
+  });
+
+  it('a reason the server refuses never stops the deletion: reported as a warning', async () => {
+    rpc.mockResolvedValue({ error: { message: 'unknown reason', code: '22023' } });
+    fetchMock.mockResolvedValue(reply(200, { deleted: true }));
+    expect(await deleteAccount({ reason: 'privacy', note: null })).toEqual({ error: null });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(reportError).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ flow: 'account', action: 'setDeletionReason', level: 'warning' })
+    );
+  });
+
+  it('nor does a lost connection while leaving it', async () => {
+    rpc.mockRejectedValue(new Error('offline'));
+    fetchMock.mockResolvedValue(reply(200, { deleted: true }));
+    expect(await deleteAccount({ reason: 'privacy', note: null })).toEqual({ error: null });
+    expect(reportError).toHaveBeenCalledTimes(1);
+    expect(signOut).toHaveBeenCalledWith({ scope: 'local' });
+  });
+
+  it('with no reason (the one-step pop-up) nothing is left: the account is just deleted', async () => {
+    fetchMock.mockResolvedValue(reply(200, { deleted: true }));
+    expect(await deleteAccount()).toEqual({ error: null });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('signed out: nothing is sent at all', async () => {
+    getSession.mockResolvedValue({ data: { session: null } });
+    expect((await deleteAccount({ reason: 'privacy', note: null })).error?.message).toBe(
+      'Log in again, then try again.'
+    );
+    expect(rpc).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

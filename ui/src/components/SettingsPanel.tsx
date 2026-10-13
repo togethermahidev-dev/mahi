@@ -7,9 +7,12 @@ import {
 } from 'react-native-safe-area-context';
 import { deleteAccount, signOut } from '@/api/auth';
 import { DELETE_ACCOUNT_CONFIRM } from '@/lib/account';
+import type { DeletionAnswer } from '@/lib/accountDeletion';
+import { trackAccountDeleted } from '@/lib/analytics';
 import { VERSION_LINE } from '@/lib/appBuild';
 import { reportError } from '@/lib/sentry';
 import BlockedUsersSheet from '@/components/BlockedUsersSheet';
+import DeleteAccountSheet from '@/components/DeleteAccountSheet';
 import MyInvitesSheet from '@/components/MyInvitesSheet';
 import FindMatesSheet from '@/components/FindMatesSheet';
 import { useContactsFinder } from '@/hooks/useContactsFinder';
@@ -115,6 +118,10 @@ function Sheet({
   // Public and private accounts: the privacy controls (switch `private-accounts`).
   const controlsOn = useFeatureFlag('private-accounts');
   const [deleting, setDeleting] = useState(false);
+  // Delete account as a sheet: why you're leaving, tick what goes, type delete (owner,
+  // 2026-10-13). Off: the one-step pop-up.
+  const deleteSheetOn = useFeatureFlag('account-delete-reasons');
+  const [deleteOpen, setDeleteOpen] = useState(false);
   // Follow requests to a private account: read fresh while Settings is open, never kept. The
   // number shows on the row that leads to them here, and beside "Follow requests" on its page.
   const privateAccount = useUserStore((s) => s.profile?.is_private) === true;
@@ -142,10 +149,29 @@ function Sheet({
     );
   };
 
-  // Apple requires in-app deletion. One plain confirmation; on success App.tsx's sign-out path
-  // resets every store and shows the welcome screen.
+  // The one place an account is deleted from. On success App.tsx's sign-out path resets every
+  // store and shows the welcome screen; the deletion is counted with no link to the person.
+  const runDelete = async (why?: DeletionAnswer) => {
+    if (deleting) return;
+    setDeleting(true);
+    const { error } = await deleteAccount(why);
+    if (error) {
+      reportError(error, { flow: 'settings', action: 'deleteAccount' });
+      setDeleting(false);
+      Alert.alert('Couldn’t delete your account', error.message);
+      return;
+    }
+    trackAccountDeleted({ reason: why?.reason ?? 'not_given', note_added: Boolean(why?.note) });
+  };
+
+  // Apple requires in-app deletion. With the switch on: the sheet (a reason, a tick for each
+  // thing that goes, the word typed). Off: one plain confirmation.
   const handleDeleteAccount = () => {
     if (deleting) return;
+    if (deleteSheetOn) {
+      setDeleteOpen(true);
+      return;
+    }
     Alert.alert(
       DELETE_ACCOUNT_CONFIRM.title,
       DELETE_ACCOUNT_CONFIRM.message,
@@ -154,15 +180,7 @@ function Sheet({
         {
           text: DELETE_ACCOUNT_CONFIRM.confirm,
           style: 'destructive',
-          onPress: async () => {
-            setDeleting(true);
-            const { error } = await deleteAccount();
-            if (error) {
-              reportError(error, { flow: 'settings', action: 'deleteAccount' });
-              setDeleting(false);
-              Alert.alert('Couldn’t delete your account', error.message);
-            }
-          },
+          onPress: () => void runDelete(),
         },
       ],
       { cancelable: true }
@@ -313,6 +331,13 @@ function Sheet({
       <FollowRequestsSheet
         visible={requestsOpen}
         onClose={() => setRequestsOpen(false)}
+        dark={dark}
+      />
+      <DeleteAccountSheet
+        visible={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onDelete={(why) => void runDelete(why)}
+        busy={deleting}
         dark={dark}
       />
 

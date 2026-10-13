@@ -249,9 +249,15 @@
 - Profile data is inserted into `public.profiles` after successful `signInWithPassword` — only the sign-up columns (column grant from the `20261008100000_security_hardening` migration); points, ban and dates are the server's
 - Sign-up keeps date of birth and phone number as required fields (founder, 2026-10-01)
 - Log in → "Forgot password?" (`ForgotPasswordSheet`, `OtpCodeInput`) emails a code; code + new password log you in
-- Settings → Security and privacy → "Delete account" (Apple requires in-app deletion) asks once, then calls
-  `delete-account`: photos removed, auth user deleted, every table cascades
+- Settings → Security and privacy → "Delete account" (Apple requires in-app deletion). With the switch
+  `account-delete-reasons` on it opens `DeleteAccountSheet`: pick why you're leaving ("Something else" takes
+  180 characters; "I'd rather not say" is always there), tick each of the five things that go, type "delete".
+  Off, it asks once. Then the reason is left with the account (`set_account_deletion_reason`; a failure never
+  stops the deletion) and `delete-account` runs: photos removed, auth user deleted, every table cascades
   (`20261001100100_account_delete_cascade`)
+- After a deletion the server keeps one row with nothing that says who (`account_deletions`: reason, their
+  words, account age in four steps, had posted) and posts it to Slack #account-deletions itself; never a
+  username, email or account id anywhere (`20261013100000_account_deletion_reasons`, `docs/security.md`)
 
 ## State Management
 

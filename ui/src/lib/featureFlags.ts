@@ -70,6 +70,9 @@ export const FEATURE_FLAGS = [
 
   // Sheets (owner, 2026-10-10)
   'native-short-sheets', // Invite a friend opens as the phone's own short sheet on builds that have it (default OFF until seen on a phone)
+
+  // Account (owner, 2026-10-13)
+  'account-delete-reasons', // Delete account opens a sheet: why you're leaving, tick what goes, type delete (default OFF; off = the one-step pop-up; reasons need migration 20261013100000_account_deletion_reasons)
 ] as const;
 
 /** A known PostHog feature flag key. */
@@ -96,6 +99,8 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
  * off while flags load too, so rows never show first and then swap to full screen.
  * `profile-bio-and-counts`: a new feature (owner, 2026-10-10), so it starts off; the profile
  * header never changes shape in front of someone while flags load.
+ * `account-delete-reasons`: a new flow (owner, 2026-10-13), so it starts off; until switched on,
+ * Delete account is the one-step pop-up.
  */
 export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'push-core',
@@ -114,6 +119,7 @@ export const DEFAULT_OFF_FLAGS: readonly FeatureFlag[] = [
   'feed-rows',
   'profile-bio-and-counts',
   'native-short-sheets',
+  'account-delete-reasons',
 ];
 
 /** Whether a flag reads as on before PostHog has answered (true for all but DEFAULT_OFF_FLAGS). */

@@ -61,6 +61,16 @@ means "trusted": always ask what a stranger with a fresh account could read or w
   - The caller comes from `auth.uid()`. Never trust a user id passed in.
   - `revoke execute … from public, anon`, then grant to the roles that need it. Internal helpers
     are revoked from `authenticated` too.
+- **After an account is deleted (20261013100000).** Everything that says who the person was goes
+  with the account (`account_delete_test.sql`). What stays is one row in `account_deletions` with no
+  column that could say who: the reason they picked, their own words (only with "Something else",
+  180 characters at most), the time, how old the account was in four rough steps and whether it had
+  ever posted. Never a username, name, email, phone number, photo or account id, in the database,
+  in Slack or in PostHog. The app can read and write neither that table nor the reason waiting
+  with an account; a reason is left only through `set_account_deletion_reason` (your own, from
+  `auth.uid()`), and the row is written by a trigger as the profile goes. The Slack message is
+  built from that row alone and escapes `&`, `<` and `>`, so someone's words can't ping a channel
+  or make a link. Before keeping anything new about a deleted person, ask what law requires it.
 - **Storage:** buckets holding people's content are private (avatars accepted public); the app
   shows files through signed URLs; the read policy applies the same visibility rule as the rows;
   uploads only into `<your user id>/`.
@@ -96,7 +106,9 @@ means "trusted": always ask what a stranger with a fresh account could read or w
   on-screen confirm that says what will happen (for invites: "you'll automatically follow each
   other"). Not now = nothing written.
 - **No personal data to PostHog or Sentry:** the account id only. No email, phone number, contacts,
-  tokens, codes, search text or messages, and no city or postcode (`$geoip_disable`).
+  tokens, codes, search text or messages, and no city or postcode (`$geoip_disable`). A deleted
+  account is counted (`account_deleted`: the reason, never their words) only after PostHog has
+  forgotten the account (`trackAccountDeleted`).
 - **Unreleased features start off:** their switch is in `DEFAULT_OFF_FLAGS` and off in PostHog, and
   the iPhone side reads a missing switch as off.
 - **The sign-in session lives in the keychain** (`ui/src/lib/sessionStorage.ts`, build 13+); never put
@@ -145,6 +157,13 @@ Each is a setting only the owner can change. Tick it here when done.
 - [ ] Supabase Database: SSL enforced; strong password for `posthog_reader`; no Storage S3 access keys.
 - [ ] Push go-live: set `EXPO_ACCESS_TOKEN` (`supabase secrets set`), redeploy `send-push`, then turn on
   Expo "Enhanced push security" — in that order.
+- [ ] Slack: the address for #account-deletions goes into the database's secret store
+  (`account_deletions_slack_url`, an incoming webhook for that one channel); never a bot token.
+- [ ] Privacy policy (none is published yet): say what is deleted with an account, and that we keep
+  only the reason for leaving with nothing that identifies the person. Have it checked by a lawyer
+  before launch.
+- [ ] PostHog: a deleted person's past activity stays there under their old account id. Decide
+  whether it should be removed when an account is deleted (it needs a PostHog key on the server).
 - [ ] Later (owner decisions): code-signed OTA updates; raise the update gate to build 13 once it's out
   (older builds keep the session in plain storage); a minimum age.
 
@@ -158,6 +177,9 @@ Each is a setting only the owner can change. Tick it here when done.
   address (Cloudflare's, else the last `x-forwarded-for` entry), counted in `auth_rate_limits`
   (20261008180000). With no usable address, signed-out callers share one key capped at 1000 an
   hour, so one guesser can't lock everyone out. Full link tokens are not limited.
+- Someone can make an account, write up to 180 characters as their reason and delete it, which puts
+  those words in #account-deletions. Each message costs a full sign-up (emailed code, rate limits),
+  and the words can't ping or link. Delete any message that names someone.
 - The `avatars` bucket is public: a profile photo opens by its address without signing in. Only the
   owner can list or change their folder, and `avatar_url` must point into it (20261008150000).
 

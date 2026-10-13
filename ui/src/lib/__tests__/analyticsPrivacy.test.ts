@@ -4,19 +4,28 @@
  */
 const identify = jest.fn();
 const register = jest.fn(async (_props: unknown) => undefined);
+const capture = jest.fn();
+// What PostHog was asked to do, in order.
+const order: string[] = [];
 jest.mock('@/lib/posthog', () => ({
   posthog: {
     ready: async () => undefined,
     getDistinctId: () => 'anon',
     getAnonymousId: () => 'anon',
-    reset: jest.fn(),
+    reset: () => {
+      order.push('reset');
+    },
     identify: (...args: unknown[]) => identify(...args),
     register: (props: unknown) => register(props),
+    capture: (...args: unknown[]) => {
+      order.push('capture');
+      capture(...args);
+    },
   },
 }));
 jest.mock('@/lib/appBuild', () => ({ APP_BUILD: 13 }));
 
-import { appUpdateProperties, syncAnalyticsIdentity } from '@/lib/analytics';
+import { appUpdateProperties, syncAnalyticsIdentity, trackAccountDeleted } from '@/lib/analytics';
 
 it('identifies a person by their account id only, never their email', async () => {
   // A signed-in Supabase user carries an email; only the id may reach PostHog.
@@ -31,6 +40,41 @@ it('every event turns off PostHog working out a city or postcode', () => {
   expect(appUpdateProperties()).toMatchObject({ $geoip_disable: true });
 });
 
+// Owner, 2026-10-13: "only keep what we are allowed". Why someone left is counted, never tied to
+// who left: PostHog forgets the account before the event is sent, and forgets again after it, so
+// a later sign-in on the same phone can't pick the event up.
+describe('a deleted account', () => {
+  beforeEach(() => {
+    order.length = 0;
+    capture.mockReset();
+  });
+
+  it('is counted with no link to the person, before or after', () => {
+    trackAccountDeleted({ reason: 'privacy', note_added: false });
+    expect(order).toEqual(['reset', 'capture', 'reset']);
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(capture.mock.calls[0][0]).toBe('account_deleted');
+  });
+
+  it('carries the reason and the app update only: never the words they wrote', () => {
+    trackAccountDeleted({ reason: 'other', note_added: true });
+    const props = capture.mock.calls[0][1] as Record<string, unknown>;
+    expect(Object.keys(props).sort()).toEqual(
+      ['$geoip_disable', 'app_build', 'app_update', 'note_added', 'ota', 'reason'].sort()
+    );
+    expect(props).toMatchObject({ reason: 'other', note_added: true, $geoip_disable: true });
+  });
+
+  // Forgetting the account also clears what rides on every event, so it is put straight back:
+  // whatever this phone sends next from the welcome screen still carries no city or postcode.
+  it('leaves the phone still sending no city or postcode afterwards', () => {
+    register.mockClear();
+    trackAccountDeleted({ reason: 'not_given', note_added: false });
+    expect(register).toHaveBeenCalledTimes(1);
+    expect(register.mock.calls[0][0]).toMatchObject({ $geoip_disable: true });
+  });
+});
+
 // docs/security.md: the account id only — no usernames, emails or phone numbers in PostHog events
 // or Sentry breadcrumbs. Scans the source so a new call can't slip one in.
 describe('no personal details in analytics or breadcrumbs', () => {
@@ -38,7 +82,10 @@ describe('no personal details in analytics or breadcrumbs', () => {
   const fs = require('fs') as typeof import('fs');
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const path = require('path') as typeof import('path');
-  const roots = [path.join(__dirname, '..', '..'), path.join(__dirname, '..', '..', '..', 'App.tsx')];
+  const roots = [
+    path.join(__dirname, '..', '..'),
+    path.join(__dirname, '..', '..', '..', 'App.tsx'),
+  ];
   const files: string[] = [];
   const walk = (p: string) => {
     if (p.includes('__tests__')) return;

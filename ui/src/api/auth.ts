@@ -10,6 +10,7 @@
 import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import { reportError } from '@/lib/sentry';
+import type { DeletionAnswer } from '@/lib/accountDeletion';
 import { unregisterPushToken } from './push';
 
 const SUPABASE_URL = env.supabaseUrl;
@@ -79,11 +80,33 @@ export async function resetPassword(email: string, code: string, password: strin
  * account, then the account; every row cascades), then sign out on this phone only — the server
  * session is already gone. App.tsx's onAuthStateChange resets every store and shows the welcome
  * screen. A failed Apple revoke never stops the deletion; it is reported as a warning.
+ *
+ * `why` (the reason sheet): left with the account first (`set_account_deletion_reason`), so the
+ * server keeps it, with nothing that says who, as the account goes. A reason that can't be left
+ * never stops the deletion either; it is reported as a warning and the account goes without one.
  */
-export async function deleteAccount(): Promise<{ error: Error | null }> {
+export async function deleteAccount(why?: DeletionAnswer): Promise<{ error: Error | null }> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) return { error: new Error('Log in again, then try again.') };
+  if (why) {
+    const report = (err: unknown) =>
+      reportError(err, {
+        flow: 'account',
+        action: 'setDeletionReason',
+        level: 'warning',
+        extra: { rpc: 'set_account_deletion_reason', reason: why.reason },
+      });
+    try {
+      const { error: whyError } = await supabase.rpc(
+        'set_account_deletion_reason' as never,
+        { p_reason: why.reason, p_note: why.note } as never
+      );
+      if (whyError) report(whyError);
+    } catch (err) {
+      report(err);
+    }
+  }
   const { error, data: reply } = await callFunction('delete-account', {}, token);
   if (error) return { error };
   const apple = reply?.apple;

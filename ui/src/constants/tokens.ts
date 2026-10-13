@@ -585,6 +585,14 @@ export const PROFILE_ABOUT = {
   fieldMinHeight: SIZE.z96,
 } as const;
 
+// ─── Deleting your account (switch `account-delete-reasons`) ───
+export const ACCOUNT_DELETION = {
+  /** The most characters of their own words with "Something else"; the server refuses more. */
+  noteMax: 180,
+  /** The "Something else" field starts this tall and grows with the words. */
+  fieldMinHeight: SIZE.z96,
+} as const;
+
 export const POINTS_NUMBER = {
   /** Each digit keeps this share of the text size: Inter Tight's widest digit (extra-bold, 0.681). */
   digitWidth: 0.69,

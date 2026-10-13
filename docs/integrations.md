@@ -265,6 +265,7 @@ Product analytics via `posthog-react-native`. Singleton client created with `EXP
 
 | Core actions: `user_followed` (`became_friends`), `user_unfollowed`, `post_liked`, `comment_added`, `message_sent` | the stores that make them | After the server saves the row; each carries the row id |
 | Private accounts: `follow_requested`, `follow_request_cancelled` (`target_id`), `follow_request_answered` (`accepted`), `account_controls_changed` (`is_private`, `posts_visibility`, `tag_permission` as saved), `follower_removed` (`tags_ended`) | `followStore`, `followRequestStore`, `userStore` | After the server confirms; nothing for a refusal or a repeat |
+| Account deleted: `account_deleted` (`reason`: the quick pick or `not_given`; `note_added`) | `SettingsPanel.tsx` through `trackAccountDeleted` | After the server deleted the account. PostHog forgets the account first and again after, so the reason is never tied to the person; their own words are never sent |
 
 Feature flags are read through the same client — see [feature-flags.md](./feature-flags.md).
 
@@ -288,7 +289,9 @@ actions per week, churn watch (new / returning / back / gone quiet).
 active people, retention, activation and weekly lifecycle computed from the database itself.
 The `posthog_reader` role can read only those totals (no app table, no per-person rows). Once
 the owner gives it a login and connects it as a PostHog Supabase source (schema `stats`), these
-become the tiles to trust when PostHog and the database disagree.
+become the tiles to trust when PostHog and the database disagree. Deleted accounts per day and
+reason are there too (`stats.account_deletions_daily`, `20261013100000_account_deletion_reasons`):
+counts only, never anyone's own words.
 
 **Required env vars** (EAS preview + production, "sensitive"):
 ```
