@@ -7,6 +7,9 @@
  *   - every native build: pnpm release:prepare                (build +1, this back to 0)
  *
  * History (newest first):
+ *   build 13 · 54 — deleting your account takes two steps: say why you're leaving (or write it,
+ *     180 characters), then tick each thing that goes and type delete; the reason is kept with
+ *     nothing that says who you were (2026-10-13)
  *   build 13 · 53 — sideways swipes off the camera no longer get dropped; profile grid rows and
  *     the points numbers keep their place; a chat opened from a sheet clears the status bar and
  *     shows the other person's picture; the emailed code's boxes can be tapped again and show a
@@ -205,4 +208,4 @@
  *   build 10 · 11 — tag picker says "tagged you, can't tag back" (2026-09-28)
  *   build 10 · 09 — carried over from the hand-typed counter in Settings (2026-09-23)
  */
-export const OTA_NUMBER = 53;
+export const OTA_NUMBER = 54;
