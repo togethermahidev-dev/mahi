@@ -33,9 +33,10 @@ yet. Not pushed to GitHub.
 - An independent review ran before the push; its four findings were fixed first (`cb2b0fa`): the
   day only, not the time; unused reasons cleared; web addresses in someone's words can't become
   links; the reason never goes to Sentry.
-- Still open (owner): the Slack address; a phone check of 13.54 with a throwaway account; a
-  privacy policy that says what is kept; whether a deleted person's past activity in PostHog
-  should be removed too.
+- Still open (owner): the Slack address (parked); a phone check of 13.54 with a throwaway
+  account; the privacy policy (a local draft is at `docs/privacy-policy-draft.md`, git-ignored:
+  fill in the points at its top, then a lawyer checks it); whether a deleted person's past
+  activity in PostHog should be removed too.
 - Two database tests fail locally and did before this work: `messages_test.sql` (permission
   denied on `conversations`) and `staff_admins_test.sql` (expects the three live staff rows).
 
