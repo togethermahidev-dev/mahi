@@ -1,5 +1,5 @@
 /**
- * Invite links (/i/<token>) and post links (/p/<id>) on togethermahi.com.
+ * Invite links (/i/<username>/<code>, older ones /i/<token>) and post links (/p/<id>) on togethermahi.com.
  *
  * On an iPhone with Mahi installed these open the app straight away (Universal Links, from
  * public/.well-known/apple-app-site-association) and the pages below are never seen. Everyone
@@ -63,9 +63,13 @@ function segment(pathname: string, prefix: 'i' | 'p'): string | null {
   }
 }
 
-/** The token (or 6-character code) in an invite link's path, or null when it isn't one. */
+/**
+ * The token (or 6-character code) in an invite link's path, or null when it isn't one. New links
+ * put the sender's username in front of the code (`/i/joe/K7M2QX`); only the code is read.
+ */
 export function inviteFromPath(pathname: string): string | null {
-  const raw = segment(pathname, 'i');
+  const named = /^\/i\/[^/?#]+(\/[^/?#]+\/?)$/.exec(pathname);
+  const raw = segment(named ? `/i${named[1]}` : pathname, 'i');
   if (!raw) return null;
   if (TOKEN.test(raw)) return raw.toLowerCase();
   const code = raw.trim().toUpperCase().replace(/[\s-]/g, '');

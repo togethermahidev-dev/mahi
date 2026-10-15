@@ -111,6 +111,12 @@ test('an invite link gives its token or code, like the app reads it', () => {
   assert.equal(inviteFromPath('/p/abc'), null);
 });
 
+test('an invite link with the sender’s username in front gives its code', () => {
+  assert.equal(inviteFromPath('/i/joe/K7M2QX'), 'K7M2QX');
+  assert.equal(inviteFromPath('/i/joe.smith/k7m2qx/'), 'K7M2QX');
+  assert.equal(inviteFromPath('/i/joe/K7M2QX/more'), null);
+});
+
 test('a post link gives its post id', () => {
   assert.equal(
     postIdFromPath('/p/6f1c2d3e-0000-4000-8000-000000000001/'),
