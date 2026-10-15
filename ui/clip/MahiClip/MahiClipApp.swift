@@ -2,7 +2,7 @@ import StoreKit
 import SwiftUI
 
 // Mahi's App Clip (build 13+). Someone without Mahi taps an invite link
-// (togethermahi.com/i/<token>) on an iPhone, taps Open on the App Clip card, and lands here:
+// (togethermahi.com/i/<username>/<code>) on an iPhone, taps Open on the App Clip card, and lands here:
 // who invited them, the same words as the invite web page, and one button, "Get Mahi", that
 // opens the App Store sheet. No sign-up in the clip. The only thing saved is the invite link,
 // for the full app to pick up (InviteHandover). Native SwiftUI, no React Native, to stay small.

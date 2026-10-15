@@ -10,12 +10,14 @@ enum InviteLink {
   private static let code = try! NSRegularExpression(pattern: "^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}$")
 
   /// The token (or 6-character code) in togethermahi.com/i/<invite>, or nil when it isn't one.
+  /// New links put the sender's username in front (togethermahi.com/i/joe/K7M2QX): only the code
+  /// is read.
   static func invite(from url: URL?) -> String? {
     guard let url, let host = url.host?.lowercased(),
           host == "togethermahi.com" || host == "www.togethermahi.com" else { return nil }
     let parts = url.path.split(separator: "/").map(String.init)
-    guard parts.count == 2, parts[0] == "i" else { return nil }
-    let raw = parts[1].removingPercentEncoding ?? parts[1]
+    guard parts.count == 2 || parts.count == 3, parts[0] == "i", let last = parts.last else { return nil }
+    let raw = last.removingPercentEncoding ?? last
     if matches(token, raw) { return raw.lowercased() }
     let cleaned = raw.trimmingCharacters(in: .whitespaces).uppercased()
       .replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "-", with: "")
