@@ -1,10 +1,10 @@
 /**
  * Invite links.
  *
- * A link looks like `https://togethermahi.com/i/<token>`; the app's own scheme,
- * `mahi://i/<token>`, opens the same thing when Mahi is already installed. The landing page
- * also shows a 6-character code to read out or type in, for the trip through an app-store
- * install where the link itself doesn't survive.
+ * A link looks like `https://togethermahi.com/i/<username>/<code>`: who sent it, then the
+ * invite's own 6-character code (owner, 2026-10-15). Older links are `/i/<token>` and
+ * `/i/<code>`, and still work. The app's own scheme, `mahi://i/…`, opens the same thing when Mahi
+ * is already installed. The username is only there to read: the code alone decides the invite.
  *
  * The domain is spelled here because the native link configuration in app.config.js spells it
  * too — both are build-time, unlike the server's `app_config.invite_base_url`.
@@ -12,8 +12,11 @@
  * Pure and import-free so it runs under the node-only jest harness.
  */
 
-const WEB_LINK = /^https?:\/\/(?:www\.)?togethermahi\.com\/i\/([^/?#]+)/i;
-const APP_LINK = /^mahi:\/\/\/?i\/([^/?#]+)/i;
+const SITE = 'https://togethermahi.com';
+/** The part after `/i/`: one piece, or a username then the code. Nothing may follow. */
+const INVITE_PATH = '(?:[^/?#]+\\/)?([^/?#]+)\\/?(?:[?#]|$)';
+const WEB_LINK = new RegExp(`^https?:\\/\\/(?:www\\.)?togethermahi\\.com\\/i\\/${INVITE_PATH}`, 'i');
+const APP_LINK = new RegExp(`^mahi:\\/\\/\\/?i\\/${INVITE_PATH}`, 'i');
 const TOKEN = /^[0-9a-f]{32}$/i;
 /** The code alphabet has no 0, O, 1 or I — they get misread off a screen. */
 const CODE = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}$/;
@@ -46,6 +49,18 @@ export function parseInviteLink(url: string | null | undefined): string | null {
   }
   if (TOKEN.test(raw)) return raw.toLowerCase();
   return normaliseInviteCode(raw);
+}
+
+/**
+ * The link to send for an invite: the sender's username, then the code. Null without either,
+ * and the server's own link is sent instead.
+ */
+export function inviteUrl(
+  username: string | null | undefined,
+  code: string | null | undefined
+): string | null {
+  if (!username || !code) return null;
+  return `${SITE}/i/${encodeURIComponent(username)}/${code}`;
 }
 
 /**

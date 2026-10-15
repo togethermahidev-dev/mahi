@@ -19,6 +19,17 @@ import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
 import { reportError } from '@/lib/sentry';
 import { useToastStore } from '@/store/toastStore';
+import { useUserStore } from '@/store/userStore';
+import { inviteUrl } from '@/lib/inviteLink';
+
+/**
+ * The link to send: your username, then the invite's code (`togethermahi.com/i/joe/K7M2QX`), so
+ * nobody sees a long key that looks like an account number. The server's link when either is
+ * missing.
+ */
+export function sendableUrl<U extends string | null>(link: { url: U; code: string | null }): string | U {
+  return inviteUrl(useUserStore.getState().profile?.username, link.code) ?? link.url;
+}
 
 /** The longest name the server keeps with a link. */
 const MAX_NAME = 60;
@@ -51,7 +62,7 @@ export function noteInviteSent(
 /** Opens the share sheet with a link. True when it went somewhere. Says so when sharing couldn't open. */
 export async function shareMateLink(link: MateInvite, action: string): Promise<boolean> {
   try {
-    const result = await Share.share({ message: mateInviteMessage(link.url) });
+    const result = await Share.share({ message: mateInviteMessage(sendableUrl(link)) });
     if (result.action !== Share.sharedAction) return false;
     track('invite_shared', { via: 'more' });
     noteInviteSent(link.token, 'share');
@@ -73,7 +84,7 @@ export async function sendLinkTo(
   place: ResendPlace,
   action: string
 ): Promise<boolean> {
-  const message = mateInviteMessage(link.url);
+  const message = mateInviteMessage(sendableUrl(link));
   const platform = Platform.OS === 'ios' ? 'ios' : 'android';
   if (place.open !== 'share') {
     const url =
@@ -114,7 +125,7 @@ export async function sendMateLinkVia(
 ): Promise<boolean> {
   const action = 'shareMateInvite';
   if (target === 'copy') {
-    const copied = copyLink(link.url);
+    const copied = copyLink(sendableUrl(link));
     if (copied) {
       track('invite_shared', { via: 'copy' });
       noteInviteSent(link.token, 'copy');

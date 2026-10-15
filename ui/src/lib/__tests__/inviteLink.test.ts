@@ -1,5 +1,6 @@
 import {
   parseInviteLink,
+  inviteUrl,
   normaliseInviteCode,
   typedInvite,
   claimedText,
@@ -34,6 +35,17 @@ describe('parseInviteLink', () => {
     expect(parseInviteLink('https://togethermahi.com/i/9acwlh')).toBe('9ACWLH');
   });
 
+  it('reads the code out of a link with the sender’s username in front', () => {
+    expect(parseInviteLink('https://togethermahi.com/i/joe/K7M2QX')).toBe('K7M2QX');
+    expect(parseInviteLink('https://www.togethermahi.com/i/joe.smith/k7m2qx/')).toBe('K7M2QX');
+    expect(parseInviteLink('mahi://i/joe/K7M2QX')).toBe('K7M2QX');
+    expect(parseInviteLink('https://togethermahi.com/i/joe/K7M2QX?utm_source=x')).toBe('K7M2QX');
+  });
+
+  it('turns away a username link with more after the code', () => {
+    expect(parseInviteLink('https://togethermahi.com/i/joe/K7M2QX/more')).toBeNull();
+  });
+
   it('turns away anything that is not one of our links', () => {
     expect(parseInviteLink(`https://example.com/i/${TOKEN}`)).toBeNull();
     expect(parseInviteLink('https://togethermahi.com/about')).toBeNull();
@@ -47,6 +59,26 @@ describe('parseInviteLink', () => {
   it('turns away a link whose token is the wrong shape', () => {
     expect(parseInviteLink('https://togethermahi.com/i/abc')).toBeNull();
     expect(parseInviteLink(`https://togethermahi.com/i/${TOKEN}ff`)).toBeNull();
+  });
+});
+
+describe('inviteUrl', () => {
+  it('puts the sender’s username in front of the code', () => {
+    expect(inviteUrl('joe', 'K7M2QX')).toBe('https://togethermahi.com/i/joe/K7M2QX');
+  });
+
+  it('keeps a username that needs escaping inside its own part of the link', () => {
+    expect(inviteUrl('jo/e', 'K7M2QX')).toBe('https://togethermahi.com/i/jo%2Fe/K7M2QX');
+  });
+
+  it('is null without a username or a code, so the server’s link is used', () => {
+    expect(inviteUrl(null, 'K7M2QX')).toBeNull();
+    expect(inviteUrl('joe', null)).toBeNull();
+    expect(inviteUrl('', '')).toBeNull();
+  });
+
+  it('makes a link the app reads back to the same code', () => {
+    expect(parseInviteLink(inviteUrl('joe', 'K7M2QX'))).toBe('K7M2QX');
   });
 });
 

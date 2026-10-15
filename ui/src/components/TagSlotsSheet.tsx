@@ -19,7 +19,7 @@ import { supabase } from '@/lib/supabase';
 import { haptic } from '@/lib/haptics';
 import { reportError } from '@/lib/sentry';
 import { track } from '@/lib/analytics';
-import { noteInviteSent } from '@/lib/inviteAMate';
+import { noteInviteSent, sendableUrl } from '@/lib/inviteAMate';
 import { useAuthStore } from '@/store';
 import KeyboardInset from '@/components/KeyboardInset';
 import InviteChannelIcon from '@/components/InviteChannelIcon';
@@ -471,7 +471,8 @@ export default function TagSlotsSheet({
     contact?: InviteContact
   ): Promise<boolean> => {
     if (!slot.url || !slot.code) return false;
-    const message = slotShareMessage(slot.url, slot.code);
+    const link = sendableUrl({ url: slot.url, code: slot.code });
+    const message = slotShareMessage(link, slot.code);
     const platform = Platform.OS === 'ios' ? 'ios' : 'android';
     let shared = false;
     // How it really went: the share sheet when the app asked for isn't on this phone.
@@ -487,7 +488,7 @@ export default function TagSlotsSheet({
         shared = true;
       } else {
         // Snap and IG have no kit in this build: the phone's sheet, with the link for a preview.
-        const content = target === 'more' ? { message } : { message, url: slot.url };
+        const content = target === 'more' ? { message } : { message, url: link };
         shared = (await Share.share(content)).action === Share.sharedAction;
       }
     } catch {

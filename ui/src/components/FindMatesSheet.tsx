@@ -41,7 +41,7 @@ import {
   type MatchPhase,
   type MatchedAccount,
 } from '@/lib/contactMatch';
-import { discardUnsentLink, makeMateLink, noteInviteSent } from '@/lib/inviteAMate';
+import { discardUnsentLink, makeMateLink, noteInviteSent, sendableUrl } from '@/lib/inviteAMate';
 import { useInviteAMate } from '@/components/ShareSheet';
 import { INVITE_BUTTON, mateInviteMessage } from '@/lib/tagSlots';
 import { reportError } from '@/lib/sentry';
@@ -317,7 +317,7 @@ function FindMates({ onClose, dark }: { onClose: () => void; dark: boolean }) {
       if (!link) return;
       const sms = smsInviteUrl(
         contact.phone,
-        mateInviteMessage(link.url),
+        mateInviteMessage(sendableUrl(link)),
         Platform.OS === 'ios' ? 'ios' : 'android'
       );
       try {
